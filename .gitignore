@@ -125,3 +125,4 @@ dmypy.json
 .pyre/
 API Key Alpha
 API Key
+*.tif
