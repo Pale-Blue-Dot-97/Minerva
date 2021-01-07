@@ -5,3 +5,9 @@ API_KEY = 'PASTE_YOUR_API_KEY_HERE'
 API_BASE = 'https://api.radiant.earth/mlhub/v1'
 
 COLLECTION_ID = 'ref_landcovernet_v1_labels'
+
+r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
+print(f'Description: {r.json()["description"]}')
+print(f'License: {r.json()["license"]}')
+print(f'DOI: {r.json()["sci:doi"]}')
+print(f'Citation: {r.json()["sci:citation"]}')
