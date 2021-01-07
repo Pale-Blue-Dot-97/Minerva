@@ -6,6 +6,16 @@ import arrow
 from multiprocessing.pool import ThreadPool
 from tqdm import tqdm
 
+# copy your API key from dashboard.mlhub.earth and paste it in the following
+API_KEY = open('API Key', 'r').read()
+API_BASE = 'https://api.radiant.earth/mlhub/v1'
+
+COLLECTION_ID = 'ref_landcovernet_v1_labels'
+
+s3 = boto3.client('s3')
+
+p = ThreadPool(20)
+
 
 def download_s3(uri, path):
     parsed = urlparse(uri)
@@ -120,12 +130,6 @@ def get_items(uri, classes=None, max_items_downloaded=None, items_downloaded=0, 
     return downloads
 
 
-# copy your API key from dashboard.mlhub.earth and paste it in the following
-API_KEY = open('API Key', 'r').read()
-API_BASE = 'https://api.radiant.earth/mlhub/v1'
-
-COLLECTION_ID = 'ref_landcovernet_v1_labels'
-
 r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
 print(f'Description: {r.json()["description"]}')
 print(f'License: {r.json()["license"]}')
@@ -140,4 +144,7 @@ for label_class in label_classes:
         print(f'- {c}')
 
 
-s3 = boto3.client('s3')
+to_download = get_items(f'{API_BASE}/collections/{COLLECTION_ID}/items',
+                        max_items_downloaded=10, downloads=[])
+for d in tqdm(to_download):
+    p.map(download, d)
