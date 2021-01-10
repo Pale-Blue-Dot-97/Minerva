@@ -145,6 +145,8 @@ for label_class in label_classes:
 
 
 to_download = get_items(f'{API_BASE}/collections/{COLLECTION_ID}/items',
-                        max_items_downloaded=10, downloads=[])
+                        max_items_downloaded=100, downloads=[])
+
+print('Downloading Assets')
 for d in tqdm(to_download):
     p.map(download, d)
