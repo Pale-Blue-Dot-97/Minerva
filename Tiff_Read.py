@@ -37,6 +37,8 @@ RE_cmap_list = ['#FF0000', '#0000ff', '#888888', '#d1a46d', '#f5f5ff', '#d64c2b'
 # Custom cmap matching the Radiant Earth Foundation specifications
 RE_cmap = ListedColormap(RE_cmap_list, N=len(classes))
 
+plt.rcParams['figure.constrained_layout.use'] = True
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -50,11 +52,25 @@ def load_array(path, band):
 
 
 def discrete_heatmap(array, classes=None, cmap_style=None):
+    # Initialises a figure
+    fig = plt.figure(num=0)
+
+    # Creates a cmap from query
     cmap = plt.get_cmap(cmap_style, len(classes))
-    heatmap = plt.matshow(array, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+
+    # Plots heatmap onto figure
+    heatmap = plt.matshow(array, fignum=0, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+
+    # Plots colour bar onto figure
     clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)))
+
+    # Sets colour bar ticks to class labels
     clb.ax.set_yticklabels(classes)
+
+    # Display figure
     plt.show()
+
+    # Close figure
     plt.close()
 
 
