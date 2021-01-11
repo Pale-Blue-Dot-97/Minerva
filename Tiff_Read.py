@@ -65,6 +65,9 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
     plt.xticks(np.arange(0, array.shape[0] + 1, 32))
     plt.yticks(np.arange(0, array.shape[1] + 1, 32))
 
+    # Add grid overlay
+    plt.grid(which='both', color='#CCCCCC', linestyle=':')
+
     # Plots colour bar onto figure
     clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=0.77)
 
