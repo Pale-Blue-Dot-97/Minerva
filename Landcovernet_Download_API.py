@@ -1,4 +1,4 @@
-"""Lanccovernet_Download_API
+"""Landcovernet_Download_API
 
 TODO:
     * Fully document
