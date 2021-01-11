@@ -42,7 +42,7 @@ def get_classes():
         for c in sorted(label_class['classes']):
             print(f'- {c}')
 
-    return label_classes
+    return label_classes[0]['classes']
 
 
 def download_s3(uri, path):
