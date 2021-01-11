@@ -111,7 +111,9 @@ def download_source_and_labels(item):
     return results
 
 
-def get_items(uri, classes=None, max_items_downloaded=None, items_downloaded=0, downloads=[]):
+def get_items(uri, classes=None, max_items_downloaded=None, items_downloaded=0, downloads=None):
+    if downloads is None:
+        downloads = []
     print('Loading', uri, '...')
     r = requests.get(uri, params={'key': API_KEY})
     collection = r.json()
@@ -147,23 +149,24 @@ def get_items(uri, classes=None, max_items_downloaded=None, items_downloaded=0, 
     return downloads
 
 
-r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
-print(f'Description: {r.json()["description"]}')
-print(f'License: {r.json()["license"]}')
-print(f'DOI: {r.json()["sci:doi"]}')
-print(f'Citation: {r.json()["sci:citation"]}')
+def download_request(classes=None, max_items_downloaded=None):
+    r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
+    print(f'Description: {r.json()["description"]}')
+    print(f'License: {r.json()["license"]}')
+    print(f'DOI: {r.json()["sci:doi"]}')
+    print(f'Citation: {r.json()["sci:citation"]}')
 
-r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}/items', params={'key': API_KEY})
-label_classes = r.json()['features'][0]['properties']['label:classes']
-for label_class in label_classes:
-    print(f'Classes for {label_class["name"]}')
-    for c in sorted(label_class['classes']):
-        print(f'- {c}')
+    r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}/items', params={'key': API_KEY})
+    label_classes = r.json()['features'][0]['properties']['label:classes']
+    for label_class in label_classes:
+        print(f'Classes for {label_class["name"]}')
+        for c in sorted(label_class['classes']):
+            print(f'- {c}')
 
+    to_download = get_items(f'{API_BASE}/collections/{COLLECTION_ID}/items',
+                            max_items_downloaded=100, downloads=[])
 
-to_download = get_items(f'{API_BASE}/collections/{COLLECTION_ID}/items',
-                        max_items_downloaded=100, downloads=[])
+    print('Downloading Assets')
+    for d in tqdm(to_download):
+        p.map(download, d)
 
-print('Downloading Assets')
-for d in tqdm(to_download):
-    p.map(download, d)
