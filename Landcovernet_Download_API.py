@@ -1,7 +1,6 @@
 """Lanccovernet_Download_API
 
 TODO:
-    * Move main to method
     * Fully document
 
 """
