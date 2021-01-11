@@ -23,35 +23,30 @@ from matplotlib import pyplot
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def plot_heatmap(array):
-    cmap = 'rainbow'
-    heatmap = pyplot.imshow(array, cmap)
-    heatmap.show()
+def load_array(path, band):
+    raster = rt.open(path)
+
+    data = raster.read(band)
+
+    return data
+
+
+def plot_heatmap(array, classes=None, cmap=None):
+    pyplot.imshow(array, cmap)
+    pyplot.show()
+    pyplot.close()
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-fp = 'landcovernet/ref_landcovernet_v1_labels_31PGS_01'
+fp = 'landcovernet/ref_landcovernet_v1_labels_31PGS_01/2018_01_01/'
+fn = '31PGS_01_20180101_SCL_10m.tif'
 
-os.chdir(fp)
+path = fp + fn
 
-fn = '31PGS_01_2018_LC_10m.tif'
+plot_heatmap(load_array(path, 1))
 
-raster = rt.open(fn)
-
-data = raster.read()
-print(data.shape)
-
-data1 = raster.read(1).tolist()
-print(data1)
-print(mode(data1, axis=None)[0])
-
-data2 = raster.read(2).tolist()
-print(data2)
-print(mode(data2, axis=None)[0])
-
-os.chdir('2018_01_01')
 
 
 
