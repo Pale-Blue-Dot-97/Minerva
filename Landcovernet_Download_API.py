@@ -149,12 +149,24 @@ def get_items(uri, classes=None, max_items_downloaded=None, items_downloaded=0, 
 
 
 def download_request(classes=None, max_items_downloaded=None):
+    """Given a request, downloads the items matching the query from the Radiant MLHub LandCoverNet API.
+
+    Args:
+        classes (list):
+        max_items_downloaded (int): Maximum number of items downloaded from request
+
+    Returns:
+        None
+
+    """
+    # Fetches and prints API credentials
     r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
     print(f'Description: {r.json()["description"]}')
     print(f'License: {r.json()["license"]}')
     print(f'DOI: {r.json()["sci:doi"]}')
     print(f'Citation: {r.json()["sci:citation"]}')
 
+    # Fetches and prints all possible classes in the dataset
     r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}/items', params={'key': API_KEY})
     label_classes = r.json()['features'][0]['properties']['label:classes']
     for label_class in label_classes:
@@ -162,9 +174,13 @@ def download_request(classes=None, max_items_downloaded=None):
         for c in sorted(label_class['classes']):
             print(f'- {c}')
 
+    # Creates a list of items to download from the collection based on the request query submitted
     to_download = get_items(f'{API_BASE}/collections/{COLLECTION_ID}/items',
-                            max_items_downloaded=100, downloads=[])
+                            classes=classes,
+                            max_items_downloaded=max_items_downloaded,
+                            downloads=[])
 
+    # Downloads the requested list of items from the collection
     print('Downloading Assets')
     for d in tqdm(to_download):
         p.map(download, d)
