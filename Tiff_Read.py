@@ -61,6 +61,10 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
     # Plots heatmap onto figure
     heatmap = plt.matshow(array, fignum=0, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
+    # Sets tick intervals to standard 32x32 block size
+    plt.xticks(np.arange(0, array.shape[0] + 1, 32))
+    plt.yticks(np.arange(0, array.shape[1] + 1, 32))
+
     # Plots colour bar onto figure
     clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=0.77)
 
