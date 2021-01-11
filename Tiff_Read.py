@@ -14,6 +14,7 @@ import os
 import rasterio as rt
 import numpy as np
 from scipy.stats import mode
+from matplotlib import pyplot
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -22,31 +23,35 @@ from scipy.stats import mode
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def plot_heatmap(array):
+    cmap = 'rainbow'
+    heatmap = pyplot.imshow(array, cmap)
+    heatmap.show()
+
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-
-fp = 'landcovernet/ref_landcovernet_v1_labels_29NMG_27'
+fp = 'landcovernet/ref_landcovernet_v1_labels_31PGS_01'
 
 os.chdir(fp)
 
-fn = '29NMG_27_2018_LC_10m.tif'
+fn = '31PGS_01_2018_LC_10m.tif'
 
 raster = rt.open(fn)
-
-print('Shape:', raster.shape)
-print('Type:', type(raster))
-print('CRS:', raster.crs)
-#print('Meta:', data.attrs)
 
 data = raster.read()
 print(data.shape)
 
-data1 = raster.read(1)
+data1 = raster.read(1).tolist()
 print(data1)
 print(mode(data1, axis=None)[0])
 
-data2 = raster.read(2)
+data2 = raster.read(2).tolist()
 print(data2)
 print(mode(data2, axis=None)[0])
+
+os.chdir('2018_01_01')
+
+
+
