@@ -1,3 +1,14 @@
+"""Lanccovernet_Download_API
+
+TODO:
+    * Move main to method
+    * Fully document
+
+"""
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
 import requests
 import boto3  # Required to download assets hosted on S3
 import os
@@ -6,6 +17,9 @@ import arrow
 from multiprocessing.pool import ThreadPool
 from tqdm import tqdm
 
+# =====================================================================================================================
+#                                                     GLOBALS
+# =====================================================================================================================
 # copy your API key from dashboard.mlhub.earth and paste it in the following
 API_KEY = open('API Key', 'r').read()
 API_BASE = 'https://api.radiant.earth/mlhub/v1'
@@ -17,6 +31,9 @@ s3 = boto3.client('s3')
 p = ThreadPool(20)
 
 
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
 def download_s3(uri, path):
     parsed = urlparse(uri)
     bucket = parsed.netloc
