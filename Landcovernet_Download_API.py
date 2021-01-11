@@ -33,6 +33,18 @@ p = ThreadPool(20)
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def get_classes():
+    # Fetches and prints all possible classes in the dataset
+    r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}/items', params={'key': API_KEY})
+    label_classes = r.json()['features'][0]['properties']['label:classes']
+    for label_class in label_classes:
+        print(f'Classes for {label_class["name"]}')
+        for c in sorted(label_class['classes']):
+            print(f'- {c}')
+
+    return label_classes
+
+
 def download_s3(uri, path):
     parsed = urlparse(uri)
     bucket = parsed.netloc
@@ -165,14 +177,6 @@ def download_request(classes=None, max_items_downloaded=None):
     print(f'License: {r.json()["license"]}')
     print(f'DOI: {r.json()["sci:doi"]}')
     print(f'Citation: {r.json()["sci:citation"]}')
-
-    # Fetches and prints all possible classes in the dataset
-    r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}/items', params={'key': API_KEY})
-    label_classes = r.json()['features'][0]['properties']['label:classes']
-    for label_class in label_classes:
-        print(f'Classes for {label_class["name"]}')
-        for c in sorted(label_class['classes']):
-            print(f'- {c}')
 
     # Creates a list of items to download from the collection based on the request query submitted
     to_download = get_items(f'{API_BASE}/collections/{COLLECTION_ID}/items',
