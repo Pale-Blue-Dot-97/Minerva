@@ -53,7 +53,7 @@ def load_array(path, band):
 
 def discrete_heatmap(array, classes=None, cmap_style=None):
     # Initialises a figure
-    fig = plt.figure(num=0)
+    plt.figure(num=0)
 
     # Creates a cmap from query
     cmap = plt.get_cmap(cmap_style, len(classes))
@@ -62,7 +62,7 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
     heatmap = plt.matshow(array, fignum=0, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
     # Plots colour bar onto figure
-    clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)))
+    clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=0.77)
 
     # Sets colour bar ticks to class labels
     clb.ax.set_yticklabels(classes)
