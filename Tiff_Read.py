@@ -96,13 +96,16 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
 #                                                      MAIN
 # =====================================================================================================================
 # Five char alpha-numeric SENTINEL tile ID
-tile_ID = input('Tile ID: ')
+tile_ID = '38PKT'
 
 # 2 digit int SENTINEL chip ID ranging from 0-29
-chip_ID = input('Chip ID: ')
+chip_ID = '22'
 
 # Date of scene in DD.MM.YYYY format
-date = input('Date (dd.mm.yyyy): ')
+date = '08.10.2018'
+
+# 3 char alpha-numeric Band ID
+band_ID = 'SCL'
 
 stamp = dt.datetime.strptime(date, '%d.%m.%Y')
 
@@ -110,7 +113,7 @@ date1 = stamp.strftime('%Y_%m_%d')
 date2 = stamp.strftime('%Y%m%d')
 
 fp = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s/' % (tile_ID, chip_ID, date1)
-fn = '%s_%s_%s_SCL_10m.tif' % (tile_ID, chip_ID, date2)
+fn = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, band_ID)
 
 path = fp + fn
 
