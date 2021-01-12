@@ -92,6 +92,31 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
     plt.close()
 
 
+def RGB_Image(scene_path, r_name, g_name, b_name):
+    def normalise(array):
+        """Normalise bands into 0.0 - 1.0 scale
+
+        Args:
+            array:
+
+        Returns:
+
+        """
+        array_min, array_max = array.min(), array.max()
+        return (array - array_min) / (array_max - array_min)
+
+    r_image = load_array(scene_path + r_name, 1)
+    g_image = load_array(scene_path + g_name, 1)
+    b_image = load_array(scene_path + b_name, 1)
+
+    rgb_image = np.dstack((normalise(r_image), normalise(g_image), normalise(b_image)))
+
+    print(rgb_image)
+
+    plt.imshow(rgb_image)
+    plt.show()
+
+
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
@@ -107,6 +132,11 @@ date = '08.10.2018'
 # 3 char alpha-numeric Band ID
 band_ID = 'SCL'
 
+# Red, Green, Blue band IDs for RGB images
+R_band = 'B02'
+G_band = 'B03'
+B_band = 'B04'
+
 stamp = dt.datetime.strptime(date, '%d.%m.%Y')
 
 date1 = stamp.strftime('%Y_%m_%d')
@@ -114,6 +144,13 @@ date2 = stamp.strftime('%Y%m%d')
 
 fp = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s/' % (tile_ID, chip_ID, date1)
 fn = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, band_ID)
+
+r_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, R_band)
+g_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, G_band)
+b_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, B_band)
+
+
+RGB_Image(fp, r_name, g_name, b_name)
 
 path = fp + fn
 
