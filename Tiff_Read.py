@@ -105,12 +105,15 @@ def RGB_Image(scene_path, r_name, g_name, b_name):
         array_min, array_max = array.min(), array.max()
         return (array - array_min) / (array_max - array_min)
 
+    # Load R, G, B images from file
     r_image = load_array(scene_path + r_name, 1)
     g_image = load_array(scene_path + g_name, 1)
     b_image = load_array(scene_path + b_name, 1)
 
+    # Normalise all arrays and stack together
     rgb_image = np.dstack((normalise(r_image), normalise(g_image), normalise(b_image)))
 
+    # Create RGB image
     plt.imshow(rgb_image)
 
     # Sets tick intervals to standard 32x32 block size
