@@ -111,9 +111,15 @@ def RGB_Image(scene_path, r_name, g_name, b_name):
 
     rgb_image = np.dstack((normalise(r_image), normalise(g_image), normalise(b_image)))
 
-    print(rgb_image)
-
     plt.imshow(rgb_image)
+
+    # Sets tick intervals to standard 32x32 block size
+    plt.xticks(np.arange(0, rgb_image.shape[0] + 1, 32))
+    plt.yticks(np.arange(0, rgb_image.shape[1] + 1, 32))
+
+    # Add grid overlay
+    plt.grid(which='both', color='#CCCCCC', linestyle=':')
+
     plt.show()
 
 
