@@ -92,7 +92,7 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
     plt.close()
 
 
-def RGB_Image(scene_path, r_name, g_name, b_name):
+def stack_RGB(scene_path, r_name, g_name, b_name):
     def normalise(array):
         """Normalise bands into 0.0 - 1.0 scale
 
@@ -112,7 +112,12 @@ def RGB_Image(scene_path, r_name, g_name, b_name):
 
     # Normalise all arrays and stack together.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
-    rgb_image_array = np.dstack((normalise(b_image), normalise(g_image), normalise(r_image)))
+    return np.dstack((normalise(b_image), normalise(g_image), normalise(r_image)))
+
+
+def RGB_image(scene_path, r_name, g_name, b_name):
+    # Stack RGB image data together
+    rgb_image_array = stack_RGB(scene_path, r_name, g_name, b_name)
 
     # Create RGB image
     rgb_image = plt.imshow(rgb_image_array)
@@ -126,28 +131,11 @@ def RGB_Image(scene_path, r_name, g_name, b_name):
 
     plt.show()
 
+    return rgb_image
 
-def masked_RGB_image(scene_path, r_name, g_name, b_name, data, classes=None, cmap_style=None):
-    def normalise(array):
-        """Normalise bands into 0.0 - 1.0 scale
 
-        Args:
-            array:
-
-        Returns:
-
-        """
-        array_min, array_max = array.min(), array.max()
-        return (array - array_min) / (array_max - array_min)
-
-    # Load R, G, B images from file
-    r_image = load_array(scene_path + r_name, 1)
-    g_image = load_array(scene_path + g_name, 1)
-    b_image = load_array(scene_path + b_name, 1)
-
-    # Normalise all arrays and stack together.
-    # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
-    rgb_image = np.dstack((normalise(b_image), normalise(g_image), normalise(r_image)))
+def masked_RGB_image(scene_path, r_name, g_name, b_name, data, classes=None, cmap_style=None, alpha=0.5):
+    rgb_image = stack_RGB(scene_path, r_name, g_name, b_name)
 
     extent = 0, data.shape[0], 0, data.shape[1]
 
@@ -161,7 +149,7 @@ def masked_RGB_image(scene_path, r_name, g_name, b_name, data, classes=None, cma
     cmap = plt.get_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure
-    heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=0.5)
+    heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha)
 
     # Sets tick intervals to standard 32x32 block size
     plt.xticks(np.arange(0, data.shape[0] + 1, 32))
@@ -216,7 +204,7 @@ g_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, G_band)
 b_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, B_band)
 
 
-RGB_Image(fp, r_name, g_name, b_name)
+RGB_image(fp, r_name, g_name, b_name)
 
 path = fp + fn
 
