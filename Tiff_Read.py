@@ -5,7 +5,6 @@ rasterio.
 
 TODO:
     * Generalise to plot heatmaps of all label masks
-    * Add ability to plot label masks over image data
     * Fully document
 
 """
