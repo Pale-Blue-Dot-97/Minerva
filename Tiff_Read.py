@@ -64,13 +64,13 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
 
     """
     # Initialises a figure
-    plt.figure(num=0)
+    plt.figure()
 
     # Creates a cmap from query
     cmap = plt.get_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure
-    heatmap = plt.matshow(array, fignum=0, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+    heatmap = plt.imshow(array, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
     # Sets tick intervals to standard 32x32 block size
     plt.xticks(np.arange(0, array.shape[0] + 1, 32))
@@ -110,20 +110,77 @@ def RGB_Image(scene_path, r_name, g_name, b_name):
     g_image = load_array(scene_path + g_name, 1)
     b_image = load_array(scene_path + b_name, 1)
 
-    # Normalise all arrays and stack together
-    rgb_image = np.dstack((normalise(r_image), normalise(g_image), normalise(b_image)))
+    # Normalise all arrays and stack together.
+    # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
+    rgb_image_array = np.dstack((normalise(b_image), normalise(g_image), normalise(r_image)))
 
     # Create RGB image
-    plt.imshow(rgb_image)
+    rgb_image = plt.imshow(rgb_image_array)
 
     # Sets tick intervals to standard 32x32 block size
-    plt.xticks(np.arange(0, rgb_image.shape[0] + 1, 32))
-    plt.yticks(np.arange(0, rgb_image.shape[1] + 1, 32))
+    plt.xticks(np.arange(0, rgb_image_array.shape[0] + 1, 32))
+    plt.yticks(np.arange(0, rgb_image_array.shape[1] + 1, 32))
 
     # Add grid overlay
     plt.grid(which='both', color='#CCCCCC', linestyle=':')
 
     plt.show()
+
+
+def masked_RGB_image(scene_path, r_name, g_name, b_name, data, classes=None, cmap_style=None):
+    def normalise(array):
+        """Normalise bands into 0.0 - 1.0 scale
+
+        Args:
+            array:
+
+        Returns:
+
+        """
+        array_min, array_max = array.min(), array.max()
+        return (array - array_min) / (array_max - array_min)
+
+    # Load R, G, B images from file
+    r_image = load_array(scene_path + r_name, 1)
+    g_image = load_array(scene_path + g_name, 1)
+    b_image = load_array(scene_path + b_name, 1)
+
+    # Normalise all arrays and stack together.
+    # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
+    rgb_image = np.dstack((normalise(b_image), normalise(g_image), normalise(r_image)))
+
+    extent = 0, data.shape[0], 0, data.shape[1]
+
+    # Initialises a figure
+    plt.figure()
+
+    # Create RGB image
+    plt.imshow(rgb_image, extent=extent)
+
+    # Creates a cmap from query
+    cmap = plt.get_cmap(cmap_style, len(classes))
+
+    # Plots heatmap onto figure
+    heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=0.5)
+
+    # Sets tick intervals to standard 32x32 block size
+    plt.xticks(np.arange(0, data.shape[0] + 1, 32))
+    plt.yticks(np.arange(0, data.shape[1] + 1, 32))
+
+    # Add grid overlay
+    plt.grid(which='both', color='#CCCCCC', linestyle=':')
+
+    # Plots colour bar onto figure
+    clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=0.77)
+
+    # Sets colour bar ticks to class labels
+    clb.ax.set_yticklabels(classes)
+
+    # Display figure
+    plt.show()
+
+    # Close figure
+    plt.close()
 
 
 # =====================================================================================================================
@@ -165,6 +222,4 @@ path = fp + fn
 
 discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
 
-
-
-
+masked_RGB_image(fp, r_name, g_name, b_name, load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
