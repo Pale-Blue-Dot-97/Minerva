@@ -17,6 +17,8 @@ import rasterio as rt
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+import datetime as dt
+from osgeo import gdal
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -32,10 +34,8 @@ RE_cmap_dict = {0: '#FF0000',  # Red
                 6: '#186818',
                 7: '#00ff00'}
 
-RE_cmap_list = ['#FF0000', '#0000ff', '#888888', '#d1a46d', '#f5f5ff', '#d64c2b', '#186818', '#00ff00']
-
 # Custom cmap matching the Radiant Earth Foundation specifications
-RE_cmap = ListedColormap(RE_cmap_list, N=len(classes))
+RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(classes))
 
 plt.rcParams['figure.constrained_layout.use'] = True
 
@@ -52,6 +52,17 @@ def load_array(path, band):
 
 
 def discrete_heatmap(array, classes=None, cmap_style=None):
+    """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images
+
+    Args:
+        array (array_like): 2D Array of data to be plotted as a heat map
+        classes ([str]): List of all possible class labels
+        cmap_style (str, ListedColormap): Name or object for colour map style
+
+    Returns:
+        None
+
+    """
     # Initialises a figure
     plt.figure(num=0)
 
@@ -84,13 +95,24 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-fp = 'landcovernet/ref_landcovernet_v1_labels_31PGS_01/2018_01_01/'
-fn = '31PGS_01_20180101_SCL_10m.tif'
+# Five char alpha-numeric SENTINEL tile ID
+tile_ID = input('Tile ID: ')
+
+# 2 digit int SENTINEL chip ID ranging from 0-29
+chip_ID = input('Chip ID: ')
+
+# Date of scene in DD.MM.YYYY format
+date = input('Date (dd.mm.yyyy): ')
+
+stamp = dt.datetime.strptime(date, '%d.%m.%Y')
+
+date1 = stamp.strftime('%Y_%m_%d')
+date2 = stamp.strftime('%Y%m%d')
+
+fp = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s/' % (tile_ID, chip_ID, date1)
+fn = '%s_%s_%s_SCL_10m.tif' % (tile_ID, chip_ID, date2)
 
 path = fp + fn
-
-print(classes)
-print(type(classes))
 
 discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
 
