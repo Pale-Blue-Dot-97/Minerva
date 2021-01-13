@@ -61,11 +61,11 @@ def load_array(path, band):
     return data
 
 
-def discrete_heatmap(array, classes=None, cmap_style=None):
+def discrete_heatmap(data, classes=None, cmap_style=None):
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images
 
     Args:
-        array (array_like): 2D Array of data to be plotted as a heat map
+        data (array_like): 2D Array of data to be plotted as a heat map
         classes ([str]): List of all possible class labels
         cmap_style (str, ListedColormap): Name or object for colour map style
 
@@ -80,11 +80,11 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
     cmap = plt.get_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure
-    heatmap = plt.imshow(array, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+    heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
     # Sets tick intervals to standard 32x32 block size
-    plt.xticks(np.arange(0, array.shape[0] + 1, 32))
-    plt.yticks(np.arange(0, array.shape[1] + 1, 32))
+    plt.xticks(np.arange(0, data.shape[0] + 1, 32))
+    plt.yticks(np.arange(0, data.shape[1] + 1, 32))
 
     # Add grid overlay
     plt.grid(which='both', color='#CCCCCC', linestyle=':')
@@ -102,14 +102,12 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
     plt.close()
 
 
-def stack_RGB(scene_path, r_name, g_name, b_name):
+def stack_RGB(scene_path, rgb):
     """Stacks together red, green and blue image arrays from file to create a RGB array
 
     Args:
         scene_path (str): Path to directory holding images from desired scene
-        r_name (str): Filename of red band image
-        g_name (str): Filename of green band image
-        b_name (str): Filename of blue band image
+        rgb ([str]): List of filenames of R, G & B band images
 
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
@@ -126,30 +124,28 @@ def stack_RGB(scene_path, r_name, g_name, b_name):
         array_min, array_max = array.min(), array.max()
         return (array - array_min) / (array_max - array_min)
 
-    # Load R, G, B images from file
-    r_image = load_array(scene_path + r_name, 1)
-    g_image = load_array(scene_path + g_name, 1)
-    b_image = load_array(scene_path + b_name, 1)
+    # Load R, G, B images from file and normalise
+    bands = []
+    for band in rgb:
+        band.append(normalise(load_array(scene_path + band, 1)))
 
-    # Normalise all arrays and stack together.
+    # Stack together RGB bands
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
-    return np.dstack((normalise(b_image), normalise(g_image), normalise(r_image)))
+    return np.dstack((bands[2], bands[1], bands[0]))
 
 
-def RGB_image(scene_path, r_name, g_name, b_name):
+def RGB_image(scene_path, rgb):
     """Creates an RGB image from a composition of red, green and blue band .tif images
 
     Args:
         scene_path (str): Path to directory holding images from desired scene
-        r_name (str): Filename of red band image
-        g_name (str): Filename of green band image
-        b_name (str): Filename of blue band image
+        rgb ([str]): List of filenames of R, G & B band images
 
     Returns:
         rgb_image (AxesImage): Plotted RGB image object
     """
     # Stack RGB image data together
-    rgb_image_array = stack_RGB(scene_path, r_name, g_name, b_name)
+    rgb_image_array = stack_RGB(scene_path, rgb)
 
     # Create RGB image
     rgb_image = plt.imshow(rgb_image_array)
@@ -166,9 +162,26 @@ def RGB_image(scene_path, r_name, g_name, b_name):
     return rgb_image
 
 
-def masked_RGB_image(scene_path, r_name, g_name, b_name, data, classes=None, cmap_style=None, alpha=0.5):
-    rgb_image = stack_RGB(scene_path, r_name, g_name, b_name)
+def labelled_RGB_image(scene_path, rgb, data, classes=None, cmap_style=None, alpha=0.5):
+    """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top
 
+    Args:
+        scene_path (str): Path to directory holding images from desired scene
+        rgb ([str]): List of filenames of R, G & B band images
+        data (array_like): 2D Array of data to be plotted as a heat map
+        classes ([str]): List of all possible class labels
+        cmap_style (str, ListedColormap): Name or object for colour map style
+        alpha (float): Fraction determining alpha blending of label mask
+
+    Returns:
+        None
+
+    """
+    # Stacks together the R, G, & B bands to form an array of the RGB image
+    rgb_image = stack_RGB(scene_path, rgb)
+
+    # Defines the 'extent' of the composite image based on the size of the mask.
+    # Assumes mask and RGB image have same 2D shape
     extent = 0, data.shape[0], 0, data.shape[1]
 
     # Initialises a figure
@@ -236,10 +249,10 @@ g_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, G_band)
 b_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, B_band)
 
 
-RGB_image(fp, r_name, g_name, b_name)
+RGB_image(fp, (r_name, g_name, b_name))
 
 path = fp + fn
 
 discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
 
-masked_RGB_image(fp, r_name, g_name, b_name, load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
+labelled_RGB_image(fp, (r_name, g_name, b_name), load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
