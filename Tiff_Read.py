@@ -43,6 +43,16 @@ plt.rcParams['figure.constrained_layout.use'] = True
 #                                                     METHODS
 # =====================================================================================================================
 def load_array(path, band):
+    """Extracts an array from opening a specific band of a .tif file
+
+    Args:
+        path (str): Path to file
+        band (int): Band number of .tif file
+
+    Returns:
+        data ([[float]]): 2D array representing the image from the .tif band requested
+
+    """
     raster = rt.open(path)
 
     data = raster.read(band)
