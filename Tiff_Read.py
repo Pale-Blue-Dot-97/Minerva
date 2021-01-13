@@ -137,6 +137,17 @@ def stack_RGB(scene_path, r_name, g_name, b_name):
 
 
 def RGB_image(scene_path, r_name, g_name, b_name):
+    """Creates an RGB image from a composition of red, green and blue band .tif images
+
+    Args:
+        scene_path (str): Path to directory holding images from desired scene
+        r_name (str): Filename of red band image
+        g_name (str): Filename of green band image
+        b_name (str): Filename of blue band image
+
+    Returns:
+        rgb_image (AxesImage): Plotted RGB image object
+    """
     # Stack RGB image data together
     rgb_image_array = stack_RGB(scene_path, r_name, g_name, b_name)
 
@@ -202,7 +213,7 @@ tile_ID = '38PKT'
 chip_ID = '22'
 
 # Date of scene in DD.MM.YYYY format
-date = '08.10.2018'
+date = '16.04.2018'
 
 # 3 char alpha-numeric Band ID
 band_ID = 'SCL'
