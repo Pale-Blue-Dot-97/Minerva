@@ -36,6 +36,7 @@ RE_cmap_dict = {0: '#FF0000',  # Red
 # Custom cmap matching the Radiant Earth Foundation specifications
 RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(classes))
 
+# Automatically fixes the layout of the figures to accomodate the colour bar legends
 plt.rcParams['figure.constrained_layout.use'] = True
 
 
@@ -102,14 +103,25 @@ def discrete_heatmap(array, classes=None, cmap_style=None):
 
 
 def stack_RGB(scene_path, r_name, g_name, b_name):
+    """Stacks together red, green and blue image arrays from file to create a RGB array
+
+    Args:
+        scene_path (str): Path to directory holding images from desired scene
+        r_name (str): Filename of red band image
+        g_name (str): Filename of green band image
+        b_name (str): Filename of blue band image
+
+    Returns:
+        Normalised and stacked red, green, blue arrays into RGB array
+    """
     def normalise(array):
         """Normalise bands into 0.0 - 1.0 scale
 
         Args:
-            array:
+            array ([float]): Array to be normalised
 
         Returns:
-
+            Normalised array
         """
         array_min, array_max = array.min(), array.max()
         return (array - array_min) / (array_max - array_min)
