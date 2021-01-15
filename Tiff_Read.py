@@ -16,6 +16,7 @@ import rasterio as rt
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+from matplotlib.transforms import Bbox
 import datetime as dt
 from osgeo import gdal, osr
 # =====================================================================================================================
@@ -213,35 +214,49 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
     extent = 0, data.shape[0], 0, data.shape[1]
 
     # Initialises a figure
-    fig, ax1 = plt.figure()
+    fig, ax1 = plt.subplots()
 
     # Create RGB image
     ax1.imshow(rgb_image, extent=extent)
-
-    ax2 = ax1.twinx().twiny()
 
     # Creates a cmap from query
     cmap = plt.get_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure
-    heatmap = ax2.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha)
+    heatmap = ax1.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha)
 
     # Sets tick intervals to standard 32x32 block size
     ax1.set_xticks(np.arange(0, data.shape[0] + 1, 32))
     ax1.set_yticks(np.arange(0, data.shape[1] + 1, 32))
 
-    lat_lon_corners = transform_coordinates((path+rgb[0]), new_cs)
-    
-    ax2.set_xticks()
+    ax2 = ax1.twinx().twiny()
+
+    corners = transform_coordinates(data_path, new_cs)
+
+    lat_extent = np.linspace(corners[1][1][0], corners[0][1][0], int(data.shape[0] / 32))
+    lon_extent = np.linspace(corners[0][0][1], corners[0][1][1], int(data.shape[0] / 32))
+
+    ax2.plot(lon_extent, lat_extent, ' ',
+             clip_box=Bbox.from_extents(lon_extent[0], lat_extent[0], lon_extent[-1], lat_extent[-1]))
+
+    ax2.set_xticks(lon_extent)
+    ax2.set_yticks(lat_extent)
 
     # Add grid overlay
     ax1.grid(which='both', color='#CCCCCC', linestyle=':')
 
     # Plots colour bar onto figure
-    clb = ax2.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=0.77)
+    clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=1, aspect=75)
 
     # Sets colour bar ticks to class labels
     clb.ax.set_yticklabels(classes)
+
+    ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
+    ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
+
+    # Manual trial and error fig size which fixes aspect ratio issue
+    fig.set_figheight(8.7)
+    fig.set_figwidth(12)
 
     # Display figure
     plt.show()
@@ -263,7 +278,7 @@ chip_ID = '22'
 date = '16.04.2018'
 
 # 3 char alpha-numeric Band ID
-band_ID = 'B01'
+band_ID = 'SCL'
 
 # Red, Green, Blue band IDs for RGB images
 R_band = 'B02'
@@ -288,12 +303,11 @@ path = fp + fn
 new_cs = osr.SpatialReference()
 new_cs.ImportFromEPSG(4326)
 
-transform_coordinates(path, new_cs)
+print(transform_coordinates(path, new_cs))
 
-"""
-RGB_image(fp, (r_name, g_name, b_name))
+#RGB_image(fp, (r_name, g_name, b_name))
 
-discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
+#discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
 
-labelled_RGB_image(fp, (r_name, g_name, b_name), scl_name, band=1, classes=classes, cmap_style=RE_cmap)
-"""
+labelled_RGB_image(fp, (r_name, g_name, b_name), path, data_band=1, classes=classes, cmap_style=RE_cmap, new_cs=new_cs)
+
