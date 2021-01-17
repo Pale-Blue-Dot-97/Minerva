@@ -19,6 +19,7 @@ from matplotlib.colors import ListedColormap
 from matplotlib.transforms import Bbox
 import datetime as dt
 from osgeo import gdal, osr
+import math
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -84,6 +85,51 @@ def transform_coordinates(path, new_cs):
 
     return [[trans.TransformPoint(min_x, max_y)[:2], trans.TransformPoint(max_x, max_y)[:2]],
             [trans.TransformPoint(min_x, min_y)[:2], trans.TransformPoint(max_x, min_y)[:2]]]
+
+
+def deg_to_dms(deg, axis='lat', sig=2):
+    """Credit to Gustavo Gonçalves on Stack Overflow
+    https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
+
+    Args:
+        deg:
+        axis:
+
+    Returns:
+
+    """
+
+    def round_sig(x):
+        """Credit: Stephen Rauch, StackOverflow
+        https://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
+
+        Args:
+            x:
+            sig:
+
+        Returns:
+
+        """
+        return round(x, sig - int(math.floor(math.log10(abs(x)))) - 1)
+
+    decimals, number = math.modf(deg)
+    d = int(number)
+    m = int(decimals * 60)
+    s = (deg - d - m / 60) * 3600.00
+    compass = {
+        'lat': ('N', 'S'),
+        'lon': ('E', 'W')
+    }
+    compass_str = compass[axis][0 if d >= 0 else 1]
+    return '{}º{}\'{:.0f}"{}'.format(abs(d), abs(m), abs(s), compass_str)
+
+
+def dec2deg(dec_co, axis='lat', sig=2):
+    deg_co = []
+    for co in dec_co:
+        deg_co.append(deg_to_dms(co, axis=axis, sig=sig))
+
+    return deg_co
 
 
 def discrete_heatmap(data, classes=None, cmap_style=None):
@@ -233,14 +279,22 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
 
     corners = transform_coordinates(data_path, new_cs)
 
-    lat_extent = np.linspace(corners[1][1][0], corners[0][1][0], int(data.shape[0] / 32))
-    lon_extent = np.linspace(corners[0][0][1], corners[0][1][1], int(data.shape[0] / 32))
+    lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
+                             num=int(data.shape[0]/32.0) + 1, endpoint=True)
+    lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
+                             num=int(data.shape[0]/32.0) + 1, endpoint=True)
 
     ax2.plot(lon_extent, lat_extent, ' ',
              clip_box=Bbox.from_extents(lon_extent[0], lat_extent[0], lon_extent[-1], lat_extent[-1]))
 
     ax2.set_xticks(lon_extent)
     ax2.set_yticks(lat_extent)
+
+    lat_labels = dec2deg(lat_extent, axis='lat', sig=2)
+    lon_labels = dec2deg(lon_extent, axis='lon', sig=2)
+
+    ax2.set_xticklabels(lon_labels)
+    ax2.set_yticklabels(lat_labels)
 
     # Add grid overlay
     ax1.grid(which='both', color='#CCCCCC', linestyle=':')
@@ -255,7 +309,7 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
 
     # Manual trial and error fig size which fixes aspect ratio issue
-    fig.set_figheight(8.7)
+    fig.set_figheight(8.85)
     fig.set_figwidth(12)
 
     # Display figure
@@ -302,8 +356,6 @@ path = fp + fn
 # Create a new projection system in lat-lon
 new_cs = osr.SpatialReference()
 new_cs.ImportFromEPSG(4326)
-
-print(transform_coordinates(path, new_cs))
 
 #RGB_image(fp, (r_name, g_name, b_name))
 
