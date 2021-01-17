@@ -275,7 +275,7 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
     ax1.set_xticks(np.arange(0, data.shape[0] + 1, 32))
     ax1.set_yticks(np.arange(0, data.shape[1] + 1, 32))
 
-    ax2 = ax1.twinx().twiny()
+    ax2 = ax1.twiny().twinx()
 
     corners = transform_coordinates(data_path, new_cs)
 
@@ -293,24 +293,34 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
     lat_labels = dec2deg(lat_extent, axis='lat', sig=2)
     lon_labels = dec2deg(lon_extent, axis='lon', sig=2)
 
-    ax2.set_xticklabels(lon_labels)
-    ax2.set_yticklabels(lat_labels)
-
     # Add grid overlay
     ax1.grid(which='both', color='#CCCCCC', linestyle=':')
 
     # Plots colour bar onto figure
-    clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=1, aspect=75)
+    clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=0.9, aspect=75, drawedges=True)
 
     # Sets colour bar ticks to class labels
-    clb.ax.set_yticklabels(classes)
+    clb.ax.set_yticklabels(classes, fontsize=11)
+    clb.ax.set_title('38PKT_22\n08.10.2018\nLand Cover Class Label', loc='left')
 
     ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
 
+    ax2.set_xticklabels(lon_labels, fontsize=11)
+    ax2.set_yticklabels(lat_labels, fontsize=10, rotation=-45, ha='left')
+
+    # Set axis labels
+    ax1.set_xlabel('(x) - Pixel Position', fontsize=14)
+    ax1.set_ylabel('(y) - Pixel Position', fontsize=14)
+    #ax2.set_xlabel('Longitude', fontsize=14)
+    ax2.set_ylabel('Latitude', fontsize=14, rotation=270, labelpad=12)
+
+    ax2.set_title('Longitude')
+    #ax1.set_title('38PKT_22', fontsize=16, pad=20, loc='right')
+
     # Manual trial and error fig size which fixes aspect ratio issue
-    fig.set_figheight(8.85)
-    fig.set_figwidth(12)
+    fig.set_figheight(8)
+    fig.set_figwidth(11.02)
 
     # Display figure
     plt.show()
