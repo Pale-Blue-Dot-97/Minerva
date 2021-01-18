@@ -23,7 +23,16 @@ import math
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-classes = ap.get_classes()
+#classes = ap.get_classes()
+
+classes = ['No Data',
+           'Water',
+           'Artificial\nBareground',
+           'Natural\nBareground',
+           'Permanent\nSnow/Ice',
+           'Woody\nVegetation',
+           'Cultivated\nVegetation',
+           '(Semi) Natural\nVegetation']
 
 # Custom colour mapping specified by Radiant Earth Foundation
 RE_cmap_dict = {0: '#FF0000',  # Red
@@ -319,7 +328,7 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     # Sets colour bar ticks to class labels
     clb.ax.set_yticklabels(classes, fontsize=11)
 
-    clb.ax.set_title('%s_%s\n%s\nLand Cover Class' % (names['tile_ID'], names['patch_ID'], names['date']),
+    clb.ax.set_title('%s_%s\n%s\nLand Cover' % (names['tile_ID'], names['patch_ID'], names['date']),
                      loc='left', fontsize=15)
 
     ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
@@ -338,8 +347,8 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     #ax1.set_title('38PKT_22', fontsize=16, pad=20, loc='right')
 
     # Manual trial and error fig size which fixes aspect ratio issue
-    fig.set_figheight(8)
-    fig.set_figwidth(11.19)
+    fig.set_figheight(8.02)
+    fig.set_figwidth(10.32)
 
     # Display figure
     plt.show()
