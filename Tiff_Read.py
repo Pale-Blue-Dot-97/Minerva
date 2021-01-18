@@ -5,6 +5,7 @@ rasterio.
 
 TODO:
     * Generalise to plot heatmaps of all label masks
+    * Add patch GIF maker
     * Fully document
 
 """
