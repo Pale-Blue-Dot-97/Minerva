@@ -56,19 +56,21 @@ plt.rcParams['figure.constrained_layout.use'] = True
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def date_format(date, fmt1, fmt2):
+    return dt.datetime.strptime(date, fmt1).strftime(fmt2)
+
+
 def date_grab(names):
     scene_dirs = glob.glob('landcovernet/ref_landcovernet_v1_labels_%s_%s/*/' % (names['tile_ID'], names['patch_ID']))
 
     scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
 
-    return [dt.datetime.strptime(date, '%Y_%m_%d').strftime('%d.%m.%Y') for date in scene_names]
+    return [date_format(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
 
 
 def path_format(names):
-    stamp = dt.datetime.strptime(names['date'], '%d.%m.%Y')
-
-    date1 = stamp.strftime('%Y_%m_%d')
-    date2 = stamp.strftime('%Y%m%d')
+    date1 = date_format(names['date'], '%d.%m.%Y', '%Y_%m_%d')
+    date2 = date_format(names['date'], '%d.%m.%Y', '%Y%m%d')
 
     scene_path = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s/' % (names['tile_ID'], names['patch_ID'], date1)
     data_name = '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['band_ID'])
@@ -356,6 +358,9 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
 
     # Display figure
     plt.show()
+
+    fig.savefig('%s/%s_%s_%s_RGBHM.png' % (scene_path, names['tile_ID'], names['patch_ID'],
+                                           date_format(names['date'], '%d.%m.%Y', '%Y%m%d')))
 
     # Close figure
     plt.close()
