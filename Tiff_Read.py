@@ -279,7 +279,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
         alpha (float): Fraction determining alpha blending of label mask
         new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
         show (bool): True for show figure when plotted. False if not
-        save(bool): True to save figure to file. False if not
+        save (bool): True to save figure to file. False if not
 
     Returns:
         fn (str): Path to figure save location
@@ -385,7 +385,25 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     return fn
 
 
-def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None, save=False):
+def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_style=None, new_cs=None, alpha=0.5,
+             save=False):
+    """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes
+
+    Args:
+        names (dict): Dictionary of IDs to uniquely identify the patch dir and selected bands
+        gif_name (str): Path to and name of GIF to be made
+        frame_length (float): Length of each GIF frame in seconds
+        data_band (int): Band number of data .tif file
+        classes ([str]): List of all possible class labels
+        cmap_style (str, ListedColormap): Name or object for colour map style
+        new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
+        alpha (float): Fraction determining alpha blending of label mask
+        save (bool): True to save figure to file. False if not
+
+    Returns:
+        None
+
+    """
 
     dates = date_grab(names)
 
@@ -396,7 +414,7 @@ def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_st
         pb.set_description('Scene on %s' % date)
         names['date'] = date
         frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style, new_cs=new_cs,
-                                   save=save, show=False)
+                                   alpha=alpha, save=save, show=False)
 
         frames.append(imageio.imread(frame))
         pb.update(1)
@@ -407,21 +425,45 @@ def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_st
     pb.close()
 
 
-def make_all_the_gifs(names, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None):
+def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_style=None, new_cs=None, alpha=0.5):
+    """Wrapper to make_gifs() to iterate through all patches in dataset
+
+    Args:
+        names (dict): Dictionary holding the band IDs. Patch ID and date added per iteration
+        frame_length (float): Length of each GIF frame in seconds
+        data_band (int): Band number of data .tif file
+        classes ([str]): List of all possible class labels
+        cmap_style (str, ListedColormap): Name or object for colour map style
+        new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
+        alpha (float): Fraction determining alpha blending of label mask
+
+    Returns:
+        None
+
+    """
+    # Gets all the patch IDs from the dataset directory
     patches = patch_grab()
 
+    # Iterator for progress counter
     i = 0
+
+    # Iterate through all patches
     for patch in patches:
+        # Count this iteration for the progress counter
         i = i + 1
 
+        # Print status update
         print('\r\nNOW SERVING PATCH %s (%s/%s): ' % (patch, i, len(patches)))
 
+        # Update dictionary for this patch
         names['patch_ID'] = patch
 
+        # Define name of GIF for this patch
         gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s/%s.gif' % (names['patch_ID'], names['patch_ID'])
 
+        # Call make_gif() for this patch
         make_gif(names, gif_name, frame_length=frame_length, data_band=data_band, classes=classes,
-                 cmap_style=cmap_style, new_cs=new_cs, save=True)
+                 cmap_style=cmap_style, new_cs=new_cs, alpha=alpha, save=True)
 
     print('\r\nOPERATION COMPLETE')
 
@@ -430,13 +472,14 @@ def make_all_the_gifs(names, frame_length=1, data_band=1, classes=None, cmap_sty
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
-
-    my_names = {#'patch_ID': '31PGS_15',     # Five char alpha-numeric SENTINEL tile ID and
-                                            # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
-                #'date': '16.04.2018',       # Date of scene in DD.MM.YYYY format
-                'band_ID': 'SCL',           # 3 char alpha-numeric Band ID
+    # Additional options for names dictionary:
+    # 'patch_ID': '31PGS_15',     Five char alpha-numeric SENTINEL tile ID and
+    #                             2 digit int REF MLHub chip (patch) ID ranging from 0-29
+    # 'date': '16.04.2018',       Date of scene in DD.MM.YYYY format
+    my_names = {'band_ID': 'SCL',           # 3 char alpha-numeric Band ID
                 'R_band': 'B02',            # Red, Green, Blue band IDs for RGB images
                 'G_band': 'B03',
                 'B_band': 'B04'}
 
-    make_all_the_gifs(my_names, frame_length=1, data_band=1, classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326)
+    make_all_the_gifs(my_names, frame_length=0.5, data_band=1, classes=RE_classes, cmap_style=RE_cmap,
+                      new_cs=WGS84_4326, alpha=0.3)
