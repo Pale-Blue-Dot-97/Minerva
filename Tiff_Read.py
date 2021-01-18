@@ -11,7 +11,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import Landcovernet_Download_API as ap
+#import Landcovernet_Download_API as ap
 import rasterio as rt
 import numpy as np
 import matplotlib.pyplot as plt
@@ -112,7 +112,7 @@ def transform_coordinates(path, new_cs):
             [trans.TransformPoint(min_x, min_y)[:2], trans.TransformPoint(max_x, min_y)[:2]]]
 
 
-def deg_to_dms(deg, axis='lat', sig=2):
+def deg_to_dms(deg, axis='lat'):
     """Credit to Gustavo Gonçalves on Stack Overflow
     https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
 
@@ -123,20 +123,6 @@ def deg_to_dms(deg, axis='lat', sig=2):
     Returns:
 
     """
-
-    def round_sig(x):
-        """Credit: Stephen Rauch, StackOverflow
-        https://stackoverflow.com/questions/3410976/how-to-round-a-number-to-significant-figures-in-python
-
-        Args:
-            x:
-            sig:
-
-        Returns:
-
-        """
-        return round(x, sig - int(math.floor(math.log10(abs(x)))) - 1)
-
     decimals, number = math.modf(deg)
     d = int(number)
     m = int(decimals * 60)
@@ -149,10 +135,10 @@ def deg_to_dms(deg, axis='lat', sig=2):
     return '{}º{}\'{:.0f}"{}'.format(abs(d), abs(m), abs(s), compass_str)
 
 
-def dec2deg(dec_co, axis='lat', sig=2):
+def dec2deg(dec_co, axis='lat'):
     deg_co = []
     for co in dec_co:
-        deg_co.append(deg_to_dms(co, axis=axis, sig=sig))
+        deg_co.append(deg_to_dms(co, axis=axis))
 
     return deg_co
 
@@ -328,8 +314,8 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
 
     # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis
-    lat_labels = dec2deg(lat_extent, axis='lat', sig=2)
-    lon_labels = dec2deg(lon_extent, axis='lon', sig=2)
+    lat_labels = dec2deg(lat_extent, axis='lat')
+    lon_labels = dec2deg(lon_extent, axis='lon')
 
     # Sets the secondary axis tick labels
     ax2.set_xticklabels(lon_labels, fontsize=11)
@@ -368,21 +354,23 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-names = {'tile_ID': '38PKT',    # Five char alpha-numeric SENTINEL tile ID
-         'patch_ID': '22',       # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
-         'date': '16.04.2018',   # Date of scene in DD.MM.YYYY format
-         'band_ID': 'SCL',       # 3 char alpha-numeric Band ID
-         'R_band': 'B02',        # Red, Green, Blue band IDs for RGB images
-         'G_band': 'B03',
-         'B_band': 'B04'}
+if __name__ == '__main__':
 
-# Create a new projection system in lat-lon
-new_cs = osr.SpatialReference()
-new_cs.ImportFromEPSG(4326)
+    names = {'tile_ID': '38PKT',     # Five char alpha-numeric SENTINEL tile ID
+             'patch_ID': '22',       # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
+             'date': '16.04.2018',   # Date of scene in DD.MM.YYYY format
+             'band_ID': 'SCL',       # 3 char alpha-numeric Band ID
+             'R_band': 'B02',        # Red, Green, Blue band IDs for RGB images
+             'G_band': 'B03',
+             'B_band': 'B04'}
 
-#RGB_image(fp, (r_name, g_name, b_name))
+    # Create a new projection system in lat-lon
+    new_cs = osr.SpatialReference()
+    new_cs.ImportFromEPSG(4326)
 
-#discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
+    #RGB_image(fp, (r_name, g_name, b_name))
 
-labelled_RGB_image(names, data_band=1, classes=classes, cmap_style=RE_cmap, new_cs=new_cs)
+    #discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
+
+    labelled_RGB_image(names, data_band=1, classes=classes, cmap_style=RE_cmap, new_cs=new_cs)
 
