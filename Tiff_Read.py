@@ -20,6 +20,7 @@ import datetime as dt
 from osgeo import gdal, osr
 import math
 import glob
+import os
 import imageio
 from tqdm import tqdm
 # =====================================================================================================================
@@ -60,6 +61,13 @@ imageio.plugins.freeimage.download()
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def exist_delete_check(fn):
+    if os.path.exists(fn):
+        os.remove(fn)
+    else:
+        pass
+
+
 def date_format(date, fmt1, fmt2):
     return dt.datetime.strptime(date, fmt1).strftime(fmt2)
 
@@ -377,6 +385,10 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
 
     # If true, save file to fn
     if save:
+        # Checks if file already exists. Deletes if true
+        exist_delete_check(fn)
+
+        # Save figure to fn
         fig.savefig(fn)
 
     # Close figure
