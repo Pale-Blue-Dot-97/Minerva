@@ -389,7 +389,7 @@ def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_st
 
     dates = date_grab(names)
 
-    pb = tqdm(total=len(dates) + 10)
+    pb = tqdm(total=100)
 
     frames = []
     for date in dates:
@@ -403,7 +403,7 @@ def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_st
 
     pb.set_description('MAKING GIF')
     imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
-    pb.update(10)
+    pb.update(100 - len(dates))
     pb.close()
 
 
