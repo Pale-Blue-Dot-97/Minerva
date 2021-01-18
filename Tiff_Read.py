@@ -21,6 +21,7 @@ from osgeo import gdal, osr
 import math
 import glob
 import imageio
+from tqdm import tqdm
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -49,6 +50,10 @@ RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(RE_classes))
 # Automatically fixes the layout of the figures to accommodate the colour bar legends
 plt.rcParams['figure.constrained_layout.use'] = True
 
+# Create a new projection system in lat-lon
+WGS84_4326 = osr.SpatialReference()
+WGS84_4326.ImportFromEPSG(4326)
+
 imageio.plugins.freeimage.download()
 
 
@@ -57,6 +62,12 @@ imageio.plugins.freeimage.download()
 # =====================================================================================================================
 def date_format(date, fmt1, fmt2):
     return dt.datetime.strptime(date, fmt1).strftime(fmt2)
+
+
+def patch_grab():
+    patch_dirs = glob.glob('landcovernet/ref_landcovernet_v1_labels_*/')
+
+    return [(patch.partition('ref_landcovernet_v1_labels_')[2])[:-1] for patch in patch_dirs]
 
 
 def date_grab(names):
@@ -374,20 +385,45 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     return fn
 
 
-def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None, save=False,
-             show=False):
+def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None, save=False):
 
     dates = date_grab(names)
 
+    pb = tqdm(total=len(dates) + 10)
+
     frames = []
     for date in dates:
+        pb.set_description('Scene on %s' % date)
         names['date'] = date
         frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style, new_cs=new_cs,
-                                   save=save, show=show)
+                                   save=save, show=False)
 
         frames.append(imageio.imread(frame))
+        pb.update(1)
 
+    pb.set_description('MAKING GIF')
     imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
+    pb.update(10)
+    pb.close()
+
+
+def make_all_the_gifs(names, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None):
+    patches = patch_grab()
+
+    i = 0
+    for patch in patches:
+        i = i + 1
+
+        print('\r\nNOW SERVING PATCH %s (%s/%s): ' % (patch, i, len(patches)))
+
+        names['patch_ID'] = patch
+
+        gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s/%s.gif' % (names['patch_ID'], names['patch_ID'])
+
+        make_gif(names, gif_name, frame_length=frame_length, data_band=data_band, classes=classes,
+                 cmap_style=cmap_style, new_cs=new_cs, save=True)
+
+    print('\r\nOPERATION COMPLETE')
 
 
 # =====================================================================================================================
@@ -395,19 +431,12 @@ def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_st
 # =====================================================================================================================
 if __name__ == '__main__':
 
-    my_names = {'patch_ID': '38PKT_22',     # Five char alpha-numeric SENTINEL tile ID and
+    my_names = {#'patch_ID': '31PGS_15',     # Five char alpha-numeric SENTINEL tile ID and
                                             # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
-                'date': '16.04.2018',       # Date of scene in DD.MM.YYYY format
+                #'date': '16.04.2018',       # Date of scene in DD.MM.YYYY format
                 'band_ID': 'SCL',           # 3 char alpha-numeric Band ID
                 'R_band': 'B02',            # Red, Green, Blue band IDs for RGB images
                 'G_band': 'B03',
                 'B_band': 'B04'}
 
-    test_gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s/%s.gif' % (my_names['patch_ID'], my_names['patch_ID'])
-
-    # Create a new projection system in lat-lon
-    WGS84_4326 = osr.SpatialReference()
-    WGS84_4326.ImportFromEPSG(4326)
-
-    make_gif(my_names, test_gif_name, frame_length=1, data_band=1, classes=RE_classes, cmap_style=RE_cmap,
-             new_cs=WGS84_4326, show=False, save=False)
+    make_all_the_gifs(my_names, frame_length=1, data_band=1, classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326)
