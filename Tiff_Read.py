@@ -268,11 +268,13 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
         block_size (int): Size of block image sub-division in pixels
         cmap_style (str, ListedColormap): Name or object for colour map style
         alpha (float): Fraction determining alpha blending of label mask
+        new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
 
     Returns:
         None
 
     """
+    # Get required formatted paths and names
     rgb, scene_path, data_name = path_format(names)
 
     # Stacks together the R, G, & B bands to form an array of the RGB image
@@ -301,23 +303,37 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     ax1.set_xticks(np.arange(0, data.shape[0] + 1, block_size))
     ax1.set_yticks(np.arange(0, data.shape[1] + 1, block_size))
 
+    # Creates a secondary x and y axis to hold lat-lon
     ax2 = ax1.twiny().twinx()
 
+    # Gets the co-ordinates of the corners of the image in decimal lat-lon
     corners = transform_coordinates(scene_path + data_name, new_cs)
 
+    # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image
     lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
                              num=int(data.shape[0]/block_size) + 1, endpoint=True)
     lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
                              num=int(data.shape[0]/block_size) + 1, endpoint=True)
 
+    # Plots an invisible line across the diagonal of the image to create the secondary axis for lat-lon
     ax2.plot(lon_extent, lat_extent, ' ',
              clip_box=Bbox.from_extents(lon_extent[0], lat_extent[0], lon_extent[-1], lat_extent[-1]))
 
+    # Sets ticks for lat-lon
     ax2.set_xticks(lon_extent)
     ax2.set_yticks(lat_extent)
 
+    # Sets the limits of the secondary axis so they should align with the primary
+    ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
+    ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
+
+    # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis
     lat_labels = dec2deg(lat_extent, axis='lat', sig=2)
     lon_labels = dec2deg(lon_extent, axis='lon', sig=2)
+
+    # Sets the secondary axis tick labels
+    ax2.set_xticklabels(lon_labels, fontsize=11)
+    ax2.set_yticklabels(lat_labels, fontsize=10, rotation=-30, ha='left')
 
     # Add grid overlay
     ax1.grid(which='both', color='#CCCCCC', linestyle=':')
@@ -328,23 +344,15 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     # Sets colour bar ticks to class labels
     clb.ax.set_yticklabels(classes, fontsize=11)
 
+    # Bodge to get a figure title by using the colour bar title.
     clb.ax.set_title('%s_%s\n%s\nLand Cover' % (names['tile_ID'], names['patch_ID'], names['date']),
                      loc='left', fontsize=15)
-
-    ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
-    ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
-
-    ax2.set_xticklabels(lon_labels, fontsize=11)
-    ax2.set_yticklabels(lat_labels, fontsize=10, rotation=-30, ha='left')
 
     # Set axis labels
     ax1.set_xlabel('(x) - Pixel Position', fontsize=14)
     ax1.set_ylabel('(y) - Pixel Position', fontsize=14)
-    #ax2.set_xlabel('Longitude', fontsize=14)
     ax2.set_ylabel('Latitude', fontsize=14, rotation=270, labelpad=12)
-
-    ax2.set_title('Longitude')
-    #ax1.set_title('38PKT_22', fontsize=16, pad=20, loc='right')
+    ax2.set_title('Longitude')  # Bodge
 
     # Manual trial and error fig size which fixes aspect ratio issue
     fig.set_figheight(8.02)
