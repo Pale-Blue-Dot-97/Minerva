@@ -11,7 +11,6 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-#import Landcovernet_Download_API as ap
 import rasterio as rt
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,8 +24,6 @@ import imageio
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-#classes = ap.get_classes()
-
 RE_classes = ['No Data',
               'Water',
               'Artificial\nBareground',
@@ -258,7 +255,8 @@ def make_rgb_image(scene_path, rgb):
     return rgb_image
 
 
-def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None):
+def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None,
+                       show=True, save=True):
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top
 
     Args:
@@ -269,9 +267,11 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
         cmap_style (str, ListedColormap): Name or object for colour map style
         alpha (float): Fraction determining alpha blending of label mask
         new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
+        show (bool): True for show figure when plotted. False if not
+        save(bool): True to save figure to file. False if not
 
     Returns:
-        None
+        fn (str): Path to figure save location
 
     """
     # Get required formatted paths and names
@@ -358,11 +358,15 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     fig.set_figwidth(10.32)
 
     # Display figure
-    #plt.show()
+    if show:
+        plt.show()
 
+    # Path and file name of figure
     fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], date_format(names['date'], '%d.%m.%Y', '%Y%m%d'))
 
-    #fig.savefig(fn)
+    # If true, save file to fn
+    if save:
+        fig.savefig(fn)
 
     # Close figure
     plt.close()
@@ -370,14 +374,16 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     return fn
 
 
-def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None):
+def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None, save=False,
+             show=False):
 
     dates = date_grab(names)
 
     frames = []
     for date in dates:
         names['date'] = date
-        frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style, new_cs=new_cs)
+        frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style, new_cs=new_cs,
+                                   save=save, show=show)
 
         frames.append(imageio.imread(frame))
 
@@ -397,17 +403,11 @@ if __name__ == '__main__':
                 'G_band': 'B03',
                 'B_band': 'B04'}
 
-    gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s/%s.gif' % (my_names['patch_ID'], my_names['patch_ID'])
+    test_gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s/%s.gif' % (my_names['patch_ID'], my_names['patch_ID'])
 
     # Create a new projection system in lat-lon
     WGS84_4326 = osr.SpatialReference()
     WGS84_4326.ImportFromEPSG(4326)
 
-    #RGB_image(fp, (r_name, g_name, b_name))
-
-    #discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
-
-    #labelled_rgb_image(my_names, data_band=1, classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326)
-
-    make_gif(my_names, gif_name, frame_length=1, data_band=1, classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326)
-
+    make_gif(my_names, test_gif_name, frame_length=1, data_band=1, classes=RE_classes, cmap_style=RE_cmap,
+             new_cs=WGS84_4326, show=False, save=False)
