@@ -25,14 +25,14 @@ import math
 # =====================================================================================================================
 #classes = ap.get_classes()
 
-classes = ['No Data',
-           'Water',
-           'Artificial\nBareground',
-           'Natural\nBareground',
-           'Permanent\nSnow/Ice',
-           'Woody\nVegetation',
-           'Cultivated\nVegetation',
-           '(Semi) Natural\nVegetation']
+RE_classes = ['No Data',
+              'Water',
+              'Artificial\nBareground',
+              'Natural\nBareground',
+              'Permanent\nSnow/Ice',
+              'Woody\nVegetation',
+              'Cultivated\nVegetation',
+              '(Semi) Natural\nVegetation']
 
 # Custom colour mapping specified by Radiant Earth Foundation
 RE_cmap_dict = {0: '#FF0000',  # Red
@@ -45,7 +45,7 @@ RE_cmap_dict = {0: '#FF0000',  # Red
                 7: '#00ff00'}
 
 # Custom cmap matching the Radiant Earth Foundation specifications
-RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(classes))
+RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(RE_classes))
 
 # Automatically fixes the layout of the figures to accommodate the colour bar legends
 plt.rcParams['figure.constrained_layout.use'] = True
@@ -184,7 +184,7 @@ def discrete_heatmap(data, classes=None, cmap_style=None):
     plt.close()
 
 
-def stack_RGB(scene_path, rgb):
+def stack_rgb(scene_path, rgb):
     """Stacks together red, green and blue image arrays from file to create a RGB array
 
     Args:
@@ -216,7 +216,7 @@ def stack_RGB(scene_path, rgb):
     return np.dstack((bands[2], bands[1], bands[0]))
 
 
-def RGB_image(scene_path, rgb):
+def make_rgb_image(scene_path, rgb):
     """Creates an RGB image from a composition of red, green and blue band .tif images
 
     Args:
@@ -227,7 +227,7 @@ def RGB_image(scene_path, rgb):
         rgb_image (AxesImage): Plotted RGB image object
     """
     # Stack RGB image data together
-    rgb_image_array = stack_RGB(scene_path, rgb)
+    rgb_image_array = stack_rgb(scene_path, rgb)
 
     # Create RGB image
     rgb_image = plt.imshow(rgb_image_array)
@@ -244,7 +244,7 @@ def RGB_image(scene_path, rgb):
     return rgb_image
 
 
-def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None):
+def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None):
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top
 
     Args:
@@ -264,7 +264,7 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     rgb, scene_path, data_name = path_format(names)
 
     # Stacks together the R, G, & B bands to form an array of the RGB image
-    rgb_image = stack_RGB(scene_path, rgb)
+    rgb_image = stack_rgb(scene_path, rgb)
 
     # Loads data to plotted as heatmap from file
     data = load_array(scene_path + data_name, band=data_band)
@@ -356,21 +356,21 @@ def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_sty
 # =====================================================================================================================
 if __name__ == '__main__':
 
-    names = {'tile_ID': '38PKT',     # Five char alpha-numeric SENTINEL tile ID
-             'patch_ID': '22',       # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
-             'date': '16.04.2018',   # Date of scene in DD.MM.YYYY format
-             'band_ID': 'SCL',       # 3 char alpha-numeric Band ID
-             'R_band': 'B02',        # Red, Green, Blue band IDs for RGB images
-             'G_band': 'B03',
-             'B_band': 'B04'}
+    my_names = {'tile_ID': '38PKT',     # Five char alpha-numeric SENTINEL tile ID
+                'patch_ID': '22',       # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
+                'date': '16.04.2018',   # Date of scene in DD.MM.YYYY format
+                'band_ID': 'SCL',       # 3 char alpha-numeric Band ID
+                'R_band': 'B02',        # Red, Green, Blue band IDs for RGB images
+                'G_band': 'B03',
+                'B_band': 'B04'}
 
     # Create a new projection system in lat-lon
-    new_cs = osr.SpatialReference()
-    new_cs.ImportFromEPSG(4326)
+    WGS84_4326 = osr.SpatialReference()
+    WGS84_4326.ImportFromEPSG(4326)
 
     #RGB_image(fp, (r_name, g_name, b_name))
 
     #discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
 
-    labelled_RGB_image(names, data_band=1, classes=classes, cmap_style=RE_cmap, new_cs=new_cs)
+    labelled_rgb_image(my_names, data_band=1, classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326)
 
