@@ -249,13 +249,14 @@ def RGB_image(scene_path, rgb):
     return rgb_image
 
 
-def labelled_RGB_image(names, data_band=1, classes=None, cmap_style=None, alpha=0.5, new_cs=None):
+def labelled_RGB_image(names, data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None):
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top
 
     Args:
         names (dict): Dictionary of IDs to uniquely identify the scene and selected bands
         data_band (int): Band number of data .tif file
         classes ([str]): List of all possible class labels
+        block_size (int): Size of block image sub-division in pixels
         cmap_style (str, ListedColormap): Name or object for colour map style
         alpha (float): Fraction determining alpha blending of label mask
 
@@ -288,17 +289,17 @@ def labelled_RGB_image(names, data_band=1, classes=None, cmap_style=None, alpha=
     heatmap = ax1.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha)
 
     # Sets tick intervals to standard 32x32 block size
-    ax1.set_xticks(np.arange(0, data.shape[0] + 1, 32))
-    ax1.set_yticks(np.arange(0, data.shape[1] + 1, 32))
+    ax1.set_xticks(np.arange(0, data.shape[0] + 1, block_size))
+    ax1.set_yticks(np.arange(0, data.shape[1] + 1, block_size))
 
     ax2 = ax1.twiny().twinx()
 
     corners = transform_coordinates(scene_path + data_name, new_cs)
 
     lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
-                             num=int(data.shape[0]/32.0) + 1, endpoint=True)
+                             num=int(data.shape[0]/block_size) + 1, endpoint=True)
     lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
-                             num=int(data.shape[0]/32.0) + 1, endpoint=True)
+                             num=int(data.shape[0]/block_size) + 1, endpoint=True)
 
     ax2.plot(lon_extent, lat_extent, ' ',
              clip_box=Bbox.from_extents(lon_extent[0], lat_extent[0], lon_extent[-1], lat_extent[-1]))
