@@ -22,6 +22,7 @@ import datetime as dt
 from osgeo import gdal, osr
 import math
 import glob
+import imageio
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -357,13 +358,29 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     fig.set_figwidth(10.32)
 
     # Display figure
-    plt.show()
+    #plt.show()
 
-    fig.savefig('%s/%s_%s_%s_RGBHM.png' % (scene_path, names['tile_ID'], names['patch_ID'],
-                                           date_format(names['date'], '%d.%m.%Y', '%Y%m%d')))
-    
+    fn = '%s/%s_%s_%s_RGBHM.png' % (scene_path, names['tile_ID'], names['patch_ID'],
+                                    date_format(names['date'], '%d.%m.%Y', '%Y%m%d'))
+    fig.savefig(fn)
+
     # Close figure
     plt.close()
+
+    return fn
+
+
+def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None):
+    dates = date_grab(names)
+
+    frames = []
+    for date in dates:
+        names['date'] = date
+        frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style, new_cs=new_cs)
+
+        frames.append(imageio.imread(frame))
+
+    imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
 # =====================================================================================================================
@@ -379,7 +396,8 @@ if __name__ == '__main__':
                 'G_band': 'B03',
                 'B_band': 'B04'}
 
-    print(date_grab(my_names))
+    gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s_%s.gif' % (my_names['tile_ID'], my_names['patch_ID'],
+                                                                            my_names['tile_ID'], my_names['patch_ID'])
 
     # Create a new projection system in lat-lon
     WGS84_4326 = osr.SpatialReference()
@@ -389,5 +407,7 @@ if __name__ == '__main__':
 
     #discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
 
-    labelled_rgb_image(my_names, data_band=1, classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326)
+    #labelled_rgb_image(my_names, data_band=1, classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326)
+
+    make_gif(my_names, gif_name, frame_length=1, data_band=1, classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326)
 
