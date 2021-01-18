@@ -21,6 +21,7 @@ from matplotlib.transforms import Bbox
 import datetime as dt
 from osgeo import gdal, osr
 import math
+import glob
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -55,6 +56,14 @@ plt.rcParams['figure.constrained_layout.use'] = True
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def date_grab(names):
+    scene_dirs = glob.glob('landcovernet/ref_landcovernet_v1_labels_%s_%s/*/' % (names['tile_ID'], names['patch_ID']))
+
+    scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
+
+    return [dt.datetime.strptime(date, '%Y_%m_%d').strftime('%d.%m.%Y') for date in scene_names]
+
+
 def path_format(names):
     stamp = dt.datetime.strptime(names['date'], '%d.%m.%Y')
 
@@ -364,6 +373,8 @@ if __name__ == '__main__':
                 'R_band': 'B02',        # Red, Green, Blue band IDs for RGB images
                 'G_band': 'B03',
                 'B_band': 'B04'}
+
+    print(date_grab(my_names))
 
     # Create a new projection system in lat-lon
     WGS84_4326 = osr.SpatialReference()
