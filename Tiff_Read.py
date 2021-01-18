@@ -53,6 +53,8 @@ RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(RE_classes))
 # Automatically fixes the layout of the figures to accommodate the colour bar legends
 plt.rcParams['figure.constrained_layout.use'] = True
 
+imageio.plugins.freeimage.download()
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -62,7 +64,7 @@ def date_format(date, fmt1, fmt2):
 
 
 def date_grab(names):
-    scene_dirs = glob.glob('landcovernet/ref_landcovernet_v1_labels_%s_%s/*/' % (names['tile_ID'], names['patch_ID']))
+    scene_dirs = glob.glob('landcovernet/ref_landcovernet_v1_labels_%s/*/' % names['patch_ID'])
 
     scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
 
@@ -73,12 +75,12 @@ def path_format(names):
     date1 = date_format(names['date'], '%d.%m.%Y', '%Y_%m_%d')
     date2 = date_format(names['date'], '%d.%m.%Y', '%Y%m%d')
 
-    scene_path = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s/' % (names['tile_ID'], names['patch_ID'], date1)
-    data_name = '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['band_ID'])
+    scene_path = 'landcovernet/ref_landcovernet_v1_labels_%s/%s/' % (names['patch_ID'], date1)
+    data_name = '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['band_ID'])
 
-    rgb = {'R': '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['R_band']),
-           'G': '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['G_band']),
-           'B': '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['B_band'])}
+    rgb = {'R': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['R_band']),
+           'G': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['G_band']),
+           'B': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['B_band'])}
 
     return rgb, scene_path, data_name
 
@@ -344,8 +346,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     clb.ax.set_yticklabels(classes, fontsize=11)
 
     # Bodge to get a figure title by using the colour bar title.
-    clb.ax.set_title('%s_%s\n%s\nLand Cover' % (names['tile_ID'], names['patch_ID'], names['date']),
-                     loc='left', fontsize=15)
+    clb.ax.set_title('%s\n%s\nLand Cover' % (names['patch_ID'], names['date']), loc='left', fontsize=15)
 
     # Set axis labels
     ax1.set_xlabel('(x) - Pixel Position', fontsize=14)
@@ -360,9 +361,9 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     # Display figure
     #plt.show()
 
-    fn = '%s/%s_%s_%s_RGBHM.png' % (scene_path, names['tile_ID'], names['patch_ID'],
-                                    date_format(names['date'], '%d.%m.%Y', '%Y%m%d'))
-    fig.savefig(fn)
+    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], date_format(names['date'], '%d.%m.%Y', '%Y%m%d'))
+
+    #fig.savefig(fn)
 
     # Close figure
     plt.close()
@@ -371,6 +372,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
 
 
 def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_style=None, new_cs=None):
+
     dates = date_grab(names)
 
     frames = []
@@ -388,16 +390,15 @@ def make_gif(names, gif_name, frame_length=1, data_band=1, classes=None, cmap_st
 # =====================================================================================================================
 if __name__ == '__main__':
 
-    my_names = {'tile_ID': '38PKT',     # Five char alpha-numeric SENTINEL tile ID
-                'patch_ID': '22',       # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
-                'date': '16.04.2018',   # Date of scene in DD.MM.YYYY format
-                'band_ID': 'SCL',       # 3 char alpha-numeric Band ID
-                'R_band': 'B02',        # Red, Green, Blue band IDs for RGB images
+    my_names = {'patch_ID': '38PKT_22',     # Five char alpha-numeric SENTINEL tile ID and
+                                            # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
+                'date': '16.04.2018',       # Date of scene in DD.MM.YYYY format
+                'band_ID': 'SCL',           # 3 char alpha-numeric Band ID
+                'R_band': 'B02',            # Red, Green, Blue band IDs for RGB images
                 'G_band': 'B03',
                 'B_band': 'B04'}
 
-    gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s_%s.gif' % (my_names['tile_ID'], my_names['patch_ID'],
-                                                                            my_names['tile_ID'], my_names['patch_ID'])
+    gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s/%s.gif' % (my_names['patch_ID'], my_names['patch_ID'])
 
     # Create a new projection system in lat-lon
     WGS84_4326 = osr.SpatialReference()
