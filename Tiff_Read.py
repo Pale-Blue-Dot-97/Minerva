@@ -45,6 +45,22 @@ plt.rcParams['figure.constrained_layout.use'] = True
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def path_format(names):
+    stamp = dt.datetime.strptime(names['date'], '%d.%m.%Y')
+
+    date1 = stamp.strftime('%Y_%m_%d')
+    date2 = stamp.strftime('%Y%m%d')
+
+    scene_path = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s/' % (names['tile_ID'], names['patch_ID'], date1)
+    data_name = '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['band_ID'])
+
+    rgb = {'R': '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['R_band']),
+           'G': '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['G_band']),
+           'B': '%s_%s_%s_%s_10m.tif' % (names['tile_ID'], names['patch_ID'], date2, names['B_band'])}
+
+    return rgb, scene_path, data_name
+
+
 def load_array(path, band):
     """Extracts an array from opening a specific band of a .tif file
 
@@ -178,7 +194,7 @@ def stack_RGB(scene_path, rgb):
 
     Args:
         scene_path (str): Path to directory holding images from desired scene
-        rgb ([str]): List of filenames of R, G & B band images
+        rgb (dict): Dictionary of filenames of R, G & B band images
 
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
@@ -197,8 +213,8 @@ def stack_RGB(scene_path, rgb):
 
     # Load R, G, B images from file and normalise
     bands = []
-    for band in rgb:
-        bands.append(normalise(load_array(scene_path + band, 1)))
+    for band in ['R', 'G', 'B']:
+        bands.append(normalise(load_array(scene_path + rgb[band], 1)))
 
     # Stack together RGB bands
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
@@ -233,13 +249,11 @@ def RGB_image(scene_path, rgb):
     return rgb_image
 
 
-def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cmap_style=None, alpha=0.5, new_cs=None):
+def labelled_RGB_image(names, data_band=1, classes=None, cmap_style=None, alpha=0.5, new_cs=None):
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top
 
     Args:
-        scene_path (str): Path to directory holding images from desired scene
-        rgb ([str]): List of filenames of R, G & B band images
-        data_path (str): Path to tif data file to be plotted as a heat map
+        names (dict): Dictionary of IDs to uniquely identify the scene and selected bands
         data_band (int): Band number of data .tif file
         classes ([str]): List of all possible class labels
         cmap_style (str, ListedColormap): Name or object for colour map style
@@ -249,11 +263,13 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
         None
 
     """
+    rgb, scene_path, data_name = path_format(names)
+
     # Stacks together the R, G, & B bands to form an array of the RGB image
     rgb_image = stack_RGB(scene_path, rgb)
 
     # Loads data to plotted as heatmap from file
-    data = load_array(data_path, band=data_band)
+    data = load_array(scene_path + data_name, band=data_band)
 
     # Defines the 'extent' of the composite image based on the size of the mask.
     # Assumes mask and RGB image have same 2D shape
@@ -277,7 +293,7 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
 
     ax2 = ax1.twiny().twinx()
 
-    corners = transform_coordinates(data_path, new_cs)
+    corners = transform_coordinates(scene_path + data_name, new_cs)
 
     lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
                              num=int(data.shape[0]/32.0) + 1, endpoint=True)
@@ -301,13 +317,15 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
 
     # Sets colour bar ticks to class labels
     clb.ax.set_yticklabels(classes, fontsize=11)
-    clb.ax.set_title('38PKT_22\n08.10.2018\nLand Cover Class Label', loc='left')
+
+    clb.ax.set_title('%s_%s\n%s\nLand Cover Class' % (names['tile_ID'], names['patch_ID'], names['date']),
+                     loc='left', fontsize=15)
 
     ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
 
     ax2.set_xticklabels(lon_labels, fontsize=11)
-    ax2.set_yticklabels(lat_labels, fontsize=10, rotation=-45, ha='left')
+    ax2.set_yticklabels(lat_labels, fontsize=10, rotation=-30, ha='left')
 
     # Set axis labels
     ax1.set_xlabel('(x) - Pixel Position', fontsize=14)
@@ -320,7 +338,7 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
 
     # Manual trial and error fig size which fixes aspect ratio issue
     fig.set_figheight(8)
-    fig.set_figwidth(11.02)
+    fig.set_figwidth(11.19)
 
     # Display figure
     plt.show()
@@ -332,36 +350,13 @@ def labelled_RGB_image(scene_path, rgb, data_path, data_band=1, classes=None, cm
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-# Five char alpha-numeric SENTINEL tile ID
-tile_ID = '38PKT'
-
-# 2 digit int SENTINEL chip ID ranging from 0-29
-chip_ID = '22'
-
-# Date of scene in DD.MM.YYYY format
-date = '16.04.2018'
-
-# 3 char alpha-numeric Band ID
-band_ID = 'SCL'
-
-# Red, Green, Blue band IDs for RGB images
-R_band = 'B02'
-G_band = 'B03'
-B_band = 'B04'
-
-stamp = dt.datetime.strptime(date, '%d.%m.%Y')
-
-date1 = stamp.strftime('%Y_%m_%d')
-date2 = stamp.strftime('%Y%m%d')
-
-fp = 'landcovernet/ref_landcovernet_v1_labels_%s_%s/%s/' % (tile_ID, chip_ID, date1)
-fn = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, band_ID)
-
-r_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, R_band)
-g_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, G_band)
-b_name = '%s_%s_%s_%s_10m.tif' % (tile_ID, chip_ID, date2, B_band)
-
-path = fp + fn
+names = {'tile_ID': '38PKT',    # Five char alpha-numeric SENTINEL tile ID
+         'patch_ID': '22',       # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
+         'date': '16.04.2018',   # Date of scene in DD.MM.YYYY format
+         'band_ID': 'SCL',       # 3 char alpha-numeric Band ID
+         'R_band': 'B02',        # Red, Green, Blue band IDs for RGB images
+         'G_band': 'B03',
+         'B_band': 'B04'}
 
 # Create a new projection system in lat-lon
 new_cs = osr.SpatialReference()
@@ -371,5 +366,5 @@ new_cs.ImportFromEPSG(4326)
 
 #discrete_heatmap(load_array(path, band=1), classes=classes, cmap_style=RE_cmap)
 
-labelled_RGB_image(fp, (r_name, g_name, b_name), path, data_band=1, classes=classes, cmap_style=RE_cmap, new_cs=new_cs)
+labelled_RGB_image(names, data_band=1, classes=classes, cmap_style=RE_cmap, new_cs=new_cs)
 
