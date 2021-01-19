@@ -415,23 +415,37 @@ def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_
         None
 
     """
-
+    # Fetch all the scene dates for this patch in DD.MM.YYYY format
     dates = date_grab(names)
 
+    # Initialise progress bar
     with alive_bar(len(dates), bar='blocks') as bar:
 
+        # List to hold filenames and paths of images created
         frames = []
         for date in dates:
+            # Update progress bar with current scene
             bar.text('SCENE ON %s' % date)
+
+            # Update names date field
             names['date'] = date
+
+            # Create a frame of the GIF for a scene of the patch
             frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style,
                                        new_cs=new_cs, alpha=alpha, save=save, show=False)
 
+            # Read in frame just created and add to list of frames
             frames.append(imageio.imread(frame))
+
+            # Update bar with step completion
             bar()
 
+    # Create a 'unknown' bar to 'spin' while the GIF is created
     with alive_bar(unknown='waves') as bar:
+        # Add current operation to spinner bar
         bar.text('MAKING PATCH %s GIF' % names['patch_ID'])
+
+        # Create GIF
         imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
