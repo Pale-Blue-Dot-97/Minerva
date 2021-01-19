@@ -1,7 +1,6 @@
 """Tiff_Read
 
-Script to locate, open, read and manipulate .tiff images and datasets downloaded from the Radiant MLHub API using
-rasterio.
+Script to locate, open, read and plot .tiff images and datasets downloaded from the Radiant MLHub API.
 
 TODO:
     * Fully document
@@ -25,9 +24,13 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
+# Path to directory holding dataset
 data_dir = 'landcovernet'
+
+# Prefix to every patch ID in every patch directory name
 patch_dir_prefix = 'ref_landcovernet_v1_labels_'
 
+# Radiant Earth land cover classes reformatted to split across two lines for neater plots
 RE_classes = ['No Data',
               'Water',
               'Artificial\nBareground',
@@ -57,6 +60,7 @@ plt.rcParams['figure.constrained_layout.use'] = True
 WGS84_4326 = osr.SpatialReference()
 WGS84_4326.ImportFromEPSG(4326)
 
+# Downloads required plugin for imageio if not already present
 imageio.plugins.freeimage.download()
 
 
@@ -64,6 +68,16 @@ imageio.plugins.freeimage.download()
 #                                                     METHODS
 # =====================================================================================================================
 def exist_delete_check(fn):
+    """Checks if given file exists then deletes if true
+
+    Args:
+        fn (str): Path to file to have existence checked then deleted
+
+    Returns:
+        None
+
+    """
+    # Checks if file exists. Deletes if True. No action taken if False
     if os.path.exists(fn):
         os.remove(fn)
     else:
@@ -79,7 +93,7 @@ def datetime_reformat(datetime, fmt1, fmt2):
         fmt2 (str): New format for datetime
 
     Returns:
-        (str): Datetime reformatted to fmt2 
+        (str): Datetime reformatted to fmt2
     """
     return dt.datetime.strptime(datetime, fmt1).strftime(fmt2)
 
