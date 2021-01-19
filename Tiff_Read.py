@@ -70,8 +70,18 @@ def exist_delete_check(fn):
         pass
 
 
-def date_format(date, fmt1, fmt2):
-    return dt.datetime.strptime(date, fmt1).strftime(fmt2)
+def datetime_reformat(datetime, fmt1, fmt2):
+    """Takes a str representing a time stamp in one format and returns it reformatted into a second
+
+    Args:
+        datetime (str): Datetime string to be reformatted
+        fmt1 (str): Format of original datetime
+        fmt2 (str): New format for datetime
+
+    Returns:
+        (str): Datetime reformatted to fmt2 
+    """
+    return dt.datetime.strptime(datetime, fmt1).strftime(fmt2)
 
 
 def patch_grab():
@@ -104,7 +114,7 @@ def date_grab(patch_id):
     scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
 
     # Format the dates from US YYYY_MM_DD format into UK DD.MM.YYYY format and return list
-    return [date_format(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
+    return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
 
 
 def path_format(names):
@@ -119,8 +129,8 @@ def path_format(names):
         data_name (str): Name of the file containing the label mask
     """
     # Format the two required date formats used by REF MLHub
-    date1 = date_format(names['date'], '%d.%m.%Y', '%Y_%m_%d')
-    date2 = date_format(names['date'], '%d.%m.%Y', '%Y%m%d')
+    date1 = datetime_reformat(names['date'], '%d.%m.%Y', '%Y_%m_%d')
+    date2 = datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d')
 
     # Format path to the directory holding all the scene files
     scene_path = '%s/%s%s/%s/' % (data_dir, patch_dir_prefix, names['patch_ID'], date1)
@@ -450,7 +460,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
         plt.show()
 
     # Path and file name of figure
-    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], date_format(names['date'], '%d.%m.%Y', '%Y%m%d'))
+    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d'))
 
     # If true, save file to fn
     if save:
