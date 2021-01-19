@@ -3,7 +3,8 @@
 Script to locate, open, read and plot .tiff images and datasets downloaded from the Radiant MLHub API.
 
 TODO:
-    * Fully document
+    * Add ability to plot labelled RGB images using the annual land cover labels
+    * Add option to append annual land cover mask to patch GIFs
 
 """
 # =====================================================================================================================
