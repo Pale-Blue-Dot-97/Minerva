@@ -86,12 +86,27 @@ def date_grab(names):
 
 
 def path_format(names):
+    """Takes a dictionary of unique IDs to format the paths and names of files associated with the desired scene
+
+    Args:
+        names (dict): Dictionary of IDs to uniquely identify the scene and selected bands
+
+    Returns:
+        scene_path (str): Path to directory holding images from desired scene
+        rgb (dict): Dictionary of filenames of R, G & B band images
+        data_name (str): Name of the file containing the label mask
+    """
+    # Format the two required date formats used by REF MLHub
     date1 = date_format(names['date'], '%d.%m.%Y', '%Y_%m_%d')
     date2 = date_format(names['date'], '%d.%m.%Y', '%Y%m%d')
 
+    # Format path to the directory holding all the scene files
     scene_path = 'landcovernet/ref_landcovernet_v1_labels_%s/%s/' % (names['patch_ID'], date1)
+
+    # Format the name of the file containing the label mask data
     data_name = '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['band_ID'])
 
+    # Create a dictionary of the names of the requested red, green, blue images
     rgb = {'R': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['R_band']),
            'G': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['G_band']),
            'B': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['B_band'])}
