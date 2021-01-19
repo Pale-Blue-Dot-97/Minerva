@@ -80,11 +80,22 @@ def patch_grab():
     return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
 
 
-def date_grab(names):
-    scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, names['patch_ID']))
+def date_grab(patch_id):
+    """Finds all the name of all the scene directories for a patch and returns a list of the dates reformatted
 
+    Args:
+        patch_id (str): Unique patch ID
+
+    Returns:
+        (list): List of the dates of the scenes in DD.MM.YYYY format for this patch_ID
+    """
+    # Get the name of all the directories for this patch
+    scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
+
+    # Extract the scene names (i.e the dates) from the paths
     scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
 
+    # Format the dates from US YYYY_MM_DD format into UK DD.MM.YYYY format and return list
     return [date_format(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
 
 
@@ -467,7 +478,7 @@ def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_
 
     """
     # Fetch all the scene dates for this patch in DD.MM.YYYY format
-    dates = date_grab(names)
+    dates = date_grab(names['patch_ID'])
 
     # Initialise progress bar
     with alive_bar(len(dates), bar='blocks') as bar:
