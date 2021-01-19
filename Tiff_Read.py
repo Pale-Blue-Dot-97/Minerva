@@ -21,7 +21,7 @@ import math
 import glob
 import os
 import imageio
-from tqdm import tqdm
+from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -418,22 +418,21 @@ def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_
 
     dates = date_grab(names)
 
-    pb = tqdm(total=100)
+    with alive_bar(len(dates), bar='blocks') as bar:
 
-    frames = []
-    for date in dates:
-        pb.set_description('Scene on %s' % date)
-        names['date'] = date
-        frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style, new_cs=new_cs,
-                                   alpha=alpha, save=save, show=False)
+        frames = []
+        for date in dates:
+            bar.text('SCENE ON %s' % date)
+            names['date'] = date
+            frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style,
+                                       new_cs=new_cs, alpha=alpha, save=save, show=False)
 
-        frames.append(imageio.imread(frame))
-        pb.update(1)
+            frames.append(imageio.imread(frame))
+            bar()
 
-    pb.set_description('MAKING GIF')
-    imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
-    pb.update(100 - len(dates))
-    pb.close()
+    with alive_bar(unknown='waves') as bar:
+        bar.text('MAKING PATCH %s GIF' % names['patch_ID'])
+        imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
 def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_style=None, new_cs=None, alpha=0.5):
@@ -484,9 +483,9 @@ def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_s
 # =====================================================================================================================
 if __name__ == '__main__':
     # Additional options for names dictionary:
-    # 'patch_ID': '31PGS_15',     Five char alpha-numeric SENTINEL tile ID and
-    #                             2 digit int REF MLHub chip (patch) ID ranging from 0-29
-    # 'date': '16.04.2018',       Date of scene in DD.MM.YYYY format
+    #           'patch_ID': '31PGS_15',     Five char alpha-numeric SENTINEL tile ID and
+    #                                       2 digit int REF MLHub chip (patch) ID ranging from 0-29
+    #           'date': '16.04.2018',       Date of scene in DD.MM.YYYY format
     my_names = {'band_ID': 'SCL',           # 3 char alpha-numeric Band ID
                 'R_band': 'B02',            # Red, Green, Blue band IDs for RGB images
                 'G_band': 'B03',
