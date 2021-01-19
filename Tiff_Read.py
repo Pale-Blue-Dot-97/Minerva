@@ -25,6 +25,9 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
+data_dir = 'landcovernet'
+patch_dir_prefix = 'ref_landcovernet_v1_labels_'
+
 RE_classes = ['No Data',
               'Water',
               'Artificial\nBareground',
@@ -72,13 +75,13 @@ def date_format(date, fmt1, fmt2):
 
 
 def patch_grab():
-    patch_dirs = glob.glob('landcovernet/ref_landcovernet_v1_labels_*/')
+    patch_dirs = glob.glob('%s/%s*/' % (data_dir, patch_dir_prefix))
 
-    return [(patch.partition('ref_landcovernet_v1_labels_')[2])[:-1] for patch in patch_dirs]
+    return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
 
 
 def date_grab(names):
-    scene_dirs = glob.glob('landcovernet/ref_landcovernet_v1_labels_%s/*/' % names['patch_ID'])
+    scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, names['patch_ID']))
 
     scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
 
@@ -101,7 +104,7 @@ def path_format(names):
     date2 = date_format(names['date'], '%d.%m.%Y', '%Y%m%d')
 
     # Format path to the directory holding all the scene files
-    scene_path = 'landcovernet/ref_landcovernet_v1_labels_%s/%s/' % (names['patch_ID'], date1)
+    scene_path = '%s/%s%s/%s/' % (data_dir, patch_dir_prefix, names['patch_ID'], date1)
 
     # Format the name of the file containing the label mask data
     data_name = '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['band_ID'])
@@ -531,7 +534,7 @@ def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_s
         names['patch_ID'] = patch
 
         # Define name of GIF for this patch
-        gif_name = 'landcovernet/ref_landcovernet_v1_labels_%s/%s.gif' % (names['patch_ID'], names['patch_ID'])
+        gif_name = '%s/%s%s/%s.gif' % (data_dir, patch_dir_prefix, names['patch_ID'], names['patch_ID'])
 
         # Call make_gif() for this patch
         make_gif(names, gif_name, frame_length=frame_length, data_band=data_band, classes=classes,
