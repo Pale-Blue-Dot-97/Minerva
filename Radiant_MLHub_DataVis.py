@@ -1,10 +1,18 @@
-"""Tiff_Read
+"""Radiant_MLHub_DataVis
 
-Script to locate, open, read and plot .tiff images and datasets downloaded from the Radiant MLHub API.
+Script to locate, open, read and visualise .tiff images and associated label masks downloaded from the
+Radiant MLHub API.
+
+Author: Harry Baker
+
 
 TODO:
     * Add ability to plot labelled RGB images using the annual land cover labels
     * Add option to append annual land cover mask to patch GIFs
+
+Requires:
+    * API Key.txt containing your Radiant MLHub API key
+    * Dataset downloaded via Landcovernet_Download_API.py in this directory
 
 """
 # =====================================================================================================================
