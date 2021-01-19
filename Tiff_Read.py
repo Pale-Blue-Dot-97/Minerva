@@ -146,25 +146,43 @@ def deg_to_dms(deg, axis='lat'):
     https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
 
     Args:
-        deg:
-        axis:
+        deg (float): Decimal degrees of latitude or longitude
+        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier
 
     Returns:
-
+        str of inputted deg in degrees, minutes and seconds in the form DegreesºMinutes Seconds Hemisphere
     """
+    # Split decimal degrees into units and decimals
     decimals, number = math.modf(deg)
+
+    # Compute degrees, minutes and seconds
     d = int(number)
     m = int(decimals * 60)
     s = (deg - d - m / 60) * 3600.00
+
+    # Define cardinal directions between latitude and longitude
     compass = {
         'lat': ('N', 'S'),
         'lon': ('E', 'W')
     }
+
+    # Select correct hemisphere
     compass_str = compass[axis][0 if d >= 0 else 1]
+
+    # Return formatted str
     return '{}º{}\'{:.0f}"{}'.format(abs(d), abs(m), abs(s), compass_str)
 
 
 def dec2deg(dec_co, axis='lat'):
+    """Wrapper for deg_to_dms
+
+    Args:
+        dec_co ([float]): Array of either latitude or longitude co-ordinates in decimal degrees
+        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier
+
+    Returns:
+        deg_co ([str]): List of formatted strings in degrees, minutes and seconds
+    """
     deg_co = []
     for co in dec_co:
         deg_co.append(deg_to_dms(co, axis=axis))
