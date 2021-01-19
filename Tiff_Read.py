@@ -75,8 +75,16 @@ def date_format(date, fmt1, fmt2):
 
 
 def patch_grab():
+    """Fetches the patch IDs from the directory holding the whole dataset
+
+    Returns:
+        (list): List of unique patch IDs
+
+    """
+    # Fetches the names of the all the patch directories in the dataset
     patch_dirs = glob.glob('%s/%s*/' % (data_dir, patch_dir_prefix))
 
+    # Extracts the patch ID from the directory names and returns the list
     return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
 
 
