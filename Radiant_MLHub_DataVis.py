@@ -62,6 +62,38 @@ RE_cmap_dict = {0: '#FF0000',  # Red
 # Custom cmap matching the Radiant Earth Foundation specifications
 RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(RE_classes))
 
+RE_figdim = (8.02, 10.32)
+
+S2_SCL_classes = ['No Data',
+                  'Saturated OR\nDefective',
+                  'Dark Area Pixels',
+                  'Cloud Shadows',
+                  'Vegetation',
+                  'Not Vegetated',
+                  'Water',
+                  'Unclassified',
+                  'Cloud Medium\nProbability',
+                  'Cloud High\nProbability',
+                  'Thin Cirrus',
+                  'Snow']
+
+S2_SCL_cmap_dict = {0: '#000000',
+                    1: '#f71910',
+                    2: '#404040',
+                    3: '#7f3f0f',
+                    4: '#31ff00',
+                    5: '#faff10',
+                    6: '#2c00cc',
+                    7: '#757171',
+                    8: '#aeaaaa',
+                    9: '#d0cece',
+                    10: '#45c8fe',
+                    11: '#fc58ff'}
+
+S2_SCL_cmap = ListedColormap(S2_SCL_cmap_dict.values(), N=len(S2_SCL_classes))
+
+S2_SCL_figdim = (8, 10.44)
+
 # Automatically fixes the layout of the figures to accommodate the colour bar legends
 plt.rcParams['figure.constrained_layout.use'] = True
 
@@ -377,7 +409,7 @@ def make_rgb_image(scene_path, rgb):
 
 
 def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None,
-                       show=True, save=True):
+                       show=True, save=True, figdim=(8.02, 10.32)):
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top
 
     Args:
@@ -390,6 +422,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
         new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
         show (bool): True for show figure when plotted. False if not
         save (bool): True to save figure to file. False if not
+        figdim (tuple): Figure (height, width) in inches
 
     Returns:
         fn (str): Path to figure save location
@@ -475,8 +508,8 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     ax2.set_title('Longitude')  # Bodge
 
     # Manual trial and error fig size which fixes aspect ratio issue
-    fig.set_figheight(8.02)
-    fig.set_figwidth(10.32)
+    fig.set_figheight(figdim[0])
+    fig.set_figwidth(figdim[1])
 
     # Display figure
     if show:
@@ -500,7 +533,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
 
 
 def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_style=None, new_cs=None, alpha=0.5,
-             save=False):
+             save=False, figdim=(8.02, 10.32)):
     """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes
 
     Args:
@@ -535,7 +568,7 @@ def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_
 
             # Create a frame of the GIF for a scene of the patch
             frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style,
-                                       new_cs=new_cs, alpha=alpha, save=save, show=False)
+                                       new_cs=new_cs, alpha=alpha, save=save, show=False, figdim=figdim)
 
             # Read in frame just created and add to list of frames
             frames.append(imageio.imread(frame))
@@ -552,7 +585,8 @@ def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_
         imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
-def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_style=None, new_cs=None, alpha=0.5):
+def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_style=None, new_cs=None, alpha=0.5,
+                      figdim=(8.02, 10.32)):
     """Wrapper to make_gifs() to iterate through all patches in dataset
 
     Args:
@@ -590,7 +624,7 @@ def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_s
 
         # Call make_gif() for this patch
         make_gif(names, gif_name, frame_length=frame_length, data_band=data_band, classes=classes,
-                 cmap_style=cmap_style, new_cs=new_cs, alpha=alpha, save=True)
+                 cmap_style=cmap_style, new_cs=new_cs, alpha=alpha, save=True, figdim=figdim)
 
     print('\r\nOPERATION COMPLETE')
 
@@ -608,5 +642,5 @@ if __name__ == '__main__':
                 'G_band': 'B03',
                 'B_band': 'B04'}
 
-    make_all_the_gifs(my_names, frame_length=0.5, data_band=1, classes=RE_classes, cmap_style=RE_cmap,
-                      new_cs=WGS84_4326, alpha=0.3)
+    make_all_the_gifs(my_names, frame_length=0.5, data_band=1, classes=S2_SCL_classes, cmap_style=S2_SCL_cmap,
+                      new_cs=WGS84_4326, alpha=0.3, figdim=S2_SCL_figdim)
