@@ -39,6 +39,17 @@ data_dir = 'landcovernet'
 # Prefix to every patch ID in every patch directory name
 patch_dir_prefix = 'ref_landcovernet_v1_labels_'
 
+# Automatically fixes the layout of the figures to accommodate the colour bar legends
+plt.rcParams['figure.constrained_layout.use'] = True
+
+# Create a new projection system in lat-lon
+WGS84_4326 = osr.SpatialReference()
+WGS84_4326.ImportFromEPSG(4326)
+
+# Downloads required plugin for imageio if not already present
+imageio.plugins.freeimage.download()
+
+# ======= RADIANT MLHUB PRESETS =======================================================================================
 # Radiant Earth land cover classes reformatted to split across two lines for neater plots
 RE_classes = ['No Data',
               'Water',
@@ -62,8 +73,11 @@ RE_cmap_dict = {0: '#FF0000',  # Red
 # Custom cmap matching the Radiant Earth Foundation specifications
 RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(RE_classes))
 
+# Pre-set RE figure height and width (in inches)
 RE_figdim = (8.02, 10.32)
 
+# ======= SENTINEL-2 L2A SCL PRESETS ==================================================================================
+# SCL land cover classes reformatted to split across two lines for neater plots
 S2_SCL_classes = ['No Data',
                   'Saturated OR\nDefective',
                   'Dark Area Pixels',
@@ -77,6 +91,7 @@ S2_SCL_classes = ['No Data',
                   'Thin Cirrus',
                   'Snow']
 
+# Custom colour mapping from class definitions in the SENTINEL-2 L2A MSI
 S2_SCL_cmap_dict = {0: '#000000',
                     1: '#f71910',
                     2: '#404040',
@@ -90,19 +105,11 @@ S2_SCL_cmap_dict = {0: '#000000',
                     10: '#45c8fe',
                     11: '#fc58ff'}
 
+# Custom cmap matching the SENTINEL-2 L2A SCL classes
 S2_SCL_cmap = ListedColormap(S2_SCL_cmap_dict.values(), N=len(S2_SCL_classes))
 
+# Preset SCL figure height and width (in inches)
 S2_SCL_figdim = (8, 10.44)
-
-# Automatically fixes the layout of the figures to accommodate the colour bar legends
-plt.rcParams['figure.constrained_layout.use'] = True
-
-# Create a new projection system in lat-lon
-WGS84_4326 = osr.SpatialReference()
-WGS84_4326.ImportFromEPSG(4326)
-
-# Downloads required plugin for imageio if not already present
-imageio.plugins.freeimage.download()
 
 
 # =====================================================================================================================
@@ -546,6 +553,7 @@ def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_
         new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
         alpha (float): Fraction determining alpha blending of label mask
         save (bool): True to save figure to file. False if not
+        figdim (tuple): Figure (height, width) in inches
 
     Returns:
         None
@@ -597,6 +605,7 @@ def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_s
         cmap_style (str, ListedColormap): Name or object for colour map style
         new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
         alpha (float): Fraction determining alpha blending of label mask
+        figdim (tuple): Figure (height, width) in inches
 
     Returns:
         None
