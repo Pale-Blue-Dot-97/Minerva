@@ -14,12 +14,13 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 # import os
-# import glob
+import glob
 # import math
 from abc import ABC
-# import numpy as np
+import numpy as np
+import pandas as pd
 import torch as pt
-
+import Radiant_MLHub_DataVis as rdv
 # import rasterio as rt
 # from osgeo import gdal, osr
 # from alive_progress import alive_bar
@@ -85,10 +86,40 @@ class Dataset(pt.utils.data.Dataset):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def scene_grab(patch_id):
+    # Get the name of all the directories for this patch
+    scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
+
+    # Extract the scene names (i.e the dates) from the paths
+    scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
+
+    scenes = []
+
+    for date in scene_names:
+        scenes.append(rdv.load_array(
+            '%s/%s%s/%s/%s_%s_CLD_10m.tif' % (data_dir, patch_dir_prefix, patch_id, date, patch_id,
+                                              rdv.datetime_reformat(date, '%Y_%m_%d', '%Y%m%d')), 1))
+
+    return scenes, scene_names
+
+
+def cloud_cover(scene):
+    return np.sum(scene) / scene.size
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
-    minervaPercep = MLP(24, 12)
+    #minervaPercep = MLP(24, 12)
+
+    patch = pd.DataFrame()
+    patch['SCENE'], patch['DATE'] = scene_grab('38PKT_22')
+    patch['COVER'] = patch['SCENE'].apply(cloud_cover)
+
+    patch.set_index(pd.to_datetime(patch['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
+    print(patch)
+
+    print(patch.sort_values(by='COVER'))
+
+
