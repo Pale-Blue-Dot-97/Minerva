@@ -107,6 +107,21 @@ def cloud_cover(scene):
     return np.sum(scene) / scene.size
 
 
+def month_sort(df, month):
+    return df.loc[month].sort_values(by='COVER')['DATE'][0]
+
+
+def scene_selection(df):
+    step1 = []
+    for month in range(1, 12):
+        step1.append(month_sort(df, '%d-2018' % month))
+
+    df.drop(index=pd.to_datetime(step1, format='%Y_%m_%d'), inplace=True)
+    step2 = df.sort_values(by='COVER')['DATE'][:11].tolist()
+
+    return step1 + step2
+
+
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
@@ -118,8 +133,9 @@ if __name__ == '__main__':
     patch['COVER'] = patch['SCENE'].apply(cloud_cover)
 
     patch.set_index(pd.to_datetime(patch['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
-    print(patch)
 
-    print(patch.sort_values(by='COVER'))
+    #print(patch.sort_values(by='COVER'))
 
+    #print(month_sort(patch, '01-2018'))
 
+    print(scene_selection(patch))
