@@ -122,20 +122,20 @@ def scene_selection(df):
     return step1 + step2
 
 
+def find_best_of(patch_ID):
+    patch = pd.DataFrame()
+    patch['SCENE'], patch['DATE'] = scene_grab(patch_ID)
+    patch['COVER'] = patch['SCENE'].apply(cloud_cover)
+
+    del patch['SCENE']
+
+    patch.set_index(pd.to_datetime(patch['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
+
+    return scene_selection(patch)
+
+
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
-    #minervaPercep = MLP(24, 12)
-
-    patch = pd.DataFrame()
-    patch['SCENE'], patch['DATE'] = scene_grab('38PKT_22')
-    patch['COVER'] = patch['SCENE'].apply(cloud_cover)
-
-    patch.set_index(pd.to_datetime(patch['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
-
-    #print(patch.sort_values(by='COVER'))
-
-    #print(month_sort(patch, '01-2018'))
-
-    print(scene_selection(patch))
+    print(find_best_of('38PKT_22'))
