@@ -14,6 +14,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import glob
+import random
 from abc import ABC
 import numpy as np
 import pandas as pd
@@ -46,8 +47,8 @@ cudnn.benchmark = True
 
 # Parameters
 params = {'batch_size': 256,
-          'shuffle': True,
-          'num_workers': 6}
+          #'shuffle': True,
+          'num_workers': 2}
 
 
 # =====================================================================================================================
@@ -74,9 +75,16 @@ class MLP(torch.nn.Module, ABC):
 
 
 class BatchLoader(IterableDataset):
-
-    def __init__(self, patch_ids):
+    """
+    Source: https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
+    """
+    def __init__(self, patch_ids, batch_size):
         self.patch_ids = patch_ids
+        self.batch_size = batch_size
+
+    @property
+    def shuffled_data_list(self):
+        return random.sample(self.patch_ids, len(self.patch_ids))
 
     def process_data(self, patch_id):
         patch = make_timeseries(patch_id)
@@ -90,6 +98,9 @@ class BatchLoader(IterableDataset):
 
     def get_stream(self, patch_ids):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
+
+    def get_streams(self):
+        return zip(*[self.get_stream(self.shuffled_data_list) for _ in range(self.batch_size)])
 
     def __iter__(self):
         return self.get_stream(self.patch_ids)
@@ -192,8 +203,8 @@ def data_preprocess():
 # =====================================================================================================================
 if __name__ == '__main__':
 
-    batch_dataset = BatchLoader(rdv.patch_grab())
-    batch_loader = DataLoader(batch_dataset, batch_size=params['batch_size'])
+    batch_dataset = BatchLoader(rdv.patch_grab(), batch_size=params['batch_size'])
+    batch_loader = DataLoader(batch_dataset, **params)
 
     for x_batch, y_batch in islice(batch_loader, 2):
         print(x_batch.shape)
