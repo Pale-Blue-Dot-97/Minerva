@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import Dataset as ptDataset
+from torch.backends import cudnn
 import Radiant_MLHub_DataVis as rdv
 # import rasterio as rt
 # from osgeo import gdal, osr
@@ -34,6 +35,16 @@ patch_dir_prefix = 'ref_landcovernet_v1_labels_'
 
 # Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
 band_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
+
+# CUDA for PyTorch
+use_cuda = torch.cuda.is_available()
+device = torch.device("cuda:0" if use_cuda else "cpu")
+cudnn.benchmark = True
+
+# Parameters
+params = {'batch_size': 64,
+          'shuffle': True,
+          'num_workers': 6}
 
 
 # =====================================================================================================================
