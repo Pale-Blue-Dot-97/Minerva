@@ -17,9 +17,12 @@ import glob
 from abc import ABC
 import numpy as np
 import pandas as pd
+from sklearn.preprocessing import normalize
 import torch
-from torch.utils.data import Dataset as ptDataset
+from torch.utils.data import Dataset as ptDataset, DataLoader
+from torch.utils.data import IterableDataset
 from torch.backends import cudnn
+from itertools import cycle, chain, islice
 import Radiant_MLHub_DataVis as rdv
 # import rasterio as rt
 # from osgeo import gdal, osr
@@ -96,6 +99,24 @@ class Dataset(ptDataset):
         return x, y
 
 
+class BatchLoader(IterableDataset):
+
+    def __init__(self, patch_ids):
+        self.patch_ids = patch_ids
+
+    def process_data(self, patch_id):
+        patch = make_timeseries(patch_id)
+        for row in patch:
+            for pixel in row:
+                yield pixel
+
+    def get_stream(self, patch_ids):
+        return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
+
+    def __iter__(self):
+        return self.get_stream(self.patch_ids)
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
@@ -161,22 +182,10 @@ def stack_bands(patch_id, scene):
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
     """
-    def normalise(array):
-        """Normalise bands into 0.0 - 1.0 scale
-
-        Args:
-            array ([float]): Array to be normalised
-
-        Returns:
-            Normalised array
-        """
-        array_min, array_max = array.min(), array.max()
-        return (array - array_min) / (array_max - array_min)
-
     bands = []
     # Load R, G, B images from file and normalise
     for band in band_ids:
-        bands.append(normalise(rdv.load_array('%s_%s_10m.tif' % (prefix_format(patch_id, scene), band), 1)))
+        bands.append(normalize(rdv.load_array('%s_%s_10m.tif' % (prefix_format(patch_id, scene), band), 1)))
 
     # Stack together RGB bands
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
@@ -204,7 +213,28 @@ def data_preprocess():
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
-    patch = make_timeseries('38PKT_22')
-    print(patch.shape)
+    #patch = make_timeseries('38PKT_22')
+    #print(patch.shape)
+
+    batch_dataset = BatchLoader(rdv.patch_grab())
+    batch_loader = DataLoader(batch_dataset, batch_size=params['batch_size'])
+
+    for batch in islice(batch_loader, 8):
+        print(batch)
+
+    """
+    max_epochs = 100
+    
+    # Datasets
+    partition =  # IDs
+    labels =  # Labels
+
+    # Generators
+    training_set = Dataset(partition['train'], labels)
+    training_generator = torch.utils.data.DataLoader(training_set, **params)
+
+    validation_set = Dataset(partition['validation'], labels)
+    validation_generator = torch.utils.data.DataLoader(validation_set, **params)
+    """
 
 

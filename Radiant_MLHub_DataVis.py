@@ -18,6 +18,10 @@ Requires:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import os
+import glob
+import math
+import imageio
 import rasterio as rt
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,11 +29,9 @@ from matplotlib.colors import ListedColormap
 from matplotlib.transforms import Bbox
 import datetime as dt
 from osgeo import gdal, osr
-import math
-import glob
-import os
-import imageio
+from sklearn.preprocessing import normalize
 from alive_progress import alive_bar
+
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -365,22 +367,11 @@ def stack_rgb(scene_path, rgb):
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
     """
-    def normalise(array):
-        """Normalise bands into 0.0 - 1.0 scale
-
-        Args:
-            array ([float]): Array to be normalised
-
-        Returns:
-            Normalised array
-        """
-        array_min, array_max = array.min(), array.max()
-        return (array - array_min) / (array_max - array_min)
 
     # Load R, G, B images from file and normalise
     bands = []
     for band in ['R', 'G', 'B']:
-        bands.append(normalise(load_array(scene_path + rgb[band], 1)))
+        bands.append(normalize(load_array(scene_path + rgb[band], 1)))
 
     # Stack together RGB bands
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
