@@ -13,13 +13,12 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-# import os
 import glob
-# import math
 from abc import ABC
 import numpy as np
 import pandas as pd
-import torch as pt
+import torch
+from torch.utils.data import Dataset as ptDataset
 import Radiant_MLHub_DataVis as rdv
 # import rasterio as rt
 # from osgeo import gdal, osr
@@ -33,19 +32,22 @@ data_dir = 'landcovernet'
 # Prefix to every patch ID in every patch directory name
 patch_dir_prefix = 'ref_landcovernet_v1_labels_'
 
+# Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
+band_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
+
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class MLP(pt.nn.Module, ABC):
+class MLP(torch.nn.Module, ABC):
     def __init__(self, input_size, n_classes):
         super(MLP, self).__init__()
-        self.il = pt.nn.Linear(input_size, 2 * input_size)
-        self.relu1 = pt.nn.ReLU()
-        self.hl = pt.nn.Linear(2 * input_size, 2 * input_size)
-        self.relu2 = pt.nn.ReLU()
-        self.cl = pt.nn.Linear(2 * input_size, n_classes)
-        self.sm = pt.nn.Softmax()
+        self.il = torch.nn.Linear(input_size, 2 * input_size)
+        self.relu1 = torch.nn.ReLU()
+        self.hl = torch.nn.Linear(2 * input_size, 2 * input_size)
+        self.relu2 = torch.nn.ReLU()
+        self.cl = torch.nn.Linear(2 * input_size, n_classes)
+        self.sm = torch.nn.Softmax()
 
     def forward(self, x):
         hidden1 = self.il(x)
@@ -57,7 +59,7 @@ class MLP(pt.nn.Module, ABC):
         return output
 
 
-class Dataset(pt.utils.data.Dataset):
+class Dataset(ptDataset):
     """Characterizes a dataset for PyTorch.
     Source: https://stanford.edu/~shervine/blog/pytorch-how-to-generate-data-parallel
     """
@@ -77,7 +79,7 @@ class Dataset(pt.utils.data.Dataset):
         ID = self.list_IDs[index]
 
         # Load data and get label
-        x = pt.load('data/' + ID + '.pt')
+        x = torch.load('data/' + ID + '.pt')
         y = self.labels[ID]
 
         return x, y
@@ -86,6 +88,11 @@ class Dataset(pt.utils.data.Dataset):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def prefix_format(patch_id, scene):
+    return '%s/%s%s/%s/%s_%s' % (data_dir, patch_dir_prefix, patch_id, scene, patch_id,
+                                 rdv.datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d'))
+
+
 def scene_grab(patch_id):
     # Get the name of all the directories for this patch
     scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
@@ -97,8 +104,7 @@ def scene_grab(patch_id):
 
     for date in scene_names:
         scenes.append(rdv.load_array(
-            '%s/%s%s/%s/%s_%s_CLD_10m.tif' % (data_dir, patch_dir_prefix, patch_id, date, patch_id,
-                                              rdv.datetime_reformat(date, '%Y_%m_%d', '%Y%m%d')), 1))
+            '%s_CLD_10m.tif' % prefix_format(patch_id, date), 1))
 
     return scenes, scene_names
 
@@ -113,18 +119,18 @@ def month_sort(df, month):
 
 def scene_selection(df):
     step1 = []
-    for month in range(1, 12):
+    for month in range(1, 13):
         step1.append(month_sort(df, '%d-2018' % month))
 
     df.drop(index=pd.to_datetime(step1, format='%Y_%m_%d'), inplace=True)
-    step2 = df.sort_values(by='COVER')['DATE'][:11].tolist()
+    step2 = df.sort_values(by='COVER')['DATE'][:12].tolist()
 
     return step1 + step2
 
 
-def find_best_of(patch_ID):
+def find_best_of(patch_id):
     patch = pd.DataFrame()
-    patch['SCENE'], patch['DATE'] = scene_grab(patch_ID)
+    patch['SCENE'], patch['DATE'] = scene_grab(patch_id)
     patch['COVER'] = patch['SCENE'].apply(cloud_cover)
 
     del patch['SCENE']
@@ -134,8 +140,60 @@ def find_best_of(patch_ID):
     return scene_selection(patch)
 
 
+def stack_bands(patch_id, scene):
+    """Stacks together all the bands of the SENTINEL-2 images in a given scene of a patch
+
+    Args:
+        patch_id (str):
+        scene (str):
+
+    Returns:
+        Normalised and stacked red, green, blue arrays into RGB array
+    """
+    def normalise(array):
+        """Normalise bands into 0.0 - 1.0 scale
+
+        Args:
+            array ([float]): Array to be normalised
+
+        Returns:
+            Normalised array
+        """
+        array_min, array_max = array.min(), array.max()
+        return (array - array_min) / (array_max - array_min)
+
+    bands = []
+    # Load R, G, B images from file and normalise
+    for band in band_ids:
+        bands.append(normalise(rdv.load_array('%s_%s_10m.tif' % (prefix_format(patch_id, scene), band), 1)))
+
+    # Stack together RGB bands
+    # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
+    return np.dstack(bands)
+
+
+def make_timeseries(patch_id):
+    scenes = find_best_of(patch_id)
+    x = []
+    for scene in scenes:
+        x.append(stack_bands(patch_id, scene))
+
+    return np.moveaxis(np.array(x), 0, 2)
+
+
+def data_preprocess():
+    x = []
+    for patch_id in rdv.patch_grab():
+        x.append(make_timeseries(patch_id))
+
+    return np.array(x)
+
+
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
-    print(find_best_of('38PKT_22'))
+    patch = make_timeseries('38PKT_22')
+    print(patch.shape)
+
+
