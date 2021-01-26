@@ -19,7 +19,7 @@ import numpy as np
 import pandas as pd
 from sklearn.preprocessing import normalize
 import torch
-from torch.utils.data import Dataset as ptDataset, DataLoader
+from torch.utils.data import DataLoader
 from torch.utils.data import IterableDataset
 from torch.backends import cudnn
 from itertools import cycle, chain, islice
@@ -45,7 +45,7 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 64,
+params = {'batch_size': 256,
           'shuffle': True,
           'num_workers': 6}
 
@@ -73,32 +73,6 @@ class MLP(torch.nn.Module, ABC):
         return output
 
 
-class Dataset(ptDataset):
-    """Characterizes a dataset for PyTorch.
-    Source: https://stanford.edu/~shervine/blog/pytorch-how-to-generate-data-parallel
-    """
-
-    def __init__(self, list_IDs, labels):
-        """Initialization"""
-        self.labels = labels
-        self.list_IDs = list_IDs
-
-    def __len__(self):
-        """Denotes the total number of samples"""
-        return len(self.list_IDs)
-
-    def __getitem__(self, index):
-        """Generates one sample of data"""
-        # Select sample
-        ID = self.list_IDs[index]
-
-        # Load data and get label
-        x = torch.load('data/' + ID + '.pt')
-        y = self.labels[ID]
-
-        return x, y
-
-
 class BatchLoader(IterableDataset):
 
     def __init__(self, patch_ids):
@@ -106,9 +80,13 @@ class BatchLoader(IterableDataset):
 
     def process_data(self, patch_id):
         patch = make_timeseries(patch_id)
-        for row in patch:
-            for pixel in row:
-                yield pixel
+        flat_patch = patch.reshape(-1, *patch.shape[-2:])
+
+        labels = np.int16(np.array(rdv.load_array(
+            '%s/%s%s/%s_2018_LC_10m.tif' % (data_dir, patch_dir_prefix, patch_id, patch_id), 1)).flatten())
+
+        for i in range(len(labels)):
+            yield flat_patch[i], labels[i]
 
     def get_stream(self, patch_ids):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
@@ -213,14 +191,13 @@ def data_preprocess():
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
-    #patch = make_timeseries('38PKT_22')
-    #print(patch.shape)
 
     batch_dataset = BatchLoader(rdv.patch_grab())
     batch_loader = DataLoader(batch_dataset, batch_size=params['batch_size'])
 
-    for batch in islice(batch_loader, 8):
-        print(batch)
+    for x_batch, y_batch in islice(batch_loader, 2):
+        print(x_batch.shape)
+        print(y_batch.shape)
 
     """
     max_epochs = 100
