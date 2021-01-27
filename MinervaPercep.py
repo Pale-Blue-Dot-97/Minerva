@@ -17,7 +17,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import normalize
+from sklearn.preprocessing import normalize, OneHotEncoder
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import IterableDataset
@@ -48,6 +48,8 @@ cudnn.benchmark = True
 params = {'batch_size': 256,
           #'shuffle': True,
           'num_workers': 2}
+
+ohe = OneHotEncoder()
 
 
 # =====================================================================================================================
@@ -205,10 +207,29 @@ if __name__ == '__main__':
     test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
     test_loader = DataLoader(test_dataset, **params)
 
-    for x_batch, y_batch in islice(train_loader, 2):
-        print(x_batch)
-        print(y_batch)
+    model = MLP(24, 12)
+    criterion = torch.nn.CrossEntropyLoss()
+    optimiser = torch.optim.SGD(model.parameters(), lr=0.1)
 
-    for x_batch, y_batch in islice(test_loader, 2):
-        print(x_batch)
-        print(y_batch)
+    for epoch in range(max_epochs):
+        for x_batch, y_batch in islice(train_loader, 2):
+            print(x_batch)
+            print(y_batch)
+
+            optimiser.zero_grad()
+            
+            # Forward pass
+            y_pred = model(x_batch)
+
+            # Compute Loss
+            loss = criterion(y_pred.squeeze(), y_batch)
+
+            print('Epoch {}: train loss: {}'.format(epoch, loss.item()))
+
+            # Backward pass
+            loss.backward()
+            optimiser.step()
+
+        for x_batch, y_batch in islice(test_loader, 2):
+            print(x_batch)
+            print(y_batch)
