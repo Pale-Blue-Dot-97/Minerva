@@ -18,6 +18,7 @@ import random
 from abc import ABC
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize
 import torch
 from torch.utils.data import DataLoader
@@ -190,39 +191,26 @@ def make_timeseries(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
-def data_preprocess():
-    x = []
-    for patch_id in rdv.patch_grab():
-        x.append(make_timeseries(patch_id))
-
-    return np.array(x)
-
-
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
 
-    batch_dataset = BatchLoader(rdv.patch_grab(), batch_size=params['batch_size'])
-    batch_loader = DataLoader(batch_dataset, **params)
-
-    for x_batch, y_batch in islice(batch_loader, 2):
-        print(x_batch.shape)
-        print(y_batch.shape)
-
-    """
     max_epochs = 100
-    
-    # Datasets
-    partition =  # IDs
-    labels =  # Labels
 
-    # Generators
-    training_set = Dataset(partition['train'], labels)
-    training_generator = torch.utils.data.DataLoader(training_set, **params)
+    patch_ids = rdv.patch_grab()
+    train_ids, test_ids = train_test_split(patch_ids, train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
 
-    validation_set = Dataset(partition['validation'], labels)
-    validation_generator = torch.utils.data.DataLoader(validation_set, **params)
-    """
+    train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
+    train_loader = DataLoader(train_dataset, **params)
 
+    test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
+    test_loader = DataLoader(test_dataset, **params)
 
+    for x_batch, y_batch in islice(train_loader, 2):
+        print(x_batch)
+        print(y_batch)
+
+    for x_batch, y_batch in islice(test_loader, 2):
+        print(x_batch)
+        print(y_batch)
