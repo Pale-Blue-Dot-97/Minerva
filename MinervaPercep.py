@@ -95,7 +95,7 @@ class BatchLoader(IterableDataset):
             '%s/%s%s/%s_2018_LC_10m.tif' % (data_dir, patch_dir_prefix, patch_id, patch_id), 1)).flatten())
 
         for i in range(len(labels)):
-            yield flat_patch[i], labels[i]
+            yield flat_patch[i].flatten(), labels[i]
 
     def get_stream(self, patch_ids):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
@@ -196,7 +196,7 @@ def make_timeseries(patch_id):
 # =====================================================================================================================
 if __name__ == '__main__':
 
-    max_epochs = 100
+    max_epochs = 5
 
     patch_ids = rdv.patch_grab()
     train_ids, test_ids = train_test_split(patch_ids, train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
     test_loader = DataLoader(test_dataset, **params)
 
-    model = MLP(24, 12)
+    model = MLP(288, 12)
     criterion = torch.nn.CrossEntropyLoss()
     optimiser = torch.optim.SGD(model.parameters(), lr=0.1)
 
@@ -217,12 +217,12 @@ if __name__ == '__main__':
             print(y_batch)
 
             optimiser.zero_grad()
-            
+
             # Forward pass
-            y_pred = model(x_batch)
+            y_pred = model(x_batch.float())
 
             # Compute Loss
-            loss = criterion(y_pred.squeeze(), y_batch)
+            loss = criterion(y_pred.squeeze(), y_batch.long())
 
             print('Epoch {}: train loss: {}'.format(epoch, loss.item()))
 
