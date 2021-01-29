@@ -24,9 +24,7 @@ from torch.utils.data import IterableDataset
 from torch.backends import cudnn
 from itertools import cycle, chain, islice
 import Radiant_MLHub_DataVis as rdv
-# import rasterio as rt
-# from osgeo import gdal, osr
-# from alive_progress import alive_bar
+from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -39,13 +37,15 @@ patch_dir_prefix = 'ref_landcovernet_v1_labels_'
 # Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
 band_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
 
+image_size = (256, 256)
+
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 256,
+params = {'batch_size': 32,
           #'shuffle': True,
           'num_workers': 2}
 
@@ -63,7 +63,7 @@ class MLP(torch.nn.Module, ABC):
         self.hl = torch.nn.Linear(2 * input_size, 2 * input_size)
         self.relu2 = torch.nn.ReLU()
         self.cl = torch.nn.Linear(2 * input_size, n_classes)
-        self.sm = torch.nn.Softmax()
+        self.sm = torch.nn.Softmax(dim=n_classes)
 
     def forward(self, x):
         hidden1 = self.il(x)
@@ -191,6 +191,10 @@ def make_timeseries(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
+def num_batches(ids):
+    return int((len(ids) * image_size[0] * image_size[1] * len(band_ids) * 24) / params['batch_size'])
+
+
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
@@ -212,24 +216,32 @@ if __name__ == '__main__':
     optimiser = torch.optim.SGD(model.parameters(), lr=0.1)
 
     for epoch in range(max_epochs):
-        for x_batch, y_batch in islice(train_loader, 2):
-            print(x_batch)
-            print(y_batch)
+        batch_num = 1
+        with alive_bar(num_batches(train_ids), bar='blocks') as bar:
+            for x_batch, y_batch in islice(train_loader, num_batches(train_ids)):
 
-            optimiser.zero_grad()
+                batch_num = batch_num + 1
 
-            # Forward pass
-            y_pred = model(x_batch.float())
+                # Transfer to GPU
+                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
-            # Compute Loss
-            loss = criterion(y_pred.squeeze(), y_batch.long())
+                optimiser.zero_grad()
 
-            print('Epoch {}: train loss: {}'.format(epoch, loss.item()))
+                # Forward pass
+                y_pred = model(x_batch.float())
 
-            # Backward pass
-            loss.backward()
-            optimiser.step()
+                # Compute Loss
+                loss = criterion(y_pred.squeeze(), y_batch.long())
 
-        for x_batch, y_batch in islice(test_loader, 2):
-            print(x_batch)
-            print(y_batch)
+                bar()
+
+                if batch_num == num_batches(train_ids):
+                    print('Epoch {}: train loss: {}'.format(epoch, loss.item()))
+
+                # Backward pass
+                loss.backward()
+                optimiser.step()
+
+        #for x_batch, y_batch in islice(test_loader, num_batches(test_ids)):
+            #print(x_batch)
+            #print(y_batch)
