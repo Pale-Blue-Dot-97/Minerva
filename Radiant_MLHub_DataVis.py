@@ -53,14 +53,14 @@ imageio.plugins.freeimage.download()
 
 # ======= RADIANT MLHUB PRESETS =======================================================================================
 # Radiant Earth land cover classes reformatted to split across two lines for neater plots
-RE_classes = ['No Data',
-              'Water',
-              'Artificial\nBareground',
-              'Natural\nBareground',
-              'Permanent\nSnow/Ice',
-              'Woody\nVegetation',
-              'Cultivated\nVegetation',
-              '(Semi) Natural\nVegetation']
+RE_classes = {0: 'No Data',
+              1: 'Water',
+              2: 'Artificial\nBareground',
+              3: 'Natural\nBareground',
+              4: 'Permanent\nSnow/Ice',
+              5: 'Woody\nVegetation',
+              6: 'Cultivated\nVegetation',
+              7: '(Semi) Natural\nVegetation'}
 
 # Custom colour mapping specified by Radiant Earth Foundation
 RE_cmap_dict = {0: '#FF0000',  # Red

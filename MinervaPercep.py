@@ -13,7 +13,6 @@ TODO:
 # =====================================================================================================================
 import glob
 import random
-from abc import ABC
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -25,6 +24,7 @@ from torch.backends import cudnn
 from itertools import cycle, chain, islice
 import Radiant_MLHub_DataVis as rdv
 from alive_progress import alive_bar
+from matplotlib import pyplot as plt
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -55,7 +55,7 @@ ohe = OneHotEncoder()
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class MLP(torch.nn.Module, ABC):
+class MLP(torch.nn.Module):
     def __init__(self, input_size, n_classes):
         super(MLP, self).__init__()
         self.il = torch.nn.Linear(input_size, 2 * input_size)
@@ -63,7 +63,7 @@ class MLP(torch.nn.Module, ABC):
         self.hl = torch.nn.Linear(2 * input_size, 2 * input_size)
         self.relu2 = torch.nn.ReLU()
         self.cl = torch.nn.Linear(2 * input_size, n_classes)
-        self.sm = torch.nn.Softmax(dim=n_classes)
+        self.sm = torch.nn.Sigmoid()
 
     def forward(self, x):
         hidden1 = self.il(x)
@@ -71,8 +71,7 @@ class MLP(torch.nn.Module, ABC):
         hidden2 = self.hl(relu1)
         relu2 = self.relu2(hidden2)
         output = self.cl(relu2)
-        output = self.sm(output)
-        return output
+        return self.sm(output)
 
 
 class BatchLoader(IterableDataset):
@@ -192,18 +191,17 @@ def make_timeseries(patch_id):
 
 
 def num_batches(ids):
-    return int((len(ids) * image_size[0] * image_size[1] * len(band_ids) * 24) / params['batch_size'])
+    return int((len(ids) * image_size[0] * image_size[1]) / params['batch_size'])
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
-
-    max_epochs = 5
+    max_epochs = 50
 
     patch_ids = rdv.patch_grab()
-    train_ids, test_ids = train_test_split(patch_ids, train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
+    train_ids, test_ids = train_test_split(patch_ids, train_size=0.1, test_size=0.9, shuffle=True, random_state=42)
 
     train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
     train_loader = DataLoader(train_dataset, **params)
@@ -211,16 +209,23 @@ if __name__ == '__main__':
     test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
     test_loader = DataLoader(test_dataset, **params)
 
-    model = MLP(288, 12)
+    model = MLP(288, 8)
+    model.to(device)
+
     criterion = torch.nn.CrossEntropyLoss()
-    optimiser = torch.optim.SGD(model.parameters(), lr=0.1)
+    optimiser = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+
+    model.train()
+    torch.set_grad_enabled(True)
+
+    losses = []
 
     for epoch in range(max_epochs):
-        batch_num = 1
+        #batch_num = 1
         with alive_bar(num_batches(train_ids), bar='blocks') as bar:
             for x_batch, y_batch in islice(train_loader, num_batches(train_ids)):
 
-                batch_num = batch_num + 1
+                #batch_num = batch_num + 1
 
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
@@ -233,15 +238,18 @@ if __name__ == '__main__':
                 # Compute Loss
                 loss = criterion(y_pred.squeeze(), y_batch.long())
 
-                bar()
-
-                if batch_num == num_batches(train_ids):
-                    print('Epoch {}: train loss: {}'.format(epoch, loss.item()))
-
                 # Backward pass
                 loss.backward()
                 optimiser.step()
 
+                bar()
+
+                losses.append(loss)
+
+        print('\r\nEpoch {}: train loss: {}'.format(epoch, losses[-1].item()))
+
+    plt.plot(np.array(losses))
+    plt.show()
         #for x_batch, y_batch in islice(test_loader, num_batches(test_ids)):
             #print(x_batch)
             #print(y_batch)
