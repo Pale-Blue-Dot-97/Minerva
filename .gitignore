@@ -129,3 +129,5 @@ API Key
 *.png
 *.gif
 *.ficache
+*.xml
+*.iml
