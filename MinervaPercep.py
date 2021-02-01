@@ -37,6 +37,7 @@ patch_dir_prefix = 'ref_landcovernet_v1_labels_'
 # Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
 band_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
 
+# Defines size of the images to determine the number of batches
 image_size = (256, 256)
 
 # CUDA for PyTorch
@@ -49,6 +50,7 @@ params = {'batch_size': 32,
           #'shuffle': True,
           'num_workers': 2}
 
+# Creates an One Hot Encoder (OHE) to convert labels
 ohe = OneHotEncoder()
 
 
