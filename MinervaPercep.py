@@ -38,6 +38,7 @@ patch_dir_prefix = 'ref_landcovernet_v1_labels_'
 # Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
 band_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
 
+# Defines size of the images to determine the number of batches
 image_size = (256, 256)
 
 # CUDA for PyTorch
@@ -50,6 +51,7 @@ params = {'batch_size': 32,
           #'shuffle': True,
           'num_workers': 2}
 
+# Creates an One Hot Encoder (OHE) to convert labels
 ohe = OneHotEncoder()
 
 
@@ -57,6 +59,9 @@ ohe = OneHotEncoder()
 #                                                     CLASSES
 # =====================================================================================================================
 class MLP(torch.nn.Module):
+    """
+    Simple class to construct a Multi-Layer Perceptron (MLP)
+    """
     def __init__(self, input_size, n_classes):
         super(MLP, self).__init__()
         self.il = torch.nn.Linear(input_size, 2 * input_size)
@@ -67,6 +72,15 @@ class MLP(torch.nn.Module):
         self.sm = torch.nn.Sigmoid()
 
     def forward(self, x):
+        """Performs a forward pass of the network
+
+        Args:
+            self
+            x (torch.Tensor):
+
+        Returns:
+
+        """
         hidden1 = self.il(x)
         relu1 = self.relu1(hidden1)
         hidden2 = self.hl(relu1)
@@ -110,6 +124,15 @@ class BatchLoader(IterableDataset):
 #                                                     METHODS
 # =====================================================================================================================
 def prefix_format(patch_id, scene):
+    """Formats a string representing the prefix of a path to any file in a scene
+
+    Args:
+        patch_id (str): Unique patch ID
+        scene (str): Date of scene in YY_MM_DD format
+
+    Returns:
+        prefix (str): Prefix of path to any file in a given scene
+    """
     return '%s/%s%s/%s/%s_%s' % (data_dir, patch_dir_prefix, patch_id, scene, patch_id,
                                  rdv.datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d'))
 
