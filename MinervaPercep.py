@@ -190,6 +190,15 @@ def cloud_cover(scene):
 
 
 def month_sort(df, month):
+    """Finds the the scene with the lowest cloud cover in a given month
+
+    Args:
+        df (pandas.Dataframe): Dataframe containing all scenes and their cloud cover percentages
+        month (str): Month of a year to sort
+
+    Returns:
+        (str): Date of the scene with the lowest cloud cover percentage for the given month
+    """
     return df.loc[month].sort_values(by='COVER')['DATE'][0]
 
 
