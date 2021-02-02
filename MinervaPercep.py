@@ -102,7 +102,7 @@ class BatchLoader(IterableDataset):
         return random.sample(self.patch_ids, len(self.patch_ids))
 
     def process_data(self, patch_id):
-        patch = make_timeseries(patch_id)
+        patch = make_time_series(patch_id)
         flat_patch = patch.reshape(-1, *patch.shape[-2:])
 
         labels = np.int16(np.array(lc_load(patch_id)).flatten())
@@ -272,12 +272,25 @@ def stack_bands(patch_id, scene):
     return np.dstack(bands)
 
 
-def make_timeseries(patch_id):
+def make_time_series(patch_id):
+    """Makes a time-series of each pixel of a patch across 24 scenes selected by REF's criteria using scene_selection().
+     All the bands in the chosen scene are stacked using stack_bands()
+
+    Args:
+        patch_id (str): Unique patch ID
+
+    Returns:
+        (numpy.ndarray): Array of shape(rows, columns, 24, 12) holding all x for a patch
+    """
+    # List of scene dates found by REF's selection criteria
     scenes = find_best_of(patch_id)
+
+    # Loads all pixels in a patch across the 24 scenes and 12 bands
     x = []
     for scene in scenes:
         x.append(stack_bands(patch_id, scene))
 
+    # Returns a reordered numpy.ndarray holding all x for the given patch
     return np.moveaxis(np.array(x), 0, 2)
 
 
