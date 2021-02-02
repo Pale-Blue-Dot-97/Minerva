@@ -295,10 +295,21 @@ def make_time_series(patch_id):
 
 
 def class_balance(ids):
+    """Loads all LC labels for the given patches using lc_load() then plots the class subpopulations using
+    plot_subpopulations()
+
+    Args:
+        ids (list): List of patch IDs to analyse
+
+    Returns:
+        None
+    """
+    # Loads all LC label masks for the given patch IDs
     labels = []
     for patch_id in ids:
         labels.append(lc_load(patch_id))
 
+    # Plots a pie chart of the distribution of the classes within the given list of patches
     plot_subpopulations(np.array(labels).flatten())
 
 
