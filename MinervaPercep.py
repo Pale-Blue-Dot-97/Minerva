@@ -165,7 +165,17 @@ def scene_grab(patch_id):
 
 
 def lc_load(patch_id):
+    """Loads the LC labels for a given patch
+
+    Args:
+        patch_id (str): Unique patch ID
+
+    Returns:
+        LC_label (list): 2D array containing LC labels for each pixel of a patch
+
+    """
     return rdv.load_array('%s/%s%s/%s_2018_LC_10m.tif' % (data_dir, patch_dir_prefix, patch_id, patch_id), 1)
+
 
 def cloud_cover(scene):
     return np.sum(scene) / scene.size
