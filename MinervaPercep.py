@@ -25,6 +25,7 @@ from itertools import cycle, chain, islice
 import Radiant_MLHub_DataVis as rdv
 from alive_progress import alive_bar
 from matplotlib import pyplot as plt
+from collections import Counter
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -104,8 +105,7 @@ class BatchLoader(IterableDataset):
         patch = make_timeseries(patch_id)
         flat_patch = patch.reshape(-1, *patch.shape[-2:])
 
-        labels = np.int16(np.array(rdv.load_array(
-            '%s/%s%s/%s_2018_LC_10m.tif' % (data_dir, patch_dir_prefix, patch_id, patch_id), 1)).flatten())
+        labels = np.int16(np.array(lc_load(patch_id)).flatten())
 
         for i in range(len(labels)):
             yield flat_patch[i].flatten(), labels[i]
@@ -163,6 +163,9 @@ def scene_grab(patch_id):
 
     return scenes, scene_names
 
+
+def lc_load(patch_id):
+    return rdv.load_array('%s/%s%s/%s_2018_LC_10m.tif' % (data_dir, patch_dir_prefix, patch_id, patch_id), 1)
 
 def cloud_cover(scene):
     return np.sum(scene) / scene.size
@@ -224,18 +227,62 @@ def make_timeseries(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
+def class_balance(ids):
+    labels = []
+    for patch_id in ids:
+        labels.append(lc_load(patch_id))
+
+    plot_subpopulations(np.array(labels).flatten())
+
+
 def num_batches(ids):
     return int((len(ids) * image_size[0] * image_size[1]) / params['batch_size'])
+
+
+def plot_subpopulations(class_labels):
+    """Creates a pie chart of the distribution of the classes within the data
+
+    Args:
+        class_labels ([int]): List of predicted classifications from model, in form of class numbers
+
+    Returns:
+        None
+    """
+
+    # Finds the distribution of the classes within the data
+    modes = Counter(class_labels).most_common()
+
+    # List to hold the name and percentage distribution of each class in the data as str
+    classes = []
+
+    # List to hold the total counts of each class
+    counts = []
+
+    # Finds total number of images to normalise data
+    n_images = len(class_labels)
+
+    # For each class, find the percentage of data that is that class and the total counts for that class
+    for label in modes:
+        classes.append('{} ({:.2f})'.format(label[0], (label[1] / n_images)))
+        counts.append(label[1])
+
+    # Plot a pie chart of the data distribution amongst the classes with labels of class name and percentage size
+    plt.pie(counts, labels=classes)
+
+    # Show plot for review
+    plt.show()
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-if __name__ == '__main__':
-    max_epochs = 50
+def main():
+    max_epochs = 5
 
     patch_ids = rdv.patch_grab()
     train_ids, test_ids = train_test_split(patch_ids, train_size=0.1, test_size=0.9, shuffle=True, random_state=42)
+
+    class_balance(patch_ids)
 
     train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
     train_loader = DataLoader(train_dataset, **params)
@@ -255,11 +302,10 @@ if __name__ == '__main__':
     losses = []
 
     for epoch in range(max_epochs):
-        #batch_num = 1
+        # batch_num = 1
         with alive_bar(num_batches(train_ids), bar='blocks') as bar:
             for x_batch, y_batch in islice(train_loader, num_batches(train_ids)):
-
-                #batch_num = batch_num + 1
+                # batch_num = batch_num + 1
 
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
@@ -284,6 +330,11 @@ if __name__ == '__main__':
 
     plt.plot(np.array(losses))
     plt.show()
-        #for x_batch, y_batch in islice(test_loader, num_batches(test_ids)):
-            #print(x_batch)
-            #print(y_batch)
+    # for x_batch, y_batch in islice(test_loader, num_batches(test_ids)):
+    # print(x_batch)
+    # print(y_batch)
+
+
+if __name__ == '__main__':
+    main()
+
