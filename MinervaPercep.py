@@ -387,15 +387,22 @@ def main():
     # Fetches all patch IDs in the dataset
     patch_ids = rdv.patch_grab()
 
-    # Splits the dataset into train and test
-    train_ids, test_ids = train_test_split(patch_ids, train_size=0.1, test_size=0.9, shuffle=True, random_state=42)
+    # Splits the dataset into train and val-test
+    train_ids, val_test_ids = train_test_split(patch_ids, train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
+
+    # Splits the val-test dataset into validation and test
+    val_ids, test_ids = train_test_split(patch_ids, train_size=0.5, test_size=0.5, shuffle=True, random_state=42)
 
     # Plot distribution of classes across the dataset
-    class_balance(patch_ids)
+    #class_balance(patch_ids)
 
     # Create batch loader for the train dataset
     train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
     train_loader = DataLoader(train_dataset, **params)
+
+    # Create batch loader for the test dataset
+    val_dataset = BatchLoader(val_ids, batch_size=params['batch_size'])
+    val_loader = DataLoader(val_dataset, **params)
 
     # Create batch loader for the test dataset
     test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
@@ -411,19 +418,14 @@ def main():
     # Define optimiser
     optimiser = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
-    model.train()
-    torch.set_grad_enabled(True)
-
-    losses = []
-
-    # Iterates through epochs of trainng and testing
+    # Iterates through epochs of training and testing
     for epoch in range(max_epochs):
-        # batch_num = 1
+        model.train()
+        train_loss = 0
+
         # Batch trains model for this epoch
         with alive_bar(num_batches(train_ids), bar='blocks') as bar:
             for x_batch, y_batch in islice(train_loader, num_batches(train_ids)):
-                # batch_num = batch_num + 1
-
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
@@ -441,15 +443,50 @@ def main():
 
                 bar()
 
-                losses.append(loss)
+                train_loss += loss.item()
 
-        print('\r\nEpoch {}: train loss: {}'.format(epoch, losses[-1].item()))
+        with alive_bar(num_batches(val_ids), bar='blocks') as bar, torch.no_grad():
+            # Set the model to eval mode
+            model.eval()
+            valid_loss = 0
 
-    plt.plot(np.array(losses))
-    plt.show()
-    # for x_batch, y_batch in islice(test_loader, num_batches(test_ids)):
-    # print(x_batch)
-    # print(y_batch)
+            for x_batch, y_batch in islice(val_loader, num_batches(val_ids)):
+                # Forward pass
+                y_pred = model(x_batch.float())
+
+                # Compute Loss
+                loss = criterion(y_pred.squeeze(), y_batch.long())
+
+                bar()
+
+                valid_loss += loss.item()
+
+        train_loss /= len(train_loader)
+        valid_loss /= len(val_loader)
+        print(f'Epoch: {epoch + 1}/{max_epochs}.. Training loss: {train_loss}.. Validation Loss: {valid_loss}')
+
+    model.eval()
+    test_loss = 0
+    test_correct = 0
+    with alive_bar(num_batches(test_ids), bar='blocks') as bar, torch.no_grad():
+        for x_batch, y_batch in islice(test_loader, num_batches(test_ids)):
+            # Forward pass
+            y_pred = model(x_batch.float())
+
+            # Compute Loss
+            loss = criterion(y_pred.squeeze(), y_batch.long())
+
+            bar()
+
+            test_loss += loss.item()
+
+            # calculate the accuracy
+            predicted = torch.argmax(y_pred, 1)
+            test_correct += (predicted == y_batch.long()).sum().item()
+
+    test_loss /= len(test_loader)
+    test_accuracy = test_correct / len(test_loader)
+    print(f'Test loss: {test_loss}.. Test Accuracy: {test_accuracy}')
 
 
 if __name__ == '__main__':
