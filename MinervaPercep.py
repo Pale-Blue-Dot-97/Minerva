@@ -203,13 +203,24 @@ def month_sort(df, month):
 
 
 def scene_selection(df):
+    """Selects the 24 best scenes of a patch based on REF's 2-step selection criteria
+
+    Args:
+        df (pandas.Dataframe): Dataframe containing all scenes and their cloud cover percentages
+
+    Returns:
+        (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format
+    """
+    # Step 1: Find scene with lowest cloud cover percentage in each month
     step1 = []
     for month in range(1, 13):
         step1.append(month_sort(df, '%d-2018' % month))
 
+    # Step 2: Find the 12 scenes with the lowest cloud cover percentage of the remaining scenes
     df.drop(index=pd.to_datetime(step1, format='%Y_%m_%d'), inplace=True)
     step2 = df.sort_values(by='COVER')['DATE'][:12].tolist()
 
+    # Return 24 scenes selected by the 2-step REF criteria
     return step1 + step2
 
 
