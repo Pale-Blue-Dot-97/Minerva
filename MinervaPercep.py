@@ -314,6 +314,14 @@ def class_balance(ids):
 
 
 def num_batches(ids):
+    """Determines the number of batches needed to cover the dataset across ids
+
+    Args:
+        ids (list): List of patch IDs in the dataset to be loaded in by batches
+
+    Returns:
+        num_batches (int): Number of batches needed to cover the whole dataset
+    """
     return int((len(ids) * image_size[0] * image_size[1]) / params['batch_size'])
 
 
