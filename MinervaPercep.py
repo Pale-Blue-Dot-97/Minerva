@@ -418,8 +418,9 @@ def main():
     # Define optimiser
     optimiser = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
-    # Iterates through epochs of training and testing
+    # Iterates through epochs of training and validation
     for epoch in range(max_epochs):
+        # TRAIN =================================================================
         model.train()
         train_loss = 0
 
@@ -445,12 +446,16 @@ def main():
 
                 train_loss += loss.item()
 
+        # VALIDATION ===============================================================
         with alive_bar(num_batches(val_ids), bar='blocks') as bar, torch.no_grad():
             # Set the model to eval mode
             model.eval()
             valid_loss = 0
 
             for x_batch, y_batch in islice(val_loader, num_batches(val_ids)):
+                # Transfer to GPU
+                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+
                 # Forward pass
                 y_pred = model(x_batch.float())
 
@@ -461,15 +466,20 @@ def main():
 
                 valid_loss += loss.item()
 
+        # Output epoch results
         train_loss /= len(train_loader)
         valid_loss /= len(val_loader)
         print(f'Epoch: {epoch + 1}/{max_epochs}.. Training loss: {train_loss}.. Validation Loss: {valid_loss}')
 
+    # TEST ======================================================================
     model.eval()
     test_loss = 0
     test_correct = 0
     with alive_bar(num_batches(test_ids), bar='blocks') as bar, torch.no_grad():
         for x_batch, y_batch in islice(test_loader, num_batches(test_ids)):
+            # Transfer to GPU
+            x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+            
             # Forward pass
             y_pred = model(x_batch.float())
 
