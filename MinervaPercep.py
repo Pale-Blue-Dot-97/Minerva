@@ -313,7 +313,59 @@ def class_balance(ids):
         labels.append(lc_load(patch_id))
 
     # Plots a pie chart of the distribution of the classes within the given list of patches
-    plot_subpopulations(np.array(labels).flatten())
+    plot_subpopulations(np.array(labels).flatten(), class_names=rdv.RE_classes, cmap=rdv.RE_cmap_dict)
+
+
+def plot_subpopulations(class_labels, class_names=None, cmap=None):
+    """Creates a pie chart of the distribution of the classes within the data
+
+    Args:
+        class_labels (np.array[int]): List of predicted classifications from model, in form of class numbers
+        class_names (dict): Dictionary mapping class labels to class names
+        cmap (dict): Dictionary mapping class labels to class colours
+
+    Returns:
+        None
+    """
+
+    # Finds the distribution of the classes within the data
+    modes = Counter(class_labels).most_common()
+
+    print(modes)
+
+    # List to hold the name and percentage distribution of each class in the data as str
+    classes = []
+
+    # List to hold the total counts of each class
+    counts = []
+
+    # List to hold colours of classes in the correct order
+    colours = []
+
+    # Finds total number of images to normalise data
+    n_images = len(class_labels)
+
+    # For each class, find the percentage of data that is that class and the total counts for that class
+    for label in modes:
+        # Sets percentage label to <0.01% for classes matching that equality
+        if (label[1] * 100.0 / n_images) > 0.01:
+            classes.append('{} \n{:.2f}%'.format(class_names[label[0]], (label[1] * 100.0 / n_images)))
+        else:
+            classes.append('{} \n<0.01%'.format(class_names[label[0]]))
+        counts.append(label[1])
+        colours.append(cmap[label[0]])
+
+    # Locks figure size
+    plt.figure(figsize=(6, 5))
+
+    # Plot a pie chart of the data distribution amongst the classes
+    patches, text = plt.pie(counts, colors=colours, explode=[i * 0.05 for i in range(len(classes))])
+
+    # Adds legend
+    plt.legend(patches, classes, loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
+
+    # Show plot for review
+    plt.show()
 
 
 def num_batches(ids):
@@ -326,40 +378,6 @@ def num_batches(ids):
         num_batches (int): Number of batches needed to cover the whole dataset
     """
     return int((len(ids) * image_size[0] * image_size[1]) / params['batch_size'])
-
-
-def plot_subpopulations(class_labels):
-    """Creates a pie chart of the distribution of the classes within the data
-
-    Args:
-        class_labels ([int]): List of predicted classifications from model, in form of class numbers
-
-    Returns:
-        None
-    """
-
-    # Finds the distribution of the classes within the data
-    modes = Counter(class_labels).most_common()
-
-    # List to hold the name and percentage distribution of each class in the data as str
-    classes = []
-
-    # List to hold the total counts of each class
-    counts = []
-
-    # Finds total number of images to normalise data
-    n_images = len(class_labels)
-
-    # For each class, find the percentage of data that is that class and the total counts for that class
-    for label in modes:
-        classes.append('{} ({:.2f})'.format(label[0], (label[1] / n_images)))
-        counts.append(label[1])
-
-    # Plot a pie chart of the data distribution amongst the classes with labels of class name and percentage size
-    plt.pie(counts, labels=classes)
-
-    # Show plot for review
-    plt.show()
 
 
 # =====================================================================================================================
