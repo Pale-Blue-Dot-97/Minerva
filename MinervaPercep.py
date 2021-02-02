@@ -193,7 +193,7 @@ def month_sort(df, month):
     """Finds the the scene with the lowest cloud cover in a given month
 
     Args:
-        df (pandas.Dataframe): Dataframe containing all scenes and their cloud cover percentages
+        df (pandas.DataFrame): Dataframe containing all scenes and their cloud cover percentages
         month (str): Month of a year to sort
 
     Returns:
@@ -206,10 +206,10 @@ def scene_selection(df):
     """Selects the 24 best scenes of a patch based on REF's 2-step selection criteria
 
     Args:
-        df (pandas.Dataframe): Dataframe containing all scenes and their cloud cover percentages
+        df (pandas.DataFrame): Dataframe containing all scenes and their cloud cover percentages
 
     Returns:
-        (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format
+        scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format
     """
     # Step 1: Find scene with lowest cloud cover percentage in each month
     step1 = []
@@ -225,14 +225,30 @@ def scene_selection(df):
 
 
 def find_best_of(patch_id):
+    """Finds the 24 scenes sorted by cloud cover according to REF's 2-step criteria using scene_selection()
+
+    Args:
+        patch_id (str): Unique patch ID
+
+    Returns:
+        scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format
+    """
+    # Creates a DataFrame
     patch = pd.DataFrame()
+
+    # Using scene_grab(), gets all the scene CLDs and dates for the given patch and adds to DataFrame
     patch['SCENE'], patch['DATE'] = scene_grab(patch_id)
+
+    # Calculates the cloud cover percentage for every scene and adds to DataFrame
     patch['COVER'] = patch['SCENE'].apply(cloud_cover)
 
+    # Removes unneeded scene column
     del patch['SCENE']
 
+    # Re-indexes the DataFrame to datetime
     patch.set_index(pd.to_datetime(patch['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
 
+    # Sends DataFrame to scene_selection() and returns the 24 selected scenes
     return scene_selection(patch)
 
 
