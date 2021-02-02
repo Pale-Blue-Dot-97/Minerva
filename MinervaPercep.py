@@ -51,6 +51,9 @@ params = {'batch_size': 32,
           #'shuffle': True,
           'num_workers': 2}
 
+# Number of epochs to train model over
+max_epochs = 5
+
 # Creates an One Hot Encoder (OHE) to convert labels
 ohe = OneHotEncoder()
 
@@ -363,23 +366,31 @@ def plot_subpopulations(class_labels):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    max_epochs = 5
-
+    # Fetches all patch IDs in the dataset
     patch_ids = rdv.patch_grab()
+
+    # Splits the dataset into train and test
     train_ids, test_ids = train_test_split(patch_ids, train_size=0.1, test_size=0.9, shuffle=True, random_state=42)
 
+    # Plot distribution of classes across the dataset
     class_balance(patch_ids)
 
+    # Create batch loader for the train dataset
     train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
     train_loader = DataLoader(train_dataset, **params)
 
+    # Create batch loader for the test dataset
     test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
     test_loader = DataLoader(test_dataset, **params)
 
+    # Initialise model
     model = MLP(288, 8)
     model.to(device)
 
+    # Define loss function
     criterion = torch.nn.CrossEntropyLoss()
+
+    # Define optimiser
     optimiser = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
     model.train()
@@ -387,8 +398,10 @@ def main():
 
     losses = []
 
+    # Iterates through epochs of trainng and testing
     for epoch in range(max_epochs):
         # batch_num = 1
+        # Batch trains model for this epoch
         with alive_bar(num_batches(train_ids), bar='blocks') as bar:
             for x_batch, y_batch in islice(train_loader, num_batches(train_ids)):
                 # batch_num = batch_num + 1
