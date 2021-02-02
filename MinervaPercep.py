@@ -380,6 +380,34 @@ def num_batches(ids):
     return int((len(ids) * image_size[0] * image_size[1]) / params['batch_size'])
 
 
+def plot_history(metrics):
+    """Plots model history based on metrics supplied
+    
+    Args:
+        metrics (dict): Dictionary containing the names and results of the metrics by which model was assessed
+
+    Returns:
+        None
+    """""
+    # Initialise figure
+    plt.figure()
+
+    # Plots each metric in metrics, appending their artist handles
+    handles = []
+    for metric in metrics.values():
+        handles.append(plt.plot(metric)[0])
+
+    # Creates legend from plot artist handles and names of metrics
+    plt.legend(handles=handles, labels=metrics.keys())
+
+    # Adds axis labels
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss/Accuracy')
+
+    # Show figure
+    plt.show()
+
+
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
@@ -388,10 +416,10 @@ def main():
     patch_ids = rdv.patch_grab()
 
     # Splits the dataset into train and val-test
-    train_ids, val_test_ids = train_test_split(patch_ids, train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
+    train_ids, val_test_ids = train_test_split(patch_ids[:5], train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
 
     # Splits the val-test dataset into validation and test
-    val_ids, test_ids = train_test_split(patch_ids, train_size=0.5, test_size=0.5, shuffle=True, random_state=42)
+    val_ids, test_ids = train_test_split(val_test_ids, train_size=0.5, test_size=0.5, shuffle=True, random_state=42)
 
     # Plot distribution of classes across the dataset
     #class_balance(patch_ids)
@@ -418,15 +446,26 @@ def main():
     # Define optimiser
     optimiser = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
 
+    num_train_batches = num_batches(train_ids)
+    num_val_batches = num_batches(val_ids)
+    num_test_batches = num_batches(test_ids)
+
+    train_loss_history = []
+    val_loss_history = []
+
+    train_acc_history = []
+    val_acc_history = []
+
     # Iterates through epochs of training and validation
     for epoch in range(max_epochs):
         # TRAIN =================================================================
         model.train()
         train_loss = 0
+        train_correct = 0
 
         # Batch trains model for this epoch
-        with alive_bar(num_batches(train_ids), bar='blocks') as bar:
-            for x_batch, y_batch in islice(train_loader, num_batches(train_ids)):
+        with alive_bar(num_train_batches, bar='blocks') as bar:
+            for x_batch, y_batch in islice(train_loader, num_train_batches):
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
@@ -442,17 +481,22 @@ def main():
                 loss.backward()
                 optimiser.step()
 
-                bar()
-
                 train_loss += loss.item()
 
+                # calculate the accuracy
+                predicted = torch.argmax(y_pred, 1)
+                train_correct += (predicted == y_batch.long()).sum().item()
+
+                bar()
+
         # VALIDATION ===============================================================
-        with alive_bar(num_batches(val_ids), bar='blocks') as bar, torch.no_grad():
+        with alive_bar(num_val_batches, bar='blocks') as bar, torch.no_grad():
             # Set the model to eval mode
             model.eval()
             valid_loss = 0
+            val_correct = 0
 
-            for x_batch, y_batch in islice(val_loader, num_batches(val_ids)):
+            for x_batch, y_batch in islice(val_loader, num_val_batches):
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
@@ -462,41 +506,63 @@ def main():
                 # Compute Loss
                 loss = criterion(y_pred.squeeze(), y_batch.long())
 
-                bar()
-
                 valid_loss += loss.item()
 
+                # calculate the accuracy
+                predicted = torch.argmax(y_pred, 1)
+                val_correct += (predicted == y_batch.long()).sum().item()
+
+                bar()
+
         # Output epoch results
-        train_loss /= len(train_loader)
-        valid_loss /= len(val_loader)
-        print(f'Epoch: {epoch + 1}/{max_epochs}.. Training loss: {train_loss}.. Validation Loss: {valid_loss}')
+        train_loss /= num_train_batches
+        valid_loss /= num_val_batches
+        train_accuracy = train_correct / (num_train_batches * params['batch_size'])
+        val_accuracy = val_correct / (num_val_batches * params['batch_size'])
+        print(f'Epoch: {epoch + 1}/{max_epochs}| Training loss: {train_loss} | Validation Loss: {valid_loss} | '
+              f'Train Accuracy: {train_accuracy * 100}% | Validation Accuracy: {val_accuracy * 100}% \n')
+
+        train_loss_history.append(train_loss)
+        val_loss_history.append(valid_loss)
+        train_acc_history.append(train_accuracy)
+        val_acc_history.append(val_accuracy)
 
     # TEST ======================================================================
     model.eval()
     test_loss = 0
     test_correct = 0
-    with alive_bar(num_batches(test_ids), bar='blocks') as bar, torch.no_grad():
-        for x_batch, y_batch in islice(test_loader, num_batches(test_ids)):
+    predictions = []
+    with alive_bar(num_test_batches, bar='blocks') as bar, torch.no_grad():
+        for x_batch, y_batch in islice(test_loader, num_test_batches):
             # Transfer to GPU
             x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-            
+
             # Forward pass
             y_pred = model(x_batch.float())
 
             # Compute Loss
             loss = criterion(y_pred.squeeze(), y_batch.long())
 
-            bar()
-
             test_loss += loss.item()
 
             # calculate the accuracy
             predicted = torch.argmax(y_pred, 1)
             test_correct += (predicted == y_batch.long()).sum().item()
+            predictions.append(np.array(predicted.cpu()))
 
-    test_loss /= len(test_loader)
-    test_accuracy = test_correct / len(test_loader)
-    print(f'Test loss: {test_loss}.. Test Accuracy: {test_accuracy}')
+            bar()
+
+    test_loss /= num_test_batches
+    test_accuracy = test_correct / (num_test_batches * params['batch_size'])
+    print(f'Test loss: {test_loss}.. Test Accuracy: {test_accuracy * 100}%')
+
+    metrics = {'Train Loss': train_loss_history,
+               'Validation Loss': val_loss_history,
+               'Train Accuracy': train_acc_history,
+               'Validation Accuracy': val_acc_history}
+
+    plot_history(metrics)
+    plot_subpopulations(np.array(predictions).flatten(), rdv.RE_classes, rdv.RE_cmap_dict)
 
 
 if __name__ == '__main__':
