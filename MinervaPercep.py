@@ -256,8 +256,8 @@ def stack_bands(patch_id, scene):
     """Stacks together all the bands of the SENTINEL-2 images in a given scene of a patch
 
     Args:
-        patch_id (str):
-        scene (str):
+        patch_id (str): Unique patch ID
+        scene (str): Date of scene in YY_MM_DD format to stack bands in
 
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
