@@ -13,6 +13,7 @@ TODO:
 # =====================================================================================================================
 import glob
 import random
+from abc import ABC
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -48,7 +49,6 @@ cudnn.benchmark = True
 
 # Parameters
 params = {'batch_size': 32,
-          #'shuffle': True,
           'num_workers': 2}
 
 # Number of epochs to train model over
@@ -61,7 +61,7 @@ ohe = OneHotEncoder()
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class MLP(torch.nn.Module):
+class MLP(torch.nn.Module, ABC):
     """
     Simple class to construct a Multi-Layer Perceptron (MLP)
     """
@@ -436,4 +436,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
