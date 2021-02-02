@@ -138,17 +138,28 @@ def prefix_format(patch_id, scene):
 
 
 def scene_grab(patch_id):
+    """Finds and loads all CLDs for a given patch
+
+    Args:
+        patch_id (str): Unique patch ID
+
+    Returns:
+        scenes (list): List of CLD masks for each scene
+        scene_names (list): List of scene dates in YY_MM_DD
+
+    """
     # Get the name of all the directories for this patch
     scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
 
     # Extract the scene names (i.e the dates) from the paths
     scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
 
+    # List to hold scenes
     scenes = []
 
+    # Finds and appends each CLD of each scene of a patch to scenes
     for date in scene_names:
-        scenes.append(rdv.load_array(
-            '%s_CLD_10m.tif' % prefix_format(patch_id, date), 1))
+        scenes.append(rdv.load_array('%s_CLD_10m.tif' % prefix_format(patch_id, date), 1))
 
     return scenes, scene_names
 
