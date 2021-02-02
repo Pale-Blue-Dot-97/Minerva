@@ -178,6 +178,14 @@ def lc_load(patch_id):
 
 
 def cloud_cover(scene):
+    """Calculates percentage cloud cover for a given scene based on its scene CLD
+
+    Args:
+        scene (numpy.ndarray):
+
+    Returns:
+        (float): Percentage cloud cover
+    """
     return np.sum(scene) / scene.size
 
 
