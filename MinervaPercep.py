@@ -416,7 +416,7 @@ def main():
     patch_ids = rdv.patch_grab()
 
     # Splits the dataset into train and val-test
-    train_ids, val_test_ids = train_test_split(patch_ids[:5], train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
+    train_ids, val_test_ids = train_test_split(patch_ids[:50], train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
 
     # Splits the val-test dataset into validation and test
     val_ids, test_ids = train_test_split(val_test_ids, train_size=0.5, test_size=0.5, shuffle=True, random_state=42)
@@ -442,9 +442,11 @@ def main():
 
     # Define loss function
     criterion = torch.nn.CrossEntropyLoss()
+    #criterion = torch.nn.NLLLoss()
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=0.01, momentum=0.5)
+    #optimiser = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    optimiser = torch.optim.Adam(model.parameters(), lr=1e-3)
 
     num_train_batches = num_batches(train_ids)
     num_val_batches = num_batches(val_ids)
@@ -459,12 +461,13 @@ def main():
     # Iterates through epochs of training and validation
     for epoch in range(max_epochs):
         # TRAIN =================================================================
-        model.train()
+
         train_loss = 0
         train_correct = 0
 
         # Batch trains model for this epoch
         with alive_bar(num_train_batches, bar='blocks') as bar:
+            model.train()
             for x_batch, y_batch in islice(train_loader, num_train_batches):
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
@@ -489,13 +492,12 @@ def main():
 
                 bar()
 
+        val_loss = 0
+        val_correct = 0
         # VALIDATION ===============================================================
         with alive_bar(num_val_batches, bar='blocks') as bar, torch.no_grad():
             # Set the model to eval mode
             model.eval()
-            valid_loss = 0
-            val_correct = 0
-
             for x_batch, y_batch in islice(val_loader, num_val_batches):
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
@@ -506,7 +508,7 @@ def main():
                 # Compute Loss
                 loss = criterion(y_pred.squeeze(), y_batch.long())
 
-                valid_loss += loss.item()
+                val_loss += loss.item()
 
                 # calculate the accuracy
                 predicted = torch.argmax(y_pred, 1)
@@ -516,14 +518,14 @@ def main():
 
         # Output epoch results
         train_loss /= num_train_batches
-        valid_loss /= num_val_batches
+        val_loss /= num_val_batches
         train_accuracy = train_correct / (num_train_batches * params['batch_size'])
         val_accuracy = val_correct / (num_val_batches * params['batch_size'])
-        print(f'Epoch: {epoch + 1}/{max_epochs}| Training loss: {train_loss} | Validation Loss: {valid_loss} | '
+        print(f'Epoch: {epoch + 1}/{max_epochs}| Training loss: {train_loss} | Validation Loss: {val_loss} | '
               f'Train Accuracy: {train_accuracy * 100}% | Validation Accuracy: {val_accuracy * 100}% \n')
 
         train_loss_history.append(train_loss)
-        val_loss_history.append(valid_loss)
+        val_loss_history.append(val_loss)
         train_acc_history.append(train_accuracy)
         val_acc_history.append(val_accuracy)
 
