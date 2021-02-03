@@ -52,7 +52,7 @@ params = {'batch_size': 32,
           'num_workers': 2}
 
 # Number of epochs to train model over
-max_epochs = 5
+max_epochs = 2
 
 
 # =====================================================================================================================
@@ -62,14 +62,22 @@ class MLP(torch.nn.Module, ABC):
     """
     Simple class to construct a Multi-Layer Perceptron (MLP)
     """
-    def __init__(self, input_size, n_classes):
+    def __init__(self, input_size, n_classes, hidden_sizes):
         super(MLP, self).__init__()
-        self.il = torch.nn.Linear(input_size, 2 * input_size)
-        self.relu1 = torch.nn.ReLU()
-        self.hl = torch.nn.Linear(2 * input_size, 2 * input_size)
-        self.relu2 = torch.nn.ReLU()
-        self.cl = torch.nn.Linear(2 * input_size, n_classes)
-        self.sm = torch.nn.Sigmoid()
+        self.input_size = input_size
+        self.output_size = n_classes
+        self.hidden_sizes = hidden_sizes
+        self.layers = torch.nn.ModuleList()
+
+        for i in range(len(hidden_sizes)):
+            if i is 0:
+                self.layers.append(torch.nn.Linear(input_size, hidden_sizes[i]))
+            else:
+                self.layers.append(torch.nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
+            self.layers.append(torch.nn.ReLU())
+
+        self.layers.append(torch.nn.Linear(hidden_sizes[-1], n_classes))
+        self.layers.append(torch.nn.Sigmoid())
 
     def forward(self, x):
         """Performs a forward pass of the network
@@ -81,15 +89,16 @@ class MLP(torch.nn.Module, ABC):
         Returns:
 
         """
-        hidden1 = self.il(x)
-        relu1 = self.relu1(hidden1)
-        hidden2 = self.hl(relu1)
-        relu2 = self.relu2(hidden2)
-        output = self.cl(relu2)
-        return self.sm(output)
+
+        y = x
+
+        for layer in self.layers:
+            y = layer(y)
+
+        return y
 
 
-class BatchLoader(IterableDataset):
+class BatchLoader(IterableDataset, ABC):
     """
     Source: https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
     """
@@ -472,7 +481,7 @@ def main():
     loaders, n_batches = make_loaders()
 
     # Initialise model
-    model = MLP(288, 8)
+    model = MLP(288, 8, [144])
     model.to(device)
 
     # Define loss function
