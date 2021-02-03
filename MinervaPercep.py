@@ -17,7 +17,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import normalize, OneHotEncoder
+from sklearn.preprocessing import normalize
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import IterableDataset
@@ -53,9 +53,6 @@ params = {'batch_size': 32,
 
 # Number of epochs to train model over
 max_epochs = 5
-
-# Creates an One Hot Encoder (OHE) to convert labels
-ohe = OneHotEncoder()
 
 
 # =====================================================================================================================
@@ -106,12 +103,12 @@ class BatchLoader(IterableDataset):
 
     def process_data(self, patch_id):
         patch = make_time_series(patch_id)
-        flat_patch = patch.reshape(-1, *patch.shape[-2:])
 
-        labels = np.int16(np.array(lc_load(patch_id)).flatten())
+        x = torch.tensor([pixel.flatten() for pixel in patch.reshape(-1, *patch.shape[-2:])], dtype=torch.float)
+        y = torch.tensor(np.array(lc_load(patch_id), dtype=np.int64).flatten(), dtype=torch.long)
 
-        for i in range(len(labels)):
-            yield flat_patch[i].flatten(), labels[i]
+        for i in range(len(y)):
+            yield x[i], y[i]
 
     def get_stream(self, patch_ids):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
@@ -178,6 +175,21 @@ def lc_load(patch_id):
 
     """
     return rdv.load_array('%s/%s%s/%s_2018_LC_10m.tif' % (data_dir, patch_dir_prefix, patch_id, patch_id), 1)
+
+
+def labels_to_ohe(labels, n_classes):
+    """Convert an iterable of indices to one-hot encoded labels.
+
+    Args:
+        labels ():
+        n_classes (int):
+
+    Returns:
+        Labels in OHE form
+
+    """
+    targets = np.array(labels).reshape(-1)
+    return np.eye(n_classes)[targets]
 
 
 def cloud_cover(scene):
@@ -475,10 +487,10 @@ def main():
                 optimiser.zero_grad()
 
                 # Forward pass
-                y_pred = model(x_batch.float())
+                y_pred = model(x_batch)
 
                 # Compute Loss
-                loss = criterion(y_pred.squeeze(), y_batch.long())
+                loss = criterion(y_pred, y_batch)
 
                 # Backward pass
                 loss.backward()
@@ -503,16 +515,16 @@ def main():
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
                 # Forward pass
-                y_pred = model(x_batch.float())
+                y_pred = model(x_batch)
 
                 # Compute Loss
-                loss = criterion(y_pred.squeeze(), y_batch.long())
+                loss = criterion(y_pred.squeeze(), y_batch)
 
                 val_loss += loss.item()
 
                 # calculate the accuracy
                 predicted = torch.argmax(y_pred, 1)
-                val_correct += (predicted == y_batch.long()).sum().item()
+                val_correct += (predicted == y_batch).sum().item()
 
                 bar()
 
@@ -540,16 +552,16 @@ def main():
             x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
             # Forward pass
-            y_pred = model(x_batch.float())
+            y_pred = model(x_batch)
 
             # Compute Loss
-            loss = criterion(y_pred.squeeze(), y_batch.long())
+            loss = criterion(y_pred.squeeze(), y_batch)
 
             test_loss += loss.item()
 
             # calculate the accuracy
             predicted = torch.argmax(y_pred, 1)
-            test_correct += (predicted == y_batch.long()).sum().item()
+            test_correct += (predicted == y_batch).sum().item()
             predictions.append(np.array(predicted.cpu()))
 
             bar()
