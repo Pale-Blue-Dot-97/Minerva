@@ -181,8 +181,8 @@ def labels_to_ohe(labels, n_classes):
     """Convert an iterable of indices to one-hot encoded labels.
 
     Args:
-        labels ():
-        n_classes (int):
+        labels (list[int]): List of class number labels to be converted to OHE
+        n_classes (int): Number of classes to determine length of OHE label
 
     Returns:
         Labels in OHE form
@@ -309,6 +309,51 @@ def make_time_series(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
+def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True):
+    """
+
+    Args:
+        patch_ids:
+        split:
+        seed:
+        shuffle:
+
+
+    Returns:
+        loaders (dict):
+        n_batches (dict):
+
+    """
+    # Fetches all patch IDs in the dataset
+    if patch_ids is None:
+        patch_ids = rdv.patch_grab()
+
+    # Splits the dataset into train and val-test
+    train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1]+split[2]),
+                                               shuffle=shuffle, random_state=seed)
+
+    # Splits the val-test dataset into validation and test
+    val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1]/(split[1]+split[2])),
+                                         test_size=(split[2]/(split[1]+split[2])), shuffle=shuffle, random_state=seed)
+
+    # Define datasets for train, validation and test using BatchLoader
+    train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
+    val_dataset = BatchLoader(val_ids, batch_size=params['batch_size'])
+    test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
+
+    # Create train, validation and test batch loaders and pack into dict
+    loaders = {'train': DataLoader(train_dataset, **params),
+               'val': DataLoader(val_dataset, **params),
+               'test': DataLoader(test_dataset, **params)}
+
+    # Create a dict to hold number of batches for train, validation and test
+    n_batches = {'train': num_batches(train_ids),
+                 'val': num_batches(val_ids),
+                 'test': num_batches(test_ids)}
+
+    return loaders, n_batches
+
+
 def class_balance(ids):
     """Loads all LC labels for the given patches using lc_load() then plots the class subpopulations using
     plot_subpopulations()
@@ -424,29 +469,7 @@ def plot_history(metrics):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    # Fetches all patch IDs in the dataset
-    patch_ids = rdv.patch_grab()
-
-    # Splits the dataset into train and val-test
-    train_ids, val_test_ids = train_test_split(patch_ids[:50], train_size=0.7, test_size=0.3, shuffle=True, random_state=42)
-
-    # Splits the val-test dataset into validation and test
-    val_ids, test_ids = train_test_split(val_test_ids, train_size=0.5, test_size=0.5, shuffle=True, random_state=42)
-
-    # Plot distribution of classes across the dataset
-    #class_balance(patch_ids)
-
-    # Create batch loader for the train dataset
-    train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
-    train_loader = DataLoader(train_dataset, **params)
-
-    # Create batch loader for the test dataset
-    val_dataset = BatchLoader(val_ids, batch_size=params['batch_size'])
-    val_loader = DataLoader(val_dataset, **params)
-
-    # Create batch loader for the test dataset
-    test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
-    test_loader = DataLoader(test_dataset, **params)
+    loaders, n_batches = make_loaders()
 
     # Initialise model
     model = MLP(288, 8)
@@ -459,10 +482,6 @@ def main():
     # Define optimiser
     #optimiser = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     optimiser = torch.optim.Adam(model.parameters(), lr=1e-3)
-
-    num_train_batches = num_batches(train_ids)
-    num_val_batches = num_batches(val_ids)
-    num_test_batches = num_batches(test_ids)
 
     train_loss_history = []
     val_loss_history = []
@@ -478,9 +497,9 @@ def main():
         train_correct = 0
 
         # Batch trains model for this epoch
-        with alive_bar(num_train_batches, bar='blocks') as bar:
+        with alive_bar(n_batches['train'], bar='blocks') as bar:
             model.train()
-            for x_batch, y_batch in islice(train_loader, num_train_batches):
+            for x_batch, y_batch in islice(loaders['train'], n_batches['train']):
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
@@ -507,10 +526,10 @@ def main():
         val_loss = 0
         val_correct = 0
         # VALIDATION ===============================================================
-        with alive_bar(num_val_batches, bar='blocks') as bar, torch.no_grad():
+        with alive_bar(n_batches['val'], bar='blocks') as bar, torch.no_grad():
             # Set the model to eval mode
             model.eval()
-            for x_batch, y_batch in islice(val_loader, num_val_batches):
+            for x_batch, y_batch in islice(loaders['val'], n_batches['val']):
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
@@ -529,10 +548,10 @@ def main():
                 bar()
 
         # Output epoch results
-        train_loss /= num_train_batches
-        val_loss /= num_val_batches
-        train_accuracy = train_correct / (num_train_batches * params['batch_size'])
-        val_accuracy = val_correct / (num_val_batches * params['batch_size'])
+        train_loss /= n_batches['train']
+        val_loss /= n_batches['val']
+        train_accuracy = train_correct / (n_batches['train'] * params['batch_size'])
+        val_accuracy = val_correct / (n_batches['val'] * params['batch_size'])
         print(f'Epoch: {epoch + 1}/{max_epochs}| Training loss: {train_loss} | Validation Loss: {val_loss} | '
               f'Train Accuracy: {train_accuracy * 100}% | Validation Accuracy: {val_accuracy * 100}% \n')
 
@@ -546,8 +565,8 @@ def main():
     test_loss = 0
     test_correct = 0
     predictions = []
-    with alive_bar(num_test_batches, bar='blocks') as bar, torch.no_grad():
-        for x_batch, y_batch in islice(test_loader, num_test_batches):
+    with alive_bar(n_batches['test'], bar='blocks') as bar, torch.no_grad():
+        for x_batch, y_batch in islice(loaders['test'], n_batches['test']):
             # Transfer to GPU
             x_batch, y_batch = x_batch.to(device), y_batch.to(device)
 
@@ -566,8 +585,8 @@ def main():
 
             bar()
 
-    test_loss /= num_test_batches
-    test_accuracy = test_correct / (num_test_batches * params['batch_size'])
+    test_loss /= n_batches['test']
+    test_accuracy = test_correct / (n_batches['test'] * params['batch_size'])
     print(f'Test loss: {test_loss}.. Test Accuracy: {test_accuracy * 100}%')
 
     metrics = {'Train Loss': train_loss_history,
