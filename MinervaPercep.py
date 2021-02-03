@@ -22,6 +22,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import IterableDataset
 from torch.backends import cudnn
+from torchsummary import summary
 from itertools import cycle, chain, islice
 import Radiant_MLHub_DataVis as rdv
 from alive_progress import alive_bar
@@ -52,7 +53,7 @@ params = {'batch_size': 32,
           'num_workers': 2}
 
 # Number of epochs to train model over
-max_epochs = 2
+max_epochs = 5
 
 
 # =====================================================================================================================
@@ -481,8 +482,13 @@ def main():
     loaders, n_batches = make_loaders()
 
     # Initialise model
-    model = MLP(288, 8, [144])
+    model = MLP(288, 8, [288, 144, 72, 36])
+
+    # Transfer to GPU
     model.to(device)
+
+    # Print model summary
+    summary(model, (1, 288))
 
     # Define loss function
     criterion = torch.nn.CrossEntropyLoss()
