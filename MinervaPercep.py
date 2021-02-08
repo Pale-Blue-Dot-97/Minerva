@@ -49,11 +49,11 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 32,
-          'num_workers': 2}
+params = {'batch_size': 32 * 32,
+          'num_workers': 3}
 
 # Number of epochs to train model over
-max_epochs = 5
+max_epochs = 10
 
 
 # =====================================================================================================================
@@ -332,6 +332,7 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True)
     Returns:
         loaders (dict):
         n_batches (dict):
+        class_dist (Counter):
 
     """
     # Fetches all patch IDs in the dataset
@@ -361,33 +362,39 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True)
                  'val': num_batches(val_ids),
                  'test': num_batches(test_ids)}
 
-    return loaders, n_batches
+    class_dist = find_subpopulations(patch_ids, plot=False)
+
+    return loaders, n_batches, class_dist
 
 
-def class_balance(ids):
-    """Loads all LC labels for the given patches using lc_load() then plots the class subpopulations using
-    plot_subpopulations()
+def find_subpopulations(ids, plot=False):
+    """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class
 
     Args:
         ids (list): List of patch IDs to analyse
+        plot (bool): Plots distribution of subpopulations if True
 
     Returns:
-        None
+        class_dist (Counter): Modal distribution of classes in the dataset provided
     """
     # Loads all LC label masks for the given patch IDs
     labels = []
     for patch_id in ids:
         labels.append(lc_load(patch_id))
 
-    # Plots a pie chart of the distribution of the classes within the given list of patches
-    plot_subpopulations(np.array(labels).flatten(), class_names=rdv.RE_classes, cmap=rdv.RE_cmap_dict)
+    if plot:
+        # Plots a pie chart of the distribution of the classes within the given list of patches
+        plot_subpopulations(np.array(labels).flatten(), class_names=rdv.RE_classes, cmap=rdv.RE_cmap_dict)
+
+    # Finds the distribution of the classes within the data
+    return Counter(np.array(labels).flatten()).most_common()
 
 
 def plot_subpopulations(class_labels, class_names=None, cmap=None):
     """Creates a pie chart of the distribution of the classes within the data
 
     Args:
-        class_labels (np.array[int]): List of predicted classifications from model, in form of class numbers
+        class_labels (np.array[int]): List of class labels
         class_names (dict): Dictionary mapping class labels to class names
         cmap (dict): Dictionary mapping class labels to class colours
 
@@ -396,9 +403,7 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     """
 
     # Finds the distribution of the classes within the data
-    modes = Counter(class_labels).most_common()
-
-    print(modes)
+    class_dist = Counter(class_labels).most_common()
 
     # List to hold the name and percentage distribution of each class in the data as str
     classes = []
@@ -409,14 +414,16 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     # List to hold colours of classes in the correct order
     colours = []
 
-    # Finds total number of images to normalise data
-    n_images = len(class_labels)
+    # Finds total number of samples to normalise data
+    n_samples = 0
+    for mode in class_dist:
+        n_samples += mode[1]
 
     # For each class, find the percentage of data that is that class and the total counts for that class
-    for label in modes:
+    for label in class_dist:
         # Sets percentage label to <0.01% for classes matching that equality
-        if (label[1] * 100.0 / n_images) > 0.01:
-            classes.append('{} \n{:.2f}%'.format(class_names[label[0]], (label[1] * 100.0 / n_images)))
+        if (label[1] * 100.0 / n_samples) > 0.01:
+            classes.append('{} \n{:.2f}%'.format(class_names[label[0]], (label[1] * 100.0 / n_samples)))
         else:
             classes.append('{} \n<0.01%'.format(class_names[label[0]]))
         counts.append(label[1])
@@ -479,7 +486,14 @@ def plot_history(metrics):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    loaders, n_batches = make_loaders()
+    loaders, n_batches, class_dist = make_loaders()
+
+    # Finds total number of samples to normalise data
+    n_samples = 0
+    for mode in class_dist:
+        n_samples += mode[1]
+
+    class_weights = torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
 
     # Initialise model
     model = MLP(288, 8, [288, 144, 72, 36])
@@ -491,12 +505,11 @@ def main():
     summary(model, (1, 288))
 
     # Define loss function
-    criterion = torch.nn.CrossEntropyLoss()
-    #criterion = torch.nn.NLLLoss()
+    criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 
     # Define optimiser
-    #optimiser = torch.optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
-    optimiser = torch.optim.Adam(model.parameters(), lr=1e-3)
+    #optimiser = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.99)
+    optimiser = torch.optim.Adam(model.parameters(), lr=1e-4, amsgrad=True)
 
     train_loss_history = []
     val_loss_history = []
@@ -534,7 +547,7 @@ def main():
 
                 # calculate the accuracy
                 predicted = torch.argmax(y_pred, 1)
-                train_correct += (predicted == y_batch.long()).sum().item()
+                train_correct += (predicted == y_batch).sum().item()
 
                 bar()
 
