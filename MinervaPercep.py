@@ -509,7 +509,8 @@ def main():
 
     # Define optimiser
     #optimiser = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.99)
-    optimiser = torch.optim.Adam(model.parameters(), lr=1e-4, amsgrad=True)
+    #optimiser = torch.optim.Adam(model.parameters(), lr=1e-4, amsgrad=True)
+    optimiser = torch.optim.Adadelta(model.parameters())
 
     train_loss_history = []
     val_loss_history = []

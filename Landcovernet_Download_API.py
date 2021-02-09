@@ -8,6 +8,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import argparse
 import requests
 import boto3  # Required to download assets hosted on S3
 import os
@@ -171,13 +172,6 @@ def download_request(classes=None, max_items_downloaded=None):
         None
 
     """
-    # Fetches and prints API credentials
-    r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
-    print(f'Description: {r.json()["description"]}')
-    print(f'License: {r.json()["license"]}')
-    print(f'DOI: {r.json()["sci:doi"]}')
-    print(f'Citation: {r.json()["sci:citation"]}')
-
     # Creates a list of items to download from the collection based on the request query submitted
     to_download = get_items(f'{API_BASE}/collections/{COLLECTION_ID}/items',
                             classes=classes,
@@ -189,3 +183,67 @@ def download_request(classes=None, max_items_downloaded=None):
     for d in tqdm(to_download):
         p.map(download, d)
 
+
+def main(classes=None, items=None):
+    # Fetches and prints API credentials
+    r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
+    print(f'Description: {r.json()["description"]}')
+    print(f'License: {r.json()["license"]}')
+    print(f'DOI: {r.json()["sci:doi"]}')
+    print(f'Citation: {r.json()["sci:citation"]}')
+
+    def str_reformat(string):
+        string.replace('_', '')
+        string.replace('-', '')
+
+        return string
+
+    if classes is not None:
+        if type(items) is list:
+            for i in range(len(classes)):
+                download_request(classes=str_reformat(classes[i]), max_items_downloaded=items[i])
+
+        elif type(items) is int:
+            download_request(classes=str_reformat(classes), max_items_downloaded=items)
+
+        else:
+            download_request(classes=str_reformat(classes), max_items_downloaded=10)
+
+    else:
+        if type(items) is list:
+            download_request(max_items_downloaded=items[0])
+
+        elif items is int:
+            download_request(max_items_downloaded=items)
+
+        else:
+            download_request()
+
+
+if __name__ == '__main__':
+    CLI = argparse.ArgumentParser()
+    CLI.add_argument(
+        "--classes",  # name on the CLI - drop the `--` for positional/required parameters
+        nargs="*",  # 0 or more values expected => creates a list
+        type=str,
+        default=None,  # default if nothing is provided
+    )
+    CLI.add_argument(
+        "--items",
+        nargs="*",
+        type=int,  # any type/callable can be used here
+        default=None,
+    )
+
+    args = CLI.parse_args()
+
+    print('Classes: {}'.format(args.classes))
+    print('Items: {}'.format(args.items))
+
+    command = input('Proceed? (Y/N): \n')
+
+    if command in ['Y', 'y' 'yes', 'Yes', 'YES']:
+        main(classes=args.classes, items=args.items)
+
+    else:
+        print('ABORT')
