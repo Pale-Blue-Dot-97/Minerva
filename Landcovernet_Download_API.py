@@ -201,6 +201,7 @@ def main(classes=None, items=None):
     if classes is not None:
         if type(items) is list:
             for i in range(len(classes)):
+                print('{} - {}'.format(classes[i], items[i]))
                 download_request(classes=str_reformat(classes[i]), max_items_downloaded=items[i])
 
         elif type(items) is int:
