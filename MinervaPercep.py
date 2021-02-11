@@ -78,7 +78,7 @@ class MLP(torch.nn.Module, ABC):
             self.layers.append(torch.nn.ReLU())
 
         self.layers.append(torch.nn.Linear(hidden_sizes[-1], n_classes))
-        self.layers.append(torch.nn.Sigmoid())
+        #self.layers.append(torch.nn.Sigmoid())
 
     def forward(self, x):
         """Performs a forward pass of the network
