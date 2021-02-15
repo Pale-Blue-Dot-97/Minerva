@@ -43,6 +43,8 @@ band_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09'
 # Defines size of the images to determine the number of batches
 image_size = (256, 256)
 
+classes = rdv.RE_classes
+
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
@@ -78,7 +80,6 @@ class MLP(torch.nn.Module, ABC):
             self.layers.append(torch.nn.ReLU())
 
         self.layers.append(torch.nn.Linear(hidden_sizes[-1], n_classes))
-        #self.layers.append(torch.nn.Sigmoid())
 
     def forward(self, x):
         """Performs a forward pass of the network
@@ -202,6 +203,75 @@ def labels_to_ohe(labels, n_classes):
     return np.eye(n_classes)[targets]
 
 
+def find_patch_modes(patch_id):
+    """Finds the distribution of the classes within this patch
+
+    Args:
+        patch_id (str): Unique patch ID
+
+    Returns:
+        (Counter): Modal distribution of classes in the patch provided
+    """
+    return Counter(np.array(lc_load(patch_id)).flatten()).most_common()
+
+
+def class_frac(patch):
+    """Computes the fractional sizes of the classes of the given patch and returns a dict of the results
+
+    Args:
+        patch (pandas.Series): Row of DataFrame representing the entry for a patch
+
+    Returns:
+        new_columns (dict): Dictionary with keys as class numbers and associated values of fractional size of class
+                            plus a key-value pair for the patch ID
+    """
+    new_columns = {'PATCH': patch['PATCH']}
+    for mode in patch['MODES']:
+        new_columns[mode[0]] = mode[1]/(image_size[0] * image_size[1])
+
+    return new_columns
+
+
+def make_sorted_streams(classes):
+    """Creates a DataFrame with columns of patch IDs sorted for each class by class size in those patches
+
+    Args:
+        classes (List[int]): List of all possible class numbers
+
+    Returns:
+        streams_df (pandas.DataFrame): Database of list of patch IDs sorted by fractional sizes of class labels
+
+    """
+    df = pd.DataFrame()
+    df['PATCH'] = rdv.patch_grab()
+
+    df['MODES'] = df['PATCH'].apply(find_patch_modes)
+
+    df = pd.DataFrame([row for row in df.apply(class_frac, axis=1)])
+
+    df.fillna(0, inplace=True)
+
+    class_dist = find_subpopulations(df['PATCH'], plot=False)
+
+    stream_size = int(len(df['PATCH'])/len(classes))
+
+    streams = {}
+
+    for mode in class_dist:
+        stream = df.sort_values(by=mode[0])['PATCH'][:stream_size]
+        streams[mode[0]] = stream.tolist()
+        df.drop(stream.index, inplace=True)
+
+    streams_df = pd.DataFrame(streams)
+
+    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+        print(streams_df)
+
+    print(len(set(streams_df.to_numpy().flatten())) == len(streams_df.to_numpy().flatten()))
+
+    return streams_df
+
+
 def cloud_cover(scene):
     """Calculates percentage cloud cover for a given scene based on its scene CLD
 
@@ -319,15 +389,15 @@ def make_time_series(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
-def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True):
+def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True, plot=False):
     """
 
     Args:
         patch_ids:
         split:
         seed:
-        shuffle:
-
+        shuffle (bool):
+        plot (bool):
 
     Returns:
         loaders (dict):
@@ -346,6 +416,10 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True)
     # Splits the val-test dataset into validation and test
     val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1]/(split[1]+split[2])),
                                          test_size=(split[2]/(split[1]+split[2])), shuffle=shuffle, random_state=seed)
+
+    find_subpopulations(train_ids, plot=plot)
+    find_subpopulations(val_ids, plot=plot)
+    find_subpopulations(test_ids, plot=plot)
 
     # Define datasets for train, validation and test using BatchLoader
     train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
@@ -486,12 +560,16 @@ def plot_history(metrics):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    loaders, n_batches, class_dist = make_loaders()
+    make_sorted_streams(rdv.RE_classes.keys())
+
+    loaders, n_batches, class_dist = make_loaders(plot=True)
 
     # Finds total number of samples to normalise data
     n_samples = 0
     for mode in class_dist:
         n_samples += mode[1]
+
+    find_subpopulations(rdv.patch_grab(), plot=True)
 
     class_weights = torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
 
@@ -508,9 +586,9 @@ def main():
     criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
 
     # Define optimiser
-    #optimiser = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.99)
-    #optimiser = torch.optim.Adam(model.parameters(), lr=1e-4, amsgrad=True)
-    optimiser = torch.optim.Adadelta(model.parameters())
+    optimiser = torch.optim.SGD(model.parameters(), lr=5e-4, momentum=0.90)
+    #optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
+    #optimiser = torch.optim.Adadelta(model.parameters())
 
     train_loss_history = []
     val_loss_history = []
