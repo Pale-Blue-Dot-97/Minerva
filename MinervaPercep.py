@@ -27,7 +27,7 @@ from itertools import cycle, chain, islice
 import Radiant_MLHub_DataVis as rdv
 from alive_progress import alive_bar
 from matplotlib import pyplot as plt
-from collections import Counter
+from collections import Counter, deque
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -51,8 +51,10 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 32 * 32,
-          'num_workers': 3}
+params = {'batch_size': 32,
+          'num_workers': 5}
+
+wheel_size = 8 * 32
 
 # Number of epochs to train model over
 max_epochs = 10
@@ -98,6 +100,65 @@ class MLP(torch.nn.Module, ABC):
             y = layer(y)
 
         return y
+
+
+class BalancedBatchLoader(IterableDataset, ABC):
+    """
+    Source: https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
+    """
+    def __init__(self, class_streams, batch_size=32, wheel_size=10*32):
+        self.streams_df = class_streams
+        self.batch_size = batch_size
+        self.wheels = {}
+
+        for cls in self.streams_df.columns.to_list():
+            self.wheels[cls] = deque(maxlen=wheel_size)
+
+        for cls in self.streams_df.columns.to_list():
+            while len(self.wheels[cls]) is not self.wheels[cls].maxlen:
+                patch_id = self.streams_df.sample(frac=1).reset_index(drop=True)[cls][0]
+
+                patch = make_time_series(patch_id)
+                patch = patch.reshape(-1, *patch.shape[-2:])
+                patch = patch.reshape(patch.shape[0], -1)
+
+                labels = lc_load(patch_id).flatten()
+
+                self.add_to_wheels(patch, labels)
+
+    @property
+    def shuffled_data_list(self):
+        return self.streams_df.sample(frac=1).reset_index(drop=True)
+
+    def add_to_wheels(self, patch, labels):
+        for cls in self.streams_df.columns.to_list():
+            for pixel in patch[np.where(labels == cls)]:
+                self.wheels[cls].appendleft(pixel.flatten())
+
+    def process_data(self, row):
+        for cls in self.streams_df.columns.to_list():
+            print(row)
+            patch_id = row[cls]
+            patch = make_time_series(patch_id)
+            patch = patch.reshape(-1, *patch.shape[-2:])
+            patch = patch.reshape(patch.shape[0], -1)
+
+            labels = lc_load(patch_id).flatten()
+
+            self.add_to_wheels(patch, labels)
+
+            self.wheels[cls].rotate(1)
+
+            yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), torch.tensor(cls, dtype=torch.long)
+
+    def get_stream(self, streams_df):
+        return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
+
+    def get_streams(self):
+        return zip(*[self.get_stream(self.shuffled_data_list) for _ in range(self.batch_size)])
+
+    def __iter__(self):
+        return self.get_stream(self.streams_df)
 
 
 class BatchLoader(IterableDataset, ABC):
@@ -232,18 +293,18 @@ def class_frac(patch):
     return new_columns
 
 
-def make_sorted_streams(classes):
+def make_sorted_streams(patch_ids):
     """Creates a DataFrame with columns of patch IDs sorted for each class by class size in those patches
 
     Args:
-        classes (List[int]): List of all possible class numbers
+        patch_ids (list[str]):
 
     Returns:
         streams_df (pandas.DataFrame): Database of list of patch IDs sorted by fractional sizes of class labels
 
     """
     df = pd.DataFrame()
-    df['PATCH'] = rdv.patch_grab()
+    df['PATCH'] = patch_ids
 
     df['MODES'] = df['PATCH'].apply(find_patch_modes)
 
@@ -257,10 +318,19 @@ def make_sorted_streams(classes):
 
     streams = {}
 
-    for mode in class_dist:
-        stream = df.sort_values(by=mode[0])['PATCH'][:stream_size]
+    for mode in reversed(class_dist):
+        stream = df.sort_values(by=mode[0], ascending=False)['PATCH'][:stream_size]
         streams[mode[0]] = stream.tolist()
         df.drop(stream.index, inplace=True)
+
+        print('{} Stream Dist:'.format(mode[0]), find_subpopulations(stream.tolist()))
+
+        if mode[0] == 4:
+            for patch in stream.tolist():
+                modes2 = Counter(lc_load(patch).flatten()).most_common()
+                for mode2 in modes2:
+                    if mode2[0] == 4:
+                        print(patch)
 
     streams_df = pd.DataFrame(streams)
 
@@ -389,7 +459,7 @@ def make_time_series(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
-def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True, plot=False):
+def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True, plot=False, balance=True, p_dist=True):
     """
 
     Args:
@@ -398,6 +468,7 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
         seed:
         shuffle (bool):
         plot (bool):
+        balance (bool):
 
     Returns:
         loaders (dict):
@@ -417,19 +488,32 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
     val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1]/(split[1]+split[2])),
                                          test_size=(split[2]/(split[1]+split[2])), shuffle=shuffle, random_state=seed)
 
-    find_subpopulations(train_ids, plot=plot)
-    find_subpopulations(val_ids, plot=plot)
-    find_subpopulations(test_ids, plot=plot)
+    if p_dist:
+        print('\nTrain: \n', find_subpopulations(train_ids, plot=plot))
+        print('\nValidation: \n', find_subpopulations(val_ids, plot=plot))
+        print('\nTest: \n', find_subpopulations(test_ids, plot=plot))
 
-    # Define datasets for train, validation and test using BatchLoader
-    train_dataset = BatchLoader(train_ids, batch_size=params['batch_size'])
-    val_dataset = BatchLoader(val_ids, batch_size=params['batch_size'])
-    test_dataset = BatchLoader(test_ids, batch_size=params['batch_size'])
+    datasets = {}
+
+    if balance:
+        train_stream = make_sorted_streams(train_ids)
+        val_stream = make_sorted_streams(val_ids)
+
+        # Define datasets for train, validation and test using BatchLoader
+        datasets['train'] = BalancedBatchLoader(train_stream, batch_size=params['batch_size'], wheel_size=wheel_size)
+        datasets['val'] = BalancedBatchLoader(val_stream, batch_size=params['batch_size'], wheel_size=wheel_size)
+
+    if not balance:
+        # Define datasets for train, validation and test using BatchLoader
+        datasets['train'] = BatchLoader(train_ids, batch_size=params['batch_size'])
+        datasets['val'] = BatchLoader(val_ids, batch_size=params['batch_size'])
+
+    datasets['test'] = BatchLoader(test_ids, batch_size=params['batch_size'])
 
     # Create train, validation and test batch loaders and pack into dict
-    loaders = {'train': DataLoader(train_dataset, **params),
-               'val': DataLoader(val_dataset, **params),
-               'test': DataLoader(test_dataset, **params)}
+    loaders = {'train': DataLoader(datasets['train'], **params),
+               'val': DataLoader(datasets['val'], **params),
+               'test': DataLoader(datasets['test'], **params)}
 
     # Create a dict to hold number of batches for train, validation and test
     n_batches = {'train': num_batches(train_ids),
@@ -560,18 +644,16 @@ def plot_history(metrics):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    make_sorted_streams(rdv.RE_classes.keys())
-
-    loaders, n_batches, class_dist = make_loaders(plot=True)
+    loaders, n_batches, class_dist = make_loaders(p_dist=True)
 
     # Finds total number of samples to normalise data
     n_samples = 0
     for mode in class_dist:
         n_samples += mode[1]
 
-    find_subpopulations(rdv.patch_grab(), plot=True)
+    #find_subpopulations(rdv.patch_grab(), plot=True)
 
-    class_weights = torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
+    #class_weights = torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
 
     # Initialise model
     model = MLP(288, 8, [288, 144, 72, 36])
@@ -583,10 +665,10 @@ def main():
     summary(model, (1, 288))
 
     # Define loss function
-    criterion = torch.nn.CrossEntropyLoss(weight=class_weights)
+    criterion = torch.nn.CrossEntropyLoss()#weight=class_weights)
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=5e-4, momentum=0.90)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.90)
     #optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
     #optimiser = torch.optim.Adadelta(model.parameters())
 
