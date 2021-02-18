@@ -137,8 +137,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
 
     def process_data(self, row):
         for cls in self.streams_df.columns.to_list():
-            print(row)
-            patch_id = row[cls]
+            patch_id = row[1][cls]
             patch = make_time_series(patch_id)
             patch = patch.reshape(-1, *patch.shape[-2:])
             patch = patch.reshape(patch.shape[0], -1)
