@@ -28,6 +28,8 @@ import Radiant_MLHub_DataVis as rdv
 from alive_progress import alive_bar
 from matplotlib import pyplot as plt
 from collections import Counter, deque
+import seaborn as sns
+import tensorflow as tf
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -51,13 +53,13 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 32,
-          'num_workers': 5}
+params = {'batch_size': 16,
+          'num_workers': 1}
 
-wheel_size = 8 * 32
+wheel_size = 2 * 32
 
 # Number of epochs to train model over
-max_epochs = 10
+max_epochs = 1
 
 
 # =====================================================================================================================
@@ -136,8 +138,10 @@ class BalancedBatchLoader(IterableDataset, ABC):
                 self.wheels[cls].appendleft(pixel.flatten())
 
     def process_data(self, row):
+        print('processing')
         for cls in self.streams_df.columns.to_list():
             patch_id = row[1][cls]
+
             patch = make_time_series(patch_id)
             patch = patch.reshape(-1, *patch.shape[-2:])
             patch = patch.reshape(patch.shape[0], -1)
@@ -151,12 +155,15 @@ class BalancedBatchLoader(IterableDataset, ABC):
             yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), torch.tensor(cls, dtype=torch.long)
 
     def get_stream(self, streams_df):
+        print('get stream')
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
 
     def get_streams(self):
+        print('get streams')
         return zip(*[self.get_stream(self.shuffled_data_list) for _ in range(self.batch_size)])
 
     def __iter__(self):
+        print('iter')
         return self.get_stream(self.streams_df)
 
 
@@ -173,6 +180,7 @@ class BatchLoader(IterableDataset, ABC):
         return random.sample(self.patch_ids, len(self.patch_ids))
 
     def process_data(self, patch_id):
+        print('processing')
         patch = make_time_series(patch_id)
 
         x = torch.tensor([pixel.flatten() for pixel in patch.reshape(-1, *patch.shape[-2:])], dtype=torch.float)
@@ -182,12 +190,15 @@ class BatchLoader(IterableDataset, ABC):
             yield x[i], y[i]
 
     def get_stream(self, patch_ids):
+        print('get stream')
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
 
     def get_streams(self):
+        print('get streams')
         return zip(*[self.get_stream(self.shuffled_data_list) for _ in range(self.batch_size)])
 
     def __iter__(self):
+        print('iter')
         return self.get_stream(self.patch_ids)
 
 
@@ -458,7 +469,7 @@ def make_time_series(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
-def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True, plot=False, balance=True, p_dist=True):
+def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True, plot=False, balance=False, p_dist=False):
     """
 
     Args:
@@ -515,8 +526,8 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
                'test': DataLoader(datasets['test'], **params)}
 
     # Create a dict to hold number of batches for train, validation and test
-    n_batches = {'train': num_batches(train_ids),
-                 'val': num_batches(val_ids),
+    n_batches = {'train': num_batches(train_ids, balanced=balance),
+                 'val': num_batches(val_ids, balanced=balance),
                  'test': num_batches(test_ids)}
 
     class_dist = find_subpopulations(patch_ids, plot=False)
@@ -599,16 +610,20 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     plt.show()
 
 
-def num_batches(ids):
+def num_batches(ids, balanced=False):
     """Determines the number of batches needed to cover the dataset across ids
 
     Args:
         ids (list): List of patch IDs in the dataset to be loaded in by batches
+        balanced (bool): If false, divide by batch_size. If true, do not divide by batch_size
 
     Returns:
         num_batches (int): Number of batches needed to cover the whole dataset
     """
-    return int((len(ids) * image_size[0] * image_size[1]) / params['batch_size'])
+    if balanced:
+        return int((len(ids) * image_size[0] * image_size[1]))
+    if not balanced:
+        return int((len(ids) * image_size[0] * image_size[1]) / params['batch_size'])
 
 
 def plot_history(metrics):
@@ -639,11 +654,55 @@ def plot_history(metrics):
     plt.show()
 
 
+def make_confusion_matrix(model, test_images, test_labels, batch_size, classes, filename, show=True, save=False):
+    """Creates a heat-map of the confusion matrix of the given model
+
+    Args:
+        model (keras.Model):
+        test_images ([[[float]]]): Images for testing model post-fitting
+        test_labels ([[int]]): Accompanying labels for testing images
+        batch_size (int): Number of images in each batch for network input
+        classes ([str]): List of all class names
+        filename (str): Name of file to save plot to
+        show (bool): Whether to show plot
+        save (bool): Whether to save plot to file
+
+    Returns:
+        None
+    """
+
+    # Uses model to make predictions on the images supplied
+    pred_labels = model.predict_classes(test_images, batch_size=batch_size)
+
+    # Creates the confusion matrix based on these predictions and the corresponding ground truth labels
+    multi_class_cm = tf.math.confusion_matrix(labels=np.argmax(test_labels, axis=1), predictions=pred_labels).numpy()
+
+    # Normalises confusion matrix
+    multi_class_cm_norm = np.around(multi_class_cm.astype('float') / multi_class_cm.sum(axis=1)[:, np.newaxis],
+                                    decimals=2)
+
+    # Converts confusion matrix to Pandas.DataFrame
+    multi_class_cm_df = pd.DataFrame(multi_class_cm_norm, index=classes, columns=classes)
+
+    # Plots figure
+    plt.figure()
+    sns.heatmap(multi_class_cm_df, annot=True, square=True, cmap=plt.cm.get_cmap('Blues'), vmin=0.0, vmax=1.0)
+    plt.ylabel('Ground Truth')
+    plt.xlabel('Predicted')
+
+    # Shows and/or saves plot
+    if show:
+        plt.show()
+    if save:
+        plt.savefig('%s_multi.png' % filename)
+        plt.close()
+
+
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    loaders, n_batches, class_dist = make_loaders(p_dist=True)
+    loaders, n_batches, class_dist = make_loaders(balance=True, p_dist=True)
 
     # Finds total number of samples to normalise data
     n_samples = 0
@@ -690,6 +749,9 @@ def main():
             for x_batch, y_batch in islice(loaders['train'], n_batches['train']):
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
+
+                print(x_batch.size())
+                print(y_batch.size())
 
                 optimiser.zero_grad()
 
