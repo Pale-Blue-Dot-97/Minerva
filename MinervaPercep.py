@@ -30,6 +30,7 @@ from matplotlib import pyplot as plt
 from collections import Counter, deque
 import seaborn as sns
 import tensorflow as tf
+
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
@@ -45,6 +46,8 @@ band_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09'
 # Defines size of the images to determine the number of batches
 image_size = (256, 256)
 
+flattened_image_size = image_size[0] * image_size[1]
+
 classes = rdv.RE_classes
 
 # CUDA for PyTorch
@@ -53,13 +56,13 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 16,
-          'num_workers': 1}
+params = {'batch_size': 256,
+          'num_workers': 10}
 
-wheel_size = 2 * 32
+wheel_size = params['batch_size']
 
 # Number of epochs to train model over
-max_epochs = 1
+max_epochs = 5
 
 
 # =====================================================================================================================
@@ -69,6 +72,7 @@ class MLP(torch.nn.Module, ABC):
     """
     Simple class to construct a Multi-Layer Perceptron (MLP)
     """
+
     def __init__(self, input_size, n_classes, hidden_sizes):
         super(MLP, self).__init__()
         self.input_size = input_size
@@ -80,7 +84,7 @@ class MLP(torch.nn.Module, ABC):
             if i is 0:
                 self.layers.append(torch.nn.Linear(input_size, hidden_sizes[i]))
             else:
-                self.layers.append(torch.nn.Linear(hidden_sizes[i-1], hidden_sizes[i]))
+                self.layers.append(torch.nn.Linear(hidden_sizes[i - 1], hidden_sizes[i]))
             self.layers.append(torch.nn.ReLU())
 
         self.layers.append(torch.nn.Linear(hidden_sizes[-1], n_classes))
@@ -106,9 +110,9 @@ class MLP(torch.nn.Module, ABC):
 
 class BalancedBatchLoader(IterableDataset, ABC):
     """
-    Source: https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
     """
-    def __init__(self, class_streams, batch_size=32, wheel_size=10*32):
+
+    def __init__(self, class_streams, batch_size=32):
         self.streams_df = class_streams
         self.batch_size = batch_size
         self.wheels = {}
@@ -120,50 +124,55 @@ class BalancedBatchLoader(IterableDataset, ABC):
             while len(self.wheels[cls]) is not self.wheels[cls].maxlen:
                 patch_id = self.streams_df.sample(frac=1).reset_index(drop=True)[cls][0]
 
-                patch = make_time_series(patch_id)
-                patch = patch.reshape(-1, *patch.shape[-2:])
-                patch = patch.reshape(patch.shape[0], -1)
+                patch_df = self.load_patch_df(patch_id)
 
-                labels = lc_load(patch_id).flatten()
-
-                self.add_to_wheels(patch, labels)
+                self.add_to_wheels(patch_df)
 
     @property
     def shuffled_data_list(self):
         return self.streams_df.sample(frac=1).reset_index(drop=True)
 
-    def add_to_wheels(self, patch, labels):
+    def load_patch_df(self, patch_id):
+        df = pd.DataFrame()
+
+        patch = make_time_series(patch_id)
+        patch = patch.reshape(-1, *patch.shape[-2:])
+        patch = patch.reshape(patch.shape[0], -1)
+
+        labels = lc_load(patch_id).flatten()
+
+        df['PATCH'] = [np.array(pixel) for pixel in patch]
+        df['LABELS'] = labels
+
+        return df
+
+    def add_to_wheels(self, patch_df):
         for cls in self.streams_df.columns.to_list():
-            for pixel in patch[np.where(labels == cls)]:
+            for pixel in patch_df['PATCH'].loc[patch_df['LABELS'] == cls]:
                 self.wheels[cls].appendleft(pixel.flatten())
 
     def process_data(self, row):
-        print('processing')
-        for cls in self.streams_df.columns.to_list():
-            patch_id = row[1][cls]
+        for i in range(image_size[0] * image_size[1]):
 
-            patch = make_time_series(patch_id)
-            patch = patch.reshape(-1, *patch.shape[-2:])
-            patch = patch.reshape(patch.shape[0], -1)
+            if i % wheel_size == 0:
+                for cls in self.streams_df.columns.to_list():
+                    patch_df = self.load_patch_df(row[1][cls])
 
-            labels = lc_load(patch_id).flatten()
+                    self.add_to_wheels(patch_df.sample(frac=1).reset_index(drop=True))
 
-            self.add_to_wheels(patch, labels)
+            for cls in self.streams_df.columns.to_list():
+                self.wheels[cls].rotate(1)
 
-            self.wheels[cls].rotate(1)
-
-            yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), torch.tensor(cls, dtype=torch.long)
+                yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
+                      torch.tensor(cls, dtype=torch.long)
 
     def get_stream(self, streams_df):
-        print('get stream')
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
 
     def get_streams(self):
-        print('get streams')
         return zip(*[self.get_stream(self.shuffled_data_list) for _ in range(self.batch_size)])
 
     def __iter__(self):
-        print('iter')
         return self.get_stream(self.streams_df)
 
 
@@ -171,6 +180,7 @@ class BatchLoader(IterableDataset, ABC):
     """
     Source: https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
     """
+
     def __init__(self, patch_ids, batch_size):
         self.patch_ids = patch_ids
         self.batch_size = batch_size
@@ -180,7 +190,6 @@ class BatchLoader(IterableDataset, ABC):
         return random.sample(self.patch_ids, len(self.patch_ids))
 
     def process_data(self, patch_id):
-        print('processing')
         patch = make_time_series(patch_id)
 
         x = torch.tensor([pixel.flatten() for pixel in patch.reshape(-1, *patch.shape[-2:])], dtype=torch.float)
@@ -190,15 +199,12 @@ class BatchLoader(IterableDataset, ABC):
             yield x[i], y[i]
 
     def get_stream(self, patch_ids):
-        print('get stream')
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
 
     def get_streams(self):
-        print('get streams')
         return zip(*[self.get_stream(self.shuffled_data_list) for _ in range(self.batch_size)])
 
     def __iter__(self):
-        print('iter')
         return self.get_stream(self.patch_ids)
 
 
@@ -298,7 +304,7 @@ def class_frac(patch):
     """
     new_columns = {'PATCH': patch['PATCH']}
     for mode in patch['MODES']:
-        new_columns[mode[0]] = mode[1]/(image_size[0] * image_size[1])
+        new_columns[mode[0]] = mode[1] / (image_size[0] * image_size[1])
 
     return new_columns
 
@@ -324,7 +330,7 @@ def make_sorted_streams(patch_ids):
 
     class_dist = find_subpopulations(df['PATCH'], plot=False)
 
-    stream_size = int(len(df['PATCH'])/len(classes))
+    stream_size = int(len(df['PATCH']) / len(classes))
 
     streams = {}
 
@@ -333,21 +339,7 @@ def make_sorted_streams(patch_ids):
         streams[mode[0]] = stream.tolist()
         df.drop(stream.index, inplace=True)
 
-        print('{} Stream Dist:'.format(mode[0]), find_subpopulations(stream.tolist()))
-
-        if mode[0] == 4:
-            for patch in stream.tolist():
-                modes2 = Counter(lc_load(patch).flatten()).most_common()
-                for mode2 in modes2:
-                    if mode2[0] == 4:
-                        print(patch)
-
     streams_df = pd.DataFrame(streams)
-
-    with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-        print(streams_df)
-
-    print(len(set(streams_df.to_numpy().flatten())) == len(streams_df.to_numpy().flatten()))
 
     return streams_df
 
@@ -469,7 +461,8 @@ def make_time_series(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
-def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True, plot=False, balance=False, p_dist=False):
+def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True, plot=False, balance=False,
+                 p_dist=False):
     """
 
     Args:
@@ -479,6 +472,7 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
         shuffle (bool):
         plot (bool):
         balance (bool):
+        p_dist (bool):
 
     Returns:
         loaders (dict):
@@ -491,12 +485,13 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
         patch_ids = rdv.patch_grab()
 
     # Splits the dataset into train and val-test
-    train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1]+split[2]),
+    train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1] + split[2]),
                                                shuffle=shuffle, random_state=seed)
 
     # Splits the val-test dataset into validation and test
-    val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1]/(split[1]+split[2])),
-                                         test_size=(split[2]/(split[1]+split[2])), shuffle=shuffle, random_state=seed)
+    val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1] / (split[1] + split[2])),
+                                         test_size=(split[2] / (split[1] + split[2])), shuffle=shuffle,
+                                         random_state=seed)
 
     if p_dist:
         print('\nTrain: \n', find_subpopulations(train_ids, plot=plot))
@@ -510,8 +505,8 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
         val_stream = make_sorted_streams(val_ids)
 
         # Define datasets for train, validation and test using BatchLoader
-        datasets['train'] = BalancedBatchLoader(train_stream, batch_size=params['batch_size'], wheel_size=wheel_size)
-        datasets['val'] = BalancedBatchLoader(val_stream, batch_size=params['batch_size'], wheel_size=wheel_size)
+        datasets['train'] = BalancedBatchLoader(train_stream, batch_size=params['batch_size'])
+        datasets['val'] = BalancedBatchLoader(val_stream, batch_size=params['batch_size'])
 
     if not balance:
         # Define datasets for train, validation and test using BatchLoader
@@ -702,16 +697,16 @@ def make_confusion_matrix(model, test_images, test_labels, batch_size, classes, 
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    loaders, n_batches, class_dist = make_loaders(balance=True, p_dist=True)
+    loaders, n_batches, class_dist = make_loaders(balance=True)
 
     # Finds total number of samples to normalise data
     n_samples = 0
     for mode in class_dist:
         n_samples += mode[1]
 
-    #find_subpopulations(rdv.patch_grab(), plot=True)
+    # find_subpopulations(rdv.patch_grab(), plot=True)
 
-    #class_weights = torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
+    # class_weights = torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
 
     # Initialise model
     model = MLP(288, 8, [288, 144, 72, 36])
@@ -723,12 +718,12 @@ def main():
     summary(model, (1, 288))
 
     # Define loss function
-    criterion = torch.nn.CrossEntropyLoss()#weight=class_weights)
+    criterion = torch.nn.CrossEntropyLoss()  # weight=class_weights)
 
     # Define optimiser
     optimiser = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.90)
-    #optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
-    #optimiser = torch.optim.Adadelta(model.parameters())
+    # optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
+    # optimiser = torch.optim.Adadelta(model.parameters())
 
     train_loss_history = []
     val_loss_history = []
@@ -749,9 +744,6 @@ def main():
             for x_batch, y_batch in islice(loaders['train'], n_batches['train']):
                 # Transfer to GPU
                 x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-
-                print(x_batch.size())
-                print(y_batch.size())
 
                 optimiser.zero_grad()
 
