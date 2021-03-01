@@ -56,7 +56,7 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 256,
+params = {'batch_size': 32,
           'num_workers': 10}
 
 wheel_size = params['batch_size']
@@ -93,11 +93,10 @@ class MLP(torch.nn.Module, ABC):
         """Performs a forward pass of the network
 
         Args:
-            self
             x (torch.Tensor):
 
         Returns:
-
+            y (torch.Tensor):
         """
 
         y = x
@@ -146,19 +145,36 @@ class BalancedBatchLoader(IterableDataset, ABC):
 
         return df
 
+    def load_patches(self, row):
+        patches = {}
+        print('patches')
+        for cls in self.streams_df.columns.to_list():
+            print('load patch')
+            patches[cls] = self.load_patch_df(row[1][cls])
+
+        return patches
+
     def add_to_wheels(self, patch_df):
         for cls in self.streams_df.columns.to_list():
             for pixel in patch_df['PATCH'].loc[patch_df['LABELS'] == cls]:
                 self.wheels[cls].appendleft(pixel.flatten())
 
     def process_data(self, row):
-        for i in range(image_size[0] * image_size[1]):
+        """
 
+        Args:
+            row (pandas.Series):
+
+        Yields:
+            x (torch.Tensor):
+            y (torch.Tensor):
+        """
+        patches = self.load_patches(row)
+
+        for i in range(flattened_image_size):
             if i % wheel_size == 0:
                 for cls in self.streams_df.columns.to_list():
-                    patch_df = self.load_patch_df(row[1][cls])
-
-                    self.add_to_wheels(patch_df.sample(frac=1).reset_index(drop=True))
+                    self.add_to_wheels(patches[cls].sample(frac=1).reset_index(drop=True))
 
             for cls in self.streams_df.columns.to_list():
                 self.wheels[cls].rotate(1)
