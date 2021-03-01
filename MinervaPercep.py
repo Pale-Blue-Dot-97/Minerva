@@ -57,7 +57,8 @@ cudnn.benchmark = True
 
 # Parameters
 params = {'batch_size': 32,
-          'num_workers': 10}
+          'num_workers': 5,
+          'pin_memory': True}
 
 wheel_size = params['batch_size']
 
@@ -147,9 +148,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
 
     def load_patches(self, row):
         patches = {}
-        print('patches')
         for cls in self.streams_df.columns.to_list():
-            print('load patch')
             patches[cls] = self.load_patch_df(row[1][cls])
 
         return patches
@@ -169,14 +168,17 @@ class BalancedBatchLoader(IterableDataset, ABC):
             x (torch.Tensor):
             y (torch.Tensor):
         """
-        patches = self.load_patches(row)
+        patches = {}
 
         for i in range(flattened_image_size):
+            if i is 0:
+                patches = self.load_patches(row)
+
             if i % wheel_size == 0:
-                for cls in self.streams_df.columns.to_list():
+                for cls in patches.keys():
                     self.add_to_wheels(patches[cls].sample(frac=1).reset_index(drop=True))
 
-            for cls in self.streams_df.columns.to_list():
+            for cls in patches.keys():
                 self.wheels[cls].rotate(1)
 
                 yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
