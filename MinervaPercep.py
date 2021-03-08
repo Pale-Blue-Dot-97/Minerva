@@ -11,6 +11,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import os
 import glob
 import random
 from abc import ABC
@@ -237,8 +238,8 @@ def prefix_format(patch_id, scene):
     Returns:
         prefix (str): Prefix of path to any file in a given scene
     """
-    return '%s/%s%s/%s/%s_%s' % (data_dir, patch_dir_prefix, patch_id, scene, patch_id,
-                                 rdv.datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d'))
+    return os.sep.join([data_dir, patch_dir_prefix + patch_id, scene, patch_id + '_' +
+                       rdv.datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
 
 
 def scene_grab(patch_id):
@@ -253,11 +254,11 @@ def scene_grab(patch_id):
 
     """
     # Get the name of all the directories for this patch
-    scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
+    scene_dirs = glob.glob('{}{}{}{}{}*{}'.format(data_dir, os.sep, patch_dir_prefix, patch_id, os.sep, os.sep))
 
     # Extract the scene names (i.e the dates) from the paths
-    scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
-    print([scene.partition('\\') for scene in scene_dirs])
+    scene_names = [(scene.partition(os.sep)[2].partition(os.sep)[2])[:-1] for scene in scene_dirs]
+
     # List to hold scenes
     scenes = []
 
@@ -278,7 +279,7 @@ def lc_load(patch_id):
         LC_label (list): 2D array containing LC labels for each pixel of a patch
 
     """
-    return rdv.load_array('%s/%s%s/%s_2018_LC_10m.tif' % (data_dir, patch_dir_prefix, patch_id, patch_id), 1)
+    return rdv.load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '_2018_LC_10m.tif']), 1)
 
 
 def labels_to_ohe(labels, n_classes):
