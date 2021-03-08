@@ -94,10 +94,10 @@ class MLP(torch.nn.Module, ABC):
         """Performs a forward pass of the network
 
         Args:
-            x (torch.Tensor):
+            x (torch.Tensor): Data
 
         Returns:
-            y (torch.Tensor):
+            y (torch.Tensor): Label
         """
 
         y = x
@@ -147,14 +147,16 @@ class BalancedBatchLoader(IterableDataset, ABC):
         return df
 
     def load_patches(self, row):
-        patches = {}
-        for cls in self.streams_df.columns.to_list():
-            patches[cls] = self.load_patch_df(row[1][cls])
+        return pd.Series([self.load_patch_df(row[1][cls]) for cls in self.streams_df.columns.to_list()])
 
-        return patches
+    def add_to_wheel(self, row, cls):
+        if row['LABELS'] == cls:
+            self.wheels[cls].appendleft(row['PATCH'].flatten())
 
     def add_to_wheels(self, patch_df):
+        patch_df = patch_df.sample(frac=1).reset_index(drop=True)
         for cls in self.streams_df.columns.to_list():
+            #patch_df.apply(self.add_to_wheel, axis=1, args=[cls])
             for pixel in patch_df['PATCH'].loc[patch_df['LABELS'] == cls]:
                 self.wheels[cls].appendleft(pixel.flatten())
 
@@ -165,20 +167,16 @@ class BalancedBatchLoader(IterableDataset, ABC):
             row (pandas.Series):
 
         Yields:
-            x (torch.Tensor):
-            y (torch.Tensor):
+            x (torch.Tensor): Data
+            y (torch.Tensor): Label
         """
-        patches = {}
+        patches = self.load_patches(row)
 
         for i in range(flattened_image_size):
-            if i is 0:
-                patches = self.load_patches(row)
-
             if i % wheel_size == 0:
-                for cls in patches.keys():
-                    self.add_to_wheels(patches[cls].sample(frac=1).reset_index(drop=True))
+                patches.apply(self.add_to_wheels)
 
-            for cls in patches.keys():
+            for cls in self.streams_df.columns.to_list():
                 self.wheels[cls].rotate(1)
 
                 yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
@@ -259,7 +257,7 @@ def scene_grab(patch_id):
 
     # Extract the scene names (i.e the dates) from the paths
     scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
-
+    print([scene.partition('\\') for scene in scene_dirs])
     # List to hold scenes
     scenes = []
 
