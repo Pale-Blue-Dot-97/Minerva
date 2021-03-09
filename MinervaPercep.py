@@ -114,13 +114,23 @@ class BalancedBatchLoader(IterableDataset, ABC):
     """
 
     def __init__(self, class_streams, batch_size=32):
+        """Initialisation
+
+        Args:
+            class_streams (pandas.DataFrame): DataFrame with a column of patch IDs for each class
+            batch_size (int): Sets the number of samples in each batch
+        """
         self.streams_df = class_streams
         self.batch_size = batch_size
+
+        # Dict to hold a `wheel' for each class
         self.wheels = {}
 
+        # Initialise each wheel with a maximum length of wheel_size global parameter
         for cls in self.streams_df.columns.to_list():
             self.wheels[cls] = deque(maxlen=wheel_size)
 
+        # Fill each wheel with pixels of the corresponding class up to the maximum length
         for cls in self.streams_df.columns.to_list():
             while len(self.wheels[cls]) is not self.wheels[cls].maxlen:
                 patch_id = self.streams_df.sample(frac=1).reset_index(drop=True)[cls][0]
@@ -129,7 +139,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
 
                 self.add_to_wheels(patch_df)
 
-    @property
+    @property  # shuffle param seems to be broken for IterableDataset. Will be removed in future versions
     def shuffled_data_list(self):
         return self.streams_df.sample(frac=1).reset_index(drop=True)
 
@@ -140,7 +150,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
             patch_id (str): ID for patch to be loaded
 
         Returns:
-            df (Pandas.DataFrame): Patch loaded into a DataFrame
+            df (pandas.DataFrame): Patch loaded into a DataFrame
         """
         # Initialise DataFrame object
         df = pd.DataFrame()
@@ -164,6 +174,15 @@ class BalancedBatchLoader(IterableDataset, ABC):
         return df
 
     def load_patches(self, row):
+        """ Loads the patches associated with the patch IDs in row as pandas.DataFrames nested into a pandas.Series
+        object
+
+        Args:
+            row (pandas.Series): A row of patch IDs
+
+        Returns:
+            (pandas.Series): Series of DataFrames of patches
+        """
         return pd.Series([self.load_patch_df(row[1][cls]) for cls in self.streams_df.columns.to_list()])
 
     def add_to_wheel(self, row, cls):
@@ -188,7 +207,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
             x (torch.Tensor): A data sample as tensor
             y (torch.Tensor): Corresponding label as int tensor
         """
-        # Loads the patches from the row of IDs supplied into a Pandas.Series of Pandas.DataFrames
+        # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
         patches = self.load_patches(row)
 
         # Iterates for the flattened length of a patch and yields x and y for each class from their respective wheels
