@@ -110,7 +110,7 @@ class MLP(torch.nn.Module, ABC):
 
 
 class BalancedBatchLoader(IterableDataset, ABC):
-    """
+    """Adaptation of BatchLoader to load data with perfect class balance
     """
 
     def __init__(self, class_streams, batch_size=32):
@@ -134,15 +134,31 @@ class BalancedBatchLoader(IterableDataset, ABC):
         return self.streams_df.sample(frac=1).reset_index(drop=True)
 
     def load_patch_df(self, patch_id):
+        """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns
+
+        Args:
+            patch_id (str): ID for patch to be loaded
+
+        Returns:
+            df (Pandas.DataFrame): Patch loaded into a DataFrame
+        """
+        # Initialise DataFrame object
         df = pd.DataFrame()
 
+        # Load patch from disk and create time-series pixel stacks
         patch = make_time_series(patch_id)
+
+        # Reshape patch over 2-steps ** THIS IS A BODGE **
         patch = patch.reshape(-1, *patch.shape[-2:])
         patch = patch.reshape(patch.shape[0], -1)
 
+        # Loads accompanying labels from file and flattens
         labels = lc_load(patch_id).flatten()
 
+        # Wraps each pixel stack in an numpy.array, appends to a list and adds as a column to df
         df['PATCH'] = [np.array(pixel) for pixel in patch]
+
+        # Adds labels as a column to df
         df['LABELS'] = labels
 
         return df
@@ -162,24 +178,33 @@ class BalancedBatchLoader(IterableDataset, ABC):
                 self.wheels[cls].appendleft(pixel.flatten())
 
     def process_data(self, row):
-        """
+        """Loads and processes patches into wheels for each class and yields from them,
+        periodically refreshing the wheels with new data
 
         Args:
-            row (pandas.Series):
+            row (pandas.Series): Randomly selected row of patch IDs, one for each class
 
         Yields:
-            x (torch.Tensor): Data
-            y (torch.Tensor): Label
+            x (torch.Tensor): A data sample as tensor
+            y (torch.Tensor): Corresponding label as int tensor
         """
+        # Loads the patches from the row of IDs supplied into a Pandas.Series of Pandas.DataFrames
         patches = self.load_patches(row)
 
+        # Iterates for the flattened length of a patch and yields x and y for each class from their respective wheels
         for i in range(flattened_image_size):
+
+            # Refresh wheels with new data from patches every full rotation of the wheels.
             if i % wheel_size == 0:
                 patches.apply(self.add_to_wheels)
 
+            # For every class in the dataset, rotate the corresponding wheel and yield the pixel stack from position [0]
             for cls in self.streams_df.columns.to_list():
+                # Rotate current class's wheel 1 turn
                 self.wheels[cls].rotate(1)
 
+                # Yield pixel stack at position [0] for this class's wheel and the corresponding class label
+                # i.e this class number as a tensor int
                 yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
                       torch.tensor(cls, dtype=torch.long)
 
