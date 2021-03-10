@@ -193,8 +193,13 @@ class BalancedBatchLoader(IterableDataset, ABC):
         patch_df = patch_df.sample(frac=1).reset_index(drop=True)
         for cls in self.streams_df.columns.to_list():
             #patch_df.apply(self.add_to_wheel, axis=1, args=[cls])
-            for pixel in patch_df['PATCH'].loc[patch_df['LABELS'] == cls]:
-                self.wheels[cls].appendleft(pixel.flatten())
+
+            try:
+                for pixel in np.random.choice(np.array(patch_df['PATCH'].loc[patch_df['LABELS'] == cls]),
+                                              size=wheel_size, replace=True):
+                    self.wheels[cls].appendleft(pixel.flatten())
+            except ValueError:
+                continue
 
     def process_data(self, row):
         """Loads and processes patches into wheels for each class and yields from them,
