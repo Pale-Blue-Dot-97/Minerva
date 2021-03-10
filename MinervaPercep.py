@@ -130,19 +130,6 @@ class BalancedBatchLoader(IterableDataset, ABC):
         for cls in self.streams_df.columns.to_list():
             self.wheels[cls] = deque(maxlen=wheel_size)
 
-        # Fill each wheel with pixels of the corresponding class up to the maximum length
-        for cls in self.streams_df.columns.to_list():
-            while len(self.wheels[cls]) is not self.wheels[cls].maxlen:
-                patch_id = self.streams_df.sample(frac=1).reset_index(drop=True)[cls][0]
-
-                patch_df = self.load_patch_df(patch_id)
-
-                self.add_to_wheels(patch_df)
-
-    @property  # shuffle param seems to be broken for IterableDataset. Will be removed in future versions
-    def shuffled_data_list(self):
-        return self.streams_df.sample(frac=1).reset_index(drop=True)
-
     def load_patch_df(self, patch_id):
         """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns
 
@@ -185,15 +172,8 @@ class BalancedBatchLoader(IterableDataset, ABC):
         """
         return pd.Series([self.load_patch_df(row[1][cls]) for cls in self.streams_df.columns.to_list()])
 
-    def add_to_wheel(self, row, cls):
-        if row['LABELS'] == cls:
-            self.wheels[cls].appendleft(row['PATCH'].flatten())
-
     def add_to_wheels(self, patch_df):
-        patch_df = patch_df.sample(frac=1).reset_index(drop=True)
         for cls in self.streams_df.columns.to_list():
-            #patch_df.apply(self.add_to_wheel, axis=1, args=[cls])
-
             try:
                 for pixel in np.random.choice(np.array(patch_df['PATCH'].loc[patch_df['LABELS'] == cls]),
                                               size=wheel_size, replace=True):
@@ -234,9 +214,6 @@ class BalancedBatchLoader(IterableDataset, ABC):
 
     def get_stream(self, streams_df):
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
-
-    def get_streams(self):
-        return zip(*[self.get_stream(self.shuffled_data_list) for _ in range(self.batch_size)])
 
     def __iter__(self):
         return self.get_stream(self.streams_df)
