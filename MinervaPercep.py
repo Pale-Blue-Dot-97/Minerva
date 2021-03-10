@@ -145,9 +145,8 @@ class BalancedBatchLoader(IterableDataset, ABC):
         # Load patch from disk and create time-series pixel stacks
         patch = make_time_series(patch_id)
 
-        # Reshape patch over 2-steps ** THIS IS A BODGE **
-        patch = patch.reshape(-1, *patch.shape[-2:])
-        patch = patch.reshape(patch.shape[0], -1)
+        # Reshape patch 
+        patch = patch.reshape((patch.shape[0] * patch.shape[1], patch.shape[2] * patch.shape[3]))
 
         # Loads accompanying labels from file and flattens
         labels = lc_load(patch_id).flatten()
