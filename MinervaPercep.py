@@ -57,14 +57,14 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 32,
-          'num_workers': 5,
+params = {'batch_size': 256,
+          'num_workers': 3,  # Optimum
           'pin_memory': True}
 
-wheel_size = params['batch_size']
+wheel_size = flattened_image_size  # params['batch_size']
 
 # Number of epochs to train model over
-max_epochs = 5
+max_epochs = 25
 
 
 # =====================================================================================================================
@@ -145,7 +145,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
         # Load patch from disk and create time-series pixel stacks
         patch = make_time_series(patch_id)
 
-        # Reshape patch 
+        # Reshape patch
         patch = patch.reshape((patch.shape[0] * patch.shape[1], patch.shape[2] * patch.shape[3]))
 
         # Loads accompanying labels from file and flattens
@@ -180,6 +180,11 @@ class BalancedBatchLoader(IterableDataset, ABC):
             except ValueError:
                 continue
 
+    def refresh_wheels(self, patch_df):
+        for cls in self.streams_df.columns.to_list():
+            for pixel in patch_df['PATCH'].loc[patch_df['LABELS'] == cls]:
+                self.wheels[cls].appendleft(pixel.flatten())
+
     def process_data(self, row):
         """Loads and processes patches into wheels for each class and yields from them,
         periodically refreshing the wheels with new data
@@ -192,14 +197,20 @@ class BalancedBatchLoader(IterableDataset, ABC):
             y (torch.Tensor): Corresponding label as int tensor
         """
         # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
-        patches = self.load_patches(row)
+        # patches = self.load_patches(row)
+        #print('PROCESS')
 
         # Iterates for the flattened length of a patch and yields x and y for each class from their respective wheels
         for i in range(flattened_image_size):
 
             # Refresh wheels with new data from patches every full rotation of the wheels.
-            if i % wheel_size == 0:
-                patches.apply(self.add_to_wheels)
+            #if i % wheel_size == 0:
+                #patches.apply(self.add_to_wheels)
+            if i == 0:
+                #print('LOAD')
+                # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
+                patches = self.load_patches(row)
+                patches.apply(self.refresh_wheels)
 
             # For every class in the dataset, rotate the corresponding wheel and yield the pixel stack from position [0]
             for cls in self.streams_df.columns.to_list():
@@ -215,6 +226,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
 
     def __iter__(self):
+        #print('ITER')
         return self.get_stream(self.streams_df)
 
 
@@ -541,6 +553,7 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
         print('\nTest: \n', find_subpopulations(test_ids, plot=plot))
 
     datasets = {}
+    n_batches = {}
 
     if balance:
         train_stream = make_sorted_streams(train_ids)
@@ -550,22 +563,24 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
         datasets['train'] = BalancedBatchLoader(train_stream, batch_size=params['batch_size'])
         datasets['val'] = BalancedBatchLoader(val_stream, batch_size=params['batch_size'])
 
+        n_batches['train'] = num_batches(len(train_stream.columns) * len(train_stream))
+        n_batches['val'] = num_batches(len(val_stream.columns) * len(val_stream))
+
     if not balance:
         # Define datasets for train, validation and test using BatchLoader
         datasets['train'] = BatchLoader(train_ids, batch_size=params['batch_size'])
         datasets['val'] = BatchLoader(val_ids, batch_size=params['batch_size'])
 
+        n_batches['train'] = num_batches(len(train_ids))
+        n_batches['val'] = num_batches(len(val_ids))
+
     datasets['test'] = BatchLoader(test_ids, batch_size=params['batch_size'])
+    n_batches['test'] = num_batches(len(test_ids))
 
     # Create train, validation and test batch loaders and pack into dict
     loaders = {'train': DataLoader(datasets['train'], **params),
                'val': DataLoader(datasets['val'], **params),
                'test': DataLoader(datasets['test'], **params)}
-
-    # Create a dict to hold number of batches for train, validation and test
-    n_batches = {'train': num_batches(train_ids, balanced=balance),
-                 'val': num_batches(val_ids, balanced=balance),
-                 'test': num_batches(test_ids)}
 
     class_dist = find_subpopulations(patch_ids, plot=False)
 
@@ -647,20 +662,16 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     plt.show()
 
 
-def num_batches(ids, balanced=False):
+def num_batches(num_ids):
     """Determines the number of batches needed to cover the dataset across ids
 
     Args:
-        ids (list): List of patch IDs in the dataset to be loaded in by batches
-        balanced (bool): If false, divide by batch_size. If true, do not divide by batch_size
+        num_ids (int): Number of patch IDs in the dataset to be loaded in by batches
 
     Returns:
         num_batches (int): Number of batches needed to cover the whole dataset
     """
-    if balanced:
-        return int((len(ids) * image_size[0] * image_size[1]))
-    if not balanced:
-        return int((len(ids) * image_size[0] * image_size[1]) / params['batch_size'])
+    return int((num_ids * image_size[0] * image_size[1]) / params['batch_size'])
 
 
 def plot_history(metrics):
@@ -751,7 +762,7 @@ def main():
     # class_weights = torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
 
     # Initialise model
-    model = MLP(288, 8, [288, 144, 72, 36])
+    model = MLP(288, 8, [144])
 
     # Transfer to GPU
     model.to(device)
