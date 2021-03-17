@@ -64,7 +64,7 @@ params = {'batch_size': 256,
 wheel_size = flattened_image_size  # params['batch_size']
 
 # Number of epochs to train model over
-max_epochs = 25
+max_epochs = 15
 
 
 # =====================================================================================================================
@@ -626,7 +626,7 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     class_dist = Counter(class_labels).most_common()
 
     # List to hold the name and percentage distribution of each class in the data as str
-    classes = []
+    class_data = []
 
     # List to hold the total counts of each class
     counts = []
@@ -643,9 +643,9 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     for label in class_dist:
         # Sets percentage label to <0.01% for classes matching that equality
         if (label[1] * 100.0 / n_samples) > 0.01:
-            classes.append('{} \n{:.2f}%'.format(class_names[label[0]], (label[1] * 100.0 / n_samples)))
+            class_data.append('{} \n{:.2f}%'.format(class_names[label[0]], (label[1] * 100.0 / n_samples)))
         else:
-            classes.append('{} \n<0.01%'.format(class_names[label[0]]))
+            class_data.append('{} \n<0.01%'.format(class_names[label[0]]))
         counts.append(label[1])
         colours.append(cmap[label[0]])
 
@@ -653,10 +653,10 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     plt.figure(figsize=(6, 5))
 
     # Plot a pie chart of the data distribution amongst the classes
-    patches, text = plt.pie(counts, colors=colours, explode=[i * 0.05 for i in range(len(classes))])
+    patches, text = plt.pie(counts, colors=colours, explode=[i * 0.05 for i in range(len(class_data))])
 
     # Adds legend
-    plt.legend(patches, classes, loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
+    plt.legend(patches, class_data, loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
 
     # Show plot for review
     plt.show()
@@ -702,15 +702,12 @@ def plot_history(metrics):
     plt.show()
 
 
-def make_confusion_matrix(model, test_images, test_labels, batch_size, classes, filename, show=True, save=False):
+def make_confusion_matrix(test_pred, test_labels, filename=None, show=True, save=False):
     """Creates a heat-map of the confusion matrix of the given model
 
     Args:
-        model (keras.Model):
-        test_images ([[[float]]]): Images for testing model post-fitting
+        test_pred([[int]]): Predictions made by model on test images
         test_labels ([[int]]): Accompanying labels for testing images
-        batch_size (int): Number of images in each batch for network input
-        classes ([str]): List of all class names
         filename (str): Name of file to save plot to
         show (bool): Whether to show plot
         save (bool): Whether to save plot to file
@@ -719,18 +716,17 @@ def make_confusion_matrix(model, test_images, test_labels, batch_size, classes, 
         None
     """
 
-    # Uses model to make predictions on the images supplied
-    pred_labels = model.predict_classes(test_images, batch_size=batch_size)
-
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels
-    multi_class_cm = tf.math.confusion_matrix(labels=np.argmax(test_labels, axis=1), predictions=pred_labels).numpy()
+    multi_class_cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
 
     # Normalises confusion matrix
     multi_class_cm_norm = np.around(multi_class_cm.astype('float') / multi_class_cm.sum(axis=1)[:, np.newaxis],
                                     decimals=2)
 
+    class_names = [classes['{}'.format(cls)] for cls in range(len(classes.keys()))]
+
     # Converts confusion matrix to Pandas.DataFrame
-    multi_class_cm_df = pd.DataFrame(multi_class_cm_norm, index=classes, columns=classes)
+    multi_class_cm_df = pd.DataFrame(multi_class_cm_norm, index=class_names, columns=class_names)
 
     # Plots figure
     plt.figure()
@@ -860,6 +856,7 @@ def main():
     test_loss = 0
     test_correct = 0
     predictions = []
+    test_labels = []
     with alive_bar(n_batches['test'], bar='blocks') as bar, torch.no_grad():
         for x_batch, y_batch in islice(loaders['test'], n_batches['test']):
             # Transfer to GPU
@@ -878,6 +875,8 @@ def main():
             test_correct += (predicted == y_batch).sum().item()
             predictions.append(np.array(predicted.cpu()))
 
+            test_labels.append(np.array(y_batch.cpu()))
+
             bar()
 
     test_loss /= n_batches['test']
@@ -891,6 +890,8 @@ def main():
 
     plot_history(metrics)
     plot_subpopulations(np.array(predictions).flatten(), rdv.RE_classes, rdv.RE_cmap_dict)
+
+    make_confusion_matrix(np.array(test_labels).flatten(), np.array(predictions).flatten(), show=True, save=False)
 
 
 if __name__ == '__main__':
