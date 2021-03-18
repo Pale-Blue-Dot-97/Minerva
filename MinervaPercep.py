@@ -654,6 +654,15 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     plt.show()
 
 
+def class_weighting(class_dist):
+    # Finds total number of samples to normalise data
+    n_samples = 0
+    for mode in class_dist:
+        n_samples += mode[1]
+
+    return torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
+
+
 def num_batches(num_ids):
     """Determines the number of batches needed to cover the dataset across ids
 
@@ -739,15 +748,6 @@ def make_confusion_matrix(test_pred, test_labels, filename=None, show=True, save
 def main():
     loaders, n_batches, class_dist = make_loaders(balance=True)
 
-    # Finds total number of samples to normalise data
-    n_samples = 0
-    for mode in class_dist:
-        n_samples += mode[1]
-
-    # find_subpopulations(rdv.patch_grab(), plot=True)
-
-    # class_weights = torch.tensor([(1 - (mode[1]/n_samples)) for mode in class_dist], device=device)
-
     # Initialise model
     model = MLP(288, 8, [144])
 
@@ -758,10 +758,10 @@ def main():
     summary(model, (1, 288))
 
     # Define loss function
-    criterion = torch.nn.CrossEntropyLoss()  # weight=class_weights)
+    criterion = torch.nn.CrossEntropyLoss()
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=1e-3, momentum=0.90)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1e-4)
     # optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
     # optimiser = torch.optim.Adadelta(model.parameters())
 
