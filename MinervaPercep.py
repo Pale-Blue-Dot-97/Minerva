@@ -18,7 +18,6 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import normalize
 import torch
 from torch.utils.data import DataLoader
 from torch.utils.data import IterableDataset
@@ -64,7 +63,7 @@ params = {'batch_size': 256,
 wheel_size = flattened_image_size  # params['batch_size']
 
 # Number of epochs to train model over
-max_epochs = 15
+max_epochs = 10
 
 
 # =====================================================================================================================
@@ -196,18 +195,10 @@ class BalancedBatchLoader(IterableDataset, ABC):
             x (torch.Tensor): A data sample as tensor
             y (torch.Tensor): Corresponding label as int tensor
         """
-        # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
-        # patches = self.load_patches(row)
-        #print('PROCESS')
 
         # Iterates for the flattened length of a patch and yields x and y for each class from their respective wheels
         for i in range(flattened_image_size):
-
-            # Refresh wheels with new data from patches every full rotation of the wheels.
-            #if i % wheel_size == 0:
-                #patches.apply(self.add_to_wheels)
             if i == 0:
-                #print('LOAD')
                 # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
                 patches = self.load_patches(row)
                 patches.apply(self.refresh_wheels)
@@ -226,7 +217,6 @@ class BalancedBatchLoader(IterableDataset, ABC):
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
 
     def __iter__(self):
-        #print('ITER')
         return self.get_stream(self.streams_df)
 
 
@@ -486,7 +476,9 @@ def stack_bands(patch_id, scene):
     bands = []
     # Load R, G, B images from file and normalise
     for band in band_ids:
-        bands.append(normalize(rdv.load_array('%s_%s_10m.tif' % (prefix_format(patch_id, scene), band), 1)))
+        image = rdv.load_array('%s_%s_10m.tif' % (prefix_format(patch_id, scene), band), 1).astype('float')
+        image /= 65535.0
+        bands.append(image)
 
     # Stack together RGB bands
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
@@ -715,22 +707,21 @@ def make_confusion_matrix(test_pred, test_labels, filename=None, show=True, save
     Returns:
         None
     """
-
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels
-    multi_class_cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
+    cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
 
     # Normalises confusion matrix
-    multi_class_cm_norm = np.around(multi_class_cm.astype('float') / multi_class_cm.sum(axis=1)[:, np.newaxis],
-                                    decimals=2)
+    cm_norm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
+    np.nan_to_num(cm_norm, copy=False)
 
-    class_names = [classes['{}'.format(cls)] for cls in range(len(classes.keys()))]
+    class_names = [classes[key] for key in range(len(classes.keys()))]
 
     # Converts confusion matrix to Pandas.DataFrame
-    multi_class_cm_df = pd.DataFrame(multi_class_cm_norm, index=class_names, columns=class_names)
+    cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
 
     # Plots figure
     plt.figure()
-    sns.heatmap(multi_class_cm_df, annot=True, square=True, cmap=plt.cm.get_cmap('Blues'), vmin=0.0, vmax=1.0)
+    sns.heatmap(cm_df, annot=True, square=True, cmap=plt.cm.get_cmap('Blues'), vmin=0.0, vmax=1.0)
     plt.ylabel('Ground Truth')
     plt.xlabel('Predicted')
 
@@ -891,7 +882,8 @@ def main():
     plot_history(metrics)
     plot_subpopulations(np.array(predictions).flatten(), rdv.RE_classes, rdv.RE_cmap_dict)
 
-    make_confusion_matrix(np.array(test_labels).flatten(), np.array(predictions).flatten(), show=True, save=False)
+    make_confusion_matrix(test_labels=np.array(test_labels).flatten(), test_pred=np.array(predictions).flatten(),
+                          show=True, save=False)
 
 
 if __name__ == '__main__':
