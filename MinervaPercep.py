@@ -3,7 +3,6 @@
 Script to create a simple MLP to classify land cover of the images in the LandCoverNet V1 dataset
 
 TODO:
-    * Automate saving of plots to file
     * Move pre-processing to new utils script
     * Move model training to class
     * Move logging and analysis to class and/or pytorch lightning integration
