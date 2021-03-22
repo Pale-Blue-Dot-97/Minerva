@@ -26,6 +26,7 @@ from torch.utils.data import IterableDataset
 from torch.backends import cudnn
 from torchsummary import summary
 from itertools import cycle, chain, islice
+from datetime import datetime
 import Radiant_MLHub_DataVis as rdv
 from alive_progress import alive_bar
 from matplotlib import pyplot as plt
@@ -38,6 +39,12 @@ import tensorflow as tf
 # =====================================================================================================================
 # Path to directory holding dataset
 data_dir = 'landcovernet'
+
+# Path to directory to output plots to
+results_dir = os.path.join('F:', 'Harry', 'University', 'Postgraduate', 'Output Plots', 'MinervaPercep', 'MLP')
+
+# Model Name
+model_name = 'MLP_MkV'
 
 # Prefix to every patch ID in every patch directory name
 patch_dir_prefix = 'ref_landcovernet_v1_labels_'
@@ -62,10 +69,10 @@ params = {'batch_size': 256,
           'num_workers': 3,  # Optimum
           'pin_memory': True}
 
-wheel_size = flattened_image_size  # params['batch_size']
+wheel_size = flattened_image_size
 
 # Number of epochs to train model over
-max_epochs = 10
+max_epochs = 1
 
 
 # =====================================================================================================================
@@ -604,13 +611,16 @@ def find_subpopulations(ids, plot=False):
     return Counter(np.array(labels).flatten()).most_common()
 
 
-def plot_subpopulations(class_labels, class_names=None, cmap=None):
+def plot_subpopulations(class_labels, class_names=None, cmap=None, filename=None, save=True, show=False):
     """Creates a pie chart of the distribution of the classes within the data
 
     Args:
         class_labels (np.array[int]): List of class labels
         class_names (dict): Dictionary mapping class labels to class names
         cmap (dict): Dictionary mapping class labels to class colours
+        filename (str): Name of file to save plot to
+        show (bool): Whether to show plot
+        save (bool): Whether to save plot to file
 
     Returns:
         None
@@ -652,8 +662,12 @@ def plot_subpopulations(class_labels, class_names=None, cmap=None):
     # Adds legend
     plt.legend(patches, class_data, loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
 
-    # Show plot for review
-    plt.show()
+    # Shows and/or saves plot
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(filename)
+        plt.close()
 
 
 def class_weighting(class_dist):
@@ -677,11 +691,14 @@ def num_batches(num_ids):
     return int((num_ids * image_size[0] * image_size[1]) / params['batch_size'])
 
 
-def plot_history(metrics):
+def plot_history(metrics, filename=None, save=True, show=False):
     """Plots model history based on metrics supplied
     
     Args:
         metrics (dict): Dictionary containing the names and results of the metrics by which model was assessed
+        filename (str): Name of file to save plot to
+        show (bool): Whether to show plot
+        save (bool): Whether to save plot to file
 
     Returns:
         None
@@ -701,8 +718,12 @@ def plot_history(metrics):
     plt.xlabel('Epoch')
     plt.ylabel('Loss/Accuracy')
 
-    # Show figure
-    plt.show()
+    # Shows and/or saves plot
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(filename)
+        plt.close()
 
 
 def make_confusion_matrix(test_pred, test_labels, filename=None, show=True, save=False):
@@ -725,6 +746,7 @@ def make_confusion_matrix(test_pred, test_labels, filename=None, show=True, save
     cm_norm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
     np.nan_to_num(cm_norm, copy=False)
 
+    # Extract class names from dict in numeric order to ensure labels match matrix
     class_names = [classes[key] for key in range(len(classes.keys()))]
 
     # Converts confusion matrix to Pandas.DataFrame
@@ -740,8 +762,32 @@ def make_confusion_matrix(test_pred, test_labels, filename=None, show=True, save
     if show:
         plt.show()
     if save:
-        plt.savefig('%s_multi.png' % filename)
+        plt.savefig(filename)
         plt.close()
+
+
+def format_plot_names():
+    def standard_format(plot_type, file_ext):
+        filename = '{}_{}_{}.{}'.format(model_name, plot_type, timestamp, file_ext)
+        return os.path.join(results_dir, filename)
+
+    timestamp = datetime.now().strftime('%d-%m-%Y_%H%M')
+
+    filenames = {'History': standard_format('MH', 'png'),
+                 'Pred': standard_format('TP', 'png'),
+                 'CM': standard_format('CM', 'png')}
+
+    return filenames
+
+
+def plot_results(metrics, z, y, save=True, show=False):
+    filenames = format_plot_names()
+
+    plot_history(metrics, filename=filenames['History'], save=save, show=show)
+
+    plot_subpopulations(z, class_names=classes, cmap=rdv.RE_cmap_dict, filename=filenames['Pred'], save=save, show=show)
+
+    make_confusion_matrix(test_labels=y, test_pred=z, filename=filenames['CM'], save=save, show=show)
 
 
 # =====================================================================================================================
@@ -881,11 +927,7 @@ def main():
                'Train Accuracy': train_acc_history,
                'Validation Accuracy': val_acc_history}
 
-    plot_history(metrics)
-    plot_subpopulations(np.array(predictions).flatten(), rdv.RE_classes, rdv.RE_cmap_dict)
-
-    make_confusion_matrix(test_labels=np.array(test_labels).flatten(), test_pred=np.array(predictions).flatten(),
-                          show=True, save=False)
+    plot_results(metrics, np.array(predictions).flatten(), np.array(test_labels).flatten(), save=True, show=True)
 
 
 if __name__ == '__main__':
