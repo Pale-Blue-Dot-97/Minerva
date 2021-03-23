@@ -29,7 +29,7 @@ from datetime import datetime
 import Radiant_MLHub_DataVis as rdv
 from alive_progress import alive_bar
 from matplotlib import pyplot as plt
-from collections import Counter, deque
+from collections import Counter, deque, OrderedDict
 import seaborn as sns
 import tensorflow as tf
 
@@ -71,7 +71,7 @@ params = {'batch_size': 256,
 wheel_size = flattened_image_size
 
 # Number of epochs to train model over
-max_epochs = 1
+max_epochs = 10
 
 
 # =====================================================================================================================
@@ -87,16 +87,24 @@ class MLP(torch.nn.Module, ABC):
         self.input_size = input_size
         self.output_size = n_classes
         self.hidden_sizes = hidden_sizes
-        self.layers = torch.nn.ModuleList()
+        self.layers = OrderedDict()
 
         for i in range(len(hidden_sizes)):
             if i is 0:
-                self.layers.append(torch.nn.Linear(input_size, hidden_sizes[i]))
+                self.layers['Linear-0'] = torch.nn.Linear(input_size, hidden_sizes[i])
+            elif i > 0:
+                self.layers['Linear-{}'.format(i)] = torch.nn.Linear(hidden_sizes[i - 1], hidden_sizes[i])
             else:
-                self.layers.append(torch.nn.Linear(hidden_sizes[i - 1], hidden_sizes[i]))
-            self.layers.append(torch.nn.ReLU())
+                print('EXCEPTION on Layer {}'.format(i))
+            self.layers['ReLu-{}'.format(i)] = torch.nn.ReLU()
 
-        self.layers.append(torch.nn.Linear(hidden_sizes[-1], n_classes))
+        self.layers['Classification'] = torch.nn.Linear(hidden_sizes[-1], n_classes)
+
+        print(self.layers)
+
+        self.network = torch.nn.Sequential(self.layers)
+
+        self.criterion = torch.nn.CrossEntropyLoss()
 
     def forward(self, x):
         """Performs a forward pass of the network
@@ -107,13 +115,7 @@ class MLP(torch.nn.Module, ABC):
         Returns:
             y (torch.Tensor): Label
         """
-
-        y = x
-
-        for layer in self.layers:
-            y = layer(y)
-
-        return y
+        return self.network(x)
 
 
 class BalancedBatchLoader(IterableDataset, ABC):
@@ -808,7 +810,7 @@ def main():
     criterion = torch.nn.CrossEntropyLoss()
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=1e-4)
+    optimiser = torch.optim.SGD(model.parameters(), lr=3e-4)
     # optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
     # optimiser = torch.optim.Adadelta(model.parameters())
 

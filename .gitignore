@@ -131,3 +131,5 @@ API Key
 *.ficache
 *.xml
 *.iml
+
+lightning_logs/
