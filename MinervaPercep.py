@@ -71,7 +71,7 @@ params = {'batch_size': 256,
 wheel_size = flattened_image_size
 
 # Number of epochs to train model over
-max_epochs = 40
+max_epochs = 10
 
 
 # =====================================================================================================================
@@ -82,7 +82,7 @@ class MLP(torch.nn.Module, ABC):
     Simple class to construct a Multi-Layer Perceptron (MLP)
     """
 
-    def __init__(self, input_size, n_classes, hidden_sizes):
+    def __init__(self, input_size, n_classes, hidden_sizes, criterion):
         super(MLP, self).__init__()
         self.input_size = input_size
         self.output_size = n_classes
@@ -100,11 +100,13 @@ class MLP(torch.nn.Module, ABC):
 
         self.layers['Classification'] = torch.nn.Linear(hidden_sizes[-1], n_classes)
 
-        print(self.layers)
-
         self.network = torch.nn.Sequential(self.layers)
 
-        self.criterion = torch.nn.CrossEntropyLoss()
+        self.criterion = criterion
+        self.optimiser = None
+
+    def set_optimiser(self, optimiser):
+        self.optimiser = optimiser
 
     def forward(self, x):
         """Performs a forward pass of the network
@@ -116,6 +118,32 @@ class MLP(torch.nn.Module, ABC):
             y (torch.Tensor): Label
         """
         return self.network(x)
+
+    def step(self, x, y, train):
+        if train:
+            self.optimiser.zero_grad()
+
+        # Forward pass
+        z = self.forward(x)
+
+        # Compute Loss
+        loss = self.criterion(z, y)
+
+        if train:
+            # Backward pass
+            loss.backward()
+            self.optimiser.step()
+
+        return loss, z
+
+    def training_step(self, x, y):
+        return self.step(x, y, True)
+
+    def validation_step(self, x, y):
+        return self.step(x, y, False)
+
+    def testing_step(self, x, y):
+        return self.step(x, y, False)
 
 
 class BalancedBatchLoader(IterableDataset, ABC):
@@ -260,6 +288,96 @@ class BatchLoader(IterableDataset, ABC):
 
     def __iter__(self):
         return self.get_stream(self.patch_ids)
+
+
+class Trainer:
+    def __init__(self, model, max_epochs, batch_size, optimiser):
+        self.model = model
+        self.max_epochs = max_epochs
+        self.batch_size = batch_size
+
+        loaders, n_batches, _ = make_loaders(balance=True)
+        self.loaders = loaders
+        self.n_batches = n_batches
+        self.metrics = {
+            'train_loss': [],
+            'val_loss': [],
+            'test_loss': [],
+
+            'train_acc': [],
+            'val_acc': [],
+            'test_acc': []
+        }
+
+        self.model.set_optimiser(optimiser)
+
+        # Transfer to GPU
+        model.to(device)
+
+        # Print model summary
+        summary(model, (1, self.model.input_size))
+
+    def epoch(self, mode):
+        total_loss = 0.0
+        total_correct = 0.0
+        test_labels = []
+        test_predictions = []
+        with alive_bar(self.n_batches[mode], bar='blocks') as bar:
+            if mode is 'train':
+                self.model.train()
+            else:
+                self.model.eval()
+
+            for x_batch, y_batch in islice(self.loaders[mode], self.n_batches[mode]):
+                # Transfer to GPU
+                x, y = x_batch.to(device), y_batch.to(device)
+
+                if mode is 'train':
+                    loss, z = self.model.training_step(x, y)
+
+                    total_loss += loss.item()
+                    total_correct += (torch.argmax(z, 1) == y).sum().item()
+
+                elif mode is 'val':
+                    loss, z = self.model.validation_step(x, y)
+
+                    total_loss += loss.item()
+                    total_correct += (torch.argmax(z, 1) == y).sum().item()
+
+                elif mode is 'test':
+                    loss, z = self.model.testing_step(x, y)
+
+                    total_loss += loss.item()
+                    total_correct += (torch.argmax(z, 1) == y).sum().item()
+                    test_predictions.append(np.array(torch.argmax(z, 1).cpu()))
+                    test_labels.append(np.array(y.cpu()))
+                bar()
+
+        self.metrics['{}_loss'.format(mode)].append(total_loss / self.n_batches[mode])
+        self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size))
+
+        if mode is 'test':
+            return test_predictions, test_labels
+        else:
+            return
+
+    def fit(self):
+        for epoch in range(self.max_epochs):
+            print(f'Epoch: {epoch + 1}/{self.max_epochs}')
+
+            self.epoch('train')
+            self.epoch('val')
+
+            print('Training loss: {} | Validation Loss: {}'.format(self.metrics['train_loss'][epoch],
+                                                                   self.metrics['val_loss'][epoch]))
+            print('Train Accuracy: {}% | Validation Accuracy: {}% \n'.format(self.metrics['train_acc'][epoch] * 100.0,
+                                                                             self.metrics['val_acc'][epoch] * 100.0))
+
+    def test(self):
+        print('\r\nTESTING')
+        predictions, labels = self.epoch('test')
+        submetrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
+        plot_results(submetrics, np.array(predictions).flatten(), np.array(labels).flatten(), save=True, show=False)
 
 
 # =====================================================================================================================
@@ -795,140 +913,20 @@ def plot_results(metrics, z, y, save=True, show=False):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    loaders, n_batches, class_dist = make_loaders(balance=True)
-
-    # Initialise model
-    model = MLP(288, 8, [144])
-
-    # Transfer to GPU
-    model.to(device)
-
-    # Print model summary
-    summary(model, (1, 288))
-
     # Define loss function
     criterion = torch.nn.CrossEntropyLoss()
+
+    # Initialise model
+    model = MLP(input_size=288, n_classes=8, hidden_sizes=[144], criterion=criterion)
 
     # Define optimiser
     optimiser = torch.optim.SGD(model.parameters(), lr=1e-4)
     # optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
     # optimiser = torch.optim.Adadelta(model.parameters())
 
-    train_loss_history = []
-    val_loss_history = []
-
-    train_acc_history = []
-    val_acc_history = []
-
-    # Iterates through epochs of training and validation
-    for epoch in range(max_epochs):
-        # TRAIN =================================================================
-
-        train_loss = 0
-        train_correct = 0
-
-        # Batch trains model for this epoch
-        with alive_bar(n_batches['train'], bar='blocks') as bar:
-            model.train()
-            for x_batch, y_batch in islice(loaders['train'], n_batches['train']):
-                # Transfer to GPU
-                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-
-                optimiser.zero_grad()
-
-                # Forward pass
-                y_pred = model(x_batch)
-
-                # Compute Loss
-                loss = criterion(y_pred, y_batch)
-
-                # Backward pass
-                loss.backward()
-                optimiser.step()
-
-                train_loss += loss.item()
-
-                # calculate the accuracy
-                predicted = torch.argmax(y_pred, 1)
-                train_correct += (predicted == y_batch).sum().item()
-
-                bar()
-
-        val_loss = 0
-        val_correct = 0
-        # VALIDATION ===============================================================
-        with alive_bar(n_batches['val'], bar='blocks') as bar, torch.no_grad():
-            # Set the model to eval mode
-            model.eval()
-            for x_batch, y_batch in islice(loaders['val'], n_batches['val']):
-                # Transfer to GPU
-                x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-
-                # Forward pass
-                y_pred = model(x_batch)
-
-                # Compute Loss
-                loss = criterion(y_pred.squeeze(), y_batch)
-
-                val_loss += loss.item()
-
-                # calculate the accuracy
-                predicted = torch.argmax(y_pred, 1)
-                val_correct += (predicted == y_batch).sum().item()
-
-                bar()
-
-        # Output epoch results
-        train_loss /= n_batches['train']
-        val_loss /= n_batches['val']
-        train_accuracy = train_correct / (n_batches['train'] * params['batch_size'])
-        val_accuracy = val_correct / (n_batches['val'] * params['batch_size'])
-        print(f'Epoch: {epoch + 1}/{max_epochs}| Training loss: {train_loss} | Validation Loss: {val_loss} | '
-              f'Train Accuracy: {train_accuracy * 100}% | Validation Accuracy: {val_accuracy * 100}% \n')
-
-        train_loss_history.append(train_loss)
-        val_loss_history.append(val_loss)
-        train_acc_history.append(train_accuracy)
-        val_acc_history.append(val_accuracy)
-
-    # TEST ======================================================================
-    model.eval()
-    test_loss = 0
-    test_correct = 0
-    predictions = []
-    test_labels = []
-    with alive_bar(n_batches['test'], bar='blocks') as bar, torch.no_grad():
-        for x_batch, y_batch in islice(loaders['test'], n_batches['test']):
-            # Transfer to GPU
-            x_batch, y_batch = x_batch.to(device), y_batch.to(device)
-
-            # Forward pass
-            y_pred = model(x_batch)
-
-            # Compute Loss
-            loss = criterion(y_pred.squeeze(), y_batch)
-
-            test_loss += loss.item()
-
-            # calculate the accuracy
-            predicted = torch.argmax(y_pred, 1)
-            test_correct += (predicted == y_batch).sum().item()
-            predictions.append(np.array(predicted.cpu()))
-
-            test_labels.append(np.array(y_batch.cpu()))
-
-            bar()
-
-    test_loss /= n_batches['test']
-    test_accuracy = test_correct / (n_batches['test'] * params['batch_size'])
-    print(f'Test loss: {test_loss}.. Test Accuracy: {test_accuracy * 100}%')
-
-    metrics = {'Train Loss': train_loss_history,
-               'Validation Loss': val_loss_history,
-               'Train Accuracy': train_acc_history,
-               'Validation Accuracy': val_acc_history}
-
-    plot_results(metrics, np.array(predictions).flatten(), np.array(test_labels).flatten(), save=True, show=False)
+    trainer = Trainer(model=model, max_epochs=max_epochs, batch_size=params['batch_size'], optimiser=optimiser)
+    trainer.fit()
+    trainer.test()
 
 
 if __name__ == '__main__':
