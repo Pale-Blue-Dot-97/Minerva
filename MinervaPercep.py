@@ -43,7 +43,7 @@ data_dir = 'landcovernet'
 results_dir = os.path.join('F:', 'Harry', 'University', 'Postgraduate', 'Output Plots', 'MinervaPercep', 'MLP')
 
 # Model Name
-model_name = 'MLP_MkV'
+model_name = 'MLP-MkV'
 
 # Prefix to every patch ID in every patch directory name
 patch_dir_prefix = 'ref_landcovernet_v1_labels_'
@@ -71,7 +71,7 @@ params = {'batch_size': 256,
 wheel_size = flattened_image_size
 
 # Number of epochs to train model over
-max_epochs = 10
+max_epochs = 40
 
 
 # =====================================================================================================================
@@ -810,7 +810,7 @@ def main():
     criterion = torch.nn.CrossEntropyLoss()
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=3e-4)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1e-4)
     # optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
     # optimiser = torch.optim.Adadelta(model.parameters())
 
@@ -928,7 +928,7 @@ def main():
                'Train Accuracy': train_acc_history,
                'Validation Accuracy': val_acc_history}
 
-    plot_results(metrics, np.array(predictions).flatten(), np.array(test_labels).flatten(), save=True, show=True)
+    plot_results(metrics, np.array(predictions).flatten(), np.array(test_labels).flatten(), save=True, show=False)
 
 
 if __name__ == '__main__':
