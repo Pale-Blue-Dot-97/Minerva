@@ -4,8 +4,6 @@ Script to create a simple MLP to classify land cover of the images in the LandCo
 
 TODO:
     * Move pre-processing to new utils script
-    * Move model training to class
-    * Move logging and analysis to class and/or pytorch lightning integration
     * Add method to save models to file
 
 """
