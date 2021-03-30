@@ -41,7 +41,7 @@ data_dir = 'landcovernet'
 results_dir = os.path.join('F:', 'Harry', 'University', 'Postgraduate', 'Output Plots', 'MinervaPercep', 'MLP')
 
 # Model Name
-model_name = 'MLP-MkV'
+model_name = 'MLP-MkVI'
 
 # Prefix to every patch ID in every patch directory name
 patch_dir_prefix = 'ref_landcovernet_v1_labels_'
@@ -165,6 +165,16 @@ class BalancedBatchLoader(IterableDataset, ABC):
         for cls in self.streams_df.columns.to_list():
             self.wheels[cls] = deque(maxlen=wheel_size)
 
+        # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
+        patches = pd.Series([self.load_patch_df(patch_id) for patch_id in self.streams_df.sample(frac=1).iloc[0]])
+        patches.apply(self.refresh_wheels)
+
+        # Checks if wheel is empty after adding to wheel
+        for cls in self.streams_df.columns.to_list():
+            if not self.wheels[cls]:
+                print('EMPTY WHEEL {}!'.format(cls))
+                self.emergency_fill(cls)
+
     def load_patch_df(self, patch_id):
         """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns
 
@@ -206,19 +216,24 @@ class BalancedBatchLoader(IterableDataset, ABC):
         """
         return pd.Series([self.load_patch_df(row[1][cls]) for cls in self.streams_df.columns.to_list()])
 
-    def add_to_wheels(self, patch_df):
-        for cls in self.streams_df.columns.to_list():
-            try:
-                for pixel in np.random.choice(np.array(patch_df['PATCH'].loc[patch_df['LABELS'] == cls]),
-                                              size=wheel_size, replace=True):
-                    self.wheels[cls].appendleft(pixel.flatten())
-            except ValueError:
-                continue
-
     def refresh_wheels(self, patch_df):
         for cls in self.streams_df.columns.to_list():
             for pixel in patch_df['PATCH'].loc[patch_df['LABELS'] == cls]:
                 self.wheels[cls].appendleft(pixel.flatten())
+
+    # THIS IS BODGY AF
+    def emergency_fill(self, cls):
+        print('EMERGENCY FILL INITIATED')
+        patches = pd.Series([self.load_patch_df(patch_id) for patch_id in self.streams_df[cls].sample(frac=1)])
+
+        for patch in patches:
+            print('ATTEMPTING TO INIT WHEEL')
+            for pixel in patch['PATCH'].loc[patch['LABELS'] == cls]:
+                self.wheels[cls].appendleft(pixel.flatten())
+
+            if self.wheels[cls]:
+                print('CRISIS OVER')
+                return
 
     def process_data(self, row):
         """Loads and processes patches into wheels for each class and yields from them,
@@ -231,7 +246,6 @@ class BalancedBatchLoader(IterableDataset, ABC):
             x (torch.Tensor): A data sample as tensor
             y (torch.Tensor): Corresponding label as int tensor
         """
-
         # Iterates for the flattened length of a patch and yields x and y for each class from their respective wheels
         for i in range(flattened_image_size):
             if i == 0:
@@ -253,7 +267,21 @@ class BalancedBatchLoader(IterableDataset, ABC):
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
 
     def __iter__(self):
-        return self.get_stream(self.streams_df)
+        worker_info = torch.utils.data.get_worker_info()
+
+        # If single threaded process, return full ID stream
+        if worker_info is None:
+            return self.get_stream(self.streams_df)
+
+        # If multi-threaded, split patch IDs between workers
+        else:
+            # Calculate fraction of dataset per worker
+            per_worker = int(np.math.ceil(1.0 / float(worker_info.num_workers)))
+
+            # Return a random sample of the patch IDs of fractional size per worker
+            # and using random seed modulated by the worker ID
+            return self.get_stream(self.streams_df.sample(frac=per_worker, random_state=42 * worker_info.id,
+                                                          replace=False, axis=0))
 
 
 class BatchLoader(IterableDataset, ABC):
@@ -264,10 +292,6 @@ class BatchLoader(IterableDataset, ABC):
     def __init__(self, patch_ids, batch_size):
         self.patch_ids = patch_ids
         self.batch_size = batch_size
-
-    @property
-    def shuffled_data_list(self):
-        return random.sample(self.patch_ids, len(self.patch_ids))
 
     def process_data(self, patch_id):
         patch = make_time_series(patch_id)
@@ -281,11 +305,23 @@ class BatchLoader(IterableDataset, ABC):
     def get_stream(self, patch_ids):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
 
-    def get_streams(self):
-        return zip(*[self.get_stream(self.shuffled_data_list) for _ in range(self.batch_size)])
-
     def __iter__(self):
-        return self.get_stream(self.patch_ids)
+        worker_info = torch.utils.data.get_worker_info()
+
+        # If single threaded process, return all patch IDs
+        if worker_info is None:
+            return self.get_stream(self.patch_ids)
+
+        # If multi-threaded, split patch IDs between workers
+        else:
+            # Calculate number of patch IDs of the dataset per worker
+            per_worker = int(np.math.ceil(len(self.patch_ids) / float(worker_info.num_workers)))
+
+            # Set random seed modulated by the worker ID
+            random.seed(42 * worker_info.id)
+
+            # Return a random sample of the patch IDs of size per worker
+            return self.get_stream(random.sample(self.patch_ids, per_worker))
 
 
 class Trainer:
@@ -915,10 +951,10 @@ def main():
     criterion = torch.nn.CrossEntropyLoss()
 
     # Initialise model
-    model = MLP(input_size=288, n_classes=8, hidden_sizes=[144], criterion=criterion)
+    model = MLP(input_size=288, n_classes=8, hidden_sizes=[512, 256], criterion=criterion)
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=1e-4)
+    optimiser = torch.optim.SGD(model.parameters(), lr=5e-4)
     # optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
     # optimiser = torch.optim.Adadelta(model.parameters())
 
