@@ -69,7 +69,10 @@ params = {'batch_size': 256,
 wheel_size = flattened_image_size
 
 # Number of epochs to train model over
-max_epochs = 10
+max_epochs = 25
+
+# Set the learning rate of the optimiser
+learning_rate = 3e-4
 
 
 # =====================================================================================================================
@@ -410,6 +413,10 @@ class Trainer:
     def test(self):
         print('\r\nTESTING')
         predictions, labels = self.epoch('test')
+
+        print('Test Loss: {} | Test Accuracy: {}% \n'.format(self.metrics['test_loss'][0],
+                                                             self.metrics['test_acc'][0] * 100.0))
+
         submetrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
         plot_results(submetrics, np.array(predictions).flatten(), np.array(labels).flatten(), save=True, show=False)
 
@@ -954,7 +961,7 @@ def main():
     model = MLP(input_size=288, n_classes=8, hidden_sizes=[512, 256], criterion=criterion)
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=5e-4)
+    optimiser = torch.optim.SGD(model.parameters(), lr=learning_rate)
     # optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
     # optimiser = torch.optim.Adadelta(model.parameters())
 
