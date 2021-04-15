@@ -18,17 +18,13 @@ Requires:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import os
-import glob
-import math
+import utils
 import imageio
-import rasterio as rt
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from matplotlib.transforms import Bbox
-import datetime as dt
-from osgeo import gdal, osr
+from osgeo import osr
 from sklearn.preprocessing import normalize
 from alive_progress import alive_bar
 
@@ -117,70 +113,6 @@ S2_SCL_figdim = (8, 10.44)
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def exist_delete_check(fn):
-    """Checks if given file exists then deletes if true
-
-    Args:
-        fn (str): Path to file to have existence checked then deleted
-
-    Returns:
-        None
-
-    """
-    # Checks if file exists. Deletes if True. No action taken if False
-    if os.path.exists(fn):
-        os.remove(fn)
-    else:
-        pass
-
-
-def datetime_reformat(datetime, fmt1, fmt2):
-    """Takes a str representing a time stamp in one format and returns it reformatted into a second
-
-    Args:
-        datetime (str): Datetime string to be reformatted
-        fmt1 (str): Format of original datetime
-        fmt2 (str): New format for datetime
-
-    Returns:
-        (str): Datetime reformatted to fmt2
-    """
-    return dt.datetime.strptime(datetime, fmt1).strftime(fmt2)
-
-
-def patch_grab():
-    """Fetches the patch IDs from the directory holding the whole dataset
-
-    Returns:
-        (list): List of unique patch IDs
-
-    """
-    # Fetches the names of the all the patch directories in the dataset
-    patch_dirs = glob.glob('%s/%s*/' % (data_dir, patch_dir_prefix))
-
-    # Extracts the patch ID from the directory names and returns the list
-    return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
-
-
-def date_grab(patch_id):
-    """Finds all the name of all the scene directories for a patch and returns a list of the dates reformatted
-
-    Args:
-        patch_id (str): Unique patch ID
-
-    Returns:
-        (list): List of the dates of the scenes in DD.MM.YYYY format for this patch_ID
-    """
-    # Get the name of all the directories for this patch
-    scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
-
-    # Extract the scene names (i.e the dates) from the paths
-    scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
-
-    # Format the dates from US YYYY_MM_DD format into UK DD.MM.YYYY format and return list
-    return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
-
-
 def path_format(names):
     """Takes a dictionary of unique IDs to format the paths and names of files associated with the desired scene
 
@@ -193,8 +125,8 @@ def path_format(names):
         data_name (str): Name of the file containing the label mask
     """
     # Format the two required date formats used by REF MLHub
-    date1 = datetime_reformat(names['date'], '%d.%m.%Y', '%Y_%m_%d')
-    date2 = datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d')
+    date1 = utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y_%m_%d')
+    date2 = utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d')
 
     # Format path to the directory holding all the scene files
     scene_path = '%s/%s%s/%s/' % (data_dir, patch_dir_prefix, names['patch_ID'], date1)
@@ -208,112 +140,6 @@ def path_format(names):
            'B': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['B_band'])}
 
     return rgb, scene_path, data_name
-
-
-def load_array(path, band):
-    """Extracts an array from opening a specific band of a .tif file
-
-    Args:
-        path (str): Path to file
-        band (int): Band number of .tif file
-
-    Returns:
-        data ([[float]]): 2D array representing the image from the .tif band requested
-
-    """
-    raster = rt.open(path)
-
-    data = raster.read(band)
-
-    return data
-
-
-def transform_coordinates(path, new_cs):
-    """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
-    in the new co-ordinates system provided
-
-    Args:
-        path (str): Path to GeoTiff to extract and transform co-ordinates from
-        new_cs(SpatialReference): Co-ordinate system to convert GeoTiff co-ordinates from
-
-    Returns:
-        ([[tuple]]): The corners of the image in the new co-ordinate system
-    """
-    # Open GeoTiff in GDAL
-    ds = gdal.Open(path)
-    w = ds.RasterXSize
-    h = ds.RasterYSize
-
-    # Create SpatialReference object
-    old_cs = osr.SpatialReference()
-
-    # Fetch projection system from GeoTiff and set to old_cs
-    old_cs.ImportFromWkt(ds.GetProjectionRef())
-
-    # Create co-ordinate transformation object
-    trans = osr.CoordinateTransformation(old_cs, new_cs)
-
-    # Fetch the geospatial data from the GeoTiff file
-    gt_data = ds.GetGeoTransform()
-
-    # Calculate the minimum and maximum x and y extent of the file in the old co-ordinate system
-    min_x = gt_data[0]
-    min_y = gt_data[3] + w * gt_data[4] + h * gt_data[5]
-    max_x = gt_data[0] + w * gt_data[1] + h * gt_data[2]
-    max_y = gt_data[3]
-
-    # Return the transformation of the corners of the file from the old co-ordinate system into the new
-    return [[trans.TransformPoint(min_x, max_y)[:2], trans.TransformPoint(max_x, max_y)[:2]],
-            [trans.TransformPoint(min_x, min_y)[:2], trans.TransformPoint(max_x, min_y)[:2]]]
-
-
-def deg_to_dms(deg, axis='lat'):
-    """Credit to Gustavo Gonçalves on Stack Overflow
-    https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
-
-    Args:
-        deg (float): Decimal degrees of latitude or longitude
-        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier
-
-    Returns:
-        str of inputted deg in degrees, minutes and seconds in the form DegreesºMinutes Seconds Hemisphere
-    """
-    # Split decimal degrees into units and decimals
-    decimals, number = math.modf(deg)
-
-    # Compute degrees, minutes and seconds
-    d = int(number)
-    m = int(decimals * 60)
-    s = (deg - d - m / 60) * 3600.00
-
-    # Define cardinal directions between latitude and longitude
-    compass = {
-        'lat': ('N', 'S'),
-        'lon': ('E', 'W')
-    }
-
-    # Select correct hemisphere
-    compass_str = compass[axis][0 if d >= 0 else 1]
-
-    # Return formatted str
-    return '{}º{}\'{:.0f}"{}'.format(abs(d), abs(m), abs(s), compass_str)
-
-
-def dec2deg(dec_co, axis='lat'):
-    """Wrapper for deg_to_dms
-
-    Args:
-        dec_co ([float]): Array of either latitude or longitude co-ordinates in decimal degrees
-        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier
-
-    Returns:
-        deg_co ([str]): List of formatted strings in degrees, minutes and seconds
-    """
-    deg_co = []
-    for co in dec_co:
-        deg_co.append(deg_to_dms(co, axis=axis))
-
-    return deg_co
 
 
 def discrete_heatmap(data, classes=None, cmap_style=None):
@@ -371,7 +197,7 @@ def stack_rgb(scene_path, rgb):
     # Load R, G, B images from file and normalise
     bands = []
     for band in ['R', 'G', 'B']:
-        bands.append(normalize(load_array(scene_path + rgb[band], 1)))
+        bands.append(normalize(utils.load_array(scene_path + rgb[band], 1)))
 
     # Stack together RGB bands
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
@@ -433,7 +259,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     rgb_image = stack_rgb(scene_path, rgb)
 
     # Loads data to plotted as heatmap from file
-    data = load_array(scene_path + data_name, band=data_band)
+    data = utils.load_array(scene_path + data_name, band=data_band)
 
     # Defines the 'extent' of the composite image based on the size of the mask.
     # Assumes mask and RGB image have same 2D shape
@@ -459,7 +285,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     ax2 = ax1.twiny().twinx()
 
     # Gets the co-ordinates of the corners of the image in decimal lat-lon
-    corners = transform_coordinates(scene_path + data_name, new_cs)
+    corners = utils.transform_coordinates(scene_path + data_name, new_cs)
 
     # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image
     lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
@@ -480,8 +306,8 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
 
     # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis
-    lat_labels = dec2deg(lat_extent, axis='lat')
-    lon_labels = dec2deg(lon_extent, axis='lon')
+    lat_labels = utils.dec2deg(lat_extent, axis='lat')
+    lon_labels = utils.dec2deg(lon_extent, axis='lon')
 
     # Sets the secondary axis tick labels
     ax2.set_xticklabels(lon_labels, fontsize=11)
@@ -514,12 +340,12 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
         plt.show()
 
     # Path and file name of figure
-    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d'))
+    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d'))
 
     # If true, save file to fn
     if save:
         # Checks if file already exists. Deletes if true
-        exist_delete_check(fn)
+        utils.exist_delete_check(fn)
 
         # Save figure to fn
         fig.savefig(fn)
@@ -551,7 +377,7 @@ def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_
 
     """
     # Fetch all the scene dates for this patch in DD.MM.YYYY format
-    dates = date_grab(names['patch_ID'])
+    dates = utils.date_grab(names['patch_ID'])
 
     # Initialise progress bar
     with alive_bar(len(dates), bar='blocks') as bar:
@@ -603,7 +429,7 @@ def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_s
 
     """
     # Gets all the patch IDs from the dataset directory
-    patches = patch_grab()
+    patches = utils.patch_grab()
 
     # Iterator for progress counter
     i = 0

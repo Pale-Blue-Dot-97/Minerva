@@ -11,14 +11,16 @@ TODO:
 import yaml
 import os
 import glob
+import math
 import numpy as np
 import pandas as pd
 from datetime import datetime
-import Radiant_MLHub_DataVis as rdv
 from matplotlib import pyplot as plt
 from collections import Counter
 import seaborn as sns
 import tensorflow as tf
+import rasterio as rt
+from osgeo import gdal, osr
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -57,6 +59,37 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def exist_delete_check(fn):
+    """Checks if given file exists then deletes if true
+
+    Args:
+        fn (str): Path to file to have existence checked then deleted
+
+    Returns:
+        None
+
+    """
+    # Checks if file exists. Deletes if True. No action taken if False
+    if os.path.exists(fn):
+        os.remove(fn)
+    else:
+        pass
+
+
+def datetime_reformat(timestamp, fmt1, fmt2):
+    """Takes a str representing a time stamp in one format and returns it reformatted into a second
+
+    Args:
+        timestamp (str): Datetime string to be reformatted
+        fmt1 (str): Format of original datetime
+        fmt2 (str): New format for datetime
+
+    Returns:
+        (str): Datetime reformatted to fmt2
+    """
+    return datetime.strptime(datetime, fmt1).strftime(fmt2)
+
+
 def prefix_format(patch_id, scene):
     """Formats a string representing the prefix of a path to any file in a scene
 
@@ -68,7 +101,7 @@ def prefix_format(patch_id, scene):
         prefix (str): Prefix of path to any file in a given scene
     """
     return os.sep.join([data_dir, patch_dir_prefix + patch_id, scene, patch_id + '_' +
-                       rdv.datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
+                       datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
 
 
 def scene_grab(patch_id):
@@ -93,9 +126,60 @@ def scene_grab(patch_id):
 
     # Finds and appends each CLD of each scene of a patch to scenes
     for date in scene_names:
-        scenes.append(rdv.load_array('%s_CLD_10m.tif' % prefix_format(patch_id, date), 1))
+        scenes.append(load_array('%s_CLD_10m.tif' % prefix_format(patch_id, date), 1))
 
     return scenes, scene_names
+
+
+def patch_grab():
+    """Fetches the patch IDs from the directory holding the whole dataset
+
+    Returns:
+        (list): List of unique patch IDs
+
+    """
+    # Fetches the names of the all the patch directories in the dataset
+    patch_dirs = glob.glob('%s/%s*/' % (data_dir, patch_dir_prefix))
+
+    # Extracts the patch ID from the directory names and returns the list
+    return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
+
+
+def date_grab(patch_id):
+    """Finds all the name of all the scene directories for a patch and returns a list of the dates reformatted
+
+    Args:
+        patch_id (str): Unique patch ID
+
+    Returns:
+        (list): List of the dates of the scenes in DD.MM.YYYY format for this patch_ID
+    """
+    # Get the name of all the directories for this patch
+    scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
+
+    # Extract the scene names (i.e the dates) from the paths
+    scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
+
+    # Format the dates from US YYYY_MM_DD format into UK DD.MM.YYYY format and return list
+    return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
+
+
+def load_array(path, band):
+    """Extracts an array from opening a specific band of a .tif file
+
+    Args:
+        path (str): Path to file
+        band (int): Band number of .tif file
+
+    Returns:
+        data ([[float]]): 2D array representing the image from the .tif band requested
+
+    """
+    raster = rt.open(path)
+
+    data = raster.read(band)
+
+    return data
 
 
 def lc_load(patch_id):
@@ -108,7 +192,95 @@ def lc_load(patch_id):
         LC_label (list): 2D array containing LC labels for each pixel of a patch
 
     """
-    return rdv.load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '_2018_LC_10m.tif']), 1)
+    return load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '_2018_LC_10m.tif']), 1)
+
+
+def transform_coordinates(path, new_cs):
+    """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
+    in the new co-ordinates system provided
+
+    Args:
+        path (str): Path to GeoTiff to extract and transform co-ordinates from
+        new_cs(SpatialReference): Co-ordinate system to convert GeoTiff co-ordinates from
+
+    Returns:
+        ([[tuple]]): The corners of the image in the new co-ordinate system
+    """
+    # Open GeoTiff in GDAL
+    ds = gdal.Open(path)
+    w = ds.RasterXSize
+    h = ds.RasterYSize
+
+    # Create SpatialReference object
+    old_cs = osr.SpatialReference()
+
+    # Fetch projection system from GeoTiff and set to old_cs
+    old_cs.ImportFromWkt(ds.GetProjectionRef())
+
+    # Create co-ordinate transformation object
+    trans = osr.CoordinateTransformation(old_cs, new_cs)
+
+    # Fetch the geospatial data from the GeoTiff file
+    gt_data = ds.GetGeoTransform()
+
+    # Calculate the minimum and maximum x and y extent of the file in the old co-ordinate system
+    min_x = gt_data[0]
+    min_y = gt_data[3] + w * gt_data[4] + h * gt_data[5]
+    max_x = gt_data[0] + w * gt_data[1] + h * gt_data[2]
+    max_y = gt_data[3]
+
+    # Return the transformation of the corners of the file from the old co-ordinate system into the new
+    return [[trans.TransformPoint(min_x, max_y)[:2], trans.TransformPoint(max_x, max_y)[:2]],
+            [trans.TransformPoint(min_x, min_y)[:2], trans.TransformPoint(max_x, min_y)[:2]]]
+
+
+def deg_to_dms(deg, axis='lat'):
+    """Credit to Gustavo Gonçalves on Stack Overflow
+    https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
+
+    Args:
+        deg (float): Decimal degrees of latitude or longitude
+        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier
+
+    Returns:
+        str of inputted deg in degrees, minutes and seconds in the form DegreesºMinutes Seconds Hemisphere
+    """
+    # Split decimal degrees into units and decimals
+    decimals, number = math.modf(deg)
+
+    # Compute degrees, minutes and seconds
+    d = int(number)
+    m = int(decimals * 60)
+    s = (deg - d - m / 60) * 3600.00
+
+    # Define cardinal directions between latitude and longitude
+    compass = {
+        'lat': ('N', 'S'),
+        'lon': ('E', 'W')
+    }
+
+    # Select correct hemisphere
+    compass_str = compass[axis][0 if d >= 0 else 1]
+
+    # Return formatted str
+    return '{}º{}\'{:.0f}"{}'.format(abs(d), abs(m), abs(s), compass_str)
+
+
+def dec2deg(dec_co, axis='lat'):
+    """Wrapper for deg_to_dms
+
+    Args:
+        dec_co ([float]): Array of either latitude or longitude co-ordinates in decimal degrees
+        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier
+
+    Returns:
+        deg_co ([str]): List of formatted strings in degrees, minutes and seconds
+    """
+    deg_co = []
+    for co in dec_co:
+        deg_co.append(deg_to_dms(co, axis=axis))
+
+    return deg_co
 
 
 def labels_to_ohe(labels, n_classes):
@@ -278,7 +450,7 @@ def stack_bands(patch_id, scene):
     bands = []
     # Load R, G, B images from file and normalise
     for band in band_ids:
-        image = rdv.load_array('%s_%s_10m.tif' % (prefix_format(patch_id, scene), band), 1).astype('float')
+        image = load_array('%s_%s_10m.tif' % (prefix_format(patch_id, scene), band), 1).astype('float')
         image /= 65535.0
         bands.append(image)
 
