@@ -44,7 +44,7 @@ with open(config_path) as file:
 data_dir = config['dir']['data']
 
 # Path to directory to output plots to
-results_dir = os.path.join(config['dir']['results'])
+results_dir = os.path.join(*config['dir']['results'])
 
 # Model Name
 model_name = config['model_name']

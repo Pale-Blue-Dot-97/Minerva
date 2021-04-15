@@ -1,7 +1,14 @@
 # Paths to directories containing the data and the results
 dir:
   data: 'landcovernet'
-  results: ('F:', 'Harry', 'University', 'Postgraduate', 'Output Plots', 'MinervaPercep', 'MLP')
+  results:
+    - 'F:'
+    - 'Harry'
+    - 'University'
+    - 'Postgraduate'
+    - 'Output Plots'
+    - 'MinervaPercep'
+    - 'MLP'
 
 # Model Name
 model_name: 'MLP-MkVI'
