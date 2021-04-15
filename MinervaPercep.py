@@ -10,6 +10,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import yaml
 import os
 import glob
 import random
@@ -34,23 +35,28 @@ import tensorflow as tf
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
+config_path = 'config.yml'
+
+with open(config_path) as file:
+    config = yaml.safe_load(file)
+
 # Path to directory holding dataset
-data_dir = 'landcovernet'
+data_dir = config['dir']['data']
 
 # Path to directory to output plots to
-results_dir = os.path.join('F:', 'Harry', 'University', 'Postgraduate', 'Output Plots', 'MinervaPercep', 'MLP')
+results_dir = os.path.join(config['dir']['results'])
 
 # Model Name
-model_name = 'MLP-MkVI'
+model_name = config['model_name']
 
 # Prefix to every patch ID in every patch directory name
-patch_dir_prefix = 'ref_landcovernet_v1_labels_'
+patch_dir_prefix = config['patch_dir_prefix']
 
 # Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
-band_ids = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
+band_ids = config['data_specs']['band_ids']
 
 # Defines size of the images to determine the number of batches
-image_size = (256, 256)
+image_size = config['data_specs']['image_size']
 
 flattened_image_size = image_size[0] * image_size[1]
 
@@ -62,17 +68,14 @@ device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
 # Parameters
-params = {'batch_size': 256,
-          'num_workers': 3,  # Optimum
-          'pin_memory': True}
+params = config['hyperparams']['params']
 
 wheel_size = flattened_image_size
 
 # Number of epochs to train model over
-max_epochs = 25
+max_epochs = config['hyperparams']['max_epochs']
 
-# Set the learning rate of the optimiser
-learning_rate = 3e-4
+model_params = config['hyperparams']['model_params']
 
 
 # =====================================================================================================================
@@ -83,7 +86,7 @@ class MLP(torch.nn.Module, ABC):
     Simple class to construct a Multi-Layer Perceptron (MLP)
     """
 
-    def __init__(self, input_size, n_classes, hidden_sizes, criterion):
+    def __init__(self, criterion, input_size=288, n_classes=8, hidden_sizes=(256, 144)):
         super(MLP, self).__init__()
         self.input_size = input_size
         self.output_size = n_classes
@@ -958,12 +961,10 @@ def main():
     criterion = torch.nn.CrossEntropyLoss()
 
     # Initialise model
-    model = MLP(input_size=288, n_classes=8, hidden_sizes=[512, 256], criterion=criterion)
+    model = MLP(criterion, **model_params)
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=learning_rate)
-    # optimiser = torch.optim.Adam(model.parameters())#, lr=1e-3)#, amsgrad=True)
-    # optimiser = torch.optim.Adadelta(model.parameters())
+    optimiser = torch.optim.SGD(model.parameters(), lr=config['hyperparams']['optimiser_params']['learning_rate'])
 
     trainer = Trainer(model=model, max_epochs=max_epochs, batch_size=params['batch_size'], optimiser=optimiser)
     trainer.fit()

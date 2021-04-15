@@ -1,0 +1,30 @@
+# Paths to directories containing the data and the results
+dir:
+  data: 'landcovernet'
+  results: ('F:', 'Harry', 'University', 'Postgraduate', 'Output Plots', 'MinervaPercep', 'MLP')
+
+# Model Name
+model_name: 'MLP-MkVI'
+
+# Prefix to every patch ID in every patch directory name
+patch_dir_prefix: 'ref_landcovernet_v1_labels_'
+
+data_specs:
+  band_ids: ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
+  image_size: [256, 256]
+
+# Model hyper-parameters
+hyperparams:
+  params:
+    batch_size: 256
+    num_workers: 3
+    pin_memory: True
+  model_params:
+    input_size: 288
+    n_classes: 8
+    hidden_sizes: [512, 256]
+  optimiser_params:
+    optimiser: SGD
+    learning_rate: 3.0E-4
+    momentum: None
+  max_epochs: 25
