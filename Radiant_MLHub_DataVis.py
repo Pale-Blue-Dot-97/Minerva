@@ -19,6 +19,7 @@ Requires:
 #                                                     IMPORTS
 # =====================================================================================================================
 import utils
+import yaml
 import imageio
 import numpy as np
 import matplotlib.pyplot as plt
@@ -31,45 +32,37 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
+config_path = 'config.yml'
+lcn_config_path = 'landcovernet.yml'
+
+with open(config_path) as file:
+    config = yaml.safe_load(file)
+
+with open(lcn_config_path) as file:
+    lcn_config = yaml.safe_load(file)
+
 # Path to directory holding dataset
-data_dir = 'landcovernet'
+data_dir = config['dir']['data']
 
 # Prefix to every patch ID in every patch directory name
-patch_dir_prefix = 'ref_landcovernet_v1_labels_'
+patch_dir_prefix = lcn_config['patch_dir_prefix']
 
 # Automatically fixes the layout of the figures to accommodate the colour bar legends
 plt.rcParams['figure.constrained_layout.use'] = True
 
 # Create a new projection system in lat-lon
 WGS84_4326 = osr.SpatialReference()
-WGS84_4326.ImportFromEPSG(4326)
+WGS84_4326.ImportFromEPSG(lcn_config['co_sys']['id'])
 
 # Downloads required plugin for imageio if not already present
 imageio.plugins.freeimage.download()
 
 # ======= RADIANT MLHUB PRESETS =======================================================================================
 # Radiant Earth land cover classes reformatted to split across two lines for neater plots
-RE_classes = {0: 'No Data',
-              1: 'Water',
-              2: 'Artificial\nBareground',
-              3: 'Natural\nBareground',
-              4: 'Permanent\nSnow/Ice',
-              5: 'Woody\nVegetation',
-              6: 'Cultivated\nVegetation',
-              7: '(Semi) Natural\nVegetation'}
-
-# Custom colour mapping specified by Radiant Earth Foundation
-RE_cmap_dict = {0: '#FF0000',  # Red
-                1: '#0000ff',
-                2: '#888888',
-                3: '#d1a46d',
-                4: '#f5f5ff',
-                5: '#d64c2b',
-                6: '#186818',
-                7: '#00ff00'}
+RE_classes = lcn_config['classes']
 
 # Custom cmap matching the Radiant Earth Foundation specifications
-RE_cmap = ListedColormap(RE_cmap_dict.values(), N=len(RE_classes))
+RE_cmap = ListedColormap(lcn_config['colours'].values(), N=len(RE_classes))
 
 # Pre-set RE figure height and width (in inches)
 RE_figdim = (8.02, 10.32)

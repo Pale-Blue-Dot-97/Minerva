@@ -22,7 +22,6 @@ from torch.utils.data import IterableDataset
 from torch.backends import cudnn
 from torchsummary import summary
 from itertools import cycle, chain, islice
-import Radiant_MLHub_DataVis as rdv
 from alive_progress import alive_bar
 from collections import deque, OrderedDict
 
@@ -35,12 +34,15 @@ config_path = 'config.yml'
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
+with open(config['dir']['data_config']) as file:
+    dataset_config = yaml.safe_load(file)
+
 # Defines size of the images to determine the number of batches
-image_size = config['data_specs']['image_size']
+image_size = dataset_config['data_specs']['image_size']
 
 flattened_image_size = image_size[0] * image_size[1]
 
-classes = rdv.RE_classes
+classes = dataset_config['classes']
 
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
@@ -438,7 +440,7 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
     """
     # Fetches all patch IDs in the dataset
     if patch_ids is None:
-        patch_ids = rdv.patch_grab()
+        patch_ids = utils.patch_grab()
 
     # Splits the dataset into train and val-test
     train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1] + split[2]),

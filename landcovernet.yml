@@ -1,0 +1,32 @@
+# Prefix to every patch ID in every patch directory name
+patch_dir_prefix: 'ref_landcovernet_v1_labels_'
+
+co_sys:
+  id: 4326
+  name: 'WGS84_4326'
+
+# Radiant Earth land cover classes reformatted to split across two lines for neater plots
+classes:
+  0: 'No Data'
+  1: 'Water'
+  2: 'Artificial\nBareground'
+  3: 'Natural\nBareground'
+  4: 'Permanent\nSnow/Ice'
+  5: 'Woody\nVegetation'
+  6: 'Cultivated\nVegetation'
+  7: '(Semi) Natural\nVegetation'
+
+# Custom colour mapping specified by Radiant Earth Foundation
+colours:
+  0: '#FF0000'  # Red
+  1: '#0000ff'
+  2: '#888888'
+  3: '#d1a46d'
+  4: '#f5f5ff'
+  5: '#d64c2b'
+  6: '#186818'
+  7: '#00ff00'
+
+data_specs:
+  band_ids: ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']
+  image_size: [256, 256]

@@ -26,9 +26,13 @@ from osgeo import gdal, osr
 #                                                     GLOBALS
 # =====================================================================================================================
 config_path = 'config.yml'
+dataset_config_path = 'landcovernet.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
+
+with open(dataset_config_path) as file:
+    dataset_config = yaml.safe_load(file)
 
 # Path to directory holding dataset
 data_dir = config['dir']['data']
@@ -40,17 +44,19 @@ results_dir = os.path.join(*config['dir']['results'])
 model_name = config['model_name']
 
 # Prefix to every patch ID in every patch directory name
-patch_dir_prefix = config['patch_dir_prefix']
+patch_dir_prefix = dataset_config['patch_dir_prefix']
 
 # Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
-band_ids = config['data_specs']['band_ids']
+band_ids = dataset_config['data_specs']['band_ids']
 
 # Defines size of the images to determine the number of batches
-image_size = config['data_specs']['image_size']
+image_size = dataset_config['data_specs']['image_size']
 
 flattened_image_size = image_size[0] * image_size[1]
 
-classes = rdv.RE_classes
+classes = dataset_config['classes']
+
+cmap_dict = dataset_config['colours']
 
 # Parameters
 params = config['hyperparams']['params']
@@ -87,7 +93,7 @@ def datetime_reformat(timestamp, fmt1, fmt2):
     Returns:
         (str): Datetime reformatted to fmt2
     """
-    return datetime.strptime(datetime, fmt1).strftime(fmt2)
+    return datetime.strptime(timestamp, fmt1).strftime(fmt2)
 
 
 def prefix_format(patch_id, scene):
@@ -498,7 +504,7 @@ def find_subpopulations(ids, plot=False):
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
-        plot_subpopulations(np.array(labels).flatten(), class_names=rdv.RE_classes, cmap=rdv.RE_cmap_dict)
+        plot_subpopulations(np.array(labels).flatten(), class_names=classes, cmap=cmap_dict)
 
     # Finds the distribution of the classes within the data
     return Counter(np.array(labels).flatten()).most_common()
@@ -669,7 +675,7 @@ def plot_results(metrics, z, y, save=True, show=False):
 
     plot_history(metrics, filename=filenames['History'], save=save, show=show)
 
-    plot_subpopulations(z, class_names=classes, cmap=rdv.RE_cmap_dict, filename=filenames['Pred'], save=save, show=show)
+    plot_subpopulations(z, class_names=classes, cmap=cmap_dict, filename=filenames['Pred'], save=save, show=show)
 
     make_confusion_matrix(test_labels=y, test_pred=z, filename=filenames['CM'], save=save, show=show)
 
