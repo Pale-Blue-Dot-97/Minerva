@@ -32,8 +32,8 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = 'config.yml'
-lcn_config_path = 'landcovernet.yml'
+config_path = '../config.yml'
+lcn_config_path = '../landcovernet.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)

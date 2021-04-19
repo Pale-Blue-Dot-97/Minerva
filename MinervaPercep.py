@@ -9,7 +9,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import utils
+from utils import utils
 from models import MLP
 from loaders import BalancedBatchLoader, BatchLoader
 import yaml
