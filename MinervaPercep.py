@@ -3,7 +3,12 @@
 Script to create a simple MLP to classify land cover of the images in the LandCoverNet V1 dataset
 
 TODO:
-
+    * Generalise make_loaders and transfer to trainer
+    * Add optimiser selection logic
+    * Add arg parsing from CLI
+    * Add model selection logic
+    * Add loss function selection logic
+    * Add ability to conduct hyper-parameter iterative variation experimentation
 
 """
 # =====================================================================================================================
