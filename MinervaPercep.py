@@ -3,7 +3,7 @@
 Script to create a simple MLP to classify land cover of the images in the LandCoverNet V1 dataset
 
 TODO:
-    * Add method to save models to file
+
 
 """
 # =====================================================================================================================

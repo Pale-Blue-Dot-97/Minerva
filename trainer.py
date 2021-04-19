@@ -4,6 +4,7 @@ Module containing the class Trainer to handle the fitting of neural networks
 
 TODO:
     * Fully document
+    * Add method to save models to file
 
 """
 # =====================================================================================================================
