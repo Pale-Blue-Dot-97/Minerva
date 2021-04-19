@@ -3,7 +3,9 @@
 Module containing neural network model classes
 
 TODO:
+    * Complete MLP documentation
     * Add CNN model
+    
 """
 # =====================================================================================================================
 #                                                     IMPORTS
