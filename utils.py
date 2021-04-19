@@ -1,6 +1,6 @@
 """utils
 
-Script to handle all utility functions for training, testing and evaluation of a model
+*Module* to handle all utility functions for training, testing and evaluation of a model
 
 TODO:
 
