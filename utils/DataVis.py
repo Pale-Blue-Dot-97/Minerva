@@ -34,12 +34,16 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 config_path = '../config.yml'
 lcn_config_path = '../landcovernet.yml'
+s2_config_path = '../S2.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
 with open(lcn_config_path) as file:
     lcn_config = yaml.safe_load(file)
+
+with open(s2_config_path) as file:
+    s2_config = yaml.safe_load(file)
 
 # Path to directory holding dataset
 data_dir = config['dir']['data']
@@ -69,32 +73,10 @@ RE_figdim = (8.02, 10.32)
 
 # ======= SENTINEL-2 L2A SCL PRESETS ==================================================================================
 # SCL land cover classes reformatted to split across two lines for neater plots
-S2_SCL_classes = ['No Data',
-                  'Saturated OR\nDefective',
-                  'Dark Area Pixels',
-                  'Cloud Shadows',
-                  'Vegetation',
-                  'Not Vegetated',
-                  'Water',
-                  'Unclassified',
-                  'Cloud Medium\nProbability',
-                  'Cloud High\nProbability',
-                  'Thin Cirrus',
-                  'Snow']
+S2_SCL_classes = s2_config['classes']
 
 # Custom colour mapping from class definitions in the SENTINEL-2 L2A MSI
-S2_SCL_cmap_dict = {0: '#000000',
-                    1: '#f71910',
-                    2: '#404040',
-                    3: '#7f3f0f',
-                    4: '#31ff00',
-                    5: '#faff10',
-                    6: '#2c00cc',
-                    7: '#757171',
-                    8: '#aeaaaa',
-                    9: '#d0cece',
-                    10: '#45c8fe',
-                    11: '#fc58ff'}
+S2_SCL_cmap_dict = s2_config['colours']
 
 # Custom cmap matching the SENTINEL-2 L2A SCL classes
 S2_SCL_cmap = ListedColormap(S2_SCL_cmap_dict.values(), N=len(S2_SCL_classes))
@@ -333,7 +315,8 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
         plt.show()
 
     # Path and file name of figure
-    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d'))
+    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], utils.datetime_reformat(names['date'],
+                                                                                        '%d.%m.%Y', '%Y%m%d'))
 
     # If true, save file to fn
     if save:
