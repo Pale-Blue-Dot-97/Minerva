@@ -30,7 +30,7 @@ from matplotlib.colors import ListedColormap
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = '../config/config.yml'
+config_path = '../../config/config.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
