@@ -14,15 +14,17 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from utils import utils
+from utils import utils, DataVis
 from models import MLP
 from loaders import BalancedBatchLoader, BatchLoader
 from trainer import Trainer
 import yaml
 import torch
+import numpy as np
 from torch.utils.data import DataLoader
 from torch.backends import cudnn
 from sklearn.model_selection import train_test_split
+from matplotlib.colors import ListedColormap
 
 
 # =====================================================================================================================
@@ -140,7 +142,11 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
 
     class_dist = utils.find_subpopulations(patch_ids, plot=False)
 
-    return loaders, n_batches, class_dist
+    ids = {'train': train_ids,
+           'val': val_ids,
+           'test': test_ids}
+
+    return loaders, n_batches, class_dist, ids
 
 
 # =====================================================================================================================
@@ -156,12 +162,20 @@ def main():
     # Define optimiser
     optimiser = torch.optim.SGD(model.parameters(), lr=config['hyperparams']['optimiser_params']['learning_rate'])
 
-    loaders, n_batches, _ = make_loaders(balance=True)
+    loaders, n_batches, _, ids = make_loaders(balance=True)
 
     trainer = Trainer(model=model, max_epochs=max_epochs, batch_size=params['batch_size'], optimiser=optimiser,
                       loaders=loaders, n_batches=n_batches, device=device)
     trainer.fit()
-    trainer.test()
+
+    z, y = trainer.test()
+
+    z = np.array(z).flatten()
+    y = np.array(y).flatten()
+
+    DataVis.plot_all_pvl(predictions=z, labels=y, patch_ids=ids['test'], exp_id=config['model_name'],
+                         classes=dataset_config['classes'],
+                         cmap=ListedColormap(dataset_config['colours'].values(), N=len(dataset_config['classes'])))
 
 
 if __name__ == '__main__':

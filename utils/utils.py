@@ -657,12 +657,16 @@ def make_confusion_matrix(test_pred, test_labels, filename=None, show=True, save
         plt.close()
 
 
+def timestamp_now(fmt='%d-%m-%Y_%H%M'):
+    return datetime.now().strftime(fmt)
+
+
 def format_plot_names():
     def standard_format(plot_type, file_ext):
         filename = '{}_{}_{}.{}'.format(model_name, plot_type, timestamp, file_ext)
         return os.path.join(results_dir, filename)
 
-    timestamp = datetime.now().strftime('%d-%m-%Y_%H%M')
+    timestamp = timestamp_now(fmt='%d-%m-%Y_%H%M')
 
     filenames = {'History': standard_format('MH', 'png'),
                  'Pred': standard_format('TP', 'png'),

@@ -122,3 +122,5 @@ class Trainer:
         submetrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
         utils.plot_results(submetrics, np.array(predictions).flatten(), np.array(labels).flatten(),
                            save=True, show=False)
+
+        return predictions, labels

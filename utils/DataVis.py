@@ -1,4 +1,4 @@
-"""Radiant_MLHub_DataVis
+"""DataVis
 
 Script to locate, open, read and visualise .tiff images and associated label masks downloaded from the
 Radiant MLHub API.
@@ -19,6 +19,7 @@ Requires:
 #                                                     IMPORTS
 # =====================================================================================================================
 import utils
+import os
 import yaml
 import imageio
 import numpy as np
@@ -28,13 +29,14 @@ from matplotlib.transforms import Bbox
 from osgeo import osr
 from sklearn.preprocessing import normalize
 from alive_progress import alive_bar
+from datetime import datetime
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = '../config.yml'
-lcn_config_path = '../landcovernet.yml'
-s2_config_path = '../S2.yml'
+config_path = 'config.yml'
+lcn_config_path = 'landcovernet.yml'
+s2_config_path = 'S2.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
@@ -429,6 +431,94 @@ def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_s
                  cmap_style=cmap_style, new_cs=new_cs, alpha=alpha, save=True, figdim=figdim)
 
     print('\r\nOPERATION COMPLETE')
+
+
+def plot_all_pvl(predictions, labels, patch_ids, exp_id, classes=RE_classes, cmap=RE_cmap):
+    def chunks(x, n):
+        """Yield successive n-sized chunks from x."""
+        for i in range(0, len(x), n):
+            yield x[i:i + n]
+    print(predictions.shape)
+
+    flat_z = np.array(list(chunks(predictions, int(len(predictions) / len(patch_ids)))))
+    flat_y = np.array(list(chunks(labels, int(len(labels) / len(patch_ids)))))
+
+    z_shape = flat_z.shape
+    y_shape = flat_y.shape
+
+    z = flat_z.reshape((z_shape[0], int(np.sqrt(z_shape[1])), int(np.sqrt(z_shape[1]))))
+    y = flat_y.reshape((y_shape[0], int(np.sqrt(y_shape[1])), int(np.sqrt(y_shape[1]))))
+
+    print(z.shape)
+    print(y.shape)
+
+    prediction_plot(z[0], y[0], patch_ids[0], exp_id, classes=classes, cmap_style=cmap, figdim=(10, 12))
+
+    #for j in range(len(patch_ids)):
+    #    prediction_plot(z[j], y[j], patch_ids[j], exp_id, classes=classes, cmap_style=cmap, show=False)
+
+
+def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_style=None,
+                    show=True, save=True, figdim=(8.02, 10.32)):
+    # Initialise figure
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=figdim)
+
+    # Creates a cmap from query
+    cmap = plt.get_cmap(cmap_style, len(classes))
+
+    # Plots heatmap onto figure
+    z_heatmap = axes[0].imshow(z, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+    y_heatmap = axes[1].imshow(y, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+
+    # Sets tick intervals to standard 32x32 block size
+    axes[0].set_xticks(np.arange(0, z.shape[0] + 1, block_size))
+    axes[0].set_yticks(np.arange(0, z.shape[1] + 1, block_size))
+
+    axes[1].set_xticks(np.arange(0, y.shape[0] + 1, block_size))
+    axes[1].set_yticks(np.arange(0, y.shape[1] + 1, block_size))
+
+    # Add grid overlay
+    axes[0].grid(which='both', color='#CCCCCC', linestyle=':')
+    axes[1].grid(which='both', color='#CCCCCC', linestyle=':')
+
+    # Plots colour bar onto figure
+    clb = plt.colorbar(z_heatmap, ticks=np.arange(0, len(classes)), shrink=0.9, aspect=75, drawedges=True)
+
+    # Sets colour bar ticks to class labels
+    clb.ax.set_yticklabels(classes, fontsize=11)
+
+    # Bodge to get a figure title by using the colour bar title.
+    plt.title('{} Predicted vs Ground Truth'.format(patch_id), fontsize=15)
+
+    # Set axis labels
+    axes[0].set_xlabel('(x) - Pixel Position', fontsize=14)
+    axes[0].set_ylabel('(y) - Pixel Position', fontsize=14)
+    axes[1].set_xlabel('(x) - Pixel Position', fontsize=14)
+    axes[1].set_ylabel('(y) - Pixel Position', fontsize=14)
+
+    # Manual trial and error fig size which fixes aspect ratio issue
+    #fig.set_figheight(figdim[0])
+    #fig.set_figwidth(figdim[1])
+
+    # Display figure
+    if show:
+        plt.show()
+
+    # Path and file name of figure
+    fn = '{}/{}_{}_PvL_{}.png'.format(os.path.join(*config['dir']['results']), exp_id, patch_id, datetime.now().strftime('%d-%m-%Y_%H%M'))
+
+    # If true, save file to fn
+    if save:
+        # Checks if file already exists. Deletes if true
+        utils.utils.exist_delete_check(fn)
+
+        # Save figure to fn
+        fig.savefig(fn)
+
+    # Close figure
+    plt.close()
+
+    return fn
 
 
 # =====================================================================================================================
