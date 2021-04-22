@@ -26,8 +26,8 @@ from osgeo import gdal, osr
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = 'config.yml'
-dataset_config_path = 'landcovernet.yml'
+config_path = '../../config/config.yml'
+dataset_config_path = '../../config/landcovernet.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)

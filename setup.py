@@ -2,6 +2,7 @@ from setuptools import setup
 
 setup(name='Minerva',
       version='0.1',
+      author='Harry Baker',
       packages=['Minerva',
                 'Minerva.utils'],
       scripts=['Minerva/bin/DownloadStrapper.py',

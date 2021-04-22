@@ -18,7 +18,7 @@ Requires:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import utils
+from Minerva.utils import utils
 import os
 import yaml
 import imageio
@@ -29,14 +29,13 @@ from matplotlib.transforms import Bbox
 from osgeo import osr
 from sklearn.preprocessing import normalize
 from alive_progress import alive_bar
-from datetime import datetime
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = 'config.yml'
-lcn_config_path = 'landcovernet.yml'
-s2_config_path = 'S2.yml'
+config_path = '../../config/config.yml'
+lcn_config_path = '../../config/landcovernet.yml'
+s2_config_path = '../../config/S2.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
@@ -505,12 +504,12 @@ def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_st
         plt.show()
 
     # Path and file name of figure
-    fn = '{}/{}_{}_PvL_{}.png'.format(os.path.join(*config['dir']['results']), exp_id, patch_id, datetime.now().strftime('%d-%m-%Y_%H%M'))
+    fn = '{}/{}_{}_PvL_{}.png'.format(os.path.join(*config['dir']['results']), exp_id, patch_id, utils.timestamp_now())
 
     # If true, save file to fn
     if save:
         # Checks if file already exists. Deletes if true
-        utils.utils.exist_delete_check(fn)
+        utils.exist_delete_check(fn)
 
         # Save figure to fn
         fig.savefig(fn)

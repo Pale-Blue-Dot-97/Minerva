@@ -14,10 +14,10 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.Minerva.utils import utils, DataVis
-from models import MLP
-from loaders import BalancedBatchLoader, BatchLoader
-from trainer import Trainer
+from Minerva.utils import utils, DataVis
+from Minerva.models import MLP
+from Minerva.loaders import BalancedBatchLoader, BatchLoader
+from Minerva.trainer import Trainer
 import yaml
 import torch
 import numpy as np

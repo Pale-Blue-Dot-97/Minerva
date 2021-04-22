@@ -1,7 +1,7 @@
 # Paths to directories containing the data and the results
 dir:
-  data: 'landcovernet'
-  data_config: 'landcovernet.yml'
+  data: '../../data/landcovernet'
+  data_config: '../../config/landcovernet.yml'
   results:
     - 'F:'
     - 'Harry'
