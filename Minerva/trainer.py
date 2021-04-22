@@ -10,7 +10,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from utils import utils
+from Minerva.Minerva.utils import utils
 import numpy as np
 import torch
 from torchsummary import summary

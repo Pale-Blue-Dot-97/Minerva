@@ -14,7 +14,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from utils import utils, DataVis
+from Minerva.Minerva.utils import utils, DataVis
 from models import MLP
 from loaders import BalancedBatchLoader, BatchLoader
 from trainer import Trainer
@@ -30,7 +30,7 @@ from matplotlib.colors import ListedColormap
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = 'config.yml'
+config_path = '../config/config.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
