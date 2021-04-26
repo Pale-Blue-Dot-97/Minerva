@@ -16,5 +16,7 @@ imageio~=2.9.0
 torchsummary~=1.5.1
 setuptools~=52.0.0
 
--f https://download.pytorch.org/whl/torch_stable.html
+--find-links https://download.pytorch.org/whl/torch_stable.html
 torch~=1.7.1
+
+GDAL~=3.0.2
