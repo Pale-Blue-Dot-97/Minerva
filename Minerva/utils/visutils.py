@@ -1,7 +1,6 @@
-"""DataVis
+"""visutils
 
-Script to locate, open, read and visualise .tiff images and associated label masks downloaded from the
-Radiant MLHub API.
+Module to visualise .tiff images and associated label masks downloaded from the Radiant MLHub API.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -30,10 +29,6 @@ TODO:
     * Add ability to plot labelled RGB images using the annual land cover labels
     * Add option to append annual land cover mask to patch GIFs
 
-Requires:
-    * API Key.txt containing your Radiant MLHub API key
-    * Dataset downloaded via Landcovernet_Download_API.py in this directory
-
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -44,9 +39,7 @@ import yaml
 import imageio
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.colors import ListedColormap
 from matplotlib.transforms import Bbox
-from osgeo import osr
 from sklearn.preprocessing import normalize
 from alive_progress import alive_bar
 
@@ -55,16 +48,12 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 lcn_config_path = '../../config/landcovernet.yml'
-s2_config_path = '../../config/S2.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
 with open(lcn_config_path) as file:
     lcn_config = yaml.safe_load(file)
-
-with open(s2_config_path) as file:
-    s2_config = yaml.safe_load(file)
 
 # Path to directory holding dataset
 data_dir = config['dir']['data']
@@ -75,35 +64,8 @@ patch_dir_prefix = lcn_config['patch_dir_prefix']
 # Automatically fixes the layout of the figures to accommodate the colour bar legends
 plt.rcParams['figure.constrained_layout.use'] = True
 
-# Create a new projection system in lat-lon
-WGS84_4326 = osr.SpatialReference()
-WGS84_4326.ImportFromEPSG(lcn_config['co_sys']['id'])
-
 # Downloads required plugin for imageio if not already present
 imageio.plugins.freeimage.download()
-
-# ======= RADIANT MLHUB PRESETS =======================================================================================
-# Radiant Earth land cover classes reformatted to split across two lines for neater plots
-RE_classes = lcn_config['classes']
-
-# Custom cmap matching the Radiant Earth Foundation specifications
-RE_cmap = ListedColormap(lcn_config['colours'].values(), N=len(RE_classes))
-
-# Pre-set RE figure height and width (in inches)
-RE_figdim = (8.02, 10.32)
-
-# ======= SENTINEL-2 L2A SCL PRESETS ==================================================================================
-# SCL land cover classes reformatted to split across two lines for neater plots
-S2_SCL_classes = s2_config['classes']
-
-# Custom colour mapping from class definitions in the SENTINEL-2 L2A MSI
-S2_SCL_cmap_dict = s2_config['colours']
-
-# Custom cmap matching the SENTINEL-2 L2A SCL classes
-S2_SCL_cmap = ListedColormap(S2_SCL_cmap_dict.values(), N=len(S2_SCL_classes))
-
-# Preset SCL figure height and width (in inches)
-S2_SCL_figdim = (8, 10.44)
 
 
 # =====================================================================================================================
@@ -452,7 +414,7 @@ def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_s
     print('\r\nOPERATION COMPLETE')
 
 
-def plot_all_pvl(predictions, labels, patch_ids, exp_id, classes=RE_classes, cmap=RE_cmap):
+def plot_all_pvl(predictions, labels, patch_ids, exp_id, classes, cmap):
     def chunks(x, n):
         """Yield successive n-sized chunks from x."""
         for i in range(0, len(x), n):
@@ -538,20 +500,3 @@ def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_st
     plt.close()
 
     return fn
-
-
-# =====================================================================================================================
-#                                                      MAIN
-# =====================================================================================================================
-if __name__ == '__main__':
-    # Additional options for names dictionary:
-    #           'patch_ID': '31PGS_15',     Five char alpha-numeric SENTINEL tile ID and
-    #                                       2 digit int REF MLHub chip (patch) ID ranging from 0-29
-    #           'date': '16.04.2018',       Date of scene in DD.MM.YYYY format
-    my_names = {'band_ID': 'SCL',           # 3 char alpha-numeric Band ID
-                'R_band': 'B02',            # Red, Green, Blue band IDs for RGB images
-                'G_band': 'B03',
-                'B_band': 'B04'}
-
-    make_all_the_gifs(my_names, frame_length=0.5, data_band=1, classes=S2_SCL_classes, cmap_style=S2_SCL_cmap,
-                      new_cs=WGS84_4326, alpha=0.3, figdim=S2_SCL_figdim)

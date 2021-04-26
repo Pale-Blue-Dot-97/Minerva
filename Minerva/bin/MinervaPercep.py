@@ -37,7 +37,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import utils, DataVis
+from Minerva.utils import utils, visutils
 from Minerva.models import MLP
 from Minerva.loaders import BalancedBatchLoader, BatchLoader
 from Minerva.trainer import Trainer
@@ -196,9 +196,9 @@ def main():
     z = np.array(z).flatten()
     y = np.array(y).flatten()
 
-    DataVis.plot_all_pvl(predictions=z, labels=y, patch_ids=ids['test'], exp_id=config['model_name'],
-                         classes=dataset_config['classes'],
-                         cmap=ListedColormap(dataset_config['colours'].values(), N=len(dataset_config['classes'])))
+    visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=ids['test'], exp_id=config['model_name'],
+                          classes=dataset_config['classes'],
+                          cmap=ListedColormap(dataset_config['colours'].values(), N=len(dataset_config['classes'])))
 
 
 if __name__ == '__main__':
