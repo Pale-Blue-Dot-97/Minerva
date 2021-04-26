@@ -47,7 +47,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
             self.wheels[cls] = deque(maxlen=wheel_size)
 
         # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
-        patches = pd.Series([self.load_patch_df(patch_id) for patch_id in self.streams_df.sample(frac=1).iloc[0]])
+        patches = pd.Series([utils.load_patch_df(patch_id) for patch_id in self.streams_df.sample(frac=1).iloc[0]])
         patches.apply(self.refresh_wheels)
 
         # Checks if wheel is empty after adding to wheel
@@ -55,35 +55,6 @@ class BalancedBatchLoader(IterableDataset, ABC):
             if not self.wheels[cls]:
                 print('EMPTY WHEEL {}!'.format(cls))
                 self.emergency_fill(cls)
-
-    def load_patch_df(self, patch_id):
-        """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns
-
-        Args:
-            patch_id (str): ID for patch to be loaded
-
-        Returns:
-            df (pandas.DataFrame): Patch loaded into a DataFrame
-        """
-        # Initialise DataFrame object
-        df = pd.DataFrame()
-
-        # Load patch from disk and create time-series pixel stacks
-        patch = utils.make_time_series(patch_id)
-
-        # Reshape patch
-        patch = patch.reshape((patch.shape[0] * patch.shape[1], patch.shape[2] * patch.shape[3]))
-
-        # Loads accompanying labels from file and flattens
-        labels = utils.lc_load(patch_id).flatten()
-
-        # Wraps each pixel stack in an numpy.array, appends to a list and adds as a column to df
-        df['PATCH'] = [np.array(pixel) for pixel in patch]
-
-        # Adds labels as a column to df
-        df['LABELS'] = labels
-
-        return df
 
     def load_patches(self, row):
         """ Loads the patches associated with the patch IDs in row as pandas.DataFrames nested into a pandas.Series
@@ -95,7 +66,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
         Returns:
             (pandas.Series): Series of DataFrames of patches
         """
-        return pd.Series([self.load_patch_df(row[1][cls]) for cls in self.streams_df.columns.to_list()])
+        return pd.Series([utils.load_patch_df(row[1][cls]) for cls in self.streams_df.columns.to_list()])
 
     def refresh_wheels(self, patch_df):
         for cls in self.streams_df.columns.to_list():
@@ -105,7 +76,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
     # THIS IS BODGY AF
     def emergency_fill(self, cls):
         print('EMERGENCY FILL INITIATED')
-        patches = pd.Series([self.load_patch_df(patch_id) for patch_id in self.streams_df[cls].sample(frac=1)])
+        patches = pd.Series([utils.load_patch_df(patch_id) for patch_id in self.streams_df[cls].sample(frac=1)])
 
         for patch in patches:
             print('ATTEMPTING TO INIT WHEEL')

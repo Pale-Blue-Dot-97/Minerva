@@ -488,6 +488,36 @@ def make_time_series(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
+def load_patch_df(patch_id):
+    """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns
+
+    Args:
+        patch_id (str): ID for patch to be loaded
+
+    Returns:
+        df (pandas.DataFrame): Patch loaded into a DataFrame
+    """
+    # Initialise DataFrame object
+    df = pd.DataFrame()
+
+    # Load patch from disk and create time-series pixel stacks
+    patch = make_time_series(patch_id)
+
+    # Reshape patch
+    patch = patch.reshape((patch.shape[0] * patch.shape[1], patch.shape[2] * patch.shape[3]))
+
+    # Loads accompanying labels from file and flattens
+    labels = lc_load(patch_id).flatten()
+
+    # Wraps each pixel stack in an numpy.array, appends to a list and adds as a column to df
+    df['PATCH'] = [np.array(pixel) for pixel in patch]
+
+    # Adds labels as a column to df
+    df['LABELS'] = labels
+
+    return df
+
+
 def find_subpopulations(ids, plot=False):
     """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class
 
