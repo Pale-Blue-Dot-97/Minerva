@@ -54,6 +54,16 @@ with open(s2_config_path) as file:
 WGS84_4326 = osr.SpatialReference()
 WGS84_4326.ImportFromEPSG(lcn_config['co_sys']['id'])
 
+# ======= RADIANT MLHUB PRESETS =======================================================================================
+# Radiant Earth land cover classes reformatted to split across two lines for neater plots
+RE_classes = lcn_config['classes']
+
+# Custom cmap matching the Radiant Earth Foundation specifications
+RE_cmap = ListedColormap(lcn_config['colours'].values(), N=len(RE_classes))
+
+# Pre-set RE figure height and width (in inches)
+RE_figdim = (8.02, 10.32)
+
 # ======= SENTINEL-2 L2A SCL PRESETS ==================================================================================
 # SCL land cover classes reformatted to split across two lines for neater plots
 S2_SCL_classes = s2_config['classes']
