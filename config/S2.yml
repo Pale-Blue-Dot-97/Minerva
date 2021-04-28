@@ -1,18 +1,18 @@
 # ======= SENTINEL-2 L2A SCL PRESETS ==================================================================================
 # SCL land cover classes reformatted to split across two lines for neater plots
 classes:
-  - 'No Data'
-  - 'Saturated OR\nDefective'
-  - 'Dark Area Pixels'
-  - 'Cloud Shadows'
-  - 'Vegetation'
-  - 'Not Vegetated'
-  - 'Water'
-  - 'Unclassified'
-  - 'Cloud Medium\nProbability'
-  - 'Cloud High\nProbability'
-  - 'Thin Cirrus'
-  - 'Snow'
+  - "No Data"
+  - "Saturated OR\nDefective"
+  - "Dark Area Pixels"
+  - "Cloud Shadows"
+  - "Vegetation"
+  - "Not Vegetated"
+  - "Water"
+  - "Unclassified"
+  - "Cloud Medium\nProbability"
+  - "Cloud High\nProbability"
+  - "Thin Cirrus"
+  - "Snow"
 
 # Custom colour mapping from class definitions in the SENTINEL-2 L2A MSI
 colours:

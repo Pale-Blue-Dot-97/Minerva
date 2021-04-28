@@ -100,6 +100,17 @@ def path_format(names):
     return rgb, scene_path, data_name
 
 
+def deinterlace(x, f):
+    new_x = []
+    for i in range(f):
+        x_i = []
+        for j in np.arange(start=i, stop=len(x), step=f):
+            x_i.append(x[j])
+        new_x.append(np.array(x_i).flatten())
+
+    return np.array(new_x).flatten()
+
+
 def discrete_heatmap(data, classes=None, cmap_style=None):
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images
 
@@ -419,7 +430,6 @@ def plot_all_pvl(predictions, labels, patch_ids, exp_id, classes, cmap):
         """Yield successive n-sized chunks from x."""
         for i in range(0, len(x), n):
             yield x[i:i + n]
-    print(predictions.shape)
 
     flat_z = np.array(list(chunks(predictions, int(len(predictions) / len(patch_ids)))))
     flat_y = np.array(list(chunks(labels, int(len(labels) / len(patch_ids)))))
@@ -427,20 +437,15 @@ def plot_all_pvl(predictions, labels, patch_ids, exp_id, classes, cmap):
     z_shape = flat_z.shape
     y_shape = flat_y.shape
 
-    z = flat_z.reshape((z_shape[0], int(np.sqrt(z_shape[1])), int(np.sqrt(z_shape[1]))))
-    y = flat_y.reshape((y_shape[0], int(np.sqrt(y_shape[1])), int(np.sqrt(y_shape[1]))))
+    z = np.array([z_i.reshape((int(np.sqrt(z_shape[1])), int(np.sqrt(z_shape[1])))) for z_i in flat_z])
+    y = np.array([y_i.reshape((int(np.sqrt(y_shape[1])), int(np.sqrt(y_shape[1])))) for y_i in flat_y])
 
-    print(z.shape)
-    print(y.shape)
-
-    prediction_plot(z[0], y[0], patch_ids[0], exp_id, classes=classes, cmap_style=cmap, figdim=(10, 12))
-
-    #for j in range(len(patch_ids)):
-    #    prediction_plot(z[j], y[j], patch_ids[j], exp_id, classes=classes, cmap_style=cmap, show=False)
+    for j in range(len(patch_ids)):
+        prediction_plot(z[j], y[j], patch_ids[j], exp_id, classes=classes, cmap_style=cmap, show=False, figdim=(9, 5))
 
 
 def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_style=None,
-                    show=True, save=True, figdim=(8.02, 10.32)):
+                    show=True, save=True, figdim=None):
     # Initialise figure
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=figdim)
 
@@ -463,23 +468,22 @@ def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_st
     axes[1].grid(which='both', color='#CCCCCC', linestyle=':')
 
     # Plots colour bar onto figure
-    clb = plt.colorbar(z_heatmap, ticks=np.arange(0, len(classes)), shrink=0.9, aspect=75, drawedges=True)
+    clb = fig.colorbar(z_heatmap, ax=axes.ravel().tolist(), location='top', ticks=np.arange(0, len(classes)),
+                       aspect=75, drawedges=True)
 
     # Sets colour bar ticks to class labels
-    clb.ax.set_yticklabels(classes, fontsize=11)
+    clb.ax.set_xticklabels(classes.values(), fontsize=9)
 
-    # Bodge to get a figure title by using the colour bar title.
-    plt.title('{} Predicted vs Ground Truth'.format(patch_id), fontsize=15)
+    # Set figure title and subplot titles
+    fig.suptitle('{}'.format(patch_id), fontsize=15)
+    axes[0].set_title('Predicted')
+    axes[1].set_title('Ground Truth')
 
     # Set axis labels
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=14)
     axes[0].set_ylabel('(y) - Pixel Position', fontsize=14)
     axes[1].set_xlabel('(x) - Pixel Position', fontsize=14)
     axes[1].set_ylabel('(y) - Pixel Position', fontsize=14)
-
-    # Manual trial and error fig size which fixes aspect ratio issue
-    #fig.set_figheight(figdim[0])
-    #fig.set_figwidth(figdim[1])
 
     # Display figure
     if show:

@@ -43,7 +43,6 @@ from Minerva.loaders import BalancedBatchLoader, BatchLoader
 from Minerva.trainer import Trainer
 import yaml
 import torch
-import numpy as np
 from torch.utils.data import DataLoader
 from torch.backends import cudnn
 from sklearn.model_selection import train_test_split
@@ -193,8 +192,8 @@ def main():
 
     z, y = trainer.test()
 
-    z = np.array(z).flatten()
-    y = np.array(y).flatten()
+    z = visutils.deinterlace(z, params['num_workers'])
+    y = visutils.deinterlace(y, params['num_workers'])
 
     visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=ids['test'], exp_id=config['model_name'],
                           classes=dataset_config['classes'],
