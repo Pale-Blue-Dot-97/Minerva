@@ -83,13 +83,14 @@ class Trainer:
         total_correct = 0.0
         test_labels = []
         test_predictions = []
+        test_ids = []
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
             if mode is 'train':
                 self.model.train()
             else:
                 self.model.eval()
 
-            for x_batch, y_batch in islice(self.loaders[mode], self.n_batches[mode]):
+            for x_batch, y_batch, patch_id in islice(self.loaders[mode], self.n_batches[mode]):
                 # Transfer to GPU
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
 
@@ -112,13 +113,14 @@ class Trainer:
                     total_correct += (torch.argmax(z, 1) == y).sum().item()
                     test_predictions.append(np.array(torch.argmax(z, 1).cpu()))
                     test_labels.append(np.array(y.cpu()))
+                    test_ids.append(patch_id)
                 bar()
 
         self.metrics['{}_loss'.format(mode)].append(total_loss / self.n_batches[mode])
         self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size))
 
         if mode is 'test':
-            return test_predictions, test_labels
+            return test_predictions, test_labels, test_ids
         else:
             return
 
@@ -134,15 +136,15 @@ class Trainer:
             print('Train Accuracy: {}% | Validation Accuracy: {}% \n'.format(self.metrics['train_acc'][epoch] * 100.0,
                                                                              self.metrics['val_acc'][epoch] * 100.0))
 
-    def test(self):
+    def test(self, save=True):
         print('\r\nTESTING')
-        predictions, labels = self.epoch('test')
+        predictions, labels, ids = self.epoch('test')
 
         print('Test Loss: {} | Test Accuracy: {}% \n'.format(self.metrics['test_loss'][0],
                                                              self.metrics['test_acc'][0] * 100.0))
 
         submetrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
         utils.plot_results(submetrics, np.array(predictions).flatten(), np.array(labels).flatten(),
-                           save=True, show=False)
+                           save=save, show=False)
 
-        return predictions, labels
+        return predictions, labels, ids

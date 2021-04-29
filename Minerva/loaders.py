@@ -135,7 +135,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
                 # Yield pixel stack at position [0] for this class's wheel and the corresponding class label
                 # i.e this class number as a tensor int
                 yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
-                      torch.tensor(cls, dtype=torch.long)
+                      torch.tensor(cls, dtype=torch.long), ''
 
     def get_stream(self, streams_df):
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
@@ -174,7 +174,7 @@ class BatchLoader(IterableDataset, ABC):
         y = torch.tensor(np.array(utils.lc_load(patch_id), dtype=np.int64).flatten(), dtype=torch.long)
 
         for i in range(len(y)):
-            yield x[i], y[i]
+            yield x[i], y[i], patch_id
 
     def get_stream(self, patch_ids):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))

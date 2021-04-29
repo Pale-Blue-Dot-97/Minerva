@@ -47,7 +47,7 @@ from torch.utils.data import DataLoader
 from torch.backends import cudnn
 from sklearn.model_selection import train_test_split
 from matplotlib.colors import ListedColormap
-
+import numpy as np
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -190,12 +190,15 @@ def main():
                       loaders=loaders, n_batches=n_batches, device=device)
     trainer.fit()
 
-    z, y = trainer.test()
+    z, y, test_ids = trainer.test(save=False)
 
     z = visutils.deinterlace(z, params['num_workers'])
     y = visutils.deinterlace(y, params['num_workers'])
+    test_ids = visutils.deinterlace(test_ids, params['num_workers'])
 
-    visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=ids['test'], exp_id=config['model_name'],
+    test_ids = [test_ids[i] for i in np.arange(start=0, stop=len(test_ids), step=image_len)]
+
+    visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=test_ids, exp_id=config['model_name'],
                           classes=dataset_config['classes'],
                           cmap=ListedColormap(dataset_config['colours'].values(), N=len(dataset_config['classes'])))
 
