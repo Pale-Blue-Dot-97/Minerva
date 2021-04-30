@@ -19,7 +19,9 @@ Script to create a simple MLP to classify land cover of the images in the LandCo
     see <https://www.gnu.org/licenses/>.
 
 Author: Harry James Baker
+
 Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
+
 Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd
@@ -48,17 +50,22 @@ from torch.backends import cudnn
 from sklearn.model_selection import train_test_split
 from matplotlib.colors import ListedColormap
 import numpy as np
+import osr
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
 config_path = '../../config/config.yml'
+lcn_config_path = '../../config/landcovernet.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
 with open(config['dir']['data_config']) as file:
     dataset_config = yaml.safe_load(file)
+
+with open(lcn_config_path) as file:
+    lcn_config = yaml.safe_load(file)
 
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
@@ -198,7 +205,11 @@ def main():
 
     test_ids = [test_ids[i] for i in np.arange(start=0, stop=len(test_ids), step=image_len)]
 
-    visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=test_ids, exp_id=config['model_name'],
+    # Create a new projection system in lat-lon
+    WGS84_4326 = osr.SpatialReference()
+    WGS84_4326.ImportFromEPSG(lcn_config['co_sys']['id'])
+
+    visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=test_ids, exp_id=config['model_name'], new_cs=WGS84_4326,
                           classes=dataset_config['classes'],
                           cmap=ListedColormap(dataset_config['colours'].values(), N=len(dataset_config['classes'])))
 

@@ -19,8 +19,11 @@ Module to handle all utility functions for training, testing and evaluation of a
     see <https://www.gnu.org/licenses/>.
 
 Author: Harry James Baker
+
 Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
+
 Institution: University of Southampton
+
 
 Created under a project funded by the Ordnance Survey Ltd
 

@@ -19,7 +19,9 @@ Module to visualise .tiff images and associated label masks downloaded from the 
     see <https://www.gnu.org/licenses/>.
 
 Author: Harry James Baker
+
 Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
+
 Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd
@@ -39,8 +41,9 @@ import yaml
 import imageio
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import Bbox
-from sklearn.preprocessing import normalize
+import cv2
 from alive_progress import alive_bar
 
 # =====================================================================================================================
@@ -166,7 +169,9 @@ def stack_rgb(scene_path, rgb):
     # Load R, G, B images from file and normalise
     bands = []
     for band in ['R', 'G', 'B']:
-        bands.append(normalize(utils.load_array(scene_path + rgb[band], 1)))
+        img = utils.load_array(scene_path + rgb[band], 1)
+        norm = np.zeros((img.shape[0], img.shape[1]))
+        bands.append(cv2.normalize(img, norm, 0, 255, cv2.NORM_MINMAX))
 
     # Stack together RGB bands
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
@@ -425,7 +430,7 @@ def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_s
     print('\r\nOPERATION COMPLETE')
 
 
-def plot_all_pvl(predictions, labels, patch_ids, exp_id, classes, cmap):
+def plot_all_pvl(predictions, labels, patch_ids, exp_id, new_cs, classes, cmap):
     def chunks(x, n):
         """Yield successive n-sized chunks from x."""
         for i in range(0, len(x), n):
@@ -440,14 +445,37 @@ def plot_all_pvl(predictions, labels, patch_ids, exp_id, classes, cmap):
     z = np.array([z_i.reshape((int(np.sqrt(z_shape[1])), int(np.sqrt(z_shape[1])))) for z_i in flat_z])
     y = np.array([y_i.reshape((int(np.sqrt(y_shape[1])), int(np.sqrt(y_shape[1])))) for y_i in flat_y])
 
+    figdim = (9.3, 10.5)
+
     for j in range(len(patch_ids)):
-        prediction_plot(z[j], y[j], patch_ids[j], exp_id, classes=classes, cmap_style=cmap, show=False, figdim=(9, 5))
+        prediction_plot(z[j], y[j], patch_ids[j], exp_id, new_cs, classes=classes, cmap_style=cmap, show=False,
+                        figdim=figdim)
 
 
-def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_style=None,
+def prediction_plot(z, y, patch_id, exp_id, new_cs, classes=None, block_size=32, cmap_style=None,
                     show=True, save=True, figdim=None):
-    # Initialise figure
-    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=figdim)
+    names = config['rgb_params']
+    names['patch_ID'] = patch_id
+    names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id)[-1], '%Y_%m_%d', '%d.%m.%Y')
+
+    # Get required formatted paths and names
+    rgb, scene_path, data_name = path_format(names)
+
+    # Stacks together the R, G, & B bands to form an array of the RGB image
+    rgb_image = stack_rgb(scene_path, rgb)
+
+    print(rgb_image)
+    print(rgb_image.shape)
+
+    # Defines the 'extent' of the image based on the size of the mask.
+    extent = 0, y.shape[0], 0, y.shape[1]
+
+    # Initialises a figure
+    fig = plt.figure(figsize=figdim)
+
+    gs = GridSpec(nrows=2, ncols=2, figure=fig)
+
+    axes = np.array([fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[1, :])])
 
     # Creates a cmap from query
     cmap = plt.get_cmap(cmap_style, len(classes))
@@ -456,6 +484,9 @@ def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_st
     z_heatmap = axes[0].imshow(z, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
     y_heatmap = axes[1].imshow(y, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
+    # Create RGB image
+    axes[2].imshow(rgb_image, extent=extent)
+
     # Sets tick intervals to standard 32x32 block size
     axes[0].set_xticks(np.arange(0, z.shape[0] + 1, block_size))
     axes[0].set_yticks(np.arange(0, z.shape[1] + 1, block_size))
@@ -463,13 +494,34 @@ def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_st
     axes[1].set_xticks(np.arange(0, y.shape[0] + 1, block_size))
     axes[1].set_yticks(np.arange(0, y.shape[1] + 1, block_size))
 
+    axes[2].set_xticks(np.arange(0, rgb_image.shape[0] + 1, block_size))
+    axes[2].set_yticks(np.arange(0, rgb_image.shape[1] + 1, block_size))
+
     # Add grid overlay
     axes[0].grid(which='both', color='#CCCCCC', linestyle=':')
     axes[1].grid(which='both', color='#CCCCCC', linestyle=':')
+    axes[2].grid(which='both', color='#CCCCCC', linestyle=':')
+
+    # Gets the co-ordinates of the corners of the image in decimal lat-lon
+    corners = utils.transform_coordinates(scene_path + data_name, new_cs)
+
+    # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image
+    lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
+                             num=int(y.shape[0] / block_size) + 1, endpoint=True)
+    lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
+                             num=int(y.shape[0] / block_size) + 1, endpoint=True)
+
+    # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis
+    lat_labels = utils.dec2deg(lat_extent, axis='lat')
+    lon_labels = utils.dec2deg(lon_extent, axis='lon')
+
+    # Sets the secondary axis tick labels
+    axes[2].set_xticklabels(lon_labels, fontsize=9, rotation=30)
+    axes[2].set_yticklabels(lat_labels, fontsize=9)
 
     # Plots colour bar onto figure
-    clb = fig.colorbar(z_heatmap, ax=axes.ravel().tolist(), location='top', ticks=np.arange(0, len(classes)),
-                       aspect=75, drawedges=True)
+    clb = fig.colorbar(z_heatmap, ax=axes.ravel().tolist(), location='top',
+                       ticks=np.arange(0, len(classes)), aspect=75, drawedges=True)
 
     # Sets colour bar ticks to class labels
     clb.ax.set_xticklabels(classes.values(), fontsize=9)
@@ -480,10 +532,12 @@ def prediction_plot(z, y, patch_id, exp_id, classes=None, block_size=32, cmap_st
     axes[1].set_title('Ground Truth')
 
     # Set axis labels
-    axes[0].set_xlabel('(x) - Pixel Position', fontsize=14)
-    axes[0].set_ylabel('(y) - Pixel Position', fontsize=14)
-    axes[1].set_xlabel('(x) - Pixel Position', fontsize=14)
-    axes[1].set_ylabel('(y) - Pixel Position', fontsize=14)
+    axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)
+    axes[0].set_ylabel('(y) - Pixel Position', fontsize=10)
+    axes[1].set_xlabel('(x) - Pixel Position', fontsize=10)
+    axes[1].set_ylabel('(y) - Pixel Position', fontsize=10)
+    axes[2].set_xlabel('Longitude', fontsize=10)
+    axes[2].set_ylabel('Latitude', fontsize=10)
 
     # Display figure
     if show:

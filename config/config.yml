@@ -28,4 +28,11 @@ hyperparams:
     optimiser: SGD
     learning_rate: 3.0E-4
     momentum: None
-  max_epochs: 1
+  max_epochs: 7
+
+# Settings for RGB image creation
+rgb_params:
+  band_ID: 'SCL'           # 3 char alpha-numeric Band ID
+  R_band: 'B02'            # Red, Green, Blue band IDs for RGB images
+  G_band: 'B03'
+  B_band: 'B04'

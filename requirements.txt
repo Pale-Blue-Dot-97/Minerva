@@ -20,3 +20,4 @@ setuptools~=52.0.0
 torch~=1.7.1
 
 GDAL~=3.0.2
+py-opencv~=3.4.2
