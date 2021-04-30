@@ -47,15 +47,32 @@ from collections import deque
 #                                                     CLASSES
 # =====================================================================================================================
 class BalancedBatchLoader(IterableDataset, ABC):
-    """Adaptation of BatchLoader to load data with perfect class balance
+    """Adaptation of BatchLoader to load data with perfect class balance.
+
+    Engineered to work with Landcovernet data and to overcome class imbalance.
+
+    Calibrated to work with a MLP by pre-processing image data into multi-band, time-series pixel stacks.
+
+    Use with a torch.utils.data.DataLoader or more ideally use with Minerva.trainer.Trainer.
+
+    Attributes:
+        streams_df (pandas.DataFrame): DataFrame with a column of patch IDs for each class.
+        batch_size (int): Sets the number of samples in each batch. Default is 32.
+        patch_len (int): Total number of pixels in a patch. Default is 65536.
+        wheels (dict[deque]): Dict of `wheels' (deques) holding a stream of pixel stacks organised by class in memory.
+
     """
 
-    def __init__(self, class_streams, batch_size=32, wheel_size=65536, patch_len=65536):
-        """Initialisation
+    def __init__(self, class_streams: pd.DataFrame, batch_size: int = 32, wheel_size: int = 65536,
+                 patch_len: int = 65536):
+        """Inits BalancedBatchLoader
 
         Args:
-            class_streams (pandas.DataFrame): DataFrame with a column of patch IDs for each class
-            batch_size (int): Sets the number of samples in each batch
+            class_streams (pd.DataFrame): DataFrame with a column of patch IDs for each class.
+            batch_size (int): Optional; Sets the number of samples in each batch. Default is 32.
+            wheel_size (int): Optional; Sets the maximum size of the wheels (deque) holding pixel stacks in memory.
+                Default is 65536.
+            patch_len (int): Optional; Total number of pixels in a patch. Default is 65536.
         """
         self.streams_df = class_streams
         self.batch_size = batch_size
@@ -73,52 +90,66 @@ class BalancedBatchLoader(IterableDataset, ABC):
         patches.apply(self.refresh_wheels)
 
         # Checks if wheel is empty after adding to wheel
+        # If wheel is empty, emergency_fill is activated to make sure there is at least an entry in this class' wheel
         for cls in self.streams_df.columns.to_list():
             if not self.wheels[cls]:
-                print('EMPTY WHEEL {}!'.format(cls))
-                self.emergency_fill(cls)
+                self.__emergency_fill__(cls)
 
-    def load_patches(self, row):
-        """ Loads the patches associated with the patch IDs in row as pandas.DataFrames nested into a pandas.Series
-        object
+    def load_patches(self, row: pd.Series):
+        """Loads the patches associated with the patch IDs in row.
+
+        Patches are loaded as pandas.DataFrames nested into a pandas.Series object.
 
         Args:
-            row (pandas.Series): A row of patch IDs
+            row (pd.Series): A row of patch IDs
 
         Returns:
-            (pandas.Series): Series of DataFrames of patches
+            Series of DataFrames of patches.
         """
         return pd.Series([utils.load_patch_df(row[1][cls]) for cls in self.streams_df.columns.to_list()])
 
-    def refresh_wheels(self, patch_df):
+    def refresh_wheels(self, patch_df: pd.DataFrame):
+        """Updates the values in each wheel from the supplied DataFrame.
+
+        Takes the DataFrame representing a patch supplied and for each class, finds any pixels matching that class
+        and adds to the wheel of the same class.
+
+        Args:
+            patch_df (pd.DataFrame): DataFrame representing a patch of data.
+        """
         for cls in self.streams_df.columns.to_list():
             for pixel in patch_df['PATCH'].loc[patch_df['LABELS'] == cls]:
                 self.wheels[cls].appendleft(pixel.flatten())
 
     # THIS IS BODGY AF
-    def emergency_fill(self, cls):
-        print('EMERGENCY FILL INITIATED')
+    def __emergency_fill__(self, cls) -> None:
+        """Attempts to ensure at least one value is in the wheel of class `cls'.
+
+        Emergency method that loads all patches in the class stream for cls. A patch is loaded at a time,
+        looking for any pixels corresponding to cls class until the wheel contains values.
+
+        Args:
+            cls: Class number with empty wheel.
+        """
         patches = pd.Series([utils.load_patch_df(patch_id) for patch_id in self.streams_df[cls].sample(frac=1)])
 
         for patch in patches:
-            print('ATTEMPTING TO INIT WHEEL')
+            if self.wheels[cls]:
+                break
             for pixel in patch['PATCH'].loc[patch['LABELS'] == cls]:
                 self.wheels[cls].appendleft(pixel.flatten())
 
-            if self.wheels[cls]:
-                print('CRISIS OVER')
-                return
-
-    def process_data(self, row):
+    def process_data(self, row: pd.Series):
         """Loads and processes patches into wheels for each class and yields from them,
-        periodically refreshing the wheels with new data
+        periodically refreshing the wheels with new data.
 
         Args:
-            row (pandas.Series): Randomly selected row of patch IDs, one for each class
+            row (pd.Series): Randomly selected row of patch IDs, one for each class.
 
         Yields:
-            x (torch.Tensor): A data sample as tensor
-            y (torch.Tensor): Corresponding label as int tensor
+            x (torch.Tensor): A data sample as tensor.
+            y (torch.Tensor): Corresponding label as int tensor.
+            Empty string (for compatibility reasons).
         """
         # Iterates for the flattened length of a patch and yields x and y for each class from their respective wheels
         for i in range(self.patch_len):
@@ -141,6 +172,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
 
     def __iter__(self):
+        # Gets the current worker info
         worker_info = torch.utils.data.get_worker_info()
 
         # If single threaded process, return full ID stream
@@ -153,7 +185,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
             per_worker = int(np.math.ceil(1.0 / float(worker_info.num_workers)))
 
             # Return a random sample of the patch IDs of fractional size per worker
-            # and using random seed modulated by the worker ID
+            # and using random seed modulated by the worker ID.
             return self.get_stream(self.streams_df.sample(frac=per_worker, random_state=42 * worker_info.id,
                                                           replace=False, axis=0))
 

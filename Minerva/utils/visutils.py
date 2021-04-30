@@ -464,9 +464,6 @@ def prediction_plot(z, y, patch_id, exp_id, new_cs, classes=None, block_size=32,
     # Stacks together the R, G, & B bands to form an array of the RGB image
     rgb_image = stack_rgb(scene_path, rgb)
 
-    print(rgb_image)
-    print(rgb_image.shape)
-
     # Defines the 'extent' of the image based on the size of the mask.
     extent = 0, y.shape[0], 0, y.shape[1]
 
@@ -530,6 +527,7 @@ def prediction_plot(z, y, patch_id, exp_id, new_cs, classes=None, block_size=32,
     fig.suptitle('{}'.format(patch_id), fontsize=15)
     axes[0].set_title('Predicted')
     axes[1].set_title('Ground Truth')
+    axes[2].set_title('Reference Imagery\nOn {}'.format(names['date']), fontsize=13, loc='right')
 
     # Set axis labels
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)
