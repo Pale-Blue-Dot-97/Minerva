@@ -26,7 +26,6 @@ Created under a project funded by the Ordnance Survey Ltd
 
 
 TODO:
-    * Generalise make_loaders and transfer to trainer
     * Add optimiser selection logic
     * Add arg parsing from CLI
     * Add model selection logic
