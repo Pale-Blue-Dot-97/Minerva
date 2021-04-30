@@ -191,15 +191,35 @@ class BalancedBatchLoader(IterableDataset, ABC):
 
 
 class BatchLoader(IterableDataset, ABC):
-    """
-    Source: https://medium.com/speechmatics/how-to-build-a-streaming-dataloader-with-pytorch-a66dd891d9dd
+    """Adaptation of IterableDataset to work with pixel stacks
+
+    Engineered to pre-process Landcovernet image data into multi-band, time-series pixel stacks
+    and yield to a DataLoader.
+
+    Attributes:
+        patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
+        batch_size (int): Number of samples returned in each batch.
     """
 
-    def __init__(self, patch_ids, batch_size):
+    def __init__(self, patch_ids, batch_size: int):
+        """Inits BatchLoader
+
+        Args:
+            patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
+            batch_size (int): Number of samples returned in each batch.
+        """
         self.patch_ids = patch_ids
         self.batch_size = batch_size
 
-    def process_data(self, patch_id):
+    def process_data(self, patch_id: str):
+        """Loads pixel-stacks and yields samples and labels from them.
+
+        Args:
+            patch_id (str):
+
+        Yields:
+            Pixel-stack, associated label and the patch ID where they came from
+        """
         patch = utils.make_time_series(patch_id)
 
         x = torch.tensor([pixel.flatten() for pixel in patch.reshape(-1, *patch.shape[-2:])], dtype=torch.float)
@@ -212,6 +232,7 @@ class BatchLoader(IterableDataset, ABC):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
 
     def __iter__(self):
+        # Gets the current worker info
         worker_info = torch.utils.data.get_worker_info()
 
         # If single threaded process, return all patch IDs
