@@ -1,6 +1,4 @@
-"""MinervaPercep
-
-Script to create a simple MLP to classify land cover of the images in the LandCoverNet V1 dataset
+"""Script to create a simple MLP to classify land cover of the images in the LandCoverNet V1 dataset.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -34,14 +32,13 @@ TODO:
     * Add model selection logic
     * Add loss function selection logic
     * Add ability to conduct hyper-parameter iterative variation experimentation
-
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import utils, visutils
 from Minerva.models import MLP
-from Minerva.loaders import BalancedBatchLoader, BatchLoader
+from Minerva.loaders import BalancedBatchDataset, BatchDataset
 from Minerva.trainer import Trainer
 import yaml
 import torch
@@ -144,24 +141,24 @@ def make_loaders(patch_ids=None, split=(0.7, 0.15, 0.15), seed=42, shuffle=True,
         train_stream = utils.make_sorted_streams(train_ids)
         val_stream = utils.make_sorted_streams(val_ids)
 
-        # Define datasets for train, validation and test using BatchLoader
-        datasets['train'] = BalancedBatchLoader(train_stream, batch_size=params['batch_size'],
-                                                wheel_size=wheel_size, patch_len=image_len)
-        datasets['val'] = BalancedBatchLoader(val_stream, batch_size=params['batch_size'],
-                                              wheel_size=wheel_size, patch_len=image_len)
+        # Define datasets for train, validation and test using BatchDataset
+        datasets['train'] = BalancedBatchDataset(train_stream, batch_size=params['batch_size'],
+                                                 wheel_size=wheel_size, patch_len=image_len)
+        datasets['val'] = BalancedBatchDataset(val_stream, batch_size=params['batch_size'],
+                                               wheel_size=wheel_size, patch_len=image_len)
 
         n_batches['train'] = utils.num_batches(len(train_stream.columns) * len(train_stream))
         n_batches['val'] = utils.num_batches(len(val_stream.columns) * len(val_stream))
 
     if not balance:
-        # Define datasets for train, validation and test using BatchLoader
-        datasets['train'] = BatchLoader(train_ids, batch_size=params['batch_size'])
-        datasets['val'] = BatchLoader(val_ids, batch_size=params['batch_size'])
+        # Define datasets for train, validation and test using BatchDataset
+        datasets['train'] = BatchDataset(train_ids, batch_size=params['batch_size'])
+        datasets['val'] = BatchDataset(val_ids, batch_size=params['batch_size'])
 
         n_batches['train'] = utils.num_batches(len(train_ids))
         n_batches['val'] = utils.num_batches(len(val_ids))
 
-    datasets['test'] = BatchLoader(test_ids, batch_size=params['batch_size'])
+    datasets['test'] = BatchDataset(test_ids, batch_size=params['batch_size'])
     n_batches['test'] = utils.num_batches(len(test_ids))
 
     # Create train, validation and test batch loaders and pack into dict

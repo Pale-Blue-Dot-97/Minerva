@@ -1,6 +1,4 @@
-"""loaders
-
-Module containing classes defining custom dataloaders for use in the fitting of neural networks
+"""Module containing classes defining custom IterableDataset classes for use in the fitting of neural networks.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -19,15 +17,15 @@ Module containing classes defining custom dataloaders for use in the fitting of 
     see <https://www.gnu.org/licenses/>.
 
 Author: Harry James Baker
+
 Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
+
 Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
-    * Fully document
-    * Add Loader for whole images
-
+    * Add IterableDataset for whole images
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -38,7 +36,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader, IterableDataset
+from torch.utils.data import IterableDataset
 from itertools import cycle, chain
 from collections import deque
 
@@ -46,8 +44,8 @@ from collections import deque
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class BalancedBatchLoader(IterableDataset, ABC):
-    """Adaptation of BatchLoader to load data with perfect class balance.
+class BalancedBatchDataset(IterableDataset, ABC):
+    """Adaptation of BatchDataset to load data with perfect class balance.
 
     Engineered to work with Landcovernet data and to overcome class imbalance.
 
@@ -65,7 +63,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
 
     def __init__(self, class_streams: pd.DataFrame, batch_size: int = 32, wheel_size: int = 65536,
                  patch_len: int = 65536):
-        """Inits BalancedBatchLoader
+        """Inits BalancedBatchDataset
 
         Args:
             class_streams (pd.DataFrame): DataFrame with a column of patch IDs for each class.
@@ -190,7 +188,7 @@ class BalancedBatchLoader(IterableDataset, ABC):
                                                           replace=False, axis=0))
 
 
-class BatchLoader(IterableDataset, ABC):
+class BatchDataset(IterableDataset, ABC):
     """Adaptation of IterableDataset to work with pixel stacks
 
     Engineered to pre-process Landcovernet image data into multi-band, time-series pixel stacks
@@ -202,7 +200,7 @@ class BatchLoader(IterableDataset, ABC):
     """
 
     def __init__(self, patch_ids, batch_size: int):
-        """Inits BatchLoader
+        """Inits BatchDataset
 
         Args:
             patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
