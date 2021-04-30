@@ -36,7 +36,8 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import IterableDataset
+from torch.utils.data import IterableDataset, DataLoader
+from sklearn.model_selection import train_test_split
 from itertools import cycle, chain
 from collections import deque
 
@@ -119,7 +120,6 @@ class BalancedBatchDataset(IterableDataset, ABC):
             for pixel in patch_df['PATCH'].loc[patch_df['LABELS'] == cls]:
                 self.wheels[cls].appendleft(pixel.flatten())
 
-    # THIS IS BODGY AF
     def __emergency_fill__(self, cls) -> None:
         """Attempts to ensure at least one value is in the wheel of class `cls'.
 
@@ -247,3 +247,89 @@ class BatchDataset(IterableDataset, ABC):
 
             # Return a random sample of the patch IDs of size per worker
             return self.get_stream(random.sample(self.patch_ids, per_worker))
+
+
+def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_size=65536, image_len=65536, seed=42,
+                  shuffle=True, plot=False, balance=False, p_dist=False):
+    """
+
+    Args:
+        patch_ids:
+        split:
+        params:
+        wheel_size:
+        image_len:
+        seed:
+        shuffle (bool):
+        plot (bool):
+        balance (bool):
+        p_dist (bool):
+
+    Returns:
+        loaders (dict):
+        n_batches (dict):
+        class_dist (Counter):
+    """
+    # Fetches all patch IDs in the dataset
+    if patch_ids is None:
+        patch_ids = utils.patch_grab()
+
+    if params['batch_size'] is None:
+        params['batch_size'] = 256
+
+    if params is None:
+        params = {'batch_size': 256, 'num_workers': 3, 'pin_memory': True}
+
+    # Splits the dataset into train and val-test
+    train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1] + split[2]),
+                                               shuffle=shuffle, random_state=seed)
+
+    # Splits the val-test dataset into validation and test
+    val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1] / (split[1] + split[2])),
+                                         test_size=(split[2] / (split[1] + split[2])), shuffle=shuffle,
+                                         random_state=seed)
+
+    if p_dist:
+        print('\nTrain: \n', utils.find_subpopulations(train_ids, plot=plot))
+        print('\nValidation: \n', utils.find_subpopulations(val_ids, plot=plot))
+        print('\nTest: \n', utils.find_subpopulations(test_ids, plot=plot))
+
+    datasets = {}
+    n_batches = {}
+
+    if balance:
+        train_stream = utils.make_sorted_streams(train_ids)
+        val_stream = utils.make_sorted_streams(val_ids)
+
+        # Define datasets for train, validation and test using BatchDataset
+        datasets['train'] = BalancedBatchDataset(train_stream, batch_size=params['batch_size'],
+                                                 wheel_size=wheel_size, patch_len=image_len)
+        datasets['val'] = BalancedBatchDataset(val_stream, batch_size=params['batch_size'],
+                                               wheel_size=wheel_size, patch_len=image_len)
+
+        n_batches['train'] = utils.num_batches(len(train_stream.columns) * len(train_stream))
+        n_batches['val'] = utils.num_batches(len(val_stream.columns) * len(val_stream))
+
+    if not balance:
+        # Define datasets for train, validation and test using BatchDataset
+        datasets['train'] = BatchDataset(train_ids, batch_size=params['batch_size'])
+        datasets['val'] = BatchDataset(val_ids, batch_size=params['batch_size'])
+
+        n_batches['train'] = utils.num_batches(len(train_ids))
+        n_batches['val'] = utils.num_batches(len(val_ids))
+
+    datasets['test'] = BatchDataset(test_ids, batch_size=params['batch_size'])
+    n_batches['test'] = utils.num_batches(len(test_ids))
+
+    # Create train, validation and test batch loaders and pack into dict
+    loaders = {'train': DataLoader(datasets['train'], **params),
+               'val': DataLoader(datasets['val'], **params),
+               'test': DataLoader(datasets['test'], **params)}
+
+    class_dist = utils.find_subpopulations(patch_ids, plot=False)
+
+    ids = {'train': train_ids,
+           'val': val_ids,
+           'test': test_ids}
+
+    return loaders, n_batches, class_dist, ids
