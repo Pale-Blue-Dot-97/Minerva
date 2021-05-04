@@ -32,7 +32,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import utils
+from Minerva.utils import visutils
 import numpy as np
 import torch
 from torchsummary import summary
@@ -45,10 +45,12 @@ from alive_progress import alive_bar
 #                                                     CLASSES
 # =====================================================================================================================
 class Trainer:
-    def __init__(self, model, max_epochs, batch_size, optimiser, loaders, n_batches, device=None):
+    def __init__(self, model, optimiser, loaders, n_batches, device=None, **params):
+        self.params = params
+
         self.model = model
-        self.max_epochs = max_epochs
-        self.batch_size = batch_size
+        self.max_epochs = params['hyperparams']['max_epochs']
+        self.batch_size = params['hyperparams']['params']['batch_size']
 
         self.loaders = loaders
         self.n_batches = n_batches
@@ -136,7 +138,7 @@ class Trainer:
             print('Train Accuracy: {}% | Validation Accuracy: {}% \n'.format(self.metrics['train_acc'][epoch] * 100.0,
                                                                              self.metrics['val_acc'][epoch] * 100.0))
 
-    def test(self, save=True):
+    def test(self, plots, save=True):
         print('\r\nTESTING')
         predictions, labels, ids = self.epoch('test')
 
@@ -144,7 +146,9 @@ class Trainer:
                                                              self.metrics['test_acc'][0] * 100.0))
 
         submetrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
-        utils.plot_results(submetrics, np.array(predictions).flatten(), np.array(labels).flatten(),
-                           save=save, show=False)
+
+        visutils.plot_results(submetrics, plots, np.array(predictions).flatten(), np.array(labels).flatten(),
+                              save=save, show=False, model_name=self.params['model_name'],
+                              results_dir=self.params['dir']['results'])
 
         return predictions, labels, ids

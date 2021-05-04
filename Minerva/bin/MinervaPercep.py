@@ -50,16 +50,12 @@ import osr
 #                                                     GLOBALS
 # =====================================================================================================================
 config_path = '../../config/config.yml'
-lcn_config_path = '../../config/landcovernet.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
 with open(config['dir']['data_config']) as file:
     dataset_config = yaml.safe_load(file)
-
-with open(lcn_config_path) as file:
-    lcn_config = yaml.safe_load(file)
 
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
@@ -107,11 +103,11 @@ def main():
     datasets, n_batches, _, ids = loaders.make_datasets(balance=True, params=params, wheel_size=wheel_size,
                                                         image_len=image_len)
 
-    trainer = Trainer(model=model, max_epochs=config['hyperparams']['max_epochs'], batch_size=params['batch_size'],
-                      optimiser=optimiser, loaders=datasets, n_batches=n_batches, device=device)
+    trainer = Trainer(model=model, optimiser=optimiser, loaders=datasets, n_batches=n_batches, device=device, **config)
+
     trainer.fit()
 
-    z, y, test_ids = trainer.test(save=False)
+    z, y, test_ids = trainer.test({'History': True, 'Pred': True, 'CM': True}, save=False)
 
     z = visutils.deinterlace(z, params['num_workers'])
     y = visutils.deinterlace(y, params['num_workers'])
@@ -121,7 +117,7 @@ def main():
 
     # Create a new projection system in lat-lon
     WGS84_4326 = osr.SpatialReference()
-    WGS84_4326.ImportFromEPSG(lcn_config['co_sys']['id'])
+    WGS84_4326.ImportFromEPSG(dataset_config['co_sys']['id'])
 
     visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=test_ids, exp_id=config['model_name'], new_cs=WGS84_4326,
                           classes=dataset_config['classes'],

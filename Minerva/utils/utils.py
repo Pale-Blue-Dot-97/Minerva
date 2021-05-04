@@ -34,6 +34,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from Minerva.utils import visutils
 import yaml
 import os
 import glob
@@ -41,10 +42,7 @@ import math
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from matplotlib import pyplot as plt
 from collections import Counter
-import seaborn as sns
-import tensorflow as tf
 import rasterio as rt
 from osgeo import gdal, osr
 
@@ -222,9 +220,20 @@ def lc_load(patch_id):
 
     Returns:
         LC_label (list): 2D array containing LC labels for each pixel of a patch
-
     """
     return load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '_2018_LC_10m.tif']), 1)
+
+
+def dataset_lc_load(ids):
+    """Loads all LC label masks for the given patch IDs
+
+    Args:
+        ids (list):
+
+    Returns:
+        2D array of land cover labels for the given patch IDs
+    """
+    return [lc_load(patch_id) for patch_id in ids]
 
 
 def transform_coordinates(path, new_cs):
@@ -378,7 +387,7 @@ def make_sorted_streams(patch_ids):
 
     df.fillna(0, inplace=True)
 
-    class_dist = find_subpopulations(df['PATCH'], plot=False)
+    class_dist = find_subpopulations(dataset_lc_load(df['PATCH']), plot=False)
 
     stream_size = int(len(df['PATCH']) / len(classes))
 
@@ -543,86 +552,28 @@ def load_patch_df(patch_id):
     return df
 
 
-def find_subpopulations(ids, plot=False):
+def timestamp_now(fmt='%d-%m-%Y_%H%M'):
+    return datetime.now().strftime(fmt)
+
+
+def find_subpopulations(labels, plot=False):
     """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class
 
     Args:
-        ids (list): List of patch IDs to analyse
+        labels (list): Class labels describing the data to be analysed
         plot (bool): Plots distribution of subpopulations if True
 
     Returns:
         class_dist (Counter): Modal distribution of classes in the dataset provided
     """
-    # Loads all LC label masks for the given patch IDs
-    labels = []
-    for patch_id in ids:
-        labels.append(lc_load(patch_id))
+    # Finds the distribution of the classes within the data
+    class_dist = Counter(np.array(labels).flatten()).most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
-        plot_subpopulations(np.array(labels).flatten(), class_names=classes, cmap=cmap_dict)
+        visutils.plot_subpopulations(class_dist, class_names=classes, cmap_dict=cmap_dict)
 
-    # Finds the distribution of the classes within the data
-    return Counter(np.array(labels).flatten()).most_common()
-
-
-def plot_subpopulations(class_labels, class_names=None, cmap=None, filename=None, save=True, show=False):
-    """Creates a pie chart of the distribution of the classes within the data
-
-    Args:
-        class_labels (np.array[int]): List of class labels
-        class_names (dict): Dictionary mapping class labels to class names
-        cmap (dict): Dictionary mapping class labels to class colours
-        filename (str): Name of file to save plot to
-        show (bool): Whether to show plot
-        save (bool): Whether to save plot to file
-
-    Returns:
-        None
-    """
-
-    # Finds the distribution of the classes within the data
-    class_dist = Counter(class_labels).most_common()
-
-    # List to hold the name and percentage distribution of each class in the data as str
-    class_data = []
-
-    # List to hold the total counts of each class
-    counts = []
-
-    # List to hold colours of classes in the correct order
-    colours = []
-
-    # Finds total number of samples to normalise data
-    n_samples = 0
-    for mode in class_dist:
-        n_samples += mode[1]
-
-    # For each class, find the percentage of data that is that class and the total counts for that class
-    for label in class_dist:
-        # Sets percentage label to <0.01% for classes matching that equality
-        if (label[1] * 100.0 / n_samples) > 0.01:
-            class_data.append('{} \n{:.2f}%'.format(class_names[label[0]], (label[1] * 100.0 / n_samples)))
-        else:
-            class_data.append('{} \n<0.01%'.format(class_names[label[0]]))
-        counts.append(label[1])
-        colours.append(cmap[label[0]])
-
-    # Locks figure size
-    plt.figure(figsize=(6, 5))
-
-    # Plot a pie chart of the data distribution amongst the classes
-    patches, text = plt.pie(counts, colors=colours, explode=[i * 0.05 for i in range(len(class_data))])
-
-    # Adds legend
-    plt.legend(patches, class_data, loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
-
-    # Shows and/or saves plot
-    if show:
-        plt.show()
-    if save:
-        plt.savefig(filename)
-        plt.close()
+    return class_dist
 
 
 def num_batches(num_ids):
@@ -635,107 +586,3 @@ def num_batches(num_ids):
         num_batches (int): Number of batches needed to cover the whole dataset
     """
     return int((num_ids * image_size[0] * image_size[1]) / params['batch_size'])
-
-
-def plot_history(metrics, filename=None, save=True, show=False):
-    """Plots model history based on metrics supplied
-
-    Args:
-        metrics (dict): Dictionary containing the names and results of the metrics by which model was assessed
-        filename (str): Name of file to save plot to
-        show (bool): Whether to show plot
-        save (bool): Whether to save plot to file
-
-    Returns:
-        None
-    """""
-    # Initialise figure
-    plt.figure()
-
-    # Plots each metric in metrics, appending their artist handles
-    handles = []
-    for metric in metrics.values():
-        handles.append(plt.plot(metric)[0])
-
-    # Creates legend from plot artist handles and names of metrics
-    plt.legend(handles=handles, labels=metrics.keys())
-
-    # Adds axis labels
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss/Accuracy')
-
-    # Shows and/or saves plot
-    if show:
-        plt.show()
-    if save:
-        plt.savefig(filename)
-        plt.close()
-
-
-def make_confusion_matrix(test_pred, test_labels, filename=None, show=True, save=False):
-    """Creates a heat-map of the confusion matrix of the given model
-
-    Args:
-        test_pred([[int]]): Predictions made by model on test images
-        test_labels ([[int]]): Accompanying labels for testing images
-        filename (str): Name of file to save plot to
-        show (bool): Whether to show plot
-        save (bool): Whether to save plot to file
-
-    Returns:
-        None
-    """
-    # Creates the confusion matrix based on these predictions and the corresponding ground truth labels
-    cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
-
-    # Normalises confusion matrix
-    cm_norm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
-    np.nan_to_num(cm_norm, copy=False)
-
-    # Extract class names from dict in numeric order to ensure labels match matrix
-    class_names = [classes[key] for key in range(len(classes.keys()))]
-
-    # Converts confusion matrix to Pandas.DataFrame
-    cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
-
-    # Plots figure
-    plt.figure()
-    sns.heatmap(cm_df, annot=True, square=True, cmap=plt.cm.get_cmap('Blues'), vmin=0.0, vmax=1.0)
-    plt.ylabel('Ground Truth')
-    plt.xlabel('Predicted')
-
-    # Shows and/or saves plot
-    if show:
-        plt.show()
-    if save:
-        plt.savefig(filename)
-        plt.close()
-
-
-def timestamp_now(fmt='%d-%m-%Y_%H%M'):
-    return datetime.now().strftime(fmt)
-
-
-def format_plot_names():
-    def standard_format(plot_type, file_ext):
-        filename = '{}_{}_{}.{}'.format(model_name, plot_type, timestamp, file_ext)
-        return os.path.join(results_dir, filename)
-
-    timestamp = timestamp_now(fmt='%d-%m-%Y_%H%M')
-
-    filenames = {'History': standard_format('MH', 'png'),
-                 'Pred': standard_format('TP', 'png'),
-                 'CM': standard_format('CM', 'png')}
-
-    return filenames
-
-
-def plot_results(metrics, z, y, save=True, show=False):
-    filenames = format_plot_names()
-
-    plot_history(metrics, filename=filenames['History'], save=save, show=show)
-
-    plot_subpopulations(z, class_names=classes, cmap=cmap_dict, filename=filenames['Pred'], save=save, show=show)
-
-    make_confusion_matrix(test_labels=y, test_pred=z, filename=filenames['CM'], save=save, show=show)
-
