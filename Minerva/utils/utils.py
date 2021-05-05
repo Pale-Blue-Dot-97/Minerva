@@ -236,6 +236,12 @@ def dataset_lc_load(ids):
     return [lc_load(patch_id) for patch_id in ids]
 
 
+def find_centre_label(patch_id):
+    labels = np.array(lc_load(patch_id))
+
+    return labels[labels.shape[0]][labels.shape[1]]
+
+
 def transform_coordinates(path, new_cs):
     """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
     in the new co-ordinates system provided
@@ -407,7 +413,7 @@ def cloud_cover(scene):
     """Calculates percentage cloud cover for a given scene based on its scene CLD
 
     Args:
-        scene (numpy.ndarray):
+        scene (np.ndarray):
 
     Returns:
         (float): Percentage cloud cover
@@ -508,7 +514,7 @@ def make_time_series(patch_id):
         patch_id (str): Unique patch ID
 
     Returns:
-        (numpy.ndarray): Array of shape(rows, columns, 24, 12) holding all x for a patch
+        (np.ndarray): Array of shape(rows, columns, 24, 12) holding all x for a patch
     """
     # List of scene dates found by REF's selection criteria
     scenes = find_best_of(patch_id)
@@ -518,7 +524,7 @@ def make_time_series(patch_id):
     for scene in scenes:
         x.append(stack_bands(patch_id, scene))
 
-    # Returns a reordered numpy.ndarray holding all x for the given patch
+    # Returns a reordered np.ndarray holding all x for the given patch
     return np.moveaxis(np.array(x), 0, 2)
 
 

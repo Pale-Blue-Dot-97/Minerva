@@ -189,7 +189,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
 
 
 class BatchDataset(IterableDataset, ABC):
-    """Adaptation of IterableDataset to work with pixel stacks
+    """Adaptation of IterableDataset to work with pixel stacks.
 
     Engineered to pre-process Landcovernet image data into multi-band, time-series pixel stacks
     and yield to a DataLoader.
@@ -213,10 +213,10 @@ class BatchDataset(IterableDataset, ABC):
         """Loads pixel-stacks and yields samples and labels from them.
 
         Args:
-            patch_id (str):
+            patch_id (str): Unique ID of a patch of the dataset.
 
         Yields:
-            Pixel-stack, associated label and the patch ID where they came from
+            Pixel-stack, associated label and the patch ID where they came from.
         """
         patch = utils.make_time_series(patch_id)
 
@@ -225,6 +225,65 @@ class BatchDataset(IterableDataset, ABC):
 
         for i in range(len(y)):
             yield x[i], y[i], patch_id
+
+    def get_stream(self, patch_ids):
+        return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
+
+    def __iter__(self):
+        # Gets the current worker info
+        worker_info = torch.utils.data.get_worker_info()
+
+        # If single threaded process, return all patch IDs
+        if worker_info is None:
+            return self.get_stream(self.patch_ids)
+
+        # If multi-threaded, split patch IDs between workers
+        else:
+            # Calculate number of patch IDs of the dataset per worker
+            per_worker = int(np.math.ceil(len(self.patch_ids) / float(worker_info.num_workers)))
+
+            # Set random seed modulated by the worker ID
+            random.seed(42 * worker_info.id)
+
+            # Return a random sample of the patch IDs of size per worker
+            return self.get_stream(random.sample(self.patch_ids, per_worker))
+
+
+class ImageDataset(IterableDataset, ABC):
+    """Adaptation of IterableDataset for handling images for use with a CNN.
+
+    Engineered to pre-process Landcovernet image data into multi-band, time-series pixel stacks
+    and yield to a DataLoader.
+
+    Attributes:
+        patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
+        batch_size (int): Number of samples returned in each batch.
+    """
+
+    def __init__(self, patch_ids, batch_size: int):
+        """Inits BatchDataset
+
+        Args:
+            patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
+            batch_size (int): Number of samples returned in each batch.
+        """
+        self.patch_ids = patch_ids
+        self.batch_size = batch_size
+
+    def process_data(self, patch_id: str):
+        """Loads pixel-stacks and yields samples and labels from them.
+
+        Args:
+            patch_id (str): Unique ID of a patch of the dataset.
+
+        Yields:
+            Pixel-stack, associated label and the patch ID where they came from.
+        """
+        y = utils.find_centre_label(patch_id)
+        images = [utils.stack_bands(patch_id, scene) for scene in utils.find_best_of(patch_id)]
+
+        for image in images:
+            yield image, y, patch_id
 
     def get_stream(self, patch_ids):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
