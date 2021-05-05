@@ -279,11 +279,12 @@ class ImageDataset(IterableDataset, ABC):
         Yields:
             Pixel-stack, associated label and the patch ID where they came from.
         """
-        y = utils.find_centre_label(patch_id)
+        y = torch.tensor(utils.find_centre_label(patch_id), dtype=torch.long)
         images = [utils.stack_bands(patch_id, scene) for scene in utils.find_best_of(patch_id)]
 
         for image in images:
-            yield image, y, patch_id
+            yield torch.tensor(image.reshape((image.shape[2], image.shape[1], image.shape[0])), dtype=torch.float), \
+                  y, patch_id
 
     def get_stream(self, patch_ids):
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
@@ -309,7 +310,7 @@ class ImageDataset(IterableDataset, ABC):
 
 
 def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_size=65536, image_len=65536, seed=42,
-                  shuffle=True, plot=False, balance=False, p_dist=False):
+                  shuffle=True, plot=False, balance=False, cnn=False, p_dist=False):
     """
 
     Args:
@@ -322,6 +323,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         shuffle (bool):
         plot (bool):
         balance (bool):
+        cnn (bool):
         p_dist (bool):
 
     Returns:
@@ -356,7 +358,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     datasets = {}
     n_batches = {}
 
-    if balance:
+    if balance and not cnn:
         train_stream = utils.make_sorted_streams(train_ids)
         val_stream = utils.make_sorted_streams(val_ids)
 
@@ -365,20 +367,31 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
                                                  wheel_size=wheel_size, patch_len=image_len)
         datasets['val'] = BalancedBatchDataset(val_stream, batch_size=params['batch_size'],
                                                wheel_size=wheel_size, patch_len=image_len)
+        datasets['test'] = BatchDataset(test_ids, batch_size=params['batch_size'])
 
         n_batches['train'] = utils.num_batches(len(train_stream.columns) * len(train_stream))
         n_batches['val'] = utils.num_batches(len(val_stream.columns) * len(val_stream))
+        n_batches['test'] = utils.num_batches(len(test_ids))
 
-    if not balance:
+    if not balance and not cnn:
         # Define datasets for train, validation and test using BatchDataset
         datasets['train'] = BatchDataset(train_ids, batch_size=params['batch_size'])
         datasets['val'] = BatchDataset(val_ids, batch_size=params['batch_size'])
+        datasets['test'] = BatchDataset(test_ids, batch_size=params['batch_size'])
 
         n_batches['train'] = utils.num_batches(len(train_ids))
         n_batches['val'] = utils.num_batches(len(val_ids))
+        n_batches['test'] = utils.num_batches(len(test_ids))
 
-    datasets['test'] = BatchDataset(test_ids, batch_size=params['batch_size'])
-    n_batches['test'] = utils.num_batches(len(test_ids))
+    if cnn and not balance:
+        # Define datasets for train, validation and test using ImageDataset
+        datasets['train'] = ImageDataset(train_ids, batch_size=params['batch_size'])
+        datasets['val'] = ImageDataset(val_ids, batch_size=params['batch_size'])
+        datasets['test'] = ImageDataset(test_ids, batch_size=params['batch_size'])
+
+        n_batches['train'] = int((len(train_ids) * 24.0) / params['batch_size'])
+        n_batches['val'] = int((len(val_ids) * 24.0) / params['batch_size'])
+        n_batches['test'] = int((len(test_ids) * 24.0) / params['batch_size'])
 
     # Create train, validation and test batch loaders and pack into dict
     loaders = {'train': DataLoader(datasets['train'], **params),

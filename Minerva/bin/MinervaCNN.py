@@ -35,7 +35,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.models import MLP
+from Minerva.models import CNN
 import Minerva.loaders as loaders
 from Minerva.trainer import Trainer
 import yaml
@@ -50,23 +50,13 @@ config_path = '../../config/config.yml'
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
-with open(config['dir']['data_config']) as file:
-    dataset_config = yaml.safe_load(file)
-
 # CUDA for PyTorch
 use_cuda = torch.cuda.is_available()
 device = torch.device("cuda:0" if use_cuda else "cpu")
 cudnn.benchmark = True
 
-# Defines size of the images to determine the number of batches
-image_size = dataset_config['data_specs']['image_size']
-
-image_len = image_size[0] * image_size[1]
-
 # Parameters
 params = config['hyperparams']['params']
-
-wheel_size = image_len
 
 
 # =====================================================================================================================
@@ -79,12 +69,12 @@ def main():
     model_params = config['hyperparams']['model_params']
 
     # Initialise model
-    model = MLP(criterion, **model_params)
+    model = CNN(criterion, **model_params)
 
     # Define optimiser
     optimiser = torch.optim.SGD(model.parameters(), lr=config['hyperparams']['optimiser_params']['learning_rate'])
 
-    datasets, n_batches, _, ids = loaders.make_datasets(balance=True, params=params, image_len=image_len)
+    datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, params=params)
 
     trainer = Trainer(model=model, optimiser=optimiser, loaders=datasets, n_batches=n_batches, device=device, **config)
 

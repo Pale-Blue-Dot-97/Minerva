@@ -239,7 +239,7 @@ def dataset_lc_load(ids):
 def find_centre_label(patch_id):
     labels = np.array(lc_load(patch_id))
 
-    return labels[labels.shape[0]][labels.shape[1]]
+    return labels[int(labels.shape[0] / 2)][int(labels.shape[1] / 2)]
 
 
 def transform_coordinates(path, new_cs):

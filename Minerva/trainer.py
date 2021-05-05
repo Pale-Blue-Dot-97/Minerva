@@ -35,7 +35,7 @@ TODO:
 from Minerva.utils import visutils
 import numpy as np
 import torch
-from torchsummary import summary
+from torchinfo import summary
 from torch.backends import cudnn
 from itertools import islice
 from alive_progress import alive_bar
@@ -78,7 +78,7 @@ class Trainer:
         model.to(device)
 
         # Print model summary
-        summary(model, (1, self.model.input_size))
+        summary(model, input_size=(1, *self.model.input_shape))
 
     def epoch(self, mode):
         total_loss = 0.0

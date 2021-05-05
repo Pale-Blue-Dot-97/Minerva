@@ -18,12 +18,12 @@ model_name: 'CNN-MkI'
 hyperparams:
   params:
     batch_size: 16
-    num_workers: 2
+    num_workers: 3
     pin_memory: True
   model_params:
-    input_shape: [12, 256, 256]
+    input_size: 288
     n_classes: 8
-    scaling: [2, 4, 8]
+    hidden_sizes: [512, 256]
   optimiser_params:
     optimiser: SGD
     learning_rate: 3.0E-4
