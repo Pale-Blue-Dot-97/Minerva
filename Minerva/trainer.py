@@ -78,7 +78,7 @@ class Trainer:
         model.to(device)
 
         # Print model summary
-        summary(model, input_size=(1, *self.model.input_shape))
+        summary(model, input_size=(self.batch_size, *self.model.input_shape))
 
     def epoch(self, mode):
         total_loss = 0.0

@@ -9,15 +9,15 @@ dir:
     - 'Postgraduate'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'CNN'
+    - 'MLP'
 
 # Model Name
-model_name: 'CNN-MkI'
+model_name: 'MLP-MkVI'
 
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 16
+    batch_size: 256
     num_workers: 3
     pin_memory: True
   model_params:
