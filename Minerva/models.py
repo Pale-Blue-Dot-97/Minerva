@@ -24,8 +24,6 @@ Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
     * Complete MLP documentation
-    * Add CNN model
-    
 """
 # =====================================================================================================================
 #                                                     IMPORTS
