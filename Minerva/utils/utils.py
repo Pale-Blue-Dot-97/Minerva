@@ -1,6 +1,4 @@
-"""utils
-
-Module to handle all utility functions for training, testing and evaluation of a model
+"""Module to handle all utility functions for training, testing and evaluation of a model.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -90,15 +88,11 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def exist_delete_check(fn):
-    """Checks if given file exists then deletes if true
+def exist_delete_check(fn: str):
+    """Checks if given file exists then deletes if true.
 
     Args:
-        fn (str): Path to file to have existence checked then deleted
-
-    Returns:
-        None
-
+        fn (str): Path to file to have existence checked then deleted.
     """
     # Checks if file exists. Deletes if True. No action taken if False
     if os.path.exists(fn):
@@ -107,44 +101,43 @@ def exist_delete_check(fn):
         pass
 
 
-def datetime_reformat(timestamp, fmt1, fmt2):
-    """Takes a str representing a time stamp in one format and returns it reformatted into a second
+def datetime_reformat(timestamp: str, fmt1: str, fmt2: str):
+    """Takes a str representing a time stamp in one format and returns it reformatted into a second.
 
     Args:
-        timestamp (str): Datetime string to be reformatted
-        fmt1 (str): Format of original datetime
-        fmt2 (str): New format for datetime
+        timestamp (str): Datetime string to be reformatted.
+        fmt1 (str): Format of original datetime.
+        fmt2 (str): New format for datetime.
 
     Returns:
-        (str): Datetime reformatted to fmt2
+        (str): Datetime reformatted to fmt2.
     """
     return datetime.strptime(timestamp, fmt1).strftime(fmt2)
 
 
-def prefix_format(patch_id, scene):
-    """Formats a string representing the prefix of a path to any file in a scene
+def prefix_format(patch_id: str, scene):
+    """Formats a string representing the prefix of a path to any file in a scene.
 
     Args:
-        patch_id (str): Unique patch ID
-        scene (str): Date of scene in YY_MM_DD format
+        patch_id (str): Unique patch ID.
+        scene (str): Date of scene in YY_MM_DD format.
 
     Returns:
-        prefix (str): Prefix of path to any file in a given scene
+        prefix (str): Prefix of path to any file in a given scene.
     """
     return os.sep.join([data_dir, patch_dir_prefix + patch_id, scene, patch_id + '_' +
                        datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
 
 
-def scene_grab(patch_id):
-    """Finds and loads all CLDs for a given patch
+def scene_grab(patch_id: str):
+    """Finds and loads all CLDs for a given patch.
 
     Args:
-        patch_id (str): Unique patch ID
+        patch_id (str): Unique patch ID.
 
     Returns:
-        scenes (list): List of CLD masks for each scene
-        scene_names (list): List of scene dates in YY_MM_DD
-
+        scenes (list): List of CLD masks for each scene.
+        scene_names (list): List of scene dates in YY_MM_DD.
     """
     # Get the name of all the directories for this patch
     scene_dirs = glob.glob('{}{}{}{}{}*{}'.format(data_dir, os.sep, patch_dir_prefix, patch_id, os.sep, os.sep))
@@ -163,11 +156,10 @@ def scene_grab(patch_id):
 
 
 def patch_grab():
-    """Fetches the patch IDs from the directory holding the whole dataset
+    """Fetches the patch IDs from the directory holding the whole dataset.
 
     Returns:
-        (list): List of unique patch IDs
-
+        (list): List of unique patch IDs.
     """
     # Fetches the names of the all the patch directories in the dataset
     patch_dirs = glob.glob('%s/%s*/' % (data_dir, patch_dir_prefix))
@@ -176,14 +168,14 @@ def patch_grab():
     return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
 
 
-def date_grab(patch_id):
-    """Finds all the name of all the scene directories for a patch and returns a list of the dates reformatted
+def date_grab(patch_id: str):
+    """Finds all the name of all the scene directories for a patch and returns a list of the dates reformatted.
 
     Args:
-        patch_id (str): Unique patch ID
+        patch_id (str): Unique patch ID.
 
     Returns:
-        (list): List of the dates of the scenes in DD.MM.YYYY format for this patch_ID
+        (list): List of the dates of the scenes in DD.MM.YYYY format for this patch_ID.
     """
     # Get the name of all the directories for this patch
     scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
@@ -195,16 +187,15 @@ def date_grab(patch_id):
     return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
 
 
-def load_array(path, band):
-    """Extracts an array from opening a specific band of a .tif file
+def load_array(path: str, band: int):
+    """Extracts an array from opening a specific band of a .tif file.
 
     Args:
-        path (str): Path to file
-        band (int): Band number of .tif file
+        path (str): Path to file.
+        band (int): Band number of .tif file.
 
     Returns:
-        data ([[float]]): 2D array representing the image from the .tif band requested
-
+        data ([[float]]): 2D array representing the image from the .tif band requested.
     """
     raster = rt.open(path)
 
@@ -213,46 +204,54 @@ def load_array(path, band):
     return data
 
 
-def lc_load(patch_id):
-    """Loads the LC labels for a given patch
+def lc_load(patch_id: str):
+    """Loads the LC labels for a given patch.
 
     Args:
-        patch_id (str): Unique patch ID
+        patch_id (str): Unique patch ID.
 
     Returns:
-        LC_label (list): 2D array containing LC labels for each pixel of a patch
+        LC_label (list): 2D array containing LC labels for each pixel of a patch.
     """
     return load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '_2018_LC_10m.tif']), 1)
 
 
 def dataset_lc_load(ids):
-    """Loads all LC label masks for the given patch IDs
+    """Loads all LC label masks for the given patch IDs.
 
     Args:
-        ids (list):
+        ids (list): List of patch IDs.
 
     Returns:
-        2D array of land cover labels for the given patch IDs
+        2D array of land cover labels for the given patch IDs.
     """
     return [lc_load(patch_id) for patch_id in ids]
 
 
-def find_centre_label(patch_id):
+def find_centre_label(patch_id: str):
+    """Gets the annual land cover label for the central pixel of the given patch.
+
+    Args:
+        patch_id (str): Unique ID for the patch to find the centre label from.
+
+    Returns:
+        The land cover label of the central pixel of the patch.
+    """
     labels = np.array(lc_load(patch_id))
 
     return labels[int(labels.shape[0] / 2)][int(labels.shape[1] / 2)]
 
 
-def transform_coordinates(path, new_cs):
+def transform_coordinates(path: str, new_cs: osr.SpatialReference):
     """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
-    in the new co-ordinates system provided
+    in the new co-ordinates system provided.
 
     Args:
-        path (str): Path to GeoTiff to extract and transform co-ordinates from
-        new_cs(SpatialReference): Co-ordinate system to convert GeoTiff co-ordinates from
+        path (str): Path to GeoTiff to extract and transform co-ordinates from.
+        new_cs(osr.SpatialReference): Co-ordinate system to convert GeoTiff co-ordinates from.
 
     Returns:
-        ([[tuple]]): The corners of the image in the new co-ordinate system
+        The corners of the image in the new co-ordinate system.
     """
     # Open GeoTiff in GDAL
     ds = gdal.Open(path)
@@ -282,16 +281,16 @@ def transform_coordinates(path, new_cs):
             [trans.TransformPoint(min_x, min_y)[:2], trans.TransformPoint(max_x, min_y)[:2]]]
 
 
-def deg_to_dms(deg, axis='lat'):
-    """Credit to Gustavo Gonçalves on Stack Overflow
+def deg_to_dms(deg: float, axis: str = 'lat'):
+    """Credit to Gustavo Gonçalves on Stack Overflow.
     https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
 
     Args:
-        deg (float): Decimal degrees of latitude or longitude
-        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier
+        deg (float): Decimal degrees of latitude or longitude.
+        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier.
 
     Returns:
-        str of inputted deg in degrees, minutes and seconds in the form DegreesºMinutes Seconds Hemisphere
+        str of inputted deg in degrees, minutes and seconds in the form DegreesºMinutes Seconds Hemisphere.
     """
     # Split decimal degrees into units and decimals
     decimals, number = math.modf(deg)
@@ -315,14 +314,14 @@ def deg_to_dms(deg, axis='lat'):
 
 
 def dec2deg(dec_co, axis='lat'):
-    """Wrapper for deg_to_dms
+    """Wrapper for deg_to_dms.
 
     Args:
-        dec_co ([float]): Array of either latitude or longitude co-ordinates in decimal degrees
-        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier
+        dec_co ([float]): Array of either latitude or longitude co-ordinates in decimal degrees.
+        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier.
 
     Returns:
-        deg_co ([str]): List of formatted strings in degrees, minutes and seconds
+        deg_co ([str]): List of formatted strings in degrees, minutes and seconds.
     """
     deg_co = []
     for co in dec_co:
@@ -418,20 +417,21 @@ def class_frac(patch):
 
 
 def make_sorted_streams(patch_ids):
-    """Creates a DataFrame with columns of patch IDs sorted for each class by class size in those patches
+    """Creates a DataFrame with columns of patch IDs sorted for each class by class size in those patches.
 
     Args:
-        patch_ids (list[str]):
+        patch_ids (list[str]): List of patch IDs defining the dataset to be sorted.
 
     Returns:
-        streams_df (pandas.DataFrame): Database of list of patch IDs sorted by fractional sizes of class labels
-
+        streams_df (pd.DataFrame): Database of list of patch IDs sorted by fractional sizes of class labels.
     """
     df = pd.DataFrame()
     df['PATCH'] = patch_ids
 
+    # Calculates the class modes of each patch.
     df['MODES'] = df['PATCH'].apply(find_patch_modes)
 
+    # Calculates the fractional size of each class in each patch.
     df = pd.DataFrame([row for row in df.apply(class_frac, axis=1)])
 
     df.fillna(0, inplace=True)
@@ -452,39 +452,39 @@ def make_sorted_streams(patch_ids):
     return streams_df
 
 
-def cloud_cover(scene):
-    """Calculates percentage cloud cover for a given scene based on its scene CLD
+def cloud_cover(scene: np.ndarray):
+    """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
     Args:
-        scene (np.ndarray):
+        scene (np.ndarray): Cloud cover mask for a particular scene.
 
     Returns:
-        (float): Percentage cloud cover
+        (float): Percentage cloud cover of scene.
     """
     return np.sum(scene) / scene.size
 
 
-def month_sort(df, month):
-    """Finds the the scene with the lowest cloud cover in a given month
+def month_sort(df: pd.DataFrame, month: str):
+    """Finds the the scene with the lowest cloud cover in a given month.
 
     Args:
-        df (pandas.DataFrame): Dataframe containing all scenes and their cloud cover percentages
-        month (str): Month of a year to sort
+        df (pd.DataFrame): Dataframe containing all scenes and their cloud cover percentages.
+        month (str): Month of a year to sort.
 
     Returns:
-        (str): Date of the scene with the lowest cloud cover percentage for the given month
+        (str): Date of the scene with the lowest cloud cover percentage for the given month.
     """
     return df.loc[month].sort_values(by='COVER')['DATE'][0]
 
 
-def scene_selection(df):
-    """Selects the 24 best scenes of a patch based on REF's 2-step selection criteria
+def scene_selection(df: pd.DataFrame):
+    """Selects the 24 best scenes of a patch based on REF's 2-step selection criteria.
 
     Args:
-        df (pandas.DataFrame): Dataframe containing all scenes and their cloud cover percentages
+        df (pd.DataFrame): Dataframe containing all scenes and their cloud cover percentages.
 
     Returns:
-        scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format
+        scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format.
     """
     # Step 1: Find scene with lowest cloud cover percentage in each month
     step1 = []
@@ -499,14 +499,14 @@ def scene_selection(df):
     return step1 + step2
 
 
-def find_best_of(patch_id):
-    """Finds the 24 scenes sorted by cloud cover according to REF's 2-step criteria using scene_selection()
+def find_best_of(patch_id: str):
+    """Finds the 24 scenes sorted by cloud cover according to REF's 2-step criteria using scene_selection().
 
     Args:
-        patch_id (str): Unique patch ID
+        patch_id (str): Unique patch ID.
 
     Returns:
-        scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format
+        scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format.
     """
     # Creates a DataFrame
     patch = pd.DataFrame()
@@ -527,15 +527,15 @@ def find_best_of(patch_id):
     return scene_selection(patch)
 
 
-def stack_bands(patch_id, scene):
-    """Stacks together all the bands of the SENTINEL-2 images in a given scene of a patch
+def stack_bands(patch_id: str, scene: str):
+    """Stacks together all the bands of the SENTINEL-2 images in a given scene of a patch.
 
     Args:
-        patch_id (str): Unique patch ID
-        scene (str): Date of scene in YY_MM_DD format to stack bands in
+        patch_id (str): Unique patch ID.
+        scene (str): Date of scene in YY_MM_DD format to stack bands in.
 
     Returns:
-        Normalised and stacked red, green, blue arrays into RGB array
+        Normalised and stacked red, green, blue arrays into RGB array.
     """
     bands = []
     # Load R, G, B images from file and normalise
@@ -549,15 +549,15 @@ def stack_bands(patch_id, scene):
     return np.dstack(bands)
 
 
-def make_time_series(patch_id):
+def make_time_series(patch_id: str) -> np.ndarray:
     """Makes a time-series of each pixel of a patch across 24 scenes selected by REF's criteria using scene_selection().
-     All the bands in the chosen scene are stacked using stack_bands()
+     All the bands in the chosen scene are stacked using stack_bands().
 
     Args:
-        patch_id (str): Unique patch ID
+        patch_id (str): Unique patch ID.
 
     Returns:
-        (np.ndarray): Array of shape(rows, columns, 24, 12) holding all x for a patch
+        (np.ndarray): Array of shape(rows, columns, 24, 12) holding all x for a patch.
     """
     # List of scene dates found by REF's selection criteria
     scenes = find_best_of(patch_id)
@@ -571,7 +571,7 @@ def make_time_series(patch_id):
     return np.moveaxis(np.array(x), 0, 2)
 
 
-def load_patch_df(patch_id):
+def load_patch_df(patch_id: str) -> pd.DataFrame:
     """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns
 
     Args:
@@ -601,11 +601,19 @@ def load_patch_df(patch_id):
     return df
 
 
-def timestamp_now(fmt='%d-%m-%Y_%H%M'):
+def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
+    """Gets the timestamp of the datetime now.
+
+    Args:
+        fmt (str): Format of the returned timestamp.
+
+    Returns:
+        Timestamp of the datetime now.
+    """
     return datetime.now().strftime(fmt)
 
 
-def find_subpopulations(labels, plot=False):
+def find_subpopulations(labels, plot: bool = False):
     """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class
 
     Args:
@@ -613,7 +621,7 @@ def find_subpopulations(labels, plot=False):
         plot (bool): Plots distribution of subpopulations if True
 
     Returns:
-        class_dist (Counter): Modal distribution of classes in the dataset provided
+        Modal distribution of classes in the dataset provided
     """
     # Finds the distribution of the classes within the data
     class_dist = Counter(np.array(labels).flatten()).most_common()
@@ -625,7 +633,7 @@ def find_subpopulations(labels, plot=False):
     return class_dist
 
 
-def num_batches(num_ids):
+def num_batches(num_ids: int) -> int:
     """Determines the number of batches needed to cover the dataset across ids
 
     Args:
