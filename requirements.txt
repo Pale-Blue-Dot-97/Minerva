@@ -13,7 +13,7 @@ seaborn~=0.11.1
 tensorflow>=2.4.0
 rasterio~=1.1.0
 imageio~=2.9.0
-torchsummary~=1.5.1
+torchinfo~=0.0.9
 setuptools~=52.0.0
 
 --find-links https://download.pytorch.org/whl/torch_stable.html
