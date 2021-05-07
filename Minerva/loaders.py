@@ -68,10 +68,9 @@ class BalancedBatchDataset(IterableDataset, ABC):
 
         Args:
             class_streams (pd.DataFrame): DataFrame with a column of patch IDs for each class.
-            batch_size (int): Optional; Sets the number of samples in each batch. Default is 32.
+            batch_size (int): Optional; Sets the number of samples in each batch.
             wheel_size (int): Optional; Sets the maximum size of the wheels (deque) holding pixel stacks in memory.
-                Default is 65536.
-            patch_len (int): Optional; Total number of pixels in a patch. Default is 65536.
+            patch_len (int): Optional; Total number of pixels in a patch.
         """
         self.streams_df = class_streams
         self.batch_size = batch_size
