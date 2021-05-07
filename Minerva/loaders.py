@@ -315,17 +315,19 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     """
 
     Args:
-        patch_ids:
-        split:
+        patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
+            the patch IDs are inferred from the directory using patch_grab.
+        split (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets, in the
+            order (train, validation, test).
         params:
         wheel_size:
         image_len:
-        seed:
-        shuffle (bool):
-        plot (bool):
+        seed (int): Optional; Random seed number to fix the shuffling of the data split.
+        shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
+        plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
         balance (bool):
         cnn (bool):
-        p_dist (bool):
+        p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
         loaders (dict):

@@ -1,6 +1,4 @@
-"""trainer
-
-Module containing the class Trainer to handle the fitting of neural networks
+"""Module containing the class Trainer to handle the fitting of neural networks.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -19,7 +17,9 @@ Module containing the class Trainer to handle the fitting of neural networks
     see <https://www.gnu.org/licenses/>.
 
 Author: Harry James Baker
+
 Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
+
 Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd
@@ -45,15 +45,45 @@ from alive_progress import alive_bar
 #                                                     CLASSES
 # =====================================================================================================================
 class Trainer:
-    def __init__(self, model, optimiser, loaders, n_batches, device=None, **params):
-        self.params = params
+    """Helper class to handle the entire fitting and evaluation of a model.
 
+    Attributes:
+        params (dict): Dictionary describing all the parameters that define how the model will be constructed, trained
+            and evaluated. These should be defined via config YAML files.
+        model: Model to be fitted of a class contained within Minerva.models.
+        max_epochs (int): Number of epochs to train the model for.
+        batch_size (int): Size of each batch of samples supplied to the model.
+        loaders (dict[DataLoader]): Dictionary containing DataLoaders for each dataset.
+        n_batches (dict[int]): Dictionary of the number of batches to supply to the model for train, validation and
+            testing.
+        metrics (dict): Dictionary to hold the loss and accuracy results from training, validation and testing.
+        device: The CUDA device on which to fit the model.
+    """
+
+    def __init__(self, model, optimiser, loaders, n_batches: dict, device=None, **params):
+        """Initialises the Trainer.
+
+        Args:
+            model: Model to be fitted of a class contained within Minerva.models.
+            optimiser:
+            loaders (dict[DataLoader]): Dictionary containing DataLoaders for each dataset.
+            n_batches (dict): Dictionary of the number of batches to supply to the model for train, validation and
+                testing.
+            device: Optional; The CUDA device on which to fit the model. If not parsed, the CUDA device is found.
+        Keyword Args:
+            results (list[str]): Path to the results directory to save plots to.
+            model_name (str): Name of the model to be used in filenames of results.
+            batch_size (int): Size of each batch of samples supplied to the model.
+            max_epochs (int): Number of epochs to train the model for.
+        """
+        self.params = params
         self.model = model
         self.max_epochs = params['hyperparams']['max_epochs']
         self.batch_size = params['hyperparams']['params']['batch_size']
-
         self.loaders = loaders
         self.n_batches = n_batches
+
+        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
             'train_loss': [],
             'val_loss': [],
@@ -64,10 +94,11 @@ class Trainer:
             'test_acc': []
         }
 
+        # Sets the optimiser for the model.
         self.model.set_optimiser(optimiser)
 
+        # Finds the CUDA device if not provided and if available.
         if device is None:
-            # CUDA for PyTorch
             use_cuda = torch.cuda.is_available()
             device = torch.device("cuda:0" if use_cuda else "cpu")
             cudnn.benchmark = True
@@ -81,33 +112,50 @@ class Trainer:
         summary(model, input_size=(self.batch_size, *self.model.input_shape))
 
     def epoch(self, mode):
+        """All encompassing function for any type of epoch, be that train, validation or testing.
+
+        Args:
+            mode (str): Either train, val or test. Defines the type of epoch to run on the model.
+
+        Returns:
+            If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
+        """
+        # Initialises variables to hold overall epoch results.
         total_loss = 0.0
         total_correct = 0.0
         test_labels = []
         test_predictions = []
         test_ids = []
+
+        # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
+            # Sets the model up for training or evaluation modes
             if mode is 'train':
                 self.model.train()
             else:
                 self.model.eval()
 
+            # Core of the epoch. Gets batches from the appropriate loader.
             for x_batch, y_batch, patch_id in islice(self.loaders[mode], self.n_batches[mode]):
-                # Transfer to GPU
+
+                # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
 
+                # Runs a training epoch.
                 if mode is 'train':
                     loss, z = self.model.training_step(x, y)
 
                     total_loss += loss.item()
                     total_correct += (torch.argmax(z, 1) == y).sum().item()
 
+                # Runs a validation epoch.
                 elif mode is 'val':
                     loss, z = self.model.validation_step(x, y)
 
                     total_loss += loss.item()
                     total_correct += (torch.argmax(z, 1) == y).sum().item()
 
+                # Runs a testing epoch.
                 elif mode is 'test':
                     loss, z = self.model.testing_step(x, y)
 
@@ -116,8 +164,11 @@ class Trainer:
                     test_predictions.append(np.array(torch.argmax(z, 1).cpu()))
                     test_labels.append(np.array(y.cpu()))
                     test_ids.append(patch_id)
+
+                # Updates progress bar that sample has been processed.
                 bar()
 
+        # Updates metrics with epoch results.
         self.metrics['{}_loss'.format(mode)].append(total_loss / self.n_batches[mode])
         self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size))
 
@@ -127,6 +178,7 @@ class Trainer:
             return
 
     def fit(self):
+        """Fits the model by running max_epochs number of training and validation epochs."""
         for epoch in range(self.max_epochs):
             print(f'Epoch: {epoch + 1}/{self.max_epochs}')
 
@@ -139,6 +191,16 @@ class Trainer:
                                                                              self.metrics['val_acc'][epoch] * 100.0))
 
     def test(self, plots, save=True):
+        """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
+        analysis of them.
+
+        Args:
+            plots (dict): Dictionary defining which plots of the test results to create.
+            save (bool): Optional; Determines whether or not to save the plots created to file.
+
+        Returns:
+            Test predicted and ground truth labels along with the patch IDs supplied to the model during testing.
+        """
         print('\r\nTESTING')
         predictions, labels, ids = self.epoch('test')
 
