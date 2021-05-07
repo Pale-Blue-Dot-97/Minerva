@@ -1,4 +1,4 @@
-"""Module containing neural network model classes
+"""Module containing neural network model classes.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -25,7 +25,7 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
-    * Complete MLP documentation
+    * Add more functionality to CNN inputs
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -405,4 +405,13 @@ class CNN(torch.nn.Module, ABC):
 
 
 def get_output_shape(model, image_dim):
+    """Gets the output shape of a model.
+
+    Args:
+        model: Model for which the shape of the output needs to be found.
+        image_dim (list[int] or tuple[int]): Expected shape of the input data to the model.
+
+    Returns:
+        The shape of the output data from the model.
+    """
     return model(torch.rand([1, *image_dim])).data.shape[1:]
