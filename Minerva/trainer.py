@@ -25,7 +25,6 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
-    * Fully document
     * Add method to save models to file
 
 """
