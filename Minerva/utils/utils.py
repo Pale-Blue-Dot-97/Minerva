@@ -45,6 +45,7 @@ from datetime import datetime
 from collections import Counter
 import rasterio as rt
 from osgeo import gdal, osr
+from sklearn.model_selection import train_test_split
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -339,10 +340,52 @@ def labels_to_ohe(labels, n_classes):
 
     Returns:
         Labels in OHE form
-
     """
     targets = np.array(labels).reshape(-1)
     return np.eye(n_classes)[targets]
+
+
+def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), seed: int = 42, shuffle: bool = True,
+               p_dist: bool = False, plot: bool = False):
+    """Splits the patch IDs into train, validation and test id sets.
+
+    Args:
+        patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
+            the patch IDs are inferred from the directory using patch_grab.
+        split (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets, in the
+            order (train, validation, test).
+        seed (int): Optional; Random seed number to fix the shuffling of the data split.
+        shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
+        p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
+        plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
+
+    Returns:
+        ids (dict): Dictionary of patch IDs representing train, validation and test datasets.
+    """
+    # Fetches all patch IDs in the dataset
+    if patch_ids is None:
+        patch_ids = patch_grab()
+
+    # Splits the dataset into train and val-test
+    train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1] + split[2]),
+                                               shuffle=shuffle, random_state=seed)
+
+    # Splits the val-test dataset into validation and test
+    val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1] / (split[1] + split[2])),
+                                         test_size=(split[2] / (split[1] + split[2])), shuffle=shuffle,
+                                         random_state=seed)
+
+    # Prints the class sub-populations of each dataset to screen.
+    if p_dist:
+        print('\nTrain: \n', find_subpopulations(train_ids, plot=plot))
+        print('\nValidation: \n', find_subpopulations(val_ids, plot=plot))
+        print('\nTest: \n', find_subpopulations(test_ids, plot=plot))
+
+    ids = {'train': train_ids,
+           'val': val_ids,
+           'test': test_ids}
+
+    return ids
 
 
 def find_patch_modes(patch_id):

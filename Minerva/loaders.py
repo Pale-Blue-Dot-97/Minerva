@@ -37,7 +37,6 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import IterableDataset, DataLoader
-from sklearn.model_selection import train_test_split
 from itertools import cycle, chain
 from collections import deque
 
@@ -308,6 +307,9 @@ class ImageDataset(IterableDataset, ABC):
             return self.get_stream(random.sample(self.patch_ids, per_worker))
 
 
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
 def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_size=65536, image_len=65536, seed=42,
                   shuffle=True, plot=False, balance=False, cnn=False, p_dist=False):
     """
@@ -330,67 +332,46 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         n_batches (dict):
         class_dist (Counter):
     """
-    # Fetches all patch IDs in the dataset
-    if patch_ids is None:
-        patch_ids = utils.patch_grab()
 
-    if params['batch_size'] is None:
-        params['batch_size'] = 256
-
-    if params is None:
-        params = {'batch_size': 256, 'num_workers': 3, 'pin_memory': True}
-
-    # Splits the dataset into train and val-test
-    train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1] + split[2]),
-                                               shuffle=shuffle, random_state=seed)
-
-    # Splits the val-test dataset into validation and test
-    val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1] / (split[1] + split[2])),
-                                         test_size=(split[2] / (split[1] + split[2])), shuffle=shuffle,
-                                         random_state=seed)
-
-    if p_dist:
-        print('\nTrain: \n', utils.find_subpopulations(train_ids, plot=plot))
-        print('\nValidation: \n', utils.find_subpopulations(val_ids, plot=plot))
-        print('\nTest: \n', utils.find_subpopulations(test_ids, plot=plot))
+    ids = utils.split_data(patch_ids=patch_ids, split=split, seed=seed, shuffle=shuffle, p_dist=p_dist, plot=plot)
 
     datasets = {}
     n_batches = {}
 
     if balance and not cnn:
-        train_stream = utils.make_sorted_streams(train_ids)
-        val_stream = utils.make_sorted_streams(val_ids)
+        train_stream = utils.make_sorted_streams(ids['train'])
+        val_stream = utils.make_sorted_streams(ids['val'])
 
         # Define datasets for train, validation and test using BatchDataset
         datasets['train'] = BalancedBatchDataset(train_stream, batch_size=params['batch_size'],
                                                  wheel_size=wheel_size, patch_len=image_len)
         datasets['val'] = BalancedBatchDataset(val_stream, batch_size=params['batch_size'],
                                                wheel_size=wheel_size, patch_len=image_len)
-        datasets['test'] = BatchDataset(test_ids, batch_size=params['batch_size'])
+        datasets['test'] = BatchDataset(ids['test'], batch_size=params['batch_size'])
 
         n_batches['train'] = utils.num_batches(len(train_stream.columns) * len(train_stream))
         n_batches['val'] = utils.num_batches(len(val_stream.columns) * len(val_stream))
-        n_batches['test'] = utils.num_batches(len(test_ids))
+        n_batches['test'] = utils.num_batches(len(ids['test']))
 
     if not balance and not cnn:
         # Define datasets for train, validation and test using BatchDataset
-        datasets['train'] = BatchDataset(train_ids, batch_size=params['batch_size'])
-        datasets['val'] = BatchDataset(val_ids, batch_size=params['batch_size'])
-        datasets['test'] = BatchDataset(test_ids, batch_size=params['batch_size'])
+        datasets['train'] = BatchDataset(ids['train'], batch_size=params['batch_size'])
+        datasets['val'] = BatchDataset(ids['val'], batch_size=params['batch_size'])
+        datasets['test'] = BatchDataset(ids['test'], batch_size=params['batch_size'])
 
-        n_batches['train'] = utils.num_batches(len(train_ids))
-        n_batches['val'] = utils.num_batches(len(val_ids))
-        n_batches['test'] = utils.num_batches(len(test_ids))
+        n_batches['train'] = utils.num_batches(len(ids['train']))
+        n_batches['val'] = utils.num_batches(len(ids['val']))
+        n_batches['test'] = utils.num_batches(len(ids['test']))
 
     if cnn and not balance:
         # Define datasets for train, validation and test using ImageDataset
-        datasets['train'] = ImageDataset(train_ids, batch_size=params['batch_size'])
-        datasets['val'] = ImageDataset(val_ids, batch_size=params['batch_size'])
-        datasets['test'] = ImageDataset(test_ids, batch_size=params['batch_size'])
+        datasets['train'] = ImageDataset(ids['train'], batch_size=params['batch_size'])
+        datasets['val'] = ImageDataset(ids['val'], batch_size=params['batch_size'])
+        datasets['test'] = ImageDataset(ids['test'], batch_size=params['batch_size'])
 
-        n_batches['train'] = int((len(train_ids) * 24.0) / params['batch_size'])
-        n_batches['val'] = int((len(val_ids) * 24.0) / params['batch_size'])
-        n_batches['test'] = int((len(test_ids) * 24.0) / params['batch_size'])
+        n_batches['train'] = int((len(ids['train']) * 24.0) / params['batch_size'])
+        n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])
+        n_batches['test'] = int((len(ids['test']) * 24.0) / params['batch_size'])
 
     # Create train, validation and test batch loaders and pack into dict
     loaders = {'train': DataLoader(datasets['train'], **params),
@@ -398,9 +379,5 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
                'test': DataLoader(datasets['test'], **params)}
 
     class_dist = utils.find_subpopulations(patch_ids, plot=False)
-
-    ids = {'train': train_ids,
-           'val': val_ids,
-           'test': test_ids}
 
     return loaders, n_batches, class_dist, ids
