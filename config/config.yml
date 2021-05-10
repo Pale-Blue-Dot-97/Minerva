@@ -28,7 +28,7 @@ hyperparams:
     optimiser: SGD
     learning_rate: 3.0E-4
     momentum: None
-  max_epochs: 10
+  max_epochs: 1
 
 # Settings for RGB image creation
 rgb_params:

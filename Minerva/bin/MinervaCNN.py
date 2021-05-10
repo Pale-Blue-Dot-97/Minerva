@@ -72,11 +72,11 @@ def main():
     model = CNN(criterion, **model_params)
 
     # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=config['hyperparams']['optimiser_params']['learning_rate'])
+    #optimiser = torch.optim.SGD(model.parameters(), lr=config['hyperparams']['optimiser_params']['learning_rate'])
 
     datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, params=params)
 
-    trainer = Trainer(model=model, optimiser=optimiser, loaders=datasets, n_batches=n_batches, device=device, **config)
+    trainer = Trainer(model=model, loaders=datasets, n_batches=n_batches, device=device, **config)
 
     trainer.fit()
 

@@ -31,6 +31,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import importlib
 from Minerva.utils import visutils
 import numpy as np
 import torch
@@ -59,12 +60,11 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, model, optimiser, loaders, n_batches: dict, device=None, **params):
+    def __init__(self, model, loaders, n_batches: dict, device=None, **params):
         """Initialises the Trainer.
 
         Args:
             model: Model to be fitted of a class contained within Minerva.models.
-            optimiser:
             loaders (dict[DataLoader]): Dictionary containing DataLoaders for each dataset.
             n_batches (dict): Dictionary of the number of batches to supply to the model for train, validation and
                 testing.
@@ -93,8 +93,8 @@ class Trainer:
             'test_acc': []
         }
 
-        # Sets the optimiser for the model.
-        self.model.set_optimiser(optimiser)
+        # Creates and sets the optimiser for the model.
+        self.make_optimiser()
 
         # Finds the CUDA device if not provided and if available.
         if device is None:
@@ -109,6 +109,19 @@ class Trainer:
 
         # Print model summary
         summary(model, input_size=(self.batch_size, *self.model.input_shape))
+
+    def make_optimiser(self):
+        """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
+
+        # Gets the torch optimiser library.
+        opt_module = importlib.import_module('torch.optim')
+
+        # Gets the optimiser requested by config parameters.
+        optimiser = getattr(opt_module, self.params['hyperparams']['optimiser_params']['optimiser'])
+
+        # Constructs and sets the optimiser for the model based on supplied config parameters.
+        self.model.set_optimiser(optimiser(self.model.parameters(),
+                                           lr=self.params['hyperparams']['optimiser_params']['learning_rate']))
 
     def epoch(self, mode):
         """All encompassing function for any type of epoch, be that train, validation or testing.
