@@ -74,6 +74,35 @@ wheel_size = image_len
 
 
 # =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
+def mlp_prediction_plot(z, y, test_ids):
+    """Custom function for pre-processing the outputs from MLP testing for data visualisation.
+
+    Args:
+        z (list[float]): Predicted labels by the MLP.
+        y (list[float]): Corresponding ground truth labels.
+        test_ids (list[str]): Corresponding patch IDs for the test data supplied to the MLP.
+    """
+    # `De-interlaces' the outputs to account for the effects of multi-threaded workloads.
+    z = visutils.deinterlace(z, params['num_workers'])
+    y = visutils.deinterlace(y, params['num_workers'])
+    test_ids = visutils.deinterlace(test_ids, params['num_workers'])
+
+    # Extracts just a patch ID for each test patch supplied.
+    test_ids = [test_ids[i] for i in np.arange(start=0, stop=len(test_ids), step=image_len)]
+
+    # Create a new projection system in lat-lon
+    new_cs = osr.SpatialReference()
+    new_cs.ImportFromEPSG(dataset_config['co_sys']['id'])
+
+    # Plots the predicted versus ground truth labels for all test patches supplied.
+    visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=test_ids, exp_id=config['model_name'], new_cs=new_cs,
+                          classes=dataset_config['classes'],
+                          cmap=ListedColormap(dataset_config['colours'].values(), N=len(dataset_config['classes'])))
+
+
+# =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 def main():
@@ -97,19 +126,7 @@ def main():
 
     z, y, test_ids = trainer.test({'History': True, 'Pred': True, 'CM': True}, save=False)
 
-    z = visutils.deinterlace(z, params['num_workers'])
-    y = visutils.deinterlace(y, params['num_workers'])
-    test_ids = visutils.deinterlace(test_ids, params['num_workers'])
-
-    test_ids = [test_ids[i] for i in np.arange(start=0, stop=len(test_ids), step=image_len)]
-
-    # Create a new projection system in lat-lon
-    WGS84_4326 = osr.SpatialReference()
-    WGS84_4326.ImportFromEPSG(dataset_config['co_sys']['id'])
-
-    visutils.plot_all_pvl(predictions=z, labels=y, patch_ids=test_ids, exp_id=config['model_name'], new_cs=WGS84_4326,
-                          classes=dataset_config['classes'],
-                          cmap=ListedColormap(dataset_config['colours'].values(), N=len(dataset_config['classes'])))
+    mlp_prediction_plot(z, y, y)
 
 
 if __name__ == '__main__':
