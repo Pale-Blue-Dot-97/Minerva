@@ -27,8 +27,6 @@ Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
     * Add arg parsing from CLI
-    * Add model selection logic
-    * Add loss function selection logic
     * Add ability to conduct hyper-parameter iterative variation experimentation
 """
 # =====================================================================================================================

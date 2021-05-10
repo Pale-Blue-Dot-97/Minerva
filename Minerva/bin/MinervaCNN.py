@@ -27,8 +27,6 @@ Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
     * Add arg parsing from CLI
-    * Add model selection logic
-    * Add loss function selection logic
     * Add ability to conduct hyper-parameter iterative variation experimentation
 """
 # =====================================================================================================================
@@ -62,14 +60,6 @@ params = config['hyperparams']['params']
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    # Define loss function
-    #criterion = torch.nn.CrossEntropyLoss()
-
-    #model_params = config['hyperparams']['model_params']
-
-    # Initialise model
-    #model = CNN(criterion, **model_params)
-
     datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, params=params)
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, device=device, **config)
