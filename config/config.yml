@@ -24,10 +24,10 @@ hyperparams:
     input_shape: [12, 256, 256]
     n_classes: 8
     scaling: [2, 4, 8]
-  optimiser_params:
-    optimiser: SGD
-    learning_rate: 3.0E-4
-    momentum: None
+  optim_params:
+    name: SGD
+    lr: 3.0E-4
+    momentum: 0.9
   max_epochs: 1
 
 # Settings for RGB image creation

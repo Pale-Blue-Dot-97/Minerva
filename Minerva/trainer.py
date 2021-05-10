@@ -117,11 +117,10 @@ class Trainer:
         opt_module = importlib.import_module('torch.optim')
 
         # Gets the optimiser requested by config parameters.
-        optimiser = getattr(opt_module, self.params['hyperparams']['optimiser_params']['optimiser'])
+        optimiser = getattr(opt_module, self.params['hyperparams']['optim_params'].pop('name'))
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(optimiser(self.model.parameters(),
-                                           lr=self.params['hyperparams']['optimiser_params']['learning_rate']))
+        self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
     def epoch(self, mode):
         """All encompassing function for any type of epoch, be that train, validation or testing.
