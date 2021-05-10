@@ -22,7 +22,6 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-
 Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
@@ -42,6 +41,7 @@ from datetime import datetime
 from collections import Counter
 import rasterio as rt
 from osgeo import gdal, osr
+import torch
 from sklearn.model_selection import train_test_split
 
 # =====================================================================================================================
@@ -384,6 +384,15 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), seed: int = 42, shuffle:
            'test': test_ids}
 
     return ids
+
+
+def class_weighting(class_dist, device):
+    # Finds total number of samples to normalise data
+    n_samples = 0
+    for mode in class_dist:
+        n_samples += mode[1]
+
+    return torch.tensor([(1 - (mode[1] / n_samples)) for mode in class_dist], device=device)
 
 
 def find_patch_modes(patch_id):
