@@ -63,16 +63,16 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 def main():
     # Define loss function
-    criterion = torch.nn.CrossEntropyLoss()
+    #criterion = torch.nn.CrossEntropyLoss()
 
-    model_params = config['hyperparams']['model_params']
+    #model_params = config['hyperparams']['model_params']
 
     # Initialise model
-    model = CNN(criterion, **model_params)
+    #model = CNN(criterion, **model_params)
 
     datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, params=params)
 
-    trainer = Trainer(model=model, loaders=datasets, n_batches=n_batches, device=device, **config)
+    trainer = Trainer(loaders=datasets, n_batches=n_batches, device=device, **config)
 
     trainer.fit()
 

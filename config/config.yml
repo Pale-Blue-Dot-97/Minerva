@@ -28,6 +28,8 @@ hyperparams:
     name: SGD
     lr: 3.0E-4
     momentum: 0.9
+  loss_params:
+    name: 'CrossEntropyLoss'
   max_epochs: 1
 
 # Settings for RGB image creation

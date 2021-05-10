@@ -105,18 +105,10 @@ def mlp_prediction_plot(z, y, test_ids):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    # Define loss function
-    criterion = torch.nn.CrossEntropyLoss()
-
-    model_params = config['hyperparams']['model_params']
-
-    # Initialise model
-    model = MLP(criterion, **model_params)
-
     datasets, n_batches, _, ids = loaders.make_datasets(balance=True, params=params, wheel_size=wheel_size,
                                                         image_len=image_len)
 
-    trainer = Trainer(model=model, loaders=datasets, n_batches=n_batches, device=device, **config)
+    trainer = Trainer(loaders=datasets, n_batches=n_batches, device=device, **config)
 
     trainer.fit()
 

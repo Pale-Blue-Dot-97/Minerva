@@ -60,7 +60,7 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, model, loaders, n_batches: dict, device=None, **params):
+    def __init__(self, loaders, n_batches: dict, device=None, **params):
         """Initialises the Trainer.
 
         Args:
@@ -76,7 +76,9 @@ class Trainer:
             max_epochs (int): Number of epochs to train the model for.
         """
         self.params = params
-        self.model = model
+
+        self.model = self.make_model()
+
         self.max_epochs = params['hyperparams']['max_epochs']
         self.batch_size = params['hyperparams']['params']['batch_size']
         self.loaders = loaders
@@ -105,10 +107,31 @@ class Trainer:
         self.device = device
 
         # Transfer to GPU
-        model.to(device)
+        self.model.to(device)
 
         # Print model summary
-        summary(model, input_size=(self.batch_size, *self.model.input_shape))
+        summary(self.model, input_size=(self.batch_size, *self.model.input_shape))
+
+    def make_model(self):
+        model_params = self.params['hyperparams']['model_params']
+
+        # Gets the torch optimiser library.
+        models_module = importlib.import_module('Minerva.models')
+
+        # Gets the optimiser requested by config parameters.
+        model = getattr(models_module, self.params['model_name'].split('-')[0])
+
+        # Initialise model
+        return model(self.make_criterion(), **model_params)
+
+    def make_criterion(self):
+        # Gets the torch neural network library.
+        module = importlib.import_module('torch.nn')
+
+        # Gets the loss function requested by config parameters.
+        criterion = getattr(module, self.params['hyperparams']['loss_params'].pop('name'))
+        
+        return criterion()
 
     def make_optimiser(self):
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
