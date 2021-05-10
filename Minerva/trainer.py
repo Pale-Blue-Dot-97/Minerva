@@ -26,7 +26,6 @@ Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
     * Add method to save models to file
-
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -64,7 +63,6 @@ class Trainer:
         """Initialises the Trainer.
 
         Args:
-            model: Model to be fitted of a class contained within Minerva.models.
             loaders (dict[DataLoader]): Dictionary containing DataLoaders for each dataset.
             n_batches (dict): Dictionary of the number of batches to supply to the model for train, validation and
                 testing.
@@ -77,6 +75,7 @@ class Trainer:
         """
         self.params = params
 
+        # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
         self.max_epochs = params['hyperparams']['max_epochs']
@@ -113,6 +112,11 @@ class Trainer:
         summary(self.model, input_size=(self.batch_size, *self.model.input_shape))
 
     def make_model(self):
+        """Creates a model from the parameters specified by config.
+
+        Returns:
+            Initialised model.
+        """
         model_params = self.params['hyperparams']['model_params']
 
         # Gets the torch optimiser library.
@@ -125,6 +129,11 @@ class Trainer:
         return model(self.make_criterion(), **model_params)
 
     def make_criterion(self):
+        """Creates a PyTorch loss function based on config parameters.
+
+        Returns:
+            Initialised PyTorch loss function specified by config parameters.
+        """
         # Gets the torch neural network library.
         module = importlib.import_module('torch.nn')
 
