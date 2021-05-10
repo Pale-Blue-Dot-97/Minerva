@@ -43,6 +43,7 @@ import rasterio as rt
 from osgeo import gdal, osr
 import torch
 from sklearn.model_selection import train_test_split
+from torch.backends import cudnn
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -87,6 +88,14 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def get_cuda_device():
+    use_cuda = torch.cuda.is_available()
+    device = torch.device("cuda:0" if use_cuda else "cpu")
+    cudnn.benchmark = True
+
+    return device
+
+
 def exist_delete_check(fn: str):
     """Checks if given file exists then deletes if true.
 

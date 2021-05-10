@@ -35,8 +35,7 @@ TODO:
 import Minerva.loaders as loaders
 from Minerva.trainer import Trainer
 import yaml
-import torch
-from torch.backends import cudnn
+
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -45,11 +44,6 @@ config_path = '../../config/config.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
-
-# CUDA for PyTorch
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
-cudnn.benchmark = True
 
 # Parameters
 params = config['hyperparams']['params']
@@ -61,7 +55,7 @@ params = config['hyperparams']['params']
 def main():
     datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, params=params)
 
-    trainer = Trainer(loaders=datasets, n_batches=n_batches, device=device, **config)
+    trainer = Trainer(loaders=datasets, n_batches=n_batches, **config)
 
     trainer.fit()
 

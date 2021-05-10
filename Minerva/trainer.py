@@ -31,6 +31,8 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import importlib
+
+import utils.utils
 from Minerva.utils import visutils
 import numpy as np
 import torch
@@ -59,14 +61,13 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders, n_batches: dict, device=None, **params):
+    def __init__(self, loaders, n_batches: dict, **params):
         """Initialises the Trainer.
 
         Args:
             loaders (dict[DataLoader]): Dictionary containing DataLoaders for each dataset.
             n_batches (dict): Dictionary of the number of batches to supply to the model for train, validation and
                 testing.
-            device: Optional; The CUDA device on which to fit the model. If not parsed, the CUDA device is found.
         Keyword Args:
             results (list[str]): Path to the results directory to save plots to.
             model_name (str): Name of the model to be used in filenames of results.
@@ -97,13 +98,7 @@ class Trainer:
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
 
-        # Finds the CUDA device if not provided and if available.
-        if device is None:
-            use_cuda = torch.cuda.is_available()
-            device = torch.device("cuda:0" if use_cuda else "cpu")
-            cudnn.benchmark = True
-
-        self.device = device
+        self.device = utils.utils.get_cuda_device()
 
         # Transfer to GPU
         self.model.to(device)

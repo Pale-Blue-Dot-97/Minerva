@@ -33,12 +33,9 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import visutils
-from Minerva.models import MLP
 import Minerva.loaders as loaders
 from Minerva.trainer import Trainer
 import yaml
-import torch
-from torch.backends import cudnn
 from matplotlib.colors import ListedColormap
 import numpy as np
 import osr
@@ -53,11 +50,6 @@ with open(config_path) as file:
 
 with open(config['dir']['data_config']) as file:
     dataset_config = yaml.safe_load(file)
-
-# CUDA for PyTorch
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
-cudnn.benchmark = True
 
 # Defines size of the images to determine the number of batches
 image_size = dataset_config['data_specs']['image_size']
@@ -106,7 +98,7 @@ def main():
     datasets, n_batches, _, ids = loaders.make_datasets(balance=True, params=params, wheel_size=wheel_size,
                                                         image_len=image_len)
 
-    trainer = Trainer(loaders=datasets, n_batches=n_batches, device=device, **config)
+    trainer = Trainer(loaders=datasets, n_batches=n_batches, **config)
 
     trainer.fit()
 
