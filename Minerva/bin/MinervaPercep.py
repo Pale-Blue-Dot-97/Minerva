@@ -26,7 +26,6 @@ Created under a project funded by the Ordnance Survey Ltd
 
 
 TODO:
-    * Add optimiser selection logic
     * Add arg parsing from CLI
     * Add model selection logic
     * Add loss function selection logic
@@ -114,13 +113,10 @@ def main():
     # Initialise model
     model = MLP(criterion, **model_params)
 
-    # Define optimiser
-    optimiser = torch.optim.SGD(model.parameters(), lr=config['hyperparams']['optimiser_params']['learning_rate'])
-
     datasets, n_batches, _, ids = loaders.make_datasets(balance=True, params=params, wheel_size=wheel_size,
                                                         image_len=image_len)
 
-    trainer = Trainer(model=model, optimiser=optimiser, loaders=datasets, n_batches=n_batches, device=device, **config)
+    trainer = Trainer(model=model, loaders=datasets, n_batches=n_batches, device=device, **config)
 
     trainer.fit()
 
