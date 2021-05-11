@@ -353,7 +353,7 @@ def labels_to_ohe(labels, n_classes):
 
 
 def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), seed: int = 42, shuffle: bool = True,
-               p_dist: bool = False, plot: bool = False):
+               p_dist: bool = False, ctr_lbl: bool = False, plot: bool = False):
     """Splits the patch IDs into train, validation and test id sets.
 
     Args:
@@ -364,6 +364,7 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), seed: int = 42, shuffle:
         seed (int): Optional; Random seed number to fix the shuffling of the data split.
         shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
+        ctr_lbl (bool): Optional; Loads only centre labels for class distribution analysis.
         plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
 
     Returns:
@@ -384,9 +385,17 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), seed: int = 42, shuffle:
 
     # Prints the class sub-populations of each dataset to screen.
     if p_dist:
-        print('\nTrain: \n', find_subpopulations(train_ids, plot=plot))
-        print('\nValidation: \n', find_subpopulations(val_ids, plot=plot))
-        print('\nTest: \n', find_subpopulations(test_ids, plot=plot))
+        if ctr_lbl:
+            print('\nTrain: \n', find_subpopulations([find_centre_label(patch_id) for patch_id in train_ids],
+                                                     plot=plot))
+            print('\nValidation: \n', find_subpopulations([find_centre_label(patch_id) for patch_id in val_ids],
+                                                          plot=plot))
+            print('\nTest: \n', find_subpopulations([find_centre_label(patch_id) for patch_id in test_ids], plot=plot))
+
+        else:
+            print('\nTrain: \n', find_subpopulations(dataset_lc_load(train_ids), plot=plot))
+            print('\nValidation: \n', find_subpopulations(dataset_lc_load(val_ids), plot=plot))
+            print('\nTest: \n', find_subpopulations(dataset_lc_load(test_ids), plot=plot))
 
     ids = {'train': train_ids,
            'val': val_ids,
@@ -645,7 +654,7 @@ def find_subpopulations(labels, plot: bool = False):
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
-        visutils.plot_subpopulations(class_dist, class_names=classes, cmap_dict=cmap_dict)
+        visutils.plot_subpopulations(class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True)
 
     return class_dist
 

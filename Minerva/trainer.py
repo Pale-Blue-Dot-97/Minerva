@@ -101,7 +101,7 @@ class Trainer:
         self.device = utils.utils.get_cuda_device()
 
         # Transfer to GPU
-        self.model.to(device)
+        self.model.to(self.device)
 
         # Print model summary
         summary(self.model, input_size=(self.batch_size, *self.model.input_shape))

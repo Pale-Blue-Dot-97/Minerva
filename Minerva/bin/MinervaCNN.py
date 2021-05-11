@@ -53,7 +53,7 @@ params = config['hyperparams']['params']
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, params=params)
+    datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, p_dist=True, plot=True, params=params)
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, **config)
 
