@@ -53,13 +53,13 @@ params = config['hyperparams']['params']
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, p_dist=True, plot=True, params=params)
+    datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, balance=True, params=params)
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, **config)
 
     trainer.fit()
 
-    trainer.test({'History': True, 'Pred': True, 'CM': True}, save=False)
+    trainer.test({'History': True, 'Pred': True, 'CM': True}, save=True)
 
 
 if __name__ == '__main__':

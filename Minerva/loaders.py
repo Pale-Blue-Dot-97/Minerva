@@ -36,7 +36,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import IterableDataset, DataLoader
+from torch.utils.data import IterableDataset, DataLoader, WeightedRandomSampler
 from itertools import cycle, chain
 from collections import deque
 
@@ -366,7 +366,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         n_batches['val'] = utils.num_batches(len(ids['val']))
         n_batches['test'] = utils.num_batches(len(ids['test']))
 
-    if cnn and not balance:
+    if cnn:
         # Define datasets for train, validation and test using ImageDataset
         datasets['train'] = ImageDataset(ids['train'], batch_size=params['batch_size'])
         datasets['val'] = ImageDataset(ids['val'], batch_size=params['batch_size'])
@@ -376,10 +376,23 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])
         n_batches['test'] = int((len(ids['test']) * 24.0) / params['batch_size'])
 
-    # Create train, validation and test batch loaders and pack into dict
-    loaders = {'train': DataLoader(datasets['train'], **params),
-               'val': DataLoader(datasets['val'], **params),
-               'test': DataLoader(datasets['test'], **params)}
+    loaders = {}
+
+    if cnn and balance:
+        train_weights = utils.weight_samples(ids['train'], func=utils.find_centre_label)
+        val_weights = utils.weight_samples(ids['val'], func=utils.find_centre_label)
+
+        train_weighted_sampler = WeightedRandomSampler(train_weights, len(train_weights), replacement=True)
+        val_weighted_sampler = WeightedRandomSampler(val_weights, len(val_weights), replacement=True)
+
+        loaders['train'] = DataLoader(datasets['train'], **params, sampler=train_weighted_sampler)
+        loaders['val'] = DataLoader(datasets['val'], **params, sampler=val_weighted_sampler)
+
+    if cnn and not balance or not cnn:
+        loaders['train'] = DataLoader(datasets['train'], **params)
+        loaders['val'] = DataLoader(datasets['val'], **params)
+
+    loaders['test'] = DataLoader(datasets['test'], **params)
 
     class_dist = utils.find_subpopulations(patch_ids, plot=False)
 

@@ -224,16 +224,17 @@ def lc_load(patch_id: str):
     return load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '_2018_LC_10m.tif']), 1)
 
 
-def dataset_lc_load(ids):
-    """Loads all LC label masks for the given patch IDs.
+def dataset_lc_load(ids: list, func=lc_load):
+    """Loads Labels for the given patch IDs using the provided loading function.
 
     Args:
         ids (list): List of patch IDs.
+        func (function): Optional; Function that loads label(s) via a patch ID input.
 
     Returns:
-        2D array of land cover labels for the given patch IDs.
+        Labels for the given patch IDs.
     """
-    return [lc_load(patch_id) for patch_id in ids]
+    return [func(patch_id) for patch_id in ids]
 
 
 def find_centre_label(patch_id: str):
@@ -404,13 +405,30 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), seed: int = 42, shuffle:
     return ids
 
 
-def class_weighting(class_dist, device):
+def class_weighting(class_dist):
     # Finds total number of samples to normalise data
     n_samples = 0
     for mode in class_dist:
         n_samples += mode[1]
 
-    return torch.tensor([(1 - (mode[1] / n_samples)) for mode in class_dist], device=device)
+    class_weights = {}
+    for mode in class_dist:
+        class_weights[mode[0]] = 1 - (mode[1] / n_samples)
+
+    return class_weights
+
+
+def weight_samples(patch_ids, func=find_centre_label, class_weights=None):
+    if class_weights is None:
+        class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func), plot=False))
+
+    sample_weights = []
+
+    for patch in patch_ids:
+        for i in range(24):
+            sample_weights.append(class_weights[find_centre_label(patch)])
+
+    return sample_weights
 
 
 def find_patch_modes(patch_id):

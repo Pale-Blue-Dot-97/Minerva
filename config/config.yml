@@ -30,7 +30,7 @@ hyperparams:
     momentum: 0.9
   loss_params:
     name: 'CrossEntropyLoss'
-  max_epochs: 1
+  max_epochs: 10
 
 # Settings for RGB image creation
 rgb_params:
