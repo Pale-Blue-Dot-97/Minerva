@@ -31,13 +31,10 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import importlib
-
-import utils.utils
-from Minerva.utils import visutils
+from Minerva.utils import visutils, utils
 import numpy as np
 import torch
 from torchinfo import summary
-from torch.backends import cudnn
 from itertools import islice
 from alive_progress import alive_bar
 
@@ -98,7 +95,7 @@ class Trainer:
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
 
-        self.device = utils.utils.get_cuda_device()
+        self.device = utils.get_cuda_device()
 
         # Transfer to GPU
         self.model.to(self.device)

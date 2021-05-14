@@ -338,6 +338,8 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     ids = utils.split_data(patch_ids=patch_ids, split=split, seed=seed, shuffle=shuffle, p_dist=p_dist, plot=plot,
                            ctr_lbl=cnn)
 
+    #utils.eliminate_classes(utils.find_empty_classes(ids['train'], utils.find_centre_label))
+
     datasets = {}
     n_batches = {}
 

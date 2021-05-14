@@ -38,7 +38,7 @@ import math
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from collections import Counter
+from collections import Counter, OrderedDict
 import rasterio as rt
 from osgeo import gdal, osr
 import torch
@@ -438,6 +438,33 @@ def find_empty_classes(patch_ids: list, func=find_centre_label, class_dist=None)
     empty = [label for label in classes.keys() if label not in [mode[0] for mode in class_dist]]
 
     return empty
+
+
+def eliminate_classes(empty_classes):
+    new_classes = {key: value[:] for key, value in classes.items()}
+    for label in empty_classes:
+        del new_classes[label]
+
+    over_keys = [key for key in new_classes.keys() if key >= len(new_classes.keys())]
+
+    over_items = OrderedDict({key: new_classes[key] for key in over_keys})
+
+    reordered_dict = {}
+    old_new = {}
+    new_old = {}
+
+    for i in range(len(new_classes.keys())):
+        if i in new_classes:
+            reordered_dict[i] = new_classes[i]
+            old_new[i] = i
+            new_old[i] = i
+        if i not in new_classes:
+            key, value = over_items.popitem()
+            reordered_dict[i] = value
+            old_new[key] = i
+            new_old[i] = key
+
+    return new_classes
 
 
 def find_patch_modes(patch_id):
