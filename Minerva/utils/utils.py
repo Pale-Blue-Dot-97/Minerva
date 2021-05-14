@@ -431,6 +431,15 @@ def weight_samples(patch_ids, func=find_centre_label, class_weights=None):
     return sample_weights
 
 
+def find_empty_classes(patch_ids: list, func=find_centre_label, class_dist=None):
+    if class_dist is None:
+        class_dist = find_subpopulations(dataset_lc_load(patch_ids, func), plot=False)
+
+    empty = [label for label in classes.keys() if label not in [mode[0] for mode in class_dist]]
+
+    return empty
+
+
 def find_patch_modes(patch_id):
     """Finds the distribution of the classes within this patch
 
