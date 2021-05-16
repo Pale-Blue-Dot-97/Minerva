@@ -450,8 +450,8 @@ def eliminate_classes(empty_classes):
     over_items = OrderedDict({key: new_classes[key] for key in over_keys})
 
     reordered_dict = {}
-    old_new = {}
-    new_old = {}
+    global old_new
+    global new_old
 
     for i in range(len(new_classes.keys())):
         if i in new_classes:
@@ -465,6 +465,13 @@ def eliminate_classes(empty_classes):
             new_old[i] = key
 
     return new_classes
+
+
+def class_transform(label, mode: int = 0):
+    if mode is 0:
+        return old_new[label]
+    if mode is 1:
+        return new_old[label]
 
 
 def find_patch_modes(patch_id):
