@@ -258,7 +258,7 @@ class ImageDataset(IterableDataset, ABC):
         batch_size (int): Number of samples returned in each batch.
     """
 
-    def __init__(self, patch_ids, batch_size: int):
+    def __init__(self, patch_ids, batch_size: int, elim: bool = True, forwards=None):
         """Inits BatchDataset
 
         Args:
@@ -267,6 +267,8 @@ class ImageDataset(IterableDataset, ABC):
         """
         self.patch_ids = patch_ids
         self.batch_size = batch_size
+        self.elim = elim
+        self.forwards = forwards
 
     def process_data(self, patch_id: str):
         """Loads pixel-stacks and yields samples and labels from them.
@@ -277,8 +279,14 @@ class ImageDataset(IterableDataset, ABC):
         Yields:
             Pixel-stack, associated label and the patch ID where they came from.
         """
-        y = torch.tensor(utils.find_centre_label(patch_id), dtype=torch.long)
+
+        y = utils.find_centre_label(patch_id)
         images = [utils.stack_bands(patch_id, scene) for scene in utils.find_best_of(patch_id)]
+
+        if self.elim:
+            y = torch.tensor(utils.class_transform(y, self.forwards), dtype=torch.long)
+        if not self.elim:
+            y = torch.tensor(y, dtype=torch.long)
 
         for image in images:
             yield torch.tensor(image.reshape((image.shape[2], image.shape[1], image.shape[0])), dtype=torch.float), \
@@ -338,7 +346,8 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     ids = utils.split_data(patch_ids=patch_ids, split=split, seed=seed, shuffle=shuffle, p_dist=p_dist, plot=plot,
                            ctr_lbl=cnn)
 
-    #utils.eliminate_classes(utils.find_empty_classes(ids['train'], utils.find_centre_label))
+    new_classes, forwards, backwards = utils.eliminate_classes(utils.find_empty_classes(ids['train'],
+                                                                                        utils.find_centre_label))
 
     datasets = {}
     n_batches = {}
@@ -370,9 +379,9 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
 
     if cnn:
         # Define datasets for train, validation and test using ImageDataset
-        datasets['train'] = ImageDataset(ids['train'], batch_size=params['batch_size'])
-        datasets['val'] = ImageDataset(ids['val'], batch_size=params['batch_size'])
-        datasets['test'] = ImageDataset(ids['test'], batch_size=params['batch_size'])
+        datasets['train'] = ImageDataset(ids['train'], batch_size=params['batch_size'], elim=True, forwards=forwards)
+        datasets['val'] = ImageDataset(ids['val'], batch_size=params['batch_size'], elim=True, forwards=forwards)
+        datasets['test'] = ImageDataset(ids['test'], batch_size=params['batch_size'], elim=-True, forwards=forwards)
 
         n_batches['train'] = int((len(ids['train']) * 24.0) / params['batch_size'])
         n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])
@@ -398,4 +407,4 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
 
     class_dist = utils.find_subpopulations(patch_ids, plot=False)
 
-    return loaders, n_batches, class_dist, ids
+    return loaders, n_batches, class_dist, ids, new_classes, backwards
