@@ -12,18 +12,21 @@ dir:
     - 'CNN'
 
 # Model Name
-model_name: 'CNN-MkI'
+model_name: 'CNN-MkIII'
+
+elim: True
+iterable_dataset: False
 
 # Model hyper-parameters
 hyperparams:
   params:
     batch_size: 16
-    num_workers: 2
+    num_workers: 0
     pin_memory: True
   model_params:
     input_shape: [12, 256, 256]
     n_classes: 8
-    scaling: [2, 4, 8]
+    scaling: [2, 4]
   optim_params:
     name: SGD
     lr: 3.0E-4

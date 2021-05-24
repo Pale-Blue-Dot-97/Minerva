@@ -36,7 +36,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import IterableDataset, DataLoader, WeightedRandomSampler
+from torch.utils.data import IterableDataset, Dataset, DataLoader, WeightedRandomSampler
 from itertools import cycle, chain
 from collections import deque
 
@@ -247,7 +247,7 @@ class BatchDataset(IterableDataset, ABC):
             return self.get_stream(random.sample(self.patch_ids, per_worker))
 
 
-class ImageDataset(IterableDataset, ABC):
+class IterableImageDataset(IterableDataset, ABC):
     """Adaptation of IterableDataset for handling images for use with a CNN.
 
     Engineered to pre-process Landcovernet image data into multi-band, time-series pixel stacks
@@ -271,7 +271,7 @@ class ImageDataset(IterableDataset, ABC):
         self.forwards = forwards
 
     def process_data(self, patch_id: str):
-        """Loads pixel-stacks and yields samples and labels from them.
+        """Loads scenes from given patch and yields sample images and labels from them.
 
         Args:
             patch_id (str): Unique ID of a patch of the dataset.
@@ -313,6 +313,73 @@ class ImageDataset(IterableDataset, ABC):
 
             # Return a random sample of the patch IDs of size per worker
             return self.get_stream(random.sample(self.patch_ids, per_worker))
+
+
+class ImageDataset(Dataset, ABC):
+    """Adaptation of Dataset for handling images for use with a CNN.
+
+    Engineered to pre-process Landcovernet image data into multi-band, time-series pixel stacks
+    and yield to a DataLoader.
+
+    Attributes:
+        scenes (list[tuple[str, str]): List of tuples of pairs of patch ID and scene date, representing the outline of
+            this dataset.
+        batch_size (int): Number of samples returned in each batch.
+    """
+
+    def __init__(self, scenes, batch_size: int, elim: bool = True, forwards=None):
+        """Inits BatchDataset
+
+        Args:
+            scenes (list[tuple[str, str]): List of tuples of pairs of patch ID and scene date, representing the outline
+                of this dataset.
+            batch_size (int): Number of samples returned in each batch.
+        """
+        self.scenes = scenes
+        self.batch_size = batch_size
+        self.elim = elim
+        self.forwards = forwards
+
+    def __len__(self):
+        return len(self.scenes)
+
+    def process_data(self, scene: tuple):
+        """Loads scenes from given patch and yields sample images and labels from them.
+
+        Args:
+            scene (tuple[str, str]): Tuple of Unique patch ID and date of scene within the dataset.
+
+        Yields:
+            Multi-spectral image of scene, associated label and the patch ID where they came from.
+        """
+        patch_id, date = scene
+
+        y = utils.find_centre_label(patch_id)
+        image = utils.stack_bands(patch_id, date)
+
+        if self.elim:
+            y = torch.tensor(utils.class_transform(y, self.forwards), dtype=torch.long)
+        if not self.elim:
+            y = torch.tensor(y, dtype=torch.long)
+
+        return torch.tensor(image.reshape((image.shape[2], image.shape[1], image.shape[0])), dtype=torch.float), \
+            y, patch_id
+
+    def __getitem__(self, idx):
+        # Gets the current worker info
+        worker_info = torch.utils.data.get_worker_info()
+
+        # If single threaded process, iterate through all patch IDs.
+        if worker_info is None:
+            return self.process_data(self.scenes[idx])
+
+        # If multi-threaded, split worker's starting iteration points throughout the patch IDs.
+        else:
+            # Calculate number of patch IDs of the dataset per worker.
+            per_worker = int(np.math.ceil(len(self.scenes) / float(worker_info.num_workers)))
+
+            # Return a random sample of the patch IDs of size per worker.
+            return self.process_data(self.scenes[idx + (worker_info.id * per_worker)])
 
 
 # =====================================================================================================================
@@ -379,9 +446,12 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
 
     if cnn:
         # Define datasets for train, validation and test using ImageDataset
-        datasets['train'] = ImageDataset(ids['train'], batch_size=params['batch_size'], elim=True, forwards=forwards)
-        datasets['val'] = ImageDataset(ids['val'], batch_size=params['batch_size'], elim=True, forwards=forwards)
-        datasets['test'] = ImageDataset(ids['test'], batch_size=params['batch_size'], elim=-True, forwards=forwards)
+        datasets['train'] = ImageDataset(utils.scene_extract(ids['train'], utils.find_best_of),
+                                         batch_size=params['batch_size'], elim=True, forwards=forwards)
+        datasets['val'] = ImageDataset(utils.scene_extract(ids['val'], utils.find_best_of),
+                                       batch_size=params['batch_size'], elim=True, forwards=forwards)
+        datasets['test'] = ImageDataset(utils.scene_extract(ids['test'], utils.find_best_of),
+                                        batch_size=params['batch_size'], elim=-True, forwards=forwards)
 
         n_batches['train'] = int((len(ids['train']) * 24.0) / params['batch_size'])
         n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])

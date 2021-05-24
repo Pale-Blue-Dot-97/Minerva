@@ -611,6 +611,22 @@ def find_best_of(patch_id: str):
     return scene_selection(patch)
 
 
+def pair_production(patch_id: str, func) -> list:
+    scenes = func(patch_id)
+
+    return [(patch_id, scene) for scene in scenes]
+
+
+def scene_extract(patch_ids: list, *args, **kwargs):
+    pairs = []
+    for patch_id in patch_ids:
+        patch_pairs = pair_production(patch_id, *args, **kwargs)
+        for pair in patch_pairs:
+            pairs.append(pair)
+
+    return pairs
+
+
 def stack_bands(patch_id: str, scene: str):
     """Stacks together all the bands of the SENTINEL-2 images in a given scene of a patch.
 
@@ -701,7 +717,7 @@ def find_subpopulations(labels, plot: bool = False):
     """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class
 
     Args:
-        labels (list): Class labels describing the data to be analysed
+        labels (list or np.ndarray): Class labels describing the data to be analysed
         plot (bool): Plots distribution of subpopulations if True
 
     Returns:

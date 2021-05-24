@@ -155,12 +155,41 @@ class Trainer:
         Returns:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
         """
+        def step(x, labels, batch_id):
+            # Transfer to GPU.
+            x, labels = x.to(self.device), labels.to(self.device)
+
+            # Runs a training epoch.
+            if mode is 'train':
+                losses, zs = self.model.training_step(x, labels)
+
+                train_labels.append([label for label in labels.cpu().tolist()])
+
+                return labels, zs, losses
+
+            # Runs a validation epoch.
+            elif mode is 'val':
+                losses, zs = self.model.validation_step(x, labels)
+
+                return labels, zs, losses
+
+            # Runs a testing epoch.
+            elif mode is 'test':
+                losses, zs = self.model.testing_step(x, labels)
+
+                test_predictions.append(np.array(torch.argmax(zs, 1).cpu()))
+                test_labels.append(np.array(labels.cpu()))
+                test_ids.append(batch_id)
+
+                return labels, zs, losses
+
         # Initialises variables to hold overall epoch results.
         total_loss = 0.0
         total_correct = 0.0
         test_labels = []
         test_predictions = []
         test_ids = []
+        train_labels = []
 
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
@@ -171,37 +200,30 @@ class Trainer:
                 self.model.eval()
 
             # Core of the epoch. Gets batches from the appropriate loader.
-            for x_batch, y_batch, patch_id in islice(self.loaders[mode], self.n_batches[mode]):
-
-                # Transfer to GPU.
-                x, y = x_batch.to(self.device), y_batch.to(self.device)
-
-                # Runs a training epoch.
-                if mode is 'train':
-                    loss, z = self.model.training_step(x, y)
-
+            if self.params['iterable_dataset']:
+                for x_batch, y_batch, patch_id in islice(self.loaders[mode], self.n_batches[mode]):
+                    y, z, loss = step(x_batch, y_batch, patch_id)
                     total_loss += loss.item()
                     total_correct += (torch.argmax(z, 1) == y).sum().item()
 
-                # Runs a validation epoch.
-                elif mode is 'val':
-                    loss, z = self.model.validation_step(x, y)
+                    # Updates progress bar that sample has been processed.
+                    bar()
 
+            else:
+                for batch_idx, batch in enumerate(self.loaders[mode]):
+                    y, z, loss = step(batch[0], batch[1], batch[2])
                     total_loss += loss.item()
                     total_correct += (torch.argmax(z, 1) == y).sum().item()
 
-                # Runs a testing epoch.
-                elif mode is 'test':
-                    loss, z = self.model.testing_step(x, y)
+                    # Updates progress bar that sample has been processed.
+                    bar()
 
-                    total_loss += loss.item()
-                    total_correct += (torch.argmax(z, 1) == y).sum().item()
-                    test_predictions.append(np.array(torch.argmax(z, 1).cpu()))
-                    test_labels.append(np.array(y.cpu()))
-                    test_ids.append(patch_id)
-
-                # Updates progress bar that sample has been processed.
-                bar()
+        new_train_labels = []
+        for label_batch in train_labels:
+            for label in label_batch:
+                new_train_labels.append(label)
+        print(np.array(new_train_labels).flatten())
+        print(utils.find_subpopulations(new_train_labels, plot=False))
 
         # Updates metrics with epoch results.
         self.metrics['{}_loss'.format(mode)].append(total_loss / self.n_batches[mode])

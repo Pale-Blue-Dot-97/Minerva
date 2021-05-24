@@ -32,7 +32,6 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import utils
 import Minerva.loaders as loaders
 from Minerva.trainer import Trainer
 import yaml
@@ -54,10 +53,9 @@ params = config['hyperparams']['params']
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, _, ids, new_classes, backwards = loaders.make_datasets(cnn=True, params=params)
+    datasets, n_batches, _, ids, new_classes, backwards = loaders.make_datasets(cnn=True, balance=True, params=params)
 
     config['hyperparams']['model_params']['n_classes'] = len(new_classes)
-    config['elim'] = True
     config['backwards'] = backwards
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, **config)
