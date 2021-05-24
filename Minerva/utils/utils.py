@@ -413,7 +413,7 @@ def class_weighting(class_dist):
 
     class_weights = {}
     for mode in class_dist:
-        class_weights[mode[0]] = 1 - (mode[1] / n_samples)
+        class_weights[mode[0]] = 1.0 / mode[1]
 
     return class_weights
 

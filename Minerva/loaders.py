@@ -416,6 +416,9 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     new_classes, forwards, backwards = utils.eliminate_classes(utils.find_empty_classes(ids['train'],
                                                                                         utils.find_centre_label))
 
+    scenes = {'train': utils.scene_extract(ids['train'], utils.find_best_of),
+              'val': utils.scene_extract(ids['val'], utils.find_best_of),
+              'test': utils.scene_extract(ids['test'], utils.find_best_of)}
     datasets = {}
     n_batches = {}
 
@@ -446,12 +449,9 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
 
     if cnn:
         # Define datasets for train, validation and test using ImageDataset
-        datasets['train'] = ImageDataset(utils.scene_extract(ids['train'], utils.find_best_of),
-                                         batch_size=params['batch_size'], elim=True, forwards=forwards)
-        datasets['val'] = ImageDataset(utils.scene_extract(ids['val'], utils.find_best_of),
-                                       batch_size=params['batch_size'], elim=True, forwards=forwards)
-        datasets['test'] = ImageDataset(utils.scene_extract(ids['test'], utils.find_best_of),
-                                        batch_size=params['batch_size'], elim=-True, forwards=forwards)
+        datasets['train'] = ImageDataset(scenes['train'], batch_size=params['batch_size'], elim=True, forwards=forwards)
+        datasets['val'] = ImageDataset(scenes['val'], batch_size=params['batch_size'], elim=True, forwards=forwards)
+        datasets['test'] = ImageDataset(scenes['test'], batch_size=params['batch_size'], elim=-True, forwards=forwards)
 
         n_batches['train'] = int((len(ids['train']) * 24.0) / params['batch_size'])
         n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])

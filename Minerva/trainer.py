@@ -177,8 +177,8 @@ class Trainer:
             elif mode is 'test':
                 losses, zs = self.model.testing_step(x, labels)
 
-                test_predictions.append(np.array(torch.argmax(zs, 1).cpu()))
-                test_labels.append(np.array(labels.cpu()))
+                test_predictions.append(torch.argmax(zs, 1).cpu().numpy())
+                test_labels.append(labels.cpu().numpy())
                 test_ids.append(batch_id)
 
                 return labels, zs, losses
@@ -260,8 +260,15 @@ class Trainer:
         """
         print('\r\nTESTING')
         predictions, labels, ids = self.epoch('test')
-        z = np.array(predictions).flatten()
-        y = np.array(labels).flatten()
+
+        z = []
+        for i in range(len(predictions)):
+            for j in range(len(predictions[i])):
+                z.append(predictions[i][j])
+        y = []
+        for i in range(len(labels)):
+            for j in range(len(labels[i])):
+                y.append(labels[i][j])
 
         print('Test Loss: {} | Test Accuracy: {}% \n'.format(self.metrics['test_loss'][0],
                                                              self.metrics['test_acc'][0] * 100.0))
