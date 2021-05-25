@@ -21,19 +21,19 @@ iterable_dataset: False
 hyperparams:
   params:
     batch_size: 16
-    num_workers: 0
+    num_workers: 2
     pin_memory: True
   model_params:
     input_shape: [12, 256, 256]
     n_classes: 8
-    scaling: [2, 4]
+    scaling: [2, 4, 8]
   optim_params:
     name: SGD
     lr: 3.0E-4
-    momentum: 0.9
+    #momentum: 0.9
   loss_params:
     name: 'CrossEntropyLoss'
-  max_epochs: 10
+  max_epochs: 20
 
 # Settings for RGB image creation
 rgb_params:

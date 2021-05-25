@@ -32,7 +32,6 @@ TODO:
 # =====================================================================================================================
 import importlib
 from Minerva.utils import visutils, utils
-import numpy as np
 import torch
 from torchinfo import summary
 from itertools import islice
@@ -163,8 +162,6 @@ class Trainer:
             if mode is 'train':
                 losses, zs = self.model.training_step(x, labels)
 
-                train_labels.append([label for label in labels.cpu().tolist()])
-
                 return labels, zs, losses
 
             # Runs a validation epoch.
@@ -189,7 +186,6 @@ class Trainer:
         test_labels = []
         test_predictions = []
         test_ids = []
-        train_labels = []
 
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
@@ -217,13 +213,6 @@ class Trainer:
 
                     # Updates progress bar that sample has been processed.
                     bar()
-
-        new_train_labels = []
-        for label_batch in train_labels:
-            for label in label_batch:
-                new_train_labels.append(label)
-        print(np.array(new_train_labels).flatten())
-        print(utils.find_subpopulations(new_train_labels, plot=False))
 
         # Updates metrics with epoch results.
         self.metrics['{}_loss'.format(mode)].append(total_loss / self.n_batches[mode])

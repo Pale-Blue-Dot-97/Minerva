@@ -366,20 +366,7 @@ class ImageDataset(Dataset, ABC):
             y, patch_id
 
     def __getitem__(self, idx):
-        # Gets the current worker info
-        worker_info = torch.utils.data.get_worker_info()
-
-        # If single threaded process, iterate through all patch IDs.
-        if worker_info is None:
-            return self.process_data(self.scenes[idx])
-
-        # If multi-threaded, split worker's starting iteration points throughout the patch IDs.
-        else:
-            # Calculate number of patch IDs of the dataset per worker.
-            per_worker = int(np.math.ceil(len(self.scenes) / float(worker_info.num_workers)))
-
-            # Return a random sample of the patch IDs of size per worker.
-            return self.process_data(self.scenes[idx + (worker_info.id * per_worker)])
+        return self.process_data(self.scenes[idx])
 
 
 # =====================================================================================================================
