@@ -15,7 +15,6 @@ dir:
 model_name: 'CNN-MkIII'
 
 elim: True
-iterable_dataset: False
 
 # Model hyper-parameters
 hyperparams:
@@ -26,14 +25,14 @@ hyperparams:
   model_params:
     input_shape: [12, 256, 256]
     n_classes: 8
-    scaling: [2, 4, 8]
+    scaling: [2, 4]
   optim_params:
     name: SGD
     lr: 3.0E-4
     #momentum: 0.9
   loss_params:
     name: 'CrossEntropyLoss'
-  max_epochs: 20
+  max_epochs: 10
 
 # Settings for RGB image creation
 rgb_params:
