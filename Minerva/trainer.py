@@ -75,7 +75,10 @@ class Trainer:
         """
         self.params = params
 
+        # Sets the timestamp of the experiment.
         self.params['timestamp'] = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
+
+        # Sets experiment name and adds this to the path to the results directory.
         self.params['exp_name'] = '{}_{}'.format(self.params['model_name'], self.params['timestamp'])
         self.params['dir']['results'].append(self.params['exp_name'])
 
@@ -280,19 +283,22 @@ class Trainer:
         return predictions, labels, ids
 
     def close(self):
+        """Closes the experiment, saving experiment parameters and model to file."""
         # Ensure the TensorBoard logger is closed.
         self.writer.close()
 
+        # Path to experiment directory and experiment name.
         fn = os.path.join(*self.params['dir']['results'], self.params['exp_name'])
 
         # Outputs the modified YAML parameters config file used for this experiment to file.
         with open('{}.yml'.format(fn), 'w') as outfile:
             yaml.dump(self.params, outfile)
 
+        # Saves model state dict to PyTorch file.
         torch.save(self.model.state_dict(), '{}.pt'.format(fn))
 
     def run_tensorboard(self):
-        """Opens TensorBoard log of experiment."""
+        """Opens TensorBoard log of the current experiment."""
         os.chdir(os.path.join(*self.params['dir']['results'][:-1]))
         os.system('conda activate env2')
         os.system('tensorboard --logdir={}'.format(self.params['exp_name']))
