@@ -112,6 +112,11 @@ class Trainer:
         # Print model summary
         summary(self.model, input_size=(self.batch_size, *self.model.input_shape))
 
+        # Adds a graphical layout of the model to the TensorBoard logger.
+        self.writer.add_graph(self.model,
+                              input_to_model=torch.rand(self.batch_size, *self.model.input_shape,
+                                                        device=self.device))
+
     def make_model(self):
         """Creates a model from the parameters specified by config.
 
@@ -278,11 +283,13 @@ class Trainer:
         # Ensure the TensorBoard logger is closed.
         self.writer.close()
 
-        fn = '{}.yml'.format(os.path.join(*self.params['dir']['results'], self.params['exp_name']))
+        fn = os.path.join(*self.params['dir']['results'], self.params['exp_name'])
 
         # Outputs the modified YAML parameters config file used for this experiment to file.
-        with open(fn, 'w') as outfile:
+        with open('{}.yml'.format(fn), 'w') as outfile:
             yaml.dump(self.params, outfile)
+
+        torch.save(self.model.state_dict(), '{}.pt'.format(fn))
 
     def run_tensorboard(self):
         """Opens TensorBoard log of experiment."""
