@@ -33,7 +33,7 @@ hyperparams:
   loss_params:
     name: 'CrossEntropyLoss'
   transforms: ['CenterCrop']
-  max_epochs: 1
+  max_epochs: 2
 
 # Settings for RGB image creation
 rgb_params:

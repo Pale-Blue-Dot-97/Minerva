@@ -30,10 +30,12 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import os
 import importlib
 from Minerva.utils import visutils, utils
 import torch
 from torchinfo import summary
+from torch.utils.tensorboard import SummaryWriter
 from itertools import islice
 from alive_progress import alive_bar
 
@@ -72,6 +74,10 @@ class Trainer:
         """
         self.params = params
 
+        self.params['timestamp'] = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
+        self.params['exp_name'] = '{}_{}'.format(self.params['model_name'], self.params['timestamp'])
+        self.params['dir']['results'].append(self.params['exp_name'])
+
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
@@ -90,6 +96,9 @@ class Trainer:
             'val_acc': [],
             'test_acc': []
         }
+
+        # Initialise TensorBoard logger
+        self.writer = SummaryWriter(os.path.join(*self.params['dir']['results']))
 
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
@@ -187,11 +196,18 @@ class Trainer:
                 elif mode is 'test':
                     loss, z = self.model.testing_step(x, y)
 
-                total_loss += loss.item()
-                total_correct += (torch.argmax(z, 1) == y).sum().item()
-                test_predictions.append(torch.argmax(z, 1).cpu().numpy())
-                test_labels.append(y.cpu().numpy())
-                test_ids.append(patch_id)
+                    test_predictions.append(torch.argmax(z, 1).cpu().numpy())
+                    test_labels.append(y.cpu().numpy())
+                    test_ids.append(patch_id)
+
+                ls = loss.item()
+                correct = (torch.argmax(z, 1) == y).sum().item()
+
+                total_loss += ls
+                total_correct += correct
+
+                self.writer.add_scalar('{}_loss'.format(mode), ls)
+                self.writer.add_scalar('{}_acc'.format(mode), correct / len(y_batch))
 
                 # Updates progress bar that sample has been processed.
                 bar()
@@ -251,6 +267,12 @@ class Trainer:
         sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
 
         visutils.plot_results(sub_metrics, plots, z, y, save=save, show=False, model_name=self.params['model_name'],
-                              results_dir=self.params['dir']['results'])
+                              timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
+
+        self.writer.close()
+
+        os.chdir(os.path.join(*self.params['dir']['results'][:-1]))
+        os.system('conda activate env2')
+        os.system('tensorboard --logdir={}'.format(self.params['exp_name']))
 
         return predictions, labels, ids

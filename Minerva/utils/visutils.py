@@ -703,13 +703,9 @@ def format_plot_names(model_name, timestamp, path):
     return filenames
 
 
-def plot_results(metrics, plots, z, y, save=True, show=False, model_name='', results_dir: list = ('')):
-    timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
-
-    exp_name = '{}_{}'.format(model_name, timestamp)
-
-    utils.mkexpdir(exp_name)
-    results_dir.append(exp_name)
+def plot_results(metrics, plots, z, y, save=True, show=False, model_name='', timestamp=None, results_dir: list = ('')):
+    if timestamp is None:
+        timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
