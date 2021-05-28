@@ -285,9 +285,10 @@ class CNN(torch.nn.Module, ABC):
         # Calculate the flattened size of the output from the convolutional network.
         self.flattened_size = int(np.prod(list(out_shape)))
 
-        #self._fc_layers['Flatten'] = torch.nn.Linear(self.flattened_size, self.flattened_size)
+        # Add classification layer.
         self._fc_layers['Classification'] = torch.nn.Linear(self.flattened_size, self.n_classes)
 
+        # Create fully connected network.
         self.fc_net = torch.nn.Sequential(self._fc_layers)
 
         # Set the loss function.
