@@ -26,12 +26,12 @@ hyperparams:
     input_shape: [12, 128, 128]
     n_classes: 8
     scaling: [2, 4]
+  optim_name: SGD
   optim_params:
-    name: SGD
     lr: 1.0E-3
     #momentum: 0.9
+  loss_name: CrossEntropyLoss
   loss_params:
-    name: 'CrossEntropyLoss'
   transforms: ['CenterCrop']
   max_epochs: 2
 

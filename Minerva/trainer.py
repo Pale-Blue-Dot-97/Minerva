@@ -32,6 +32,7 @@ TODO:
 # =====================================================================================================================
 import os
 import importlib
+import yaml
 from Minerva.utils import visutils, utils
 import torch
 from torchinfo import summary
@@ -138,7 +139,7 @@ class Trainer:
         module = importlib.import_module('torch.nn')
 
         # Gets the loss function requested by config parameters.
-        criterion = getattr(module, self.params['hyperparams']['loss_params'].pop('name'))
+        criterion = getattr(module, self.params['hyperparams']['loss_name'])
         
         return criterion()
 
@@ -149,7 +150,7 @@ class Trainer:
         opt_module = importlib.import_module('torch.optim')
 
         # Gets the optimiser requested by config parameters.
-        optimiser = getattr(opt_module, self.params['hyperparams']['optim_params'].pop('name'))
+        optimiser = getattr(opt_module, self.params['hyperparams']['optim_name'])
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
@@ -260,19 +261,31 @@ class Trainer:
         print('Test Loss: {} | Test Accuracy: {}% \n'.format(self.metrics['test_loss'][0],
                                                              self.metrics['test_acc'][0] * 100.0))
 
+        # Converts labels back to old class system to match with dicts for text labels and colours.
         if self.params['elim']:
             z = [utils.class_transform(label, self.params['backwards']) for label in z]
             y = [utils.class_transform(label, self.params['backwards']) for label in y]
 
         sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
 
+        # Plots the results.
         visutils.plot_results(sub_metrics, plots, z, y, save=save, show=False, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
 
+        return predictions, labels, ids
+
+    def close(self):
+        # Ensure the TensorBoard logger is closed.
         self.writer.close()
 
+        fn = '{}.yml'.format(os.path.join(*self.params['dir']['results'], self.params['exp_name']))
+
+        # Outputs the modified YAML parameters config file used for this experiment to file.
+        with open(fn, 'w') as outfile:
+            yaml.dump(self.params, outfile)
+
+    def run_tensorboard(self):
+        """Opens TensorBoard log of experiment."""
         os.chdir(os.path.join(*self.params['dir']['results'][:-1]))
         os.system('conda activate env2')
         os.system('tensorboard --logdir={}'.format(self.params['exp_name']))
-
-        return predictions, labels, ids

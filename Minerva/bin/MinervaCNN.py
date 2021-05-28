@@ -64,6 +64,10 @@ def main():
 
     trainer.test({'History': True, 'Pred': True, 'CM': True}, save=True)
 
+    trainer.close()
+
+    trainer.run_tensorboard()
+
 
 if __name__ == '__main__':
     main()
