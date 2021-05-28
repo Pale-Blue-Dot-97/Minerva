@@ -37,6 +37,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch.utils.data import IterableDataset, Dataset, DataLoader, WeightedRandomSampler
+from torchvision import transforms
 from itertools import cycle, chain
 from collections import deque
 
@@ -162,7 +163,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
                 # Yield pixel stack at position [0] for this class's wheel and the corresponding class label
                 # i.e this class number as a tensor int
                 yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
-                      torch.tensor(cls, dtype=torch.long), ''
+                    torch.tensor(cls, dtype=torch.long), ''
 
     def get_stream(self, streams_df):
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
@@ -327,8 +328,8 @@ class ImageDataset(Dataset, ABC):
         batch_size (int): Number of samples returned in each batch.
     """
 
-    def __init__(self, scenes, batch_size: int, elim: bool = True, forwards=None):
-        """Inits BatchDataset
+    def __init__(self, scenes, batch_size: int, no_empty_classes: bool = True, forwards=None, transformations=None):
+        """Inits ImageDataset
 
         Args:
             scenes (list[tuple[str, str]): List of tuples of pairs of patch ID and scene date, representing the outline
@@ -337,8 +338,9 @@ class ImageDataset(Dataset, ABC):
         """
         self.scenes = scenes
         self.batch_size = batch_size
-        self.elim = elim
+        self.no_empty_classes = no_empty_classes
         self.forwards = forwards
+        self.transformations = transformations
 
     def __len__(self):
         return len(self.scenes)
@@ -357,13 +359,17 @@ class ImageDataset(Dataset, ABC):
         y = utils.find_centre_label(patch_id)
         image = utils.stack_bands(patch_id, date)
 
-        if self.elim:
+        if self.no_empty_classes:
             y = torch.tensor(utils.class_transform(y, self.forwards), dtype=torch.long)
-        if not self.elim:
+        if not self.no_empty_classes:
             y = torch.tensor(y, dtype=torch.long)
 
-        return torch.tensor(image.reshape((image.shape[2], image.shape[1], image.shape[0])), dtype=torch.float), \
-            y, patch_id
+        sample = torch.tensor(image.reshape((image.shape[2], image.shape[1], image.shape[0])), dtype=torch.float)
+
+        if self.transformations:
+            sample = self.transformations(sample)
+
+        return sample, y, patch_id
 
     def __getitem__(self, idx):
         return self.process_data(self.scenes[idx])
@@ -436,9 +442,15 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
 
     if cnn:
         # Define datasets for train, validation and test using ImageDataset
-        datasets['train'] = ImageDataset(scenes['train'], batch_size=params['batch_size'], elim=True, forwards=forwards)
-        datasets['val'] = ImageDataset(scenes['val'], batch_size=params['batch_size'], elim=True, forwards=forwards)
-        datasets['test'] = ImageDataset(scenes['test'], batch_size=params['batch_size'], elim=-True, forwards=forwards)
+        datasets['train'] = ImageDataset(scenes['train'], batch_size=params['batch_size'],
+                                         no_empty_classes=True, forwards=forwards,
+                                         transformations=transforms.CenterCrop(128))
+        datasets['val'] = ImageDataset(scenes['val'], batch_size=params['batch_size'],
+                                       no_empty_classes=True, forwards=forwards,
+                                       transformations=transforms.CenterCrop(128))
+        datasets['test'] = ImageDataset(scenes['test'], batch_size=params['batch_size'],
+                                        no_empty_classes=True, forwards=forwards,
+                                        transformations=transforms.CenterCrop(128))
 
         n_batches['train'] = int((len(ids['train']) * 24.0) / params['batch_size'])
         n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])

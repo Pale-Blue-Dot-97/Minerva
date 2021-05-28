@@ -109,6 +109,13 @@ def exist_delete_check(fn: str):
         pass
 
 
+def mkexpdir(name):
+    try:
+        os.mkdir(os.path.join(results_dir, name))
+    except FileExistsError:
+        pass
+
+
 def datetime_reformat(timestamp: str, fmt1: str, fmt2: str):
     """Takes a str representing a time stamp in one format and returns it reformatted into a second.
 

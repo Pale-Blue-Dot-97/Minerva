@@ -691,12 +691,10 @@ def make_confusion_matrix(test_pred, test_labels, classes, filename=None, show=T
         plt.close()
 
 
-def format_plot_names(model_name, path):
+def format_plot_names(model_name, timestamp, path):
     def standard_format(plot_type, file_ext):
         filename = '{}_{}_{}.{}'.format(model_name, plot_type, timestamp, file_ext)
         return os.path.join(os.path.join(*path), filename)
-
-    timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
 
     filenames = {'History': standard_format('MH', 'png'),
                  'Pred': standard_format('TP', 'png'),
@@ -705,8 +703,15 @@ def format_plot_names(model_name, path):
     return filenames
 
 
-def plot_results(metrics, plots, z, y, save=True, show=False, model_name='', results_dir=''):
-    filenames = format_plot_names(model_name, results_dir)
+def plot_results(metrics, plots, z, y, save=True, show=False, model_name='', results_dir: list = ('')):
+    timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
+
+    exp_name = '{}_{}'.format(model_name, timestamp)
+
+    utils.mkexpdir(exp_name)
+    results_dir.append(exp_name)
+
+    filenames = format_plot_names(model_name, timestamp, results_dir)
 
     if plots['History']:
         plot_history(metrics, filename=filenames['History'], save=save, show=show)
