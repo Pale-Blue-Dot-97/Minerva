@@ -28,8 +28,8 @@ hyperparams:
     scaling: [2, 4]
   optim_name: SGD
   optim_params:
-    lr: 1.0E-3
-    #momentum: 0.9
+    lr: 3.0E-4
+    momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
   transforms: ['CenterCrop']

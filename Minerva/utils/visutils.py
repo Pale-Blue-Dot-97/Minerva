@@ -703,7 +703,8 @@ def format_plot_names(model_name, timestamp, path):
     return filenames
 
 
-def plot_results(metrics, plots, z, y, save=True, show=False, model_name='', timestamp=None, results_dir: list = ('')):
+def plot_results(metrics, plots, z, y, class_names, colours, save=True, show=False, model_name='',
+                 timestamp=None, results_dir: list = ('')):
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
 
@@ -712,8 +713,8 @@ def plot_results(metrics, plots, z, y, save=True, show=False, model_name='', tim
     if plots['History']:
         plot_history(metrics, filename=filenames['History'], save=save, show=show)
     if plots['Pred']:
-        plot_subpopulations(utils.find_subpopulations(z), class_names=lcn_config['classes'],
-                            cmap_dict=lcn_config['colours'], filename=filenames['Pred'], save=save, show=show)
+        plot_subpopulations(utils.find_subpopulations(z), class_names=class_names,
+                            cmap_dict=colours, filename=filenames['Pred'], save=save, show=show)
     if plots['CM']:
-        make_confusion_matrix(test_labels=y, test_pred=z, classes=lcn_config['classes'], filename=filenames['CM'],
+        make_confusion_matrix(test_labels=y, test_pred=z, classes=class_names, filename=filenames['CM'],
                               save=save, show=show)

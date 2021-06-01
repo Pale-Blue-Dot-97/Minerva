@@ -269,15 +269,11 @@ class Trainer:
         print('Test Loss: {} | Test Accuracy: {}% \n'.format(self.metrics['test_loss'][0],
                                                              self.metrics['test_acc'][0] * 100.0))
 
-        # Converts labels back to old class system to match with dicts for text labels and colours.
-        if self.params['elim']:
-            z = [utils.class_transform(label, self.params['backwards']) for label in z]
-            y = [utils.class_transform(label, self.params['backwards']) for label in y]
-
         sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
 
         # Plots the results.
-        visutils.plot_results(sub_metrics, plots, z, y, save=save, show=False, model_name=self.params['model_name'],
+        visutils.plot_results(sub_metrics, plots, z, y, self.params['classes'], self.params['colours'],
+                              save=save, show=False, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
 
         return predictions, labels, ids

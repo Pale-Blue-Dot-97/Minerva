@@ -442,36 +442,49 @@ def find_empty_classes(patch_ids: list, func=find_centre_label, class_dist=None)
     if class_dist is None:
         class_dist = find_subpopulations(dataset_lc_load(patch_ids, func), plot=False)
 
-    empty = [label for label in classes.keys() if label not in [mode[0] for mode in class_dist]]
+    empty = []
+    for label in classes.keys():
+        if label not in [mode[0] for mode in class_dist]:
+            empty.append(label)
 
     return empty
 
 
 def eliminate_classes(empty_classes):
+    # Makes deep copies of the class and cmap dicts.
     new_classes = {key: value[:] for key, value in classes.items()}
+    new_colours = {key: value[:] for key, value in cmap_dict.items()}
+
+    # Deletes empty classes from copied dicts.
     for label in empty_classes:
         del new_classes[label]
+        del new_colours[label]
 
     over_keys = [key for key in new_classes.keys() if key >= len(new_classes.keys())]
 
-    over_items = OrderedDict({key: new_classes[key] for key in over_keys})
+    over_classes = OrderedDict({key: new_classes[key] for key in over_keys})
+    over_colours = OrderedDict({key: new_colours[key] for key in over_keys})
 
-    reordered_dict = {}
-    forwards = {}
-    backwards = {}
+    reordered_classes = {}
+    reordered_colours = {}
+    conversion = {}
 
     for i in range(len(new_classes.keys())):
         if i in new_classes:
-            reordered_dict[i] = new_classes[i]
-            forwards[i] = i
-            backwards[i] = i
-        if i not in new_classes:
-            key, value = over_items.popitem()
-            reordered_dict[i] = value
-            forwards[key] = i
-            backwards[i] = key
+            reordered_classes[i] = new_classes[i]
+            reordered_colours[i] = new_colours[i]
+            conversion[i] = i
 
-    return new_classes, forwards, backwards
+        if i not in new_classes:
+            class_key, class_value = over_classes.popitem()
+            colour_key, colour_value = over_colours.popitem()
+
+            reordered_classes[i] = class_value
+            reordered_colours[i] = colour_value
+
+            conversion[class_key] = i
+
+    return reordered_classes, conversion, reordered_colours
 
 
 def class_transform(label, matrix):

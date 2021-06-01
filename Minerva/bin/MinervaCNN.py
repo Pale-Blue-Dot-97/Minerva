@@ -53,10 +53,12 @@ params = config['hyperparams']['params']
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, _, ids, new_classes, backwards = loaders.make_datasets(cnn=True, balance=True, params=params)
+    datasets, n_batches, _, ids, new_classes, new_colours = loaders.make_datasets(cnn=True, balance=True,
+                                                                                  params=params, config=config)
 
     config['hyperparams']['model_params']['n_classes'] = len(new_classes)
-    config['backwards'] = backwards
+    config['classes'] = new_classes
+    config['colours'] = new_colours
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, **config)
 

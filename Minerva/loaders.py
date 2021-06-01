@@ -379,7 +379,7 @@ class ImageDataset(Dataset, ABC):
 #                                                     METHODS
 # =====================================================================================================================
 def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_size=65536, image_len=65536, seed=42,
-                  shuffle=True, plot=False, balance=False, cnn=False, p_dist=False):
+                  shuffle=True, plot=False, balance=False, cnn=False, p_dist=False, config=None):
     """
 
     Args:
@@ -406,8 +406,8 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     ids = utils.split_data(patch_ids=patch_ids, split=split, seed=seed, shuffle=shuffle, p_dist=p_dist, plot=plot,
                            ctr_lbl=cnn)
 
-    new_classes, forwards, backwards = utils.eliminate_classes(utils.find_empty_classes(ids['train'],
-                                                                                        utils.find_centre_label))
+    new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'],
+                                                                 utils.find_centre_label))
 
     scenes = {'train': utils.scene_extract(ids['train'], utils.find_best_of),
               'val': utils.scene_extract(ids['val'], utils.find_best_of),
@@ -441,16 +441,18 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         n_batches['test'] = utils.num_batches(len(ids['test']))
 
     if cnn:
+        c_crop = transforms.CenterCrop(config['hyperparams']['model_params']['input_shape'][1:])
+
         # Define datasets for train, validation and test using ImageDataset
         datasets['train'] = ImageDataset(scenes['train'], batch_size=params['batch_size'],
                                          no_empty_classes=True, forwards=forwards,
-                                         transformations=transforms.CenterCrop(128))
+                                         transformations=c_crop)
         datasets['val'] = ImageDataset(scenes['val'], batch_size=params['batch_size'],
                                        no_empty_classes=True, forwards=forwards,
-                                       transformations=transforms.CenterCrop(128))
+                                       transformations=c_crop)
         datasets['test'] = ImageDataset(scenes['test'], batch_size=params['batch_size'],
                                         no_empty_classes=True, forwards=forwards,
-                                        transformations=transforms.CenterCrop(128))
+                                        transformations=c_crop)
 
         n_batches['train'] = int((len(ids['train']) * 24.0) / params['batch_size'])
         n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])
@@ -476,4 +478,4 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
 
     class_dist = utils.find_subpopulations(patch_ids, plot=False)
 
-    return loaders, n_batches, class_dist, ids, new_classes, backwards
+    return loaders, n_batches, class_dist, ids, new_classes, new_colours
