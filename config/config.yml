@@ -32,8 +32,10 @@ hyperparams:
     momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
-  transforms: ['CenterCrop']
-  max_epochs: 2
+  transforms:
+    CenterCrop:
+      size: 128
+  max_epochs: 20
 
 # Settings for RGB image creation
 rgb_params:

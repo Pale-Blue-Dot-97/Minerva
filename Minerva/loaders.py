@@ -32,6 +32,7 @@ TODO:
 # =====================================================================================================================
 from Minerva.utils import utils
 import random
+import importlib
 from abc import ABC
 import numpy as np
 import pandas as pd
@@ -378,6 +379,34 @@ class ImageDataset(Dataset, ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def get_transform(name, params):
+    """Creates a TensorBoard transform object based on config parameters.
+
+    Returns:
+        Initialised TensorBoard transform object specified by config parameters.
+    """
+    # Gets the torch neural network library.
+    module = importlib.import_module('torchvision.transforms')
+
+    # Gets the loss function requested by config parameters.
+    transform = getattr(module, name)
+
+    return transform(**params)
+
+
+def make_transformations(transform_params):
+    transformations = []
+
+    for name in transform_params:
+        transform = get_transform(name, transform_params[name])
+        if len(transform_params) is 1:
+            return transform
+        else:
+            transformations.append(transform)
+
+    return transforms.Compose(transformations)
+
+
 def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_size=65536, image_len=65536, seed=42,
                   shuffle=True, plot=False, balance=False, cnn=False, p_dist=False, config=None):
     """
@@ -441,18 +470,18 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         n_batches['test'] = utils.num_batches(len(ids['test']))
 
     if cnn:
-        c_crop = transforms.CenterCrop(config['hyperparams']['model_params']['input_shape'][1:])
+        transformations = make_transformations(config['hyperparams']['transforms'])
 
         # Define datasets for train, validation and test using ImageDataset
         datasets['train'] = ImageDataset(scenes['train'], batch_size=params['batch_size'],
                                          no_empty_classes=True, forwards=forwards,
-                                         transformations=c_crop)
+                                         transformations=transformations)
         datasets['val'] = ImageDataset(scenes['val'], batch_size=params['batch_size'],
                                        no_empty_classes=True, forwards=forwards,
-                                       transformations=c_crop)
+                                       transformations=transformations)
         datasets['test'] = ImageDataset(scenes['test'], batch_size=params['batch_size'],
                                         no_empty_classes=True, forwards=forwards,
-                                        transformations=c_crop)
+                                        transformations=transformations)
 
         n_batches['train'] = int((len(ids['train']) * 24.0) / params['batch_size'])
         n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])
