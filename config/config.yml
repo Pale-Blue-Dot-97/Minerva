@@ -23,7 +23,7 @@ hyperparams:
     num_workers: 2
     pin_memory: True
   model_params:
-    input_shape: [12, 128, 128]
+    input_shape: [12, 256, 256]
     n_classes: 8
     scaling: [2, 4]
   optim_name: SGD
@@ -33,8 +33,8 @@ hyperparams:
   loss_name: CrossEntropyLoss
   loss_params:
   transforms:
-    CenterCrop:
-      size: 128
+    #CenterCrop:
+      #size: 128
   max_epochs: 20
 
 # Settings for RGB image creation

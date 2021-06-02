@@ -395,20 +395,30 @@ def get_transform(name, params):
 
 
 def make_transformations(transform_params):
+    # If no transforms are specified, return None.
+    if not transform_params:
+        return None
+
     transformations = []
 
+    # Get each transform.
     for name in transform_params:
         transform = get_transform(name, transform_params[name])
+
+        # If only one transform found, return.
         if len(transform_params) is 1:
             return transform
+
+        # If more than one transform found, append to list for composition.
         else:
             transformations.append(transform)
 
+    # Compose transforms together and return.
     return transforms.Compose(transformations)
 
 
 def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_size=65536, image_len=65536, seed=42,
-                  shuffle=True, plot=False, balance=False, cnn=False, p_dist=False, config=None):
+                  shuffle=True, plot=False, balance=False, cnn=False, p_dist=False):
     """
 
     Args:
@@ -431,6 +441,8 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         n_batches (dict):
         class_dist (Counter):
     """
+    dataloader_params = params['hyperparams']['params']
+    batch_size = dataloader_params['batch_size']
 
     ids = utils.split_data(patch_ids=patch_ids, split=split, seed=seed, shuffle=shuffle, p_dist=p_dist, plot=plot,
                            ctr_lbl=cnn)
@@ -449,11 +461,11 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         val_stream = utils.make_sorted_streams(ids['val'])
 
         # Define datasets for train, validation and test using BatchDataset
-        datasets['train'] = BalancedBatchDataset(train_stream, batch_size=params['batch_size'],
+        datasets['train'] = BalancedBatchDataset(train_stream, batch_size=batch_size,
                                                  wheel_size=wheel_size, patch_len=image_len)
-        datasets['val'] = BalancedBatchDataset(val_stream, batch_size=params['batch_size'],
+        datasets['val'] = BalancedBatchDataset(val_stream, batch_size=batch_size,
                                                wheel_size=wheel_size, patch_len=image_len)
-        datasets['test'] = BatchDataset(ids['test'], batch_size=params['batch_size'])
+        datasets['test'] = BatchDataset(ids['test'], batch_size=batch_size)
 
         n_batches['train'] = utils.num_batches(len(train_stream.columns) * len(train_stream))
         n_batches['val'] = utils.num_batches(len(val_stream.columns) * len(val_stream))
@@ -461,31 +473,31 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
 
     if not balance and not cnn:
         # Define datasets for train, validation and test using BatchDataset
-        datasets['train'] = BatchDataset(ids['train'], batch_size=params['batch_size'])
-        datasets['val'] = BatchDataset(ids['val'], batch_size=params['batch_size'])
-        datasets['test'] = BatchDataset(ids['test'], batch_size=params['batch_size'])
+        datasets['train'] = BatchDataset(ids['train'], batch_size=batch_size)
+        datasets['val'] = BatchDataset(ids['val'], batch_size=batch_size)
+        datasets['test'] = BatchDataset(ids['test'], batch_size=batch_size)
 
         n_batches['train'] = utils.num_batches(len(ids['train']))
         n_batches['val'] = utils.num_batches(len(ids['val']))
         n_batches['test'] = utils.num_batches(len(ids['test']))
 
     if cnn:
-        transformations = make_transformations(config['hyperparams']['transforms'])
+        transformations = make_transformations(params['hyperparams']['transforms'])
 
         # Define datasets for train, validation and test using ImageDataset
-        datasets['train'] = ImageDataset(scenes['train'], batch_size=params['batch_size'],
+        datasets['train'] = ImageDataset(scenes['train'], batch_size=batch_size,
                                          no_empty_classes=True, forwards=forwards,
                                          transformations=transformations)
-        datasets['val'] = ImageDataset(scenes['val'], batch_size=params['batch_size'],
+        datasets['val'] = ImageDataset(scenes['val'], batch_size=batch_size,
                                        no_empty_classes=True, forwards=forwards,
                                        transformations=transformations)
-        datasets['test'] = ImageDataset(scenes['test'], batch_size=params['batch_size'],
+        datasets['test'] = ImageDataset(scenes['test'], batch_size=batch_size,
                                         no_empty_classes=True, forwards=forwards,
                                         transformations=transformations)
 
-        n_batches['train'] = int((len(ids['train']) * 24.0) / params['batch_size'])
-        n_batches['val'] = int((len(ids['val']) * 24.0) / params['batch_size'])
-        n_batches['test'] = int((len(ids['test']) * 24.0) / params['batch_size'])
+        n_batches['train'] = int((len(ids['train']) * 24.0) / batch_size)
+        n_batches['val'] = int((len(ids['val']) * 24.0) / batch_size)
+        n_batches['test'] = int((len(ids['test']) * 24.0) / batch_size)
 
     loaders = {}
 
@@ -496,14 +508,14 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         train_weighted_sampler = WeightedRandomSampler(train_weights, len(train_weights), replacement=True)
         val_weighted_sampler = WeightedRandomSampler(val_weights, len(val_weights), replacement=True)
 
-        loaders['train'] = DataLoader(datasets['train'], **params, sampler=train_weighted_sampler)
-        loaders['val'] = DataLoader(datasets['val'], **params, sampler=val_weighted_sampler)
+        loaders['train'] = DataLoader(datasets['train'], **dataloader_params, sampler=train_weighted_sampler)
+        loaders['val'] = DataLoader(datasets['val'], **dataloader_params, sampler=val_weighted_sampler)
 
     if cnn and not balance or not cnn:
-        loaders['train'] = DataLoader(datasets['train'], **params)
-        loaders['val'] = DataLoader(datasets['val'], **params)
+        loaders['train'] = DataLoader(datasets['train'], **dataloader_params)
+        loaders['val'] = DataLoader(datasets['val'], **dataloader_params)
 
-    loaders['test'] = DataLoader(datasets['test'], **params)
+    loaders['test'] = DataLoader(datasets['test'], **dataloader_params)
 
     class_dist = utils.find_subpopulations(patch_ids, plot=False)
 
