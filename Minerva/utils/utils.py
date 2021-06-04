@@ -90,7 +90,7 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 def get_cuda_device():
     """Finds and returns the CUDA device, if one is available. Else, returns CPU as device.
-        Assumes there is at most only one CUDA device.
+    Assumes there is at most only one CUDA device.
 
     Returns:
         CUDA device, if found. Else, CPU device.
@@ -116,6 +116,12 @@ def exist_delete_check(fn: str):
 
 
 def mkexpdir(name):
+    """Makes a new directory below the results directory with name provided. If directory already exists,
+    no action is taken.
+
+    Args:
+        name (str): Name of new directory.
+    """
     try:
         os.mkdir(os.path.join(results_dir, name))
     except FileExistsError:
@@ -419,11 +425,21 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), seed: int = 42, shuffle:
 
 
 def class_weighting(class_dist):
+    """Constructs weights for each class defined by the distribution provided. Each class weight is the inverse
+    of the number of samples of that class. Note: This will most likely mean that the weights will not sum to unity.
+
+    Args:
+        class_dist (Any[Any[float]]): 2D iterable which should be of the form created from Counter.most_common()
+
+    Returns:
+        class_weights (dict): Dictionary mapping class number to its weight.
+    """
     # Finds total number of samples to normalise data
     n_samples = 0
     for mode in class_dist:
         n_samples += mode[1]
 
+    # Constructs class weights. Each weight is 1 / number of samples for that class.
     class_weights = {}
     for mode in class_dist:
         class_weights[mode[0]] = 1.0 / mode[1]
@@ -432,24 +448,56 @@ def class_weighting(class_dist):
 
 
 def weight_samples(patch_ids, func=find_centre_label, class_weights=None):
+    """Produces a weight for each sample in the dataset defined by the patch IDs provided.
+
+    Args:
+        patch_ids (list[str]): Unique patch IDs that define the dataset to compute sample weights for.
+        func (callable): Optional; Function to load the labels from the dataset with.
+        class_weights (dict): Optional; Dictionary mapping class number to its weight.
+
+    Returns:
+        sample_weights (list[float]): List of weights for every sample in the dataset defined by patch IDs.
+    """
+    # Uses class_weighting to generate the class weights given the patch IDs and function provided.
     if class_weights is None:
         class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func), plot=False))
 
     sample_weights = []
 
+    # Computes the sample weights
     for patch in patch_ids:
+        # Assumes 24 scenes per patch. Will be updated in future!
         for i in range(24):
+            # Adds a sample weight per scene based on the patch's class weight.
             sample_weights.append(class_weights[find_centre_label(patch)])
 
     return sample_weights
 
 
-def find_empty_classes(patch_ids: list, func=find_centre_label, class_dist=None):
+def find_empty_classes(patch_ids: list = None, func: callable = find_centre_label, class_dist=None):
+    """Examines the distribution of
+
+    Args:
+        patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
+            the patch IDs are inferred from the directory using patch_grab.
+        func (callable): Optional; Function to load the labels from the dataset with.
+        class_dist (Any[Any[float]]): Optional; 2D iterable which should be of the form created
+            from Counter.most_common(). If not provided, is computed from patch IDs and function provided.
+
+    Returns:
+        empty (list[int]): List of classes not found in class_dist and are thus empty/ not present in dataset.
+    """
     if class_dist is None:
+        if patch_ids is None:
+            patch_ids = patch_grab()
         class_dist = find_subpopulations(dataset_lc_load(patch_ids, func), plot=False)
 
     empty = []
+
+    # Checks which classes are not present in class_dist
     for label in classes.keys():
+
+        # If not present, add class label to empty.
         if label not in [mode[0] for mode in class_dist]:
             empty.append(label)
 
@@ -457,6 +505,17 @@ def find_empty_classes(patch_ids: list, func=find_centre_label, class_dist=None)
 
 
 def eliminate_classes(empty_classes):
+    """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
+    This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
+
+    Args:
+        empty_classes (list[int]): List of classes not found in class_dist and are thus empty/ not present in dataset.
+
+    Returns:
+        reordered_classes (dict): Mapping of remaining class labels to text description.
+        conversion (dict): Mapping from old to new classes.
+        reordered_colours (dict): Mapping of remaining class labels to RGB colours.
+    """
     # Makes deep copies of the class and cmap dicts.
     new_classes = {key: value[:] for key, value in classes.items()}
     new_colours = {key: value[:] for key, value in cmap_dict.items()}
@@ -466,8 +525,11 @@ def eliminate_classes(empty_classes):
         del new_classes[label]
         del new_colours[label]
 
+    # Holds keys that are over the length of the shortened dict.
+    # i.e If there were 8 classes before and now there are 6 but class number 7 remains, it is an over key.
     over_keys = [key for key in new_classes.keys() if key >= len(new_classes.keys())]
 
+    # Creates OrderedDicts of the key-value pairs of the over keys.
     over_classes = OrderedDict({key: new_classes[key] for key in over_keys})
     over_colours = OrderedDict({key: new_colours[key] for key in over_keys})
 
@@ -475,12 +537,16 @@ def eliminate_classes(empty_classes):
     reordered_colours = {}
     conversion = {}
 
+    # Goes through the length of the remaining classes (not the keys).
     for i in range(len(new_classes.keys())):
+        # If there is a remaining class present at this number, copy those corresponding values across to new dicts.
         if i in new_classes:
             reordered_classes[i] = new_classes[i]
             reordered_colours[i] = new_colours[i]
             conversion[i] = i
 
+        # If there is no remaining class at this number (because it has been deleted),
+        # fill this gap with one of the over-key classes.
         if i not in new_classes:
             class_key, class_value = over_classes.popitem()
             colour_key, colour_value = over_colours.popitem()
