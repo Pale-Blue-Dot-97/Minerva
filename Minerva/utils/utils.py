@@ -26,7 +26,6 @@ Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
     * Fully document
-
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -90,6 +89,12 @@ params = config['hyperparams']['params']
 #                                                     METHODS
 # =====================================================================================================================
 def get_cuda_device():
+    """Finds and returns the CUDA device, if one is available. Else, returns CPU as device.
+        Assumes there is at most only one CUDA device.
+
+    Returns:
+        CUDA device, if found. Else, CPU device.
+    """
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda:0" if use_cuda else "cpu")
     cudnn.benchmark = True
