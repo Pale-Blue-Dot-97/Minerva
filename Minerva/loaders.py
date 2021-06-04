@@ -395,6 +395,19 @@ def get_transform(name, params):
 
 
 def make_transformations(transform_params):
+    """Constructs a transform or series of transforms based on parameters provided.
+
+    Args:
+        transform_params (dict): Parameters defining transforms desired. The name of each transform should be the key,
+            while the kwargs for the transform should be the value of that key as a dict.
+
+            e.g. {CenterCrop: {size: 128}}
+
+    Returns:
+        If no parameters are parsed, None is returned. If only one transform is defined by the parameters,
+            returns a Transforms object. If multiple transforms are defined, a Compose object of Transform
+            objects is returned
+    """
     # If no transforms are specified, return None.
     if not transform_params:
         return None
