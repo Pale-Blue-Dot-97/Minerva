@@ -703,16 +703,38 @@ def find_best_of(patch_id: str):
     return scene_selection(patch)
 
 
-def pair_production(patch_id: str, func) -> list:
+def pair_production(patch_id: str, func: callable) -> list:
+    """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
+
+    Args:
+        patch_id (str):
+        func (callable):
+
+    Returns:
+        A list of tuples of pairs of patch ID and date of scene as strings.
+    """
     scenes = func(patch_id)
 
     return [(patch_id, scene) for scene in scenes]
 
 
 def scene_extract(patch_ids: list, *args, **kwargs):
+    """Uses pair_production to produce patch ID - scene pairs for the whole dataset outlined by patch_ids.
+
+    Args:
+        patch_ids (list[str]):
+        *args: Args for pair_production
+        **kwargs: Kwargs for pair_production
+
+    Returns:
+        pairs (list[tuple[str, str]]): List of patch ID - scene pairs defining the dataset.
+    """
     pairs = []
     for patch_id in patch_ids:
+        # Loads pairs for given patch ID
         patch_pairs = pair_production(patch_id, *args, **kwargs)
+
+        # Appends pairs to list one-by-one
         for pair in patch_pairs:
             pairs.append(pair)
 
