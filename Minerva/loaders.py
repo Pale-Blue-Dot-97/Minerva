@@ -149,20 +149,21 @@ class BalancedBatchDataset(IterableDataset, ABC):
             y (torch.Tensor): Corresponding label as int tensor.
             Empty string (for compatibility reasons).
         """
-        # Iterates for the flattened length of a patch and yields x and y for each class from their respective wheels
+        # Iterates for the flattened length of a patch and yields x and y for each class from their respective wheels.
         for i in range(self.patch_len):
             if i == 0:
-                # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
+                # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames.
                 patches = self.load_patches(row)
                 patches.apply(self.refresh_wheels)
 
-            # For every class in the dataset, rotate the corresponding wheel and yield the pixel stack from position [0]
+            # For every class in the dataset, rotate the corresponding wheel
+            # and yield the pixel stack from position [0].
             for cls in self.streams_df.columns.to_list():
                 # Rotate current class's wheel 1 turn
                 self.wheels[cls].rotate(1)
 
-                # Yield pixel stack at position [0] for this class's wheel and the corresponding class label
-                # i.e this class number as a tensor int
+                # Yield pixel stack at position [0] for this class's wheel and the corresponding class label.
+                # i.e this class number as a tensor int.
                 yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
                     torch.tensor(cls, dtype=torch.long), ''
 
@@ -457,8 +458,12 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     dataloader_params = params['hyperparams']['params']
     batch_size = dataloader_params['batch_size']
 
-    ids = utils.split_data(patch_ids=patch_ids, split=split, seed=seed, shuffle=shuffle, p_dist=p_dist, plot=plot,
-                           ctr_lbl=cnn)
+    func = utils.lc_load
+    if cnn:
+        func = utils.find_centre_label
+
+    ids = utils.split_data(patch_ids=patch_ids, split=split, func=func, seed=seed, shuffle=shuffle,
+                           p_dist=p_dist, plot=plot)
 
     new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'],
                                                                  utils.find_centre_label))

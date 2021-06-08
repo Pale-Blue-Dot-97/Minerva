@@ -198,6 +198,8 @@ def main(classes=None, items=None):
 
         return string
 
+    os.chdir('../../data')
+
     if classes is not None:
         if type(items) is list:
             for i in range(len(classes)):

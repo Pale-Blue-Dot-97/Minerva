@@ -35,7 +35,7 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 20
+  max_epochs: 50
 
 # Settings for RGB image creation
 rgb_params:
