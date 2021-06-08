@@ -143,6 +143,11 @@ def get_items(uri, classes=None, max_items_downloaded=None, items_downloaded=0, 
         if not matches_class:
             continue
 
+        # Skips if patch already exists in current working directory.
+        if os.path.isdir(os.path.join('landcovernet', feature['id'])):
+            print('Skip ', feature['id'])
+            continue
+
         print('Getting Source Imagery Assets for', feature['id'])
         # Download the label and source imagery for the item
         downloads.extend(download_source_and_labels(feature))
