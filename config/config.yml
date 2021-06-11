@@ -12,7 +12,7 @@ dir:
     - 'CNN'
 
 # Model Name
-model_name: 'CNN-MkIII'
+model_name: 'CNN-MkIV'
 
 elim: True
 
@@ -37,7 +37,7 @@ hyperparams:
   transforms:
     CenterCrop:
       size: 52
-  max_epochs: 30
+  max_epochs: 10
 
 # Settings for RGB image creation
 rgb_params:
