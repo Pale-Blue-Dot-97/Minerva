@@ -16,6 +16,8 @@ model_name: 'CNN-MkIII'
 
 elim: True
 
+scene_selector: 'threshold'
+
 # Model hyper-parameters
 hyperparams:
   params:
@@ -23,7 +25,7 @@ hyperparams:
     num_workers: 2
     pin_memory: True
   model_params:
-    input_shape: [12, 256, 256]
+    input_shape: [12, 52, 52]
     n_classes: 8
     scaling: [2, 4]
   optim_name: SGD
@@ -33,9 +35,9 @@ hyperparams:
   loss_name: CrossEntropyLoss
   loss_params:
   transforms:
-    #CenterCrop:
-      #size: 128
-  max_epochs: 50
+    CenterCrop:
+      size: 52
+  max_epochs: 30
 
 # Settings for RGB image creation
 rgb_params:

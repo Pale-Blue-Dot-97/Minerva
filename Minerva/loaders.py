@@ -32,7 +32,6 @@ TODO:
 # =====================================================================================================================
 from Minerva.utils import utils
 import random
-import importlib
 from abc import ABC
 import numpy as np
 import pandas as pd
@@ -386,11 +385,8 @@ def get_transform(name, params):
     Returns:
         Initialised TensorBoard transform object specified by config parameters.
     """
-    # Gets the torch neural network library.
-    module = importlib.import_module('torchvision.transforms')
-
     # Gets the loss function requested by config parameters.
-    transform = getattr(module, name)
+    transform = utils.func_by_str('torchvision.transforms', name)
 
     return transform(**params)
 
@@ -458,19 +454,25 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     dataloader_params = params['hyperparams']['params']
     batch_size = dataloader_params['batch_size']
 
-    func = utils.lc_load
+    label_func = utils.lc_load
     if cnn:
-        func = utils.find_centre_label
+        label_func = utils.find_centre_label
 
-    ids = utils.split_data(patch_ids=patch_ids, split=split, func=func, seed=seed, shuffle=shuffle,
+    ids = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed, shuffle=shuffle,
                            p_dist=p_dist, plot=plot)
 
     new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'],
                                                                  utils.find_centre_label))
 
-    scenes = {'train': utils.scene_extract(ids['train'], utils.find_best_of),
-              'val': utils.scene_extract(ids['val'], utils.find_best_of),
-              'test': utils.scene_extract(ids['test'], utils.find_best_of)}
+    scene_func = utils.ref_scene_select
+    if params['scene_selector'] == 'threshold':
+        scene_func = utils.threshold_scene_select
+
+    scenes = {}
+
+    for mode in ('train', 'val', 'test'):
+        scenes[mode] = utils.scene_extract(ids[mode], scene_func)
+
     datasets = {}
     n_batches = {}
 
@@ -513,15 +515,15 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
                                         no_empty_classes=True, forwards=forwards,
                                         transformations=transformations)
 
-        n_batches['train'] = int((len(ids['train']) * 24.0) / batch_size)
-        n_batches['val'] = int((len(ids['val']) * 24.0) / batch_size)
-        n_batches['test'] = int((len(ids['test']) * 24.0) / batch_size)
+        n_batches['train'] = int(len(scenes['train']) / batch_size)
+        n_batches['val'] = int(len(scenes['val']) / batch_size)
+        n_batches['test'] = int(len(scenes['test']) / batch_size)
 
     loaders = {}
 
     if cnn and balance:
-        train_weights = utils.weight_samples(ids['train'], func=utils.find_centre_label)
-        val_weights = utils.weight_samples(ids['val'], func=utils.find_centre_label)
+        train_weights = utils.weight_samples(scenes['train'], func=utils.find_centre_label)
+        val_weights = utils.weight_samples(scenes['val'], func=utils.find_centre_label)
 
         train_weighted_sampler = WeightedRandomSampler(train_weights, len(train_weights), replacement=True)
         val_weighted_sampler = WeightedRandomSampler(val_weights, len(val_weights), replacement=True)

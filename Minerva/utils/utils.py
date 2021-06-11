@@ -34,6 +34,7 @@ import yaml
 import os
 import glob
 import math
+import importlib
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -438,11 +439,11 @@ def class_weighting(class_dist):
     return class_weights
 
 
-def weight_samples(patch_ids, func=find_centre_label, class_weights=None):
+def weight_samples(scenes, func=find_centre_label, class_weights=None):
     """Produces a weight for each sample in the dataset defined by the patch IDs provided.
 
     Args:
-        patch_ids (list[str]): Unique patch IDs that define the dataset to compute sample weights for.
+        scenes (list[Tuple[str]): List of patch ID - scene date tuple pairs that define the dataset.
         func (callable): Optional; Function to load the labels from the dataset with.
         class_weights (dict): Optional; Dictionary mapping class number to its weight.
 
@@ -451,16 +452,15 @@ def weight_samples(patch_ids, func=find_centre_label, class_weights=None):
     """
     # Uses class_weighting to generate the class weights given the patch IDs and function provided.
     if class_weights is None:
-        class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func), plot=False))
+        patch_ids = list(set([scene[0] for scene in scenes]))
+        class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func), plot=True))
 
     sample_weights = []
 
     # Computes the sample weights
-    for patch in patch_ids:
-        # Assumes 24 scenes per patch. Will be updated in future!
-        for i in range(24):
-            # Adds a sample weight per scene based on the patch's class weight.
-            sample_weights.append(class_weights[find_centre_label(patch)])
+    for scene in scenes:
+        # Adds a sample weight per scene based on the corresponding patch class weight of the scene.
+        sample_weights.append(class_weights[find_centre_label(scene[0])])
 
     return sample_weights
 
@@ -644,7 +644,7 @@ def month_sort(df: pd.DataFrame, month: str):
     return df.loc[month].sort_values(by='COVER')['DATE'][0]
 
 
-def scene_selection(df: pd.DataFrame):
+def ref_scene_select(df: pd.DataFrame, n_scenes: int = 12):
     """Selects the 24 best scenes of a patch based on REF's 2-step selection criteria.
 
     Args:
@@ -660,13 +660,17 @@ def scene_selection(df: pd.DataFrame):
 
     # Step 2: Find the 12 scenes with the lowest cloud cover percentage of the remaining scenes
     df.drop(index=pd.to_datetime(step1, format='%Y_%m_%d'), inplace=True)
-    step2 = df.sort_values(by='COVER')['DATE'][:12].tolist()
+    step2 = df.sort_values(by='COVER')['DATE'][:n_scenes].tolist()
 
     # Return 24 scenes selected by the 2-step REF criteria
     return step1 + step2
 
 
-def find_best_of(patch_id: str):
+def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3):
+    return df.loc[df['COVER'] < thres]['DATE'].tolist()
+
+
+def find_best_of(patch_id: str, selector: callable = ref_scene_select, **kwargs):
     """Finds the 24 scenes sorted by cloud cover according to REF's 2-step criteria using scene_selection().
 
     Args:
@@ -691,10 +695,10 @@ def find_best_of(patch_id: str):
     patch.set_index(pd.to_datetime(patch['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
 
     # Sends DataFrame to scene_selection() and returns the 24 selected scenes
-    return scene_selection(patch)
+    return selector(patch, **kwargs)
 
 
-def pair_production(patch_id: str, func: callable) -> list:
+def pair_production(patch_id: str, func: callable, **kwargs) -> list:
     """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
 
     Args:
@@ -704,7 +708,7 @@ def pair_production(patch_id: str, func: callable) -> list:
     Returns:
         A list of tuples of pairs of patch ID and date of scene as strings.
     """
-    scenes = func(patch_id)
+    scenes = find_best_of(patch_id, func, **kwargs)
 
     return [(patch_id, scene) for scene in scenes]
 
@@ -848,3 +852,11 @@ def num_batches(num_ids: int) -> int:
         num_batches (int): Number of batches needed to cover the whole dataset
     """
     return int((num_ids * image_size[0] * image_size[1]) / params['batch_size'])
+
+
+def func_by_str(module: str, func: str):
+    # Gets the torch neural network library.
+    module = importlib.import_module(module)
+
+    # Gets the loss function requested by config parameters.
+    return getattr(module, func)
