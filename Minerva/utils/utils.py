@@ -440,7 +440,7 @@ def class_weighting(class_dist):
 
 
 def weight_samples(scenes, func=find_centre_label, class_weights=None):
-    """Produces a weight for each sample in the dataset defined by the patch IDs provided.
+    """Produces a weight for each sample in the dataset defined by the scene - patch ID tuple pairs provided.
 
     Args:
         scenes (list[Tuple[str]): List of patch ID - scene date tuple pairs that define the dataset.
@@ -466,7 +466,7 @@ def weight_samples(scenes, func=find_centre_label, class_weights=None):
 
 
 def find_empty_classes(patch_ids: list = None, func: callable = find_centre_label, class_dist=None):
-    """Examines the distribution of
+    """Finds which classes defined by config files are not present in the dataset defined by supplied patch IDs.
 
     Args:
         patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
@@ -645,13 +645,16 @@ def month_sort(df: pd.DataFrame, month: str):
 
 
 def ref_scene_select(df: pd.DataFrame, n_scenes: int = 12):
-    """Selects the 24 best scenes of a patch based on REF's 2-step selection criteria.
+    """Selects the scene with the least cloud cover of each month of a patch plus n_scenes more of the remaining scenes.
+        Based on REF's 2-step selection criteria.
 
     Args:
         df (pd.DataFrame): Dataframe containing all scenes and their cloud cover percentages.
+        n_scenes (int): Optional; Number of additional scenes across the year to select
+            after selecting the best scene of each month.
 
     Returns:
-        scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format.
+        List of 12 + n_scene strings representing dates of the selected scenes in YY_MM_DD format.
     """
     # Step 1: Find scene with lowest cloud cover percentage in each month
     step1 = []
@@ -667,6 +670,15 @@ def ref_scene_select(df: pd.DataFrame, n_scenes: int = 12):
 
 
 def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3):
+    """Selects all scenes in a patch with a cloud cover less than the threshold provided.
+
+    Args:
+        df (pd.DataFrame): Dataframe containing all scenes and their cloud cover percentages.
+        thres (float): Optional; Fractional limit of cloud cover below which scenes shall be selected.
+
+    Returns:
+        List of strings representing dates of the selected scenes in YY_MM_DD format.
+    """
     return df.loc[df['COVER'] < thres]['DATE'].tolist()
 
 
@@ -675,6 +687,9 @@ def find_best_of(patch_id: str, selector: callable = ref_scene_select, **kwargs)
 
     Args:
         patch_id (str): Unique patch ID.
+        selector (callable): Optional; Function to use to select scenes.
+            Must take an appropriately constructed pd.DataFrame.
+        **kwargs: Kwargs for func.
 
     Returns:
         scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format.
@@ -702,8 +717,10 @@ def pair_production(patch_id: str, func: callable, **kwargs) -> list:
     """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
 
     Args:
-        patch_id (str):
-        func (callable):
+        patch_id (str): Unique ID of the patch.
+        func (callable): Optional; Function to use to select scenes.
+            Must take an appropriately constructed pd.DataFrame.
+        **kwargs: Kwargs for func.
 
     Returns:
         A list of tuples of pairs of patch ID and date of scene as strings.
@@ -823,14 +840,14 @@ def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
 
 
 def find_subpopulations(labels, plot: bool = False):
-    """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class
+    """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class.
 
     Args:
-        labels (list or np.ndarray): Class labels describing the data to be analysed
-        plot (bool): Plots distribution of subpopulations if True
+        labels (list or np.ndarray): Class labels describing the data to be analysed.
+        plot (bool): Plots distribution of subpopulations if True.
 
     Returns:
-        Modal distribution of classes in the dataset provided
+        Modal distribution of classes in the dataset provided.
     """
     # Finds the distribution of the classes within the data
     class_dist = Counter(np.array(labels).flatten()).most_common()
@@ -843,20 +860,29 @@ def find_subpopulations(labels, plot: bool = False):
 
 
 def num_batches(num_ids: int) -> int:
-    """Determines the number of batches needed to cover the dataset across ids
+    """Determines the number of batches needed to cover the dataset across ids.
 
     Args:
-        num_ids (int): Number of patch IDs in the dataset to be loaded in by batches
+        num_ids (int): Number of patch IDs in the dataset to be loaded in by batches.
 
     Returns:
-        num_batches (int): Number of batches needed to cover the whole dataset
+        num_batches (int): Number of batches needed to cover the whole dataset.
     """
     return int((num_ids * image_size[0] * image_size[1]) / params['batch_size'])
 
 
 def func_by_str(module: str, func: str):
-    # Gets the torch neural network library.
+    """Gets the constructor or callable within a module defined by the names supplied.
+
+    Args:
+        module (str): Name (and path to) of module desired function or class is within.
+        func (str): Name of function or class desired.
+
+    Returns:
+        Constructor or callable request by string.
+    """
+    # Gets module found from the path/ name supplied.
     module = importlib.import_module(module)
 
-    # Gets the loss function requested by config parameters.
+    # Returns the constructor/ callable within the module.
     return getattr(module, func)
