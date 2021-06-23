@@ -12,7 +12,7 @@ dir:
     - 'CNN'
 
 # Model Name
-model_name: 'CNN-MkIV'
+model_name: 'CNN-MkV'
 
 elim: True
 
@@ -22,12 +22,14 @@ scene_selector: 'threshold'
 hyperparams:
   params:
     batch_size: 16
-    num_workers: 2
+    num_workers: 3
     pin_memory: True
   model_params:
-    input_shape: [12, 52, 52]
+    input_shape: [12, 256, 256]
     n_classes: 8
-    scaling: [2, 4]
+    features: [72, 144, 288]
+    conv_do: True
+    p_conv_do: 0.1
   optim_name: SGD
   optim_params:
     lr: 3.0E-4
@@ -35,9 +37,9 @@ hyperparams:
   loss_name: CrossEntropyLoss
   loss_params:
   transforms:
-    CenterCrop:
-      size: 52
-  max_epochs: 10
+    #CenterCrop:
+      #size: 128
+  max_epochs: 30
 
 # Settings for RGB image creation
 rgb_params:

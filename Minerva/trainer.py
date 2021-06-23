@@ -31,7 +31,6 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
-import importlib
 import yaml
 from Minerva.utils import visutils, utils
 import torch
@@ -128,7 +127,7 @@ class Trainer:
         """
         model_params = self.params['hyperparams']['model_params']
 
-        # Gets the optimiser requested by config parameters.
+        # Gets the model requested by config parameters.
         model = utils.func_by_str('Minerva.models', self.params['model_name'].split('-')[0])
 
         # Initialise model

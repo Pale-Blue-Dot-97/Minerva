@@ -223,8 +223,9 @@ class CNN(torch.nn.Module, ABC):
         optimiser: PyTorch optimiser model will use. Initialised as None. Must be set using set_optimiser.
     """
 
-    def __init__(self, criterion, input_shape=(12, 256, 256), n_classes: int = 8, scaling=(2, 1, 1),
-                 conv_kernel_size: tuple = 3, conv_stride: tuple = 1, max_kernel_size: int = 2, max_stride: int = 2):
+    def __init__(self, criterion, input_shape=(12, 256, 256), n_classes: int = 8, features=(2, 1, 1),
+                 conv_kernel_size: tuple = 3, conv_stride: tuple = 1, max_kernel_size: int = 2, max_stride: int = 2,
+                 conv_do: bool = True, p_conv_do: float = 0.1):
         """Initialises an instance of CNN.
 
         Args:
@@ -232,9 +233,8 @@ class CNN(torch.nn.Module, ABC):
             input_shape (tuple[int, int, int] or list[int, int, int]): Optional; Defines the shape of the input data in
                 order of number of channels, image width, image height.
             n_classes (int): Optional; Number of classes in input data.
-            scaling (tuple[int] or list[int]): Optional; Series of values determining the factor by which the number of
-                channels in the input is scaled up by to determine the number of feature maps. The number of entries is
-                also used to determine the number of convolutional layers in conv_net.
+            features (tuple[int] or list[int]): Optional; Series of values defining the number of feature maps.
+                The length of the list is also used to determine the number of convolutional layers in conv_net.
             conv_kernel_size (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
                 size of all convolutional kernels for all channels and layers.
             conv_stride (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
@@ -251,14 +251,13 @@ class CNN(torch.nn.Module, ABC):
         self._conv_layers = OrderedDict()
         self._fc_layers = OrderedDict()
 
-        # Constructs the convolutional layers determined by the number of input channels and the scaling of these.
-        for i in range(len(scaling)):
+        # Constructs the convolutional layers determined by the number of input channels and the features of these.
+        for i in range(len(features)):
             if i is 0:
-                self._conv_layers['Conv-0'] = torch.nn.Conv2d(input_shape[0], input_shape[0] * scaling[i],
+                self._conv_layers['Conv-0'] = torch.nn.Conv2d(input_shape[0], features[i],
                                                               conv_kernel_size, stride=conv_stride)
             elif i > 0:
-                self._conv_layers['Conv-{}'.format(i)] = torch.nn.Conv2d(scaling[i - 1] * input_shape[0],
-                                                                         scaling[i] * input_shape[0],
+                self._conv_layers['Conv-{}'.format(i)] = torch.nn.Conv2d(features[i - 1], features[i],
                                                                          conv_kernel_size, stride=conv_stride)
             else:
                 print('EXCEPTION on Layer {}'.format(i))
@@ -268,13 +267,16 @@ class CNN(torch.nn.Module, ABC):
                                                                            stride=max_stride)
             self._conv_layers['ReLu-{}'.format(i)] = torch.nn.ReLU()
 
+            if conv_do:
+                self._conv_layers['DropOut-{}'.format(i)] = torch.nn.Dropout(p_conv_do)
+
         # Construct the convolutional network from the dict of layers.
         self.conv_net = torch.nn.Sequential(self._conv_layers)
 
         # Calculate the input of the Linear layer by sending some fake data through the network
         # and getting the shape of the output.
         out_shape = []
-        for i in range(len(scaling)):
+        for i in range(len(features)):
             if i is 0:
                 out_shape = get_output_shape(self._conv_layers['MaxPool-{}'.format(i)],
                                              get_output_shape(self._conv_layers['Conv-{}'.format(i)], input_shape))
@@ -294,7 +296,7 @@ class CNN(torch.nn.Module, ABC):
         # Set the loss function.
         self.criterion = criterion
 
-        # Initialises the optimiser as None. MUST be set after init of CNN to a torh optimiser with this model's
+        # Initialises the optimiser as None. MUST be set after init of CNN to a torch optimiser with this model's
         # parameters using set_optimiser before training can proceed.
         self.optimiser = None
 
