@@ -133,3 +133,4 @@ API Key
 *.iml
 
 lightning_logs/
+data/ALC/*
