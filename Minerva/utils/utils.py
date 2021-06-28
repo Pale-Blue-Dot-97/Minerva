@@ -453,7 +453,7 @@ def weight_samples(scenes, func=find_centre_label, class_weights=None):
     # Uses class_weighting to generate the class weights given the patch IDs and function provided.
     if class_weights is None:
         patch_ids = list(set([scene[0] for scene in scenes]))
-        class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func), plot=True))
+        class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func)))
 
     sample_weights = []
 

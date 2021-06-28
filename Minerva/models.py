@@ -224,8 +224,9 @@ class CNN(torch.nn.Module, ABC):
     """
 
     def __init__(self, criterion, input_shape=(12, 256, 256), n_classes: int = 8, features=(2, 1, 1),
-                 conv_kernel_size: tuple = 3, conv_stride: tuple = 1, max_kernel_size: int = 2, max_stride: int = 2,
-                 conv_do: bool = True, p_conv_do: float = 0.1):
+                 fc_sizes=(128, 64), conv_kernel_size: tuple = 3, conv_stride: tuple = 1, max_kernel_size: int = 2,
+                 max_stride: int = 2, conv_do: bool = True, fc_do: bool = True, p_conv_do: float = 0.1,
+                 p_fc_do: float = 0.5):
         """Initialises an instance of CNN.
 
         Args:
@@ -287,8 +288,23 @@ class CNN(torch.nn.Module, ABC):
         # Calculate the flattened size of the output from the convolutional network.
         self.flattened_size = int(np.prod(list(out_shape)))
 
+        # Constructs the fully connected layers determined by the number of input channels and the features of these.
+        for i in range(len(fc_sizes)):
+            if i is 0:
+                self._fc_layers['Linear-0'] = torch.nn.Linear(self.flattened_size, fc_sizes[i])
+            elif i > 0:
+                self._fc_layers['Linear-{}'.format(i)] = torch.nn.Linear(fc_sizes[i - 1], fc_sizes[i])
+            else:
+                print('EXCEPTION on Layer {}'.format(i))
+
+            # Each fully connected layer is followed by a ReLu activation.
+            self._fc_layers['ReLu-{}'.format(i)] = torch.nn.ReLU()
+
+            if fc_do:
+                self._fc_layers['DropOut-{}'.format(i)] = torch.nn.Dropout(p_fc_do)
+
         # Add classification layer.
-        self._fc_layers['Classification'] = torch.nn.Linear(self.flattened_size, self.n_classes)
+        self._fc_layers['Classification'] = torch.nn.Linear(fc_sizes[-1], self.n_classes)
 
         # Create fully connected network.
         self.fc_net = torch.nn.Sequential(self._fc_layers)
