@@ -270,6 +270,14 @@ def find_centre_label(patch_id: str):
     return labels[int(labels.shape[0] / 2)][int(labels.shape[1] / 2)]
 
 
+def centre_pixel_only(image):
+    new_image = np.zeros((*image_size, len(band_ids)))
+
+    new_image[int(image_size[0]/2.0)][int(image_size[1]/2.0)] = image[int(image_size[0]/2.0)][int(image_size[1]/2.0)]
+
+    return new_image
+
+
 def transform_coordinates(path: str, new_cs: osr.SpatialReference):
     """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
     in the new co-ordinates system provided.

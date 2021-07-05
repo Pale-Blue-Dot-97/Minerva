@@ -329,8 +329,9 @@ class ImageDataset(Dataset, ABC):
         batch_size (int): Number of samples returned in each batch.
     """
 
-    def __init__(self, scenes, batch_size: int, no_empty_classes: bool = True, forwards=None, transformations=None):
-        """Inits ImageDataset
+    def __init__(self, scenes, batch_size: int, no_empty_classes: bool = True, centre_only: bool = False,
+                 forwards=None, transformations=None):
+        """Inits ImageDataset.
 
         Args:
             scenes (list[tuple[str, str]): List of tuples of pairs of patch ID and scene date, representing the outline
@@ -340,6 +341,7 @@ class ImageDataset(Dataset, ABC):
         self.scenes = scenes
         self.batch_size = batch_size
         self.no_empty_classes = no_empty_classes
+        self.centre_only = centre_only
         self.forwards = forwards
         self.transformations = transformations
 
@@ -359,6 +361,9 @@ class ImageDataset(Dataset, ABC):
 
         y = utils.find_centre_label(patch_id)
         image = utils.stack_bands(patch_id, date)
+
+        if self.centre_only:
+            image = utils.centre_pixel_only(image)
 
         if self.no_empty_classes:
             y = torch.tensor(utils.class_transform(y, self.forwards), dtype=torch.long)
@@ -495,7 +500,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
             transformations = make_transformations(params['hyperparams']['transforms'])
 
             # Define datasets for train, validation and test using ImageDataset
-            datasets[mode] = ImageDataset(scenes[mode], batch_size=batch_size, no_empty_classes=True,
+            datasets[mode] = ImageDataset(scenes[mode], batch_size=batch_size, no_empty_classes=True, centre_only=True,
                                           forwards=forwards, transformations=transformations)
 
             n_batches[mode] = int(len(scenes[mode]) / batch_size)
