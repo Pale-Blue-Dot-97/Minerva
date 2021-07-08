@@ -30,6 +30,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from Minerva.utils import utils
 import torch
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
 from abc import ABC
@@ -253,14 +254,18 @@ class CNN(torch.nn.Module, ABC):
         self._conv_layers = OrderedDict()
         self._fc_layers = OrderedDict()
 
+        # Checks that the kernel sizes and strides match the number of layers defined by features.
+        conv_kernel_size = utils.check_len(conv_kernel_size, features)
+        conv_stride = utils.check_len(conv_stride, features)
+
         # Constructs the convolutional layers determined by the number of input channels and the features of these.
         for i in range(len(features)):
             if i is 0:
                 self._conv_layers['Conv-0'] = torch.nn.Conv2d(input_shape[0], features[i],
-                                                              conv_kernel_size, stride=conv_stride)
+                                                              conv_kernel_size[0], stride=conv_stride[0])
             elif i > 0:
                 self._conv_layers['Conv-{}'.format(i)] = torch.nn.Conv2d(features[i - 1], features[i],
-                                                                         conv_kernel_size, stride=conv_stride)
+                                                                         conv_kernel_size[i], stride=conv_stride[i])
             else:
                 print('EXCEPTION on Layer {}'.format(i))
 

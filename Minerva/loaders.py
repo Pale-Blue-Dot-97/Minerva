@@ -484,14 +484,14 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         if balance and not cnn:
             stream = utils.make_sorted_streams(ids[mode])
 
-            # Define datasets for train, validation and test using BatchDataset
+            # Define datasets for train, validation and test using BatchDataset.
             datasets[mode] = BalancedBatchDataset(stream, batch_size=batch_size, wheel_size=wheel_size,
                                                   patch_len=image_len)
 
             n_batches[mode] = utils.num_batches(len(stream.columns) * len(stream))
 
         if not balance and not cnn:
-            # Define datasets for train, validation and test using BatchDataset
+            # Define datasets for train, validation and test using BatchDataset.
             datasets[mode] = BatchDataset(ids[mode], batch_size=batch_size)
 
             n_batches[mode] = utils.num_batches(len(ids[mode]))
@@ -499,8 +499,8 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         if cnn:
             transformations = make_transformations(params['hyperparams']['transforms'])
 
-            # Define datasets for train, validation and test using ImageDataset
-            datasets[mode] = ImageDataset(scenes[mode], batch_size=batch_size, no_empty_classes=True, centre_only=True,
+            # Define datasets for train, validation and test using ImageDataset.
+            datasets[mode] = ImageDataset(scenes[mode], batch_size=batch_size, no_empty_classes=True, #centre_only=True,
                                           forwards=forwards, transformations=transformations)
 
             n_batches[mode] = int(len(scenes[mode]) / batch_size)

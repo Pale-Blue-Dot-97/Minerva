@@ -894,3 +894,13 @@ def func_by_str(module: str, func: str):
 
     # Returns the constructor/ callable within the module.
     return getattr(module, func)
+
+
+def check_len(param, comparator):
+    if hasattr(param, '__len__'):
+        if len(param) == len(comparator):
+            return param
+        else:
+            return [param[0]] * len(comparator)
+    else:
+        return [param] * len(comparator)
