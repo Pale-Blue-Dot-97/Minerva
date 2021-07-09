@@ -434,11 +434,13 @@ class ResNet(torch.nn.Module, ABC):
 
     def __init__(self, block, layers, in_channels: int = 3, num_classes: int = 1000, zero_init_residual: bool = False,
                  groups: int = 1, width_per_group: int = 64, replace_stride_with_dilation=None,
-                 norm_layer=None) -> None:
+                 norm_layer=None, encoder: bool = False) -> None:
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = torch.nn.BatchNorm2d
         self._norm_layer = norm_layer
+
+        self.encoder_on = encoder
 
         self.inplanes = 64
         self.dilation = 1
@@ -463,7 +465,13 @@ class ResNet(torch.nn.Module, ABC):
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
         self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = torch.nn.Linear(512 * block.expansion, num_classes)
+
+        self.fc = None
+
+        if self.encoder_on:
+            self.fc = torch.nn.Linear(512 * block.expansion, 1000)
+        else:
+            self.fc = torch.nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
             if isinstance(m, torch.nn.Conv2d):
