@@ -252,8 +252,8 @@ class BatchDataset(IterableDataset, ABC):
 class IterableImageDataset(IterableDataset, ABC):
     """Adaptation of IterableDataset for handling images for use with a CNN.
 
-    Engineered to pre-process Landcovernet image data into multi-band, time-series pixel stacks
-    and yield to a DataLoader.
+    Engineered to pre-process Landcovernet image data into stacked multi-band images
+    and yield to a DataLoader with associated labels.
 
     Attributes:
         patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
@@ -320,8 +320,8 @@ class IterableImageDataset(IterableDataset, ABC):
 class ImageDataset(Dataset, ABC):
     """Adaptation of Dataset for handling images for use with a CNN.
 
-    Engineered to pre-process Landcovernet image data into multi-band, time-series pixel stacks
-    and yield to a DataLoader.
+    Engineered to pre-process Landcovernet image data into stacked multi-band images
+    and return to a DataLoader with associated labels.
 
     Attributes:
         scenes (list[tuple[str, str]): List of tuples of pairs of patch ID and scene date, representing the outline of
@@ -329,8 +329,8 @@ class ImageDataset(Dataset, ABC):
         batch_size (int): Number of samples returned in each batch.
     """
 
-    def __init__(self, scenes, batch_size: int, no_empty_classes: bool = True, centre_only: bool = False,
-                 forwards=None, transformations=None):
+    def __init__(self, scenes, batch_size: int, segmentation: bool = False, no_empty_classes: bool = True,
+                 centre_only: bool = False, forwards=None, transformations=None):
         """Inits ImageDataset.
 
         Args:
@@ -340,6 +340,7 @@ class ImageDataset(Dataset, ABC):
         """
         self.scenes = scenes
         self.batch_size = batch_size
+        self.segmentation_on = segmentation
         self.no_empty_classes = no_empty_classes
         self.centre_only = centre_only
         self.forwards = forwards
@@ -349,17 +350,21 @@ class ImageDataset(Dataset, ABC):
         return len(self.scenes)
 
     def process_data(self, scene: tuple):
-        """Loads scenes from given patch and yields sample images and labels from them.
+        """Loads scenes from given patch and returns sample images and labels from them.
 
         Args:
             scene (tuple[str, str]): Tuple of Unique patch ID and date of scene within the dataset.
 
-        Yields:
+        Returns:
             Multi-spectral image of scene, associated label and the patch ID where they came from.
         """
         patch_id, date = scene
 
-        y = utils.find_centre_label(patch_id)
+        func = utils.find_centre_label
+        if self.segmentation_on:
+            func = utils.lc_load
+
+        y = func(patch_id)
         image = utils.stack_bands(patch_id, date)
 
         if self.centre_only:
