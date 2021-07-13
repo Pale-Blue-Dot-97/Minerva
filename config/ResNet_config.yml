@@ -9,16 +9,14 @@ dir:
     - 'Postgraduate'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'FCNResNet18'
+    - 'ResNet'
 
 # Model Name
-model_name: 'FCNResNet18-MkI'
+model_name: 'ResNet18-MkI'
 
-elim: False
+elim: True
 
 scene_selector: 'threshold'
-
-segmentation: True
 
 # Model hyper-parameters
 hyperparams:

@@ -505,7 +505,8 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
             transformations = make_transformations(params['hyperparams']['transforms'])
 
             # Define datasets for train, validation and test using ImageDataset.
-            datasets[mode] = ImageDataset(scenes[mode], batch_size=batch_size, no_empty_classes=True, #centre_only=True,
+            datasets[mode] = ImageDataset(scenes[mode], batch_size=batch_size, no_empty_classes=params['elim'],
+                                          centre_only=params['centre_only'], segmentation=params['segmentation'],
                                           forwards=forwards, transformations=transformations)
 
             n_batches[mode] = int(len(scenes[mode]) / batch_size)
