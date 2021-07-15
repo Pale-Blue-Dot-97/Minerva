@@ -360,7 +360,7 @@ class CNN(MinervaModel, ABC):
 class ResNet(MinervaModel, ABC):
     """Modified version of the ResNet network to handle multi-spectral inputs and cross-entropy."""
 
-    def __init__(self, block, layers, in_channels: int = 3, num_classes: int = 1000, zero_init_residual: bool = False,
+    def __init__(self, block, layers, in_channels: int = 3, n_classes: int = 8, zero_init_residual: bool = False,
                  groups: int = 1, width_per_group: int = 64, replace_stride_with_dilation=None,
                  norm_layer=None, encoder: bool = False) -> None:
         super(ResNet, self).__init__()
@@ -381,8 +381,7 @@ class ResNet(MinervaModel, ABC):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = torch.nn.Conv2d(in_channels, self.inplanes, kernel_size=tuple([7]), stride=tuple([2]),
-                                     padding=tuple([3]), bias=False)
+        self.conv1 = torch.nn.Conv2d(in_channels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = torch.nn.ReLU(inplace=True)
         self.maxpool = torch.nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -400,7 +399,7 @@ class ResNet(MinervaModel, ABC):
         if self.encoder_on:
             self.fc = torch.nn.Linear(512 * block.expansion, 1024)
         else:
-            self.fc = torch.nn.Linear(512 * block.expansion, num_classes)
+            self.fc = torch.nn.Linear(512 * block.expansion, n_classes)
 
         for m in self.modules():
             if isinstance(m, torch.nn.Conv2d):
@@ -466,26 +465,28 @@ class ResNet(MinervaModel, ABC):
 
 
 class Decoder(MinervaModel, ABC):
-    def __init__(self, batch_size, n_classes):
+    def __init__(self, batch_size, n_classes, image_size):
         super(Decoder, self).__init__()
 
         self.batch_size = batch_size
+        self.n_classes = n_classes
+        self.image_size = image_size
 
         self.dfc3 = torch.nn.Linear(1024, 4096)
-        self.bn3 = torch.nn.BatchNorm2d(4096)
+        self.bn3 = torch.nn.BatchNorm1d(4096)
         self.dfc2 = torch.nn.Linear(4096, 4096)
-        self.bn2 = torch.nn.BatchNorm2d(4096)
+        self.bn2 = torch.nn.BatchNorm1d(4096)
         self.dfc1 = torch.nn.Linear(4096, 256 * 6 * 6)
-        self.bn1 = torch.nn.BatchNorm2d(256 * 6 * 6)
+        self.bn1 = torch.nn.BatchNorm1d(256 * 6 * 6)
         self.upsample1 = torch.nn.Upsample(scale_factor=2)
-        self.dconv5 = torch.nn.ConvTranspose2d(256, 256, tuple([3]), padding=tuple([0]))
-        self.dconv4 = torch.nn.ConvTranspose2d(256, 384, tuple([3]), padding=tuple([1]))
-        self.dconv3 = torch.nn.ConvTranspose2d(384, 192, tuple([3]), padding=tuple([1]))
-        self.dconv2 = torch.nn.ConvTranspose2d(192, 64, tuple([5]), padding=tuple([2]))
-        self.dconv1 = torch.nn.ConvTranspose2d(64, n_classes, tuple([12]), stride=tuple([4]), padding=tuple([4]))
+        self.dconv5 = torch.nn.ConvTranspose2d(256, 256, 3, padding=0)
+        self.dconv4 = torch.nn.ConvTranspose2d(256, 384, 3, padding=1)
+        self.dconv3 = torch.nn.ConvTranspose2d(384, 192, 3, padding=1)
+        self.dconv2 = torch.nn.ConvTranspose2d(192, 64, 5, padding=2)
+        self.dconv1 = torch.nn.ConvTranspose2d(64, self.n_classes, 12, stride=4, padding=4)
+        self.upsample2 = torch.nn.Upsample(size=self.image_size)
 
     def _forward_impl(self, x):
-
         x = self.dfc3(x)
         x = F.relu(self.bn3(x))
         x = self.dfc2(x)
@@ -505,7 +506,9 @@ class Decoder(MinervaModel, ABC):
         x = F.relu(x)
         x = self.upsample1(x)
         x = self.dconv1(x)
-        x = F.sigmoid(x)
+        x = F.relu(x)
+        x = self.upsample2(x)
+        #x = F.sigmoid(x)
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -518,7 +521,7 @@ class ResNet18(ResNet, ABC):
                  groups: int = 1, width_per_group: int = 64, replace_stride_with_dilation=None,
                  norm_layer=None):
         super(ResNet18, self).__init__(BasicBlock, [2, 2, 2, 2], in_channels=input_shape[0],
-                                       num_classes=n_classes,
+                                       n_classes=n_classes,
                                        zero_init_residual=zero_init_residual,
                                        groups=groups,
                                        width_per_group=width_per_group,
@@ -537,11 +540,12 @@ class FCNResNet18(MinervaModel, ABC):
 
         super(FCNResNet18, self).__init__(criterion=criterion)
 
-        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_shape[0], num_classes=n_classes,
+        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_shape[0], n_classes=n_classes,
                               zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
-                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer)
+                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
+                              encoder=True)
 
-        self.decoder = Decoder(batch_size, n_classes)
+        self.decoder = Decoder(batch_size, n_classes, input_shape[1:])
 
         self.input_shape = input_shape
         self.n_classes = n_classes

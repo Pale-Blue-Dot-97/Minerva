@@ -9,7 +9,7 @@ dir:
     - 'Postgraduate'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'FCNResNet18'
+    - 'FCNResNet'
 
 # Model Name
 model_name: 'FCNResNet18-MkI'
@@ -17,6 +17,8 @@ model_name: 'FCNResNet18-MkI'
 elim: False
 
 scene_selector: 'threshold'
+
+centre_only: False
 
 segmentation: True
 

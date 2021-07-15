@@ -370,10 +370,15 @@ class ImageDataset(Dataset, ABC):
         if self.centre_only:
             image = utils.centre_pixel_only(image)
 
-        if self.no_empty_classes:
-            y = torch.tensor(utils.class_transform(y, self.forwards), dtype=torch.long)
-        if not self.no_empty_classes:
-            y = torch.tensor(y, dtype=torch.long)
+        if self.segmentation_on:
+            y = torch.from_numpy(y.astype(int))
+            y = y.to(torch.long)
+
+        else:
+            if self.no_empty_classes:
+                y = torch.tensor(utils.class_transform(y, self.forwards), dtype=torch.long)
+            if not self.no_empty_classes:
+                y = torch.tensor(y, dtype=torch.long)
 
         sample = torch.tensor(image.reshape((image.shape[2], image.shape[1], image.shape[0])), dtype=torch.float)
 
@@ -465,14 +470,13 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     batch_size = dataloader_params['batch_size']
 
     label_func = utils.lc_load
-    if cnn:
+    if cnn and not params['segmentation']:
         label_func = utils.find_centre_label
 
     ids = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed, shuffle=shuffle,
                            p_dist=p_dist, plot=plot)
 
-    new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'],
-                                                                 utils.find_centre_label))
+    new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'], label_func))
 
     scene_func = utils.ref_scene_select
     if params['scene_selector'] == 'threshold':

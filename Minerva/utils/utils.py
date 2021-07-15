@@ -515,47 +515,51 @@ def eliminate_classes(empty_classes):
         conversion (dict): Mapping from old to new classes.
         reordered_colours (dict): Mapping of remaining class labels to RGB colours.
     """
-    # Makes deep copies of the class and cmap dicts.
-    new_classes = {key: value[:] for key, value in classes.items()}
-    new_colours = {key: value[:] for key, value in cmap_dict.items()}
+    if len(empty_classes) == 0:
+        return classes, [], cmap_dict
 
-    # Deletes empty classes from copied dicts.
-    for label in empty_classes:
-        del new_classes[label]
-        del new_colours[label]
+    else:
+        # Makes deep copies of the class and cmap dicts.
+        new_classes = {key: value[:] for key, value in classes.items()}
+        new_colours = {key: value[:] for key, value in cmap_dict.items()}
 
-    # Holds keys that are over the length of the shortened dict.
-    # i.e If there were 8 classes before and now there are 6 but class number 7 remains, it is an over key.
-    over_keys = [key for key in new_classes.keys() if key >= len(new_classes.keys())]
+        # Deletes empty classes from copied dicts.
+        for label in empty_classes:
+            del new_classes[label]
+            del new_colours[label]
 
-    # Creates OrderedDicts of the key-value pairs of the over keys.
-    over_classes = OrderedDict({key: new_classes[key] for key in over_keys})
-    over_colours = OrderedDict({key: new_colours[key] for key in over_keys})
+        # Holds keys that are over the length of the shortened dict.
+        # i.e If there were 8 classes before and now there are 6 but class number 7 remains, it is an over key.
+        over_keys = [key for key in new_classes.keys() if key >= len(new_classes.keys())]
 
-    reordered_classes = {}
-    reordered_colours = {}
-    conversion = {}
+        # Creates OrderedDicts of the key-value pairs of the over keys.
+        over_classes = OrderedDict({key: new_classes[key] for key in over_keys})
+        over_colours = OrderedDict({key: new_colours[key] for key in over_keys})
 
-    # Goes through the length of the remaining classes (not the keys).
-    for i in range(len(new_classes.keys())):
-        # If there is a remaining class present at this number, copy those corresponding values across to new dicts.
-        if i in new_classes:
-            reordered_classes[i] = new_classes[i]
-            reordered_colours[i] = new_colours[i]
-            conversion[i] = i
+        reordered_classes = {}
+        reordered_colours = {}
+        conversion = {}
 
-        # If there is no remaining class at this number (because it has been deleted),
-        # fill this gap with one of the over-key classes.
-        if i not in new_classes:
-            class_key, class_value = over_classes.popitem()
-            colour_key, colour_value = over_colours.popitem()
+        # Goes through the length of the remaining classes (not the keys).
+        for i in range(len(new_classes.keys())):
+            # If there is a remaining class present at this number, copy those corresponding values across to new dicts.
+            if i in new_classes:
+                reordered_classes[i] = new_classes[i]
+                reordered_colours[i] = new_colours[i]
+                conversion[i] = i
 
-            reordered_classes[i] = class_value
-            reordered_colours[i] = colour_value
+            # If there is no remaining class at this number (because it has been deleted),
+            # fill this gap with one of the over-key classes.
+            if i not in new_classes:
+                class_key, class_value = over_classes.popitem()
+                colour_key, colour_value = over_colours.popitem()
 
-            conversion[class_key] = i
+                reordered_classes[i] = class_value
+                reordered_colours[i] = colour_value
 
-    return reordered_classes, conversion, reordered_colours
+                conversion[class_key] = i
+
+        return reordered_classes, conversion, reordered_colours
 
 
 def class_transform(label, matrix):

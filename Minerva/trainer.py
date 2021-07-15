@@ -88,6 +88,7 @@ class Trainer:
         self.batch_size = params['hyperparams']['params']['batch_size']
         self.loaders = loaders
         self.n_batches = n_batches
+        self.data_size = params['hyperparams']['model_params']['input_shape']
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
@@ -206,14 +207,18 @@ class Trainer:
                 total_correct += correct
 
                 self.writer.add_scalar('{}_loss'.format(mode), ls)
-                self.writer.add_scalar('{}_acc'.format(mode), correct / len(y_batch))
+                self.writer.add_scalar('{}_acc'.format(mode), correct / len(torch.flatten(y_batch)))
 
                 # Updates progress bar that sample has been processed.
                 bar()
 
         # Updates metrics with epoch results.
         self.metrics['{}_loss'.format(mode)].append(total_loss / self.n_batches[mode])
-        self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size))
+        if self.params['segmentation']:
+            self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size *
+                                                                        self.data_size[1] * self.data_size[2]))
+        else:
+            self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size))
 
         if mode is 'test':
             return test_predictions, test_labels, test_ids
