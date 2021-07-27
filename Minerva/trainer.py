@@ -36,6 +36,7 @@ from Minerva.utils import visutils, utils
 import torch
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 from itertools import islice
 from alive_progress import alive_bar
 
@@ -253,13 +254,22 @@ class Trainer:
         predictions, labels, ids = self.epoch('test')
 
         z = []
-        for i in range(len(predictions)):
-            for j in range(len(predictions[i])):
-                z.append(predictions[i][j])
+
+        try:
+            z = np.array(predictions).flatten()
+
+        except ValueError:
+            for i in range(len(predictions)):
+                for j in range(len(predictions[i])):
+                    z.append(predictions[i][j])
+
         y = []
-        for i in range(len(labels)):
-            for j in range(len(labels[i])):
-                y.append(labels[i][j])
+        try:
+            y = np.array(labels).flatten()
+        except ValueError:
+            for i in range(len(labels)):
+                for j in range(len(labels[i])):
+                    y.append(labels[i][j])
 
         print('Test Loss: {} | Test Accuracy: {}% \n'.format(self.metrics['test_loss'][0],
                                                              self.metrics['test_acc'][0] * 100.0))
