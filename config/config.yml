@@ -12,7 +12,7 @@ dir:
     - 'FCNResNet'
 
 # Model Name
-model_name: 'FCNResNet18-MkI'
+model_name: 'FCNResNet18-MkII'
 
 elim: False
 
@@ -26,7 +26,7 @@ segmentation: True
 hyperparams:
   params:
     batch_size: 16
-    num_workers: 10
+    num_workers: 8
     pin_memory: True
   model_params:
     input_shape: [12, 256, 256]

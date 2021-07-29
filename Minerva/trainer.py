@@ -266,6 +266,7 @@ class Trainer:
         y = []
         try:
             y = np.array(labels).flatten()
+
         except ValueError:
             for i in range(len(labels)):
                 for j in range(len(labels[i])):
