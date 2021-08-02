@@ -12,7 +12,7 @@ dir:
     - 'FCNResNet'
 
 # Model Name
-model_name: 'FCNResNet18-MkII'
+model_name: 'FCNResNet34-MkI'
 
 elim: False
 
