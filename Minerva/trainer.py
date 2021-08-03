@@ -82,11 +82,12 @@ class Trainer:
         self.params['exp_name'] = '{}_{}'.format(self.params['model_name'], self.params['timestamp'])
         self.params['dir']['results'].append(self.params['exp_name'])
 
+        self.batch_size = params['hyperparams']['params']['batch_size']
+
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
         self.max_epochs = params['hyperparams']['max_epochs']
-        self.batch_size = params['hyperparams']['params']['batch_size']
         self.loaders = loaders
         self.n_batches = n_batches
         self.data_size = params['hyperparams']['model_params']['input_shape']
@@ -128,6 +129,8 @@ class Trainer:
             Initialised model.
         """
         model_params = self.params['hyperparams']['model_params']
+
+        model_params['batch_size'] = self.batch_size
 
         # Gets the model requested by config parameters.
         model = utils.func_by_str('Minerva.models', self.params['model_name'].split('-')[0])

@@ -12,7 +12,7 @@ dir:
     - 'FCNResNet'
 
 # Model Name
-model_name: 'FCNResNet34-MkI'
+model_name: 'FCNResNet34-MkII'
 
 elim: False
 
@@ -25,7 +25,7 @@ segmentation: True
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 16
+    batch_size: 8
     num_workers: 8
     pin_memory: True
   model_params:
@@ -40,7 +40,7 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 25
+  max_epochs: 10
 
 # Settings for RGB image creation
 rgb_params:

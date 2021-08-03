@@ -472,41 +472,59 @@ class Decoder(MinervaModel, ABC):
         self.n_classes = n_classes
         self.image_size = image_size
 
+        self.derl1 = torch.nn.ReLU()
+
         self.dfc3 = torch.nn.Linear(1024, 4096)
         self.bn3 = torch.nn.BatchNorm1d(4096)
+        self.derl2 = torch.nn.ReLU()
+
         self.dfc2 = torch.nn.Linear(4096, 4096)
         self.bn2 = torch.nn.BatchNorm1d(4096)
+        self.derl3 = torch.nn.ReLU()
+
         self.dfc1 = torch.nn.Linear(4096, 256 * 6 * 6)
         self.bn1 = torch.nn.BatchNorm1d(256 * 6 * 6)
+        self.derl4 = torch.nn.ReLU()
+
         self.upsample1 = torch.nn.Upsample(scale_factor=2)
         self.dconv5 = torch.nn.ConvTranspose2d(256, 256, 3, padding=0)
+        self.derl5 = torch.nn.ReLU()
+
         self.dconv4 = torch.nn.ConvTranspose2d(256, 384, 3, padding=1)
+        self.derl6 = torch.nn.ReLU()
+
         self.dconv3 = torch.nn.ConvTranspose2d(384, 192, 3, padding=1)
+        self.derl7 = torch.nn.ReLU()
+
         self.dconv2 = torch.nn.ConvTranspose2d(192, 64, 5, padding=2)
+        self.derl8 = torch.nn.ReLU()
+
         self.dconv1 = torch.nn.ConvTranspose2d(64, self.n_classes, 12, stride=4, padding=4)
+        self.derl9 = torch.nn.ReLU()
+
         self.upsample2 = torch.nn.Upsample(size=self.image_size)
 
     def _forward_impl(self, x):
+        x = self.derl1(x)
         x = self.dfc3(x)
-        x = F.relu(self.bn3(x))
+        x = self.derl2(self.bn3(x))
+
         x = self.dfc2(x)
-        x = F.relu(self.bn2(x))
+        x = self.derl3(self.bn2(x))
+
         x = self.dfc1(x)
-        x = F.relu(self.bn1(x))
+        x = self.derl4(self.bn1(x))
 
         x = x.view(self.batch_size, 256, 6, 6)
 
         x = self.upsample1(x)
-        x = self.dconv5(x)
-        x = F.relu(x)
-        x = F.relu(self.dconv4(x))
-        x = F.relu(self.dconv3(x))
+        x = self.derl5(self.dconv5(x))
+        x = self.derl6(self.dconv4(x))
+        x = self.derl7(self.dconv3(x))
         x = self.upsample1(x)
-        x = self.dconv2(x)
-        x = F.relu(x)
+        x = self.derl8(self.dconv2(x))
         x = self.upsample1(x)
-        x = self.dconv1(x)
-        x = F.relu(x)
+        x = self.derl9(self.dconv1(x))
         x = self.upsample2(x)
         #x = F.sigmoid(x)
         return x
