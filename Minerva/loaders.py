@@ -329,7 +329,7 @@ class ImageDataset(Dataset, ABC):
         batch_size (int): Number of samples returned in each batch.
     """
 
-    def __init__(self, scenes, batch_size: int, segmentation: bool = False, no_empty_classes: bool = True,
+    def __init__(self, scenes, batch_size: int, model_type: str = 'CNN', no_empty_classes: bool = True,
                  centre_only: bool = False, forwards=None, transformations=None):
         """Inits ImageDataset.
 
@@ -340,7 +340,7 @@ class ImageDataset(Dataset, ABC):
         """
         self.scenes = scenes
         self.batch_size = batch_size
-        self.segmentation_on = segmentation
+        self.model_type = model_type
         self.no_empty_classes = no_empty_classes
         self.centre_only = centre_only
         self.forwards = forwards
@@ -361,7 +361,7 @@ class ImageDataset(Dataset, ABC):
         patch_id, date = scene
 
         func = utils.find_centre_label
-        if self.segmentation_on:
+        if self.model_type == 'segmentation':
             func = utils.lc_load
 
         y = func(patch_id)
@@ -370,7 +370,7 @@ class ImageDataset(Dataset, ABC):
         if self.centre_only:
             image = utils.centre_pixel_only(image)
 
-        if self.segmentation_on:
+        if self.model_type == 'segmentation':
             y = torch.from_numpy(y.astype(int))
             y = y.to(torch.long)
 
@@ -442,8 +442,8 @@ def make_transformations(transform_params):
     return transforms.Compose(transformations)
 
 
-def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_size=65536, image_len=65536, seed=42,
-                  shuffle=True, plot=False, balance=False, cnn=False, p_dist=False):
+def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, image_len=65536, seed=42,
+                  shuffle=True, plot=False, balance=False, model_type='CNN', p_dist=False, **params):
     """
 
     Args:
@@ -458,7 +458,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
         shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
         plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
         balance (bool):
-        cnn (bool):
+        model_type (str):
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
@@ -470,7 +470,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     batch_size = dataloader_params['batch_size']
 
     label_func = utils.lc_load
-    if cnn and not params['segmentation']:
+    if model_type in ['cnn', 'CNN']:
         label_func = utils.find_centre_label
 
     ids = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed, shuffle=shuffle,
@@ -490,7 +490,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
     for mode in ('train', 'val', 'test'):
         scenes[mode] = utils.scene_extract(ids[mode], scene_func)
 
-        if balance and not cnn:
+        if balance and model_type in ['mlp', 'MLP']:
             stream = utils.make_sorted_streams(ids[mode])
 
             # Define datasets for train, validation and test using BatchDataset.
@@ -499,30 +499,30 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), params=None, wheel_si
 
             n_batches[mode] = utils.num_batches(len(stream.columns) * len(stream))
 
-        if not balance and not cnn:
+        if not balance and model_type in ['mlp', 'MLP']:
             # Define datasets for train, validation and test using BatchDataset.
             datasets[mode] = BatchDataset(ids[mode], batch_size=batch_size)
 
             n_batches[mode] = utils.num_batches(len(ids[mode]))
 
-        if cnn:
+        if model_type in ['cnn', 'CNN', 'segmentation']:
             transformations = make_transformations(params['hyperparams']['transforms'])
 
             # Define datasets for train, validation and test using ImageDataset.
             datasets[mode] = ImageDataset(scenes[mode], batch_size=batch_size, no_empty_classes=params['elim'],
-                                          centre_only=params['centre_only'], segmentation=params['segmentation'],
+                                          centre_only=params['centre_only'], model_type=model_type,
                                           forwards=forwards, transformations=transformations)
 
             n_batches[mode] = int(len(scenes[mode]) / batch_size)
 
-        if cnn and balance:
+        if model_type in ['cnn', 'CNN'] and balance:
             weights = utils.weight_samples(scenes[mode], func=utils.find_centre_label)
             sampler = WeightedRandomSampler(weights, len(weights), replacement=True)
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params, sampler=sampler)
 
-        if cnn and not balance or not cnn:
+        if model_type in ['cnn', 'CNN'] and not balance or model_type not in ['cnn', 'CNN']:
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
 
-    class_dist = utils.find_subpopulations(patch_ids, plot=False)
+    class_dist = utils.find_subpopulations(utils.dataset_lc_load(ids['train'], label_func), plot=False)
 
     return loaders, n_batches, class_dist, ids, new_classes, new_colours

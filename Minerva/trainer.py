@@ -60,7 +60,7 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders, n_batches: dict, **params):
+    def __init__(self, loaders, n_batches: dict, class_dist: dict=None, **params):
         """Initialises the Trainer.
 
         Args:
@@ -74,6 +74,7 @@ class Trainer:
             max_epochs (int): Number of epochs to train the model for.
         """
         self.params = params
+        self.class_dist = class_dist
 
         # Sets the timestamp of the experiment.
         self.params['timestamp'] = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
@@ -146,8 +147,16 @@ class Trainer:
         """
         # Gets the loss function requested by config parameters.
         criterion = utils.func_by_str('torch.nn', self.params['hyperparams']['loss_name'])
-        
-        return criterion()
+
+        if self.params['balance'] and self.params['model_type'] == 'segmentation':
+            weights_dict = utils.class_weighting(self.class_dist)
+
+            weights = []
+            for i in range(len(weights_dict)):
+                weights.append(weights_dict[i])
+            return criterion(weight=torch.Tensor(weights))
+        else:
+            return criterion()
 
     def make_optimiser(self):
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
@@ -218,7 +227,7 @@ class Trainer:
 
         # Updates metrics with epoch results.
         self.metrics['{}_loss'.format(mode)].append(total_loss / self.n_batches[mode])
-        if self.params['segmentation']:
+        if self.params['model_type'] == 'segmentation':
             self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size *
                                                                         self.data_size[1] * self.data_size[2]))
         else:

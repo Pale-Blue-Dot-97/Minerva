@@ -12,7 +12,8 @@ dir:
     - 'FCNResNet'
 
 # Model Name
-model_name: 'FCNResNet50-MkI'
+model_name: 'FCNResNet18-MkIV'
+model_type: 'segmentation'
 
 elim: False
 
@@ -20,17 +21,21 @@ scene_selector: 'threshold'
 
 centre_only: False
 
-segmentation: True
+#segmentation: True
+
+balance: True
 
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 8
+    batch_size: 16
     num_workers: 8
     pin_memory: True
   model_params:
     input_shape: [12, 256, 256]
     n_classes: 8
+    #groups: 32
+    #width_per_group: 4
   optim_name: SGD
   optim_params:
     lr: 3.0E-4
