@@ -28,9 +28,9 @@ balance: True
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 16
-    num_workers: 8
-    pin_memory: True
+    batch_size: 64
+    num_workers: 6
+    pin_memory: False
   model_params:
     input_shape: [4, 256, 256]
     n_classes: 8
@@ -45,7 +45,7 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 10
+  max_epochs: 25
 
 # Settings for RGB image creation
 rgb_params:
