@@ -1,6 +1,12 @@
 # Paths to directories containing the data and the results
 dir:
-  data: '../../data/landcovernet'
+  data:
+   - 'G:'
+   - 'GitHub'
+   - 'Minerva'
+   - 'Minerva'
+   - 'data'
+   - 'landcovernet'
   data_config: '../../config/landcovernet.yml'
   results:
     - 'F:'

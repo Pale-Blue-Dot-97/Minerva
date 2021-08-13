@@ -58,7 +58,7 @@ with open(dataset_config_path) as file:
     dataset_config = yaml.safe_load(file)
 
 # Path to directory holding dataset
-data_dir = config['dir']['data']
+data_dir = os.sep.join(config['dir']['data'])
 
 # Path to directory to output plots to
 results_dir = os.path.join(*config['dir']['results'])
@@ -195,6 +195,13 @@ def patch_grab():
     return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
 
 
+def get_patches_in_tile(tile_id, patch_ids=None):
+    if patch_ids is None:
+        patch_ids = patch_grab()
+
+    return [patch_id for patch_id in patch_ids if tile_id in patch_id]
+
+
 def date_grab(patch_id: str):
     """Finds all the name of all the scene directories for a patch and returns a list of the dates reformatted.
 
@@ -276,6 +283,26 @@ def centre_pixel_only(image):
     new_image[int(image_size[0]/2.0)][int(image_size[1]/2.0)] = image[int(image_size[0]/2.0)][int(image_size[1]/2.0)]
 
     return new_image
+
+
+def cut_to_extents(patch_id, tile_id, tile_dir):
+    # Path to patch dir and patch ID prefix.
+    patch_path = os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id])
+
+    # Path to tile to be cut from.
+    tile_path = os.sep.join([tile_dir, tile_id + '_20200101-20210101.tif'])
+
+    # Constructs shape file from the provided patch label TIFF.
+    os.system('gdaltindex {}_SHP.shp {}_2018_LC_10m.tif '.format(patch_path, patch_path))
+
+    # Uses shape file to cut patch out from tile and saves to patch dir.
+    os.system('gdalwarp -cutline {}_SHP.shp -crop_to_cutline {} {}_2020_LC_10m.tif'.format(patch_path, tile_path,
+                                                                                           patch_path))
+
+    # Deletes temporary shape files.
+    for fn in ['{}_SHP.shp'.format(patch_path), '{}_SHP.shx'.format(patch_path),
+               '{}_SHP.dbf'.format(patch_path), '{}_SHP.prj'.format(patch_path)]:
+        os.remove(fn)
 
 
 def transform_coordinates(path: str, new_cs: osr.SpatialReference):
