@@ -49,13 +49,19 @@ from torch.backends import cudnn
 #                                                     GLOBALS
 # =====================================================================================================================
 config_path = '../../config/config.yml'
-dataset_config_path = '../../config/landcovernet.yml'
+
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
-with open(dataset_config_path) as file:
-    dataset_config = yaml.safe_load(file)
+imagery_config_path = config['imagery_config']
+data_config_path = config['data_config']
+
+with open(imagery_config_path) as file:
+    imagery_config = yaml.safe_load(file)
+
+with open(data_config_path) as file:
+    data_config = yaml.safe_load(file)
 
 # Path to directory holding dataset
 data_dir = os.sep.join(config['dir']['data'])
@@ -67,19 +73,21 @@ results_dir = os.path.join(*config['dir']['results'])
 model_name = config['model_name']
 
 # Prefix to every patch ID in every patch directory name
-patch_dir_prefix = dataset_config['patch_dir_prefix']
+patch_dir_prefix = imagery_config['patch_dir_prefix']
+
+label_suffix = data_config['label_suffix']
 
 # Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
-band_ids = dataset_config['data_specs']['band_ids']
+band_ids = imagery_config['data_specs']['band_ids']
 
 # Defines size of the images to determine the number of batches
-image_size = dataset_config['data_specs']['image_size']
+image_size = imagery_config['data_specs']['image_size']
 
 flattened_image_size = image_size[0] * image_size[1]
 
-classes = dataset_config['classes']
+classes = data_config['classes']
 
-cmap_dict = dataset_config['colours']
+cmap_dict = data_config['colours']
 
 # Parameters
 params = config['hyperparams']['params']
@@ -247,7 +255,7 @@ def lc_load(patch_id: str):
     Returns:
         LC_label (list): 2D array containing LC labels for each pixel of a patch.
     """
-    return load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '_2018_LC_10m.tif']), 1)
+    return load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '{}.tif'.format(label_suffix)]), 1)
 
 
 def dataset_lc_load(ids: list, func=lc_load):
