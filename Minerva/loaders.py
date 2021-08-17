@@ -371,6 +371,8 @@ class ImageDataset(Dataset, ABC):
             image = utils.centre_pixel_only(image)
 
         if self.model_type == 'segmentation':
+            if self.no_empty_classes:
+                y = utils.mask_transform(y, self.forwards)
             y = torch.from_numpy(y.astype(int))
             y = y.to(torch.long)
 

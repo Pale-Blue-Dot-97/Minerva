@@ -22,20 +22,20 @@ dir:
 model_name: 'FCNResNet18-MkVI'
 model_type: 'segmentation'
 
-elim: False
+elim: True
 scene_selector: 'threshold'
 centre_only: False
-balance: True
+balance: False
 
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 64
-    num_workers: 6
-    pin_memory: False
+    batch_size: 16
+    num_workers: 8
+    pin_memory: True
   model_params:
     input_shape: [4, 256, 256]
-    n_classes: 8
+    n_classes: 11
     #groups: 32
     #width_per_group: 4
   optim_name: SGD
@@ -47,7 +47,7 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 25
+  max_epochs: 10
 
 # Settings for RGB image creation
 rgb_params:

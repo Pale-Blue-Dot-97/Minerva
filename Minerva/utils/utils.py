@@ -40,6 +40,8 @@ import pandas as pd
 from datetime import datetime
 from collections import Counter, OrderedDict
 import rasterio as rt
+import rasterio.mask as rtmask
+import fiona
 from osgeo import gdal, osr
 import torch
 from sklearn.model_selection import train_test_split
@@ -54,8 +56,8 @@ config_path = '../../config/config.yml'
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
-imagery_config_path = config['imagery_config']
-data_config_path = config['data_config']
+imagery_config_path = config['dir']['imagery_config']
+data_config_path = config['dir']['data_config']
 
 with open(imagery_config_path) as file:
     imagery_config = yaml.safe_load(file)
@@ -165,6 +167,25 @@ def prefix_format(patch_id: str, scene):
 
 
 def scene_grab(patch_id: str):
+    """Finds all scenes for a given patch.
+
+        Args:
+            patch_id (str): Unique patch ID.
+
+        Returns:
+            scenes (list): List of CLD masks for each scene.
+            scene_names (list): List of scene dates in YY_MM_DD.
+        """
+    path = '{}{}{}{}'.format(data_dir, os.sep, patch_dir_prefix, patch_id)
+
+    # Get the name of all the directories for this patch
+    scene_dirs = glob.glob('{}{}*{}'.format(path, os.sep, os.sep))
+
+    # Extract the scene names (i.e the dates) from the paths
+    return [scene.partition(path)[2].replace(os.sep, '') for scene in scene_dirs]
+
+
+def cloud_grab(patch_id: str):
     """Finds and loads all CLDs for a given patch.
 
     Args:
@@ -174,11 +195,8 @@ def scene_grab(patch_id: str):
         scenes (list): List of CLD masks for each scene.
         scene_names (list): List of scene dates in YY_MM_DD.
     """
-    # Get the name of all the directories for this patch
-    scene_dirs = glob.glob('{}{}{}{}{}*{}'.format(data_dir, os.sep, patch_dir_prefix, patch_id, os.sep, os.sep))
-
     # Extract the scene names (i.e the dates) from the paths
-    scene_names = [(scene.partition(os.sep)[2].partition(os.sep)[2])[:-1] for scene in scene_dirs]
+    scene_names = scene_grab(patch_id)
 
     # List to hold scenes
     scenes = []
@@ -219,11 +237,8 @@ def date_grab(patch_id: str):
     Returns:
         (list): List of the dates of the scenes in DD.MM.YYYY format for this patch_ID.
     """
-    # Get the name of all the directories for this patch
-    scene_dirs = glob.glob('%s/%s%s/*/' % (data_dir, patch_dir_prefix, patch_id))
-
     # Extract the scene names (i.e the dates) from the paths
-    scene_names = [(scene.partition('\\')[2])[:-1] for scene in scene_dirs]
+    scene_names = scene_grab(patch_id)
 
     # Format the dates from US YYYY_MM_DD format into UK DD.MM.YYYY format and return list
     return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
@@ -303,9 +318,27 @@ def cut_to_extents(patch_id, tile_id, tile_dir):
     # Constructs shape file from the provided patch label TIFF.
     os.system('gdaltindex {}_SHP.shp {}_2018_LC_10m.tif '.format(patch_path, patch_path))
 
-    # Uses shape file to cut patch out from tile and saves to patch dir.
-    os.system('gdalwarp -cutline {}_SHP.shp -crop_to_cutline {} {}_2020_LC_10m.tif'.format(patch_path, tile_path,
-                                                                                           patch_path))
+    # Loads shape file.
+    with fiona.open("{}_SHP.shp".format(patch_path), "r") as shapefile:
+        shapes = [feature["geometry"] for feature in shapefile]
+
+    # Uses shape file to cut patch out from tile.
+    with rt.open(tile_path) as src:
+        out_image, out_transform = rtmask.mask(src, shapes, crop=True)
+        out_meta = src.meta
+
+    # Updates metadata of cut out patch with correct image size.
+    out_meta.update({"driver": "GTiff",
+                     "height": image_size[0],
+                     "width": image_size[1],
+                     "transform": out_transform})
+
+    # Deletes any previous versions of this cut out patch.
+    exist_delete_check("{}_2020_LC_10m.tif".format(patch_path))
+
+    # Saves new cut out patch to patch dir.
+    with rt.open("{}_2020_LC_10m.tif".format(patch_path), "w", **out_meta) as dest:
+        dest.write(out_image)
 
     # Deletes temporary shape files.
     for fn in ['{}_SHP.shp'.format(patch_path), '{}_SHP.shx'.format(patch_path),
@@ -601,6 +634,13 @@ def class_transform(label, matrix):
     return matrix[label]
 
 
+def mask_transform(array, matrix):
+    for key in matrix.keys():
+        array[array == key] = matrix[key]
+
+    return array
+
+
 def find_patch_modes(patch_id):
     """Finds the distribution of the classes within this patch
 
@@ -744,8 +784,8 @@ def find_best_of(patch_id: str, selector: callable = ref_scene_select, **kwargs)
     # Creates a DataFrame
     patch = pd.DataFrame()
 
-    # Using scene_grab(), gets all the scene CLDs and dates for the given patch and adds to DataFrame
-    patch['SCENE'], patch['DATE'] = scene_grab(patch_id)
+    # Using cloud_grab(), gets all the scene CLDs and dates for the given patch and adds to DataFrame
+    patch['SCENE'], patch['DATE'] = cloud_grab(patch_id)
 
     # Calculates the cloud cover percentage for every scene and adds to DataFrame
     patch['COVER'] = patch['SCENE'].apply(cloud_cover)

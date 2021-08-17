@@ -99,11 +99,12 @@ def seg_plot(z, y, test_ids):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(**config)
+    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(plot=False, **config)
 
-    config['hyperparams']['model_params']['n_classes'] = len(new_classes)
-    config['classes'] = new_classes
-    config['colours'] = new_colours
+    if config['elim']:
+        config['hyperparams']['model_params']['n_classes'] = len(new_classes)
+        config['classes'] = new_classes
+        config['colours'] = new_colours
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **config)
 

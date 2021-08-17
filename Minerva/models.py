@@ -31,10 +31,8 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-
 from Minerva.utils import utils
 import torch
-import torch.nn.functional as F
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
 from abc import ABC
 import numpy as np
