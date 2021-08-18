@@ -93,7 +93,7 @@ def path_format(names):
     date2 = utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d')
 
     # Format path to the directory holding all the scene files
-    scene_path = '%s/%s%s/%s/' % (data_dir, patch_dir_prefix, names['patch_ID'], date1)
+    scene_path = "{}{}".format(os.sep.join((*data_dir, patch_dir_prefix + names['patch_ID'], date1)), os.sep)
 
     # Format the name of the file containing the label mask data
     data_name = '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['band_ID'])
@@ -664,26 +664,41 @@ def make_confusion_matrix(test_pred, test_labels, classes, filename=None, show=T
     Returns:
         None
     """
-    # Creates the confusion matrix based on these predictions and the corresponding ground truth labels
+    # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
     cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
 
-    # Normalises confusion matrix
+    # Normalises confusion matrix.
     cm_norm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
     np.nan_to_num(cm_norm, copy=False)
 
-    # Extract class names from dict in numeric order to ensure labels match matrix
+    # Finds the distribution of the classes within the data
+    labels_dist = utils.find_subpopulations(test_labels)
+    pred_dist = utils.find_subpopulations(test_pred)
+
+    empty = []
+
+    # Checks which classes are not present in labels and predictions and adds to empty.
+    for label in classes.keys():
+        if label not in [mode[0] for mode in labels_dist] and label not in [mode[0] for mode in pred_dist]:
+            empty.append(label)
+
+    # Deletes all empty classes identified.
+    for label in empty:
+        del classes[label]
+
+    # Extract class names from dict in numeric order to ensure labels match matrix.
     class_names = [classes[key] for key in range(len(classes.keys()))]
 
-    # Converts confusion matrix to Pandas.DataFrame
+    # Converts confusion matrix to Pandas.DataFrame.
     cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
 
-    # Plots figure
+    # Plots figure.
     plt.figure()
     sns.heatmap(cm_df, annot=True, square=True, cmap=plt.cm.get_cmap('Blues'), vmin=0.0, vmax=1.0)
     plt.ylabel('Ground Truth')
     plt.xlabel('Predicted')
 
-    # Shows and/or saves plot
+    # Shows and/or saves plot.
     if show:
         plt.show()
     if save:

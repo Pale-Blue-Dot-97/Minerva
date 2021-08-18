@@ -641,6 +641,14 @@ def mask_transform(array, matrix):
     return array
 
 
+def class_dist_transform(class_dist, matrix):
+    new_class_dist = []
+    for mode in class_dist:
+        new_class_dist.append((class_transform(mode[0], matrix), mode[1]))
+
+    return new_class_dist
+
+
 def find_patch_modes(patch_id):
     """Finds the distribution of the classes within this patch
 

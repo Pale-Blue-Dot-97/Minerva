@@ -25,7 +25,7 @@ model_type: 'segmentation'
 elim: True
 scene_selector: 'threshold'
 centre_only: False
-balance: False
+balance: True
 
 # Model hyper-parameters
 hyperparams:
@@ -47,7 +47,7 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 10
+  max_epochs: 5
 
 # Settings for RGB image creation
 rgb_params:

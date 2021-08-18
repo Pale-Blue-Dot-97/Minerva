@@ -527,4 +527,9 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
 
     class_dist = utils.find_subpopulations(utils.dataset_lc_load(ids['train'], label_func), plot=False)
 
+    print(class_dist)
+    if params['elim']:
+        class_dist = utils.class_dist_transform(class_dist, forwards)
+    print(class_dist)
+
     return loaders, n_batches, class_dist, ids, new_classes, new_colours

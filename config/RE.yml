@@ -21,3 +21,7 @@ colours:
   7: '#00ff00'
 
 label_suffix: '_2018_LC_10m'
+
+co_sys:
+  id: 4326
+  name: 'WGS84_4326'

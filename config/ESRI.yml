@@ -17,7 +17,7 @@ colours:
   0: '#000000'  # Transparent
   1: '#419bdf'  # Blue
   2: '#397d49'  # Dark green
-  3: '#397d49'  # Light green
+  3: '#88b053'  # Light green
   4: '#7a87c6'  # Purple
   5: '#e49635'  # Orange
   6: '#dfc35a'  # Yellow
@@ -27,3 +27,7 @@ colours:
   10: '#616161' # Dark grey
 
 label_suffix: '_2020_LC_10m'
+
+co_sys:
+  id: 4326
+  name: 'WGS84_4326'
