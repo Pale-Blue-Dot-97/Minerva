@@ -149,7 +149,7 @@ class Trainer:
         criterion = utils.func_by_str('torch.nn', self.params['hyperparams']['loss_name'])
 
         if self.params['balance'] and self.params['model_type'] == 'segmentation':
-            weights_dict = utils.class_weighting(self.class_dist)
+            weights_dict = utils.class_weighting(self.class_dist, normalise=True)
 
             weights = []
             for i in range(len(weights_dict)):

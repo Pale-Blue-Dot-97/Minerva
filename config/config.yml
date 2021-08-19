@@ -31,7 +31,7 @@ balance: True
 hyperparams:
   params:
     batch_size: 16
-    num_workers: 8
+    num_workers: 10
     pin_memory: True
   model_params:
     input_shape: [4, 256, 256]
@@ -40,7 +40,7 @@ hyperparams:
     #width_per_group: 4
   optim_name: SGD
   optim_params:
-    lr: 3.0E-4
+    lr: 0.5E-4
     momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:

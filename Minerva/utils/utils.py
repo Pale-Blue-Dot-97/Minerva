@@ -492,25 +492,31 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load
     return ids
 
 
-def class_weighting(class_dist):
+def class_weighting(class_dist, normalise: bool = False):
     """Constructs weights for each class defined by the distribution provided. Each class weight is the inverse
     of the number of samples of that class. Note: This will most likely mean that the weights will not sum to unity.
 
     Args:
-        class_dist (Any[Any[float]]): 2D iterable which should be of the form created from Counter.most_common()
+        class_dist (Any[Any[float]]): 2D iterable which should be of the form created from Counter.most_common().
+        normalise (bool): Optional; Whether to normalise class weights to total number of samples or not.
 
     Returns:
         class_weights (dict): Dictionary mapping class number to its weight.
     """
     # Finds total number of samples to normalise data
     n_samples = 0
-    for mode in class_dist:
-        n_samples += mode[1]
+    if normalise:
+        for mode in class_dist:
+            n_samples += mode[1]
 
     # Constructs class weights. Each weight is 1 / number of samples for that class.
     class_weights = {}
-    for mode in class_dist:
-        class_weights[mode[0]] = 1.0 / mode[1]
+    if normalise:
+        for mode in class_dist:
+            class_weights[mode[0]] = n_samples / mode[1]
+    else:
+        for mode in class_dist:
+            class_weights[mode[0]] = 1.0 / mode[1]
 
     return class_weights
 
