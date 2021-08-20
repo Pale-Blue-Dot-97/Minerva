@@ -214,7 +214,7 @@ class MLP(MinervaModel, ABC):
         self._layers['Classification'] = torch.nn.Linear(hidden_sizes[-1], n_classes)
 
         # Constructs network from the OrderedDict of layers
-        self.network = torch.nn.Sequential(self.layers)
+        self.network = torch.nn.Sequential(self._layers)
 
     def forward(self, x: torch.FloatTensor):
         """Performs a forward pass of the network.

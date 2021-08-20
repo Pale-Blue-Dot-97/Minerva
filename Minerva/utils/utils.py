@@ -590,7 +590,7 @@ def eliminate_classes(empty_classes):
         reordered_colours (dict): Mapping of remaining class labels to RGB colours.
     """
     if len(empty_classes) == 0:
-        return classes, [], cmap_dict
+        return classes, {}, cmap_dict
 
     else:
         # Makes deep copies of the class and cmap dicts.

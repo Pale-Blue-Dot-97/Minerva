@@ -91,7 +91,7 @@ class Trainer:
         self.max_epochs = params['hyperparams']['max_epochs']
         self.loaders = loaders
         self.n_batches = n_batches
-        self.data_size = params['hyperparams']['model_params']['input_shape']
+        self.data_size = params['hyperparams']['model_params']['input_size']
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
@@ -115,13 +115,16 @@ class Trainer:
         # Transfer to GPU
         self.model.to(self.device)
 
+        if self.params['model_type'] in ['MLP', 'mlp']:
+            input_size = (self.batch_size, self.model.input_size)
+        else:
+            input_size = (self.batch_size, *self.model.input_shape)
+
         # Print model summary
-        summary(self.model, input_size=(self.batch_size, *self.model.input_shape))
+        summary(self.model, input_size=input_size)
 
         # Adds a graphical layout of the model to the TensorBoard logger.
-        self.writer.add_graph(self.model,
-                              input_to_model=torch.rand(self.batch_size, *self.model.input_shape,
-                                                        device=self.device))
+        self.writer.add_graph(self.model, input_to_model=torch.rand(*input_size, device=self.device))
 
     def make_model(self):
         """Creates a model from the parameters specified by config.
@@ -131,7 +134,8 @@ class Trainer:
         """
         model_params = self.params['hyperparams']['model_params']
 
-        model_params['batch_size'] = self.batch_size
+        if self.params['model_type'] == 'segmentation':
+            model_params['batch_size'] = self.batch_size
 
         # Gets the model requested by config parameters.
         model = utils.func_by_str('Minerva.models', self.params['model_name'].split('-')[0])
@@ -149,7 +153,7 @@ class Trainer:
         criterion = utils.func_by_str('torch.nn', self.params['hyperparams']['loss_name'])
 
         if self.params['balance'] and self.params['model_type'] == 'segmentation':
-            weights_dict = utils.class_weighting(self.class_dist, normalise=True)
+            weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
             for i in range(len(weights_dict)):

@@ -63,7 +63,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
     """
 
     def __init__(self, class_streams: pd.DataFrame, batch_size: int = 32, wheel_size: int = 65536,
-                 patch_len: int = 65536):
+                 patch_len: int = 65536, no_empty_classes: bool = True, forwards=None,):
         """Inits BalancedBatchDataset
 
         Args:
@@ -75,6 +75,8 @@ class BalancedBatchDataset(IterableDataset, ABC):
         self.streams_df = class_streams
         self.batch_size = batch_size
         self.patch_len = patch_len
+        self.no_empty_classes = no_empty_classes
+        self.forwards = forwards
 
         # Dict to hold a `wheel' for each class
         self.wheels = {}
@@ -161,10 +163,16 @@ class BalancedBatchDataset(IterableDataset, ABC):
                 # Rotate current class's wheel 1 turn
                 self.wheels[cls].rotate(1)
 
-                # Yield pixel stack at position [0] for this class's wheel and the corresponding class label.
-                # i.e this class number as a tensor int.
-                yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
-                    torch.tensor(cls, dtype=torch.long), ''
+                if self.no_empty_classes:
+                    # Yield pixel stack at position [0] for this class's wheel and the corresponding class label.
+                    # i.e this class number as a tensor int.
+                    yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
+                          torch.tensor(utils.class_transform(cls, self.forwards), dtype=torch.long), ''
+                else:
+                    # Yield pixel stack at position [0] for this class's wheel and the corresponding class label.
+                    # i.e this class number as a tensor int.
+                    yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
+                        torch.tensor(cls, dtype=torch.long), ''
 
     def get_stream(self, streams_df):
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
@@ -497,7 +505,8 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
 
             # Define datasets for train, validation and test using BatchDataset.
             datasets[mode] = BalancedBatchDataset(stream, batch_size=batch_size, wheel_size=wheel_size,
-                                                  patch_len=image_len)
+                                                  patch_len=image_len, no_empty_classes=params['elim'],
+                                                  forwards=forwards)
 
             n_batches[mode] = utils.num_batches(len(stream.columns) * len(stream))
 

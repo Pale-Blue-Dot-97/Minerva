@@ -16,34 +16,38 @@ dir:
     - 'Postgraduate'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'MLP'
+    - 'FCNResNet'
 
 # Model Name
-model_name: 'MLP-MkVII'
-model_type: 'MLP'
+model_name: 'FCNResNet18-MkVI'
+model_type: 'segmentation'
 
 elim: True
-scene_selector: 'ref_scene_select'
+scene_selector: 'threshold'
 centre_only: False
 balance: True
 
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 256
-    num_workers: 6
+    batch_size: 16
+    num_workers: 10
     pin_memory: True
   model_params:
-    input_size: 288
+    input_size: [12, 256, 256]
     n_classes: 11
-    hidden_sizes: [512, 256]
-  optim_name: Adam
+    #groups: 32
+    #width_per_group: 4
+  optim_name: SGD
   optim_params:
     lr: 1.0E-4
     #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
-  max_epochs: 10
+  transforms:
+    #CenterCrop:
+      #size: 128
+  max_epochs: 25
 
 # Settings for RGB image creation
 rgb_params:

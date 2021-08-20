@@ -51,8 +51,11 @@ with open(config_path) as file:
 with open(config['dir']['data_config']) as file:
     dataset_config = yaml.safe_load(file)
 
+with open(config['dir']['imagery_config']) as file:
+    imagery_config = yaml.safe_load(file)
+
 # Defines size of the images to determine the number of batches
-image_size = dataset_config['data_specs']['image_size']
+image_size = imagery_config['data_specs']['image_size']
 
 image_len = image_size[0] * image_size[1]
 
@@ -95,16 +98,24 @@ def mlp_prediction_plot(z, y, test_ids):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, _, ids = loaders.make_datasets(balance=True, params=params, wheel_size=wheel_size,
-                                                        image_len=image_len)
+    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(wheel_size=wheel_size,
+                                                                                           image_len=image_len,
+                                                                                           **config)
+    config['hyperparams']['model_params']['n_classes'] = len(new_classes)
+    config['classes'] = new_classes
+    config['colours'] = new_colours
 
-    trainer = Trainer(loaders=datasets, n_batches=n_batches, **config)
+    trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **config)
 
     trainer.fit()
 
-    z, y, test_ids = trainer.test({'History': True, 'Pred': True, 'CM': True}, save=False)
+    z, y, test_ids = trainer.test({'History': True, 'Pred': True, 'CM': True}, save=True)
 
-    mlp_prediction_plot(z, y, y)
+    mlp_prediction_plot(z, y, test_ids)
+
+    trainer.close()
+
+    trainer.run_tensorboard()
 
 
 if __name__ == '__main__':
