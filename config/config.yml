@@ -23,7 +23,7 @@ model_name: 'MLP-MkVII'
 model_type: 'MLP'
 
 elim: True
-scene_selector: 'ref_scene_select'
+scene_selector: 'ref'
 centre_only: False
 balance: True
 
@@ -31,19 +31,19 @@ balance: True
 hyperparams:
   params:
     batch_size: 256
-    num_workers: 6
+    num_workers: 5
     pin_memory: True
   model_params:
     input_size: 288
     n_classes: 11
     hidden_sizes: [512, 256]
-  optim_name: Adam
+  optim_name: SGD
   optim_params:
-    lr: 1.0E-4
+    lr: 3.0E-4
     #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
-  max_epochs: 10
+  max_epochs: 2
 
 # Settings for RGB image creation
 rgb_params:

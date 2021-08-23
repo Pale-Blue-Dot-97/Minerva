@@ -63,7 +63,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
     """
 
     def __init__(self, class_streams: pd.DataFrame, batch_size: int = 32, wheel_size: int = 65536,
-                 patch_len: int = 65536, no_empty_classes: bool = True, forwards=None,):
+                 patch_len: int = 65536, no_empty_classes: bool = True, forwards=None):
         """Inits BalancedBatchDataset
 
         Args:
@@ -207,7 +207,7 @@ class BatchDataset(IterableDataset, ABC):
         batch_size (int): Number of samples returned in each batch.
     """
 
-    def __init__(self, patch_ids, batch_size: int):
+    def __init__(self, patch_ids, batch_size: int, no_empty_classes: bool = True, forwards=None):
         """Inits BatchDataset
 
         Args:
@@ -216,6 +216,8 @@ class BatchDataset(IterableDataset, ABC):
         """
         self.patch_ids = patch_ids
         self.batch_size = batch_size
+        self.no_empty_classes = no_empty_classes
+        self.forwards = forwards
 
     def process_data(self, patch_id: str):
         """Loads pixel-stacks and yields samples and labels from them.
@@ -229,7 +231,12 @@ class BatchDataset(IterableDataset, ABC):
         patch = utils.make_time_series(patch_id)
 
         x = torch.tensor([pixel.flatten() for pixel in patch.reshape(-1, *patch.shape[-2:])], dtype=torch.float)
-        y = torch.tensor(np.array(utils.lc_load(patch_id), dtype=np.int64).flatten(), dtype=torch.long)
+        y = utils.lc_load(patch_id)
+
+        if self.no_empty_classes:
+            y = utils.mask_transform(y, self.forwards)
+        y = torch.from_numpy(y.flatten().astype(int))
+        y = y.to(torch.long)
 
         for i in range(len(y)):
             yield x[i], y[i], patch_id
@@ -500,7 +507,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
     for mode in ('train', 'val', 'test'):
         scenes[mode] = utils.scene_extract(ids[mode], scene_func)
 
-        if balance and model_type in ['mlp', 'MLP']:
+        if balance and model_type in ['mlp', 'MLP'] and mode != 'test':
             stream = utils.make_sorted_streams(ids[mode])
 
             # Define datasets for train, validation and test using BatchDataset.
@@ -510,9 +517,10 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
 
             n_batches[mode] = utils.num_batches(len(stream.columns) * len(stream))
 
-        if not balance and model_type in ['mlp', 'MLP']:
+        if (not balance or (balance and mode == 'test')) and model_type in ['mlp', 'MLP']:
             # Define datasets for train, validation and test using BatchDataset.
-            datasets[mode] = BatchDataset(ids[mode], batch_size=batch_size)
+            datasets[mode] = BatchDataset(ids[mode], batch_size=batch_size, no_empty_classes=params['elim'],
+                                          forwards=forwards)
 
             n_batches[mode] = utils.num_batches(len(ids[mode]))
 
