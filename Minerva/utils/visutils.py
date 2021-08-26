@@ -664,13 +664,6 @@ def make_confusion_matrix(test_pred, test_labels, classes, filename=None, show=T
     Returns:
         None
     """
-    # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
-    cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
-
-    # Normalises confusion matrix.
-    cm_norm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
-    np.nan_to_num(cm_norm, copy=False)
-
     # Finds the distribution of the classes within the data
     labels_dist = utils.find_subpopulations(test_labels)
     pred_dist = utils.find_subpopulations(test_pred)
@@ -682,9 +675,18 @@ def make_confusion_matrix(test_pred, test_labels, classes, filename=None, show=T
         if label not in [mode[0] for mode in labels_dist] and label not in [mode[0] for mode in pred_dist]:
             empty.append(label)
 
-    # Deletes all empty classes identified.
-    for label in empty:
-        del classes[label]
+    # Eliminates and reorganises classes based on those not present during testing.
+    classes, transform, _ = utils.eliminate_classes(empty, old_classes=classes)
+
+    test_labels = utils.mask_transform(test_labels, transform)
+    test_pred = utils.mask_transform(test_pred, transform)
+
+    # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
+    cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
+
+    # Normalises confusion matrix.
+    cm_norm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
+    np.nan_to_num(cm_norm, copy=False)
 
     # Extract class names from dict in numeric order to ensure labels match matrix.
     class_names = [classes[key] for key in range(len(classes.keys()))]

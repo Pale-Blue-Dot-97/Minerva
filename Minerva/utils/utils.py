@@ -577,7 +577,7 @@ def find_empty_classes(patch_ids: list = None, func: callable = find_centre_labe
     return empty
 
 
-def eliminate_classes(empty_classes):
+def eliminate_classes(empty_classes, old_classes: dict = None, old_cmap: dict = None):
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
 
@@ -589,13 +589,18 @@ def eliminate_classes(empty_classes):
         conversion (dict): Mapping from old to new classes.
         reordered_colours (dict): Mapping of remaining class labels to RGB colours.
     """
+    if old_classes is None:
+        old_classes = classes
+    if old_cmap is None:
+        old_cmap = cmap_dict
+
     if len(empty_classes) == 0:
-        return classes, {}, cmap_dict
+        return old_classes, {}, old_cmap
 
     else:
         # Makes deep copies of the class and cmap dicts.
-        new_classes = {key: value[:] for key, value in classes.items()}
-        new_colours = {key: value[:] for key, value in cmap_dict.items()}
+        new_classes = {key: value[:] for key, value in old_classes.items()}
+        new_colours = {key: value[:] for key, value in old_cmap.items()}
 
         # Deletes empty classes from copied dicts.
         for label in empty_classes:

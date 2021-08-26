@@ -1,7 +1,14 @@
 # Paths to directories containing the data and the results
 dir:
-  data: '../../data/landcovernet'
-  data_config: '../../config/landcovernet.yml'
+  data:
+   - 'G:'
+   - 'GitHub'
+   - 'Minerva'
+   - 'Minerva'
+   - 'data'
+   - 'landcovernet'
+  data_config: '../../config/ESRI.yml'
+  imagery_config: '../../config/landcovernet.yml'
   results:
     - 'F:'
     - 'Harry'
@@ -12,23 +19,31 @@ dir:
     - 'MLP'
 
 # Model Name
-model_name: 'MLP-MkVI'
+model_name: 'MLP-MkVIII'
+model_type: 'MLP'
+
+elim: True
+scene_selector: 'ref'
+centre_only: False
+balance: True
 
 # Model hyper-parameters
 hyperparams:
   params:
     batch_size: 256
-    num_workers: 3
+    num_workers: 5
     pin_memory: True
   model_params:
     input_size: 288
-    n_classes: 8
-    hidden_sizes: [512, 256]
-  optimiser_params:
-    optimiser: SGD
-    learning_rate: 3.0E-4
-    momentum: None
-  max_epochs: 10
+    n_classes: 11
+    hidden_sizes: [512, 1024, 256]
+  optim_name: SGD
+  optim_params:
+    lr: 3.0E-4
+    #momentum: 0.9
+  loss_name: CrossEntropyLoss
+  loss_params:
+  max_epochs: 15
 
 # Settings for RGB image creation
 rgb_params:

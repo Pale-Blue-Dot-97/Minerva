@@ -247,7 +247,7 @@ class CNN(MinervaModel, ABC):
         fc_net (torch.nn.Sequential): Fully connected network of the model.
     """
 
-    def __init__(self, criterion, input_shape=(12, 256, 256), n_classes: int = 8, features=(2, 1, 1),
+    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, features=(2, 1, 1),
                  fc_sizes=(128, 64), conv_kernel_size: tuple = 3, conv_stride: tuple = 1, max_kernel_size: int = 2,
                  max_stride: int = 2, conv_do: bool = True, fc_do: bool = True, p_conv_do: float = 0.1,
                  p_fc_do: float = 0.5):
@@ -255,7 +255,7 @@ class CNN(MinervaModel, ABC):
 
         Args:
             criterion: PyTorch loss function model will use.
-            input_shape (tuple[int, int, int] or list[int, int, int]): Optional; Defines the shape of the input data in
+            input_size (tuple[int, int, int] or list[int, int, int]): Optional; Defines the shape of the input data in
                 order of number of channels, image width, image height.
             n_classes (int): Optional; Number of classes in input data.
             features (tuple[int] or list[int]): Optional; Series of values defining the number of feature maps.
@@ -271,7 +271,7 @@ class CNN(MinervaModel, ABC):
         """
         super(CNN, self).__init__(criterion=criterion)
 
-        self.input_shape = input_shape
+        self.input_shape = input_size
         self.n_classes = n_classes
         self._conv_layers = OrderedDict()
         self._fc_layers = OrderedDict()
@@ -283,7 +283,7 @@ class CNN(MinervaModel, ABC):
         # Constructs the convolutional layers determined by the number of input channels and the features of these.
         for i in range(len(features)):
             if i is 0:
-                self._conv_layers['Conv-0'] = torch.nn.Conv2d(input_shape[0], features[i],
+                self._conv_layers['Conv-0'] = torch.nn.Conv2d(self.input_shape[0], features[i],
                                                               conv_kernel_size[0], stride=conv_stride[0])
             elif i > 0:
                 self._conv_layers['Conv-{}'.format(i)] = torch.nn.Conv2d(features[i - 1], features[i],
@@ -308,7 +308,7 @@ class CNN(MinervaModel, ABC):
         for i in range(len(features)):
             if i is 0:
                 out_shape = get_output_shape(self._conv_layers['MaxPool-{}'.format(i)],
-                                             get_output_shape(self._conv_layers['Conv-{}'.format(i)], input_shape))
+                                             get_output_shape(self._conv_layers['Conv-{}'.format(i)], self.input_shape))
             if i > 0:
                 out_shape = get_output_shape(self._conv_layers['MaxPool-{}'.format(i)],
                                              get_output_shape(self._conv_layers['Conv-{}'.format(i)], out_shape))

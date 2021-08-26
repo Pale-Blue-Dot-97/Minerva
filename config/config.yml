@@ -16,33 +16,41 @@ dir:
     - 'Postgraduate'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'MLP'
+    - 'CNN'
 
 # Model Name
-model_name: 'MLP-MkVII'
-model_type: 'MLP'
+model_name: 'CNN-MkIX'
+model_type: 'CNN'
 
 elim: True
-scene_selector: 'ref'
+scene_selector: 'threshold'
 centre_only: False
 balance: True
 
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 256
-    num_workers: 5
+    batch_size: 16
+    num_workers: 10
     pin_memory: True
   model_params:
-    input_size: 288
+    input_size: [12, 256, 256]
     n_classes: 11
-    hidden_sizes: [512, 256]
+    features: [72, 144, 288]
+    fc_sizes: [512]
+    #conv_do: True
+    #fc_do: True
+    #p_conv_do: 0.1
+    #p_fc_do: 0.5
   optim_name: SGD
   optim_params:
-    lr: 3.0E-4
+    lr: 1.0E-4
     #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
+  transforms:
+    #CenterCrop:
+      #size: 128
   max_epochs: 2
 
 # Settings for RGB image creation

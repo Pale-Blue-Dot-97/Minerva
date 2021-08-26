@@ -60,7 +60,7 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders, n_batches: dict, class_dist: dict=None, **params):
+    def __init__(self, loaders, n_batches: dict, class_dist: dict = None, **params):
         """Initialises the Trainer.
 
         Args:
