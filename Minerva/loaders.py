@@ -535,8 +535,8 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
             n_batches[mode] = int(len(scenes[mode]) / batch_size)
 
         if model_type in ['cnn', 'CNN'] and balance:
-            weights = utils.weight_samples(scenes[mode], func=utils.find_centre_label)
-            sampler = WeightedRandomSampler(weights, len(weights), replacement=True)
+            weights = utils.weight_samples(scenes[mode], func=utils.find_centre_label, normalise=False)
+            sampler = WeightedRandomSampler(torch.tensor(weights, dtype=torch.float), len(weights), replacement=True)
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params, sampler=sampler)
 
         if model_type in ['cnn', 'CNN'] and not balance or model_type not in ['cnn', 'CNN']:

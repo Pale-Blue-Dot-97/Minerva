@@ -521,7 +521,7 @@ def class_weighting(class_dist, normalise: bool = False):
     return class_weights
 
 
-def weight_samples(scenes, func=find_centre_label, class_weights=None):
+def weight_samples(scenes, func=find_centre_label, class_weights=None, normalise: bool = False):
     """Produces a weight for each sample in the dataset defined by the scene - patch ID tuple pairs provided.
 
     Args:
@@ -535,7 +535,7 @@ def weight_samples(scenes, func=find_centre_label, class_weights=None):
     # Uses class_weighting to generate the class weights given the patch IDs and function provided.
     if class_weights is None:
         patch_ids = list(set([scene[0] for scene in scenes]))
-        class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func)))
+        class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func)), normalise=normalise)
 
     sample_weights = []
 
