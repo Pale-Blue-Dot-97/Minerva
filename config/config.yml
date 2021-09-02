@@ -16,11 +16,11 @@ dir:
     - 'Postgraduate'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'CNN'
+    - 'FCNResNet'
 
 # Model Name
-model_name: 'CNN-MkIX'
-model_type: 'CNN'
+model_name: 'FCNResNet18-MkVI'
+model_type: 'segmentation'
 
 elim: True
 scene_selector: 'threshold'
@@ -36,12 +36,8 @@ hyperparams:
   model_params:
     input_size: [12, 256, 256]
     n_classes: 11
-    features: [72, 144, 288]
-    fc_sizes: [512]
-    #conv_do: True
-    #fc_do: True
-    #p_conv_do: 0.1
-    #p_fc_do: 0.5
+    #groups: 32
+    #width_per_group: 4
   optim_name: SGD
   optim_params:
     lr: 1.0E-4

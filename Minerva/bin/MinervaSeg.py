@@ -60,7 +60,7 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def seg_plot(z, y, test_ids):
+def seg_plot(z, y, test_ids, classes, colours):
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
     Args:
@@ -86,11 +86,11 @@ def seg_plot(z, y, test_ids):
         for i in range(int(0.05*len(test_ids))):
             visutils.prediction_plot(z[i], y[i], test_ids[i],
                                      exp_id=config['model_name'],
-                                     new_cs=new_cs, classes=dataset_config['classes'],
+                                     new_cs=new_cs,
+                                     classes=classes,
                                      figdim=(9.3, 10.5),
                                      show=False,
-                                     cmap_style=ListedColormap(dataset_config['colours'].values(),
-                                                               N=len(dataset_config['classes'])))
+                                     cmap_style=ListedColormap(colours.values(), N=len(colours)))
 
             bar()
 
@@ -101,10 +101,9 @@ def seg_plot(z, y, test_ids):
 def main():
     datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(plot=False, **config)
 
-    if config['elim']:
-        config['hyperparams']['model_params']['n_classes'] = len(new_classes)
-        config['classes'] = new_classes
-        config['colours'] = new_colours
+    config['hyperparams']['model_params']['n_classes'] = len(new_classes)
+    config['classes'] = new_classes
+    config['colours'] = new_colours
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **config)
 
@@ -112,7 +111,7 @@ def main():
 
     z, y, test_ids = trainer.test({'History': True, 'Pred': True, 'CM': True}, save=True)
 
-    seg_plot(z, y, test_ids)
+    seg_plot(z, y, test_ids, config['classes'], config['colours'])
 
     trainer.close()
 

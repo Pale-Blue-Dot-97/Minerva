@@ -533,10 +533,10 @@ class Decoder(MinervaModel, ABC):
 
 class ResNet18(ResNet, ABC):
 
-    def __init__(self, criterion, input_shape=(12, 256, 256), n_classes: int = 8, zero_init_residual: bool = False,
+    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, zero_init_residual: bool = False,
                  groups: int = 1, width_per_group: int = 64, replace_stride_with_dilation=None,
                  norm_layer=None):
-        super(ResNet18, self).__init__(BasicBlock, [2, 2, 2, 2], in_channels=input_shape[0],
+        super(ResNet18, self).__init__(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0],
                                        n_classes=n_classes,
                                        zero_init_residual=zero_init_residual,
                                        groups=groups,
@@ -545,25 +545,25 @@ class ResNet18(ResNet, ABC):
                                        norm_layer=norm_layer,
                                        criterion=criterion)
 
-        self.input_shape = input_shape
+        self.input_shape = input_size
         self.n_classes = n_classes
 
 
 class FCNResNet18(MinervaModel, ABC):
-    def __init__(self, criterion, input_shape=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
+    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
                  zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
                  replace_stride_with_dilation=None, norm_layer=None):
 
         super(FCNResNet18, self).__init__(criterion=criterion)
 
-        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_shape[0], n_classes=n_classes,
+        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
                               zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = Decoder(batch_size, n_classes, input_shape[1:])
+        self.decoder = Decoder(batch_size, n_classes, input_size[1:])
 
-        self.input_shape = input_shape
+        self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor):
@@ -574,20 +574,20 @@ class FCNResNet18(MinervaModel, ABC):
 
 
 class FCNResNet34(MinervaModel, ABC):
-    def __init__(self, criterion, input_shape=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
+    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
                  zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
                  replace_stride_with_dilation=None, norm_layer=None):
 
         super(FCNResNet34, self).__init__(criterion=criterion)
 
-        self.encoder = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_shape[0], n_classes=n_classes,
+        self.encoder = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
                               zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = Decoder(batch_size, n_classes, input_shape[1:])
+        self.decoder = Decoder(batch_size, n_classes, input_size[1:])
 
-        self.input_shape = input_shape
+        self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor):
@@ -598,20 +598,20 @@ class FCNResNet34(MinervaModel, ABC):
 
 
 class FCNResNet50(MinervaModel, ABC):
-    def __init__(self, criterion, input_shape=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
+    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
                  zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
                  replace_stride_with_dilation=None, norm_layer=None):
 
         super(FCNResNet50, self).__init__(criterion=criterion)
 
-        self.encoder = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=input_shape[0], n_classes=n_classes,
+        self.encoder = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
                               zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = Decoder(batch_size, n_classes, input_shape[1:])
+        self.decoder = Decoder(batch_size, n_classes, input_size[1:])
 
-        self.input_shape = input_shape
+        self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor):
