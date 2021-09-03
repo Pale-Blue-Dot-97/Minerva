@@ -449,7 +449,7 @@ def labels_to_ohe(labels, n_classes):
 
 
 def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load, seed: int = 42, shuffle: bool = True,
-               p_dist: bool = False, plot: bool = False):
+               balance: bool = True, p_dist: bool = False, plot: bool = False):
     """Splits the patch IDs into train, validation and test id sets.
 
     Args:
@@ -460,6 +460,9 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load
         func (callable): Optional;
         seed (int): Optional; Random seed number to fix the shuffling of the data split.
         shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
+        balance (bool): Optional; If True, uses make_sorted_streams to modify the list of patch IDs that attempt
+            to balance the distribution of classes amongst the dataset more evenly based on the majority classes
+            in patches.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
         plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
 
@@ -469,6 +472,10 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load
     # Fetches all patch IDs in the dataset
     if patch_ids is None:
         patch_ids = patch_grab()
+
+    if balance:
+        stream_df = make_sorted_streams(patch_ids, func=func)
+        patch_ids = stream_df.to_numpy().flatten().tolist()
 
     # Splits the dataset into train and val-test
     train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1] + split[2]),
@@ -534,7 +541,7 @@ def weight_samples(scenes, func=find_centre_label, class_weights=None, normalise
     """
     # Uses class_weighting to generate the class weights given the patch IDs and function provided.
     if class_weights is None:
-        patch_ids = list(set([scene[0] for scene in scenes]))
+        patch_ids = [scene[0] for scene in scenes]
         class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func)), normalise=normalise)
 
     sample_weights = []
@@ -689,7 +696,7 @@ def class_frac(patch):
     return new_columns
 
 
-def make_sorted_streams(patch_ids):
+def make_sorted_streams(patch_ids, func: callable = lc_load):
     """Creates a DataFrame with columns of patch IDs sorted for each class by class size in those patches.
 
     Args:
@@ -709,9 +716,9 @@ def make_sorted_streams(patch_ids):
 
     df.fillna(0, inplace=True)
 
-    class_dist = find_subpopulations(dataset_lc_load(df['PATCH']), plot=False)
+    class_dist = find_subpopulations(dataset_lc_load(df['PATCH'], func=func), plot=False)
 
-    stream_size = int(len(df['PATCH']) / len(classes))
+    stream_size = int(len(df['PATCH']) / len(class_dist))
 
     streams = {}
 

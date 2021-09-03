@@ -668,6 +668,10 @@ def make_confusion_matrix(test_pred, test_labels, classes, filename=None, show=T
     labels_dist = utils.find_subpopulations(test_labels)
     pred_dist = utils.find_subpopulations(test_pred)
 
+    print(classes)
+    print('labels:', labels_dist)
+    print('pred:', pred_dist)
+
     empty = []
 
     # Checks which classes are not present in labels and predictions and adds to empty.

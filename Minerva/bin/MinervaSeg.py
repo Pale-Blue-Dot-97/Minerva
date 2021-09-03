@@ -99,7 +99,7 @@ def seg_plot(z, y, test_ids, classes, colours):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(plot=False, **config)
+    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(plot=True, **config)
 
     config['hyperparams']['model_params']['n_classes'] = len(new_classes)
     config['classes'] = new_classes

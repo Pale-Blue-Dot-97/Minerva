@@ -25,7 +25,7 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
-    * Fully document
+    * Update make_dataset documentation
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -491,7 +491,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
         label_func = utils.find_centre_label
 
     ids = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed, shuffle=shuffle,
-                           p_dist=p_dist, plot=plot)
+                           balance=balance, p_dist=p_dist, plot=plot)
 
     new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'], label_func))
 
