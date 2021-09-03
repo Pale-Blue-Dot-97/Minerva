@@ -696,7 +696,11 @@ def class_frac(patch):
     return new_columns
 
 
-def make_sorted_streams(patch_ids, func: callable = lc_load):
+def extract_patch_ids(scene):
+    return scene[0]
+
+
+def make_sorted_streams(patch_ids: list = None, scenes: list = None, func: callable = lc_load):
     """Creates a DataFrame with columns of patch IDs sorted for each class by class size in those patches.
 
     Args:
@@ -705,9 +709,20 @@ def make_sorted_streams(patch_ids, func: callable = lc_load):
     Returns:
         streams_df (pd.DataFrame): Database of list of patch IDs sorted by fractional sizes of class labels.
     """
-    df = pd.DataFrame()
-    df['PATCH'] = patch_ids
+    sample_type = 'ERROR'
+    if scenes is None and patch_ids is not None:
+        sample_type = 'PATCH'
+    if scenes is not None and patch_ids is None:
+        sample_type = 'SCENE'
 
+    df = pd.DataFrame()
+    if sample_type == 'PATCH':
+        df['PATCH'] = patch_ids
+    if sample_type == 'SCENE':
+        df['SCENE'] = scenes
+        df['PATCH'] = df['SCENE'].apply(extract_patch_ids)
+    else:
+        raise ValueError
     # Calculates the class modes of each patch.
     df['MODES'] = df['PATCH'].apply(find_patch_modes)
 
@@ -723,7 +738,7 @@ def make_sorted_streams(patch_ids, func: callable = lc_load):
     streams = {}
 
     for mode in reversed(class_dist):
-        stream = df.sort_values(by=mode[0], ascending=False)['PATCH'][:stream_size]
+        stream = df.sort_values(by=mode[0], ascending=False)[sample_type][:stream_size]
         streams[mode[0]] = stream.tolist()
         df.drop(stream.index, inplace=True)
 
