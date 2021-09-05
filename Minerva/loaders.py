@@ -491,7 +491,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
         label_func = utils.find_centre_label
 
     ids = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed, shuffle=shuffle,
-                           balance=balance, p_dist=p_dist, plot=plot)
+                           balance=False, p_dist=p_dist, plot=plot)
 
     new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'], label_func))
 
@@ -505,7 +505,10 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
     loaders = {}
 
     for mode in ('train', 'val', 'test'):
-        scenes[mode] = utils.scene_extract(ids[mode], scene_func)
+        if model_type in ['CNN', 'cnn'] and balance:
+            scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], scene_func))
+        else:
+            scenes[mode] = utils.scene_extract(ids[mode], scene_func)
 
         if balance and model_type in ['mlp', 'MLP'] and mode != 'test':
             stream = utils.make_sorted_streams(ids[mode])

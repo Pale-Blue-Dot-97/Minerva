@@ -19,7 +19,7 @@ dir:
     - 'FCNResNet'
 
 # Model Name
-model_name: 'FCNResNet18-MkVI'
+model_name: 'FCNResNet18-MkVII'
 model_type: 'segmentation'
 
 elim: True

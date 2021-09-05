@@ -16,11 +16,11 @@ dir:
     - 'Postgraduate'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'FCNResNet'
+    - 'CNN'
 
 # Model Name
-model_name: 'FCNResNet18-MkVII'
-model_type: 'segmentation'
+model_name: 'CNN-MkX'
+model_type: 'CNN'
 
 elim: True
 scene_selector: 'threshold'
@@ -36,18 +36,22 @@ hyperparams:
   model_params:
     input_size: [12, 256, 256]
     n_classes: 11
-    #groups: 32
-    #width_per_group: 4
+    features: [72, 144, 288]
+    fc_sizes: [512]
+    conv_do: True
+    fc_do: True
+    p_conv_do: 0.1
+    p_fc_do: 0.5
   optim_name: SGD
   optim_params:
     lr: 1.0E-4
-    #momentum: 0.9
+    momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 5
+  max_epochs: 10
 
 # Settings for RGB image creation
 rgb_params:
@@ -55,3 +59,4 @@ rgb_params:
   R_band: 'B02'            # Red, Green, Blue band IDs for RGB images
   G_band: 'B03'
   B_band: 'B04'
+

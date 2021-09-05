@@ -542,6 +542,7 @@ def weight_samples(scenes, func=find_centre_label, class_weights=None, normalise
     # Uses class_weighting to generate the class weights given the patch IDs and function provided.
     if class_weights is None:
         patch_ids = [scene[0] for scene in scenes]
+        print(find_subpopulations(dataset_lc_load(patch_ids, func)))
         class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func)), normalise=normalise)
 
     sample_weights = []
@@ -745,6 +746,30 @@ def make_sorted_streams(patch_ids: list = None, scenes: list = None, func: calla
     streams_df = pd.DataFrame(streams)
 
     return streams_df
+
+
+def hard_balance(scenes):
+    df = pd.DataFrame()
+    df['SCENE'] = scenes
+    df['PATCH'] = df['SCENE'].apply(extract_patch_ids)
+
+    # Calculates the class modes of each patch.
+    df['LABEL'] = df['PATCH'].apply(find_centre_label)
+
+    class_dist = find_subpopulations(df['LABEL'], plot=False)
+    print(class_dist)
+
+    balanced_scenes = []
+    scenes_per_class = class_dist[-1][1]
+    print(scenes_per_class)
+
+    for mode in reversed(class_dist):
+        class_scenes = df[df['LABEL'] == mode[0]]['SCENE'][:scenes_per_class]
+        class_scenes = class_scenes.tolist()
+        for scene in class_scenes:
+            balanced_scenes.append(scene)
+
+    return balanced_scenes
 
 
 def cloud_cover(scene: np.ndarray):
