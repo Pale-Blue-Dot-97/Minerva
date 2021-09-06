@@ -748,7 +748,7 @@ def make_sorted_streams(patch_ids: list = None, scenes: list = None, func: calla
     return streams_df
 
 
-def hard_balance(scenes):
+def hard_balance(scenes, over_factor: int = 1, seed: int = 42):
     df = pd.DataFrame()
     df['SCENE'] = scenes
     df['PATCH'] = df['SCENE'].apply(extract_patch_ids)
@@ -760,11 +760,12 @@ def hard_balance(scenes):
     print(class_dist)
 
     balanced_scenes = []
-    scenes_per_class = class_dist[-1][1]
+    scenes_per_class = int(class_dist[-1][1] * over_factor)
     print(scenes_per_class)
 
     for mode in reversed(class_dist):
-        class_scenes = df[df['LABEL'] == mode[0]]['SCENE'][:scenes_per_class]
+        class_scenes_df = df[df['LABEL'] == mode[0]]['SCENE']
+        class_scenes = class_scenes_df.sample(n=scenes_per_class, random_state=seed, replace=True)
         class_scenes = class_scenes.tolist()
         for scene in class_scenes:
             balanced_scenes.append(scene)

@@ -19,39 +19,40 @@ dir:
     - 'CNN'
 
 # Model Name
-model_name: 'CNN-MkIX'
+model_name: 'CNN-MkXI'
 model_type: 'CNN'
 
 elim: True
 scene_selector: 'threshold'
 centre_only: False
 balance: True
+over_factor: 15
 
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 16
+    batch_size: 8
     num_workers: 10
     pin_memory: True
   model_params:
     input_size: [12, 256, 256]
     n_classes: 11
-    features: [72, 144, 288]
-    fc_sizes: [512]
-    conv_do: True
-    fc_do: True
-    p_conv_do: 0.1
-    p_fc_do: 0.5
-  optim_name: SGD
+    features: [144, 288, 288]
+    fc_sizes: [256]
+    conv_do: False
+    fc_do: False
+    #p_conv_do: 0.1
+    #p_fc_do: 0.6
+  optim_name: Adam
   optim_params:
-    lr: 1.0E-4
-    momentum: 0.9
+    lr: 0.5E-4
+    #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 20
+  max_epochs: 5
 
 # Settings for RGB image creation
 rgb_params:
@@ -59,4 +60,3 @@ rgb_params:
   R_band: 'B02'            # Red, Green, Blue band IDs for RGB images
   G_band: 'B03'
   B_band: 'B04'
-

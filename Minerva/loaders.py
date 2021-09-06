@@ -459,8 +459,9 @@ def make_transformations(transform_params):
     return transforms.Compose(transformations)
 
 
-def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, image_len=65536, seed=42,
-                  shuffle=True, plot=False, balance=False, model_type='CNN', p_dist=False, **params):
+def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: int = 65536, image_len: int = 65536,
+                  seed: int = 42, shuffle: bool = True, plot: bool = False, balance: bool = False,
+                  over_factor: int = 1, model_type: str = 'CNN', p_dist: bool = False, **params):
     """
 
     Args:
@@ -491,7 +492,7 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
         label_func = utils.find_centre_label
 
     ids = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed, shuffle=shuffle,
-                           balance=False, p_dist=p_dist, plot=plot)
+                           balance=False, p_dist=False, plot=False)
 
     new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'], label_func))
 
@@ -503,12 +504,22 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
     datasets = {}
     n_batches = {}
     loaders = {}
+    class_dists = {}
 
     for mode in ('train', 'val', 'test'):
         if model_type in ['CNN', 'cnn'] and balance:
-            scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], scene_func))
+            scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], scene_func), over_factor=over_factor)
         else:
             scenes[mode] = utils.scene_extract(ids[mode], scene_func)
+
+        # Find class distribution of dataset by scene IDs, not patch IDs.
+        scene_ids = [scene[0] for scene in scenes[mode]]
+        class_dist = utils.find_subpopulations(utils.dataset_lc_load(scene_ids, label_func), plot=plot)
+
+        # Transform class dist if elimination of classes has occurred.
+        if params['elim']:
+            class_dist = utils.class_dist_transform(class_dist, forwards)
+        class_dists[mode] = class_dist
 
         if balance and model_type in ['mlp', 'MLP'] and mode != 'test':
             stream = utils.make_sorted_streams(ids[mode])
@@ -538,16 +549,12 @@ def make_datasets(patch_ids=None, split=(0.7, 0.15, 0.15), wheel_size=65536, ima
             n_batches[mode] = int(len(scenes[mode]) / batch_size)
 
         if model_type in ['cnn', 'CNN'] and balance:
-            weights = utils.weight_samples(scenes[mode], func=utils.find_centre_label, normalise=False)
-            sampler = WeightedRandomSampler(torch.tensor(weights, dtype=torch.float), len(weights), replacement=True)
-            loaders[mode] = DataLoader(datasets[mode], **dataloader_params, sampler=sampler)
+            loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
+        #    weights = utils.weight_samples(scenes[mode], func=utils.find_centre_label, normalise=False)
+        #    sampler = WeightedRandomSampler(torch.tensor(weights, dtype=torch.float), len(weights), replacement=True)
+        #    loaders[mode] = DataLoader(datasets[mode], **dataloader_params, sampler=sampler)
 
         if model_type in ['cnn', 'CNN'] and not balance or model_type not in ['cnn', 'CNN']:
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
 
-    class_dist = utils.find_subpopulations(utils.dataset_lc_load(ids['train'], label_func), plot=False)
-
-    if params['elim']:
-        class_dist = utils.class_dist_transform(class_dist, forwards)
-
-    return loaders, n_batches, class_dist, ids, new_classes, new_colours
+    return loaders, n_batches, class_dists['train'], ids, new_classes, new_colours
