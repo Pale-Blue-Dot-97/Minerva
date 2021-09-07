@@ -16,10 +16,10 @@ dir:
     - 'Postgraduate'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'CNN'
+    - 'ResNet'
 
 # Model Name
-model_name: 'CNN-MkXI'
+model_name: 'ResNet18-MkII'
 model_type: 'CNN'
 
 elim: True
@@ -31,19 +31,13 @@ over_factor: 15
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 8
-    num_workers: 10
+    batch_size: 32
+    num_workers: 8
     pin_memory: True
   model_params:
     input_size: [12, 256, 256]
     n_classes: 11
-    features: [144, 288, 288]
-    fc_sizes: [256]
-    conv_do: False
-    fc_do: False
-    #p_conv_do: 0.1
-    #p_fc_do: 0.6
-  optim_name: Adam
+  optim_name: SGD
   optim_params:
     lr: 0.5E-4
     #momentum: 0.9
@@ -52,7 +46,7 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 5
+  max_epochs: 10
 
 # Settings for RGB image creation
 rgb_params:
