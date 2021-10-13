@@ -1,7 +1,14 @@
 # Paths to directories containing the data and the results
 dir:
-  data: '../../data/landcovernet'
-  data_config: '../../config/landcovernet.yml'
+  data:
+   - 'G:'
+   - 'GitHub'
+   - 'Minerva'
+   - 'Minerva'
+   - 'data'
+   - 'landcovernet'
+  data_config: '../../config/ESRI.yml'
+  imagery_config: '../../config/landcovernet.yml'
   results:
     - 'F:'
     - 'Harry'
@@ -12,31 +19,34 @@ dir:
     - 'ResNet'
 
 # Model Name
-model_name: 'ResNet18-MkI'
+model_name: 'ResNet18-MkII'
+model_type: 'CNN'
 
 elim: True
-
 scene_selector: 'threshold'
+centre_only: False
+balance: True
+over_factor: 15
 
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 16
-    num_workers: 10
+    batch_size: 32
+    num_workers: 8
     pin_memory: True
   model_params:
-    input_shape: [12, 256, 256]
-    n_classes: 8
+    input_size: [12, 256, 256]
+    n_classes: 11
   optim_name: SGD
   optim_params:
-    lr: 3.0E-4
-    momentum: 0.9
+    lr: 0.5E-4
+    #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 25
+  max_epochs: 10
 
 # Settings for RGB image creation
 rgb_params:

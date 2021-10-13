@@ -14,39 +14,42 @@ dir:
     - 'Harry'
     - 'University'
     - 'Postgraduate'
+    - 'OneDrive - University of Southampton'
     - 'Output Plots'
     - 'MinervaPercep'
-    - 'ResNet'
+    - 'FCNResNet'
 
 # Model Name
-model_name: 'ResNet18-MkII'
-model_type: 'CNN'
+model_name: 'FCNResNet18-MkVIII'
+model_type: 'segmentation'
 
 elim: True
 scene_selector: 'threshold'
 centre_only: False
 balance: True
-over_factor: 15
+overfactor: 5
 
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 32
-    num_workers: 8
+    batch_size: 16
+    num_workers: 10
     pin_memory: True
   model_params:
     input_size: [12, 256, 256]
     n_classes: 11
+    #groups: 32
+    #width_per_group: 4
   optim_name: SGD
   optim_params:
-    lr: 0.5E-4
+    lr: 1.0E-4
     #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 10
+  max_epochs: 25
 
 # Settings for RGB image creation
 rgb_params:

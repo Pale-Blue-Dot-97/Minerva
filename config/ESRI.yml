@@ -12,7 +12,7 @@ classes:
   9: "Snow/Ice"
   10: "Clouds"
 
-# Custom colour mapping specified by Radiant Earth Foundation
+# Custom colour mapping specified by ESRI
 colours:
   0: '#000000'  # Transparent
   1: '#419bdf'  # Blue

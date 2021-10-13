@@ -494,7 +494,7 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     ids = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed, shuffle=shuffle,
                            balance=False, p_dist=False, plot=False)
 
-    new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(ids['train'], label_func))
+    new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(patch_ids, label_func))
 
     scene_func = utils.ref_scene_select
     if params['scene_selector'] == 'threshold':
@@ -557,4 +557,13 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
         if model_type in ['cnn', 'CNN'] and not balance or model_type not in ['cnn', 'CNN']:
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
 
-    return loaders, n_batches, class_dists['train'], ids, new_classes, new_colours
+    all_scenes = scenes['train'] + scenes['val'] + scenes['test']
+    scene_ids = [scene[0] for scene in all_scenes]
+
+    class_dist = utils.find_subpopulations(utils.dataset_lc_load(scene_ids, label_func), plot=plot)
+
+    # Transform class dist if elimination of classes has occurred.
+    if params['elim']:
+        class_dist = utils.class_dist_transform(class_dist, forwards)
+
+    return loaders, n_batches, class_dist, ids, new_classes, new_colours
