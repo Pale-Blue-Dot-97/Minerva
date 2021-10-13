@@ -494,13 +494,15 @@ class Decoder(MinervaModel, ABC):
         self.dconv3 = torch.nn.ConvTranspose2d(384, 192, 3, padding=1)
         self.derl7 = torch.nn.ReLU()
 
+        self.upsample2 = torch.nn.Upsample(scale_factor=2)
         self.dconv2 = torch.nn.ConvTranspose2d(192, 64, 5, padding=2)
         self.derl8 = torch.nn.ReLU()
 
+        self.upsample3 = torch.nn.Upsample(scale_factor=2)
         self.dconv1 = torch.nn.ConvTranspose2d(64, self.n_classes, 12, stride=4, padding=4)
         self.derl9 = torch.nn.ReLU()
 
-        self.upsample2 = torch.nn.Upsample(size=self.image_size)
+        self.upsample4 = torch.nn.Upsample(size=self.image_size)
 
     def _forward_impl(self, x):
         x = self.derl1(x)
@@ -519,11 +521,11 @@ class Decoder(MinervaModel, ABC):
         x = self.derl5(self.dconv5(x))
         x = self.derl6(self.dconv4(x))
         x = self.derl7(self.dconv3(x))
-        x = self.upsample1(x)
-        x = self.derl8(self.dconv2(x))
-        x = self.upsample1(x)
-        x = self.derl9(self.dconv1(x))
         x = self.upsample2(x)
+        x = self.derl8(self.dconv2(x))
+        x = self.upsample3(x)
+        x = self.derl9(self.dconv1(x))
+        x = self.upsample4(x)
         #x = F.sigmoid(x)
         return x
 
