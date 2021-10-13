@@ -1050,3 +1050,14 @@ def check_len(param, comparator):
             return [param[0]] * len(comparator)
     else:
         return [param] * len(comparator)
+
+
+def calc_grad(model):
+    total_norm = 0.0
+    for p in model.parameters():
+        param_norm = p.grad.data.norm(2)
+        print(param_norm)
+        total_norm += param_norm.item() ** 2
+    total_norm = total_norm ** 0.5
+    print('Total Norm:', total_norm)
+    return total_norm
