@@ -35,6 +35,7 @@ import os
 import glob
 import math
 import importlib
+import re as regex
 import numpy as np
 import pandas as pd
 from datetime import datetime
@@ -173,7 +174,6 @@ def scene_grab(patch_id: str):
             patch_id (str): Unique patch ID.
 
         Returns:
-            scenes (list): List of CLD masks for each scene.
             scene_names (list): List of scene dates in YY_MM_DD.
         """
     path = '{}{}{}{}'.format(data_dir, os.sep, patch_dir_prefix, patch_id)
@@ -242,6 +242,10 @@ def date_grab(patch_id: str):
 
     # Format the dates from US YYYY_MM_DD format into UK DD.MM.YYYY format and return list
     return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
+
+
+def get_dataset_name():
+    return regex.search('config/(.*?)\.yml', data_config_path).group(1)
 
 
 def load_array(path: str, band: int):
@@ -680,7 +684,7 @@ def find_patch_modes(patch_id):
     return Counter(np.array(lc_load(patch_id)).flatten()).most_common()
 
 
-def class_frac(patch):
+def class_frac(patch: pd.Series):
     """Computes the fractional sizes of the classes of the given patch and returns a dict of the results
 
     Args:
@@ -690,7 +694,7 @@ def class_frac(patch):
         new_columns (dict): Dictionary with keys as class numbers and associated values of fractional size of class
                             plus a key-value pair for the patch ID
     """
-    new_columns = {'PATCH': patch['PATCH']}
+    new_columns = patch.to_dict()
     for mode in patch['MODES']:
         new_columns[mode[0]] = mode[1] / (image_size[0] * image_size[1])
 
@@ -699,6 +703,10 @@ def class_frac(patch):
 
 def extract_patch_ids(scene):
     return scene[0]
+
+
+def extract_dates(scene):
+    return scene[1]
 
 
 def make_sorted_streams(patch_ids: list = None, scenes: list = None, func: callable = lc_load):
@@ -837,7 +845,7 @@ def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3):
 
 
 def find_best_of(patch_id: str, selector: callable = ref_scene_select, **kwargs):
-    """Finds the 24 scenes sorted by cloud cover according to REF's 2-step criteria using scene_selection().
+    """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
         patch_id (str): Unique patch ID.
@@ -846,7 +854,7 @@ def find_best_of(patch_id: str, selector: callable = ref_scene_select, **kwargs)
         **kwargs: Kwargs for func.
 
     Returns:
-        scene_names (list): List of 24 strings representing dates of the 24 selected scenes in YY_MM_DD format.
+        scene_names (list): List of strings representing dates of the selected scenes in YY_MM_DD format.
     """
     # Creates a DataFrame
     patch = pd.DataFrame()
@@ -863,11 +871,11 @@ def find_best_of(patch_id: str, selector: callable = ref_scene_select, **kwargs)
     # Re-indexes the DataFrame to datetime
     patch.set_index(pd.to_datetime(patch['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
 
-    # Sends DataFrame to scene_selection() and returns the 24 selected scenes
+    # Sends DataFrame to scene_selection() and returns the selected scenes
     return selector(patch, **kwargs)
 
 
-def pair_production(patch_id: str, func: callable, **kwargs) -> list:
+def pair_production(patch_id: str, func: callable = ref_scene_select, **kwargs) -> list:
     """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
 
     Args:
