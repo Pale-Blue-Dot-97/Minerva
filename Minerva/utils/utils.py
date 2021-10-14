@@ -126,7 +126,7 @@ def exist_delete_check(fn: str):
         pass
 
 
-def mkexpdir(name):
+def mkexpdir(name: str):
     """Makes a new directory below the results directory with name provided. If directory already exists,
     no action is taken.
 
@@ -153,7 +153,7 @@ def datetime_reformat(timestamp: str, fmt1: str, fmt2: str):
     return datetime.strptime(timestamp, fmt1).strftime(fmt2)
 
 
-def prefix_format(patch_id: str, scene):
+def prefix_format(patch_id: str, scene: str):
     """Formats a string representing the prefix of a path to any file in a scene.
 
     Args:
@@ -208,7 +208,7 @@ def cloud_grab(patch_id: str):
     return scenes, scene_names
 
 
-def patch_grab():
+def patch_grab() -> list:
     """Fetches the patch IDs from the directory holding the whole dataset.
 
     Returns:
@@ -221,14 +221,23 @@ def patch_grab():
     return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
 
 
-def get_patches_in_tile(tile_id, patch_ids=None):
+def get_patches_in_tile(tile_id: str, patch_ids: list = None) -> list:
+    """Finds all the IDs of patches within the supplied tile.
+
+    Args:
+        tile_id (str): Unique ID of tile.
+        patch_ids (list[str]): Optional; List of unique patch IDs that are members of the tile ID supplied.
+
+    Returns:
+        List of patch IDs belonging to tile_id.
+    """
     if patch_ids is None:
         patch_ids = patch_grab()
 
     return [patch_id for patch_id in patch_ids if tile_id in patch_id]
 
 
-def date_grab(patch_id: str):
+def date_grab(patch_id: str) -> list:
     """Finds all the name of all the scene directories for a patch and returns a list of the dates reformatted.
 
     Args:
@@ -244,7 +253,7 @@ def date_grab(patch_id: str):
     return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
 
 
-def get_dataset_name():
+def get_dataset_name() -> str:
     return regex.search('config/(.*?)\.yml', data_config_path).group(1)
 
 
