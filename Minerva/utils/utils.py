@@ -257,6 +257,10 @@ def get_dataset_name() -> str:
     return regex.search('config/(.*?)\.yml', data_config_path).group(1)
 
 
+def get_manifest() -> str:
+    return os.sep.join([data_dir, '{}_Manifest.csv'.format(get_dataset_name())])
+
+
 def load_array(path: str, band: int):
     """Extracts an array from opening a specific band of a .tif file.
 
@@ -499,17 +503,23 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load
                                          test_size=(split[2] / (split[1] + split[2])), shuffle=shuffle,
                                          random_state=seed)
 
+    manifest = pd.read_csv(get_manifest())
+    class_dists = {'train': subpopulations_from_manifest(select_df_by_patch(manifest, train_ids), func, plot=plot),
+                   'val': subpopulations_from_manifest(select_df_by_patch(manifest, val_ids), func, plot=plot),
+                   'test': subpopulations_from_manifest(select_df_by_patch(manifest, test_ids), func, plot=plot),
+                   'ALL': subpopulations_from_manifest(select_df_by_patch(manifest, patch_ids), func, plot=plot)}
+
     # Prints the class sub-populations of each dataset to screen.
     if p_dist or plot:
-        print('\nTrain: \n', find_subpopulations(dataset_lc_load(train_ids, func), plot=plot))
-        print('\nValidation: \n', find_subpopulations(dataset_lc_load(val_ids, func), plot=plot))
-        print('\nTest: \n', find_subpopulations(dataset_lc_load(test_ids, func), plot=plot))
+        print('\nTrain: \n', class_dists['train'])
+        print('\nValidation: \n', class_dists['val'])
+        print('\nTest: \n', class_dists['test'])
 
     ids = {'train': train_ids,
            'val': val_ids,
            'test': test_ids}
 
-    return ids
+    return ids, class_dists
 
 
 def class_weighting(class_dist, normalise: bool = False):
@@ -1030,6 +1040,21 @@ def find_subpopulations(labels, plot: bool = False):
     return class_dist
 
 
+def subpopulations_from_manifest(manifest, func: callable = lc_load, plot: bool = False):
+    class_dist = None
+    if func is lc_load:
+        class_dist = manifest['MODE'].sum()
+        class_dist = class_dist.most_common()
+    elif func is find_centre_label:
+        class_dist = Counter(manifest['CPL']).most_common()
+
+    if plot:
+        # Plots a pie chart of the distribution of the classes within the given list of patches
+        visutils.plot_subpopulations(class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True)
+
+    return class_dist
+
+
 def num_batches(num_ids: int) -> int:
     """Determines the number of batches needed to cover the dataset across ids.
 
@@ -1078,3 +1103,8 @@ def calc_grad(model):
     total_norm = total_norm ** 0.5
     print('Total Norm:', total_norm)
     return total_norm
+
+
+def select_df_by_patch(df, patch_ids):
+    new_df = df.drop_duplicates('PATCH')
+    return new_df[new_df['PATCH'].isin(patch_ids)]

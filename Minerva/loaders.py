@@ -491,10 +491,13 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     if model_type in ['cnn', 'CNN']:
         label_func = utils.find_centre_label
 
-    ids = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed, shuffle=shuffle,
-                           balance=False, p_dist=False, plot=False)
+    print('SPLITTING DATASET TO {}% TRAIN, {}% VAL, {}% TEST'.format(split[0] * 100, split[1] * 100, split[2] * 100))
+    ids, patch_class_dists = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed,
+                                              shuffle=shuffle, balance=False, p_dist=True, plot=False)
 
-    new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(patch_ids, label_func))
+    print('FINDING EMPTY CLASSES')
+    new_classes, forwards, new_colours = utils.eliminate_classes(
+        utils.find_empty_classes(class_dist=patch_class_dists['ALL']))
 
     scene_func = utils.ref_scene_select
     if params['scene_selector'] == 'threshold':
