@@ -1100,7 +1100,7 @@ def check_len(param, comparator):
         return [param] * len(comparator)
 
 
-def calc_grad(model):
+def calc_grad(model) -> float:
     total_norm = 0.0
     for p in model.parameters():
         param_norm = p.grad.data.norm(2)
@@ -1114,3 +1114,10 @@ def calc_grad(model):
 def select_df_by_patch(df, patch_ids):
     new_df = df.drop_duplicates('PATCH')
     return new_df[new_df['PATCH'].isin(patch_ids)]
+
+
+def print_class_dist(class_dist: list, class_labels: dict = classes) -> None:
+    print('# | LABEL | COUNT')
+    print('======================================')
+    for mode in class_dist:
+        print('{} | {} | {}'.format(mode[0], class_labels, mode[1]))
