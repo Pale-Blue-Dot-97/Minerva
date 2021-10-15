@@ -514,6 +514,7 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load
         print('\nTrain: \n', class_dists['train'])
         print('\nValidation: \n', class_dists['val'])
         print('\nTest: \n', class_dists['test'])
+        print('\nALL: \n', class_dists['ALL'])
 
     ids = {'train': train_ids,
            'val': val_ids,
@@ -1041,10 +1042,15 @@ def find_subpopulations(labels, plot: bool = False):
 
 
 def subpopulations_from_manifest(manifest, func: callable = lc_load, plot: bool = False):
-    class_dist = None
+    class_dist = Counter()
     if func is lc_load:
-        class_dist = manifest['MODE'].sum()
+        for classification in classes.keys():
+            try:
+                class_dist[classification] = manifest['%d' % classification].sum() * image_size[0] * image_size[1]
+            except KeyError:
+                continue
         class_dist = class_dist.most_common()
+
     elif func is find_centre_label:
         class_dist = Counter(manifest['CPL']).most_common()
 

@@ -81,11 +81,12 @@ def make_manifest():
 
     print('CALCULATING CLOUD COVER')
     df['CLD'] = clouds
-    # Calculates the cloud cover percentage for every scene and adds to DataFrame
+    # Calculates the cloud cover percentage for every scene and adds to DataFrame.
     df['COVER'] = df['CLD'].apply(utils.cloud_cover)
 
-    # Removes unneeded scene column
+    # Removes unneeded CLD and MODES columns.
     del df['CLD']
+    del df['MODES']
 
     print('FINDING CENTRE LABELS')
     df['CPL'] = utils.dataset_lc_load(df['PATCH'], utils.find_centre_label)

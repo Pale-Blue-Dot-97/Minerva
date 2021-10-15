@@ -491,6 +491,8 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     if model_type in ['cnn', 'CNN']:
         label_func = utils.find_centre_label
 
+    patch_ids = utils.patch_grab()
+
     print('SPLITTING DATASET TO {}% TRAIN, {}% VAL, {}% TEST'.format(split[0] * 100, split[1] * 100, split[2] * 100))
     ids, patch_class_dists = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed,
                                               shuffle=shuffle, balance=False, p_dist=True, plot=False)
@@ -509,15 +511,20 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     loaders = {}
     class_dists = {}
 
+    manifest = pd.read_csv(utils.get_manifest())
+
     for mode in ('train', 'val', 'test'):
+        print('FINDING {} SCENES'.format(mode))
         if model_type in ['CNN', 'cnn'] and balance:
             scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], scene_func), over_factor=over_factor)
         else:
-            scenes[mode] = utils.scene_extract(ids[mode], scene_func)
+            scenes[mode] = utils.scene_extract(ids[mode], scene_func, thres=0.1)
 
+        print('FINDING CLASS DISTRIBUTION OF SCENES')
         # Find class distribution of dataset by scene IDs, not patch IDs.
         scene_ids = [scene[0] for scene in scenes[mode]]
-        class_dist = utils.find_subpopulations(utils.dataset_lc_load(scene_ids, label_func), plot=plot)
+        class_dist = utils.subpopulations_from_manifest(manifest[manifest['SCENE'].isin(scene_ids)],
+                                                        func=label_func, plot=plot)
 
         # Transform class dist if elimination of classes has occurred.
         if params['elim']:
@@ -563,7 +570,7 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     all_scenes = scenes['train'] + scenes['val'] + scenes['test']
     scene_ids = [scene[0] for scene in all_scenes]
 
-    class_dist = utils.find_subpopulations(utils.dataset_lc_load(scene_ids, label_func), plot=plot)
+    class_dist = utils.subpopulations_from_manifest(manifest[manifest['SCENE'].isin(scene_ids)], label_func, plot=plot)
 
     # Transform class dist if elimination of classes has occurred.
     if params['elim']:
