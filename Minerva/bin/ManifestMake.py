@@ -66,7 +66,10 @@ def make_manifest():
     df = pd.DataFrame()
     df['SCENE'] = scenes
     df['PATCH'] = df['SCENE'].apply(utils.extract_patch_ids)
-    df['SCENE'] = df['SCENE'].apply(utils.extract_dates)
+    df['DATE'] = df['SCENE'].apply(utils.extract_dates)
+    scene_tags = utils.scene_tag(scenes)
+    print(scene_tags)
+    df['SCENE'] = scene_tags
 
     print('CALCULATING CLASS MODES')
     # Calculates the class modes of each patch.

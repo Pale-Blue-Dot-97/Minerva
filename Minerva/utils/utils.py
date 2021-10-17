@@ -511,10 +511,14 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load
 
     # Prints the class sub-populations of each dataset to screen.
     if p_dist or plot:
-        print('\nTrain: \n', class_dists['train'])
-        print('\nValidation: \n', class_dists['val'])
-        print('\nTest: \n', class_dists['test'])
-        print('\nALL: \n', class_dists['ALL'])
+        print('\nTrain:')
+        print_class_dist(class_dists['train'])
+        print('\nValidation:')
+        print_class_dist(class_dists['val'])
+        print('\nTest:')
+        print_class_dist(class_dists['test'])
+        print('\nALL:')
+        print_class_dist(class_dists['ALL'])
 
     ids = {'train': train_ids,
            'val': val_ids,
@@ -1046,7 +1050,11 @@ def subpopulations_from_manifest(manifest, func: callable = lc_load, plot: bool 
     if func is lc_load:
         for classification in classes.keys():
             try:
-                class_dist[classification] = manifest['%d' % classification].sum() * image_size[0] * image_size[1]
+                count = manifest['%d' % classification].sum() * image_size[0] * image_size[1]
+                if count == 0.0 or count == 0:
+                    continue
+                else:
+                    class_dist[classification] = count
             except KeyError:
                 continue
         class_dist = class_dist.most_common()
@@ -1111,13 +1119,27 @@ def calc_grad(model) -> float:
     return total_norm
 
 
+def unzip_pairs(pairs):
+    return map(list, zip(*pairs))
+
+
 def select_df_by_patch(df, patch_ids):
     new_df = df.drop_duplicates('PATCH')
     return new_df[new_df['PATCH'].isin(patch_ids)]
+
+
+def select_df_by_scenes(df, scenes):
+    new_df = df[df['SCENE'].isin(scene_tag(scenes))]
+    print(new_df)
+    return new_df
 
 
 def print_class_dist(class_dist: list, class_labels: dict = classes) -> None:
     print('# | LABEL | COUNT')
     print('======================================')
     for mode in class_dist:
-        print('{} | {} | {}'.format(mode[0], class_labels, mode[1]))
+        print('{} | {} | {}'.format(mode[0], class_labels[mode[0]], mode[1]))
+
+
+def scene_tag(scenes):
+    return ['{}-{}'.format(patch_id, date) for patch_id, date in scenes]

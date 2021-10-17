@@ -511,7 +511,7 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     loaders = {}
     class_dists = {}
 
-    manifest = pd.read_csv(utils.get_manifest())
+    manifest = pd.read_csv(utils.get_manifest())#, converters={'PATCH': str, 'DATE': str})
 
     for mode in ('train', 'val', 'test'):
         print('FINDING {} SCENES'.format(mode))
@@ -522,9 +522,10 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
 
         print('FINDING CLASS DISTRIBUTION OF SCENES')
         # Find class distribution of dataset by scene IDs, not patch IDs.
-        scene_ids = [scene[0] for scene in scenes[mode]]
-        class_dist = utils.subpopulations_from_manifest(manifest[manifest['SCENE'].isin(scene_ids)],
+        class_dist = utils.subpopulations_from_manifest(utils.select_df_by_scenes(manifest, scenes[mode]),
                                                         func=label_func, plot=plot)
+
+        utils.print_class_dist(class_dist)
 
         # Transform class dist if elimination of classes has occurred.
         if params['elim']:
@@ -568,9 +569,10 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
 
     all_scenes = scenes['train'] + scenes['val'] + scenes['test']
-    scene_ids = [scene[0] for scene in all_scenes]
 
-    class_dist = utils.subpopulations_from_manifest(manifest[manifest['SCENE'].isin(scene_ids)], label_func, plot=plot)
+    class_dist = utils.subpopulations_from_manifest(utils.select_df_by_scenes(manifest, all_scenes),
+                                                    func=label_func, plot=plot)
+    utils.print_class_dist(class_dist)
 
     # Transform class dist if elimination of classes has occurred.
     if params['elim']:
