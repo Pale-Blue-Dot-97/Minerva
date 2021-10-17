@@ -390,13 +390,11 @@ class ResNet(MinervaModel, ABC):
                                        dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
-        self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
+        #self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
 
         self.fc = None
 
-        if self.encoder_on:
-            self.fc = torch.nn.Linear(512 * block.expansion, 1024)
-        else:
+        if not self.encoder_on:
             self.fc = torch.nn.Linear(512 * block.expansion, n_classes)
 
         for m in self.modules():
@@ -452,9 +450,9 @@ class ResNet(MinervaModel, ABC):
         x = self.layer3(x)
         x = self.layer4(x)
 
-        x = self.avgpool(x)
-        x = torch.flatten(x, 1)
-        x = self.fc(x)
+        if not self.encoder_on:
+            x = torch.flatten(x, 1)
+            x = self.fc(x)
 
         return x
 
@@ -526,11 +524,30 @@ class Decoder(MinervaModel, ABC):
         x = self.upsample3(x)
         x = self.derl9(self.dconv1(x))
         x = self.upsample4(x)
-        #x = F.sigmoid(x)
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self._forward_impl(x)
+
+
+class DC32(MinervaModel, ABC):
+
+    def __init__(self, in_channel=512, n_classes=21):
+        super(DC32, self).__init__()
+        self.cls_num = n_classes
+
+        self.relu = torch.nn.ReLU(inplace=True)
+        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.cls_num, kernel_size=1)
+        self.bn1 = torch.nn.BatchNorm2d(self.cls_num)
+        self.DCN32 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=64,
+                                              stride=32, dilation=1, padding=16)
+        self.DCN32.weight.data = bilinear_init(self.cls_num, self.cls_num, 64)
+        self.dbn32 = torch.nn.BatchNorm2d(self.cls_num)
+
+    def forward(self, x):
+        x = self.bn1(self.relu(self.Conv1x1(x)))
+        x = self.dbn32(self.relu(self.DCN32(x)))
+        return x
 
 
 class ResNet18(MinervaModel, ABC):
@@ -626,6 +643,30 @@ class FCNResNet50(MinervaModel, ABC):
         return z
 
 
+class FCN32ResNet18(MinervaModel, ABC):
+    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
+                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation=None, norm_layer=None):
+
+        super(FCN32ResNet18, self).__init__(criterion=criterion)
+
+        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
+                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
+                              encoder=True)
+
+        self.decoder = DC32(n_classes=n_classes)
+
+        self.input_shape = input_size
+        self.n_classes = n_classes
+
+    def forward(self, x: torch.FloatTensor):
+        z = self.encoder(x)
+        z = self.decoder(z)
+
+        return z
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
@@ -640,3 +681,16 @@ def get_output_shape(model, image_dim):
         The shape of the output data from the model.
     """
     return model(torch.rand([1, *image_dim])).data.shape[1:]
+
+
+def bilinear_init(in_channels, out_channels, kernel_size):
+    factor = (kernel_size + 1) // 2
+    if kernel_size % 2 == 1:
+        center = factor - 1
+    else:
+        center = factor - 0.5
+    og = np.ogrid[:kernel_size, :kernel_size]
+    filt = (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
+    weight = np.zeros((in_channels, out_channels, kernel_size, kernel_size), dtype='float32')
+    weight[range(in_channels), range(out_channels), :, :] = filt
+    return torch.from_numpy(weight)

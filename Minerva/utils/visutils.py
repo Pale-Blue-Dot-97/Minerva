@@ -73,6 +73,8 @@ plt.rcParams['figure.constrained_layout.use'] = True
 # Downloads required plugin for imageio if not already present
 imageio.plugins.freeimage.download()
 
+manifest = pd.read_csv(utils.get_manifest())
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -459,7 +461,7 @@ def prediction_plot(z, y, patch_id, exp_id, new_cs, classes=None, block_size=32,
                     show=True, save=True, figdim=None):
     names = config['rgb_params']
     names['patch_ID'] = patch_id
-    names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id)[-1], '%Y_%m_%d', '%d.%m.%Y')
+    names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id, manifest)[-1], '%Y_%m_%d', '%d.%m.%Y')
 
     # Get required formatted paths and names
     rgb, scene_path, data_name = path_format(names)
