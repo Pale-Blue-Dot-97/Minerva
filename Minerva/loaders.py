@@ -41,6 +41,11 @@ from torchvision import transforms
 from itertools import cycle, chain
 from collections import deque
 
+# =====================================================================================================================
+#                                                     GLOBALS
+# =====================================================================================================================
+manifest = pd.read_csv(utils.get_manifest())
+
 
 # =====================================================================================================================
 #                                                     CLASSES
@@ -86,7 +91,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
             self.wheels[cls] = deque(maxlen=wheel_size)
 
         # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
-        patches = pd.Series([utils.load_patch_df(patch_id) for patch_id in self.streams_df.sample(frac=1).iloc[0]])
+        patches = pd.Series([utils.load_patch_df(patch_id, manifest) for patch_id in self.streams_df.sample(frac=1).iloc[0]])
         patches.apply(self.refresh_wheels)
 
         # Checks if wheel is empty after adding to wheel
@@ -106,7 +111,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
         Returns:
             Series of DataFrames of patches.
         """
-        return pd.Series([utils.load_patch_df(row[1][cls]) for cls in self.streams_df.columns.to_list()])
+        return pd.Series([utils.load_patch_df(row[1][cls], manifest) for cls in self.streams_df.columns.to_list()])
 
     def refresh_wheels(self, patch_df: pd.DataFrame):
         """Updates the values in each wheel from the supplied DataFrame.
@@ -130,7 +135,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
         Args:
             cls: Class number with empty wheel.
         """
-        patches = pd.Series([utils.load_patch_df(patch_id) for patch_id in self.streams_df[cls].sample(frac=1)])
+        patches = pd.Series([utils.load_patch_df(patch_id, manifest) for patch_id in self.streams_df[cls].sample(frac=1)])
 
         for patch in patches:
             if self.wheels[cls]:
@@ -228,7 +233,7 @@ class BatchDataset(IterableDataset, ABC):
         Yields:
             Pixel-stack, associated label and the patch ID where they came from.
         """
-        patch = utils.make_time_series(patch_id)
+        patch = utils.make_time_series(patch_id, manifest)
 
         x = torch.tensor([pixel.flatten() for pixel in patch.reshape(-1, *patch.shape[-2:])], dtype=torch.float)
         y = utils.lc_load(patch_id)
@@ -298,7 +303,7 @@ class IterableImageDataset(IterableDataset, ABC):
         """
 
         y = utils.find_centre_label(patch_id)
-        images = [utils.stack_bands(patch_id, scene) for scene in utils.find_best_of(patch_id)]
+        images = [utils.stack_bands(patch_id, scene) for scene in utils.find_best_of(patch_id, manifest)]
 
         if self.elim:
             y = torch.tensor(utils.class_transform(y, self.forwards), dtype=torch.long)
@@ -511,14 +516,13 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     loaders = {}
     class_dists = {}
 
-    manifest = pd.read_csv(utils.get_manifest())#, converters={'PATCH': str, 'DATE': str})
-
     for mode in ('train', 'val', 'test'):
         print('FINDING {} SCENES'.format(mode))
         if model_type in ['CNN', 'cnn'] and balance:
-            scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], scene_func), over_factor=over_factor)
+            scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], manifest, scene_func),
+                                              over_factor=over_factor)
         else:
-            scenes[mode] = utils.scene_extract(ids[mode], scene_func, thres=0.1)
+            scenes[mode] = utils.scene_extract(ids[mode], manifest, scene_func, thres=0.1)
 
         print('FINDING CLASS DISTRIBUTION OF SCENES')
         # Find class distribution of dataset by scene IDs, not patch IDs.

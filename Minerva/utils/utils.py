@@ -868,7 +868,7 @@ def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3):
     return df.loc[df['COVER'] < thres]['DATE'].tolist()
 
 
-def find_best_of(patch_id: str, selector: callable = ref_scene_select, **kwargs):
+def find_best_of(patch_id: str, manifest, selector: callable = ref_scene_select, **kwargs):
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
@@ -880,26 +880,17 @@ def find_best_of(patch_id: str, selector: callable = ref_scene_select, **kwargs)
     Returns:
         scene_names (list): List of strings representing dates of the selected scenes in YY_MM_DD format.
     """
-    # Creates a DataFrame
-    patch = pd.DataFrame()
-
-    # Using cloud_grab(), gets all the scene CLDs and dates for the given patch and adds to DataFrame
-    patch['SCENE'], patch['DATE'] = cloud_grab(patch_id)
-
-    # Calculates the cloud cover percentage for every scene and adds to DataFrame
-    patch['COVER'] = patch['SCENE'].apply(cloud_cover)
-
-    # Removes unneeded scene column
-    del patch['SCENE']
+    # Select rows in manifest for given patch ID.
+    patch_df = manifest[manifest['PATCH'] == patch_id]
 
     # Re-indexes the DataFrame to datetime
-    patch.set_index(pd.to_datetime(patch['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
+    patch_df.set_index(pd.to_datetime(patch_df['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
 
     # Sends DataFrame to scene_selection() and returns the selected scenes
-    return selector(patch, **kwargs)
+    return selector(patch_df, **kwargs)
 
 
-def pair_production(patch_id: str, func: callable = ref_scene_select, **kwargs) -> list:
+def pair_production(patch_id: str, manifest, func: callable = ref_scene_select, **kwargs) -> list:
     """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
 
     Args:
@@ -911,12 +902,12 @@ def pair_production(patch_id: str, func: callable = ref_scene_select, **kwargs) 
     Returns:
         A list of tuples of pairs of patch ID and date of scene as strings.
     """
-    scenes = find_best_of(patch_id, func, **kwargs)
+    scenes = find_best_of(patch_id, manifest, func, **kwargs)
 
     return [(patch_id, scene) for scene in scenes]
 
 
-def scene_extract(patch_ids: list, *args, **kwargs):
+def scene_extract(patch_ids: list, manifest, *args, **kwargs):
     """Uses pair_production to produce patch ID - scene pairs for the whole dataset outlined by patch_ids.
 
     Args:
@@ -930,11 +921,9 @@ def scene_extract(patch_ids: list, *args, **kwargs):
     pairs = []
     for patch_id in patch_ids:
         # Loads pairs for given patch ID
-        patch_pairs = pair_production(patch_id, *args, **kwargs)
+        patch_pairs = pair_production(patch_id, manifest, *args, **kwargs)
 
-        # Appends pairs to list one-by-one
-        for pair in patch_pairs:
-            pairs.append(pair)
+        pairs += patch_pairs
 
     return pairs
 
@@ -961,7 +950,7 @@ def stack_bands(patch_id: str, scene: str):
     return np.dstack(bands)
 
 
-def make_time_series(patch_id: str) -> np.ndarray:
+def make_time_series(patch_id: str, manifest) -> np.ndarray:
     """Makes a time-series of each pixel of a patch across 24 scenes selected by REF's criteria using scene_selection().
      All the bands in the chosen scene are stacked using stack_bands().
 
@@ -972,7 +961,7 @@ def make_time_series(patch_id: str) -> np.ndarray:
         (np.ndarray): Array of shape(rows, columns, 24, 12) holding all x for a patch.
     """
     # List of scene dates found by REF's selection criteria
-    scenes = find_best_of(patch_id)
+    scenes = find_best_of(patch_id, manifest)
 
     # Loads all pixels in a patch across the 24 scenes and 12 bands
     x = []
@@ -983,7 +972,7 @@ def make_time_series(patch_id: str) -> np.ndarray:
     return np.moveaxis(np.array(x), 0, 2)
 
 
-def load_patch_df(patch_id: str) -> pd.DataFrame:
+def load_patch_df(patch_id: str, manifest) -> pd.DataFrame:
     """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns
 
     Args:
@@ -996,7 +985,7 @@ def load_patch_df(patch_id: str) -> pd.DataFrame:
     df = pd.DataFrame()
 
     # Load patch from disk and create time-series pixel stacks
-    patch = make_time_series(patch_id)
+    patch = make_time_series(patch_id, manifest)
 
     # Reshape patch
     patch = patch.reshape((patch.shape[0] * patch.shape[1], patch.shape[2] * patch.shape[3]))
@@ -1130,7 +1119,6 @@ def select_df_by_patch(df, patch_ids):
 
 def select_df_by_scenes(df, scenes):
     new_df = df[df['SCENE'].isin(scene_tag(scenes))]
-    print(new_df)
     return new_df
 
 
