@@ -253,6 +253,10 @@ def date_grab(patch_id: str) -> list:
     return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
 
 
+def get_label_path(patch_id: str) -> str:
+    return os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '{}.tif'.format(label_suffix)])
+
+
 def get_dataset_name() -> str:
     return regex.search('config/(.*?)\.yml', data_config_path).group(1)
 
@@ -287,7 +291,7 @@ def lc_load(patch_id: str):
     Returns:
         LC_label (list): 2D array containing LC labels for each pixel of a patch.
     """
-    return load_array(os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '{}.tif'.format(label_suffix)]), 1)
+    return load_array(get_label_path(patch_id), 1)
 
 
 def dataset_lc_load(ids: list, func=lc_load):

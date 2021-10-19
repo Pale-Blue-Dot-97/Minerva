@@ -70,6 +70,10 @@ patch_dir_prefix = lcn_config['patch_dir_prefix']
 # Automatically fixes the layout of the figures to accommodate the colour bar legends
 plt.rcParams['figure.constrained_layout.use'] = True
 
+# Increases DPI to avoid strange plotting errors for class heatmaps.
+plt.rcParams['figure.dpi'] = 300
+plt.rcParams['savefig.dpi'] = 300
+
 # Downloads required plugin for imageio if not already present
 imageio.plugins.freeimage.download()
 
@@ -98,14 +102,15 @@ def path_format(names):
     scene_path = "{}{}".format(os.sep.join((*data_dir, patch_dir_prefix + names['patch_ID'], date1)), os.sep)
 
     # Format the name of the file containing the label mask data
-    data_name = '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['band_ID'])
+    scene_data_name = '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['band_ID'])
+    patch_data_name = utils.get_label_path(names['patch_ID'])
 
     # Create a dictionary of the names of the requested red, green, blue images
     rgb = {'R': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['R_band']),
            'G': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['G_band']),
            'B': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['B_band'])}
 
-    return rgb, scene_path, data_name
+    return rgb, scene_path, scene_data_name, patch_data_name
 
 
 def deinterlace(x, f):
@@ -211,7 +216,7 @@ def make_rgb_image(scene_path, rgb):
     return rgb_image
 
 
-def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None,
+def labelled_rgb_image(names, mode: str = 'patch', data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None,
                        show=True, save=True, figdim=(8.02, 10.32)):
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top
 
@@ -232,13 +237,17 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
 
     """
     # Get required formatted paths and names
-    rgb, scene_path, data_name = path_format(names)
+    rgb, scene_path, scene_data_name, patch_data_name = path_format(names)
+
+    data_name = scene_path + scene_data_name
+    if mode == 'patch':
+        data_name = patch_data_name
 
     # Stacks together the R, G, & B bands to form an array of the RGB image
     rgb_image = stack_rgb(scene_path, rgb)
 
     # Loads data to plotted as heatmap from file
-    data = utils.load_array(scene_path + data_name, band=data_band)
+    data = utils.load_array(data_name, band=data_band)
 
     # Defines the 'extent' of the composite image based on the size of the mask.
     # Assumes mask and RGB image have same 2D shape
@@ -264,7 +273,7 @@ def labelled_rgb_image(names, data_band=1, classes=None, block_size=32, cmap_sty
     ax2 = ax1.twiny().twinx()
 
     # Gets the co-ordinates of the corners of the image in decimal lat-lon
-    corners = utils.transform_coordinates(scene_path + data_name, new_cs)
+    corners = utils.transform_coordinates(data_name, new_cs)
 
     # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image
     lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
@@ -464,7 +473,7 @@ def prediction_plot(z, y, patch_id, exp_id, new_cs, classes=None, block_size=32,
     names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id, manifest)[-1], '%Y_%m_%d', '%d.%m.%Y')
 
     # Get required formatted paths and names
-    rgb, scene_path, data_name = path_format(names)
+    rgb, scene_path, data_name, _ = path_format(names)
 
     # Stacks together the R, G, & B bands to form an array of the RGB image
     rgb_image = stack_rgb(scene_path, rgb)
