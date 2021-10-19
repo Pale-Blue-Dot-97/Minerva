@@ -40,8 +40,9 @@ from osgeo import osr
 #                                                     GLOBALS
 # =====================================================================================================================
 config_path = '../../config/config.yml'
-lcn_config_path = '../../config/landcovernet.yml'
+lcn_config_path = '../../config/RE.yml'
 s2_config_path = '../../config/S2.yml'
+esri_config_path = '../../config/ESRI.yml'
 
 with open(config_path) as file:
     config = yaml.safe_load(file)
@@ -52,13 +53,16 @@ with open(lcn_config_path) as file:
 with open(s2_config_path) as file:
     s2_config = yaml.safe_load(file)
 
+with open(esri_config_path) as file:
+    esri_config = yaml.safe_load(file)
+
 # Create a new projection system in lat-lon
 WGS84_4326 = osr.SpatialReference()
 WGS84_4326.ImportFromEPSG(lcn_config['co_sys']['id'])
 
 # ======= RADIANT MLHUB PRESETS =======================================================================================
 # Radiant Earth land cover classes reformatted to split across two lines for neater plots
-RE_classes = lcn_config['classes']
+RE_classes = lcn_config['classes'].values()
 
 # Custom cmap matching the Radiant Earth Foundation specifications
 RE_cmap = ListedColormap(lcn_config['colours'].values(), N=len(RE_classes))
@@ -79,19 +83,34 @@ S2_SCL_cmap = ListedColormap(S2_SCL_cmap_dict.values(), N=len(S2_SCL_classes))
 # Preset SCL figure height and width (in inches)
 S2_SCL_figdim = (8, 10.44)
 
+# ======= ESRI 2020 LAND COVER PRESETS ================================================================================
+# SCL land cover classes reformatted to split across two lines for neater plots
+Esri_classes = esri_config['classes'].values()
+
+# Custom colour mapping from class definitions in the SENTINEL-2 L2A MSI
+Esri_cmap_dict = esri_config['colours']
+
+# Custom cmap matching the SENTINEL-2 L2A SCL classes
+Esri_cmap = ListedColormap(Esri_cmap_dict.values(), N=len(Esri_classes))
+
+# Preset SCL figure height and width (in inches)
+Esri_figdim = (8.02, 10.17)
+
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 if __name__ == '__main__':
     # Additional options for names dictionary:
-    #           'patch_ID': '31PGS_15',     Five char alpha-numeric SENTINEL tile ID and
-    #                                       2 digit int REF MLHub chip (patch) ID ranging from 0-29
-    #           'date': '16.04.2018',       Date of scene in DD.MM.YYYY format
-    my_names = {'band_ID': 'SCL',           # 3 char alpha-numeric Band ID
+    my_names = {'patch_ID': '33LYE_28',     # Five char alpha-numeric SENTINEL tile ID and
+                                            # 2 digit int REF MLHub chip (patch) ID ranging from 0-29
+                'date': '19.07.2018',       # Date of scene in DD.MM.YYYY format
+                'band_ID': 'SCL',           # 3 char alpha-numeric Band ID
                 'R_band': 'B02',            # Red, Green, Blue band IDs for RGB images
                 'G_band': 'B03',
                 'B_band': 'B04'}
 
-    visutils.make_all_the_gifs(my_names, frame_length=0.5, data_band=1, classes=S2_SCL_classes, cmap_style=S2_SCL_cmap,
-                               new_cs=WGS84_4326, alpha=0.3, figdim=S2_SCL_figdim)
+    visutils.labelled_rgb_image(my_names, mode='patch', classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326,
+                                figdim=RE_figdim, show=True, save=False)
+    #visutils.make_all_the_gifs(my_names, frame_length=0.5, data_band=1, classes=S2_SCL_classes, cmap_style=S2_SCL_cmap,
+    #                           new_cs=WGS84_4326, alpha=0.3, figdim=S2_SCL_figdim)
