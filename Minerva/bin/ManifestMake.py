@@ -68,7 +68,6 @@ def make_manifest():
     df['PATCH'] = df['SCENE'].apply(utils.extract_patch_ids)
     df['DATE'] = df['SCENE'].apply(utils.extract_dates)
     scene_tags = utils.scene_tag(scenes)
-    print(scene_tags)
     df['SCENE'] = scene_tags
 
     print('CALCULATING CLASS MODES')
@@ -79,8 +78,6 @@ def make_manifest():
     # Calculates the fractional size of each class in each patch.
     df = pd.DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
     df.fillna(0, inplace=True)
-
-    print(df)
 
     print('CALCULATING CLOUD COVER')
     df['CLD'] = clouds

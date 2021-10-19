@@ -83,7 +83,7 @@ manifest = pd.read_csv(utils.get_manifest())
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def path_format(names):
+def path_format(names: dict):
     """Takes a dictionary of unique IDs to format the paths and names of files associated with the desired scene
 
     Args:
@@ -92,7 +92,8 @@ def path_format(names):
     Returns:
         scene_path (str): Path to directory holding images from desired scene
         rgb (dict): Dictionary of filenames of R, G & B band images
-        data_name (str): Name of the file containing the label mask
+        scene_data_name (str): Name of the file containing the scene classification label mask.
+        patch_data_name (str): Path to the file containing the annual classification label mask.
     """
     # Format the two required date formats used by REF MLHub
     date1 = utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y_%m_%d')
@@ -113,7 +114,16 @@ def path_format(names):
     return rgb, scene_path, scene_data_name, patch_data_name
 
 
-def deinterlace(x, f):
+def deinterlace(x, f: int) -> np.ndarray:
+    """Separates interlaced arrays, `x' at a frequency of `f' from each other.
+
+    Args:
+        x (list or np.ndarray): Array of data to be de-interlaced.
+        f (int): Frequency at which interlacing occurs. Equivalent to number of sources interlaced together.
+
+    Returns:
+        Deinterlaced array. Each source array is now sequentially connected.
+    """
     new_x = []
     for i in range(f):
         x_i = []
@@ -124,8 +134,8 @@ def deinterlace(x, f):
     return np.array(new_x).flatten()
 
 
-def discrete_heatmap(data, classes=None, cmap_style=None):
-    """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images
+def discrete_heatmap(data, classes: list = None, cmap_style=None) -> None:
+    """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
     Args:
         data (array_like): 2D Array of data to be plotted as a heat map
@@ -134,43 +144,42 @@ def discrete_heatmap(data, classes=None, cmap_style=None):
 
     Returns:
         None
-
     """
-    # Initialises a figure
+    # Initialises a figure.
     plt.figure()
 
-    # Creates a cmap from query
+    # Creates a cmap from query.
     cmap = plt.get_cmap(cmap_style, len(classes))
 
-    # Plots heatmap onto figure
+    # Plots heatmap onto figure.
     heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
-    # Sets tick intervals to standard 32x32 block size
+    # Sets tick intervals to standard 32x32 block size.
     plt.xticks(np.arange(0, data.shape[0] + 1, 32))
     plt.yticks(np.arange(0, data.shape[1] + 1, 32))
 
-    # Add grid overlay
+    # Add grid overlay.
     plt.grid(which='both', color='#CCCCCC', linestyle=':')
 
-    # Plots colour bar onto figure
+    # Plots colour bar onto figure.
     clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=0.77)
 
-    # Sets colour bar ticks to class labels
+    # Sets colour bar ticks to class labels.
     clb.ax.set_yticklabels(classes)
 
-    # Display figure
+    # Display figure.
     plt.show()
 
-    # Close figure
+    # Close figure.
     plt.close()
 
 
-def stack_rgb(scene_path, rgb):
-    """Stacks together red, green and blue image arrays from file to create a RGB array
+def stack_rgb(scene_path: str, rgb: dict) -> np.ndarray:
+    """Stacks together red, green and blue image arrays from file to create a RGB array.
 
     Args:
-        scene_path (str): Path to directory holding images from desired scene
-        rgb (dict): Dictionary of filenames of R, G & B band images
+        scene_path (str): Path to directory holding images from desired scene.
+        rgb (dict): Dictionary of filenames of R, G & B band images.
 
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
@@ -188,27 +197,27 @@ def stack_rgb(scene_path, rgb):
     return np.dstack((bands[2], bands[1], bands[0]))
 
 
-def make_rgb_image(scene_path, rgb):
+def make_rgb_image(scene_path: str, rgb: dict):
     """Creates an RGB image from a composition of red, green and blue band .tif images
 
     Args:
         scene_path (str): Path to directory holding images from desired scene
-        rgb ([str]): List of filenames of R, G & B band images
+        rgb (dict): Dictionary of filenames of R, G & B band images.
 
     Returns:
         rgb_image (AxesImage): Plotted RGB image object
     """
-    # Stack RGB image data together
+    # Stack RGB image data together.
     rgb_image_array = stack_rgb(scene_path, rgb)
 
-    # Create RGB image
+    # Create RGB image.
     rgb_image = plt.imshow(rgb_image_array)
 
-    # Sets tick intervals to standard 32x32 block size
+    # Sets tick intervals to standard 32x32 block size.
     plt.xticks(np.arange(0, rgb_image_array.shape[0] + 1, 32))
     plt.yticks(np.arange(0, rgb_image_array.shape[1] + 1, 32))
 
-    # Add grid overlay
+    # Add grid overlay.
     plt.grid(which='both', color='#CCCCCC', linestyle=':')
 
     plt.show()
@@ -216,98 +225,99 @@ def make_rgb_image(scene_path, rgb):
     return rgb_image
 
 
-def labelled_rgb_image(names, mode: str = 'patch', data_band=1, classes=None, block_size=32, cmap_style=None, alpha=0.5, new_cs=None,
-                       show=True, save=True, figdim=(8.02, 10.32)):
-    """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top
+def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1, classes: list = None,
+                       block_size: int = 32, cmap_style=None, alpha: float = 0.5, new_cs=None,
+                       show: bool = True, save: bool = True, figdim: tuple = (8.02, 10.32)) -> str:
+    """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top.
 
     Args:
-        names (dict): Dictionary of IDs to uniquely identify the scene and selected bands
-        data_band (int): Band number of data .tif file
-        classes ([str]): List of all possible class labels
-        block_size (int): Size of block image sub-division in pixels
-        cmap_style (str, ListedColormap): Name or object for colour map style
-        alpha (float): Fraction determining alpha blending of label mask
-        new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
-        show (bool): True for show figure when plotted. False if not
-        save (bool): True to save figure to file. False if not
-        figdim (tuple): Figure (height, width) in inches
+        names (dict): Dictionary of IDs to uniquely identify the scene and selected bands.
+        mode (str): Optional; Whether to plot the `patch' level labels or the scene. Default `scene'.
+        data_band (int): Optional; Band number of data .tif file.
+        classes (list[str]): Optional; List of all possible class labels.
+        block_size (int): Optional; Size of block image sub-division in pixels.
+        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
+        alpha (float): Optional; Fraction determining alpha blending of label mask.
+        new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        show (bool): Optional; True for show figure when plotted. False if not.
+        save (bool): Optional; True to save figure to file. False if not.
+        figdim (tuple): Optional; Figure (height, width) in inches.
 
     Returns:
         fn (str): Path to figure save location
-
     """
-    # Get required formatted paths and names
+    # Get required formatted paths and names.
     rgb, scene_path, scene_data_name, patch_data_name = path_format(names)
 
     data_name = scene_path + scene_data_name
     if mode == 'patch':
         data_name = patch_data_name
 
-    # Stacks together the R, G, & B bands to form an array of the RGB image
+    # Stacks together the R, G, & B bands to form an array of the RGB image.
     rgb_image = stack_rgb(scene_path, rgb)
 
-    # Loads data to plotted as heatmap from file
+    # Loads data to plotted as heatmap from file.
     data = utils.load_array(data_name, band=data_band)
 
     # Defines the 'extent' of the composite image based on the size of the mask.
-    # Assumes mask and RGB image have same 2D shape
+    # Assumes mask and RGB image have same 2D shape.
     extent = 0, data.shape[0], 0, data.shape[1]
 
-    # Initialises a figure
+    # Initialises a figure.
     fig, ax1 = plt.subplots()
 
-    # Create RGB image
+    # Create RGB image.
     ax1.imshow(rgb_image, extent=extent)
 
-    # Creates a cmap from query
+    # Creates a cmap from query.
     cmap = plt.get_cmap(cmap_style, len(classes))
 
-    # Plots heatmap onto figure
+    # Plots heatmap onto figure.
     heatmap = ax1.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha)
 
-    # Sets tick intervals to standard 32x32 block size
+    # Sets tick intervals to standard 32x32 block size.
     ax1.set_xticks(np.arange(0, data.shape[0] + 1, block_size))
     ax1.set_yticks(np.arange(0, data.shape[1] + 1, block_size))
 
-    # Creates a secondary x and y axis to hold lat-lon
+    # Creates a secondary x and y axis to hold lat-lon.
     ax2 = ax1.twiny().twinx()
 
-    # Gets the co-ordinates of the corners of the image in decimal lat-lon
+    # Gets the co-ordinates of the corners of the image in decimal lat-lon.
     corners = utils.transform_coordinates(data_name, new_cs)
 
-    # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image
+    # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image.
     lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
                              num=int(data.shape[0]/block_size) + 1, endpoint=True)
     lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
                              num=int(data.shape[0]/block_size) + 1, endpoint=True)
 
-    # Plots an invisible line across the diagonal of the image to create the secondary axis for lat-lon
+    # Plots an invisible line across the diagonal of the image to create the secondary axis for lat-lon.
     ax2.plot(lon_extent, lat_extent, ' ',
              clip_box=Bbox.from_extents(lon_extent[0], lat_extent[0], lon_extent[-1], lat_extent[-1]))
 
-    # Sets ticks for lat-lon
+    # Sets ticks for lat-lon.
     ax2.set_xticks(lon_extent)
     ax2.set_yticks(lat_extent)
 
-    # Sets the limits of the secondary axis so they should align with the primary
+    # Sets the limits of the secondary axis so they should align with the primary.
     ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
 
-    # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis
+    # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis.
     lat_labels = utils.dec2deg(lat_extent, axis='lat')
     lon_labels = utils.dec2deg(lon_extent, axis='lon')
 
-    # Sets the secondary axis tick labels
+    # Sets the secondary axis tick labels.
     ax2.set_xticklabels(lon_labels, fontsize=11)
     ax2.set_yticklabels(lat_labels, fontsize=10, rotation=-30, ha='left')
 
-    # Add grid overlay
+    # Add grid overlay.
     ax1.grid(which='both', color='#CCCCCC', linestyle=':')
 
-    # Plots colour bar onto figure
+    # Plots colour bar onto figure.
     clb = plt.colorbar(heatmap, ticks=np.arange(0, len(classes)), shrink=0.9, aspect=75, drawedges=True)
 
-    # Sets colour bar ticks to class labels
+    # Sets colour bar ticks to class labels.
     clb.ax.set_yticklabels(classes, fontsize=11)
 
     # Bodge to get a figure title by using the colour bar title.
@@ -319,51 +329,51 @@ def labelled_rgb_image(names, mode: str = 'patch', data_band=1, classes=None, bl
     ax2.set_ylabel('Latitude', fontsize=14, rotation=270, labelpad=12)
     ax2.set_title('Longitude')  # Bodge
 
-    # Manual trial and error fig size which fixes aspect ratio issue
+    # Manual trial and error fig size which fixes aspect ratio issue.
     fig.set_figheight(figdim[0])
     fig.set_figwidth(figdim[1])
 
-    # Display figure
+    # Display figure.
     if show:
         plt.show()
 
-    # Path and file name of figure
-    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'], utils.datetime_reformat(names['date'],
-                                                                                        '%d.%m.%Y', '%Y%m%d'))
+    # Path and file name of figure.
+    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'],
+                                 utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d'))
 
-    # If true, save file to fn
+    # If true, save file to fn.
     if save:
-        # Checks if file already exists. Deletes if true
+        # Checks if file already exists. Deletes if true.
         utils.exist_delete_check(fn)
 
-        # Save figure to fn
+        # Save figure to fn.
         fig.savefig(fn)
 
-    # Close figure
+    # Close figure.
     plt.close()
 
     return fn
 
 
-def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_style=None, new_cs=None, alpha=0.5,
-             save=False, figdim=(8.02, 10.32)):
-    """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes
+def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: int = 1, classes: list = None,
+             cmap_style=None, new_cs=None, alpha: float = 0.5, save: bool = False,
+             figdim: tuple = (8.02, 10.32)) -> None:
+    """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes.
 
     Args:
-        names (dict): Dictionary of IDs to uniquely identify the patch dir and selected bands
-        gif_name (str): Path to and name of GIF to be made
-        frame_length (float): Length of each GIF frame in seconds
-        data_band (int): Band number of data .tif file
-        classes ([str]): List of all possible class labels
-        cmap_style (str, ListedColormap): Name or object for colour map style
-        new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
-        alpha (float): Fraction determining alpha blending of label mask
-        save (bool): True to save figure to file. False if not
-        figdim (tuple): Figure (height, width) in inches
+        names (dict): Dictionary of IDs to uniquely identify the patch dir and selected bands.
+        gif_name (str): Path to and name of GIF to be made.
+        frame_length (float): Optional; Length of each GIF frame in seconds.
+        data_band (int): Optional; Band number of data .tif file.
+        classes (list[str]): Optional; List of all possible class labels.
+        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
+        new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        alpha (float): Optional; Fraction determining alpha blending of label mask.
+        save (bool): Optional; True to save figure to file. False if not.
+        figdim (tuple): Optional; Figure (height, width) in inches.
 
     Returns:
         None
-
     """
     # Fetch all the scene dates for this patch in DD.MM.YYYY format
     dates = utils.date_grab(names['patch_ID'])
@@ -399,23 +409,22 @@ def make_gif(names, gif_name, frame_length=1.0, data_band=1, classes=None, cmap_
         imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
-def make_all_the_gifs(names, frame_length=1.0, data_band=1, classes=None, cmap_style=None, new_cs=None, alpha=0.5,
-                      figdim=(8.02, 10.32)):
-    """Wrapper to make_gifs() to iterate through all patches in dataset
+def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1, classes: list = None,
+                      cmap_style=None, new_cs=None, alpha: float = 0.5, figdim: tuple = (8.02, 10.32)) -> None:
+    """Wrapper to make_gifs() to iterate through all patches in dataset.
 
     Args:
-        names (dict): Dictionary holding the band IDs. Patch ID and date added per iteration
-        frame_length (float): Length of each GIF frame in seconds
-        data_band (int): Band number of data .tif file
-        classes ([str]): List of all possible class labels
-        cmap_style (str, ListedColormap): Name or object for colour map style
-        new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling
-        alpha (float): Fraction determining alpha blending of label mask
-        figdim (tuple): Figure (height, width) in inches
+        names (dict): Dictionary holding the band IDs. Patch ID and date added per iteration.
+        frame_length (float): Optional; Length of each GIF frame in seconds.
+        data_band (int): Optional; Band number of data .tif file.
+        classes ([str]): Optional; List of all possible class labels.
+        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
+        new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        alpha (float): Optional; Fraction determining alpha blending of label mask.
+        figdim (tuple): Optional; Figure (height, width) in inches.
 
     Returns:
         None
-
     """
     # Gets all the patch IDs from the dataset directory
     patches = utils.patch_grab()
