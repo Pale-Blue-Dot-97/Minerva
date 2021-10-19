@@ -667,6 +667,30 @@ class FCN32ResNet18(MinervaModel, ABC):
         return z
 
 
+class FCN32ResNet34(MinervaModel, ABC):
+    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
+                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation=None, norm_layer=None):
+
+        super(FCN32ResNet34, self).__init__(criterion=criterion)
+
+        self.encoder = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
+                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
+                              encoder=True)
+
+        self.decoder = DC32(n_classes=n_classes)
+
+        self.input_shape = input_size
+        self.n_classes = n_classes
+
+    def forward(self, x: torch.FloatTensor):
+        z = self.encoder(x)
+        z = self.decoder(z)
+
+        return z
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================

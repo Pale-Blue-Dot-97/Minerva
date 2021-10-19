@@ -20,7 +20,7 @@ dir:
     - 'FCNResNet'
 
 # Model Name
-model_name: 'FCN32ResNet18-MkI'
+model_name: 'FCN32ResNet34-MkI'
 model_type: 'segmentation'
 
 elim: True
