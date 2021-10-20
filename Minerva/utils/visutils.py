@@ -84,29 +84,29 @@ manifest = pd.read_csv(utils.get_manifest())
 #                                                     METHODS
 # =====================================================================================================================
 def path_format(names: dict):
-    """Takes a dictionary of unique IDs to format the paths and names of files associated with the desired scene
+    """Takes a dictionary of unique IDs to format the paths and names of files associated with the desired scene.
 
     Args:
-        names (dict): Dictionary of IDs to uniquely identify the scene and selected bands
+        names (dict): Dictionary of IDs to uniquely identify the scene and selected bands.
 
     Returns:
-        scene_path (str): Path to directory holding images from desired scene
-        rgb (dict): Dictionary of filenames of R, G & B band images
+        scene_path (str): Path to directory holding images from desired scene.
+        rgb (dict): Dictionary of filenames of R, G & B band images.
         scene_data_name (str): Name of the file containing the scene classification label mask.
         patch_data_name (str): Path to the file containing the annual classification label mask.
     """
-    # Format the two required date formats used by REF MLHub
+    # Format the two required date formats used by REF MLHub.
     date1 = utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y_%m_%d')
     date2 = utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d')
 
-    # Format path to the directory holding all the scene files
+    # Format path to the directory holding all the scene files.
     scene_path = "{}{}".format(os.sep.join((*data_dir, patch_dir_prefix + names['patch_ID'], date1)), os.sep)
 
-    # Format the name of the file containing the label mask data
+    # Format the name of the file containing the label mask data.
     scene_data_name = '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['band_ID'])
     patch_data_name = utils.get_label_path(names['patch_ID'])
 
-    # Create a dictionary of the names of the requested red, green, blue images
+    # Create a dictionary of the names of the requested red, green, blue images.
     rgb = {'R': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['R_band']),
            'G': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['G_band']),
            'B': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['B_band'])}
@@ -134,13 +134,14 @@ def deinterlace(x, f: int) -> np.ndarray:
     return np.array(new_x).flatten()
 
 
-def discrete_heatmap(data, classes: list = None, cmap_style=None) -> None:
+def discrete_heatmap(data, classes: list = None, cmap_style=None, block_size: int = 32) -> None:
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
     Args:
-        data (array_like): 2D Array of data to be plotted as a heat map
-        classes ([str]): List of all possible class labels
-        cmap_style (str, ListedColormap): Name or object for colour map style
+        data (list or np.ndarray): 2D Array of data to be plotted as a heat map.
+        classes (list[str]): Optional; List of all possible class labels.
+        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
+        block_size (int): Optional; Size of block image sub-division in pixels.
 
     Returns:
         None
@@ -154,9 +155,9 @@ def discrete_heatmap(data, classes: list = None, cmap_style=None) -> None:
     # Plots heatmap onto figure.
     heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
-    # Sets tick intervals to standard 32x32 block size.
-    plt.xticks(np.arange(0, data.shape[0] + 1, 32))
-    plt.yticks(np.arange(0, data.shape[1] + 1, 32))
+    # Sets tick intervals to block size. Default 32 x 32.
+    plt.xticks(np.arange(0, data.shape[0] + 1, block_size))
+    plt.yticks(np.arange(0, data.shape[1] + 1, block_size))
 
     # Add grid overlay.
     plt.grid(which='both', color='#CCCCCC', linestyle=':')
@@ -197,12 +198,13 @@ def stack_rgb(scene_path: str, rgb: dict) -> np.ndarray:
     return np.dstack((bands[2], bands[1], bands[0]))
 
 
-def make_rgb_image(scene_path: str, rgb: dict):
+def make_rgb_image(scene_path: str, rgb: dict, block_size: int = 32):
     """Creates an RGB image from a composition of red, green and blue band .tif images
 
     Args:
         scene_path (str): Path to directory holding images from desired scene
         rgb (dict): Dictionary of filenames of R, G & B band images.
+        block_size (int): Optional; Size of block image sub-division in pixels.
 
     Returns:
         rgb_image (AxesImage): Plotted RGB image object
@@ -213,9 +215,9 @@ def make_rgb_image(scene_path: str, rgb: dict):
     # Create RGB image.
     rgb_image = plt.imshow(rgb_image_array)
 
-    # Sets tick intervals to standard 32x32 block size.
-    plt.xticks(np.arange(0, rgb_image_array.shape[0] + 1, 32))
-    plt.yticks(np.arange(0, rgb_image_array.shape[1] + 1, 32))
+    # Sets tick intervals to block size. Default 32 x 32.
+    plt.xticks(np.arange(0, rgb_image_array.shape[0] + 1, block_size))
+    plt.yticks(np.arange(0, rgb_image_array.shape[1] + 1, block_size))
 
     # Add grid overlay.
     plt.grid(which='both', color='#CCCCCC', linestyle=':')
@@ -417,7 +419,7 @@ def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1
         names (dict): Dictionary holding the band IDs. Patch ID and date added per iteration.
         frame_length (float): Optional; Length of each GIF frame in seconds.
         data_band (int): Optional; Band number of data .tif file.
-        classes ([str]): Optional; List of all possible class labels.
+        classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
         new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
@@ -453,9 +455,29 @@ def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1
     print('\r\nOPERATION COMPLETE')
 
 
-def plot_all_pvl(predictions, labels, patch_ids, exp_id, new_cs, classes, cmap):
-    def chunks(x, n):
-        """Yield successive n-sized chunks from x."""
+def plot_all_pvl(predictions, labels, patch_ids: list, exp_id: str, new_cs, classes: dict, cmap) -> None:
+    """Uses prediction_plot to plot all predicted versus ground truth comparison plots.
+
+    Args:
+        predictions (list[list[int]] or np.ndarray[np.ndarray[int]]): List of predicted label masks.
+        labels (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
+        patch_ids (list[str]): List of IDs identifying the patches from which predictions and labels came from.
+        exp_id (str): Unique ID for the experiment run predictions and labels come from.
+        new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling.
+        classes (dict[str]): Dictionary mapping class labels to class names.
+        cmap (str, ListedColormap): Name or object for colour map style.
+
+    Returns:
+        None
+    """
+    def chunks(x, n: int):
+        """Yield successive n-sized chunks from x.
+        Args:
+            x (list or np.ndarray): Array to be split into chunks.
+            n (int): Length of yielded array.
+        Yields:
+            n-sized chunks from x.
+        """
         for i in range(0, len(x), n):
             yield x[i:i + n]
 
@@ -475,8 +497,28 @@ def plot_all_pvl(predictions, labels, patch_ids, exp_id, new_cs, classes, cmap):
                         figdim=figdim)
 
 
-def prediction_plot(z, y, patch_id, exp_id, new_cs, classes=None, block_size=32, cmap_style=None,
-                    show=True, save=True, figdim=None):
+def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, new_cs, classes: dict = None,
+                    block_size: int = 32, cmap_style=None, show: bool = True, save: bool = True,
+                    figdim: tuple = None) -> str:
+    """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
+        and a reference RGB image of the same patch.
+
+    Args:
+        z (np.ndarray[np.ndarray[int]]): 2D array of the predicted label mask.
+        y (np.ndarray[np.ndarray[int]]): 2D array of the corresponding ground truth label mask.
+        patch_id (str): Unique ID of the patch.
+        exp_id (str): Unique ID for the experiment run predictions and labels come from.
+        classes (dict[str]): Optional; Dictionary mapping class labels to class names.
+        new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        block_size (int): Optional; Size of block image sub-division in pixels.
+        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
+        show (bool): Optional; True for show figure when plotted. False if not.
+        save (bool): Optional; True to save figure to file. False if not.
+        figdim (tuple): Optional; Figure (height, width) in inches.
+
+    Returns:
+        None
+    """
     names = config['rgb_params']
     names['patch_ID'] = patch_id
     names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id, manifest)[-1], '%Y_%m_%d', '%d.%m.%Y')
@@ -581,37 +623,38 @@ def prediction_plot(z, y, patch_id, exp_id, new_cs, classes=None, block_size=32,
     return fn
 
 
-def plot_subpopulations(class_dist, class_names=None, cmap_dict=None, filename=None, save=True, show=False):
-    """Creates a pie chart of the distribution of the classes within the data
+def plot_subpopulations(class_dist: list, class_names: dict = None, cmap_dict=None,
+                        filename: str = None, save: bool = True, show: bool = False) -> None:
+    """Creates a pie chart of the distribution of the classes within the data.
 
     Args:
-        class_dist (Counter): Modal distribution of classes in the dataset provided
-        class_names (dict): Dictionary mapping class labels to class names
-        cmap_dict (dict): Dictionary mapping class labels to class colours
-        filename (str): Name of file to save plot to
-        show (bool): Whether to show plot
-        save (bool): Whether to save plot to file
+        class_dist (list[list]): Modal distribution of classes in the dataset provided.
+        class_names (dict): Optional; Dictionary mapping class labels to class names.
+        cmap_dict (dict): Optional; Dictionary mapping class labels to class colours.
+        filename (str): Optional; Name of file to save plot to.
+        show (bool): Optional; Whether to show plot.
+        save (bool): Optional; Whether to save plot to file.
 
     Returns:
         None
     """
-    # List to hold the name and percentage distribution of each class in the data as str
+    # List to hold the name and percentage distribution of each class in the data as str.
     class_data = []
 
-    # List to hold the total counts of each class
+    # List to hold the total counts of each class.
     counts = []
 
-    # List to hold colours of classes in the correct order
+    # List to hold colours of classes in the correct order.
     colours = []
 
-    # Finds total number of samples to normalise data
+    # Finds total number of samples to normalise data.
     n_samples = 0
     for mode in class_dist:
         n_samples += mode[1]
 
-    # For each class, find the percentage of data that is that class and the total counts for that class
+    # For each class, find the percentage of data that is that class and the total counts for that class.
     for label in class_dist:
-        # Sets percentage label to <0.01% for classes matching that equality
+        # Sets percentage label to <0.01% for classes matching that equality.
         if (label[1] * 100.0 / n_samples) > 0.01:
             class_data.append('{} \n{:.2f}%'.format(class_names[label[0]], (label[1] * 100.0 / n_samples)))
         else:
@@ -619,16 +662,16 @@ def plot_subpopulations(class_dist, class_names=None, cmap_dict=None, filename=N
         counts.append(label[1])
         colours.append(cmap_dict[label[0]])
 
-    # Locks figure size
+    # Locks figure size.
     plt.figure(figsize=(6, 5))
 
-    # Plot a pie chart of the data distribution amongst the classes
+    # Plot a pie chart of the data distribution amongst the classes.
     patches, text = plt.pie(counts, colors=colours, explode=[i * 0.05 for i in range(len(class_data))])
 
-    # Adds legend
+    # Adds legend.
     plt.legend(patches, class_data, loc='center left', bbox_to_anchor=(1, 0.5), frameon=False)
 
-    # Shows and/or saves plot
+    # Shows and/or saves plot.
     if show:
         plt.show()
     if save:
@@ -636,55 +679,57 @@ def plot_subpopulations(class_dist, class_names=None, cmap_dict=None, filename=N
         plt.close()
 
 
-def plot_history(metrics, filename=None, save=True, show=False):
-    """Plots model history based on metrics supplied
+def plot_history(metrics: dict, filename: str = None, save: bool = True, show: bool = False) -> None:
+    """Plots model history based on metrics supplied.
 
     Args:
-        metrics (dict): Dictionary containing the names and results of the metrics by which model was assessed
-        filename (str): Name of file to save plot to
-        show (bool): Whether to show plot
-        save (bool): Whether to save plot to file
-
-    Returns:
-        None
-    """""
-    # Initialise figure
-    plt.figure()
-
-    # Plots each metric in metrics, appending their artist handles
-    handles = []
-    for metric in metrics.values():
-        handles.append(plt.plot(metric)[0])
-
-    # Creates legend from plot artist handles and names of metrics
-    plt.legend(handles=handles, labels=metrics.keys())
-
-    # Adds axis labels
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss/Accuracy')
-
-    # Shows and/or saves plot
-    if show:
-        plt.show()
-    if save:
-        plt.savefig(filename)
-        plt.close()
-
-
-def make_confusion_matrix(test_pred, test_labels, classes, filename=None, show=True, save=False):
-    """Creates a heat-map of the confusion matrix of the given model
-
-    Args:
-        test_pred([[int]]): Predictions made by model on test images
-        test_labels ([[int]]): Accompanying labels for testing images
-        filename (str): Name of file to save plot to
-        show (bool): Whether to show plot
-        save (bool): Whether to save plot to file
+        metrics (dict): Dictionary containing the names and results of the metrics by which model was assessed.
+        filename (str): Optional; Name of file to save plot to.
+        show (bool): Optional; Whether to show plot.
+        save (bool): Optional; Whether to save plot to file.
 
     Returns:
         None
     """
-    # Finds the distribution of the classes within the data
+    # Initialise figure.
+    plt.figure()
+
+    # Plots each metric in metrics, appending their artist handles.
+    handles = []
+    for metric in metrics.values():
+        handles.append(plt.plot(metric)[0])
+
+    # Creates legend from plot artist handles and names of metrics.
+    plt.legend(handles=handles, labels=metrics.keys())
+
+    # Adds axis labels.
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss/Accuracy')
+
+    # Shows and/or saves plot.
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(filename)
+        plt.close()
+
+
+def make_confusion_matrix(test_pred, test_labels, classes: dict, filename: str = None,
+                          show: bool = True, save: bool = False) -> None:
+    """Creates a heat-map of the confusion matrix of the given model.
+
+    Args:
+        test_pred(list[list[int]]): Predictions made by model on test images.
+        test_labels (list[list[int]]): Accompanying labels for testing images.
+        classes (dict): Dictionary mapping class labels to class names.
+        filename (str): Optional; Name of file to save plot to.
+        show (bool): Optional; Whether to show plot.
+        save (bool): Optional; Whether to save plot to file.
+
+    Returns:
+        None
+    """
+    # Finds the distribution of the classes within the data.
     labels_dist = utils.find_subpopulations(test_labels)
     pred_dist = utils.find_subpopulations(test_pred)
 
@@ -702,6 +747,7 @@ def make_confusion_matrix(test_pred, test_labels, classes, filename=None, show=T
     # Eliminates and reorganises classes based on those not present during testing.
     classes, transform, _ = utils.eliminate_classes(empty, old_classes=classes)
 
+    # Converts labels to new classes after the elimination of empty classes.
     test_labels = utils.mask_transform(test_labels, transform)
     test_pred = utils.mask_transform(test_pred, transform)
 
@@ -732,8 +778,27 @@ def make_confusion_matrix(test_pred, test_labels, classes, filename=None, show=T
         plt.close()
 
 
-def format_plot_names(model_name, timestamp, path):
-    def standard_format(plot_type, file_ext):
+def format_plot_names(model_name: str, timestamp: str, path: list) -> dict:
+    """Creates unique filenames of plots in a standardised format.
+
+    Args:
+        model_name (str): Name of model. e.g. MLP-MkVI.
+        timestamp (str): Time and date to be used to identify experiment.
+        path (list[str]): Path to the directory for storing plots as a list of strings for each level.
+
+    Returns:
+        filenames (dict): Formatted filenames for plots.
+    """
+    def standard_format(plot_type: str, file_ext: str) -> str:
+        """Creates a unique filename for a plot in a standardised format.
+
+        Args:
+            plot_type (str): Plot type to use in filename.
+            file_ext (str): File extension. e.g. `png'.
+
+        Returns:
+            String of path to filename of the form "{model_name}_{plot_type}_{timestamp}.{file_ext}"
+        """
         filename = '{}_{}_{}.{}'.format(model_name, plot_type, timestamp, file_ext)
         return os.path.join(os.path.join(*path), filename)
 
@@ -744,8 +809,27 @@ def format_plot_names(model_name, timestamp, path):
     return filenames
 
 
-def plot_results(metrics, plots, z, y, class_names, colours, save=True, show=False, model_name='',
-                 timestamp=None, results_dir: list = ('')):
+def plot_results(metrics: dict, plots: dict, z, y, class_names: dict, colours: dict, save: bool = True,
+                 show: bool = False, model_name: str = None, timestamp: str = None, results_dir: list = None) -> None:
+    """Orchestrates the creation of various plots from the results of a model fitting.
+
+    Args:
+        metrics (dict): Dictionary containing a log of various metrics used to assess the performance of a model.
+        plots (dict): Dictionary defining which plots to make.
+        z (list[list[int]] or np.ndarray[np.ndarray[int]]): List of predicted label masks.
+        y (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
+        class_names (dict): Dictionary mapping class labels to class names.
+        colours (dict): Dictionary mapping class labels to colours.
+        save (bool): Optional; Whether to save the plots to file.
+        show (bool): Optional; Whether to show the plots.
+        model_name (str): Optional; Name of model. e.g. MLP-MkVI.
+        timestamp (str): Optional; Time and date to be used to identify experiment.
+            If not specified, the current date-time is used.
+        results_dir (list): Optional; Path to the directory for storing plots as a list of strings for each level.
+
+    Returns:
+        None
+    """
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
 

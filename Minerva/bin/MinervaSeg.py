@@ -60,13 +60,21 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def seg_plot(z, y, test_ids, classes, colours):
+def seg_plot(z, y, test_ids: list, classes: dict, colours: dict,
+             frac: float = 0.05, figdim: tuple = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
     Args:
         z (list[float]): Predicted segmentation masks by the network.
         y (list[float]): Corresponding ground truth masks.
         test_ids (list[str]): Corresponding patch IDs for the test data supplied to the network.
+        classes (dict): Dictionary mapping class labels to class names.
+        colours (dict): Dictionary mapping class labels to colours.
+        frac (float): Optional; Fraction of patch samples to plot.
+        figdim (tuple): Optional; Figure (height, width) in inches.
+
+    Returns:
+        None
     """
     z = np.array(z)
     y = np.array(y)
@@ -81,14 +89,14 @@ def seg_plot(z, y, test_ids, classes, colours):
 
     print('PRODUCING PREDICTED MASKS')
     # Initialises a progress bar for the epoch.
-    with alive_bar(int(0.05*len(test_ids)), bar='blocks') as bar:
+    with alive_bar(int(frac*len(test_ids)), bar='blocks') as bar:
         # Plots the predicted versus ground truth labels for all test patches supplied.
-        for i in range(int(0.05*len(test_ids))):
+        for i in range(int(frac*len(test_ids))):
             visutils.prediction_plot(z[i], y[i], test_ids[i],
                                      exp_id=config['model_name'],
                                      new_cs=new_cs,
                                      classes=classes,
-                                     figdim=(9.3, 10.5),
+                                     figdim=figdim,
                                      show=False,
                                      cmap_style=ListedColormap(colours.values(), N=len(colours)))
 
