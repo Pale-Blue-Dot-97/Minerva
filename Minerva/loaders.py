@@ -22,7 +22,11 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
+
+Attributes:
+    manifest (pd.DataFrame): DataFrame outlining every sample in the dataset's cloud cover, centre pixel label
+        and fraction class sizes.
 
 TODO:
     * Update make_dataset documentation

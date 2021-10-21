@@ -22,7 +22,26 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
+
+Attributes:
+    config_path (str): Path to master config YAML file.
+    config (dict): Master config defining how the experiment should be conducted.
+    imagery_config_path (str): Path to the imagery config YAML file.
+    data_config_path (str): Path to the data config YAML file.
+    imagery_config (dict): Config defining the properties of the imagery used in the experiment.
+    data_config (dict): Config defining the properties of the data used in the experiment.
+    data_dir (list): Path to directory holding dataset.
+    results_dir (list): Path to directory to output plots to.
+    model_name (str): Model type and mark number.
+    patch_dir_prefix (str): Prefix to every patch ID in every patch directory name.
+    label_suffix (str): Suffix of the label files identifying which dataset they belong to.
+    band_ids (list): Band IDs of images to be used.
+    image_size (tuple): Defines the shape of the images.
+    flattened_image_size (int): Number of pixels in an image. Calculated from image_size[0] * image_size[1].
+    classes (dict): Mapping of class labels to class names.
+    cmap_dict (dict): Mapping of class labels to colours.
+    params (dict): Sub-dict of the master config for the model hyper-parameters.
 
 TODO:
     * Update print_class_dist to construct a pd.DataFrame from the class dist and print that DataFrame.
@@ -67,24 +86,24 @@ with open(imagery_config_path) as file:
 with open(data_config_path) as file:
     data_config = yaml.safe_load(file)
 
-# Path to directory holding dataset
+# Path to directory holding dataset.
 data_dir = os.sep.join(config['dir']['data'])
 
-# Path to directory to output plots to
+# Path to directory to output plots to.
 results_dir = os.path.join(*config['dir']['results'])
 
 # Model Name
 model_name = config['model_name']
 
-# Prefix to every patch ID in every patch directory name
+# Prefix to every patch ID in every patch directory name.
 patch_dir_prefix = imagery_config['patch_dir_prefix']
 
 label_suffix = data_config['label_suffix']
 
-# Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset
+# Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset.
 band_ids = imagery_config['data_specs']['band_ids']
 
-# Defines size of the images to determine the number of batches
+# Defines size of the images to determine the number of batches.
 image_size = imagery_config['data_specs']['image_size']
 
 flattened_image_size = image_size[0] * image_size[1]
@@ -100,18 +119,38 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def load_configs(master_config_path):
-    def config_load(*paths):
+def load_configs(master_config_path: str) -> Tuple:
+    """Loads the master config from YAML. Finds other config paths within and loads them.
+
+    Args:
+        master_config_path (str): Path to the master config YAML file.
+
+    Returns:
+        Master config and any other configs found from paths in the master config.
+    """
+    def config_load(*paths: str):
+        """Loads and returns config files from YAML as dicts.
+
+        Args:
+            *paths (str): Any number of paths to config YAML files.
+
+        Returns:
+            Config dictionaries loaded from YAML from paths.
+        """
         configs = []
         for path in paths:
+            # Loads config from YAML as dict.
             with open(path) as f:
                 configs.append(yaml.safe_load(f))
         return configs
 
+    # First loads the master config.
     master_config, = config_load(master_config_path)
 
+    # Gets the paths for the other configs from master config.
     config_paths = master_config['dir']['configs']
 
+    # Loads and returns the other configs along with master config.
     return (master_config, *config_load(config_paths))
 
 
