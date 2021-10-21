@@ -55,7 +55,6 @@ from torch.backends import cudnn
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 
-
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
@@ -101,6 +100,21 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def load_configs(master_config_path):
+    def config_load(*paths):
+        configs = []
+        for path in paths:
+            with open(path) as f:
+                configs.append(yaml.safe_load(f))
+        return configs
+
+    master_config, = config_load(master_config_path)
+
+    config_paths = master_config['dir']['configs']
+
+    return (master_config, *config_load(config_paths))
+
+
 def get_cuda_device() -> torch.device:
     """Finds and returns the CUDA device, if one is available. Else, returns CPU as device.
     Assumes there is at most only one CUDA device.

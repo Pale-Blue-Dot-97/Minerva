@@ -7,8 +7,9 @@ dir:
    - 'Minerva'
    - 'data'
    - 'landcovernet'
-  data_config: '../../config/ESRI.yml'
-  imagery_config: '../../config/landcovernet.yml'
+  configs:
+    data_config: '../../config/ESRI.yml'
+    imagery_config: '../../config/landcovernet.yml'
   results:
     - 'F:'
     - 'Harry'

@@ -1,6 +1,4 @@
-"""visutils
-
-Module to visualise .tiff images and associated label masks downloaded from the Radiant MLHub API.
+"""Module to visualise .tiff images and associated label masks.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -24,20 +22,31 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
 
+Attributes:
+    config_path (str): Path to master config YAML file.
+    config (dict): Master config defining how the experiment should be conducted.
+        Must contain paths to auxiliary configs.
+    imagery_config (dict): Config defining the properties of the imagery used in the experiment.
+    data_config (dict): Config defining the properties of the data used in the experiment.
+    data_dir (list): Path to directory holding dataset.
+    patch_dir_prefix (str): Prefix to every patch ID in every patch directory name.
+    manifest (pd.DataFrame): DataFrame outlining every sample in the dataset's cloud cover, centre pixel label
+        and fraction class sizes.
 
 TODO:
     * Add ability to plot labelled RGB images using the annual land cover labels
     * Add option to append annual land cover mask to patch GIFs
+    * Reduce boilerplate
 
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Union, Optional
 from Minerva.utils import utils
 import os
-import yaml
 import imageio
 import numpy as np
 import pandas as pd
@@ -46,35 +55,32 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import Bbox
+from matplotlib.colors import ListedColormap
 import cv2
+import osr
 from alive_progress import alive_bar
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
 config_path = '../../config/config.yml'
-lcn_config_path = '../../config/landcovernet.yml'
 
-with open(config_path) as file:
-    config = yaml.safe_load(file)
+config, imagery_config, data_config = utils.load_configs(config_path)
 
-with open(lcn_config_path) as file:
-    lcn_config = yaml.safe_load(file)
-
-# Path to directory holding dataset
+# Path to directory holding dataset.
 data_dir = config['dir']['data']
 
-# Prefix to every patch ID in every patch directory name
-patch_dir_prefix = lcn_config['patch_dir_prefix']
+# Prefix to every patch ID in every patch directory name.
+patch_dir_prefix = data_config['patch_dir_prefix']
 
-# Automatically fixes the layout of the figures to accommodate the colour bar legends
+# Automatically fixes the layout of the figures to accommodate the colour bar legends.
 plt.rcParams['figure.constrained_layout.use'] = True
 
 # Increases DPI to avoid strange plotting errors for class heatmaps.
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
 
-# Downloads required plugin for imageio if not already present
+# Downloads required plugin for imageio if not already present.
 imageio.plugins.freeimage.download()
 
 manifest = pd.read_csv(utils.get_manifest())
@@ -134,7 +140,8 @@ def deinterlace(x, f: int) -> np.ndarray:
     return np.array(new_x).flatten()
 
 
-def discrete_heatmap(data, classes: list = None, cmap_style=None, block_size: int = 32) -> None:
+def discrete_heatmap(data, classes: Optional[list, tuple, np.ndarray] = None,
+                     cmap_style: Optional[str, ListedColormap] = None, block_size: int = 32) -> None:
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
     Args:
@@ -227,8 +234,10 @@ def make_rgb_image(scene_path: str, rgb: dict, block_size: int = 32):
     return rgb_image
 
 
-def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1, classes: list = None,
-                       block_size: int = 32, cmap_style=None, alpha: float = 0.5, new_cs=None,
+def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
+                       classes: Optional[list, tuple, np.ndarray] = None, block_size: int = 32,
+                       cmap_style: Optional[str, ListedColormap] = None, alpha: float = 0.5,
+                       new_cs: Optional[osr.SpatialReference] = None,
                        show: bool = True, save: bool = True, figdim: tuple = (8.02, 10.32)) -> str:
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top.
 
@@ -357,8 +366,9 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1, cla
     return fn
 
 
-def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: int = 1, classes: list = None,
-             cmap_style=None, new_cs=None, alpha: float = 0.5, save: bool = False,
+def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: int = 1,
+             classes: Optional[list, tuple, np.ndarray] = None, cmap_style: Optional[str, ListedColormap] = None,
+             new_cs: Optional[osr.SpatialReference] = None, alpha: float = 0.5, save: bool = False,
              figdim: tuple = (8.02, 10.32)) -> None:
     """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes.
 
@@ -411,8 +421,10 @@ def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: i
         imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
-def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1, classes: list = None,
-                      cmap_style=None, new_cs=None, alpha: float = 0.5, figdim: tuple = (8.02, 10.32)) -> None:
+def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1,
+                      classes: Optional[list, tuple, np.ndarray] = None,
+                      cmap_style: Optional[str, ListedColormap] = None, new_cs: Optional[osr.SpatialReference] = None,
+                      alpha: float = 0.5, figdim: tuple = (8.02, 10.32)) -> None:
     """Wrapper to make_gifs() to iterate through all patches in dataset.
 
     Args:
@@ -437,7 +449,7 @@ def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1
     # Iterate through all patches
     for patch in patches:
         # Count this iteration for the progress counter
-        i = i + 1
+        i += 1
 
         # Print status update
         print('\r\nNOW SERVING PATCH %s (%s/%s): ' % (patch, i, len(patches)))
@@ -455,7 +467,9 @@ def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1
     print('\r\nOPERATION COMPLETE')
 
 
-def plot_all_pvl(predictions, labels, patch_ids: list, exp_id: str, new_cs, classes: dict, cmap) -> None:
+def plot_all_pvl(predictions: Union[list, np.ndarray], labels: Union[list, np.ndarray],
+                 patch_ids: Union[list, tuple, np.ndarray], exp_id: str, new_cs: osr.SpatialReference,
+                 classes: dict, cmap: Union[str, ListedColormap]) -> None:
     """Uses prediction_plot to plot all predicted versus ground truth comparison plots.
 
     Args:
@@ -497,9 +511,10 @@ def plot_all_pvl(predictions, labels, patch_ids: list, exp_id: str, new_cs, clas
                         figdim=figdim)
 
 
-def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, new_cs, classes: dict = None,
-                    block_size: int = 32, cmap_style=None, show: bool = True, save: bool = True,
-                    figdim: tuple = None) -> str:
+def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, new_cs: osr.SpatialReference,
+                    classes: Optional[dict] = None, block_size: int = 32,
+                    cmap_style: Optional[str, ListedColormap] = None, show: bool = True, save: bool = True,
+                    figdim: Optional[tuple, list, np.ndarray] = None) -> str:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
 
@@ -623,8 +638,9 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, ne
     return fn
 
 
-def plot_subpopulations(class_dist: list, class_names: dict = None, cmap_dict=None,
-                        filename: str = None, save: bool = True, show: bool = False) -> None:
+def plot_subpopulations(class_dist: Union[list, tuple, np.ndarray], class_names: Optional[dict] = None,
+                        cmap_dict: Optional[dict] = None, filename: Optional[str] = None, save: bool = True,
+                        show: bool = False) -> None:
     """Creates a pie chart of the distribution of the classes within the data.
 
     Args:
@@ -679,7 +695,7 @@ def plot_subpopulations(class_dist: list, class_names: dict = None, cmap_dict=No
         plt.close()
 
 
-def plot_history(metrics: dict, filename: str = None, save: bool = True, show: bool = False) -> None:
+def plot_history(metrics: dict, filename: Optional[str] = None, save: bool = True, show: bool = False) -> None:
     """Plots model history based on metrics supplied.
 
     Args:
@@ -714,8 +730,9 @@ def plot_history(metrics: dict, filename: str = None, save: bool = True, show: b
         plt.close()
 
 
-def make_confusion_matrix(test_pred, test_labels, classes: dict, filename: str = None,
-                          show: bool = True, save: bool = False) -> None:
+def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union[list, np.ndarray],
+                          classes: dict, filename: Optional[str] = None, show: bool = True,
+                          save: bool = False) -> None:
     """Creates a heat-map of the confusion matrix of the given model.
 
     Args:
@@ -778,7 +795,7 @@ def make_confusion_matrix(test_pred, test_labels, classes: dict, filename: str =
         plt.close()
 
 
-def format_plot_names(model_name: str, timestamp: str, path: list) -> dict:
+def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple]) -> dict:
     """Creates unique filenames of plots in a standardised format.
 
     Args:
@@ -809,8 +826,10 @@ def format_plot_names(model_name: str, timestamp: str, path: list) -> dict:
     return filenames
 
 
-def plot_results(metrics: dict, plots: dict, z, y, class_names: dict, colours: dict, save: bool = True,
-                 show: bool = False, model_name: str = None, timestamp: str = None, results_dir: list = None) -> None:
+def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndarray],
+                 class_names: dict, colours: dict, save: bool = True, show: bool = False,
+                 model_name: Optional[str] = None, timestamp: Optional[str] = None,
+                 results_dir: Optional[list, tuple] = None) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
     Args:
