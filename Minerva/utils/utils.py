@@ -25,10 +25,12 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd
 
 TODO:
+    * Update print_class_dist to construct a pd.DataFrame from the class dist and print that DataFrame.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Tuple, Union, Optional, Any, Iterator
 from Minerva.utils import visutils
 import yaml
 import os
@@ -99,7 +101,7 @@ params = config['hyperparams']['params']
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_cuda_device():
+def get_cuda_device() -> torch.device:
     """Finds and returns the CUDA device, if one is available. Else, returns CPU as device.
     Assumes there is at most only one CUDA device.
 
@@ -113,11 +115,14 @@ def get_cuda_device():
     return device
 
 
-def exist_delete_check(fn: str):
+def exist_delete_check(fn: str) -> None:
     """Checks if given file exists then deletes if true.
 
     Args:
         fn (str): Path to file to have existence checked then deleted.
+
+    Returns:
+        None
     """
     # Checks if file exists. Deletes if True. No action taken if False
     if os.path.exists(fn):
@@ -126,12 +131,15 @@ def exist_delete_check(fn: str):
         pass
 
 
-def mkexpdir(name: str):
+def mkexpdir(name: str) -> None:
     """Makes a new directory below the results directory with name provided. If directory already exists,
     no action is taken.
 
     Args:
         name (str): Name of new directory.
+
+    Returns:
+        None
     """
     try:
         os.mkdir(os.path.join(results_dir, name))
@@ -139,7 +147,7 @@ def mkexpdir(name: str):
         pass
 
 
-def datetime_reformat(timestamp: str, fmt1: str, fmt2: str):
+def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
     """Takes a str representing a time stamp in one format and returns it reformatted into a second.
 
     Args:
@@ -153,7 +161,7 @@ def datetime_reformat(timestamp: str, fmt1: str, fmt2: str):
     return datetime.strptime(timestamp, fmt1).strftime(fmt2)
 
 
-def prefix_format(patch_id: str, scene: str):
+def prefix_format(patch_id: str, scene: str) -> str:
     """Formats a string representing the prefix of a path to any file in a scene.
 
     Args:
@@ -167,14 +175,14 @@ def prefix_format(patch_id: str, scene: str):
                        datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
 
 
-def scene_grab(patch_id: str):
+def scene_grab(patch_id: str) -> list:
     """Finds all scenes for a given patch.
 
         Args:
             patch_id (str): Unique patch ID.
 
         Returns:
-            scene_names (list): List of scene dates in YY_MM_DD.
+            scene_names (list[str]): List of scene dates in YY_MM_DD.
         """
     path = '{}{}{}{}'.format(data_dir, os.sep, patch_dir_prefix, patch_id)
 
@@ -185,7 +193,7 @@ def scene_grab(patch_id: str):
     return [scene.partition(path)[2].replace(os.sep, '') for scene in scene_dirs]
 
 
-def cloud_grab(patch_id: str):
+def cloud_grab(patch_id: str) -> Tuple[list, list]:
     """Finds and loads all CLDs for a given patch.
 
     Args:
@@ -221,7 +229,7 @@ def patch_grab() -> list:
     return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
 
 
-def get_patches_in_tile(tile_id: str, patch_ids: list = None) -> list:
+def get_patches_in_tile(tile_id: str, patch_ids: Optional[Union[list, tuple, np.ndarray]] = None) -> list:
     """Finds all the IDs of patches within the supplied tile.
 
     Args:
@@ -254,14 +262,32 @@ def date_grab(patch_id: str) -> list:
 
 
 def get_label_path(patch_id: str) -> str:
+    """Gets the path to the file containing the labels for the patch with ID supplied.
+
+    Args:
+        patch_id (str): Unique patch ID.
+
+    Returns:
+        Path to file containing the labels for the patch.
+    """
     return os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '{}.tif'.format(label_suffix)])
 
 
 def get_dataset_name() -> str:
+    """Gets the name of the dataset to be used from the config name.
+
+    Returns:
+        Name of dataset as string.
+    """
     return regex.search('config/(.*?)\.yml', data_config_path).group(1)
 
 
 def get_manifest() -> str:
+    """Gets the path to the manifest for the dataset to be used.
+
+    Returns:
+        Path to manifest as string.
+    """
     return os.sep.join([data_dir, '{}_Manifest.csv'.format(get_dataset_name())])
 
 
@@ -273,7 +299,7 @@ def load_array(path: str, band: int):
         band (int): Band number of .tif file.
 
     Returns:
-        data ([[float]]): 2D array representing the image from the .tif band requested.
+        data (np.ndarray[np.ndarray[float]]): 2D array representing the image from the .tif band requested.
     """
     raster = rt.open(path)
 
@@ -294,11 +320,11 @@ def lc_load(patch_id: str):
     return load_array(get_label_path(patch_id), 1)
 
 
-def dataset_lc_load(ids: list, func=lc_load):
+def dataset_lc_load(ids: Union[list, tuple, np.ndarray], func: callable = lc_load) -> list:
     """Loads Labels for the given patch IDs using the provided loading function.
 
     Args:
-        ids (list): List of patch IDs.
+        ids (list[str]): List of patch IDs.
         func (function): Optional; Function that loads label(s) via a patch ID input.
 
     Returns:
@@ -307,7 +333,7 @@ def dataset_lc_load(ids: list, func=lc_load):
     return [func(patch_id) for patch_id in ids]
 
 
-def find_centre_label(patch_id: str):
+def find_centre_label(patch_id: str) -> int:
     """Gets the annual land cover label for the central pixel of the given patch.
 
     Args:
@@ -321,7 +347,15 @@ def find_centre_label(patch_id: str):
     return labels[int(labels.shape[0] / 2)][int(labels.shape[1] / 2)]
 
 
-def centre_pixel_only(image):
+def centre_pixel_only(image: Union[list, np.ndarray]) -> np.ndarray:
+    """Returns a copy of the image containing only zeros and the original central pixel.
+
+    Args:
+        image (list of np.ndarray): Image to be modified.
+
+    Returns:
+        Image of only zeros with the exception of the original central pixel.
+    """
     new_image = np.zeros((*image_size, len(band_ids)))
 
     new_image[int(image_size[0]/2.0)][int(image_size[1]/2.0)] = image[int(image_size[0]/2.0)][int(image_size[1]/2.0)]
@@ -329,7 +363,18 @@ def centre_pixel_only(image):
     return new_image
 
 
-def cut_to_extents(patch_id, tile_id, tile_dir):
+def cut_to_extents(patch_id: str, tile_id: str, tile_dir: list) -> None:
+    """Uses the extents of the patch defined by patch_id to cut out and save a new patch
+        at the same location and size from the tile defined by tile_id.
+
+    Args:
+        patch_id (str): Unique patch ID.
+        tile_id (str): Unique tile ID.
+        tile_dir (list[str]): Path to directory containing tile as a list of strings for each level.
+
+    Returns:
+        None
+    """
     # Path to patch dir and patch ID prefix.
     patch_path = os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id])
 
@@ -367,7 +412,7 @@ def cut_to_extents(patch_id, tile_id, tile_dir):
         os.remove(fn)
 
 
-def transform_coordinates(path: str, new_cs: osr.SpatialReference):
+def transform_coordinates(path: str, new_cs: osr.SpatialReference) -> list:
     """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
     in the new co-ordinates system provided.
 
@@ -406,7 +451,7 @@ def transform_coordinates(path: str, new_cs: osr.SpatialReference):
             [trans.TransformPoint(min_x, min_y)[:2], trans.TransformPoint(max_x, min_y)[:2]]]
 
 
-def deg_to_dms(deg: float, axis: str = 'lat'):
+def deg_to_dms(deg: float, axis: str = 'lat') -> str:
     """Credit to Gustavo Gonçalves on Stack Overflow.
     https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
 
@@ -438,15 +483,15 @@ def deg_to_dms(deg: float, axis: str = 'lat'):
     return '{}º{}\'{:.0f}"{}'.format(abs(d), abs(m), abs(s), compass_str)
 
 
-def dec2deg(dec_co, axis='lat'):
+def dec2deg(dec_co: Union[list, tuple, np.ndarray], axis: str = 'lat') -> list:
     """Wrapper for deg_to_dms.
 
     Args:
-        dec_co ([float]): Array of either latitude or longitude co-ordinates in decimal degrees.
+        dec_co (list[float]): Array of either latitude or longitude co-ordinates in decimal degrees.
         axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier.
 
     Returns:
-        deg_co ([str]): List of formatted strings in degrees, minutes and seconds.
+        deg_co (list[str]): List of formatted strings in degrees, minutes and seconds.
     """
     deg_co = []
     for co in dec_co:
@@ -455,22 +500,24 @@ def dec2deg(dec_co, axis='lat'):
     return deg_co
 
 
-def labels_to_ohe(labels, n_classes):
+def labels_to_ohe(labels: Union[list, tuple, np.ndarray], n_classes: int) -> np.ndarray:
     """Convert an iterable of indices to one-hot encoded labels.
 
     Args:
-        labels (list[int]): List of class number labels to be converted to OHE
+        labels (list[int], tuple[int], np.ndarray[int]): List of class number labels to be converted to OHE
         n_classes (int): Number of classes to determine length of OHE label
 
     Returns:
-        Labels in OHE form
+        Labels in OHE form.
     """
     targets = np.array(labels).reshape(-1)
     return np.eye(n_classes)[targets]
 
 
-def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load, seed: int = 42, shuffle: bool = True,
-               balance: bool = True, p_dist: bool = False, plot: bool = False):
+def split_data(patch_ids: Optional[Union[list, tuple, np.ndarray]] = None,
+               split: Union[list, tuple, np.ndarray] = (0.7, 0.15, 0.15), func: callable = lc_load, seed: int = 42,
+               shuffle: bool = True, balance: bool = True, p_dist: bool = False,
+               plot: bool = False) -> Tuple[dict, dict]:
     """Splits the patch IDs into train, validation and test id sets.
 
     Args:
@@ -489,6 +536,7 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load
 
     Returns:
         ids (dict): Dictionary of patch IDs representing train, validation and test datasets.
+        class_dists (dict): Dictionary of class dists for the train, validation, test and entire datasets.
     """
     # Fetches all patch IDs in the dataset
     if patch_ids is None:
@@ -531,12 +579,13 @@ def split_data(patch_ids=None, split=(0.7, 0.15, 0.15), func: callable = lc_load
     return ids, class_dists
 
 
-def class_weighting(class_dist, normalise: bool = False):
+def class_weighting(class_dist: Union[list, tuple, np.ndarray], normalise: bool = False) -> dict:
     """Constructs weights for each class defined by the distribution provided. Each class weight is the inverse
     of the number of samples of that class. Note: This will most likely mean that the weights will not sum to unity.
 
     Args:
-        class_dist (Any[Any[float]]): 2D iterable which should be of the form created from Counter.most_common().
+        class_dist (list[list[int]] or tuple[tuple[int]]): 2D iterable which should be of the form as that
+            created from Counter.most_common().
         normalise (bool): Optional; Whether to normalise class weights to total number of samples or not.
 
     Returns:
@@ -560,13 +609,16 @@ def class_weighting(class_dist, normalise: bool = False):
     return class_weights
 
 
-def weight_samples(scenes, func=find_centre_label, class_weights=None, normalise: bool = False):
+def weight_samples(scenes: Union[list, tuple, np.ndarray], func: callable = find_centre_label,
+                   class_weights: Optional[dict] = None, normalise: bool = False) -> list:
     """Produces a weight for each sample in the dataset defined by the scene - patch ID tuple pairs provided.
 
     Args:
-        scenes (list[Tuple[str]): List of patch ID - scene date tuple pairs that define the dataset.
+        scenes (list[list[str]] or tuple[tuple[str]]): List of patch ID - scene date tuple pairs that define
+            the dataset.
         func (callable): Optional; Function to load the labels from the dataset with.
         class_weights (dict): Optional; Dictionary mapping class number to its weight.
+        normalise (bool): Optional; Whether or not to normalise the weights to the total number of samples.
 
     Returns:
         sample_weights (list[float]): List of weights for every sample in the dataset defined by patch IDs.
@@ -587,14 +639,15 @@ def weight_samples(scenes, func=find_centre_label, class_weights=None, normalise
     return sample_weights
 
 
-def find_empty_classes(patch_ids: list = None, func: callable = find_centre_label, class_dist=None):
+def find_empty_classes(patch_ids: Optional[Union[list, tuple, np.ndarray]] = None, func: callable = find_centre_label,
+                       class_dist: Optional[Union[list, tuple, np.ndarray]] = None) -> list:
     """Finds which classes defined by config files are not present in the dataset defined by supplied patch IDs.
 
     Args:
         patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
             the patch IDs are inferred from the directory using patch_grab.
         func (callable): Optional; Function to load the labels from the dataset with.
-        class_dist (Any[Any[float]]): Optional; 2D iterable which should be of the form created
+        class_dist (list[list[int]]): Optional; 2D iterable which should be of the form created
             from Counter.most_common(). If not provided, is computed from patch IDs and function provided.
 
     Returns:
@@ -617,15 +670,18 @@ def find_empty_classes(patch_ids: list = None, func: callable = find_centre_labe
     return empty
 
 
-def eliminate_classes(empty_classes, old_classes: dict = None, old_cmap: dict = None):
+def eliminate_classes(empty_classes: Union[list, tuple, np.ndarray], old_classes: Optional[dict] = None,
+                      old_cmap: Optional[dict] = None) -> Tuple[dict, dict, dict]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
 
     Args:
         empty_classes (list[int]): List of classes not found in class_dist and are thus empty/ not present in dataset.
+        old_classes (dict): Optional; Previous mapping of class labels to class names.
+        old_cmap (dict): Optional; Previous mapping of class labels to colours.
 
     Returns:
-        reordered_classes (dict): Mapping of remaining class labels to text description.
+        reordered_classes (dict): Mapping of remaining class labels to class names.
         conversion (dict): Mapping from old to new classes.
         reordered_colours (dict): Mapping of remaining class labels to RGB colours.
     """
@@ -681,18 +737,46 @@ def eliminate_classes(empty_classes, old_classes: dict = None, old_cmap: dict = 
         return reordered_classes, conversion, reordered_colours
 
 
-def class_transform(label, matrix):
+def class_transform(label: int, matrix: dict) -> int:
+    """Transforms labels from one schema to another mapped by a supplied dictionary.
+
+    Args:
+        label (int): Label to be transformed.
+        matrix (dict): Dictionary mapping old labels to new.
+
+    Returns:
+        Label transformed by matrix.
+    """
     return matrix[label]
 
 
-def mask_transform(array, matrix):
+def mask_transform(array: Union[list, np.ndarray], matrix: dict) -> Union[list, np.ndarray]:
+    """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
+
+    Args:
+        array (list or np.ndarray): N-dimensional array containing labels to be transformed.
+        matrix (dict): Dictionary mapping old labels to new.
+
+    Returns:
+        Array of transformed labels.
+    """
     for key in matrix.keys():
         array[array == key] = matrix[key]
 
     return array
 
 
-def class_dist_transform(class_dist, matrix):
+def class_dist_transform(class_dist: Union[list, tuple, np.ndarray], matrix: dict) -> list:
+    """Transforms the class distribution from an old schema to a new one.
+
+    Args:
+        class_dist (list[list[int]]): 2D iterable which should be of the form as that
+            created from Counter.most_common().
+        matrix (dict): Dictionary mapping old labels to new.
+
+    Returns:
+        new_class_dist (list[list[int]]): Class distribution updated to new labels.
+    """
     new_class_dist = []
     for mode in class_dist:
         new_class_dist.append((class_transform(mode[0], matrix), mode[1]))
@@ -700,27 +784,27 @@ def class_dist_transform(class_dist, matrix):
     return new_class_dist
 
 
-def find_patch_modes(patch_id):
-    """Finds the distribution of the classes within this patch
+def find_patch_modes(patch_id: str) -> list:
+    """Finds the distribution of the classes within this patch.
 
     Args:
-        patch_id (str): Unique patch ID
+        patch_id (str): Unique patch ID.
 
     Returns:
-        (Counter): Modal distribution of classes in the patch provided
+        Modal distribution of classes in the patch provided in order of most common mode.
     """
     return Counter(np.array(lc_load(patch_id)).flatten()).most_common()
 
 
-def class_frac(patch: pd.Series):
+def class_frac(patch: pd.Series) -> pd.Mapping:
     """Computes the fractional sizes of the classes of the given patch and returns a dict of the results
 
     Args:
         patch (pandas.Series): Row of DataFrame representing the entry for a patch
 
     Returns:
-        new_columns (dict): Dictionary with keys as class numbers and associated values of fractional size of class
-                            plus a key-value pair for the patch ID
+        new_columns (pd.Mapping): Dictionary-like object with keys as class numbers and associated values
+            of fractional size of class plus a key-value pair for the patch ID
     """
     new_columns = patch.to_dict()
     for mode in patch['MODES']:
@@ -729,19 +813,39 @@ def class_frac(patch: pd.Series):
     return new_columns
 
 
-def extract_patch_ids(scene):
+def extract_patch_ids(scene: Union[list, tuple, np.ndarray]) -> str:
+    """Gets the patch ID from the scene patch ID - date tuple.
+
+    Args:
+        scene (list[str] or tuple[str]): Patch ID - date tuple that uniquely identifies a scene sample.
+
+    Returns:
+        Patch ID of the scene.
+    """
     return scene[0]
 
 
-def extract_dates(scene):
+def extract_dates(scene: Union[list, tuple, np.ndarray]) -> str:
+    """Gets the date from the scene patch ID - date tuple.
+
+    Args:
+        scene (list[str] or tuple[str]): Patch ID - date tuple that uniquely identifies a scene sample.
+
+    Returns:
+        Date of the scene.
+    """
     return scene[1]
 
 
-def make_sorted_streams(patch_ids: list = None, scenes: list = None, func: callable = lc_load):
+def make_sorted_streams(patch_ids: Optional[Union[list, tuple, np.ndarray]] = None,
+                        scenes: Optional[Union[list, tuple, np.ndarray]] = None,
+                        func: callable = lc_load) -> pd.DataFrame:
     """Creates a DataFrame with columns of patch IDs sorted for each class by class size in those patches.
 
     Args:
         patch_ids (list[str]): List of patch IDs defining the dataset to be sorted.
+        scenes (list[list[str]]): Optional; List of patch ID - scene date tuple pairs that define the dataset.
+        func (function): Optional; Function to use to load labels from file with.
 
     Returns:
         streams_df (pd.DataFrame): Database of list of patch IDs sorted by fractional sizes of class labels.
@@ -784,7 +888,17 @@ def make_sorted_streams(patch_ids: list = None, scenes: list = None, func: calla
     return streams_df
 
 
-def hard_balance(scenes, over_factor: int = 1, seed: int = 42):
+def hard_balance(scenes: Union[list, tuple, np.ndarray], over_factor: int = 1, seed: int = 42) -> list:
+    """Under and over samples supplied scenes to create a new list of scenes that have a perfect class balance.
+
+    Args:
+        scenes (list[list[str]]): List of patch ID - scene date tuple pairs that define the dataset.
+        over_factor (int): Optional; How many times on average will the same scene from the smallest class be sampled.
+        seed (int): Optional; Fixes the random number sequence to use to ensure repeatability.
+
+    Returns:
+        List of perfectly balanced scene patch ID - date pairs.
+    """
     df = pd.DataFrame()
     df['SCENE'] = scenes
     df['PATCH'] = df['SCENE'].apply(extract_patch_ids)
@@ -809,7 +923,7 @@ def hard_balance(scenes, over_factor: int = 1, seed: int = 42):
     return balanced_scenes
 
 
-def cloud_cover(scene: np.ndarray):
+def cloud_cover(scene: np.ndarray) -> float:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
     Args:
@@ -821,7 +935,7 @@ def cloud_cover(scene: np.ndarray):
     return np.sum(scene) / scene.size
 
 
-def month_sort(df: pd.DataFrame, month: str):
+def month_sort(df: pd.DataFrame, month: str) -> str:
     """Finds the the scene with the lowest cloud cover in a given month.
 
     Args:
@@ -834,7 +948,7 @@ def month_sort(df: pd.DataFrame, month: str):
     return df.loc[month].sort_values(by='COVER')['DATE'][0]
 
 
-def ref_scene_select(df: pd.DataFrame, n_scenes: int = 12):
+def ref_scene_select(df: pd.DataFrame, n_scenes: int = 12) -> list:
     """Selects the scene with the least cloud cover of each month of a patch plus n_scenes more of the remaining scenes.
         Based on REF's 2-step selection criteria.
 
@@ -859,7 +973,7 @@ def ref_scene_select(df: pd.DataFrame, n_scenes: int = 12):
     return step1 + step2
 
 
-def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3):
+def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> list:
     """Selects all scenes in a patch with a cloud cover less than the threshold provided.
 
     Args:
@@ -872,11 +986,12 @@ def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3):
     return df.loc[df['COVER'] < thres]['DATE'].tolist()
 
 
-def find_best_of(patch_id: str, manifest, selector: callable = ref_scene_select, **kwargs):
+def find_best_of(patch_id: str, manifest: pd.DataFrame, selector: callable = ref_scene_select, **kwargs):
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
         patch_id (str): Unique patch ID.
+        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
         selector (callable): Optional; Function to use to select scenes.
             Must take an appropriately constructed pd.DataFrame.
         **kwargs: Kwargs for func.
@@ -894,11 +1009,12 @@ def find_best_of(patch_id: str, manifest, selector: callable = ref_scene_select,
     return selector(patch_df, **kwargs)
 
 
-def pair_production(patch_id: str, manifest, func: callable = ref_scene_select, **kwargs) -> list:
+def pair_production(patch_id: str, manifest: pd.DataFrame, func: callable = ref_scene_select, **kwargs) -> list:
     """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
 
     Args:
         patch_id (str): Unique ID of the patch.
+        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
         func (callable): Optional; Function to use to select scenes.
             Must take an appropriately constructed pd.DataFrame.
         **kwargs: Kwargs for func.
@@ -911,11 +1027,12 @@ def pair_production(patch_id: str, manifest, func: callable = ref_scene_select, 
     return [(patch_id, scene) for scene in scenes]
 
 
-def scene_extract(patch_ids: list, manifest, *args, **kwargs):
+def scene_extract(patch_ids: Union[list, tuple, np.ndarray], manifest, *args, **kwargs):
     """Uses pair_production to produce patch ID - scene pairs for the whole dataset outlined by patch_ids.
 
     Args:
-        patch_ids (list[str]):
+        patch_ids (list[str]): List of patch IDs from which to extract scenes from.
+        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
         *args: Args for pair_production
         **kwargs: Kwargs for pair_production
 
@@ -932,7 +1049,7 @@ def scene_extract(patch_ids: list, manifest, *args, **kwargs):
     return pairs
 
 
-def stack_bands(patch_id: str, scene: str):
+def stack_bands(patch_id: str, scene: str) -> np.ndarray:
     """Stacks together all the bands of the SENTINEL-2 images in a given scene of a patch.
 
     Args:
@@ -960,6 +1077,7 @@ def make_time_series(patch_id: str, manifest) -> np.ndarray:
 
     Args:
         patch_id (str): Unique patch ID.
+        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
 
     Returns:
         (np.ndarray): Array of shape(rows, columns, 24, 12) holding all x for a patch.
@@ -977,13 +1095,14 @@ def make_time_series(patch_id: str, manifest) -> np.ndarray:
 
 
 def load_patch_df(patch_id: str, manifest) -> pd.DataFrame:
-    """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns
+    """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns.
 
     Args:
-        patch_id (str): ID for patch to be loaded
+        patch_id (str): ID for patch to be loaded.
+        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
 
     Returns:
-        df (pandas.DataFrame): Patch loaded into a DataFrame
+        df (pd.DataFrame): Patch loaded into a DataFrame.
     """
     # Initialise DataFrame object
     df = pd.DataFrame()
@@ -1018,7 +1137,7 @@ def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
     return datetime.now().strftime(fmt)
 
 
-def find_subpopulations(labels, plot: bool = False):
+def find_subpopulations(labels: Union[list, tuple, np.ndarray], plot: bool = False) -> list:
     """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class.
 
     Args:
@@ -1038,7 +1157,19 @@ def find_subpopulations(labels, plot: bool = False):
     return class_dist
 
 
-def subpopulations_from_manifest(manifest, func: callable = lc_load, plot: bool = False):
+def subpopulations_from_manifest(manifest: pd.DataFrame, func: callable = lc_load, plot: bool = False) -> list:
+    """Uses the dataset manifest to calculate the size of classes within the dataset without
+        loading the label files.
+
+    Args:
+        manifest (pd.DataFrame): DataFrame containing the fractional sizes of classes and centre pixel labels
+            of all samples of the dataset to be used.
+        func (function): Optional;
+        plot (bool): Optional; Whether or not to plot the class distribution pie chart.
+
+    Returns:
+
+    """
     class_dist = Counter()
     if func is lc_load:
         for classification in classes.keys():
@@ -1074,7 +1205,7 @@ def num_batches(num_ids: int) -> int:
     return int((num_ids * image_size[0] * image_size[1]) / params['batch_size'])
 
 
-def func_by_str(module: str, func: str):
+def func_by_str(module: str, func: str) -> Any:
     """Gets the constructor or callable within a module defined by the names supplied.
 
     Args:
@@ -1091,7 +1222,18 @@ def func_by_str(module: str, func: str):
     return getattr(module, func)
 
 
-def check_len(param, comparator):
+def check_len(param: Any, comparator: Any) -> Union[Any, list]:
+    """Checks the length of one object against a comparator object.
+
+    Args:
+        param: Object to have length checked.
+        comparator: Object to compare length of param to.
+
+    Returns:
+        param if length of param == comparator.
+        list with param[0] elements of length comparator if param =! comparator.
+        list with param elements of length comparator if param does not have __len__.
+    """
     if hasattr(param, '__len__'):
         if len(param) == len(comparator):
             return param
@@ -1101,37 +1243,113 @@ def check_len(param, comparator):
         return [param] * len(comparator)
 
 
-def calc_grad(model) -> float:
+def calc_grad(model: torch.nn.Module) -> Union[float, None]:
+    """Calculates and prints to standout the 2D grad norm of the model parameters.
+
+    Args:
+        model (torch.nn.Module): Torch model to calculate grad norms from.
+
+    Returns:
+        total_norm (float): Total 2D grad norm of the model.
+
+    Raises:
+        AttributeError: If model has not attribute parameters.
+    """
     total_norm = 0.0
-    for p in model.parameters():
-        param_norm = p.grad.data.norm(2)
-        print(param_norm)
-        total_norm += param_norm.item() ** 2
-    total_norm = total_norm ** 0.5
-    print('Total Norm:', total_norm)
-    return total_norm
+
+    try:
+        # Iterate through all model parameters.
+        for p in model.parameters():
+
+            # Calculate 2D grad norm
+            param_norm = p.grad.data.norm(2)
+            print(param_norm.item())
+
+            # Converts norm to float, squares and adds to total_norm.
+            total_norm += param_norm.item() ** 2
+
+        # Square-root to give final total_norm.
+        total_norm **= 0.5
+        print('Total Norm:', total_norm)
+
+        return total_norm
+    except AttributeError:
+        print('Model has no attribute .parameters. Cannot calculate grad norms')
+
+        return
 
 
-def unzip_pairs(pairs):
+def unzip_pairs(pairs: Union[list, tuple, np.ndarray]) -> Iterator:
+    """Splits the patch ID and scene date strings from scene pairs into separate lists.
+
+    Args:
+        pairs (list[str] or tuple[str] or np.ndarray[str]):
+
+    Returns:
+        Iterator that creates a list of patch IDs and matching scene dates.
+    """
     return map(list, zip(*pairs))
 
 
-def select_df_by_patch(df, patch_ids):
+def select_df_by_patch(df: pd.DataFrame, patch_ids: Union[list, tuple, np.ndarray]) -> pd.DataFrame:
+    """Selects the section of the DataFrame for the patch IDs provided with no duplicate IDs.
+        i.e not by patch and not by scene.
+
+    Args:
+        df (pd.DataFrame): DataFrame mapping patch IDs, scene dates and their properties.
+        patch_ids (list[str] or tuple[str] or np.ndarray[str]): List of unique patch IDs to cut DataFrame to.
+
+    Returns:
+        new_df (pd.DataFrame): DataFrame for the patches specified.
+    """
+    # Drops the patch IDs for each scene so there are all unique IDs for each patch.
     new_df = df.drop_duplicates('PATCH')
     return new_df[new_df['PATCH'].isin(patch_ids)]
 
 
-def select_df_by_scenes(df, scenes):
+def select_df_by_scenes(df: pd.DataFrame, scenes: Union[list, tuple, np.ndarray]) -> pd.DataFrame:
+    """Selects the section of the DataFrame for the scenes specified.
+
+    Args:
+        df (pd.DataFrame): DataFrame mapping patch IDs, scene dates and their properties.
+        scenes (list[list[str]]): List of patch ID - scene date tuple pairs to use as selection criteria.
+
+    Returns:
+        new_df (pd.DataFrame): DataFrame for the scenes specified.
+    """
+    # Converts scene pairs into scene tags to search the DataFrame for.
     new_df = df[df['SCENE'].isin(scene_tag(scenes))]
+
     return new_df
 
 
-def print_class_dist(class_dist: list, class_labels: dict = classes) -> None:
+def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: dict = classes) -> None:
+    """Prints the supplied class_dist in a quasi table format.
+
+    Notes:
+        Will be updated to construct a pd.DataFrame from the class dist and print that DataFrame.
+
+    Args:
+        class_dist (list[list[str]]): 2D iterable which should be of the form as that
+            created from Counter.most_common().
+        class_labels (dict): Mapping of class labels to class names.
+
+    Returns:
+        None
+    """
     print('# | LABEL | COUNT')
     print('======================================')
     for mode in class_dist:
         print('{} | {} | {}'.format(mode[0], class_labels[mode[0]], mode[1]))
 
 
-def scene_tag(scenes):
+def scene_tag(scenes: Union[list, tuple, np.ndarray]) -> list:
+    """Creates a list of patch ID - date tags that uniquely identify each scene in a single string.
+
+    Args:
+        scenes (list[list[str]]): List of patch ID - scene date tuple pairs create tags from.
+
+    Returns:
+        List of scene tag strings that uniquely identify each scene.
+    """
     return ['{}-{}'.format(patch_id, date) for patch_id, date in scenes]
