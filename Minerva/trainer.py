@@ -30,6 +30,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Union, Optional, Tuple
 import os
 import yaml
 from Minerva.utils import visutils, utils
@@ -60,7 +61,7 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders, n_batches: dict, class_dist: dict = None, **params):
+    def __init__(self, loaders: dict, n_batches: dict, class_dist: Optional[list, tuple, np.ndarray] = None, **params):
         """Initialises the Trainer.
 
         Args:
@@ -126,7 +127,7 @@ class Trainer:
         # Adds a graphical layout of the model to the TensorBoard logger.
         self.writer.add_graph(self.model, input_to_model=torch.rand(*input_size, device=self.device))
 
-    def make_model(self):
+    def make_model(self) -> torch.nn.Module:
         """Creates a model from the parameters specified by config.
 
         Returns:
@@ -162,7 +163,7 @@ class Trainer:
         else:
             return criterion()
 
-    def make_optimiser(self):
+    def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
 
         # Gets the optimiser requested by config parameters.
@@ -171,7 +172,7 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode):
+    def epoch(self, mode) -> Union[Tuple[list, list, list], None]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -244,7 +245,7 @@ class Trainer:
         else:
             return
 
-    def fit(self):
+    def fit(self) -> None:
         """Fits the model by running max_epochs number of training and validation epochs."""
         for epoch in range(self.max_epochs):
             print(f'Epoch: {epoch + 1}/{self.max_epochs}')
@@ -257,7 +258,7 @@ class Trainer:
             print('Train Accuracy: {}% | Validation Accuracy: {}% \n'.format(self.metrics['train_acc'][epoch] * 100.0,
                                                                              self.metrics['val_acc'][epoch] * 100.0))
 
-    def test(self, plots, save=True):
+    def test(self, plots: dict, save: bool = True) -> Tuple[list, list, list]:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
         analysis of them.
 
@@ -302,7 +303,7 @@ class Trainer:
 
         return predictions, labels, ids
 
-    def close(self):
+    def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
         # Ensure the TensorBoard logger is closed.
         self.writer.close()
@@ -317,7 +318,7 @@ class Trainer:
         # Saves model state dict to PyTorch file.
         torch.save(self.model.state_dict(), '{}.pt'.format(fn))
 
-    def run_tensorboard(self):
+    def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment."""
         os.chdir(os.path.join(*self.params['dir']['results'][:-1]))
         os.system('conda activate env2')

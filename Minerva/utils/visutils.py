@@ -65,7 +65,7 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 
-config, imagery_config, data_config = utils.load_configs(config_path)
+config, imagery_config, data_config, = utils.load_configs(config_path)
 
 # Path to directory holding dataset.
 data_dir = config['dir']['data']

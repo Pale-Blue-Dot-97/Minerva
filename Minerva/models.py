@@ -30,6 +30,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Union, Optional, Tuple, Any
 import abc
 from Minerva.utils import utils
 import torch
@@ -43,11 +44,14 @@ from collections import OrderedDict
 #                                                     CLASSES
 # =====================================================================================================================
 class MinervaModel(torch.nn.Module, ABC):
-    """Abstract class to act as a base for all Minerva Models. Designed to provide inter-compatability with Trainer
+    """Abstract class to act as a base for all Minerva Models. Designed to provide inter-compatability with Trainer.
 
     Attributes:
         criterion: PyTorch loss function model will use.
         optimiser: PyTorch optimiser model will use, to be initialised with inherited model's parameters.
+
+    Args:
+        criterion: PyTorch loss function model will use.
     """
     __metaclass__ = abc.ABCMeta
 
@@ -72,7 +76,7 @@ class MinervaModel(torch.nn.Module, ABC):
         self.optimiser = optimiser
 
     @abc.abstractmethod
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
         """Abstract method for performing a forward pass. Needs implementing!
 
         Args:
@@ -83,7 +87,7 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         return x
 
-    def step(self, x, y, train: bool):
+    def step(self, x: torch.FloatTensor, y: torch.LongTensor, train: bool) -> Tuple:
         """Generic step of model fitting using a batch of data.
 
         Args:
@@ -114,7 +118,7 @@ class MinervaModel(torch.nn.Module, ABC):
 
         return loss, z
 
-    def training_step(self, x, y):
+    def training_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple:
         """Calls step with train=True to perform a training step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
@@ -130,7 +134,7 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         return self.step(x, y, True)
 
-    def validation_step(self, x, y):
+    def validation_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple:
         """Calls step with train=False to perform a validation step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
@@ -146,7 +150,7 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         return self.step(x, y, False)
 
-    def testing_step(self, x, y):
+    def testing_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple:
         """Calls step with train=False to perform a testing step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
@@ -177,20 +181,19 @@ class MLP(MinervaModel, ABC):
             Can be a tuple[int] or list[int] of values that will also determine the number of layers other than
             the required input and output layers.
         network (torch.nn.Sequential): The actual neural network of the model.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (int): Optional; Size of the input vector to the network.
+        n_classes (int): Optional; Number of classes in input data.
+            Determines the size of the output vector of the network.
+        hidden_sizes (tuple[int] or list[int]): Optional; Size of the hidden layers within the network.
+            Can be a tuple[int] or list[int] of values that will also determine the number of layers other than
+            the required input and output layers.
     """
 
-    def __init__(self, criterion, input_size: int = 288, n_classes: int = 8, hidden_sizes: tuple = (256, 144)):
-        """Initialises instance of MLP model.
-
-        Args:
-            criterion: PyTorch loss function model will use.
-            input_size (int): Optional; Size of the input vector to the network.
-            n_classes (int): Optional; Number of classes in input data.
-                Determines the size of the output vector of the network.
-            hidden_sizes (tuple[int] or list[int]): Optional; Size of the hidden layers within the network.
-                Can be a tuple[int] or list[int] of values that will also determine the number of layers other than
-                the required input and output layers.
-        """
+    def __init__(self, criterion, input_size: int = 288, n_classes: int = 8,
+                 hidden_sizes: Union[tuple, list] = (256, 144)):
         super(MLP, self).__init__(criterion=criterion)
 
         self.input_size = input_size
@@ -245,30 +248,29 @@ class CNN(MinervaModel, ABC):
             network.
         conv_net (torch.nn.Sequential): Convolutional network of the model.
         fc_net (torch.nn.Sequential): Fully connected network of the model.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in input data.
+        features (tuple[int] or list[int]): Optional; Series of values defining the number of feature maps.
+            The length of the list is also used to determine the number of convolutional layers in conv_net.
+        conv_kernel_size (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
+            size of all convolutional kernels for all channels and layers.
+        conv_stride (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
+            size of all convolutional stride lengths for all channels and layers.
+        max_kernel_size (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
+            size of all max-pooling kernels for all channels and layers.
+        max_stride (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
+            size of all max-pooling stride lengths for all channels and layers.
     """
 
-    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, features=(2, 1, 1),
-                 fc_sizes=(128, 64), conv_kernel_size: tuple = 3, conv_stride: tuple = 1, max_kernel_size: int = 2,
-                 max_stride: int = 2, conv_do: bool = True, fc_do: bool = True, p_conv_do: float = 0.1,
-                 p_fc_do: float = 0.5):
-        """Initialises an instance of CNN.
-
-        Args:
-            criterion: PyTorch loss function model will use.
-            input_size (tuple[int, int, int] or list[int, int, int]): Optional; Defines the shape of the input data in
-                order of number of channels, image width, image height.
-            n_classes (int): Optional; Number of classes in input data.
-            features (tuple[int] or list[int]): Optional; Series of values defining the number of feature maps.
-                The length of the list is also used to determine the number of convolutional layers in conv_net.
-            conv_kernel_size (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
-                size of all convolutional kernels for all channels and layers.
-            conv_stride (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
-                size of all convolutional stride lengths for all channels and layers.
-            max_kernel_size (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
-                size of all max-pooling kernels for all channels and layers.
-            max_stride (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
-                size of all max-pooling stride lengths for all channels and layers.
-        """
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 features: Union[tuple, list] = (2, 1, 1), fc_sizes: Union[tuple, list] = (128, 64),
+                 conv_kernel_size: Union[int, tuple] = 3, conv_stride: Union[int, tuple] = 1,
+                 max_kernel_size: Union[int, tuple] = 2, max_stride: Union[int, tuple] = 2, conv_do: bool = True,
+                 fc_do: bool = True, p_conv_do: float = 0.1, p_fc_do: float = 0.5):
         super(CNN, self).__init__(criterion=criterion)
 
         self.input_shape = input_size
@@ -337,10 +339,10 @@ class CNN(MinervaModel, ABC):
         # Create fully connected network.
         self.fc_net = torch.nn.Sequential(self._fc_layers)
 
-    def forward(self, x):
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         """Performs a forward pass of the convolutional network and then the fully connected network.
 
-        Can be called directly as a method of MLP (e.g. model.forward()) or when data is parsed to MLP (e.g. model()).
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
             x (torch.FloatTensor): Input data to network.
@@ -359,7 +361,7 @@ class ResNet(MinervaModel, ABC):
     """Modified version of the ResNet network to handle multi-spectral inputs and cross-entropy."""
 
     def __init__(self, block, layers, in_channels: int = 3, n_classes: int = 8, zero_init_residual: bool = False,
-                 groups: int = 1, width_per_group: int = 64, replace_stride_with_dilation=None,
+                 groups: int = 1, width_per_group: int = 64, replace_stride_with_dilation: Optional[tuple] = None,
                  norm_layer=None, encoder: bool = False) -> None:
         super(ResNet, self).__init__()
         if norm_layer is None:
@@ -694,11 +696,11 @@ class FCN32ResNet34(MinervaModel, ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_output_shape(model, image_dim):
+def get_output_shape(model: torch.nn.Module, image_dim: Union[list, tuple]):
     """Gets the output shape of a model.
 
     Args:
-        model: Model for which the shape of the output needs to be found.
+        model (torch.nn.Module): Model for which the shape of the output needs to be found.
         image_dim (list[int] or tuple[int]): Expected shape of the input data to the model.
 
     Returns:

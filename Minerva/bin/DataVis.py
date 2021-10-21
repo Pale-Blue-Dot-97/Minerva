@@ -1,6 +1,4 @@
-"""DataVis
-
-Example script using visutils to create GIFs of the SCL for all patches in dataset
+"""Example script using visutils to create GIFs of the SCL for all patches in dataset
 
     Copyright (C) 2021 Harry James Baker
 
@@ -24,7 +22,7 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
 
 """
 # =====================================================================================================================
