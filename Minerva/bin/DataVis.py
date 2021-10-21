@@ -1,4 +1,4 @@
-"""Example script using visutils to create GIFs of the SCL for all patches in dataset
+"""Example script using visutils to create GIFs of the SCL for all patches in dataset.
 
     Copyright (C) 2021 Harry James Baker
 

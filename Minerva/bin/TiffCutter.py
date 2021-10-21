@@ -24,6 +24,9 @@ Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd
 
+Attributes:
+    tile_dir (str): Path to directory holding the tiles to be cut from.
+    tile_suffix (str): Suffix in tile filenames identifying them as belonging to the dataset desired.
 
 TODO:
 
@@ -31,8 +34,8 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Union, Iterable
 import os
-import glob
 from Minerva.utils import utils
 from alive_progress import alive_bar
 
@@ -46,13 +49,30 @@ tile_suffix = '20200101-20210101'
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def cut_patch_labels(tile_ids):
+def cut_patch_labels(tile_ids: Union[list, tuple, Iterable]) -> None:
+    """Finds all patches within each tile and cuts the matching patches from the tiles.
+
+    Args:
+        tile_ids (list[str]): List of unique tile IDs to cut patches from.
+
+    Returns:
+        None
+    """
+    # Gets the IDs for all patches in the dataset.
     patch_ids = utils.patch_grab()
+
+    # Progress bar.
     with alive_bar(len(patch_ids), bar='blocks') as bar:
+        # Iterates through all tile IDs and finds all patches belonging to each tile.
         for tile_id in tile_ids:
             tile_patches = utils.get_patches_in_tile(tile_id, patch_ids)
+
+            # Iterates through all patches within the tile and cuts the matching patches
+            # from the tile and saves to file.
             for patch_id in tile_patches:
                 utils.cut_to_extents(patch_id, tile_id, tile_dir)
+
+                # Updates progress bar.
                 bar()
 
 
@@ -60,10 +80,10 @@ def cut_patch_labels(tile_ids):
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    tiles = glob.glob(os.sep.join([tile_dir, '*_{}.tif'.format(tile_suffix)]))
+    # Finds and returns all unique tile IDs within the specified directory with the matching suffixes.
+    tile_ids = utils.tile_grab(tile_dir, tile_suffix)
 
-    tile_ids = [(tile.partition(tile_suffix)[0])[-4:-1] for tile in tiles]
-
+    # Cuts all the patches from each tile and saves to file.
     print('CUTTING PATCH LABELS FROM TILES')
     cut_patch_labels(tile_ids)
 

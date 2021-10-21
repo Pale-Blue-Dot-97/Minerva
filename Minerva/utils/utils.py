@@ -282,6 +282,21 @@ def patch_grab() -> list:
     return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
 
 
+def tile_grab(tile_dir: str, tile_suffix: str) -> list:
+    """Finds and returns all unique tile IDs within the specified directory with the matching suffixes.
+
+    Args:
+        tile_dir (str): Path to directory containing the tiles.
+        tile_suffix (str): Suffix of the filenames of the tiles to be found.
+
+    Returns:
+        tile_ids (list): List of unique tile IDs found.
+    """
+    tiles = glob.glob(os.sep.join([tile_dir, '*_{}.tif'.format(tile_suffix)]))
+
+    return [(tile.partition(tile_suffix)[0])[-4:-1] for tile in tiles]
+
+
 def get_patches_in_tile(tile_id: str, patch_ids: Optional[Union[list, tuple, np.ndarray]] = None) -> list:
     """Finds all the IDs of patches within the supplied tile.
 
@@ -416,7 +431,7 @@ def centre_pixel_only(image: Union[list, np.ndarray]) -> np.ndarray:
     return new_image
 
 
-def cut_to_extents(patch_id: str, tile_id: str, tile_dir: list) -> None:
+def cut_to_extents(patch_id: str, tile_id: str, tile_dir: str) -> None:
     """Uses the extents of the patch defined by patch_id to cut out and save a new patch
         at the same location and size from the tile defined by tile_id.
 

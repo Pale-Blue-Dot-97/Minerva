@@ -172,7 +172,7 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode) -> Union[Tuple[list, list, list], None]:
+    def epoch(self, mode: str) -> Union[Tuple[list, list, list], None]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
