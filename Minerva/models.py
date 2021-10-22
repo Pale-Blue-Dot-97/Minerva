@@ -22,15 +22,19 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
 
 TODO:
     * Add more functionality to CNN inputs
+    * Add missing docstrings
+    * Add other FCN variants
+    * Update ResNet so it can output at each each layer
+    * Reduce boiler plate
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Any
+from typing import Union, Optional, Tuple, Callable, Type, Any
 import abc
 from Minerva.utils import utils
 import torch
@@ -51,11 +55,11 @@ class MinervaModel(torch.nn.Module, ABC):
         optimiser: PyTorch optimiser model will use, to be initialised with inherited model's parameters.
 
     Args:
-        criterion: PyTorch loss function model will use.
+        criterion: Optional; PyTorch loss function model will use.
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, criterion=None):
+    def __init__(self, criterion=None) -> None:
         super(MinervaModel, self).__init__()
 
         # Sets loss function
@@ -65,7 +69,7 @@ class MinervaModel(torch.nn.Module, ABC):
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
         self.optimiser = None
 
-    def set_optimiser(self, optimiser):
+    def set_optimiser(self, optimiser) -> None:
         """Sets the optimiser used by the model.
 
         Must be called after initialising a model and supplied with a PyTorch optimiser using this model's parameters.
@@ -76,7 +80,7 @@ class MinervaModel(torch.nn.Module, ABC):
         self.optimiser = optimiser
 
     @abc.abstractmethod
-    def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         """Abstract method for performing a forward pass. Needs implementing!
 
         Args:
@@ -87,7 +91,7 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         return x
 
-    def step(self, x: torch.FloatTensor, y: torch.LongTensor, train: bool) -> Tuple:
+    def step(self, x: torch.FloatTensor, y: torch.LongTensor, train: bool) -> Tuple[Any, torch.Tensor]:
         """Generic step of model fitting using a batch of data.
 
         Args:
@@ -118,7 +122,7 @@ class MinervaModel(torch.nn.Module, ABC):
 
         return loss, z
 
-    def training_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple:
+    def training_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple[Any, torch.Tensor]:
         """Calls step with train=True to perform a training step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
@@ -134,7 +138,7 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         return self.step(x, y, True)
 
-    def validation_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple:
+    def validation_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple[Any, torch.Tensor]:
         """Calls step with train=False to perform a validation step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
@@ -150,7 +154,7 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         return self.step(x, y, False)
 
-    def testing_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple:
+    def testing_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple[Any, torch.Tensor]:
         """Calls step with train=False to perform a testing step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
@@ -188,12 +192,12 @@ class MLP(MinervaModel, ABC):
         n_classes (int): Optional; Number of classes in input data.
             Determines the size of the output vector of the network.
         hidden_sizes (tuple[int] or list[int]): Optional; Size of the hidden layers within the network.
-            Can be a tuple[int] or list[int] of values that will also determine the number of layers other than
+            The length of hidden_sizes will also determine the number of layers other than
             the required input and output layers.
     """
 
     def __init__(self, criterion, input_size: int = 288, n_classes: int = 8,
-                 hidden_sizes: Union[tuple, list] = (256, 144)):
+                 hidden_sizes: Union[tuple, list] = (256, 144)) -> None:
         super(MLP, self).__init__(criterion=criterion)
 
         self.input_size = input_size
@@ -219,13 +223,13 @@ class MLP(MinervaModel, ABC):
         # Constructs network from the OrderedDict of layers
         self.network = torch.nn.Sequential(self._layers)
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs a forward pass of the network.
 
         Can be called directly as a method of MLP (e.g. model.forward()) or when data is parsed to MLP (e.g. model()).
 
         Args:
-            x (torch.FloatTensor): Input data to network.
+            x (torch.Tensor): Input data to network.
 
         Returns:
             torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
@@ -270,7 +274,7 @@ class CNN(MinervaModel, ABC):
                  features: Union[tuple, list] = (2, 1, 1), fc_sizes: Union[tuple, list] = (128, 64),
                  conv_kernel_size: Union[int, tuple] = 3, conv_stride: Union[int, tuple] = 1,
                  max_kernel_size: Union[int, tuple] = 2, max_stride: Union[int, tuple] = 2, conv_do: bool = True,
-                 fc_do: bool = True, p_conv_do: float = 0.1, p_fc_do: float = 0.5):
+                 fc_do: bool = True, p_conv_do: float = 0.1, p_fc_do: float = 0.5) -> None:
         super(CNN, self).__init__(criterion=criterion)
 
         self.input_shape = input_size
@@ -339,13 +343,13 @@ class CNN(MinervaModel, ABC):
         # Create fully connected network.
         self.fc_net = torch.nn.Sequential(self._fc_layers)
 
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Performs a forward pass of the convolutional network and then the fully connected network.
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.FloatTensor): Input data to network.
+            x (torch.Tensor): Input data to network.
 
         Returns:
             torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
@@ -358,11 +362,46 @@ class CNN(MinervaModel, ABC):
 
 
 class ResNet(MinervaModel, ABC):
-    """Modified version of the ResNet network to handle multi-spectral inputs and cross-entropy."""
+    """Modified version of the ResNet network to handle multi-spectral inputs and cross-entropy.
 
-    def __init__(self, block, layers, in_channels: int = 3, n_classes: int = 8, zero_init_residual: bool = False,
-                 groups: int = 1, width_per_group: int = 64, replace_stride_with_dilation: Optional[tuple] = None,
-                 norm_layer=None, encoder: bool = False) -> None:
+    Attributes:
+        _norm_layer ():
+        encoder_on (bool):
+        inplanes (int):
+        dilation (int):
+        groups (int):
+        base_width (int):
+        conv1 (torch.nn.Conv2d):
+        bn1 ():
+        relu (torch.nn.ReLU):
+        maxpool (torch.nn.MaxPool2d):
+        layer1 ():
+        layer2 ():
+        layer3 ():
+        layer4 ():
+        fc ():
+
+    Args:
+        block ():
+        layers (list):
+        in_channels (int):
+        n_classes (int): Number of classes in data to be classified.
+        zero_init_residual (bool):
+        groups (int):
+        width_per_group (int):
+        replace_stride_with_dilation (tuple):
+        norm_layer ():
+        encoder (bool):
+
+    Raises:
+        ValueError: If replace_stride_with_dilation is not None or a 3-element tuple.
+    """
+
+    def __init__(self, block: Type[Union[BasicBlock, Bottleneck]], layers: Union[list, tuple], in_channels: int = 3,
+                 n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None,
+                 encoder: bool = False) -> None:
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = torch.nn.BatchNorm2d
@@ -381,7 +420,8 @@ class ResNet(MinervaModel, ABC):
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
         self.groups = groups
         self.base_width = width_per_group
-        self.conv1 = torch.nn.Conv2d(in_channels, self.inplanes, kernel_size=7, stride=2, padding=3, bias=False)
+        self.conv1 = torch.nn.Conv2d(in_channels, self.inplanes, kernel_size=(7, 7), stride=(2, 2),
+                                     padding=3, bias=False)
         self.bn1 = norm_layer(self.inplanes)
         self.relu = torch.nn.ReLU(inplace=True)
         self.maxpool = torch.nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
@@ -392,11 +432,9 @@ class ResNet(MinervaModel, ABC):
                                        dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
-        #self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
-
-        self.fc = None
 
         if not self.encoder_on:
+            self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
             self.fc = torch.nn.Linear(512 * block.expansion, n_classes)
 
         for m in self.modules():
@@ -412,11 +450,11 @@ class ResNet(MinervaModel, ABC):
         if zero_init_residual:
             for m in self.modules():
                 if isinstance(m, Bottleneck):
-                    nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
+                    torch.nn.init.constant_(m.bn3.weight, 0)  # type: ignore[arg-type]
                 elif isinstance(m, BasicBlock):
-                    nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
+                    torch.nn.init.constant_(m.bn2.weight, 0)  # type: ignore[arg-type]
 
-    def _make_layer(self, block, planes: int, blocks: int,
+    def _make_layer(self, block: Type[Union[BasicBlock, Bottleneck]], planes: int, blocks: int,
                     stride: int = 1, dilate: bool = False) -> torch.nn.Sequential:
         norm_layer = self._norm_layer
         downsample = None
@@ -430,9 +468,8 @@ class ResNet(MinervaModel, ABC):
                 norm_layer(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
-                            self.base_width, previous_dilation, norm_layer))
+        layers = [block(self.inplanes, planes, stride, downsample, self.groups,
+                        self.base_width, previous_dilation, norm_layer)]
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
             layers.append(block(self.inplanes, planes, groups=self.groups,
@@ -441,29 +478,48 @@ class ResNet(MinervaModel, ABC):
 
         return torch.nn.Sequential(*layers)
 
-    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.maxpool(x)
+    def _forward_impl(self, x: torch.Tensor
+                      ) -> Union[torch.Tensor,
+                                 Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+        x0 = self.conv1(x)
+        x0 = self.bn1(x0)
+        x0 = self.relu(x0)
+        x0: torch.Tensor = self.maxpool(x0)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        x1: torch.Tensor = self.layer1(x0)
+        x2: torch.Tensor = self.layer2(x1)
+        x3: torch.Tensor = self.layer3(x2)
+        x4: torch.Tensor = self.layer4(x3)
+
+        if self.encoder_on:
+            return x0, x1, x2, x3, x4
 
         if not self.encoder_on:
-            x = torch.flatten(x, 1)
-            x = self.fc(x)
+            x5 = self.avgpool(x4)
+            x5 = torch.flatten(x5, 1)
+            x5 = self.fc(x5)
 
-        return x
+            return x5
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor
+                ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Performs a forward pass of the ResNet.
+
+        Overwrites MinervaModel abstract method.
+
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+
+        Args:
+            x (torch.Tensor): Input data to network.
+
+        Returns:
+            torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
+        """
         return self._forward_impl(x)
 
 
 class Decoder(MinervaModel, ABC):
-    def __init__(self, batch_size, n_classes, image_size):
+    def __init__(self, batch_size: int, n_classes: int, image_size: Union[list, tuple]) -> None:
         super(Decoder, self).__init__()
 
         self.batch_size = batch_size
@@ -485,21 +541,21 @@ class Decoder(MinervaModel, ABC):
         self.derl4 = torch.nn.ReLU()
 
         self.upsample1 = torch.nn.Upsample(scale_factor=2)
-        self.dconv5 = torch.nn.ConvTranspose2d(256, 256, 3, padding=0)
+        self.dconv5 = torch.nn.ConvTranspose2d(256, 256, (3, 3), padding=(0, 0))
         self.derl5 = torch.nn.ReLU()
 
-        self.dconv4 = torch.nn.ConvTranspose2d(256, 384, 3, padding=1)
+        self.dconv4 = torch.nn.ConvTranspose2d(256, 384, (3, 3), padding=(1, 1))
         self.derl6 = torch.nn.ReLU()
 
-        self.dconv3 = torch.nn.ConvTranspose2d(384, 192, 3, padding=1)
+        self.dconv3 = torch.nn.ConvTranspose2d(384, 192, (3, 3), padding=(1, 1))
         self.derl7 = torch.nn.ReLU()
 
         self.upsample2 = torch.nn.Upsample(scale_factor=2)
-        self.dconv2 = torch.nn.ConvTranspose2d(192, 64, 5, padding=2)
+        self.dconv2 = torch.nn.ConvTranspose2d(192, 64, (5, 5), padding=(2, 2))
         self.derl8 = torch.nn.ReLU()
 
         self.upsample3 = torch.nn.Upsample(scale_factor=2)
-        self.dconv1 = torch.nn.ConvTranspose2d(64, self.n_classes, 12, stride=4, padding=4)
+        self.dconv1 = torch.nn.ConvTranspose2d(64, self.n_classes, (12, 12), stride=(4, 4), padding=(4, 4))
         self.derl9 = torch.nn.ReLU()
 
         self.upsample4 = torch.nn.Upsample(size=self.image_size)
@@ -534,15 +590,15 @@ class Decoder(MinervaModel, ABC):
 
 class DC32(MinervaModel, ABC):
 
-    def __init__(self, in_channel=512, n_classes=21):
+    def __init__(self, in_channel: int = 512, n_classes: int = 21):
         super(DC32, self).__init__()
         self.cls_num = n_classes
 
         self.relu = torch.nn.ReLU(inplace=True)
-        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.cls_num, kernel_size=1)
+        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.cls_num, kernel_size=(1, 1))
         self.bn1 = torch.nn.BatchNorm2d(self.cls_num)
-        self.DCN32 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=64,
-                                              stride=32, dilation=1, padding=16)
+        self.DCN32 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(64, 64),
+                                              stride=(32, 32), dilation=1, padding=(16, 16))
         self.DCN32.weight.data = bilinear_init(self.cls_num, self.cls_num, 64)
         self.dbn32 = torch.nn.BatchNorm2d(self.cls_num)
 
@@ -553,8 +609,9 @@ class DC32(MinervaModel, ABC):
 
 
 class ResNet18(MinervaModel, ABC):
-    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, zero_init_residual: bool = False,
-                 groups: int = 1, width_per_group: int = 64, replace_stride_with_dilation=None,
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
                  norm_layer=None):
         super(ResNet18, self).__init__(criterion=criterion)
 
@@ -574,9 +631,9 @@ class ResNet18(MinervaModel, ABC):
 
 
 class FCNResNet18(MinervaModel, ABC):
-    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
-                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation=None, norm_layer=None):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
 
         super(FCNResNet18, self).__init__(criterion=criterion)
 
@@ -590,7 +647,7 @@ class FCNResNet18(MinervaModel, ABC):
         self.input_shape = input_size
         self.n_classes = n_classes
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         z = self.encoder(x)
         z = self.decoder(z)
 
@@ -598,9 +655,9 @@ class FCNResNet18(MinervaModel, ABC):
 
 
 class FCNResNet34(MinervaModel, ABC):
-    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
-                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation=None, norm_layer=None):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
 
         super(FCNResNet34, self).__init__(criterion=criterion)
 
@@ -614,7 +671,7 @@ class FCNResNet34(MinervaModel, ABC):
         self.input_shape = input_size
         self.n_classes = n_classes
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         z = self.encoder(x)
         z = self.decoder(z)
 
@@ -622,9 +679,9 @@ class FCNResNet34(MinervaModel, ABC):
 
 
 class FCNResNet50(MinervaModel, ABC):
-    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
-                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation=None, norm_layer=None):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
 
         super(FCNResNet50, self).__init__(criterion=criterion)
 
@@ -638,7 +695,7 @@ class FCNResNet50(MinervaModel, ABC):
         self.input_shape = input_size
         self.n_classes = n_classes
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         z = self.encoder(x)
         z = self.decoder(z)
 
@@ -646,9 +703,9 @@ class FCNResNet50(MinervaModel, ABC):
 
 
 class FCN32ResNet18(MinervaModel, ABC):
-    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
-                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation=None, norm_layer=None):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
 
         super(FCN32ResNet18, self).__init__(criterion=criterion)
 
@@ -662,7 +719,7 @@ class FCN32ResNet18(MinervaModel, ABC):
         self.input_shape = input_size
         self.n_classes = n_classes
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         z = self.encoder(x)
         z = self.decoder(z)
 
@@ -670,9 +727,9 @@ class FCN32ResNet18(MinervaModel, ABC):
 
 
 class FCN32ResNet34(MinervaModel, ABC):
-    def __init__(self, criterion, input_size=(12, 256, 256), n_classes: int = 8, batch_size: int = 16,
-                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation=None, norm_layer=None):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
 
         super(FCN32ResNet34, self).__init__(criterion=criterion)
 
@@ -686,7 +743,7 @@ class FCN32ResNet34(MinervaModel, ABC):
         self.input_shape = input_size
         self.n_classes = n_classes
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         z = self.encoder(x)
         z = self.decoder(z)
 
@@ -709,7 +766,7 @@ def get_output_shape(model: torch.nn.Module, image_dim: Union[list, tuple]):
     return model(torch.rand([1, *image_dim])).data.shape[1:]
 
 
-def bilinear_init(in_channels, out_channels, kernel_size):
+def bilinear_init(in_channels: int, out_channels: int, kernel_size: int):
     factor = (kernel_size + 1) // 2
     if kernel_size % 2 == 1:
         center = factor - 1
