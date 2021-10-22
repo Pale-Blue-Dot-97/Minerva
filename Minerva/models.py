@@ -28,7 +28,6 @@ TODO:
     * Add more functionality to CNN inputs
     * Add missing docstrings
     * Add other FCN variants
-    * Update ResNet so it can output at each each layer
     * Reduce boiler plate
 """
 # =====================================================================================================================
@@ -648,7 +647,7 @@ class FCNResNet18(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
+        z, = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -672,7 +671,7 @@ class FCNResNet34(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
+        z, = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -696,7 +695,7 @@ class FCNResNet50(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
+        z, = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -720,7 +719,7 @@ class FCN32ResNet18(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
+        z, = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -744,7 +743,7 @@ class FCN32ResNet34(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
+        z, = self.encoder(x)
         z = self.decoder(z)
 
         return z
