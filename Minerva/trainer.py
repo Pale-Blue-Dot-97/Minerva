@@ -61,7 +61,8 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders: dict, n_batches: dict, class_dist: Optional[list, tuple, np.ndarray] = None, **params):
+    def __init__(self, loaders: dict, n_batches: dict, class_dist: Optional[Union[list, tuple, np.ndarray]] = None,
+                 **params) -> None:
         """Initialises the Trainer.
 
         Args:

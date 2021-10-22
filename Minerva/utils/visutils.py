@@ -32,8 +32,6 @@ Attributes:
     data_config (dict): Config defining the properties of the data used in the experiment.
     data_dir (list): Path to directory holding dataset.
     patch_dir_prefix (str): Prefix to every patch ID in every patch directory name.
-    manifest (pd.DataFrame): DataFrame outlining every sample in the dataset's cloud cover, centre pixel label
-        and fraction class sizes.
 
 TODO:
     * Add ability to plot labelled RGB images using the annual land cover labels
@@ -47,6 +45,7 @@ TODO:
 from typing import Union, Optional
 from Minerva.utils import utils
 import os
+import yaml
 import imageio
 import numpy as np
 import pandas as pd
@@ -65,13 +64,20 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 
-config, imagery_config, data_config, = utils.load_configs(config_path)
+with open(config_path) as file:
+    config = yaml.safe_load(file)
+
+with open(config['dir']['configs']['imagery_config']) as file:
+    imagery_config = yaml.safe_load(file)
+
+with open(config['dir']['configs']['data_config']) as file:
+    data_config = yaml.safe_load(file)
 
 # Path to directory holding dataset.
 data_dir = config['dir']['data']
 
 # Prefix to every patch ID in every patch directory name.
-patch_dir_prefix = data_config['patch_dir_prefix']
+patch_dir_prefix = imagery_config['patch_dir_prefix']
 
 # Automatically fixes the layout of the figures to accommodate the colour bar legends.
 plt.rcParams['figure.constrained_layout.use'] = True
@@ -82,8 +88,6 @@ plt.rcParams['savefig.dpi'] = 300
 
 # Downloads required plugin for imageio if not already present.
 imageio.plugins.freeimage.download()
-
-manifest = pd.read_csv(utils.get_manifest())
 
 
 # =====================================================================================================================
@@ -140,8 +144,8 @@ def deinterlace(x, f: int) -> np.ndarray:
     return np.array(new_x).flatten()
 
 
-def discrete_heatmap(data, classes: Optional[list, tuple, np.ndarray] = None,
-                     cmap_style: Optional[str, ListedColormap] = None, block_size: int = 32) -> None:
+def discrete_heatmap(data, classes: Optional[Union[list, tuple, np.ndarray]] = None,
+                     cmap_style: Optional[Union[str, ListedColormap]] = None, block_size: int = 32) -> None:
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
     Args:
@@ -235,8 +239,8 @@ def make_rgb_image(scene_path: str, rgb: dict, block_size: int = 32):
 
 
 def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
-                       classes: Optional[list, tuple, np.ndarray] = None, block_size: int = 32,
-                       cmap_style: Optional[str, ListedColormap] = None, alpha: float = 0.5,
+                       classes: Optional[Union[list, tuple, np.ndarray]] = None, block_size: int = 32,
+                       cmap_style: Optional[Union[str, ListedColormap]] = None, alpha: float = 0.5,
                        new_cs: Optional[osr.SpatialReference] = None,
                        show: bool = True, save: bool = True, figdim: tuple = (8.02, 10.32)) -> str:
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top.
@@ -367,7 +371,8 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
 
 
 def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: int = 1,
-             classes: Optional[list, tuple, np.ndarray] = None, cmap_style: Optional[str, ListedColormap] = None,
+             classes: Optional[Union[list, tuple, np.ndarray]] = None,
+             cmap_style: Optional[Union[str, ListedColormap]] = None,
              new_cs: Optional[osr.SpatialReference] = None, alpha: float = 0.5, save: bool = False,
              figdim: tuple = (8.02, 10.32)) -> None:
     """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes.
@@ -422,8 +427,9 @@ def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: i
 
 
 def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1,
-                      classes: Optional[list, tuple, np.ndarray] = None,
-                      cmap_style: Optional[str, ListedColormap] = None, new_cs: Optional[osr.SpatialReference] = None,
+                      classes: Optional[Union[list, tuple, np.ndarray]] = None,
+                      cmap_style: Optional[Union[str, ListedColormap]] = None,
+                      new_cs: Optional[osr.SpatialReference] = None,
                       alpha: float = 0.5, figdim: tuple = (8.02, 10.32)) -> None:
     """Wrapper to make_gifs() to iterate through all patches in dataset.
 
@@ -513,8 +519,8 @@ def plot_all_pvl(predictions: Union[list, np.ndarray], labels: Union[list, np.nd
 
 def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, new_cs: osr.SpatialReference,
                     classes: Optional[dict] = None, block_size: int = 32,
-                    cmap_style: Optional[str, ListedColormap] = None, show: bool = True, save: bool = True,
-                    figdim: Optional[tuple, list, np.ndarray] = None) -> str:
+                    cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True, save: bool = True,
+                    figdim: Optional[Union[tuple, list, np.ndarray]] = None) -> str:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
 
@@ -536,6 +542,9 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, ne
     """
     names = config['rgb_params']
     names['patch_ID'] = patch_id
+
+    manifest = pd.read_csv(utils.get_manifest())
+
     names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id, manifest)[-1], '%Y_%m_%d', '%d.%m.%Y')
 
     # Get required formatted paths and names
@@ -829,7 +838,7 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
 def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndarray],
                  class_names: dict, colours: dict, save: bool = True, show: bool = False,
                  model_name: Optional[str] = None, timestamp: Optional[str] = None,
-                 results_dir: Optional[list, tuple] = None) -> None:
+                 results_dir: Optional[Union[list, tuple]] = None) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
     Args:

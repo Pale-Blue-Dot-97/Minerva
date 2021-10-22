@@ -60,7 +60,7 @@ import re as regex
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from collections import Counter, OrderedDict
+from collections import Counter, OrderedDict, Mapping
 import rasterio as rt
 import rasterio.mask as rtmask
 import fiona
@@ -77,8 +77,8 @@ config_path = '../../config/config.yml'
 with open(config_path) as file:
     config = yaml.safe_load(file)
 
-imagery_config_path = config['dir']['imagery_config']
-data_config_path = config['dir']['data_config']
+imagery_config_path = config['dir']['configs']['imagery_config']
+data_config_path = config['dir']['configs']['data_config']
 
 with open(imagery_config_path) as file:
     imagery_config = yaml.safe_load(file)
@@ -128,7 +128,18 @@ def load_configs(master_config_path: str) -> Tuple:
     Returns:
         Master config and any other configs found from paths in the master config.
     """
-    def config_load(*paths: str):
+    def yaml_load(path: str) -> dict:
+        """Loads config from YAML as dict.
+        Args:
+            path(str):
+
+        Returns:
+            config (dict):
+        """
+        with open(path) as f:
+            return yaml.safe_load(f)
+
+    def aux_config_load(paths: dict) -> dict:
         """Loads and returns config files from YAML as dicts.
 
         Args:
@@ -137,21 +148,20 @@ def load_configs(master_config_path: str) -> Tuple:
         Returns:
             Config dictionaries loaded from YAML from paths.
         """
-        configs = []
-        for path in paths:
+        configs = {}
+        for config_name in paths.keys():
             # Loads config from YAML as dict.
-            with open(path) as f:
-                configs.append(yaml.safe_load(f))
+            configs[config_name] = yaml_load(paths[config_name])
         return configs
 
     # First loads the master config.
-    master_config, = config_load(master_config_path)
+    master_config = yaml_load(master_config_path)
 
     # Gets the paths for the other configs from master config.
     config_paths = master_config['dir']['configs']
 
     # Loads and returns the other configs along with master config.
-    return (master_config, *config_load(config_paths))
+    return master_config, aux_config_load(config_paths)
 
 
 def get_cuda_device() -> torch.device:
@@ -864,14 +874,14 @@ def find_patch_modes(patch_id: str) -> list:
     return Counter(np.array(lc_load(patch_id)).flatten()).most_common()
 
 
-def class_frac(patch: pd.Series) -> pd.Mapping:
+def class_frac(patch: pd.Series) -> Mapping:
     """Computes the fractional sizes of the classes of the given patch and returns a dict of the results
 
     Args:
-        patch (pandas.Series): Row of DataFrame representing the entry for a patch
+        patch (pd.Series): Row of DataFrame representing the entry for a patch
 
     Returns:
-        new_columns (pd.Mapping): Dictionary-like object with keys as class numbers and associated values
+        new_columns (Mapping): Dictionary-like object with keys as class numbers and associated values
             of fractional size of class plus a key-value pair for the patch ID
     """
     new_columns = patch.to_dict()

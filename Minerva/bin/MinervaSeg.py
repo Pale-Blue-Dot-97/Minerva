@@ -33,12 +33,11 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import visutils
+from Minerva.utils import utils, visutils
 import Minerva.loaders as loaders
 from Minerva.trainer import Trainer
 from matplotlib.colors import ListedColormap
 import numpy as np
-import yaml
 import osr
 from alive_progress import alive_bar
 
@@ -47,11 +46,8 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 
-with open(config_path) as file:
-    config = yaml.safe_load(file)
-
-with open(config['dir']['data_config']) as file:
-    dataset_config = yaml.safe_load(file)
+config, aux_configs = utils.load_configs(config_path)
+dataset_config = aux_configs['data_config']
 
 # Parameters
 params = config['hyperparams']['params']

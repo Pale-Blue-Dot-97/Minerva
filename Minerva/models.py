@@ -721,7 +721,7 @@ class FCNResNet18(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z, = self.encoder(x)
+        z, *_ = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -745,7 +745,7 @@ class FCNResNet34(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z, = self.encoder(x)
+        z, *_ = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -769,7 +769,7 @@ class FCNResNet50(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z, = self.encoder(x)
+        z, *_ = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -793,7 +793,7 @@ class FCN32ResNet18(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z, = self.encoder(x)
+        z, *_ = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -817,7 +817,7 @@ class FCN32ResNet34(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z, = self.encoder(x)
+        z, *_ = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -841,7 +841,7 @@ class FCN16ResNet18(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        x4, x3, = self.encoder(x)
+        x4, x3, *_ = self.encoder(x)
         z = self.decoder((x4, x3))
 
         return z
@@ -865,7 +865,7 @@ class FCN8ResNet18(MinervaModel, ABC):
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        x4, x3, x2, = self.encoder(x)
+        x4, x3, x2, *_ = self.encoder(x)
         z = self.decoder((x4, x3, x2))
 
         return z
