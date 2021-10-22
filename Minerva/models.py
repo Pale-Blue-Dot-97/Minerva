@@ -491,7 +491,7 @@ class ResNet(MinervaModel, ABC):
         x4: torch.Tensor = self.layer4(x3)
 
         if self.encoder_on:
-            return x0, x1, x2, x3, x4
+            return x4, x3, x2, x1, x0
 
         if not self.encoder_on:
             x5 = self.avgpool(x4)
@@ -587,10 +587,10 @@ class Decoder(MinervaModel, ABC):
         return self._forward_impl(x)
 
 
-class DC32(MinervaModel, ABC):
+class DCN32(MinervaModel, ABC):
 
     def __init__(self, in_channel: int = 512, n_classes: int = 21):
-        super(DC32, self).__init__()
+        super(DCN32, self).__init__()
         self.cls_num = n_classes
 
         self.relu = torch.nn.ReLU(inplace=True)
@@ -605,6 +605,80 @@ class DC32(MinervaModel, ABC):
         x = self.bn1(self.relu(self.Conv1x1(x)))
         x = self.dbn32(self.relu(self.DCN32(x)))
         return x
+
+
+class DCN16(MinervaModel, ABC):
+
+    def __init__(self, in_channel: int = 512, n_classes: int = 21) -> None:
+        super(DCN16, self).__init__()
+        self.cls_num = n_classes
+
+        self.relu = torch.nn.ReLU(inplace=True)
+        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.cls_num, kernel_size=(1, 1))
+        self.Conv1x1_x3 = torch.nn.Conv2d(int(in_channel / 2), self.cls_num, kernel_size=(1, 1))
+        self.bn1 = torch.nn.BatchNorm2d(self.cls_num)
+        self.DCN2 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+                                             dilation=1, padding=(1, 1))
+        self.DCN2.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
+        self.dbn2 = torch.nn.BatchNorm2d(self.cls_num)
+
+        self.DCN16 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(32, 32), stride=(16, 16),
+                                              dilation=1, padding=(8, 8))
+        self.DCN16.weight.data = bilinear_init(self.cls_num, self.cls_num, 32)
+        self.dbn16 = torch.nn.BatchNorm2d(self.cls_num)
+
+    def forward(self, x: Tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        x4, x3 = x
+        z = self.bn1(self.relu(self.Conv1x1(x4)))
+        x3 = self.bn1(self.relu(self.Conv1x1_x3(x3)))
+        z = self.dbn2(self.relu(self.DCN2(z)))
+        z = z + x3
+        z = self.dbn16(self.relu(self.DCN16(z)))
+        return z
+
+
+class DCN8(MinervaModel, ABC):
+
+    def __init__(self, in_channel=512, n_classes=21) -> None:
+        super(DCN8, self).__init__()
+        self.cls_num = n_classes
+
+        self.relu = torch.nn.ReLU(inplace=True)
+        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.cls_num, kernel_size=(1, 1))
+        self.Conv1x1_x3 = torch.nn.Conv2d(int(in_channel / 2), self.cls_num, kernel_size=(1, 1))
+        self.Conv1x1_x2 = torch.nn.Conv2d(int(in_channel / 4), self.cls_num, kernel_size=(1, 1))
+        self.bn1 = torch.nn.BatchNorm2d(self.cls_num)
+        self.DCN2 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+                                             dilation=1, padding=(1, 1))
+        self.DCN2.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
+        self.dbn2 = torch.nn.BatchNorm2d(self.cls_num)
+
+        self.DCN4 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+                                             dilation=1, padding=(1, 1))
+        self.DCN4.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
+        self.dbn4 = torch.nn.BatchNorm2d(self.cls_num)
+
+        self.DCN8 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(16, 16), stride=(8, 8),
+                                             dilation=1, padding=(4, 4))
+        self.DCN8.weight.data = bilinear_init(self.cls_num, self.cls_num, 16)
+        self.dbn8 = torch.nn.BatchNorm2d(self.cls_num)
+
+    def forward(self, x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        x4, x3, x2 = x
+        z = self.bn1(self.relu(self.Conv1x1(x4)))
+        x3 = self.bn1(self.relu(self.Conv1x1_x3(x3)))
+        z = self.dbn2(self.relu(self.DCN2(z)))
+
+        z = z + x3
+
+        x2 = self.bn1(self.relu(self.Conv1x1_x2(x2)))
+        z = self.dbn4(self.relu(self.DCN4(z)))
+
+        z = z + x2
+
+        z = self.dbn8(self.relu(self.DCN8(z)))
+
+        return z
 
 
 class ResNet18(MinervaModel, ABC):
@@ -713,7 +787,7 @@ class FCN32ResNet18(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = DC32(n_classes=n_classes)
+        self.decoder = DCN32(n_classes=n_classes)
 
         self.input_shape = input_size
         self.n_classes = n_classes
@@ -737,7 +811,7 @@ class FCN32ResNet34(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = DC32(n_classes=n_classes)
+        self.decoder = DCN32(n_classes=n_classes)
 
         self.input_shape = input_size
         self.n_classes = n_classes
@@ -745,6 +819,54 @@ class FCN32ResNet34(MinervaModel, ABC):
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         z, = self.encoder(x)
         z = self.decoder(z)
+
+        return z
+
+
+class FCN16ResNet18(MinervaModel, ABC):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+
+        super(FCN16ResNet18, self).__init__(criterion=criterion)
+
+        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
+                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
+                              encoder=True)
+
+        self.decoder = DCN16(n_classes=n_classes)
+
+        self.input_shape = input_size
+        self.n_classes = n_classes
+
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
+        x4, x3, = self.encoder(x)
+        z = self.decoder((x4, x3))
+
+        return z
+
+
+class FCN8ResNet18(MinervaModel, ABC):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+
+        super(FCN8ResNet18, self).__init__(criterion=criterion)
+
+        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
+                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
+                              encoder=True)
+
+        self.decoder = DCN8(n_classes=n_classes)
+
+        self.input_shape = input_size
+        self.n_classes = n_classes
+
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
+        x4, x3, x2, = self.encoder(x)
+        z = self.decoder((x4, x3, x2))
 
         return z
 
