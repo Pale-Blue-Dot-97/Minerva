@@ -33,12 +33,10 @@ Attributes:
     data_config (dict): Config defining the properties of the data used in the experiment.
     data_dir (list): Path to directory holding dataset.
     results_dir (list): Path to directory to output plots to.
-    model_name (str): Model type and mark number.
     patch_dir_prefix (str): Prefix to every patch ID in every patch directory name.
     label_suffix (str): Suffix of the label files identifying which dataset they belong to.
     band_ids (list): Band IDs of images to be used.
     image_size (tuple): Defines the shape of the images.
-    flattened_image_size (int): Number of pixels in an image. Calculated from image_size[0] * image_size[1].
     classes (dict): Mapping of class labels to class names.
     cmap_dict (dict): Mapping of class labels to colours.
     params (dict): Sub-dict of the master config for the model hyper-parameters.
@@ -92,9 +90,6 @@ data_dir = os.sep.join(config['dir']['data'])
 # Path to directory to output plots to.
 results_dir = os.path.join(*config['dir']['results'])
 
-# Model Name
-model_name = config['model_name']
-
 # Prefix to every patch ID in every patch directory name.
 patch_dir_prefix = imagery_config['patch_dir_prefix']
 
@@ -105,8 +100,6 @@ band_ids = imagery_config['data_specs']['band_ids']
 
 # Defines size of the images to determine the number of batches.
 image_size = imagery_config['data_specs']['image_size']
-
-flattened_image_size = image_size[0] * image_size[1]
 
 classes = data_config['classes']
 
@@ -129,12 +122,12 @@ def load_configs(master_config_path: str) -> Tuple:
         Master config and any other configs found from paths in the master config.
     """
     def yaml_load(path: str) -> dict:
-        """Loads config from YAML as dict.
+        """Loads YAML file from path as dict.
         Args:
-            path(str):
+            path(str): Path to YAML file.
 
         Returns:
-            config (dict):
+            yml_file (dict): YAML file loaded as dict.
         """
         with open(path) as f:
             return yaml.safe_load(f)
@@ -143,7 +136,7 @@ def load_configs(master_config_path: str) -> Tuple:
         """Loads and returns config files from YAML as dicts.
 
         Args:
-            *paths (str): Any number of paths to config YAML files.
+            paths (dict): Dictionary mapping config names to paths to their YAML files.
 
         Returns:
             Config dictionaries loaded from YAML from paths.

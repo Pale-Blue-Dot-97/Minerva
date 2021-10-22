@@ -40,7 +40,7 @@ from abc import ABC
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import IterableDataset, Dataset, DataLoader, WeightedRandomSampler
+from torch.utils.data import IterableDataset, Dataset, DataLoader  # , WeightedRandomSampler
 from torchvision import transforms
 from itertools import cycle, chain
 from collections import deque
