@@ -21,7 +21,7 @@ dir:
     - 'FCNResNet'
 
 # Model Name
-model_name: 'FCN16ResNet18-MkI'
+model_name: 'FCN8ResNet34-MkI'
 model_type: 'segmentation'
 
 elim: True
@@ -49,7 +49,7 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 10
+  max_epochs: 20
 
 # Settings for RGB image creation
 rgb_params:
