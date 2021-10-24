@@ -1,5 +1,4 @@
-"""Script to create, fit and test a image segmentation model to classify land cover of the images
-in the LandCoverNet V1 dataset.
+"""Script to execute the creation, fitting and testing of an image segmentation model to classify land cover.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -23,8 +22,14 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
 
+Attributes:
+    config_path (str): Path to master config YAML file.
+    config (dict): Master config defining how the experiment should be conducted.
+    aux_configs (dict): Dict containing the auxiliary config dicts loaded from YAML.
+    dataset_config (dict): Config defining the properties of the data used in the experiment.
+    params (dict): Sub-dict of the master config for the model hyper-parameters.
 
 TODO:
     * Add arg parsing from CLI

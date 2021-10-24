@@ -22,17 +22,20 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
 
+Attributes:
+    config_path (str): Path to master config YAML file.
+    config (dict): Master config defining how the experiment should be conducted.
 
 TODO:
+    Document make_manifest
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import utils
 import pandas as pd
-import yaml
 import os
 
 # =====================================================================================================================
@@ -40,8 +43,7 @@ import os
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 
-with open(config_path) as file:
-    config = yaml.safe_load(file)
+config, _ = utils.load_configs(config_path)
 
 # Path to directory holding dataset
 data_dir = os.sep.join(config['dir']['data'])

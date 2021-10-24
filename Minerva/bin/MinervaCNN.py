@@ -1,4 +1,4 @@
-"""Script to create a simple CNN to classify land cover of the images in the LandCoverNet V1 dataset.
+"""Script to execute the creation, fitting and testing of an scene classification model for land cover.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -22,8 +22,12 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
 
+Attributes:
+    config_path (str): Path to master config YAML file.
+    config (dict): Master config defining how the experiment should be conducted.
+    params (dict): Sub-dict of the master config for the model hyper-parameters.
 
 TODO:
     * Add arg parsing from CLI
@@ -32,9 +36,9 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from Minerva.utils import utils
 import Minerva.loaders as loaders
 from Minerva.trainer import Trainer
-import yaml
 
 
 # =====================================================================================================================
@@ -42,8 +46,7 @@ import yaml
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 
-with open(config_path) as file:
-    config = yaml.safe_load(file)
+config, _ = utils.load_configs(config_path)
 
 # Parameters
 params = config['hyperparams']['params']

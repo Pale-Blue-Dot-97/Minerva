@@ -1,4 +1,4 @@
-"""Script to create a simple MLP to classify land cover of the images in the LandCoverNet V1 dataset.
+"""Script to create a simple MLP to classify land cover of Sentinel-2 images.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -22,8 +22,19 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
 
+Attributes:
+    config_path (str): Path to master config YAML file.
+    config (dict): Master config defining how the experiment should be conducted.
+    aux_configs (dict): Dict containing the auxiliary config dicts loaded from YAML.
+    dataset_config (dict): Config defining the properties of the data used in the experiment.
+    imagery_config (dict): Config defining the properties of the imagery used in the experiment.
+    image_size (tuple): Defines the shape of the images.
+    n_pixels (int): Total number of pixels in each sample (per band).
+    params (dict): Sub-dict of the master config for the model hyper-parameters.
+    wheel_size: Length of each `wheel' to used in class balancing sampling. Set to n_pixels.
+        This is essentially the number of pixel stacks per class to have queued at any one time.
 
 TODO:
     * Add arg parsing from CLI
@@ -32,10 +43,9 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import visutils
+from Minerva.utils import utils, visutils
 import Minerva.loaders as loaders
 from Minerva.trainer import Trainer
-import yaml
 from matplotlib.colors import ListedColormap
 import numpy as np
 import osr
@@ -45,24 +55,19 @@ import osr
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 
-with open(config_path) as file:
-    config = yaml.safe_load(file)
-
-with open(config['dir']['data_config']) as file:
-    dataset_config = yaml.safe_load(file)
-
-with open(config['dir']['imagery_config']) as file:
-    imagery_config = yaml.safe_load(file)
+config, aux_configs = utils.load_configs(config_path)
+dataset_config = aux_configs['data_config']
+imagery_config = aux_configs['imagery_config']
 
 # Defines size of the images to determine the number of batches
 image_size = imagery_config['data_specs']['image_size']
 
-image_len = image_size[0] * image_size[1]
+n_pixels = image_size[0] * image_size[1]
 
 # Parameters
 params = config['hyperparams']['params']
 
-wheel_size = image_len
+wheel_size = n_pixels
 
 
 # =====================================================================================================================
@@ -82,7 +87,7 @@ def mlp_prediction_plot(z, y, test_ids):
     test_ids = visutils.deinterlace(test_ids, params['num_workers'])
 
     # Extracts just a patch ID for each test patch supplied.
-    test_ids = [test_ids[i] for i in np.arange(start=0, stop=len(test_ids), step=image_len)]
+    test_ids = [test_ids[i] for i in np.arange(start=0, stop=len(test_ids), step=n_pixels)]
 
     # Create a new projection system in lat-lon
     new_cs = osr.SpatialReference()
@@ -99,7 +104,7 @@ def mlp_prediction_plot(z, y, test_ids):
 # =====================================================================================================================
 def main():
     datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(wheel_size=wheel_size,
-                                                                                           image_len=image_len,
+                                                                                           image_len=n_pixels,
                                                                                            **config)
     config['hyperparams']['model_params']['n_classes'] = len(new_classes)
     config['classes'] = new_classes
