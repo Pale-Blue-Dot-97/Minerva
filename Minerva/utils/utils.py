@@ -1401,17 +1401,20 @@ def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: d
         Will be updated to construct a pd.DataFrame from the class dist and print that DataFrame.
 
     Args:
-        class_dist (list[list[str]]): 2D iterable which should be of the form as that
+        class_dist (list[list[int]]): 2D iterable which should be of the form as that
             created from Counter.most_common().
         class_labels (dict): Mapping of class labels to class names.
 
     Returns:
         None
     """
-    print('# | LABEL | COUNT')
-    print('======================================')
-    for mode in class_dist:
-        print('{} | {} | {}'.format(mode[0], class_labels[mode[0]], mode[1]))
+    rows = [{'#': mode[0], 'LABEL': class_labels[mode[0]], 'COUNT': mode[1]} for mode in class_dist]
+
+    class_dist_df = pd.DataFrame(rows)
+    class_dist_df.set_index('#', drop=True, inplace=True)
+    class_dist_df.sort_values(by='#', inplace=True)
+
+    print(class_dist_df)
 
 
 def scene_tag(scenes: Union[list, tuple, np.ndarray]) -> list:
@@ -1424,3 +1427,8 @@ def scene_tag(scenes: Union[list, tuple, np.ndarray]) -> list:
         List of scene tag strings that uniquely identify each scene.
     """
     return ['{}-{}'.format(patch_id, date) for patch_id, date in scenes]
+
+
+def extract_from_tag(tag: str) -> Tuple[str, str]:
+    patch_id, _, date = tag.partition('-')
+    return patch_id, date
