@@ -8,6 +8,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Optional, Union, List
 import argparse
 import requests
 import boto3  # Required to download assets hosted on S3
@@ -46,14 +47,14 @@ def get_classes():
     return label_classes[0]['classes']
 
 
-def download_s3(uri, path):
+def download_s3(uri: str, path: str) -> None:
     parsed = urlparse(uri)
     bucket = parsed.netloc
     key = parsed.path[1:]
     s3.download_file(bucket, key, os.path.join(path, key.split('/')[-1]))
 
 
-def download_http(uri, path):
+def download_http(uri: str, path: str) -> None:
     parsed = urlparse(uri)
     r = requests.get(uri)
     f = open(os.path.join(path, parsed.path.split('/')[-1]), 'wb')
@@ -63,12 +64,12 @@ def download_http(uri, path):
     f.close()
 
 
-def get_download_uri(uri):
+def get_download_uri(uri: str):
     r = requests.get(uri, allow_redirects=False)
     return r.headers['Location']
 
 
-def download(d):
+def download(d: List[str, str]) -> None:
     href = d[0]
     path = d[1]
     download_uri = get_download_uri(href)
@@ -80,7 +81,7 @@ def download(d):
         download_http(download_uri, path)
 
 
-def get_source_item_assets(args):
+def get_source_item_assets(args) -> list:
     path = args[0]
     href = args[1]
     asset_downloads = []
@@ -100,7 +101,7 @@ def get_source_item_assets(args):
     return asset_downloads
 
 
-def download_source_and_labels(item):
+def download_source_and_labels(item) -> list:
     labels = item.get('assets').get('labels')
     links = item.get('links')
 
@@ -123,7 +124,8 @@ def download_source_and_labels(item):
     return results
 
 
-def get_items(uri, classes=None, max_items_downloaded=None, items_downloaded=0, downloads=None):
+def get_items(uri: str, classes: Optional[list, str] = None, max_items_downloaded: Optional[int] = None,
+              items_downloaded: int = 0, downloads: Optional[list] = None) -> list:
     if downloads is None:
         downloads = []
     print('Loading', uri, '...')
@@ -166,7 +168,7 @@ def get_items(uri, classes=None, max_items_downloaded=None, items_downloaded=0, 
     return downloads
 
 
-def download_request(classes=None, max_items_downloaded=None):
+def download_request(classes: Optional[list, str] = None, max_items_downloaded: Optional[int] = None) -> None:
     """Given a request, downloads the items matching the query from the Radiant MLHub LandCoverNet API.
 
     Args:
@@ -189,7 +191,7 @@ def download_request(classes=None, max_items_downloaded=None):
         p.map(download, d)
 
 
-def main(classes=None, items=None):
+def main(classes: Optional[list, str] = None, items: Optional[Union[list, int]] = None) -> None:
     # Fetches and prints API credentials
     r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
     print(f'Description: {r.json()["description"]}')
@@ -197,7 +199,7 @@ def main(classes=None, items=None):
     print(f'DOI: {r.json()["sci:doi"]}')
     print(f'Citation: {r.json()["sci:citation"]}')
 
-    def str_reformat(string):
+    def str_reformat(string: str) -> str:
         string.replace('_', '')
         string.replace('-', '')
 
