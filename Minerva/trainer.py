@@ -173,7 +173,7 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode: str) -> Union[Tuple[list, list, list], None]:
+    def epoch(self, mode: str) -> Optional[Tuple[list, list, list]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -198,7 +198,7 @@ class Trainer:
                 self.model.eval()
 
             # Core of the epoch.
-            for x_batch, y_batch, patch_id in islice(self.loaders[mode], self.n_batches[mode]):
+            for x_batch, y_batch, sample_id in islice(self.loaders[mode], self.n_batches[mode]):
 
                 # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
@@ -217,7 +217,7 @@ class Trainer:
 
                     test_predictions.append(torch.argmax(z, 1).cpu().numpy())
                     test_labels.append(y.cpu().numpy())
-                    test_ids.append(patch_id)
+                    test_ids.append(sample_id)
 
                 ls = loss.item()
                 correct = (torch.argmax(z, 1) == y).sum().item()
@@ -271,26 +271,7 @@ class Trainer:
             Test predicted and ground truth labels along with the patch IDs supplied to the model during testing.
         """
         print('\r\nTESTING')
-        predictions, labels, ids = self.epoch('test')
-
-        z = []
-
-        try:
-            z = np.array(predictions).flatten()
-
-        except ValueError:
-            for i in range(len(predictions)):
-                for j in range(len(predictions[i])):
-                    z.append(predictions[i][j])
-
-        y = []
-        try:
-            y = np.array(labels).flatten()
-
-        except ValueError:
-            for i in range(len(labels)):
-                for j in range(len(labels[i])):
-                    y.append(labels[i][j])
+        predictions, labels, test_ids = self.epoch('test')
 
         print('Test Loss: {} | Test Accuracy: {}% \n'.format(self.metrics['test_loss'][0],
                                                              self.metrics['test_acc'][0] * 100.0))
@@ -298,11 +279,11 @@ class Trainer:
         sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
 
         # Plots the results.
-        visutils.plot_results(sub_metrics, plots, z, y, self.params['classes'], self.params['colours'],
-                              save=save, show=False, model_name=self.params['model_name'],
+        visutils.plot_results(sub_metrics, plots, predictions, labels, test_ids, self.params['classes'],
+                              self.params['colours'], save=save, show=False, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
 
-        return predictions, labels, ids
+        return predictions, labels, test_ids
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""

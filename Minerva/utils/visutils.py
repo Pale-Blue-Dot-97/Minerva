@@ -47,6 +47,7 @@ from Minerva.utils import utils
 import os
 import yaml
 import imageio
+import random
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -513,21 +514,21 @@ def plot_all_pvl(predictions: Union[list, np.ndarray], labels: Union[list, np.nd
     figdim = (9.3, 10.5)
 
     for j in range(len(patch_ids)):
-        prediction_plot(z[j], y[j], patch_ids[j], exp_id, new_cs, classes=classes, cmap_style=cmap, show=False,
+        prediction_plot(z[j], y[j], patch_ids[j], 'patch', exp_id, new_cs, classes=classes, cmap_style=cmap, show=False,
                         figdim=figdim)
 
 
-def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, new_cs: osr.SpatialReference,
-                    classes: Optional[dict] = None, block_size: int = 32,
+def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: str, exp_id: str,
+                    new_cs: osr.SpatialReference, classes: Optional[dict] = None, block_size: int = 32,
                     cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True, save: bool = True,
-                    figdim: Optional[Union[tuple, list, np.ndarray]] = None) -> str:
+                    figdim: Optional[Union[tuple, list, np.ndarray]] = None, fn_prefix: Optional[str] = None) -> str:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
 
     Args:
         z (np.ndarray[np.ndarray[int]]): 2D array of the predicted label mask.
         y (np.ndarray[np.ndarray[int]]): 2D array of the corresponding ground truth label mask.
-        patch_id (str): Unique ID of the patch.
+        sample_id (str): Unique ID of the patch.
         exp_id (str): Unique ID for the experiment run predictions and labels come from.
         classes (dict[str]): Optional; Dictionary mapping class labels to class names.
         new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
@@ -540,12 +541,18 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, ne
     Returns:
         None
     """
-    names = config['rgb_params']
-    names['patch_ID'] = patch_id
-
     manifest = pd.read_csv(utils.get_manifest())
 
-    names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id, manifest)[-1], '%Y_%m_%d', '%d.%m.%Y')
+    names = config['rgb_params']
+    patch_id = sample_id
+
+    if sample_type == 'scene':
+        patch_id, date = utils.extract_from_tag(sample_id)
+        names['date'] = utils.datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y')
+    if sample_type == 'patch':
+        names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id, manifest)[-1], '%Y_%m_%d', '%d.%m.%Y')
+
+    names['patch_ID'] = patch_id
 
     # Get required formatted paths and names
     rgb, scene_path, data_name, _ = path_format(names)
@@ -630,8 +637,12 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, ne
     if show:
         plt.show()
 
+    if fn_prefix is None:
+        path = os.path.join(*config['dir']['results'])
+        fn_prefix = os.sep.join([path, '{}_{}_Mask'.format(exp_id, utils.timestamp_now())])
+
     # Path and file name of figure
-    fn = '{}/{}_{}_PvL_{}.png'.format(os.path.join(*config['dir']['results']), exp_id, patch_id, utils.timestamp_now())
+    fn = '{}_{}.png'.format(fn_prefix, sample_id)
 
     # If true, save file to fn
     if save:
@@ -645,6 +656,48 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, patch_id: str, exp_id: str, ne
     plt.close()
 
     return fn
+
+
+def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefix: str,
+             frac: float = 0.05, figdim: tuple = (9.3, 10.5)) -> None:
+    """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
+
+    Args:
+        z (list[float]): Predicted segmentation masks by the network.
+        y (list[float]): Corresponding ground truth masks.
+        ids (list[str]): Corresponding patch IDs for the test data supplied to the network.
+        classes (dict): Dictionary mapping class labels to class names.
+        colours (dict): Dictionary mapping class labels to colours.
+        frac (float): Optional; Fraction of patch samples to plot.
+        figdim (tuple): Optional; Figure (height, width) in inches.
+
+    Returns:
+        None
+    """
+    z = np.array(z)
+    y = np.array(y)
+
+    z = np.reshape(z, (z.shape[0] * z.shape[1], z.shape[2], z.shape[3]))
+    y = np.reshape(y, (y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
+    ids = np.array(ids).flatten()
+
+    # Create a new projection system in lat-lon.
+    new_cs = osr.SpatialReference()
+    new_cs.ImportFromEPSG(data_config['co_sys']['id'])
+
+    print('PRODUCING PREDICTED MASKS')
+    n_samples = int(frac * len(ids))
+
+    # Initialises a progress bar for the epoch.
+    with alive_bar(n_samples, bar='blocks') as bar:
+
+        # Plots the predicted versus ground truth labels for all test patches supplied.
+        for i in random.sample(range(len(ids)), n_samples):
+            prediction_plot(z[i], y[i], ids[i], 'scene', exp_id=config['model_name'], new_cs=new_cs,
+                            classes=classes, figdim=figdim, show=False, fn_prefix=fn_prefix,
+                            cmap_style=ListedColormap(colours.values(), N=len(colours)))
+
+            bar()
 
 
 def plot_subpopulations(class_dist: Union[list, tuple, np.ndarray], class_names: Optional[dict] = None,
@@ -815,27 +868,29 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
     Returns:
         filenames (dict): Formatted filenames for plots.
     """
-    def standard_format(plot_type: str, file_ext: str) -> str:
+    def standard_format(plot_type: str, path: Optional[Union[list, tuple]] = path) -> str:
         """Creates a unique filename for a plot in a standardised format.
 
         Args:
             plot_type (str): Plot type to use in filename.
-            file_ext (str): File extension. e.g. `png'.
+            path (list[str]): Optional; Path to the directory for filename as a list of strings for each level.
+                Overrides path from format_plot_names.
 
         Returns:
-            String of path to filename of the form "{model_name}_{plot_type}_{timestamp}.{file_ext}"
+            String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
         """
-        filename = '{}_{}_{}.{}'.format(model_name, plot_type, timestamp, file_ext)
+        filename = '{}_{}_{}'.format(model_name, timestamp, plot_type)
         return os.path.join(os.path.join(*path), filename)
 
-    filenames = {'History': standard_format('MH', 'png'),
-                 'Pred': standard_format('TP', 'png'),
-                 'CM': standard_format('CM', 'png')}
+    filenames = {'History': standard_format('MH') + '.png',
+                 'Pred': standard_format('TP') + '.png',
+                 'CM': standard_format('CM') + '.png',
+                 'Mask': standard_format('Mask', path.append('Test Masks'))}
 
     return filenames
 
 
-def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndarray],
+def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndarray], ids: list,
                  class_names: dict, colours: dict, save: bool = True, show: bool = False,
                  model_name: Optional[str] = None, timestamp: Optional[str] = None,
                  results_dir: Optional[Union[list, tuple]] = None) -> None:
@@ -858,16 +913,45 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
     Returns:
         None
     """
+    flat_z = []
+
+    try:
+        flat_z = np.array(z).flatten()
+
+    except ValueError:
+        for i in range(len(z)):
+            for j in range(len(z[i])):
+                flat_z.append(z[i][j])
+
+    flat_y = []
+    try:
+        flat_y = np.array(y).flatten()
+
+    except ValueError:
+        for i in range(len(y)):
+            for j in range(len(y[i])):
+                flat_y.append(y[i][j])
+
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
     if plots['History']:
+        print('\nPLOTTING MODEL HISTORY')
         plot_history(metrics, filename=filenames['History'], save=save, show=show)
     if plots['Pred']:
-        plot_subpopulations(utils.find_subpopulations(z), class_names=class_names,
+        print('\nPLOTTING CLASS DISTRIBUTION OF TEST PREDICTIONS')
+        plot_subpopulations(utils.find_subpopulations(flat_z), class_names=class_names,
                             cmap_dict=colours, filename=filenames['Pred'], save=save, show=show)
     if plots['CM']:
-        make_confusion_matrix(test_labels=y, test_pred=z, classes=class_names, filename=filenames['CM'],
+        print('\nPLOTTING CONFUSION MATRIX')
+        make_confusion_matrix(test_labels=flat_y, test_pred=flat_z, classes=class_names, filename=filenames['CM'],
                               save=save, show=show)
+
+    if plots['Mask']:
+        fn_prefix = os.path.join('Test Masks', filenames['Mask'])
+
+        os.mkdir(os.path.join(*results_dir, 'Test Masks'))
+
+        seg_plot(z, y, ids, fn_prefix=fn_prefix, classes=class_names, colours=colours)

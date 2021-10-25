@@ -38,13 +38,9 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import utils, visutils
+from Minerva.utils import utils
 import Minerva.loaders as loaders
 from Minerva.trainer import Trainer
-from matplotlib.colors import ListedColormap
-import numpy as np
-import osr
-from alive_progress import alive_bar
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -59,56 +55,10 @@ params = config['hyperparams']['params']
 
 
 # =====================================================================================================================
-#                                                     METHODS
-# =====================================================================================================================
-def seg_plot(z, y, test_ids: list, classes: dict, colours: dict,
-             frac: float = 0.05, figdim: tuple = (9.3, 10.5)) -> None:
-    """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
-
-    Args:
-        z (list[float]): Predicted segmentation masks by the network.
-        y (list[float]): Corresponding ground truth masks.
-        test_ids (list[str]): Corresponding patch IDs for the test data supplied to the network.
-        classes (dict): Dictionary mapping class labels to class names.
-        colours (dict): Dictionary mapping class labels to colours.
-        frac (float): Optional; Fraction of patch samples to plot.
-        figdim (tuple): Optional; Figure (height, width) in inches.
-
-    Returns:
-        None
-    """
-    z = np.array(z)
-    y = np.array(y)
-
-    z = np.reshape(z, (z.shape[0] * z.shape[1], z.shape[2], z.shape[3]))
-    y = np.reshape(y, (y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
-    test_ids = np.array(test_ids).flatten()
-
-    # Create a new projection system in lat-lon
-    new_cs = osr.SpatialReference()
-    new_cs.ImportFromEPSG(dataset_config['co_sys']['id'])
-
-    print('PRODUCING PREDICTED MASKS')
-    # Initialises a progress bar for the epoch.
-    with alive_bar(int(frac*len(test_ids)), bar='blocks') as bar:
-        # Plots the predicted versus ground truth labels for all test patches supplied.
-        for i in range(int(frac*len(test_ids))):
-            visutils.prediction_plot(z[i], y[i], test_ids[i],
-                                     exp_id=config['model_name'],
-                                     new_cs=new_cs,
-                                     classes=classes,
-                                     figdim=figdim,
-                                     show=False,
-                                     cmap_style=ListedColormap(colours.values(), N=len(colours)))
-
-            bar()
-
-
-# =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(**config)
+    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(frac=0.1, **config)
 
     config['hyperparams']['model_params']['n_classes'] = len(new_classes)
     config['classes'] = new_classes
@@ -118,13 +68,11 @@ def main():
 
     trainer.fit()
 
-    z, y, test_ids = trainer.test({'History': True, 'Pred': True, 'CM': True}, save=True)
-
-    seg_plot(z, y, test_ids, config['classes'], config['colours'])
+    trainer.test({'History': True, 'Pred': True, 'CM': True, 'Mask': True}, save=True)
 
     trainer.close()
 
-    trainer.run_tensorboard()
+    #trainer.run_tensorboard()
 
 
 if __name__ == '__main__':
