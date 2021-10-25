@@ -34,6 +34,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Optional, Union, Tuple, Iterator, Dict
 from Minerva.utils import utils
 import random
 from abc import ABC
@@ -67,20 +68,24 @@ class BalancedBatchDataset(IterableDataset, ABC):
         streams_df (pandas.DataFrame): DataFrame with a column of patch IDs for each class.
         batch_size (int): Sets the number of samples in each batch.
         patch_len (int): Total number of pixels in a patch.
+        no_empty_classes (bool): Informs dataset if empty classes have been removed from
+            the class label schema. If True, labels will be converted to the new schema using forwards.
+        forwards (dict): Mapping of original class labelling schema to new.
         wheels (dict[deque]): Dict of `wheels' (deques) holding a stream of pixel stacks organised by class in memory.
 
+    Args:
+        class_streams (pd.DataFrame): DataFrame with a column of patch IDs for each class.
+        batch_size (int): Optional; Sets the number of samples in each batch.
+        wheel_size (int): Optional; Sets the maximum size of the wheels (deque) holding pixel stacks in memory.
+        patch_len (int): Optional; Total number of pixels in a patch.
+        no_empty_classes (bool): Optional; Informs dataset if empty classes have been removed from
+            the class label schema. If True, labels will be converted to the new schema using forwards.
+        forwards (dict): Optional; Mapping of original class labelling schema to new.
     """
 
     def __init__(self, class_streams: pd.DataFrame, batch_size: int = 32, wheel_size: int = 65536,
-                 patch_len: int = 65536, no_empty_classes: bool = True, forwards=None):
-        """Inits BalancedBatchDataset
+                 patch_len: int = 65536, no_empty_classes: bool = True, forwards: Optional[dict] = None) -> None:
 
-        Args:
-            class_streams (pd.DataFrame): DataFrame with a column of patch IDs for each class.
-            batch_size (int): Optional; Sets the number of samples in each batch.
-            wheel_size (int): Optional; Sets the maximum size of the wheels (deque) holding pixel stacks in memory.
-            patch_len (int): Optional; Total number of pixels in a patch.
-        """
         self.streams_df = class_streams
         self.batch_size = batch_size
         self.patch_len = patch_len
@@ -104,7 +109,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
             if not self.wheels[cls]:
                 self.__emergency_fill__(cls)
 
-    def load_patches(self, row: pd.Series):
+    def load_patches(self, row: pd.Series) -> pd.Series:
         """Loads the patches associated with the patch IDs in row.
 
         Patches are loaded as pandas.DataFrames nested into a pandas.Series object.
@@ -117,7 +122,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
         """
         return pd.Series([utils.load_patch_df(row[1][cls], manifest) for cls in self.streams_df.columns.to_list()])
 
-    def refresh_wheels(self, patch_df: pd.DataFrame):
+    def refresh_wheels(self, patch_df: pd.DataFrame) -> None:
         """Updates the values in each wheel from the supplied DataFrame.
 
         Takes the DataFrame representing a patch supplied and for each class, finds any pixels matching that class
@@ -147,7 +152,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
             for pixel in patch['PATCH'].loc[patch['LABELS'] == cls]:
                 self.wheels[cls].appendleft(pixel.flatten())
 
-    def process_data(self, row: pd.Series):
+    def process_data(self, row: pd.Series) -> Tuple[torch.Tensor, torch.Tensor, str]:
         """Loads and processes patches into wheels for each class and yields from them,
         periodically refreshing the wheels with new data.
 
@@ -183,10 +188,10 @@ class BalancedBatchDataset(IterableDataset, ABC):
                     yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
                         torch.tensor(cls, dtype=torch.long), ''
 
-    def get_stream(self, streams_df):
+    def get_stream(self, streams_df) -> Iterator[Union[torch.Tensor, str]]:
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Union[torch.Tensor, str]]:
         # Gets the current worker info
         worker_info = torch.utils.data.get_worker_info()
 
@@ -214,21 +219,27 @@ class BatchDataset(IterableDataset, ABC):
     Attributes:
         patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
         batch_size (int): Number of samples returned in each batch.
+        no_empty_classes (bool): Informs dataset if empty classes have been removed from
+            the class label schema. If True, labels will be converted to the new schema using forwards.
+        forwards (dict): Mapping of original class labelling schema to new.
+
+    Args:
+        patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
+        batch_size (int): Number of samples returned in each batch.
+        no_empty_classes (bool): Optional; Informs dataset if empty classes have been removed from
+            the class label schema. If True, labels will be converted to the new schema using forwards.
+        forwards (dict): Optional; Mapping of original class labelling schema to new.
     """
 
-    def __init__(self, patch_ids, batch_size: int, no_empty_classes: bool = True, forwards=None):
-        """Inits BatchDataset
+    def __init__(self, patch_ids: list, batch_size: int, no_empty_classes: bool = True,
+                 forwards: Optional[dict] = None) -> None:
 
-        Args:
-            patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
-            batch_size (int): Number of samples returned in each batch.
-        """
         self.patch_ids = patch_ids
         self.batch_size = batch_size
         self.no_empty_classes = no_empty_classes
         self.forwards = forwards
 
-    def process_data(self, patch_id: str):
+    def process_data(self, patch_id: str) -> Tuple[torch.Tensor, torch.Tensor, str]:
         """Loads pixel-stacks and yields samples and labels from them.
 
         Args:
@@ -250,10 +261,10 @@ class BatchDataset(IterableDataset, ABC):
         for i in range(len(y)):
             yield x[i], y[i], patch_id
 
-    def get_stream(self, patch_ids):
+    def get_stream(self, patch_ids) -> Iterator[Union[torch.Tensor, str]]:
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Union[torch.Tensor, str]]:
         # Gets the current worker info
         worker_info = torch.utils.data.get_worker_info()
 
@@ -282,21 +293,26 @@ class IterableImageDataset(IterableDataset, ABC):
     Attributes:
         patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
         batch_size (int): Number of samples returned in each batch.
+        elim (bool): Informs dataset if empty classes have been removed from
+            the class label schema. If True, labels will be converted to the new schema using forwards.
+        forwards (dict): Mapping of original class labelling schema to new.
+
+    Args:
+        patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
+        batch_size (int): Number of samples returned in each batch.
+        elim (bool): Optional; Informs dataset if empty classes have been removed from
+            the class label schema. If True, labels will be converted to the new schema using forwards.
+        forwards (dict): Optional; Mapping of original class labelling schema to new.
     """
 
-    def __init__(self, patch_ids, batch_size: int, elim: bool = True, forwards=None):
-        """Inits BatchDataset
+    def __init__(self, patch_ids: list, batch_size: int, elim: bool = True, forwards: Optional[dict] = None) -> None:
 
-        Args:
-            patch_ids (list[str]): List of patch IDs representing the outline of this dataset.
-            batch_size (int): Number of samples returned in each batch.
-        """
         self.patch_ids = patch_ids
         self.batch_size = batch_size
         self.elim = elim
         self.forwards = forwards
 
-    def process_data(self, patch_id: str):
+    def process_data(self, patch_id: str) -> Tuple[torch.Tensor, torch.Tensor, str]:
         """Loads scenes from given patch and yields sample images and labels from them.
 
         Args:
@@ -318,10 +334,10 @@ class IterableImageDataset(IterableDataset, ABC):
             yield torch.tensor(image.reshape((image.shape[2], image.shape[1], image.shape[0])), dtype=torch.float), \
                   y, patch_id
 
-    def get_stream(self, patch_ids):
+    def get_stream(self, patch_ids: list) -> Iterator[Union[torch.Tensor, str]]:
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Union[torch.Tensor, str]]:
         # Gets the current worker info
         worker_info = torch.utils.data.get_worker_info()
 
@@ -351,17 +367,22 @@ class ImageDataset(Dataset, ABC):
         scenes (list[tuple[str, str]): List of tuples of pairs of patch ID and scene date, representing the outline of
             this dataset.
         batch_size (int): Number of samples returned in each batch.
+        no_empty_classes (bool): Informs dataset if empty classes have been removed from
+            the class label schema. If True, labels will be converted to the new schema using forwards.
+        forwards (dict): Mapping of original class labelling schema to new.
+
+    Args:
+        scenes (list[tuple[str, str]): List of tuples of pairs of patch ID and scene date, representing the outline
+            of this dataset.
+        batch_size (int): Number of samples returned in each batch.
+        no_empty_classes (bool): Optional; Informs dataset if empty classes have been removed from
+            the class label schema. If True, labels will be converted to the new schema using forwards.
+        forwards (dict): Optional; Mapping of original class labelling schema to new.
     """
 
-    def __init__(self, scenes, batch_size: int, model_type: str = 'CNN', no_empty_classes: bool = True,
-                 centre_only: bool = False, forwards=None, transformations=None):
-        """Inits ImageDataset.
+    def __init__(self, scenes: list, batch_size: int, model_type: str = 'CNN', no_empty_classes: bool = True,
+                 centre_only: bool = False, forwards: Optional[dict] = None, transformations=None) -> None:
 
-        Args:
-            scenes (list[tuple[str, str]): List of tuples of pairs of patch ID and scene date, representing the outline
-                of this dataset.
-            batch_size (int): Number of samples returned in each batch.
-        """
         self.scenes = scenes
         self.batch_size = batch_size
         self.model_type = model_type
@@ -370,10 +391,10 @@ class ImageDataset(Dataset, ABC):
         self.forwards = forwards
         self.transformations = transformations
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.scenes)
 
-    def process_data(self, scene: tuple):
+    def process_data(self, scene: tuple) -> Tuple[torch.Tensor, torch.Tensor, str]:
         """Loads scenes from given patch and returns sample images and labels from them.
 
         Args:
@@ -411,16 +432,16 @@ class ImageDataset(Dataset, ABC):
         if self.transformations:
             sample = self.transformations(sample)
 
-        return sample, y, patch_id
+        return sample, y, '{}-{}'.format(patch_id, date)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor, str]:
         return self.process_data(self.scenes[idx])
 
 
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_transform(name, params):
+def get_transform(name: str, params: dict):
     """Creates a TensorBoard transform object based on config parameters.
 
     Returns:
@@ -432,7 +453,7 @@ def get_transform(name, params):
     return transform(**params)
 
 
-def make_transformations(transform_params):
+def make_transformations(transform_params: dict):
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:
@@ -468,30 +489,39 @@ def make_transformations(transform_params):
     return transforms.Compose(transformations)
 
 
-def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: int = 65536, image_len: int = 65536,
-                  seed: int = 42, shuffle: bool = True, plot: bool = False, balance: bool = False,
-                  over_factor: int = 1, model_type: str = 'CNN', p_dist: bool = False, **params):
+def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None, n_patches: Optional[int] = None,
+                  split: Tuple[float, float, float] = (0.7, 0.15, 0.15), wheel_size: int = 65536,
+                  image_len: int = 65536, seed: int = 42, shuffle: bool = True, plot: bool = False,
+                  balance: bool = False, over_factor: int = 1, model_type: str = 'CNN', p_dist: bool = False,
+                  **params) -> Tuple[Dict[str, DataLoader], dict, list, dict, dict, dict]:
     """
 
     Args:
         patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
             the patch IDs are inferred from the directory using patch_grab.
+        frac (float): Optional;
+        n_patches (float): Optional;
         split (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets, in the
             order (train, validation, test).
-        params:
-        wheel_size:
-        image_len:
+        wheel_size (int): Optional;
+        image_len (int): Optional;
         seed (int): Optional; Random seed number to fix the shuffling of the data split.
         shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
         plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
-        balance (bool):
-        model_type (str):
+        balance (bool): Optional;
+        over_factor (int): Optional;
+        model_type (str): Optional;
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
+
+    Keyword Args:
 
     Returns:
         loaders (dict):
         n_batches (dict):
-        class_dist (Counter):
+        class_dist (list):
+        ids (dict):
+        new_classes (dict):
+        new_colours (dict):
     """
     dataloader_params = params['hyperparams']['params']
     batch_size = dataloader_params['batch_size']
@@ -500,13 +530,19 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     if model_type in ['cnn', 'CNN']:
         label_func = utils.find_centre_label
 
-    patch_ids = utils.patch_grab()
+    if frac is not None or n_patches is not None and patch_ids is None:
+        patch_ids = utils.patch_grab()
+        if frac is not None and n_patches is None:
+            n_patches = int(frac * len(patch_ids))
+        patch_ids = [patch_ids[i] for i in random.sample(range(len(patch_ids)), n_patches)]
 
-    print('SPLITTING DATASET TO {}% TRAIN, {}% VAL, {}% TEST'.format(split[0] * 100, split[1] * 100, split[2] * 100))
+    print('\n# OF PATCHES IN DATASET: {}'.format(len(patch_ids)))
+
+    print('\nSPLITTING DATASET TO {}% TRAIN, {}% VAL, {}% TEST'.format(split[0] * 100, split[1] * 100, split[2] * 100))
     ids, patch_class_dists = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed,
                                               shuffle=shuffle, balance=False, p_dist=True, plot=plot)
 
-    print('FINDING EMPTY CLASSES')
+    print('\nFINDING EMPTY CLASSES')
     new_classes, forwards, new_colours = utils.eliminate_classes(
         utils.find_empty_classes(class_dist=patch_class_dists['ALL']))
 
@@ -521,19 +557,20 @@ def make_datasets(patch_ids=None, split: list = (0.7, 0.15, 0.15), wheel_size: i
     class_dists = {}
 
     for mode in ('train', 'val', 'test'):
-        print('FINDING {} SCENES'.format(mode))
+        print('\nFINDING {} SCENES'.format(mode))
         if model_type in ['CNN', 'cnn'] and balance:
             scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], manifest, scene_func),
                                               over_factor=over_factor)
         else:
             scenes[mode] = utils.scene_extract(ids[mode], manifest, scene_func, thres=0.1)
 
-        print('FINDING CLASS DISTRIBUTION OF SCENES')
+        print('\nFINDING CLASS DISTRIBUTION OF SCENES')
         # Find class distribution of dataset by scene IDs, not patch IDs.
         class_dist = utils.subpopulations_from_manifest(utils.select_df_by_scenes(manifest, scenes[mode]),
                                                         func=label_func, plot=plot)
 
-        utils.print_class_dist(class_dist)
+        if p_dist:
+            utils.print_class_dist(class_dist)
 
         # Transform class dist if elimination of classes has occurred.
         if params['elim']:
