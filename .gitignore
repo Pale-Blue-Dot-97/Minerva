@@ -133,6 +133,6 @@ API Key
 *.iml
 
 lightning_logs/
-data/ALC/*
+data/*
 data/landcovernet/ESRI_Manifest.csv
 data/landcovernet/RE_Manifest.csv
