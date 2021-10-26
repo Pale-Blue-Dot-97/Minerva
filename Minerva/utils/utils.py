@@ -42,7 +42,6 @@ Attributes:
     params (dict): Sub-dict of the master config for the model hyper-parameters.
 
 TODO:
-    * Update print_class_dist to construct a pd.DataFrame from the class dist and print that DataFrame.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
