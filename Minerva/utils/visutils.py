@@ -56,6 +56,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import Bbox
 from matplotlib.colors import ListedColormap
+from matplotlib.ticker import MaxNLocator
 import cv2
 import osr
 from alive_progress import alive_bar
@@ -87,6 +88,9 @@ plt.rcParams['figure.constrained_layout.use'] = True
 plt.rcParams['figure.dpi'] = 300
 plt.rcParams['savefig.dpi'] = 300
 
+# Removes margin in x-axis of plots.
+plt.rcParams['axes.xmargin'] = 0
+
 # Downloads required plugin for imageio if not already present.
 imageio.plugins.freeimage.download()
 
@@ -94,7 +98,7 @@ imageio.plugins.freeimage.download()
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def path_format(names: dict) -> Tuple[Dict[str, str, str], str, str, str]:
+def path_format(names: dict) -> Tuple[Dict[str, str], str, str, str]:
     """Takes a dictionary of unique IDs to format the paths and names of files associated with the desired scene.
 
     Args:
@@ -567,7 +571,7 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
     # Stacks together the R, G, & B bands to form an array of the RGB image
     rgb_image = stack_rgb(scene_path, rgb)
 
-    extent, lat_extent, lon_extent = get_extent(y.shape, data_name, new_cs, spacing=block_size)
+    extent, lat_extent, lon_extent = get_extent(y.shape, scene_path + data_name, new_cs, spacing=block_size)
 
     # Initialises a figure
     fig = plt.figure(figsize=figdim)
@@ -772,10 +776,16 @@ def plot_history(metrics: dict, filename: Optional[str] = None, save: bool = Tru
     # Plots each metric in metrics, appending their artist handles.
     handles = []
     for metric in metrics.values():
-        handles.append(plt.plot(metric)[0])
+        handles.append(plt.plot(metric['x'], metric['y'])[0])
 
     # Creates legend from plot artist handles and names of metrics.
     plt.legend(handles=handles, labels=metrics.keys())
+
+    # Forces x-axis ticks to be integers.
+    plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+
+    # Adds a grid overlay with green dashed lines.
+    plt.grid(color='green', linestyle='--', linewidth=0.5)  # For some funky gridlines
 
     # Adds axis labels.
     plt.xlabel('Epoch')
@@ -865,24 +875,23 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
     Returns:
         filenames (dict): Formatted filenames for plots.
     """
-    def standard_format(plot_type: str, _path: Optional[Union[list, tuple]] = path) -> str:
+    def standard_format(plot_type: str, *sub_dir) -> str:
         """Creates a unique filename for a plot in a standardised format.
 
         Args:
             plot_type (str): Plot type to use in filename.
-            _path (list[str]): Optional; Path to the directory for filename as a list of strings for each level.
-                Overrides path from format_plot_names.
+            sub_dir (str): Additional sub-directories to add to path to filename.
 
         Returns:
             String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
         """
         filename = '{}_{}_{}'.format(model_name, timestamp, plot_type)
-        return os.path.join(os.path.join(*_path), filename)
+        return os.path.join(os.path.join(*path, *sub_dir), filename)
 
     filenames = {'History': standard_format('MH') + '.png',
                  'Pred': standard_format('TP') + '.png',
                  'CM': standard_format('CM') + '.png',
-                 'Mask': standard_format('Mask', path.append('Test Masks'))}
+                 'Mask': standard_format('Mask', 'Test Masks')}
 
     return filenames
 
