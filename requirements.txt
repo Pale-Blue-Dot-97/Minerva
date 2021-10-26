@@ -17,6 +17,7 @@ torchinfo~=0.0.9
 torchvision~=0.10.0
 setuptools~=52.0.0
 fiona~=1.8.13.post1
+tabulate~=0.8.9
 
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch~=1.9.0
