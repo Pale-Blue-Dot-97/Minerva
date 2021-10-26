@@ -61,6 +61,7 @@ from collections import Counter, OrderedDict, Mapping
 import rasterio as rt
 import rasterio.mask as rtmask
 import fiona
+from tabulate import tabulate
 from osgeo import gdal, osr
 import torch
 from sklearn.model_selection import train_test_split
@@ -1394,10 +1395,7 @@ def select_df_by_scenes(df: pd.DataFrame, scenes: Union[list, tuple, np.ndarray]
 
 
 def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: dict = classes) -> None:
-    """Prints the supplied class_dist in a quasi table format.
-
-    Notes:
-        Will be updated to construct a pd.DataFrame from the class dist and print that DataFrame.
+    """Prints the supplied class_dist in a pretty table format using tabulate.
 
     Args:
         class_dist (list[list[int]]): 2D iterable which should be of the form as that
@@ -1407,13 +1405,37 @@ def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: d
     Returns:
         None
     """
+    def calc_frac(count: float, total: float) -> str:
+        """Calculates the percentage size of the class from the number of counts and
+            supplied total counts across the dataset.
+
+        Args:
+            count (float): Number of samples in dataset belonging to this class.
+            total (float): Total number of samples across dataset.
+
+        Returns:
+            Formatted string of the percentage size to 2 decimal places.
+        """
+        return '{:.2f}%'.format(count * 100.0 / total)
+
+    # Convert class_dist to dict with class labels.
     rows = [{'#': mode[0], 'LABEL': class_labels[mode[0]], 'COUNT': mode[1]} for mode in class_dist]
 
-    class_dist_df = pd.DataFrame(rows)
-    class_dist_df.set_index('#', drop=True, inplace=True)
-    class_dist_df.sort_values(by='#', inplace=True)
+    # Create pandas DataFrame from dict.
+    df = pd.DataFrame(rows)
 
-    print(class_dist_df)
+    # Add percentage size of classes.
+    df['SIZE'] = df['COUNT'].apply(calc_frac, total=float(df['COUNT'].sum()))
+
+    # Convert dtype of COUNT from float to int64.
+    df = df.astype({'COUNT': 'int64'})
+
+    # Set the index to class numbers and sort into ascending order.
+    df.set_index('#', drop=True, inplace=True)
+    df.sort_values(by='#', inplace=True)
+
+    # Use tabulate to print the DataFrame in a pretty plain text format to stdout.
+    print(tabulate(df, headers='keys', tablefmt='psql'))
 
 
 def scene_tag(scenes: Union[list, tuple, np.ndarray]) -> list:
