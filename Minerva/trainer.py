@@ -295,6 +295,10 @@ class Trainer:
         self.metrics['{}_loss'.format('test')]['x'].append(1)
         self.metrics['{}_acc'.format('test')]['x'].append(1)
 
+        # Now experiment is complete, saves model parameters and config file to disk in case error is
+        # encountered in plotting of results.
+        self.close()
+
         # Create a subset of metrics which drops the testing results for plotting model history.
         sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
 
