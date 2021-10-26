@@ -42,7 +42,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional
+from typing import Union, Optional, Tuple, Dict
 from Minerva.utils import utils
 import os
 import yaml
@@ -94,7 +94,7 @@ imageio.plugins.freeimage.download()
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def path_format(names: dict):
+def path_format(names: dict) -> Tuple[Dict[str, str, str], str, str, str]:
     """Takes a dictionary of unique IDs to format the paths and names of files associated with the desired scene.
 
     Args:
@@ -125,7 +125,7 @@ def path_format(names: dict):
     return rgb, scene_path, scene_data_name, patch_data_name
 
 
-def deinterlace(x, f: int) -> np.ndarray:
+def de_interlace(x: Union[list, np.ndarray], f: int) -> np.ndarray:
     """Separates interlaced arrays, `x' at a frequency of `f' from each other.
 
     Args:
@@ -133,7 +133,7 @@ def deinterlace(x, f: int) -> np.ndarray:
         f (int): Frequency at which interlacing occurs. Equivalent to number of sources interlaced together.
 
     Returns:
-        Deinterlaced array. Each source array is now sequentially connected.
+        De-interlaced array. Each source array is now sequentially connected.
     """
     new_x = []
     for i in range(f):
@@ -143,6 +143,24 @@ def deinterlace(x, f: int) -> np.ndarray:
         new_x.append(np.array(x_i).flatten())
 
     return np.array(new_x).flatten()
+
+
+def get_extent(shape: tuple, data_fn: str, new_cs: osr.SpatialReference,
+               spacing: int = 32) -> Tuple[tuple, np.ndarray, np.ndarray]:
+    # Defines the 'extent' of the composite image based on the size of the mask.
+    # Assumes mask and RGB image have same 2D shape.
+    extent = 0, shape[0], 0, shape[1]
+
+    # Gets the co-ordinates of the corners of the image in decimal lat-lon.
+    corners = utils.transform_coordinates(data_fn, new_cs)
+
+    # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image.
+    lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
+                             num=int(shape[0] / spacing) + 1, endpoint=True)
+    lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
+                             num=int(shape[0] / spacing) + 1, endpoint=True)
+
+    return extent, lat_extent, lon_extent
 
 
 def discrete_heatmap(data, classes: Optional[Union[list, tuple, np.ndarray]] = None,
@@ -252,9 +270,9 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
         data_band (int): Optional; Band number of data .tif file.
         classes (list[str]): Optional; List of all possible class labels.
         block_size (int): Optional; Size of block image sub-division in pixels.
-        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
+        cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
-        new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        new_cs(osr.SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
         show (bool): Optional; True for show figure when plotted. False if not.
         save (bool): Optional; True to save figure to file. False if not.
         figdim (tuple): Optional; Figure (height, width) in inches.
@@ -275,9 +293,7 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
     # Loads data to plotted as heatmap from file.
     data = utils.load_array(data_name, band=data_band)
 
-    # Defines the 'extent' of the composite image based on the size of the mask.
-    # Assumes mask and RGB image have same 2D shape.
-    extent = 0, data.shape[0], 0, data.shape[1]
+    extent, lat_extent, lon_extent = get_extent(data.shape, data_name, new_cs, spacing=block_size)
 
     # Initialises a figure.
     fig, ax1 = plt.subplots()
@@ -297,15 +313,6 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
 
     # Creates a secondary x and y axis to hold lat-lon.
     ax2 = ax1.twiny().twinx()
-
-    # Gets the co-ordinates of the corners of the image in decimal lat-lon.
-    corners = utils.transform_coordinates(data_name, new_cs)
-
-    # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image.
-    lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
-                             num=int(data.shape[0]/block_size) + 1, endpoint=True)
-    lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
-                             num=int(data.shape[0]/block_size) + 1, endpoint=True)
 
     # Plots an invisible line across the diagonal of the image to create the secondary axis for lat-lon.
     ax2.plot(lon_extent, lat_extent, ' ',
@@ -384,8 +391,8 @@ def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: i
         frame_length (float): Optional; Length of each GIF frame in seconds.
         data_band (int): Optional; Band number of data .tif file.
         classes (list[str]): Optional; List of all possible class labels.
-        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
-        new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
+        new_cs(osr.SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
         save (bool): Optional; True to save figure to file. False if not.
         figdim (tuple): Optional; Figure (height, width) in inches.
@@ -560,8 +567,7 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
     # Stacks together the R, G, & B bands to form an array of the RGB image
     rgb_image = stack_rgb(scene_path, rgb)
 
-    # Defines the 'extent' of the image based on the size of the mask.
-    extent = 0, y.shape[0], 0, y.shape[1]
+    extent, lat_extent, lon_extent = get_extent(y.shape, data_name, new_cs, spacing=block_size)
 
     # Initialises a figure
     fig = plt.figure(figsize=figdim)
@@ -594,15 +600,6 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
     axes[0].grid(which='both', color='#CCCCCC', linestyle=':')
     axes[1].grid(which='both', color='#CCCCCC', linestyle=':')
     axes[2].grid(which='both', color='#CCCCCC', linestyle=':')
-
-    # Gets the co-ordinates of the corners of the image in decimal lat-lon
-    corners = utils.transform_coordinates(scene_path + data_name, new_cs)
-
-    # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image
-    lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
-                             num=int(y.shape[0] / block_size) + 1, endpoint=True)
-    lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
-                             num=int(y.shape[0] / block_size) + 1, endpoint=True)
 
     # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis
     lat_labels = utils.dec2deg(lat_extent, axis='lat')
@@ -868,19 +865,19 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
     Returns:
         filenames (dict): Formatted filenames for plots.
     """
-    def standard_format(plot_type: str, path: Optional[Union[list, tuple]] = path) -> str:
+    def standard_format(plot_type: str, _path: Optional[Union[list, tuple]] = path) -> str:
         """Creates a unique filename for a plot in a standardised format.
 
         Args:
             plot_type (str): Plot type to use in filename.
-            path (list[str]): Optional; Path to the directory for filename as a list of strings for each level.
+            _path (list[str]): Optional; Path to the directory for filename as a list of strings for each level.
                 Overrides path from format_plot_names.
 
         Returns:
             String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
         """
         filename = '{}_{}_{}'.format(model_name, timestamp, plot_type)
-        return os.path.join(os.path.join(*path), filename)
+        return os.path.join(os.path.join(*_path), filename)
 
     filenames = {'History': standard_format('MH') + '.png',
                  'Pred': standard_format('TP') + '.png',
@@ -901,6 +898,8 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
         plots (dict): Dictionary defining which plots to make.
         z (list[list[int]] or np.ndarray[np.ndarray[int]]): List of predicted label masks.
         y (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
+        ids (list[str]): List of IDs defining the origin of samples to the model.
+            May be either patch IDs or scene tags.
         class_names (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
         save (bool): Optional; Whether to save the plots to file.
