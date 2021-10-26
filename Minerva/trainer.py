@@ -97,13 +97,13 @@ class Trainer:
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
-            'train_loss': [],
-            'val_loss': [],
-            'test_loss': [],
+            'train_loss': {'x': [], 'y': []},
+            'val_loss': {'x': [], 'y': []},
+            'test_loss': {'x': [], 'y': []},
 
-            'train_acc': [],
-            'val_acc': [],
-            'test_acc': []
+            'train_acc': {'x': [], 'y': []},
+            'val_acc': {'x': [], 'y': []},
+            'test_acc': {'x': [], 'y': []}
         }
 
         # Initialise TensorBoard logger
@@ -232,14 +232,15 @@ class Trainer:
                 bar()
 
         # Updates metrics with epoch results.
-        self.metrics['{}_loss'.format(mode)].append(total_loss / self.n_batches[mode])
-        if self.params['model_type'] == 'segmentation':
-            self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size *
-                                                                        self.data_size[1] * self.data_size[2]))
-        else:
-            self.metrics['{}_acc'.format(mode)].append(total_correct / (self.n_batches[mode] * self.batch_size))
+        self.metrics['{}_loss'.format(mode)]['y'].append(total_loss / self.n_batches[mode])
 
-        #total_norm = utils.calc_grad(self.model)
+        if self.params['model_type'] == 'segmentation':
+            self.metrics['{}_acc'.format(mode)]['y'].append(total_correct / (self.n_batches[mode] * self.batch_size *
+                                                                             self.data_size[1] * self.data_size[2]))
+        else:
+            self.metrics['{}_acc'.format(mode)]['y'].append(total_correct / (self.n_batches[mode] * self.batch_size))
+
+        # total_norm = utils.calc_grad(self.model)
 
         if mode is 'test':
             return test_predictions, test_labels, test_ids
@@ -249,15 +250,29 @@ class Trainer:
     def fit(self) -> None:
         """Fits the model by running max_epochs number of training and validation epochs."""
         for epoch in range(self.max_epochs):
-            print(f'Epoch: {epoch + 1}/{self.max_epochs}')
+            print(f'\nEpoch: {epoch + 1}/{self.max_epochs} ==========================================================')
 
+            # Conduct training epoch.
             self.epoch('train')
+
+            # Add epoch number to training metrics.
+            self.metrics['{}_loss'.format('train')]['x'].append(epoch + 1)
+            self.metrics['{}_acc'.format('train')]['x'].append(epoch + 1)
+
+            # Print training epoch results.
+            print('Training | Loss: {} | Accuracy: {}% \n'.format(self.metrics['train_loss']['y'][epoch],
+                                                                  self.metrics['train_acc']['y'][epoch] * 100.0))
+
+            # Conduct validation epoch.
             self.epoch('val')
 
-            print('Training loss: {} | Validation Loss: {}'.format(self.metrics['train_loss'][epoch],
-                                                                   self.metrics['val_loss'][epoch]))
-            print('Train Accuracy: {}% | Validation Accuracy: {}% \n'.format(self.metrics['train_acc'][epoch] * 100.0,
-                                                                             self.metrics['val_acc'][epoch] * 100.0))
+            # Add epoch number to validation results.
+            self.metrics['{}_loss'.format('val')]['x'].append(epoch + 1)
+            self.metrics['{}_acc'.format('val')]['x'].append(epoch + 1)
+
+            # Print validation epoch results.
+            print('Validation | Loss: {} | Accuracy: {}% \n'.format(self.metrics['val_loss']['y'][epoch],
+                                                                    self.metrics['val_acc']['y'][epoch] * 100.0))
 
     def test(self, plots: dict, save: bool = True) -> Tuple[list, list, list]:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
@@ -273,9 +288,14 @@ class Trainer:
         print('\r\nTESTING')
         predictions, labels, test_ids = self.epoch('test')
 
-        print('Test Loss: {} | Test Accuracy: {}% \n'.format(self.metrics['test_loss'][0],
-                                                             self.metrics['test_acc'][0] * 100.0))
+        print('Test | Loss: {} | Accuracy: {}% \n'.format(self.metrics['test_loss']['y'][0],
+                                                          self.metrics['test_acc']['y'][0] * 100.0))
 
+        # Add epoch number to testing results.
+        self.metrics['{}_loss'.format('test')]['x'].append(1)
+        self.metrics['{}_acc'.format('test')]['x'].append(1)
+
+        # Create a subset of metrics which drops the testing results for plotting model history.
         sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
 
         # Plots the results.
