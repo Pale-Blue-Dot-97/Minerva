@@ -20,10 +20,10 @@ dir:
     - 'MinervaPercep'
     - 'FCNResNet'
 
-# Model Name
-model_name: 'FCN8ResNet34-MkI'
-model_type: 'segmentation'
-
+# Kwargs for make_datasets
+model_name: 'FCN8ResNet34-MkII' # Name of model. Substring before hyphen is used to find and initialise model object.
+model_type: 'segmentation'      # Type of model. Can be mlp, cnn, segmentation.
+frac: 0.05                      # Fraction of patches in the dataset to use.
 elim: True
 scene_selector: 'threshold'
 centre_only: False
@@ -32,11 +32,11 @@ balance: True
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 16
+    batch_size: 32
     num_workers: 10
     pin_memory: True
   model_params:
-    input_size: [12, 256, 256]
+    input_size: [6, 256, 256]
     n_classes: 11
     #groups: 32
     #width_per_group: 4
@@ -49,7 +49,7 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 20
+  max_epochs: 5
 
 # Settings for RGB image creation
 rgb_params:
