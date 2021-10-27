@@ -58,7 +58,7 @@ params = config['hyperparams']['params']
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(frac=0.1, **config)
+    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(**config)
 
     config['hyperparams']['model_params']['n_classes'] = len(new_classes)
     config['classes'] = new_classes

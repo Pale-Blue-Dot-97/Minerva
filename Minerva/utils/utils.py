@@ -1451,5 +1451,14 @@ def scene_tag(scenes: Union[list, tuple, np.ndarray]) -> list:
 
 
 def extract_from_tag(tag: str) -> Tuple[str, str]:
+    """Extracts the patch ID and date for a scene from a scene tag.
+
+    Args:
+        tag (str): Scene tag string that uniquely defines a scene. Should be of form: {patch_id}-{date}
+
+    Returns:
+        patch_id (str): Unique patch ID for scene.
+        date (str): Date of the scene.
+    """
     patch_id, _, date = tag.partition('-')
     return patch_id, date
