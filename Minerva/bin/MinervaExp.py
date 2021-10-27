@@ -37,6 +37,7 @@ Attributes:
 TODO:
     * Add arg parsing from CLI
     * Add ability to conduct hyper-parameter iterative variation experimentation
+    * Move all remaining options to config and out of script
 """
 # =====================================================================================================================
 #                                                     IMPORTS
