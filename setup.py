@@ -20,6 +20,6 @@ setup(name='Minerva',
                 'Minerva.utils'],
       scripts=['Minerva/bin/DownloadStrapper.py',
                'Minerva/bin/Landcovernet_Download_API.py',
-               'Minerva/bin/MinervaPercep.py'],
+               'Minerva/bin/MinervaExp.py'],
       package_data={'landcovernet': ['data/landcovernet']}
       )
