@@ -74,7 +74,7 @@ def main():
 
     trainer.fit()
 
-    trainer.test({'History': True, 'Pred': True, 'CM': True, 'PvT': True}, save=True)
+    trainer.test()
 
     #trainer.run_tensorboard()
 
