@@ -7,7 +7,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name='Minerva',
-      version='0.1',
+      version='0.5',
       description='Package to build, train and test neural network models on land cover data',
       long_description=long_description,
       long_description_content_type='text/markdown',
@@ -20,6 +20,8 @@ setup(name='Minerva',
                 'Minerva.utils'],
       scripts=['Minerva/bin/DownloadStrapper.py',
                'Minerva/bin/Landcovernet_Download_API.py',
-               'Minerva/bin/MinervaExp.py'],
+               'Minerva/bin/MinervaExp.py',
+               'Minerva/bin/ManifestMake.py',
+               'Minerva/bin/TiffCutter.py'],
       package_data={'landcovernet': ['data/landcovernet']}
       )
