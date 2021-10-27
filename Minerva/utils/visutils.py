@@ -819,9 +819,11 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
     labels_dist = utils.find_subpopulations(test_labels)
     pred_dist = utils.find_subpopulations(test_pred)
 
-    print(classes)
-    print('labels:', labels_dist)
-    print('pred:', pred_dist)
+    # Prints class distributions of ground truth and predicted labels to stdout.
+    print('\nGROUND TRUTH:')
+    utils.print_class_dist(labels_dist, class_labels=classes)
+    print('\nPREDICTIONS:')
+    utils.print_class_dist(pred_dist, class_labels=classes)
 
     empty = []
 
