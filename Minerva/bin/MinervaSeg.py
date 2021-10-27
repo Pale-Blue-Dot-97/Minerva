@@ -58,19 +58,15 @@ params = config['hyperparams']['params']
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(frac=0.1, **config)
+    datasets, n_batches, class_dist, ids, _config = loaders.make_datasets(**config)
 
-    config['hyperparams']['model_params']['n_classes'] = len(new_classes)
-    config['classes'] = new_classes
-    config['colours'] = new_colours
-
-    trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **config)
+    trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **_config)
 
     trainer.fit()
 
     trainer.test({'History': True, 'Pred': True, 'CM': True, 'Mask': True}, save=True)
 
-    trainer.close()
+    #trainer.close()
 
     #trainer.run_tensorboard()
 

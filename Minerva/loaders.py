@@ -493,7 +493,7 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
                   split: Tuple[float, float, float] = (0.7, 0.15, 0.15), wheel_size: int = 65536,
                   image_len: int = 65536, seed: int = 42, shuffle: bool = True, plot: bool = False,
                   balance: bool = False, over_factor: int = 1, model_type: str = 'CNN', p_dist: bool = False,
-                  **params) -> Tuple[Dict[str, DataLoader], dict, list, dict, dict, dict]:
+                  **params) -> Tuple[Dict[str, DataLoader], dict, list, dict, dict]:
     """
 
     Args:
@@ -623,4 +623,8 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
     if params['elim']:
         class_dist = utils.class_dist_transform(class_dist, forwards)
 
-    return loaders, n_batches, class_dist, ids, new_classes, new_colours
+    params['hyperparams']['model_params']['n_classes'] = len(new_classes)
+    params['classes'] = new_classes
+    params['colours'] = new_colours
+
+    return loaders, n_batches, class_dist, ids, params
