@@ -32,6 +32,7 @@ Attributes:
     data_config (dict): Config defining the properties of the data used in the experiment.
     data_dir (list): Path to directory holding dataset.
     patch_dir_prefix (str): Prefix to every patch ID in every patch directory name.
+    n_pixels (int): Total number of pixels in each sample (per band).
 
 TODO:
     * Add ability to plot labelled RGB images using the annual land cover labels
@@ -80,6 +81,8 @@ data_dir = config['dir']['data']
 
 # Prefix to every patch ID in every patch directory name.
 patch_dir_prefix = imagery_config['patch_dir_prefix']
+
+n_pixels = imagery_config['data_specs']['image_size'][0] * imagery_config['data_specs']['image_size'][1]
 
 # Automatically fixes the layout of the figures to accommodate the colour bar legends.
 plt.rcParams['figure.constrained_layout.use'] = True
@@ -350,7 +353,7 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
     # Bodge to get a figure title by using the colour bar title.
     clb.ax.set_title('%s\n%s\nLand Cover' % (names['patch_ID'], names['date']), loc='left', fontsize=15)
 
-    # Set axis labels
+    # Set axis labels.
     ax1.set_xlabel('(x) - Pixel Position', fontsize=14)
     ax1.set_ylabel('(y) - Pixel Position', fontsize=14)
     ax2.set_ylabel('Latitude', fontsize=14, rotation=270, labelpad=12)
@@ -404,37 +407,37 @@ def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: i
     Returns:
         None
     """
-    # Fetch all the scene dates for this patch in DD.MM.YYYY format
+    # Fetch all the scene dates for this patch in DD.MM.YYYY format.
     dates = utils.date_grab(names['patch_ID'])
 
-    # Initialise progress bar
+    # Initialise progress bar.
     with alive_bar(len(dates), bar='blocks') as bar:
 
-        # List to hold filenames and paths of images created
+        # List to hold filenames and paths of images created.
         frames = []
         for date in dates:
-            # Update progress bar with current scene
+            # Update progress bar with current scene.
             bar.text('SCENE ON %s' % date)
 
-            # Update names date field
+            # Update names date field.
             names['date'] = date
 
-            # Create a frame of the GIF for a scene of the patch
+            # Create a frame of the GIF for a scene of the patch.
             frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style,
                                        new_cs=new_cs, alpha=alpha, save=save, show=False, figdim=figdim)
 
-            # Read in frame just created and add to list of frames
+            # Read in frame just created and add to list of frames.
             frames.append(imageio.imread(frame))
 
-            # Update bar with step completion
+            # Update bar with step completion.
             bar()
 
-    # Create a 'unknown' bar to 'spin' while the GIF is created
+    # Create a 'unknown' bar to 'spin' while the GIF is created.
     with alive_bar(unknown='waves') as bar:
-        # Add current operation to spinner bar
+        # Add current operation to spinner bar.
         bar.text('MAKING PATCH %s GIF' % names['patch_ID'])
 
-        # Create GIF
+        # Create GIF.
         imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
@@ -458,46 +461,46 @@ def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1
     Returns:
         None
     """
-    # Gets all the patch IDs from the dataset directory
+    # Gets all the patch IDs from the dataset directory.
     patches = utils.patch_grab()
 
-    # Iterator for progress counter
+    # Iterator for progress counter.
     i = 0
 
-    # Iterate through all patches
+    # Iterate through all patches.
     for patch in patches:
-        # Count this iteration for the progress counter
+        # Count this iteration for the progress counter.
         i += 1
 
-        # Print status update
+        # Print status update.
         print('\r\nNOW SERVING PATCH %s (%s/%s): ' % (patch, i, len(patches)))
 
-        # Update dictionary for this patch
+        # Update dictionary for this patch.
         names['patch_ID'] = patch
 
-        # Define name of GIF for this patch
+        # Define name of GIF for this patch.
         gif_name = '%s/%s%s/%s.gif' % (data_dir, patch_dir_prefix, names['patch_ID'], names['patch_ID'])
 
-        # Call make_gif() for this patch
+        # Call make_gif() for this patch.
         make_gif(names, gif_name, frame_length=frame_length, data_band=data_band, classes=classes,
                  cmap_style=cmap_style, new_cs=new_cs, alpha=alpha, save=True, figdim=figdim)
 
     print('\r\nOPERATION COMPLETE')
 
 
-def plot_all_pvl(predictions: Union[list, np.ndarray], labels: Union[list, np.ndarray],
-                 patch_ids: Union[list, tuple, np.ndarray], exp_id: str, new_cs: osr.SpatialReference,
-                 classes: dict, cmap: Union[str, ListedColormap]) -> None:
-    """Uses prediction_plot to plot all predicted versus ground truth comparison plots.
+def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_ids: Union[list, tuple, np.ndarray],
+                 classes: dict, colours: dict, fn_prefix: str, frac: float = 0.05,
+                 fig_dim: Tuple[float, float] = (9.3, 10.5)) -> None:
+    """Uses prediction_plot to plot all predicted versus ground truth comparison plots from MLP testing.
 
     Args:
-        predictions (list[list[int]] or np.ndarray[np.ndarray[int]]): List of predicted label masks.
-        labels (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
+        z (list[list[int]] or np.ndarray[np.ndarray[int]]): List of predicted label masks.
+        y (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
         patch_ids (list[str]): List of IDs identifying the patches from which predictions and labels came from.
-        exp_id (str): Unique ID for the experiment run predictions and labels come from.
-        new_cs(SpatialReference): Co-ordinate system to convert image to and use for labelling.
         classes (dict[str]): Dictionary mapping class labels to class names.
-        cmap (str, ListedColormap): Name or object for colour map style.
+        colours (dict[str]): Dictionary mapping class labels to colours.
+        frac (float): Optional; Fraction of patch samples to plot.
+        fig_dim (Tuple[float, float]): Optional; Figure (height, width) in inches.
 
     Returns:
         None
@@ -513,8 +516,25 @@ def plot_all_pvl(predictions: Union[list, np.ndarray], labels: Union[list, np.nd
         for i in range(0, len(x), n):
             yield x[i:i + n]
 
-    flat_z = np.array(list(chunks(predictions, int(len(predictions) / len(patch_ids)))))
-    flat_y = np.array(list(chunks(labels, int(len(labels) / len(patch_ids)))))
+    # Gets the number of workers to use as the frequency for the de-interlacing operation.
+    num_workers = config['hyperparams']['params']['num_workers']
+
+    cmap = ListedColormap(colours.values(), N=len(colours.values()))
+
+    # `De-interlaces' the outputs to account for the effects of multi-threaded workloads.
+    z = de_interlace(z, num_workers)
+    y = de_interlace(y, num_workers)
+    patch_ids = de_interlace(patch_ids, num_workers)
+
+    # Extracts just a patch ID for each test patch supplied.
+    patch_ids = [patch_ids[i] for i in np.arange(start=0, stop=len(patch_ids), step=n_pixels)]
+
+    # Create a new projection system in lat-lon
+    new_cs = osr.SpatialReference()
+    new_cs.ImportFromEPSG(data_config['co_sys']['id'])
+
+    flat_z = np.array(list(chunks(z, int(len(z) / len(patch_ids)))))
+    flat_y = np.array(list(chunks(y, int(len(y) / len(patch_ids)))))
 
     z_shape = flat_z.shape
     y_shape = flat_y.shape
@@ -522,17 +542,24 @@ def plot_all_pvl(predictions: Union[list, np.ndarray], labels: Union[list, np.nd
     z = np.array([z_i.reshape((int(np.sqrt(z_shape[1])), int(np.sqrt(z_shape[1])))) for z_i in flat_z])
     y = np.array([y_i.reshape((int(np.sqrt(y_shape[1])), int(np.sqrt(y_shape[1])))) for y_i in flat_y])
 
-    figdim = (9.3, 10.5)
+    print('PRODUCING PREDICTED VERSUS GROUND TRUTH PLOTS')
+    n_samples = int(frac * len(patch_ids))
 
-    for j in range(len(patch_ids)):
-        prediction_plot(z[j], y[j], patch_ids[j], 'patch', exp_id, new_cs, classes=classes, cmap_style=cmap, show=False,
-                        figdim=figdim)
+    # Initialises a progress bar for the epoch.
+    with alive_bar(n_samples, bar='blocks') as bar:
+
+        # Plots the predicted versus ground truth labels for all test patches supplied.
+        for i in random.sample(range(len(patch_ids)), n_samples):
+            prediction_plot(z[i], y[i], patch_ids[i], 'patch', new_cs=new_cs, classes=classes, cmap_style=cmap,
+                            fn_prefix=fn_prefix, show=False, fig_dim=fig_dim)
+
+            bar()
 
 
-def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: str, exp_id: str,
-                    new_cs: osr.SpatialReference, classes: Optional[dict] = None, block_size: int = 32,
+def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: str, new_cs: osr.SpatialReference,
+                    exp_id: Optional[str] = None, classes: Optional[dict] = None, block_size: int = 32,
                     cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True, save: bool = True,
-                    figdim: Optional[Union[tuple, list, np.ndarray]] = None, fn_prefix: Optional[str] = None) -> str:
+                    fig_dim: Optional[Tuple[float, float]] = None, fn_prefix: Optional[str] = None) -> str:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
 
@@ -540,14 +567,14 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
         z (np.ndarray[np.ndarray[int]]): 2D array of the predicted label mask.
         y (np.ndarray[np.ndarray[int]]): 2D array of the corresponding ground truth label mask.
         sample_id (str): Unique ID of the patch.
-        exp_id (str): Unique ID for the experiment run predictions and labels come from.
+        exp_id (str): Optional; Unique ID for the experiment run that predictions and labels come from.
         classes (dict[str]): Optional; Dictionary mapping class labels to class names.
         new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
         block_size (int): Optional; Size of block image sub-division in pixels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
         show (bool): Optional; True for show figure when plotted. False if not.
         save (bool): Optional; True to save figure to file. False if not.
-        figdim (tuple): Optional; Figure (height, width) in inches.
+        fig_dim (Tuple[float, float]): Optional; Figure (height, width) in inches.
 
     Returns:
         None
@@ -565,32 +592,32 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
 
     names['patch_ID'] = patch_id
 
-    # Get required formatted paths and names
+    # Get required formatted paths and names.
     rgb, scene_path, data_name, _ = path_format(names)
 
-    # Stacks together the R, G, & B bands to form an array of the RGB image
+    # Stacks together the R, G, & B bands to form an array of the RGB image.
     rgb_image = stack_rgb(scene_path, rgb)
 
     extent, lat_extent, lon_extent = get_extent(y.shape, scene_path + data_name, new_cs, spacing=block_size)
 
-    # Initialises a figure
-    fig = plt.figure(figsize=figdim)
+    # Initialises a figure.
+    fig = plt.figure(figsize=fig_dim)
 
     gs = GridSpec(nrows=2, ncols=2, figure=fig)
 
     axes = np.array([fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[1, :])])
 
-    # Creates a cmap from query
+    # Creates a cmap from query.
     cmap = plt.get_cmap(cmap_style, len(classes))
 
-    # Plots heatmap onto figure
+    # Plots heatmap onto figure.
     z_heatmap = axes[0].imshow(z, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
     y_heatmap = axes[1].imshow(y, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
-    # Create RGB image
+    # Create RGB image.
     axes[2].imshow(rgb_image, extent=extent)
 
-    # Sets tick intervals to standard 32x32 block size
+    # Sets tick intervals to standard 32x32 block size.
     axes[0].set_xticks(np.arange(0, z.shape[0] + 1, block_size))
     axes[0].set_yticks(np.arange(0, z.shape[1] + 1, block_size))
 
@@ -600,33 +627,33 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
     axes[2].set_xticks(np.arange(0, rgb_image.shape[0] + 1, block_size))
     axes[2].set_yticks(np.arange(0, rgb_image.shape[1] + 1, block_size))
 
-    # Add grid overlay
+    # Add grid overlay.
     axes[0].grid(which='both', color='#CCCCCC', linestyle=':')
     axes[1].grid(which='both', color='#CCCCCC', linestyle=':')
     axes[2].grid(which='both', color='#CCCCCC', linestyle=':')
 
-    # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis
+    # Converts the decimal lat-lon into degrees, minutes, seconds to label the axis.
     lat_labels = utils.dec2deg(lat_extent, axis='lat')
     lon_labels = utils.dec2deg(lon_extent, axis='lon')
 
-    # Sets the secondary axis tick labels
+    # Sets the secondary axis tick labels.
     axes[2].set_xticklabels(lon_labels, fontsize=9, rotation=30)
     axes[2].set_yticklabels(lat_labels, fontsize=9)
 
-    # Plots colour bar onto figure
+    # Plots colour bar onto figure.
     clb = fig.colorbar(z_heatmap, ax=axes.ravel().tolist(), location='top',
                        ticks=np.arange(0, len(classes)), aspect=75, drawedges=True)
 
-    # Sets colour bar ticks to class labels
+    # Sets colour bar ticks to class labels.
     clb.ax.set_xticklabels(classes.values(), fontsize=9)
 
-    # Set figure title and subplot titles
+    # Set figure title and subplot titles.
     fig.suptitle('{}'.format(patch_id), fontsize=15)
     axes[0].set_title('Predicted', fontsize=13)
     axes[1].set_title('Ground Truth', fontsize=13)
     axes[2].set_title('Reference Imagery From {}'.format(names['date']), fontsize=13)
 
-    # Set axis labels
+    # Set axis labels.
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)
     axes[0].set_ylabel('(y) - Pixel Position', fontsize=10)
     axes[1].set_xlabel('(x) - Pixel Position', fontsize=10)
@@ -634,7 +661,7 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
     axes[2].set_xlabel('Longitude', fontsize=10)
     axes[2].set_ylabel('Latitude', fontsize=10)
 
-    # Display figure
+    # Display figure.
     if show:
         plt.show()
 
@@ -642,25 +669,25 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
         path = os.path.join(*config['dir']['results'])
         fn_prefix = os.sep.join([path, '{}_{}_Mask'.format(exp_id, utils.timestamp_now())])
 
-    # Path and file name of figure
+    # Path and file name of figure.
     fn = '{}_{}.png'.format(fn_prefix, sample_id)
 
-    # If true, save file to fn
+    # If true, save file to fn.
     if save:
-        # Checks if file already exists. Deletes if true
+        # Checks if file already exists. Deletes if true.
         utils.exist_delete_check(fn)
 
-        # Save figure to fn
+        # Save figure to fn.
         fig.savefig(fn)
 
-    # Close figure
+    # Close figure.
     plt.close()
 
     return fn
 
 
 def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefix: str,
-             frac: float = 0.05, figdim: tuple = (9.3, 10.5)) -> None:
+             frac: float = 0.05, fig_dim: Tuple[float, float] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
     Args:
@@ -670,7 +697,7 @@ def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefi
         classes (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
         frac (float): Optional; Fraction of patch samples to plot.
-        figdim (tuple): Optional; Figure (height, width) in inches.
+        fig_dim (tuple[float, float]): Optional; Figure (height, width) in inches.
 
     Returns:
         None
@@ -695,7 +722,7 @@ def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefi
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
             prediction_plot(z[i], y[i], ids[i], 'scene', exp_id=config['model_name'], new_cs=new_cs,
-                            classes=classes, figdim=figdim, show=False, fn_prefix=fn_prefix,
+                            classes=classes, fig_dim=fig_dim, show=False, fn_prefix=fn_prefix,
                             cmap_style=ListedColormap(colours.values(), N=len(colours)))
 
             bar()
@@ -806,7 +833,7 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
 
     Args:
         test_pred(list[list[int]]): Predictions made by model on test images.
-        test_labels (list[list[int]]): Accompanying labels for testing images.
+        test_labels (list[list[int]]): Accompanying ground truth labels for testing images.
         classes (dict): Dictionary mapping class labels to class names.
         filename (str): Optional; Name of file to save plot to.
         show (bool): Optional; Whether to show plot.
@@ -888,12 +915,13 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
             String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
         """
         filename = '{}_{}_{}'.format(model_name, timestamp, plot_type)
-        return os.path.join(os.path.join(*path, *sub_dir), filename)
+        return os.path.join(*path, *sub_dir, filename)
 
     filenames = {'History': standard_format('MH') + '.png',
                  'Pred': standard_format('TP') + '.png',
                  'CM': standard_format('CM') + '.png',
-                 'Mask': standard_format('Mask', 'Test Masks')}
+                 'Mask': standard_format('Mask', 'Test Masks'),
+                 'PvT': standard_format('PvT', 'Test PvTs')}
 
     return filenames
 
@@ -959,9 +987,10 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
         make_confusion_matrix(test_labels=flat_y, test_pred=flat_z, classes=class_names, filename=filenames['CM'],
                               save=save, show=show)
 
+    if plots['PvT']:
+        os.mkdir(os.path.join(*results_dir, 'Test PvTs'))
+        plot_all_pvl(z, y, ids, classes=class_names, colours=colours, fn_prefix=filenames['PvT'])
+
     if plots['Mask']:
-        fn_prefix = os.path.join('Test Masks', filenames['Mask'])
-
         os.mkdir(os.path.join(*results_dir, 'Test Masks'))
-
-        seg_plot(z, y, ids, fn_prefix=fn_prefix, classes=class_names, colours=colours)
+        seg_plot(z, y, ids, fn_prefix=filenames['Mask'], classes=class_names, colours=colours)
