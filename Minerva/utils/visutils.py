@@ -948,6 +948,9 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
             If not specified, the current date-time is used.
         results_dir (list): Optional; Path to the directory for storing plots as a list of strings for each level.
 
+    Notes:
+        save = True, show = False regardless of input for plots made for each sample such as PvT or Mask plots.
+
     Returns:
         None
     """

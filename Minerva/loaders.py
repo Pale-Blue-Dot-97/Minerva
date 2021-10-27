@@ -492,8 +492,8 @@ def make_transformations(transform_params: dict):
 def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None, n_patches: Optional[int] = None,
                   split: Tuple[float, float, float] = (0.7, 0.15, 0.15), wheel_size: int = 65536,
                   image_len: int = 65536, seed: int = 42, shuffle: bool = True, plot: bool = False,
-                  balance: bool = False, over_factor: int = 1, model_type: str = 'CNN', p_dist: bool = False,
-                  **params) -> Tuple[Dict[str, DataLoader], dict, list, dict, dict, dict]:
+                  balance: bool = False, over_factor: int = 1, model_type: str = 'scene classifier',
+                  p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader], dict, list, dict, dict, dict]:
     """
 
     Args:
@@ -510,7 +510,7 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
         plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
         balance (bool): Optional;
         over_factor (int): Optional;
-        model_type (str): Optional;
+        model_type (str): Optional; Must be either mlp, MLP, scene classifier or segmentation.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Keyword Args:
@@ -558,7 +558,7 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
 
     for mode in ('train', 'val', 'test'):
         print('\nFINDING {} SCENES'.format(mode))
-        if model_type in ['CNN', 'cnn'] and balance:
+        if model_type == 'scene classifier' and balance:
             scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], manifest, scene_func),
                                               over_factor=over_factor)
         else:
@@ -594,7 +594,7 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
 
             n_batches[mode] = utils.num_batches(len(ids[mode]))
 
-        if model_type in ['cnn', 'CNN', 'segmentation']:
+        if model_type in ['scene classifier', 'segmentation']:
             transformations = make_transformations(params['hyperparams']['transforms'])
 
             # Define datasets for train, validation and test using ImageDataset.
@@ -604,13 +604,13 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
 
             n_batches[mode] = int(len(scenes[mode]) / batch_size)
 
-        if model_type in ['cnn', 'CNN'] and balance:
+        if model_type == 'scene classifier' and balance:
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
         #    weights = utils.weight_samples(scenes[mode], func=utils.find_centre_label, normalise=False)
         #    sampler = WeightedRandomSampler(torch.tensor(weights, dtype=torch.float), len(weights), replacement=True)
         #    loaders[mode] = DataLoader(datasets[mode], **dataloader_params, sampler=sampler)
 
-        if model_type in ['cnn', 'CNN'] and not balance or model_type not in ['cnn', 'CNN']:
+        if model_type == 'scene classifier' and not balance or model_type != 'scene classifier':
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
 
     all_scenes = scenes['train'] + scenes['val'] + scenes['test']

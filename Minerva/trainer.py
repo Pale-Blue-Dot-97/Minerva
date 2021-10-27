@@ -274,13 +274,16 @@ class Trainer:
             print('Validation | Loss: {} | Accuracy: {}% \n'.format(self.metrics['val_loss']['y'][epoch],
                                                                     self.metrics['val_acc']['y'][epoch] * 100.0))
 
-    def test(self, plots: dict, save: bool = True) -> Tuple[list, list, list]:
+    def test(self, save: bool = True, show: bool = False) -> Tuple[list, list, list]:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
         analysis of them.
 
         Args:
-            plots (dict): Dictionary defining which plots of the test results to create.
             save (bool): Optional; Determines whether or not to save the plots created to file.
+            show (bool): Optional; Determines whether or not to show the plots created.
+
+        Notes:
+            save = True, show = False regardless of input for plots made for each sample such as PvT or Mask plots.
 
         Returns:
             Test predicted and ground truth labels along with the patch IDs supplied to the model during testing.
@@ -302,9 +305,19 @@ class Trainer:
         # Create a subset of metrics which drops the testing results for plotting model history.
         sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
 
+        # Gets the dict from params that defines which plots to make from the results.
+        plots = self.params['plots']
+
+        # Ensures that inappropriate plots are not attempted for incompatible outputs.
+        if self.params['model_type'] in ('scene classifier', 'segmentation'):
+            plots['PvT'] = False
+
+        if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
+            plots['Mask'] = False
+
         # Plots the results.
         visutils.plot_results(sub_metrics, plots, predictions, labels, test_ids, self.params['classes'],
-                              self.params['colours'], save=save, show=False, model_name=self.params['model_name'],
+                              self.params['colours'], save=save, show=show, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
 
         return predictions, labels, test_ids

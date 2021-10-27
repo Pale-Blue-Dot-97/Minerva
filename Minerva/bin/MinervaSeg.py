@@ -68,7 +68,7 @@ def main():
 
     trainer.fit()
 
-    trainer.test({'History': True, 'Pred': True, 'CM': True, 'Mask': True}, save=True)
+    trainer.test()
 
     trainer.close()
 
