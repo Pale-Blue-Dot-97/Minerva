@@ -42,6 +42,7 @@ Attributes:
     params (dict): Sub-dict of the master config for the model hyper-parameters.
 
 TODO:
+    * Add exception handling where appropriate
 """
 # =====================================================================================================================
 #                                                     IMPORTS
