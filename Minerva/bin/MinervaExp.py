@@ -75,12 +75,8 @@ def main():
     config['colours'] = new_colours
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **config)
-
     trainer.fit()
-
     trainer.test()
-
-    trainer.close()
 
     #trainer.run_tensorboard()
 

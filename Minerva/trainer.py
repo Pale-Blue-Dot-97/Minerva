@@ -22,7 +22,10 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 
 Institution: University of Southampton
 
-Created under a project funded by the Ordnance Survey Ltd
+Created under a project funded by the Ordnance Survey Ltd.
+
+Attributes:
+    _timeout (int): Default time till timeout waiting for a user input in seconds.
 
 TODO:
     * Output metrics to csv in close()
@@ -40,6 +43,13 @@ from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 from itertools import islice
 from alive_progress import alive_bar
+from inputimeout import inputimeout, TimeoutOccurred
+
+# =====================================================================================================================
+#                                                     GLOBALS
+# =====================================================================================================================
+# Default time till timeout waiting for a user input in seconds.
+_timeout = 30
 
 
 # =====================================================================================================================
@@ -274,7 +284,7 @@ class Trainer:
             print('Validation | Loss: {} | Accuracy: {}% \n'.format(self.metrics['val_loss']['y'][epoch],
                                                                     self.metrics['val_acc']['y'][epoch] * 100.0))
 
-    def test(self, save: bool = True, show: bool = False) -> Tuple[list, list, list]:
+    def test(self, save: bool = True, show: bool = False) -> None:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
         analysis of them.
 
@@ -286,7 +296,7 @@ class Trainer:
             save = True, show = False regardless of input for plots made for each sample such as PvT or Mask plots.
 
         Returns:
-            Test predicted and ground truth labels along with the patch IDs supplied to the model during testing.
+            None
         """
         print('\r\nTESTING')
         predictions, labels, test_ids = self.epoch('test')
@@ -320,8 +330,6 @@ class Trainer:
                               self.params['colours'], save=save, show=show, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
 
-        return predictions, labels, test_ids
-
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
         # Ensure the TensorBoard logger is closed.
@@ -334,8 +342,22 @@ class Trainer:
         with open('{}.yml'.format(fn), 'w') as outfile:
             yaml.dump(self.params, outfile)
 
-        # Saves model state dict to PyTorch file.
-        torch.save(self.model.state_dict(), '{}.pt'.format(fn))
+        if self.params['save_model'] in ('opt', 'optional', 'OPT', 'Optional'):
+            try:
+                res = inputimeout(prompt='Save model to file? (Y/N): ', timeout=_timeout)
+                if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'save', 'SAVE', 'Save'):
+                    # Saves model state dict to PyTorch file.
+                    torch.save(self.model.state_dict(), '{}.pt'.format(fn))
+                elif res in ('N', 'n', 'no', 'No', 'NO'):
+                    pass
+                else:
+                    print('Input not recognised. Please try again')
+            except TimeoutOccurred:
+                print('Input timeout elapsed. Model will not be saved')
+
+        elif self.params['save_model'] in (True, 'auto', 'Auto'):
+            # Saves model state dict to PyTorch file.
+            torch.save(self.model.state_dict(), '{}.pt'.format(fn))
 
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment."""
