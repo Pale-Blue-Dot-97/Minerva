@@ -54,6 +54,7 @@ import os
 import glob
 import math
 import importlib
+import webbrowser
 import re as regex
 import numpy as np
 import pandas as pd
@@ -1463,3 +1464,34 @@ def extract_from_tag(tag: str) -> Tuple[str, str]:
     """
     patch_id, _, date = tag.partition('-')
     return patch_id, date
+
+
+def run_tensorboard(path: Union[str, list, tuple] = config['dir']['results'][:-1], env_name: str = 'env2',
+                    exp_name: str = config['exp_name'], host_num: Optional[Union[str, int]] = 6006) -> None:
+    """Runs the TensorBoard logs and hosts on a local webpage.
+
+    Args:
+        path (str or list[str] or tuple[str]): Path to the directory holding the log.
+            Can be a string or a list of strings for each sub-directory.
+        env_name (str): Name of the Conda environment to run TensorBoard in.
+        exp_name (str): Unique name of the experiment to run the logs of.
+        host_num (str or int): Local host number TensorBoard will be hosted on.
+
+    Returns:
+        None
+    """
+    # Changes working directory to that containing the TensorBoard log.
+    if isinstance(path, (list, tuple)):
+        os.chdir(os.path.join(*path))
+
+    elif isinstance(path, str):
+        os.chdir(path)
+
+    # Activates the correct Conda environment.
+    os.system('conda activate {}'.format(env_name))
+
+    # Runs TensorBoard log.
+    os.system('tensorboard --logdir={}'.format(exp_name))
+
+    # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
+    webbrowser.open('localhost:{}'.format(host_num))
