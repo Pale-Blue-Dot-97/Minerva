@@ -30,7 +30,7 @@ Attributes:
 
 TODO:
     * Update make_dataset documentation
-    * Re-incorporate sample weighting as option
+    * Re-incorporate the use of WeightedRandomSampler as an option
 """
 # =====================================================================================================================
 #                                                     IMPORTS
