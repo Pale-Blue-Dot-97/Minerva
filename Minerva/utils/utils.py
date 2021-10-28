@@ -1466,8 +1466,8 @@ def extract_from_tag(tag: str) -> Tuple[str, str]:
     return patch_id, date
 
 
-def run_tensorboard(path: Union[str, list, tuple] = config['dir']['results'][:-1], env_name: str = 'env2',
-                    exp_name: str = config['exp_name'], host_num: Optional[Union[str, int]] = 6006) -> None:
+def run_tensorboard(path: Optional[Union[str, list, tuple]] = None, env_name: str = 'env2',
+                    exp_name: Optional[str] = None, host_num: Optional[Union[str, int]] = 6006) -> None:
     """Runs the TensorBoard logs and hosts on a local webpage.
 
     Args:
@@ -1477,9 +1477,28 @@ def run_tensorboard(path: Union[str, list, tuple] = config['dir']['results'][:-1
         exp_name (str): Unique name of the experiment to run the logs of.
         host_num (str or int): Local host number TensorBoard will be hosted on.
 
+    Raises:
+        KeyError: If exp_name is None but the default cannot be found in config, return None.
+        KeyError: If path is None but the default cannot be found in config, return None.
+
     Returns:
         None
     """
+    if not exp_name:
+        try:
+            exp_name = config['exp_name']
+            if not path:
+                try:
+                    path = config['dir']['results'][:-1]
+                except KeyError:
+                    print('KeyError: Path not specified and default cannot be found.')
+                    print('ABORT OPERATION')
+                    return
+        except KeyError:
+            print('KeyError: Experiment name not specified and cannot be found in config.')
+            print('ABORT OPERATION')
+            return
+
     # Changes working directory to that containing the TensorBoard log.
     if isinstance(path, (list, tuple)):
         os.chdir(os.path.join(*path))
