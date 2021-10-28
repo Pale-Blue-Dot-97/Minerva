@@ -364,24 +364,29 @@ class ResNet(MinervaModel, ABC):
     """Modified version of the ResNet network to handle multi-spectral inputs and cross-entropy.
 
     Attributes:
-        _norm_layer ():
-        encoder_on (bool):
+        encoder_on (bool): Whether to initialise the ResNet as an encoder or end-to-end classifier.
+            If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
+            If False, adds a global average pooling layer after the last block, flattens the output
+            and passes through a fully connected layer for classification output.
         inplanes (int):
         dilation (int):
         groups (int):
         base_width (int):
         conv1 (torch.nn.Conv2d):
-        bn1 ():
-        relu (torch.nn.ReLU):
+        bn1 (torch.nn.Module):
+        relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
         maxpool (torch.nn.MaxPool2d):
-        layer1 ():
-        layer2 ():
-        layer3 ():
-        layer4 ():
-        fc ():
+        layer1 (torch.nn.Sequential):
+        layer2 (torch.nn.Sequential):
+        layer3 (torch.nn.Sequential):
+        layer4 (torch.nn.Sequential):
+        avgpool (torch.nn.AdaptiveAvgPool2d): Global average pooling layer taking the output from the last block.
+            Only initialised if encoder_on is False.
+        fc (torch.nn.Linear): Fully connected layer that takes the flattened output from average pooling
+            to a classification output. Only initialised if encoder_on is False.
 
     Args:
-        block ():
+        block (BasicBlock or Bottleneck):
         layers (list):
         in_channels (int):
         n_classes (int): Number of classes in data to be classified.
@@ -389,7 +394,7 @@ class ResNet(MinervaModel, ABC):
         groups (int):
         width_per_group (int):
         replace_stride_with_dilation (tuple):
-        norm_layer ():
+        norm_layer (function):
         encoder (bool):
 
     Raises:
@@ -884,6 +889,30 @@ class FCN8ResNet34(MinervaModel, ABC):
                               encoder=True)
 
         self.decoder = DCN8(n_classes=n_classes)
+
+        self.input_shape = input_size
+        self.n_classes = n_classes
+
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
+        x4, x3, x2, *_ = self.encoder(x)
+        z = self.decoder((x4, x3, x2))
+
+        return z
+
+
+class FCN8ResNet50(MinervaModel, ABC):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+
+        super(FCN8ResNet50, self).__init__(criterion=criterion)
+
+        self.encoder = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
+                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
+                              encoder=True)
+
+        self.decoder = DCN8(n_classes=n_classes, in_channel=2048)
 
         self.input_shape = input_size
         self.n_classes = n_classes
