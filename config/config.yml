@@ -21,7 +21,7 @@ dir:
     - 'FCNResNet'
 
 # Kwargs for make_datasets
-model_name: 'FCN8ResNet34-MkIII' # Name of model. Substring before hyphen is used to find and initialise model object.
+model_name: 'FCN8ResNet50-TEST' # Name of model. Substring before hyphen is used to find and initialise model object.
 model_type: 'segmentation'      # Type of model. Can be mlp, cnn, segmentation.
 frac: 0.05                      # Fraction of patches in the dataset to use.
 elim: True
@@ -32,7 +32,7 @@ balance: True
 # Model hyper-parameters
 hyperparams:
   params:
-    batch_size: 32
+    batch_size: 16
     num_workers: 10
     pin_memory: True
   model_params:
@@ -40,7 +40,7 @@ hyperparams:
     n_classes: 11
     #groups: 32
     #width_per_group: 4
-  optim_name: Adam
+  optim_name: SGD
   optim_params:
     lr: 1.0E-2
     #momentum: 0.9
@@ -53,11 +53,14 @@ hyperparams:
 
 # Which plots to make
 plots:
-  History: True
-  CM: True
-  Pred: True
-  Mask: True
+  History: False
+  CM: False
+  Pred: False
+  Mask: False
   PvT: False
+
+save_model: 'opt'
+run_tensorboard: 'opt'
 
 # Settings for RGB image creation
 rgb_params:

@@ -330,6 +330,26 @@ class Trainer:
                               self.params['colours'], save=save, show=show, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
 
+        if self.params['run_tensorboard'] in ('opt', 'optional', 'OPT', 'Optional'):
+            try:
+                res = inputimeout(prompt='Run TensorBoard Logs? (Y/N): ', timeout=_timeout)
+                if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'run', 'RUN', 'Run'):
+                    self.run_tensorboard()
+                    return
+                elif res in ('N', 'n', 'no', 'No', 'NO'):
+                    pass
+                else:
+                    print('Input not recognised. Please try again')
+            except TimeoutOccurred:
+                print('Input timeout elapsed. TensorBoard logs will not be run.')
+
+        elif self.params['run_tensorboard'] in (True, 'auto', 'Auto'):
+            self.run_tensorboard()
+            return
+
+        print('TensorBoard log can still be run by using RunTensorBoard.py')
+        print('and providing the path to this experiment\'s results directory and unique experiment ID')
+
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
         # Ensure the TensorBoard logger is closed.
@@ -360,7 +380,8 @@ class Trainer:
             torch.save(self.model.state_dict(), '{}.pt'.format(fn))
 
     def run_tensorboard(self) -> None:
-        """Opens TensorBoard log of the current experiment."""
-        os.chdir(os.path.join(*self.params['dir']['results'][:-1]))
-        os.system('conda activate env2')
-        os.system('tensorboard --logdir={}'.format(self.params['exp_name']))
+        """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
+        utils.run_tensorboard(path=self.params['dir']['results'][:-1],
+                              env_name='env2',
+                              exp_name=self.params['exp_name'],
+                              host_num=6006)
