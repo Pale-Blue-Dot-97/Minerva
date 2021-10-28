@@ -41,6 +41,7 @@ import torch
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
+import pandas as pd
 from itertools import islice
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
@@ -299,8 +300,12 @@ class Trainer:
             None
         """
         print('\r\nTESTING')
+
+        # Runs test epoch on model, returning the predicted labels, groud truth labels supplied
+        # and the IDs of the samples supplied.
         predictions, labels, test_ids = self.epoch('test')
 
+        # Prints test loss and accuracy to stdout.
         print('Test | Loss: {} | Accuracy: {}% \n'.format(self.metrics['test_loss']['y'][0],
                                                           self.metrics['test_acc']['y'][0] * 100.0))
 
@@ -330,6 +335,8 @@ class Trainer:
                               self.params['colours'], save=save, show=show, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
 
+        # Checks whether to run TensorBoard on the log from the experiment.
+        # If defined as optional in the config, a user confirmation is required to run TensorBoard with a 60s timeout.
         if self.params['run_tensorboard'] in ('opt', 'optional', 'OPT', 'Optional'):
             try:
                 res = inputimeout(prompt='Run TensorBoard Logs? (Y/N): ', timeout=_timeout)
@@ -339,16 +346,19 @@ class Trainer:
                 elif res in ('N', 'n', 'no', 'No', 'NO'):
                     pass
                 else:
-                    print('Input not recognised. Please try again')
+                    print('\n*Input not recognised*. Please try again')
             except TimeoutOccurred:
                 print('Input timeout elapsed. TensorBoard logs will not be run.')
 
+        # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
         elif self.params['run_tensorboard'] in (True, 'auto', 'Auto'):
             self.run_tensorboard()
             return
 
-        print('TensorBoard log can still be run by using RunTensorBoard.py')
-        print('and providing the path to this experiment\'s results directory and unique experiment ID')
+        # If the user declined, optional or auto wasn't defined in the config or a timeout occurred,
+        # the user is informed how to run TensorBoard on the logs using RunTensorBoard.py.
+        print('\nTensorBoard log can still be run by using RunTensorBoard.py and providing')
+        print('the path to this experiment\'s results directory and unique experiment ID')
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
@@ -358,17 +368,35 @@ class Trainer:
         # Path to experiment directory and experiment name.
         fn = os.path.join(*self.params['dir']['results'], self.params['exp_name'])
 
+        print('\nSAVING EXPERIMENT CONFIG TO FILE')
         # Outputs the modified YAML parameters config file used for this experiment to file.
         with open('{}.yml'.format(fn), 'w') as outfile:
             yaml.dump(self.params, outfile)
 
+        # Writes the recorded training and validation metrics of the experiment to file.
+        print('\nSAVING METRICS TO FILE')
+        try:
+            sub_metrics = {k: self.metrics[k]['y'] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
+            metrics_df = pd.DataFrame(sub_metrics)
+            print(metrics_df)
+            metrics_df['Epoch'] = self.metrics['train_loss']['x']
+            print(metrics_df)
+            metrics_df.set_index('Epoch', inplace=True, drop=True)
+            print(metrics_df)
+            metrics_df.to_csv('{}_metrics.csv'.format(fn))
+        except (ValueError, KeyError):
+            print('\n*ERROR* in saving metrics to file.')
+
+        # Checks whether to save the model parameters to file.
         if self.params['save_model'] in ('opt', 'optional', 'OPT', 'Optional'):
             try:
                 res = inputimeout(prompt='Save model to file? (Y/N): ', timeout=_timeout)
                 if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'save', 'SAVE', 'Save'):
                     # Saves model state dict to PyTorch file.
                     torch.save(self.model.state_dict(), '{}.pt'.format(fn))
+                    print('MODEL PARAMETERS SAVED')
                 elif res in ('N', 'n', 'no', 'No', 'NO'):
+                    print('Model will NOT be saved to file')
                     pass
                 else:
                     print('Input not recognised. Please try again')
@@ -376,6 +404,7 @@ class Trainer:
                 print('Input timeout elapsed. Model will not be saved')
 
         elif self.params['save_model'] in (True, 'auto', 'Auto'):
+            print('\nSAVING MODEL PARAMETERS TO FILE')
             # Saves model state dict to PyTorch file.
             torch.save(self.model.state_dict(), '{}.pt'.format(fn))
 

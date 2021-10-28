@@ -78,8 +78,6 @@ def main():
     trainer.fit()
     trainer.test()
 
-    #trainer.run_tensorboard()
-
 
 if __name__ == '__main__':
     main()

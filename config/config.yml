@@ -59,8 +59,9 @@ plots:
   Mask: False
   PvT: False
 
+# opt to ask at runtime; auto or True to automatically do so; or False, None etc to not
 save_model: 'opt'
-run_tensorboard: 'opt'
+run_tensorboard: False
 
 # Settings for RGB image creation
 rgb_params:
