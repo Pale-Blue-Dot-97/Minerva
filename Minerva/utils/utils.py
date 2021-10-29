@@ -67,6 +67,7 @@ from tabulate import tabulate
 from osgeo import gdal, osr
 import torch
 from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 from torch.backends import cudnn
 
 # =====================================================================================================================
@@ -110,6 +111,9 @@ cmap_dict = data_config['colours']
 # Parameters
 params = config['hyperparams']['params']
 
+# Filters out all TensorFlow messages other than errors.
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -123,6 +127,7 @@ def load_configs(master_config_path: str) -> Tuple:
     Returns:
         Master config and any other configs found from paths in the master config.
     """
+
     def yaml_load(path: str) -> dict:
         """Loads YAML file from path as dict.
         Args:
@@ -230,7 +235,7 @@ def prefix_format(patch_id: str, scene: str) -> str:
         prefix (str): Prefix of path to any file in a given scene.
     """
     return os.sep.join([data_dir, patch_dir_prefix + patch_id, scene, patch_id + '_' +
-                       datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
+                        datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
 
 
 def scene_grab(patch_id: str) -> list:
@@ -431,7 +436,8 @@ def centre_pixel_only(image: Union[list, np.ndarray]) -> np.ndarray:
     """
     new_image = np.zeros((*image_size, len(band_ids)))
 
-    new_image[int(image_size[0]/2.0)][int(image_size[1]/2.0)] = image[int(image_size[0]/2.0)][int(image_size[1]/2.0)]
+    new_image[int(image_size[0] / 2.0)][int(image_size[1] / 2.0)] = image[int(image_size[0] / 2.0)][
+        int(image_size[1] / 2.0)]
 
     return new_image
 
@@ -837,6 +843,35 @@ def mask_transform(array: Union[list, np.ndarray], matrix: dict) -> Union[list, 
         array[array == key] = matrix[key]
 
     return array
+
+
+def check_test_empty(pred, labels, class_labels, p_dist: bool = True):
+    # Finds the distribution of the classes within the data.
+    labels_dist = find_subpopulations(labels)
+    pred_dist = find_subpopulations(pred)
+
+    if p_dist:
+        # Prints class distributions of ground truth and predicted labels to stdout.
+        print('\nGROUND TRUTH:')
+        print_class_dist(labels_dist, class_labels=class_labels)
+        print('\nPREDICTIONS:')
+        print_class_dist(pred_dist, class_labels=class_labels)
+
+    empty = []
+
+    # Checks which classes are not present in labels and predictions and adds to empty.
+    for label in class_labels.keys():
+        if label not in [mode[0] for mode in labels_dist] and label not in [mode[0] for mode in pred_dist]:
+            empty.append(label)
+
+    # Eliminates and reorganises classes based on those not present during testing.
+    class_labels, transform, _ = eliminate_classes(empty, old_classes=class_labels)
+
+    # Converts labels to new classes after the elimination of empty classes.
+    labels = mask_transform(labels, transform)
+    pred = mask_transform(pred, transform)
+
+    return pred, labels, class_labels
 
 
 def class_dist_transform(class_dist: Union[list, tuple, np.ndarray], matrix: dict) -> list:
@@ -1333,7 +1368,6 @@ def calc_grad(model: torch.nn.Module) -> Union[float, None]:
     try:
         # Iterate through all model parameters.
         for p in model.parameters():
-
             # Calculate 2D grad norm
             param_norm = p.grad.data.norm(2)
             print(param_norm.item())
@@ -1407,6 +1441,7 @@ def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: d
     Returns:
         None
     """
+
     def calc_frac(count: float, total: float) -> str:
         """Calculates the percentage size of the class from the number of counts and
             supplied total counts across the dataset.
@@ -1464,6 +1499,44 @@ def extract_from_tag(tag: str) -> Tuple[str, str]:
     """
     patch_id, _, date = tag.partition('-')
     return patch_id, date
+
+
+def model_output_flatten(x):
+    try:
+        x = np.array(x).flatten()
+
+    except ValueError:
+        for i in range(len(x)):
+            for j in range(len(x[i])):
+                x.append(x[i][j])
+
+    return x
+
+
+def make_classification_report(pred, labels, class_labels, print_cr: bool = True):
+    pred, labels, class_labels = check_test_empty(pred, labels, class_labels)
+    class_names = [class_labels[i] for i in range(len(class_labels))]
+
+    cr = classification_report(y_true=labels, y_pred=pred, labels=[i for i in range(len(class_labels))],
+                               zero_division=0, output_dict=True)
+    cr_df = pd.DataFrame(cr)
+
+    # Delete unneeded columns.
+    del cr_df['accuracy']
+    del cr_df['macro avg']
+    del cr_df['weighted avg']
+
+    # Transpose DataFrame so rows are classes and columns are metrics.
+    cr_df = cr_df.T
+
+    cr_df['LABEL'] = class_names
+
+    cr_df = cr_df[['LABEL', 'precision', 'recall', 'f1-score', 'support']]
+
+    if print_cr:
+        print(tabulate(cr_df, headers='keys', tablefmt='psql'))
+
+    return cr_df
 
 
 def run_tensorboard(path: Optional[Union[str, list, tuple]] = None, env_name: str = 'env2',

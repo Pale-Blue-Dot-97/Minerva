@@ -842,29 +842,7 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
     Returns:
         None
     """
-    # Finds the distribution of the classes within the data.
-    labels_dist = utils.find_subpopulations(test_labels)
-    pred_dist = utils.find_subpopulations(test_pred)
-
-    # Prints class distributions of ground truth and predicted labels to stdout.
-    print('\nGROUND TRUTH:')
-    utils.print_class_dist(labels_dist, class_labels=classes)
-    print('\nPREDICTIONS:')
-    utils.print_class_dist(pred_dist, class_labels=classes)
-
-    empty = []
-
-    # Checks which classes are not present in labels and predictions and adds to empty.
-    for label in classes.keys():
-        if label not in [mode[0] for mode in labels_dist] and label not in [mode[0] for mode in pred_dist]:
-            empty.append(label)
-
-    # Eliminates and reorganises classes based on those not present during testing.
-    classes, transform, _ = utils.eliminate_classes(empty, old_classes=classes)
-
-    # Converts labels to new classes after the elimination of empty classes.
-    test_labels = utils.mask_transform(test_labels, transform)
-    test_pred = utils.mask_transform(test_pred, transform)
+    test_pred, test_labels, classes = utils.check_test_empty(test_pred, test_labels, classes)
 
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
     cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
@@ -954,24 +932,8 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
     Returns:
         None
     """
-    flat_z = []
-
-    try:
-        flat_z = np.array(z).flatten()
-
-    except ValueError:
-        for i in range(len(z)):
-            for j in range(len(z[i])):
-                flat_z.append(z[i][j])
-
-    flat_y = []
-    try:
-        flat_y = np.array(y).flatten()
-
-    except ValueError:
-        for i in range(len(y)):
-            for j in range(len(y[i])):
-                flat_y.append(y[i][j])
+    flat_z = utils.model_output_flatten(z)
+    flat_y = utils.model_output_flatten(y)
 
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')

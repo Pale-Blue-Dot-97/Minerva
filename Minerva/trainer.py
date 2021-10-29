@@ -301,7 +301,7 @@ class Trainer:
         """
         print('\r\nTESTING')
 
-        # Runs test epoch on model, returning the predicted labels, groud truth labels supplied
+        # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
         predictions, labels, test_ids = self.epoch('test')
 
@@ -316,6 +316,8 @@ class Trainer:
         # Now experiment is complete, saves model parameters and config file to disk in case error is
         # encountered in plotting of results.
         self.close()
+
+        self.compute_classification_report(predictions, labels)
 
         # Create a subset of metrics which drops the testing results for plotting model history.
         sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
@@ -378,12 +380,10 @@ class Trainer:
         try:
             sub_metrics = {k: self.metrics[k]['y'] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
             metrics_df = pd.DataFrame(sub_metrics)
-            print(metrics_df)
             metrics_df['Epoch'] = self.metrics['train_loss']['x']
-            print(metrics_df)
             metrics_df.set_index('Epoch', inplace=True, drop=True)
-            print(metrics_df)
             metrics_df.to_csv('{}_metrics.csv'.format(fn))
+
         except (ValueError, KeyError):
             print('\n*ERROR* in saving metrics to file.')
 
@@ -407,6 +407,16 @@ class Trainer:
             print('\nSAVING MODEL PARAMETERS TO FILE')
             # Saves model state dict to PyTorch file.
             torch.save(self.model.state_dict(), '{}.pt'.format(fn))
+
+    def compute_classification_report(self, predictions, labels):
+        predictions = utils.model_output_flatten(predictions)
+        labels = utils.model_output_flatten(labels)
+
+        cr_df = utils.make_classification_report(predictions, labels, self.params['classes'])
+
+        fn = os.path.join(*self.params['dir']['results'], self.params['exp_name'])
+
+        cr_df.to_csv(f'{fn}_classification-report.csv')
 
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
