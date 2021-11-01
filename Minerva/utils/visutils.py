@@ -53,6 +53,8 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
+from sklearn.preprocessing import label_binarize
+from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import Bbox
@@ -871,6 +873,98 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
         plt.close()
 
 
+def make_roc_curves(probs: Union[list, np.ndarray], labels: Union[list, np.ndarray], class_names: dict, colours: dict,
+                    filename: Optional[str] = None, show: bool = False, save: bool = True) -> None:
+
+    class_labels = [key for key in class_names.keys()]
+    probs = np.reshape(probs, (len(labels), len(class_labels)))
+    targets = label_binarize(labels, classes=class_labels)
+
+    fpr = {}
+    tpr = {}
+    roc_auc = {}
+
+    # Compute ROC curve and ROC area for each class.
+    print('Plotting class ROC curves')
+    for key in class_labels:
+        print(key)
+        fpr[key], tpr[key], _ = roc_curve(targets[:, key], probs[:, key], pos_label=1)
+        roc_auc[key] = auc(fpr[key], tpr[key])
+
+    # Compute micro-average ROC curve and ROC area.
+    print('Plotting micro average ROC curve')
+    fpr['micro'], tpr['micro'], _ = roc_curve(targets.ravel(), probs.ravel())
+    roc_auc['micro'] = auc(fpr['micro'], tpr['micro'])
+
+    # First aggregate all false positive rates.
+    all_fpr = np.unique(np.concatenate([fpr[key] for key in class_labels]))
+
+    # Then interpolate all ROC curves at this points
+    print('Interpolating macro average ROC curve')
+    mean_tpr = np.zeros_like(all_fpr)
+    for key in class_labels:
+        print(key)
+        mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
+
+    # Finally average it and compute AUC
+    mean_tpr /= len(class_labels)
+
+    fpr["macro"] = all_fpr
+    tpr["macro"] = mean_tpr
+    roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+
+    # Plot all ROC curves
+    plt.figure()
+
+    # Plot micro average ROC curves.
+    plt.plot(
+        fpr["micro"],
+        tpr["micro"],
+        label="Micro-average (AUC = {:.2f})".format(roc_auc["micro"]),
+        color="deeppink",
+        linestyle="dotted",
+    )
+
+    # Plot macro average ROC curves.
+    plt.plot(
+        fpr["macro"],
+        tpr["macro"],
+        label="Macro-average (AUC = {:.2f})".format(roc_auc["macro"]),
+        color="navy",
+        linestyle="dotted",
+    )
+
+    # Plot all class ROC curves.
+    for key in class_labels:
+        plt.plot(
+            fpr[key],
+            tpr[key],
+            color=colours[key],
+            label=f'{class_names[key]} ' + '(AUC = {:.2f})'.format(roc_auc[key]),
+        )
+
+    # Plot random classifier diagonal.
+    plt.plot([0, 1], [0, 1], "k--")
+
+    # Set limits.
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+
+    # Set axis labels.
+    plt.xlabel("False Positive Rate")
+    plt.ylabel("True Positive Rate")
+
+    # Position legend in lower right corner of figure where no classifiers should exist.
+    plt.legend(loc="lower right")
+
+    # Shows and/or saves plot.
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(filename)
+        plt.close()
+
+
 def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple]) -> dict:
     """Creates unique filenames of plots in a standardised format.
 
@@ -898,6 +992,7 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
     filenames = {'History': standard_format('MH') + '.png',
                  'Pred': standard_format('TP') + '.png',
                  'CM': standard_format('CM') + '.png',
+                 'ROC': standard_format('ROC' + '.png'),
                  'Mask': standard_format('Mask', 'Test Masks'),
                  'PvT': standard_format('PvT', 'Test PvTs')}
 
@@ -905,8 +1000,8 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
 
 
 def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndarray], ids: list,
-                 class_names: dict, colours: dict, save: bool = True, show: bool = False,
-                 model_name: Optional[str] = None, timestamp: Optional[str] = None,
+                 probs: Union[list, np.ndarray], class_names: dict, colours: dict, save: bool = True,
+                 show: bool = False, model_name: Optional[str] = None, timestamp: Optional[str] = None,
                  results_dir: Optional[Union[list, tuple]] = None) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
@@ -951,6 +1046,11 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
         print('\nPLOTTING CONFUSION MATRIX')
         make_confusion_matrix(test_labels=flat_y, test_pred=flat_z, classes=class_names, filename=filenames['CM'],
                               save=save, show=show)
+
+    if plots['ROC']:
+        print('\nPLOTTING ROC CURVES')
+        make_roc_curves(probs, flat_y, class_names=class_names, colours=colours, filename=filenames['ROC'],
+                        save=save, show=show)
 
     if plots['PvT']:
         os.mkdir(os.path.join(*results_dir, 'Test PvTs'))

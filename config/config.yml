@@ -21,9 +21,9 @@ dir:
     - 'FCNResNet'
 
 # Kwargs for make_datasets
-model_name: 'FCN8ResNet50-TEST' # Name of model. Substring before hyphen is used to find and initialise model object.
+model_name: 'FCN32ResNet18-TEST' # Name of model. Substring before hyphen is used to find and initialise model object.
 model_type: 'segmentation'      # Type of model. Can be mlp, cnn, segmentation.
-frac: 0.05                      # Fraction of patches in the dataset to use.
+frac: 0.1                      # Fraction of patches in the dataset to use.
 elim: True
 scene_selector: 'threshold'
 centre_only: False
@@ -49,13 +49,14 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 2
+  max_epochs: 5
 
 # Which plots to make
 plots:
   History: False
   CM: False
   Pred: False
+  ROC: True
   Mask: False
   PvT: False
 
