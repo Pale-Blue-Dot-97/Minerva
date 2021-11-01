@@ -366,8 +366,8 @@ class Trainer:
 
         # If the user declined, optional or auto wasn't defined in the config or a timeout occurred,
         # the user is informed how to run TensorBoard on the logs using RunTensorBoard.py.
-        print('\nTensorBoard log can still be run by using RunTensorBoard.py and providing')
-        print('the path to this experiment\'s results directory and unique experiment ID')
+        print('\nTensorBoard logs will not be run but still can be by using RunTensorBoard.py and')
+        print('providing the path to this experiment\'s results directory and unique experiment ID')
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""

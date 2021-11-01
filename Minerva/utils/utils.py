@@ -67,8 +67,10 @@ from tabulate import tabulate
 from osgeo import gdal, osr
 import torch
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import classification_report
+from sklearn.preprocessing import label_binarize
+from sklearn.metrics import classification_report, roc_curve, auc
 from torch.backends import cudnn
+from alive_progress import alive_bar
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -1587,3 +1589,50 @@ def run_tensorboard(path: Optional[Union[str, list, tuple]] = None, env_name: st
 
     # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
     webbrowser.open('localhost:{}'.format(host_num))
+
+
+def compute_roc_curves(probs, labels, class_labels):
+    # One-hot-encoders the class labels to match binarised input expected by roc_curve.
+    targets = label_binarize(labels, classes=class_labels)
+
+    # Dicts to hold the false-positive rate, true-positive rate and Area Under Curves
+    # of each class and micro, macro averages.
+    fpr = {}
+    tpr = {}
+    roc_auc = {}
+
+    # Initialises a progress bar.
+    with alive_bar(len(class_labels), bar='blocks') as bar:
+        # Compute ROC curve and ROC AUC for each class.
+        print('Computing class ROC curves')
+        for key in class_labels:
+            fpr[key], tpr[key], _ = roc_curve(targets[:, key], probs[:, key], pos_label=1)
+            roc_auc[key] = auc(fpr[key], tpr[key])
+            bar('Class {}'.format(key))
+
+    # Compute micro-average ROC curve and ROC AUC.
+    print('Calculating micro average ROC curve')
+    fpr['micro'], tpr['micro'], _ = roc_curve(targets.ravel(), probs.ravel())
+    roc_auc['micro'] = auc(fpr['micro'], tpr['micro'])
+
+    # Aggregate all false positive rates.
+    all_fpr = np.unique(np.concatenate([fpr[key] for key in class_labels]))
+
+    # Then interpolate all ROC curves at these points.
+    print('Interpolating macro average ROC curve')
+    mean_tpr = np.zeros_like(all_fpr)
+    # Initialises a progress bar.
+    with alive_bar(len(class_labels), bar='blocks') as bar:
+        for key in class_labels:
+            mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
+            bar('Interpolating about class {}'.format(key))
+
+    # Finally average it and compute AUC
+    mean_tpr /= len(class_labels)
+
+    # Add macro FPR, TPR and AUCs to dicts.
+    fpr["macro"] = all_fpr
+    tpr["macro"] = mean_tpr
+    roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+
+    return fpr, tpr, roc_auc
