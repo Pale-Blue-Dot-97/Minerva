@@ -184,7 +184,7 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode: str) -> Optional[Tuple[list, list, list]]:
+    def epoch(self, mode: str) -> Optional[Tuple[list, list, list, list]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -198,6 +198,7 @@ class Trainer:
         total_correct = 0.0
         test_labels = []
         test_predictions = []
+        test_probs = []
         test_ids = []
 
         # Initialises a progress bar for the epoch.
@@ -226,7 +227,13 @@ class Trainer:
                 elif mode is 'test':
                     loss, z = self.model.testing_step(x, y)
 
+                    # Add the estimated probabilities to test_probs.
+                    test_probs.append(z.detach().cpu().numpy())
+
+                    # Arg max the estimated probabilities and add to predictions.
                     test_predictions.append(torch.argmax(z, 1).cpu().numpy())
+
+                    # Add the labels and sample IDs to lists.
                     test_labels.append(y.cpu().numpy())
                     test_ids.append(sample_id)
 
@@ -236,8 +243,8 @@ class Trainer:
                 total_loss += ls
                 total_correct += correct
 
-                self.writer.add_scalar('{}_loss'.format(mode), ls)
-                self.writer.add_scalar('{}_acc'.format(mode), correct / len(torch.flatten(y_batch)))
+                self.writer.add_scalar(tag='{}_loss'.format(mode), scalar_value=ls)
+                self.writer.add_scalar(tag='{}_acc'.format(mode), scalar_value=correct / len(torch.flatten(y_batch)))
 
                 # Updates progress bar that sample has been processed.
                 bar()
@@ -254,7 +261,7 @@ class Trainer:
         # total_norm = utils.calc_grad(self.model)
 
         if mode is 'test':
-            return test_predictions, test_labels, test_ids
+            return test_predictions, test_labels, test_ids, test_probs
         else:
             return
 
@@ -303,7 +310,7 @@ class Trainer:
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        predictions, labels, test_ids = self.epoch('test')
+        predictions, labels, test_ids, probabilities = self.epoch('test')
 
         # Prints test loss and accuracy to stdout.
         print('Test | Loss: {} | Accuracy: {}% \n'.format(self.metrics['test_loss']['y'][0],
@@ -333,7 +340,7 @@ class Trainer:
             plots['Mask'] = False
 
         # Plots the results.
-        visutils.plot_results(sub_metrics, plots, predictions, labels, test_ids, self.params['classes'],
+        visutils.plot_results(sub_metrics, plots, predictions, labels, test_ids, probabilities, self.params['classes'],
                               self.params['colours'], save=save, show=show, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
 
@@ -390,7 +397,7 @@ class Trainer:
         # Checks whether to save the model parameters to file.
         if self.params['save_model'] in ('opt', 'optional', 'OPT', 'Optional'):
             try:
-                res = inputimeout(prompt='Save model to file? (Y/N): ', timeout=_timeout)
+                res = inputimeout(prompt='\nSave model to file? (Y/N): ', timeout=_timeout)
                 if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'save', 'SAVE', 'Save'):
                     # Saves model state dict to PyTorch file.
                     torch.save(self.model.state_dict(), '{}.pt'.format(fn))
