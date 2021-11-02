@@ -29,7 +29,6 @@ Attributes:
         and fraction class sizes.
 
 TODO:
-    * Update make_dataset documentation
     * Re-incorporate the use of WeightedRandomSampler as an option
 """
 # =====================================================================================================================
