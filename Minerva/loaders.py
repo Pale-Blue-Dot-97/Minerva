@@ -1,4 +1,4 @@
-"""Module containing classes defining custom IterableDataset classes for use in the fitting of neural networks.
+"""Module containing classes defining custom (Iterable)Dataset classes for use in the fitting of neural networks.
 
     Copyright (C) 2021 Harry James Baker
 
@@ -190,7 +190,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
                     yield torch.tensor(self.wheels[cls][0].flatten(), dtype=torch.float), \
                         torch.tensor(cls, dtype=torch.long), ''
 
-    def get_stream(self, streams_df) -> Iterator[Union[torch.Tensor, str]]:
+    def _get_stream(self, streams_df) -> Iterator[Union[torch.Tensor, str]]:
         return chain.from_iterable(map(self.process_data, streams_df.iterrows()))
 
     def __iter__(self) -> Iterator[Union[torch.Tensor, str]]:
@@ -199,7 +199,7 @@ class BalancedBatchDataset(IterableDataset, ABC):
 
         # If single threaded process, return full ID stream
         if worker_info is None:
-            return self.get_stream(self.streams_df)
+            return self._get_stream(self.streams_df)
 
         # If multi-threaded, split patch IDs between workers
         else:
@@ -208,8 +208,8 @@ class BalancedBatchDataset(IterableDataset, ABC):
 
             # Return a random sample of the patch IDs of fractional size per worker
             # and using random seed modulated by the worker ID.
-            return self.get_stream(self.streams_df.sample(frac=per_worker, random_state=42 * worker_info.id,
-                                                          replace=False, axis=0))
+            return self._get_stream(self.streams_df.sample(frac=per_worker, random_state=42 * worker_info.id,
+                                                           replace=False, axis=0))
 
 
 class BatchDataset(IterableDataset, ABC):
@@ -263,7 +263,7 @@ class BatchDataset(IterableDataset, ABC):
         for i in range(len(y)):
             yield x[i], y[i], patch_id
 
-    def get_stream(self, patch_ids) -> Iterator[Union[torch.Tensor, str]]:
+    def _get_stream(self, patch_ids) -> Iterator[Union[torch.Tensor, str]]:
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
 
     def __iter__(self) -> Iterator[Union[torch.Tensor, str]]:
@@ -272,7 +272,7 @@ class BatchDataset(IterableDataset, ABC):
 
         # If single threaded process, return all patch IDs
         if worker_info is None:
-            return self.get_stream(self.patch_ids)
+            return self._get_stream(self.patch_ids)
 
         # If multi-threaded, split patch IDs between workers
         else:
@@ -283,7 +283,7 @@ class BatchDataset(IterableDataset, ABC):
             random.seed(42 * worker_info.id)
 
             # Return a random sample of the patch IDs of size per worker
-            return self.get_stream(random.sample(self.patch_ids, per_worker))
+            return self._get_stream(random.sample(self.patch_ids, per_worker))
 
 
 class IterableImageDataset(IterableDataset, ABC):
@@ -336,7 +336,7 @@ class IterableImageDataset(IterableDataset, ABC):
             yield torch.tensor(image.reshape((image.shape[2], image.shape[1], image.shape[0])), dtype=torch.float), \
                   y, patch_id
 
-    def get_stream(self, patch_ids: list) -> Iterator[Union[torch.Tensor, str]]:
+    def _get_stream(self, patch_ids: list) -> Iterator[Union[torch.Tensor, str]]:
         return chain.from_iterable(map(self.process_data, cycle(patch_ids)))
 
     def __iter__(self) -> Iterator[Union[torch.Tensor, str]]:
@@ -345,7 +345,7 @@ class IterableImageDataset(IterableDataset, ABC):
 
         # If single threaded process, return all patch IDs
         if worker_info is None:
-            return self.get_stream(self.patch_ids)
+            return self._get_stream(self.patch_ids)
 
         # If multi-threaded, split patch IDs between workers
         else:
@@ -356,7 +356,7 @@ class IterableImageDataset(IterableDataset, ABC):
             random.seed(42 * worker_info.id)
 
             # Return a random sample of the patch IDs of size per worker
-            return self.get_stream(random.sample(self.patch_ids, per_worker))
+            return self._get_stream(random.sample(self.patch_ids, per_worker))
 
 
 class ImageDataset(Dataset, ABC):

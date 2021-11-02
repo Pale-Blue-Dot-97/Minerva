@@ -43,7 +43,8 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict, Literal
+from typing import Union, Optional, Tuple, Dict
+from typing_extensions import Literal
 from Minerva.utils import utils
 import os
 import yaml
