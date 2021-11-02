@@ -532,13 +532,16 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
         new_classes (dict): Dictionary mapping class labels to class names - modified to remove empty classes.
         new_colours (dict): Dictionary mapping class labels to colours - modified to remove empty classes.
     """
+    # Gets out the parameters for the DataLoaders from params.
     dataloader_params = params['hyperparams']['params']
     batch_size = dataloader_params['batch_size']
 
+    # Defines the function to use to load the labels. Either to load the whole mask or just the centre label.
     label_func = utils.lc_load
-    if model_type in ['cnn', 'CNN']:
+    if model_type == 'scene classifier':
         label_func = utils.find_centre_label
 
+    # Gets the patch IDs based on options supplied if they were not supplied.
     if frac is not None or n_patches is not None and patch_ids is None:
         patch_ids = utils.patch_grab()
         if frac is not None and n_patches is None:
@@ -547,18 +550,23 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
 
     print('\n# OF PATCHES IN DATASET: {}'.format(len(patch_ids)))
 
+    # Splits the dataset into train, validation and test.
     print('\nSPLITTING DATASET TO {}% TRAIN, {}% VAL, {}% TEST'.format(split[0] * 100, split[1] * 100, split[2] * 100))
     ids, patch_class_dists = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed,
-                                              shuffle=shuffle, balance=False, p_dist=True, plot=plot)
+                                              shuffle=shuffle, balance=False, p_dist=p_dist, plot=plot)
 
+    # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
+    # and new colours.
     print('\nFINDING EMPTY CLASSES')
     new_classes, forwards, new_colours = utils.eliminate_classes(
         utils.find_empty_classes(class_dist=patch_class_dists['ALL']))
 
+    # Sets the function to select which scenes to include in the dataset based on the option in the params.
     scene_func = utils.ref_scene_select
     if params['scene_selector'] == 'threshold':
         scene_func = utils.threshold_scene_select
 
+    # Inits dicts to hold the variables and lists for train, validation and test.
     scenes = {}
     datasets = {}
     n_batches = {}
@@ -566,11 +574,14 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
     class_dists = {}
 
     for mode in ('train', 'val', 'test'):
+        # Finds scenes using the scene selector and manifest.
         print('\nFINDING {} SCENES'.format(mode))
         if model_type == 'scene classifier' and balance:
+            # Balances scenes returned using over and under sampling.
             scenes[mode] = utils.hard_balance(utils.scene_extract(ids[mode], manifest, scene_func),
                                               over_factor=over_factor)
         else:
+            # No balancing of scenes.
             scenes[mode] = utils.scene_extract(ids[mode], manifest, scene_func, thres=0.1)
 
         print('\nFINDING CLASS DISTRIBUTION OF SCENES')
@@ -578,6 +589,7 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
         class_dist = utils.subpopulations_from_manifest(utils.select_df_by_scenes(manifest, scenes[mode]),
                                                         func=label_func, plot=plot)
 
+        # Prints class distribution in a pretty text format using tabulate to stdout.
         if p_dist:
             utils.print_class_dist(class_dist)
 
@@ -586,24 +598,31 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
             class_dist = utils.class_dist_transform(class_dist, forwards)
         class_dists[mode] = class_dist
 
+        # --+ MAKE DATASETS +=========================================================================================+
+        # Uses BalancedBatchDataset for creating balanced datasets for use with MLPs.
         if balance and model_type in ['mlp', 'MLP'] and mode != 'test':
             stream = utils.make_sorted_streams(ids[mode])
 
-            # Define datasets for train, validation and test using BatchDataset.
+            # Define datasets for train and validation using BatchDataset.
             datasets[mode] = BalancedBatchDataset(stream, batch_size=batch_size, wheel_size=wheel_size,
                                                   patch_len=n_pixels, no_empty_classes=params['elim'],
                                                   forwards=forwards)
 
+            # Calculates number of batches.
             n_batches[mode] = utils.num_batches(len(stream.columns) * len(stream))
 
+        # Uses BatchDataset for creating unbalanced datasets for use with MLPs.
         if (not balance or (balance and mode == 'test')) and model_type in ['mlp', 'MLP']:
             # Define datasets for train, validation and test using BatchDataset.
             datasets[mode] = BatchDataset(ids[mode], batch_size=batch_size, no_empty_classes=params['elim'],
                                           forwards=forwards)
 
+            # Calculates number of batches.
             n_batches[mode] = utils.num_batches(len(ids[mode]))
 
+        # For non-MLP models, use ImageDataset datasets to handle scene level samples.
         if model_type in ['scene classifier', 'segmentation']:
+            # Creates transformations from those defined in params.
             transformations = make_transformations(params['hyperparams']['transforms'])
 
             # Define datasets for train, validation and test using ImageDataset.
@@ -611,8 +630,10 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
                                           centre_only=params['centre_only'], model_type=model_type,
                                           forwards=forwards, transformations=transformations)
 
+            # Calculates number of batches.
             n_batches[mode] = int(len(scenes[mode]) / batch_size)
 
+        # --+ MAKE DATALOADERS +======================================================================================+
         if model_type == 'scene classifier' and balance:
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
         #    weights = utils.weight_samples(scenes[mode], func=utils.find_centre_label, normalise=False)
@@ -622,14 +643,17 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
         if model_type == 'scene classifier' and not balance or model_type != 'scene classifier':
             loaders[mode] = DataLoader(datasets[mode], **dataloader_params)
 
+    # Combines all scenes together to output a class_dist for the entire dataset.
     all_scenes = scenes['train'] + scenes['val'] + scenes['test']
-
     class_dist = utils.subpopulations_from_manifest(utils.select_df_by_scenes(manifest, all_scenes),
                                                     func=label_func, plot=plot)
-    utils.print_class_dist(class_dist)
 
     # Transform class dist if elimination of classes has occurred.
     if params['elim']:
         class_dist = utils.class_dist_transform(class_dist, forwards)
+
+    # Prints class distribution in a pretty text format using tabulate to stdout.
+    if p_dist:
+        utils.print_class_dist(class_dist)
 
     return loaders, n_batches, class_dist, ids, new_classes, new_colours
