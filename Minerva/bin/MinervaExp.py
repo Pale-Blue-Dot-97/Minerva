@@ -67,7 +67,7 @@ wheel_size = n_pixels
 # =====================================================================================================================
 def main():
     datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(wheel_size=wheel_size,
-                                                                                           image_len=n_pixels,
+                                                                                           n_pixels=n_pixels,
                                                                                            **config)
 
     config['hyperparams']['model_params']['n_classes'] = len(new_classes)

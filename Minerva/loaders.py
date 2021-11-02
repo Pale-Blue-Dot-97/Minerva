@@ -101,7 +101,8 @@ class BalancedBatchDataset(IterableDataset, ABC):
             self.wheels[cls] = deque(maxlen=wheel_size)
 
         # Loads the patches from the row of IDs supplied into a pandas.Series of pandas.DataFrames
-        patches = pd.Series([utils.load_patch_df(patch_id, manifest) for patch_id in self.streams_df.sample(frac=1).iloc[0]])
+        patch_dfs = [utils.load_patch_df(patch_id, manifest) for patch_id in self.streams_df.sample(frac=1).iloc[0]]
+        patches = pd.Series(patch_dfs)
         patches.apply(self.refresh_wheels)
 
         # Checks if wheel is empty after adding to wheel
@@ -145,7 +146,8 @@ class BalancedBatchDataset(IterableDataset, ABC):
         Args:
             cls: Class number with empty wheel.
         """
-        patches = pd.Series([utils.load_patch_df(patch_id, manifest) for patch_id in self.streams_df[cls].sample(frac=1)])
+        patch_dfs = [utils.load_patch_df(patch_id, manifest) for patch_id in self.streams_df[cls].sample(frac=1)]
+        patches = pd.Series(patch_dfs)
 
         for patch in patches:
             if self.wheels[cls]:
@@ -492,37 +494,44 @@ def make_transformations(transform_params: dict):
 
 def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None, n_patches: Optional[int] = None,
                   split: Tuple[float, float, float] = (0.7, 0.15, 0.15), wheel_size: int = 65536,
-                  image_len: int = 65536, seed: int = 42, shuffle: bool = True, plot: bool = False,
+                  n_pixels: int = 65536, seed: int = 42, shuffle: bool = True, plot: bool = False,
                   balance: bool = False, over_factor: int = 1, model_type: str = 'scene classifier',
                   p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader], dict, list, dict, dict, dict]:
-    """
+    """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
 
     Args:
         patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
             the patch IDs are inferred from the directory using patch_grab.
-        frac (float): Optional;
-        n_patches (float): Optional;
+        frac (float): Optional; Fraction of the all patch IDs to include in the construction of the datasets.
+        n_patches (float): Optional; The number of patches to use in the construction of datasets.
         split (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets, in the
             order (train, validation, test).
-        wheel_size (int): Optional;
-        image_len (int): Optional;
+        wheel_size (int): Optional; Length of each `wheel' to be used in class balancing sampling in IterableDataset.
+            This is essentially the number of pixel stacks per class to have queued at any one time.
+        n_pixels (int): Optional; Total number of pixels in each sample (per band).
         seed (int): Optional; Random seed number to fix the shuffling of the data split.
         shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
         plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
-        balance (bool): Optional;
-        over_factor (int): Optional;
+        balance (bool): Optional; Whether or not to attempt to balance the class distributions within each dataset.
+        over_factor (int): Optional; On average, the maximum number of times the same sample will occur in a dataset.
+            Will be at the maximum value for the smallest class being over-sampled.
         model_type (str): Optional; Must be either mlp, MLP, scene classifier or segmentation.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Keyword Args:
+        hyperparams (dict): Dictionary of hyper-parameters for the model.
+        batch_size (int): Number of samples in each batch to be returned by the DataLoaders.
+        scene_selector (str): Name of function to use to select which scenes of a patch to include in the datasets.
+        elim (bool): Whether or not to eliminate classes with no samples in.
+        centre_only (bool): Whether to modify samples to be an array of zeros apart from the original centre pixel.
 
     Returns:
-        loaders (dict):
-        n_batches (dict):
-        class_dist (list):
-        ids (dict):
-        new_classes (dict):
-        new_colours (dict):
+        loaders (dict): Dictionary of the DataLoader for training, validation and testing.
+        n_batches (dict): Dictionary of the number of batches to return/ yield in each train, validation and test epoch.
+        class_dist (list): The class distribution of the entire dataset, sorted from largest to smallest class.
+        ids (dict): Dictionary of the IDs (patch or scene) defining each dataset and the entire dataset.
+        new_classes (dict): Dictionary mapping class labels to class names - modified to remove empty classes.
+        new_colours (dict): Dictionary mapping class labels to colours - modified to remove empty classes.
     """
     dataloader_params = params['hyperparams']['params']
     batch_size = dataloader_params['batch_size']
@@ -583,7 +592,7 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
 
             # Define datasets for train, validation and test using BatchDataset.
             datasets[mode] = BalancedBatchDataset(stream, batch_size=batch_size, wheel_size=wheel_size,
-                                                  patch_len=image_len, no_empty_classes=params['elim'],
+                                                  patch_len=n_pixels, no_empty_classes=params['elim'],
                                                   forwards=forwards)
 
             n_batches[mode] = utils.num_batches(len(stream.columns) * len(stream))
