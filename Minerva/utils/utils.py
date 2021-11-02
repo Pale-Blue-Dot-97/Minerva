@@ -847,7 +847,22 @@ def mask_transform(array: Union[list, np.ndarray], matrix: dict) -> Union[list, 
     return array
 
 
-def check_test_empty(pred, labels, class_labels, p_dist: bool = True):
+def check_test_empty(pred: Union[list, np.ndarray], labels: Union[list, np.ndarray], class_labels: dict,
+                     p_dist: bool = True) -> Tuple[Union[list, np.ndarray], Union[list, np.ndarray], dict]:
+    """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
+    Returns corrected and re-ordered predictions, labels and class_labels.
+
+    Args:
+        pred (list[int] or np.ndarray[int]): List of predicted labels.
+        labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
+        class_labels (dict): Dictionary mapping class labels to class names.
+        p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
+
+    Returns:
+        pred (list[int] or np.ndarray[int]): List of predicted labels transformed to new classes.
+        labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels transformed to new classes.
+        class_labels (dict): Dictionary mapping new class labels to class names.
+    """
     # Finds the distribution of the classes within the data.
     labels_dist = find_subpopulations(labels)
     pred_dist = find_subpopulations(pred)
@@ -1503,7 +1518,16 @@ def extract_from_tag(tag: str) -> Tuple[str, str]:
     return patch_id, date
 
 
-def model_output_flatten(x):
+def model_output_flatten(x: Any) -> Union[np.ndarray, list]:
+    """Attempts to flatten the supplied array. If not ragged, should be flattened with numpy.
+    If ragged, the first 2 dimensions will be flattened using list appending.
+
+    Args:
+        x: Array to be flattened.
+
+    Returns:
+        x: Either a flattened ndarray or if this failed, a list that has it's first 2 dimensions flattened.
+    """
     try:
         x = np.array(x).flatten()
 
@@ -1515,12 +1539,37 @@ def model_output_flatten(x):
     return x
 
 
-def make_classification_report(pred, labels, class_labels, print_cr: bool = True):
-    pred, labels, class_labels = check_test_empty(pred, labels, class_labels)
+def make_classification_report(pred: Union[list, np.ndarray], labels: Union[list, np.ndarray],
+                               class_labels: dict, print_cr: bool = True, p_dist: bool = False) -> pd.DataFrame:
+    """Generates a DataFrame of the precision, recall, f-1 score and support of the supplied predictions
+    and ground truth labels.
+
+    Uses scikit-learn's classification_report to calculate the metrics:
+    https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html
+
+    Args:
+        pred (list[int] or np.ndarray[int]): List of predicted labels.
+        labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
+        class_labels (dict): Dictionary mapping class labels to class names.
+        print_cr (bool): Optional; Whether to print a copy of the classification report DataFrame put through tabulate.
+        p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
+
+    Returns:
+        cr_df (pd.DataFrame): Classification report with the precision, recall, f-1 score and support
+            for each class in a DataFrame.
+    """
+    # Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
+    # Returns corrected and re-ordered predictions, labels and class_labels.
+    pred, labels, class_labels = check_test_empty(pred, labels, class_labels, p_dist=p_dist)
+
+    # Gets the list of class names from the dict.
     class_names = [class_labels[i] for i in range(len(class_labels))]
 
+    # Uses Sci-kit Learn's classification_report to generate the report as a nested dict.
     cr = classification_report(y_true=labels, y_pred=pred, labels=[i for i in range(len(class_labels))],
                                zero_division=0, output_dict=True)
+
+    # Constructs DataFrame from classification report dict.
     cr_df = pd.DataFrame(cr)
 
     # Delete unneeded columns.
@@ -1531,10 +1580,13 @@ def make_classification_report(pred, labels, class_labels, print_cr: bool = True
     # Transpose DataFrame so rows are classes and columns are metrics.
     cr_df = cr_df.T
 
+    # Add column for the class names.
     cr_df['LABEL'] = class_names
 
+    # Re-order the columns so the class names are on the left-hand side.
     cr_df = cr_df[['LABEL', 'precision', 'recall', 'f1-score', 'support']]
 
+    # Prints the DataFrame put through tabulate into a pretty text format to stdout.
     if print_cr:
         print(tabulate(cr_df, headers='keys', tablefmt='psql'))
 
@@ -1591,7 +1643,26 @@ def run_tensorboard(path: Optional[Union[str, list, tuple]] = None, env_name: st
     webbrowser.open('localhost:{}'.format(host_num))
 
 
-def compute_roc_curves(probs, labels, class_labels):
+def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
+                       class_labels: list) -> Tuple[dict, dict, dict]:
+    """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
+    The micro and macro averages are for each of these variables is also computed.
+
+    Adapted from scikit-learn's example at:
+    https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
+
+    Args:
+        probs (np.ndarray): Array of probabilistic predicted classes from model where each sample
+            should have a list of the predicted probability for each class.
+        labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
+        class_labels (list): List of class label numbers.
+
+    Returns:
+        fpr (dict): Dictionary of false-positive rates for each class and micro and macro averages.
+        tpr (dict): Dictionary of true-positive rates for each class and micro and macro averages.
+        roc_auc (dict): Dictionary of AUCs for each class and micro and macro averages.
+    """
+
     # One-hot-encoders the class labels to match binarised input expected by roc_curve.
     targets = label_binarize(labels, classes=class_labels)
 
