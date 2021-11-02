@@ -43,7 +43,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict
+from typing import Union, Optional, Tuple, Dict, Literal
 from Minerva.utils import utils
 import os
 import yaml
@@ -96,6 +96,9 @@ plt.rcParams['axes.xmargin'] = 0
 
 # Downloads required plugin for imageio if not already present.
 imageio.plugins.freeimage.download()
+
+# Filters out all TensorFlow messages other than errors.
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 # =====================================================================================================================
@@ -152,16 +155,29 @@ def de_interlace(x: Union[list, np.ndarray], f: int) -> np.ndarray:
     return np.array(new_x).flatten()
 
 
-def get_extent(shape: tuple, data_fn: str, new_cs: osr.SpatialReference,
-               spacing: int = 32) -> Tuple[tuple, np.ndarray, np.ndarray]:
-    # Defines the 'extent' of the composite image based on the size of the mask.
-    # Assumes mask and RGB image have same 2D shape.
+def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: osr.SpatialReference,
+               spacing: int = 32) -> Tuple[Tuple[int, int, int, int], np.ndarray, np.ndarray]:
+    """Gets the extent of the image with 'shape' and at data_fn in latitude, longitude of system new_cs.
+
+    Args:
+        shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
+        data_fn (str): Path and filename of the TIF file whose geospatial meta data will be used
+            to get the corners of the image in latitude and longitude.
+        new_cs(osr.SpatialReference): Co-ordinate system to convert co-ordinates found in data_fn TIF file to.
+        spacing (int): Spacing of the lat - lon ticks.
+
+    Returns:
+        extent (tuple[int, int, int, int]): The corners of the image in pixel co-ordinates e.g. (0, 256, 0, 256).
+        lat_extent (np.ndarray): The latitude extent of the image with ticks at intervals defined by 'spacing'.
+        lon_extent (np.ndarray): The longitude extent of the image with ticks at intervals defined by 'spacing'.
+    """
+    # Defines the 'extent' for a composite image based on the size of shape.
     extent = 0, shape[0], 0, shape[1]
 
     # Gets the co-ordinates of the corners of the image in decimal lat-lon.
     corners = utils.transform_coordinates(data_fn, new_cs)
 
-    # Creates a discrete mapping of the block size ticks to latitude longitude extent of the image.
+    # Creates a discrete mapping of the spaced ticks to latitude longitude extent of the image.
     lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
                              num=int(shape[0] / spacing) + 1, endpoint=True)
     lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
@@ -499,6 +515,8 @@ def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_i
         patch_ids (list[str]): List of IDs identifying the patches from which predictions and labels came from.
         classes (dict[str]): Dictionary mapping class labels to class names.
         colours (dict[str]): Dictionary mapping class labels to colours.
+        fn_prefix (str): Common filename prefix (including path to file) for all plots of this type
+            from this experiment to use.
         frac (float): Optional; Fraction of patch samples to plot.
         fig_dim (Tuple[float, float]): Optional; Figure (height, width) in inches.
 
@@ -556,10 +574,11 @@ def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_i
             bar()
 
 
-def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: str, new_cs: osr.SpatialReference,
-                    exp_id: Optional[str] = None, classes: Optional[dict] = None, block_size: int = 32,
-                    cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True, save: bool = True,
-                    fig_dim: Optional[Tuple[float, float]] = None, fn_prefix: Optional[str] = None) -> str:
+def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: Literal['scene', 'patch'],
+                    new_cs: osr.SpatialReference, exp_id: Optional[str] = None, classes: Optional[dict] = None,
+                    block_size: int = 32, cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True,
+                    save: bool = True, fig_dim: Optional[Tuple[float, float]] = None,
+                    fn_prefix: Optional[str] = None) -> None:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
 
@@ -567,14 +586,17 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
         z (np.ndarray[np.ndarray[int]]): 2D array of the predicted label mask.
         y (np.ndarray[np.ndarray[int]]): 2D array of the corresponding ground truth label mask.
         sample_id (str): Unique ID of the patch.
+        sample_type (str): Denotes what sort of sample is to be plotted. Must be either 'scene' or 'patch'.
+        new_cs(osr.SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
         exp_id (str): Optional; Unique ID for the experiment run that predictions and labels come from.
         classes (dict[str]): Optional; Dictionary mapping class labels to class names.
-        new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
         block_size (int): Optional; Size of block image sub-division in pixels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
         show (bool): Optional; True for show figure when plotted. False if not.
         save (bool): Optional; True to save figure to file. False if not.
         fig_dim (Tuple[float, float]): Optional; Figure (height, width) in inches.
+        fn_prefix (str): Optional; Common filename prefix (including path to file) for all plots of this type
+            from this experiment. Appended with the sample ID to give the filename to save the plot to.
 
     Returns:
         None
@@ -612,7 +634,7 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
 
     # Plots heatmap onto figure.
     z_heatmap = axes[0].imshow(z, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
-    y_heatmap = axes[1].imshow(y, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+    _ = axes[1].imshow(y, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
 
     # Create RGB image.
     axes[2].imshow(rgb_image, extent=extent)
@@ -683,8 +705,6 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: s
     # Close figure.
     plt.close()
 
-    return fn
-
 
 def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefix: str,
              frac: float = 0.05, fig_dim: Tuple[float, float] = (9.3, 10.5)) -> None:
@@ -696,6 +716,8 @@ def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefi
         ids (list[str]): Corresponding patch IDs for the test data supplied to the network.
         classes (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
+        fn_prefix (str): Common filename prefix (including path to file) for all plots of this type
+            from this experiment to use.
         frac (float): Optional; Fraction of patch samples to plot.
         fig_dim (tuple[float, float]): Optional; Figure (height, width) in inches.
 
@@ -873,7 +895,24 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
 
 def make_roc_curves(probs: Union[list, np.ndarray], labels: Union[list, np.ndarray], class_names: dict, colours: dict,
                     filename: Optional[str] = None, show: bool = False, save: bool = True) -> None:
+    """Plots ROC curves for each class, the micro and macro average ROC curves and accompanying AUCs.
 
+    Adapted from Scikit-learn's example at:
+    https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
+
+    Args:
+        probs (list or np.ndarray): Array of probabilistic predicted classes from model where each sample
+            should have a list of the predicted probability for each class.
+        labels (list or np.ndarray): List of corresponding ground truth labels.
+        class_names (dict): Dictionary mapping class labels to class names.
+        colours (dict): Dictionary mapping class labels to colours.
+        filename (str): Optional; Name of file to save plot to.
+        save (bool): Optional; Whether to save the plots to file.
+        show (bool): Optional; Whether to show the plots.
+
+    Returns:
+        None
+    """
     # Gets the class labels as a list from the class_names dict.
     class_labels = [key for key in class_names.keys()]
 
@@ -984,6 +1023,8 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
         y (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
         ids (list[str]): List of IDs defining the origin of samples to the model.
             May be either patch IDs or scene tags.
+        probs (list or np.ndarray): Array of probabilistic predicted classes from model where each sample
+            should have a list of the predicted probability for each class.
         class_names (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
         save (bool): Optional; Whether to save the plots to file.
