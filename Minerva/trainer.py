@@ -324,6 +324,7 @@ class Trainer:
         # encountered in plotting of results.
         self.close()
 
+        print('\nMAKING CLASSIFICATION REPORT')
         self.compute_classification_report(predictions, labels)
 
         # Create a subset of metrics which drops the testing results for plotting model history.
@@ -415,14 +416,28 @@ class Trainer:
             # Saves model state dict to PyTorch file.
             torch.save(self.model.state_dict(), '{}.pt'.format(fn))
 
-    def compute_classification_report(self, predictions, labels):
+    def compute_classification_report(self, predictions: Union[list, np.ndarray],
+                                      labels: Union[list, np.ndarray]) -> None:
+        """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
+
+        Args:
+            predictions (list or np.ndarray): List of predicted labels.
+            labels (list or np.ndarray): List of corresponding ground truth label masks.
+
+        Returns:
+            None
+        """
+        # Ensures predictions and labels are flattened.
         predictions = utils.model_output_flatten(predictions)
         labels = utils.model_output_flatten(labels)
 
+        # Uses utils to create a classification report in a DataFrame.
         cr_df = utils.make_classification_report(predictions, labels, self.params['classes'])
 
+        # Defines the filename and path for the classification report to be saved to.
         fn = os.path.join(*self.params['dir']['results'], self.params['exp_name'])
 
+        # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f'{fn}_classification-report.csv')
 
     def run_tensorboard(self) -> None:
