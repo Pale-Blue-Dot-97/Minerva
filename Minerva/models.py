@@ -368,34 +368,40 @@ class ResNet(MinervaModel, ABC):
             If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
             If False, adds a global average pooling layer after the last block, flattens the output
             and passes through a fully connected layer for classification output.
-        inplanes (int):
-        dilation (int):
-        groups (int):
-        base_width (int):
-        conv1 (torch.nn.Conv2d):
-        bn1 (torch.nn.Module):
+        inplanes (int): Number of input feature maps. Initially set to 64.
+        dilation (int): Dilation factor of convolutions. Initially set to 1.
+        groups (int): Number of convolutions in grouped convolutions of Bottleneck Blocks.
+        base_width (int): Modifies the number of feature maps in convolutional layers of Bottleneck Blocks.
+        conv1 (torch.nn.Conv2d): Input convolutional layer of Conv1 input block to the network.
+        bn1 (torch.nn.Module): Batch normalisation layer of the Conv1 input block to the network.
         relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
-        maxpool (torch.nn.MaxPool2d):
-        layer1 (torch.nn.Sequential):
-        layer2 (torch.nn.Sequential):
-        layer3 (torch.nn.Sequential):
-        layer4 (torch.nn.Sequential):
+        maxpool (torch.nn.MaxPool2d): 3x3 Max-pooling layer with stride 2 of the Conv1 input block to the network.
+        layer1 (torch.nn.Sequential): `Layer' 1 of the ResNet comprising number and type of blocks defined by 'layers'.
+        layer2 (torch.nn.Sequential): `Layer' 2 of the ResNet comprising number and type of blocks defined by 'layers'.
+        layer3 (torch.nn.Sequential): `Layer' 3 of the ResNet comprising number and type of blocks defined by 'layers'.
+        layer4 (torch.nn.Sequential): `Layer' 4 of the ResNet comprising number and type of blocks defined by 'layers'.
         avgpool (torch.nn.AdaptiveAvgPool2d): Global average pooling layer taking the output from the last block.
             Only initialised if encoder_on is False.
         fc (torch.nn.Linear): Fully connected layer that takes the flattened output from average pooling
             to a classification output. Only initialised if encoder_on is False.
 
     Args:
-        block (BasicBlock or Bottleneck):
-        layers (list):
-        in_channels (int):
-        n_classes (int): Number of classes in data to be classified.
-        zero_init_residual (bool):
-        groups (int):
-        width_per_group (int):
-        replace_stride_with_dilation (tuple):
-        norm_layer (function):
-        encoder (bool):
+        block (BasicBlock or Bottleneck): Type of `block operations' to use throughout network.
+        layers (list): Number of blocks in each of the 4 `layers'.
+        in_channels (int): Optional; Number of channels (or bands) in the input imagery.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        zero_init_residual (bool): Optional;
+        groups (int): Optional; Number of convolutions in grouped convolutions of Bottleneck Blocks.
+            Not compatible with Basic Block!
+        width_per_group (int): Optional; Modifies the number of feature maps in convolutional layers
+            of Bottleneck Blocks. Not compatible with Basic Block!
+        replace_stride_with_dilation (tuple): Optional; Each element in the tuple indicates whether to replace the
+            2x2 stride with a dilated convolution instead. Must be a three element tuple of bools.
+        norm_layer (function): Optional; Normalisation layer to use in each block. Typically torch.nn.BatchNorm2d.
+        encoder (bool): Optional; Whether to initialise the ResNet as an encoder or end-to-end classifier.
+            If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
+            If False, adds a global average pooling layer after the last block, flattens the output
+            and passes through a fully connected layer for classification output.
 
     Raises:
         ValueError: If replace_stride_with_dilation is not None or a 3-element tuple.
@@ -403,32 +409,48 @@ class ResNet(MinervaModel, ABC):
 
     def __init__(self, block: Type[Union[BasicBlock, Bottleneck]], layers: Union[list, tuple], in_channels: int = 3,
                  n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+                 replace_stride_with_dilation: Tuple[bool, bool, bool] = (False, False, False),
                  norm_layer: Optional[Callable[..., torch.nn.Module]] = None,
                  encoder: bool = False) -> None:
         super(ResNet, self).__init__()
+
+        # Inits normalisation layer for use in each block.
         if norm_layer is None:
             norm_layer = torch.nn.BatchNorm2d
         self._norm_layer = norm_layer
 
+        # Specifies if this network is to be configured as an encoder backbone or an end-to-end classifier.
         self.encoder_on = encoder
 
+        # Sets the number of input feature maps to an init of 64.
         self.inplanes = 64
+
+        # Init dilation of convolutions set to 1.
         self.dilation = 1
-        if replace_stride_with_dilation is None:
-            # each element in the tuple indicates if we should replace
-            # the 2x2 stride with a dilated convolution instead
-            replace_stride_with_dilation = [False, False, False]
+
+        # Raises ValueError if replace_stride_with_dilation is not a 3-element tuple of bools.
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
                              "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
+
+        # Sets the number of convolutions in groups and the base width of convolutions.
         self.groups = groups
         self.base_width = width_per_group
+
+        # --- CONV1 LAYER =============================================================================================
+        # Adds the input convolutional layer to the network.
         self.conv1 = torch.nn.Conv2d(in_channels, self.inplanes, kernel_size=(7, 7), stride=(2, 2),
                                      padding=3, bias=False)
+        # Adds the batch norm layer for the Conv1 layer.
         self.bn1 = norm_layer(self.inplanes)
+
+        # Inits the ReLU to be use in Conv1 and throughout the network.
         self.relu = torch.nn.ReLU(inplace=True)
+
+        # Adds the max pooling layer to complete the Conv1 layer.
         self.maxpool = torch.nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
+        # --- LAYERS 1-4 ==============================================================================================
         self.layer1 = self._make_layer(block, 64, layers[0])
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2,
                                        dilate=replace_stride_with_dilation[0])
@@ -436,11 +458,14 @@ class ResNet(MinervaModel, ABC):
                                        dilate=replace_stride_with_dilation[1])
         self.layer4 = self._make_layer(block, 512, layers[3], stride=2,
                                        dilate=replace_stride_with_dilation[2])
+        # =============================================================================================================
 
+        # Adds average pooling and classification layer to network if this is an end-to-end classifier.
         if not self.encoder_on:
             self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
             self.fc = torch.nn.Linear(512 * block.expansion, n_classes)
 
+        # Performs weight initialisation across network.
         for m in self.modules():
             if isinstance(m, torch.nn.Conv2d):
                 torch.nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -448,7 +473,7 @@ class ResNet(MinervaModel, ABC):
                 torch.nn.init.constant_(m.weight, 1)
                 torch.nn.init.constant_(m.bias, 0)
 
-        # Zero-initialize the last BN in each residual branch,
+        # If set to, zero-initialise the last BN in each residual branch,
         # so that the residual branch starts with zeros, and each residual block behaves like an identity.
         # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
         if zero_init_residual:
@@ -472,8 +497,23 @@ class ResNet(MinervaModel, ABC):
                 norm_layer(planes * block.expansion),
             )
 
-        layers = [block(self.inplanes, planes, stride, downsample, self.groups,
-                        self.base_width, previous_dilation, norm_layer)]
+        layers = []
+        try:
+            layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
+                                self.base_width, previous_dilation, norm_layer))
+
+        except ValueError as err:
+            print(err.args)
+            print('Setting groups=1, base_width=64 and trying again')
+            self.groups = 1
+            self.base_width = 64
+            try:
+                layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
+                                    self.base_width, previous_dilation, norm_layer))
+
+            except ValueError as err:
+                print(err.args)
+
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
             layers.append(block(self.inplanes, planes, groups=self.groups,
