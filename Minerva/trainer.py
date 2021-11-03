@@ -28,7 +28,6 @@ Attributes:
     _timeout (int): Default time till timeout waiting for a user input in seconds.
 
 TODO:
-    * Output metrics to csv in close()
 """
 # =====================================================================================================================
 #                                                     IMPORTS
