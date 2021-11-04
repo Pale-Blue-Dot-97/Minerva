@@ -33,7 +33,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Callable, Type, Any
+from typing import Union, Optional, Tuple, List, Callable, Type, Any
 import abc
 from Minerva.utils import utils
 import torch
@@ -180,9 +180,8 @@ class MLP(MinervaModel, ABC):
     Attributes:
         input_size (int): Size of the input vector to the network.
         output_size (int): Size of the output vector of the network.
-        hidden_sizes (tuple[int] or list[int]): Size of the hidden layers within the network.
-            Can be a tuple[int] or list[int] of values that will also determine the number of layers other than
-            the required input and output layers.
+        hidden_sizes (tuple[int] or list[int]): Series of values for the size of each hidden layers within the network.
+            Also determines the number of layers other than the required input and output layers.
         network (torch.nn.Sequential): The actual neural network of the model.
 
     Args:
@@ -190,9 +189,8 @@ class MLP(MinervaModel, ABC):
         input_size (int): Optional; Size of the input vector to the network.
         n_classes (int): Optional; Number of classes in input data.
             Determines the size of the output vector of the network.
-        hidden_sizes (tuple[int] or list[int]): Optional; Size of the hidden layers within the network.
-            The length of hidden_sizes will also determine the number of layers other than
-            the required input and output layers.
+        hidden_sizes (tuple[int] or list[int]): Optional; Series of values for the size of each hidden layers
+            within the network. Also determines the number of layers other than the required input and output layers.
     """
 
     def __init__(self, criterion, input_size: int = 288, n_classes: int = 8,
@@ -259,18 +257,14 @@ class CNN(MinervaModel, ABC):
         n_classes (int): Optional; Number of classes in input data.
         features (tuple[int] or list[int]): Optional; Series of values defining the number of feature maps.
             The length of the list is also used to determine the number of convolutional layers in conv_net.
-        conv_kernel_size (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
-            size of all convolutional kernels for all channels and layers.
-        conv_stride (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
-            size of all convolutional stride lengths for all channels and layers.
-        max_kernel_size (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
-            size of all max-pooling kernels for all channels and layers.
-        max_stride (int or tuple[int]): Optional; Either a int or tuple but a single value to determine the
-            size of all max-pooling stride lengths for all channels and layers.
+        conv_kernel_size (int or tuple[int]): Optional; Size of all convolutional kernels for all channels and layers.
+        conv_stride (int or tuple[int]): Optional; Size of all convolutional stride lengths for all channels and layers.
+        max_kernel_size (int or tuple[int]): Optional; Size of all max-pooling kernels for all channels and layers.
+        max_stride (int or tuple[int]): Optional; Size of all max-pooling stride lengths for all channels and layers.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 features: Union[tuple, list] = (2, 1, 1), fc_sizes: Union[tuple, list] = (128, 64),
+    def __init__(self, criterion, input_size: Union[Tuple[int, int, int], List[int, int, int]] = (12, 256, 256),
+                 n_classes: int = 8, features: Union[tuple, list] = (2, 1, 1), fc_sizes: Union[tuple, list] = (128, 64),
                  conv_kernel_size: Union[int, tuple] = 3, conv_stride: Union[int, tuple] = 1,
                  max_kernel_size: Union[int, tuple] = 2, max_stride: Union[int, tuple] = 2, conv_do: bool = True,
                  fc_do: bool = True, p_conv_do: float = 0.1, p_fc_do: float = 0.5) -> None:
@@ -557,78 +551,126 @@ class ResNet(MinervaModel, ABC):
             x (torch.Tensor): Input data to network.
 
         Returns:
-            torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
+            If inited as an encoder, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+                of the likelihoods the network places on the input 'x' being of each class.
         """
         return self._forward_impl(x)
 
 
 class Decoder(MinervaModel, ABC):
-    def __init__(self, batch_size: int, n_classes: int, image_size: Union[list, tuple]) -> None:
+    """
+
+    Attributes:
+        batch_size (int): Number of samples in each batch supplied to the network.
+        n_classes (int): Number of classes in the data to be classified by the network.
+        image_size (tuple[int, int, int] or list[int, int, int]): Defines the shape of the input data in order of
+            number of channels, image width, image height.
+        relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
+        fc3 (torch.nn.Linear): First fully connected layer of the network that should take the input from the encoder.
+        bn3 (torch.nn.BatchNorm1d): First batch norm layer.
+        fc2 (torch.nn.Linear): Second fully connected layer of the network.
+        bn2 (torch.nn.BatchNorm1d): Second batch norm layer.
+        fc1 (torch.nn.Linear): Third fully connected layer of the network.
+        bn1 (torch.nn.BatchNorm1d): Third batch norm layer.
+        upsample1 (torch.nn.Upsample): 2x factor up-sampling layer used throughout network.
+        dconv5 (torch.nn.ConvTranspose2d): First de-convolutional layer with 3x3 kernel and no padding.
+        dconv4 (torch.nn.ConvTranspose2d): Second de-convolutional layer with 3x3 kernel and padding=1.
+        dconv3 (torch.nn.ConvTranspose2d): Third de-convolutional layer with 3x3 kernel and padding=1.
+        dconv2 (torch.nn.ConvTranspose2d): Fourth de-convolutional layer with 5x5 kernel and padding=2.
+        dconv1 (torch.nn.ConvTranspose2d): Fifth de-convolutional layer with 12x12 kernel, stride=4 and padding=4.
+        upsample2 (torch.nn.Upsample): Final up-sampling layer to ensure the output of the network matches
+            the original image size.
+
+    Args:
+        batch_size (int): Number of samples in each batch supplied to the network.
+        n_classes (int): Number of classes in the data to be classified by the network.
+        image_size (tuple[int, int, int] or list[int, int, int]): Defines the shape of the input data in order of
+            number of channels, image width, image height.
+    """
+
+    def __init__(self, batch_size: int, n_classes: int,
+                 image_size: Union[Tuple[int, int, int], List[int, int, int]]) -> None:
         super(Decoder, self).__init__()
 
         self.batch_size = batch_size
         self.n_classes = n_classes
         self.image_size = image_size
 
-        self.derl1 = torch.nn.ReLU()
+        # Init ReLU for use throughout network.
+        self.relu = torch.nn.ReLU(inplace=True)
 
-        self.dfc3 = torch.nn.Linear(1024, 4096)
+        # First fully connected layer that should take input from an encoder. Followed by batch norm.
+        self.fc3 = torch.nn.Linear(1024, 4096)
         self.bn3 = torch.nn.BatchNorm1d(4096)
-        self.derl2 = torch.nn.ReLU()
 
-        self.dfc2 = torch.nn.Linear(4096, 4096)
+        # Second fully connected layer and batch norm layer.
+        self.fc2 = torch.nn.Linear(4096, 4096)
         self.bn2 = torch.nn.BatchNorm1d(4096)
-        self.derl3 = torch.nn.ReLU()
 
-        self.dfc1 = torch.nn.Linear(4096, 256 * 6 * 6)
+        # Third and final fully connected layer and batch norm layer.
+        self.fc1 = torch.nn.Linear(4096, 256 * 6 * 6)
         self.bn1 = torch.nn.BatchNorm1d(256 * 6 * 6)
-        self.derl4 = torch.nn.ReLU()
 
+        # 2x factor up-sampling operation to use throughout network.
         self.upsample1 = torch.nn.Upsample(scale_factor=2)
+
+        # De-convolutional layers.
         self.dconv5 = torch.nn.ConvTranspose2d(256, 256, (3, 3), padding=(0, 0))
-        self.derl5 = torch.nn.ReLU()
-
         self.dconv4 = torch.nn.ConvTranspose2d(256, 384, (3, 3), padding=(1, 1))
-        self.derl6 = torch.nn.ReLU()
-
         self.dconv3 = torch.nn.ConvTranspose2d(384, 192, (3, 3), padding=(1, 1))
-        self.derl7 = torch.nn.ReLU()
-
-        self.upsample2 = torch.nn.Upsample(scale_factor=2)
         self.dconv2 = torch.nn.ConvTranspose2d(192, 64, (5, 5), padding=(2, 2))
-        self.derl8 = torch.nn.ReLU()
-
-        self.upsample3 = torch.nn.Upsample(scale_factor=2)
         self.dconv1 = torch.nn.ConvTranspose2d(64, self.n_classes, (12, 12), stride=(4, 4), padding=(4, 4))
-        self.derl9 = torch.nn.ReLU()
 
-        self.upsample4 = torch.nn.Upsample(size=self.image_size)
+        # Up-sampling operation to take output from de-convolutions and match to input size of image.
+        self.upsample2 = torch.nn.Upsample(size=self.image_size)
 
     def _forward_impl(self, x):
-        x = self.derl1(x)
-        x = self.dfc3(x)
-        x = self.derl2(self.bn3(x))
+        # First block of fully connected layer batch norm and ReLU.
+        x = self.relu(x)
+        x = self.fc3(x)
+        x = self.relu(self.bn3(x))
 
-        x = self.dfc2(x)
-        x = self.derl3(self.bn2(x))
+        # Second block of fully connected layer batch norm and ReLU.
+        x = self.fc2(x)
+        x = self.relu(self.bn2(x))
 
-        x = self.dfc1(x)
-        x = self.derl4(self.bn1(x))
+        # Third and final block of fully connected layer batch norm and ReLU.
+        x = self.fc1(x)
+        x = self.relu(self.bn1(x))
 
+        # Expands 2D tensor of data (batch, vector) into 4D (batch, feature maps, height, width) tensor.
         x = x.view(self.batch_size, 256, 6, 6)
 
+        # Up-samples by 2x.
         x = self.upsample1(x)
-        x = self.derl5(self.dconv5(x))
-        x = self.derl6(self.dconv4(x))
-        x = self.derl7(self.dconv3(x))
+
+        # De-convolutional layers, up-sampling and ReLUs.
+        x = self.relu(self.dconv5(x))
+        x = self.relu(self.dconv4(x))
+        x = self.relu(self.dconv3(x))
+        x = self.upsample1(x)
+        x = self.relu(self.dconv2(x))
+        x = self.upsample1(x)
+        x = self.relu(self.dconv1(x))
+
+        # Final up-sampling layer to ensure output matches the dimensions of the input to the encoder.
         x = self.upsample2(x)
-        x = self.derl8(self.dconv2(x))
-        x = self.upsample3(x)
-        x = self.derl9(self.dconv1(x))
-        x = self.upsample4(x)
+
         return x
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """Performs a forward pass of the decoder.
+
+        Overwrites MinervaModel abstract method.
+
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+
+        Args:
+            x (torch.Tensor): Input data to network. Should be from an encoder.
+
+        Returns:
+            torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
+        """
         return self._forward_impl(x)
 
 
