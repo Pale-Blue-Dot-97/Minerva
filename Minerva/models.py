@@ -25,9 +25,7 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 TODO:
-    * Add more functionality to CNN inputs
     * Add missing docstrings
-    * Add other FCN variants
     * Reduce boiler plate
 """
 # =====================================================================================================================
