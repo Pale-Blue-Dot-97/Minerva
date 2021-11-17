@@ -1270,7 +1270,7 @@ def find_subpopulations(labels: Union[list, tuple, np.ndarray], plot: bool = Fal
         plot (bool): Plots distribution of subpopulations if True.
 
     Returns:
-        Modal distribution of classes in the dataset provided.
+        class_dist (list): Modal distribution of classes in the dataset provided.
     """
     # Finds the distribution of the classes within the data
     class_dist = Counter(np.array(labels).flatten()).most_common()
@@ -1293,7 +1293,7 @@ def subpopulations_from_manifest(manifest: pd.DataFrame, func: callable = lc_loa
         plot (bool): Optional; Whether or not to plot the class distribution pie chart.
 
     Returns:
-
+        class_dist (list): Modal distribution of classes in the dataset provided.
     """
     class_dist = Counter()
     if func is lc_load:

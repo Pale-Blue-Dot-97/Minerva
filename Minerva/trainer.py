@@ -105,6 +105,13 @@ class Trainer:
         self.n_batches = n_batches
         self.data_size = params['hyperparams']['model_params']['input_size']
 
+        # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
+        self.step_num = {
+            'train': 0,
+            'val': 0,
+            'test': 0
+        }
+
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
             'train_loss': {'x': [], 'y': []},
@@ -236,14 +243,19 @@ class Trainer:
                     test_labels.append(y.cpu().numpy())
                     test_ids.append(sample_id)
 
+                self.step_num['{}'.format(mode)] += 1
+
                 ls = loss.item()
                 correct = (torch.argmax(z, 1) == y).sum().item()
 
                 total_loss += ls
                 total_correct += correct
 
-                self.writer.add_scalar(tag='{}_loss'.format(mode), scalar_value=ls)
-                self.writer.add_scalar(tag='{}_acc'.format(mode), scalar_value=correct / len(torch.flatten(y_batch)))
+                self.writer.add_scalar(tag='{}_loss'.format(mode), scalar_value=ls,
+                                       global_step=self.step_num['{}'.format(mode)])
+                self.writer.add_scalar(tag='{}_acc'.format(mode),
+                                       scalar_value=correct / len(torch.flatten(y_batch)),
+                                       global_step=self.step_num['{}'.format(mode)])
 
                 # Updates progress bar that sample has been processed.
                 bar()
