@@ -263,7 +263,7 @@ class CNN(MinervaModel, ABC):
         max_stride (int or tuple[int]): Optional; Size of all max-pooling stride lengths for all channels and layers.
     """
 
-    def __init__(self, criterion, input_size: Union[Tuple[int, int, int], List[int, int, int]] = (12, 256, 256),
+    def __init__(self, criterion, input_size: Union[Tuple[int, int, int], List[int]] = (12, 256, 256),
                  n_classes: int = 8, features: Union[tuple, list] = (2, 1, 1), fc_sizes: Union[tuple, list] = (128, 64),
                  conv_kernel_size: Union[int, tuple] = 3, conv_stride: Union[int, tuple] = 1,
                  max_kernel_size: Union[int, tuple] = 2, max_stride: Union[int, tuple] = 2, conv_do: bool = True,
@@ -403,7 +403,7 @@ class ResNet(MinervaModel, ABC):
 
     def __init__(self, block: Type[Union[BasicBlock, Bottleneck]], layers: Union[list, tuple], in_channels: int = 3,
                  n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Tuple[bool, bool, bool] = (False, False, False),
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
                  norm_layer: Optional[Callable[..., torch.nn.Module]] = None,
                  encoder: bool = False) -> None:
         super(ResNet, self).__init__()
@@ -421,6 +421,11 @@ class ResNet(MinervaModel, ABC):
 
         # Init dilation of convolutions set to 1.
         self.dilation = 1
+
+        if replace_stride_with_dilation is None:
+            # each element in the tuple indicates if we should replace
+            # the 2x2 stride with a dilated convolution instead
+            replace_stride_with_dilation = [False, False, False]
 
         # Raises ValueError if replace_stride_with_dilation is not a 3-element tuple of bools.
         if len(replace_stride_with_dilation) != 3:
@@ -589,7 +594,7 @@ class Decoder(MinervaModel, ABC):
     """
 
     def __init__(self, batch_size: int, n_classes: int,
-                 image_size: Union[Tuple[int, int, int], List[int, int, int]]) -> None:
+                 image_size: Union[Tuple[int, int, int], List[int]]) -> None:
         super(Decoder, self).__init__()
 
         self.batch_size = batch_size
@@ -768,6 +773,84 @@ class DCN8(MinervaModel, ABC):
         return z
 
 
+class DCN(MinervaModel, ABC):
+    def __init__(self, in_channel=512, n_classes=21, variant: str = '32') -> None:
+        super(DCN, self).__init__()
+        self.variant = variant
+        self.cls_num = n_classes
+
+        # Common to all variants.
+        self.relu = torch.nn.ReLU(inplace=True)
+        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.cls_num, kernel_size=(1, 1))
+        self.bn1 = torch.nn.BatchNorm2d(self.cls_num)
+
+        if variant == '32':
+            self.DCN32 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(64, 64),
+                                                  stride=(32, 32), dilation=1, padding=(16, 16))
+            self.DCN32.weight.data = bilinear_init(self.cls_num, self.cls_num, 64)
+            self.dbn32 = torch.nn.BatchNorm2d(self.cls_num)
+
+        if variant in ('16', '8'):
+            self.Conv1x1_x3 = torch.nn.Conv2d(int(in_channel / 2), self.cls_num, kernel_size=(1, 1))
+            self.DCN2 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+                                                 dilation=1, padding=(1, 1))
+            self.DCN2.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
+            self.dbn2 = torch.nn.BatchNorm2d(self.cls_num)
+
+        if variant == '16':
+            self.DCN16 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(32, 32), stride=(16, 16),
+                                                  dilation=1, padding=(8, 8))
+            self.DCN16.weight.data = bilinear_init(self.cls_num, self.cls_num, 32)
+            self.dbn16 = torch.nn.BatchNorm2d(self.cls_num)
+
+        if variant == '8':
+            self.Conv1x1_x2 = torch.nn.Conv2d(int(in_channel / 4), self.cls_num, kernel_size=(1, 1))
+
+            self.DCN4 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+                                                 dilation=1, padding=(1, 1))
+            self.DCN4.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
+            self.dbn4 = torch.nn.BatchNorm2d(self.cls_num)
+
+            self.DCN8 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(16, 16), stride=(8, 8),
+                                                 dilation=1, padding=(4, 4))
+            self.DCN8.weight.data = bilinear_init(self.cls_num, self.cls_num, 16)
+            self.dbn8 = torch.nn.BatchNorm2d(self.cls_num)
+
+    def forward(self, x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        # Unpack outputs from the ResNet layers.
+        x4, x3, x2, *_ = x
+
+        # All DCNs have a common 1x1 Conv input block.
+        z = self.bn1(self.relu(self.Conv1x1(x4)))
+
+        # If DCN32, forward pass through DCN32 and DBN32 and return output.
+        if self.variant == '32':
+            z = self.dbn32(self.relu(self.DCN32(z)))
+            return z
+
+        # Common Conv1x1 layer to DCN16 & DCN8.
+        x3 = self.bn1(self.relu(self.Conv1x1_x3(x3)))
+        z = self.dbn2(self.relu(self.DCN2(z)))
+
+        z = z + x3
+
+        # If DCN16, forward pass through DCN16 and DBN16 and return output.
+        if self.variant == '16':
+            z = self.dbn16(self.relu(self.DCN16(z)))
+            return z
+
+        # If DCN8, continue through remaining layers to output.
+        elif self.variant == '8':
+            x2 = self.bn1(self.relu(self.Conv1x1_x2(x2)))
+            z = self.dbn4(self.relu(self.DCN4(z)))
+
+            z = z + x2
+
+            z = self.dbn8(self.relu(self.DCN8(z)))
+
+            return z
+
+
 class ResNet18(MinervaModel, ABC):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
@@ -874,13 +957,13 @@ class FCN32ResNet18(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = DCN32(n_classes=n_classes)
+        self.decoder = DCN(n_classes=n_classes, variant='32')
 
         self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z, *_ = self.encoder(x)
+        z = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -898,13 +981,13 @@ class FCN32ResNet34(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = DCN32(n_classes=n_classes)
+        self.decoder = DCN(n_classes=n_classes, variant='32')
 
         self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z, *_ = self.encoder(x)
+        z = self.encoder(x)
         z = self.decoder(z)
 
         return z
@@ -922,14 +1005,14 @@ class FCN16ResNet18(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = DCN16(n_classes=n_classes)
+        self.decoder = DCN(n_classes=n_classes, variant='16')
 
         self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        x4, x3, *_ = self.encoder(x)
-        z = self.decoder((x4, x3))
+        z = self.encoder(x)
+        z = self.decoder(z)
 
         return z
 
@@ -946,14 +1029,14 @@ class FCN8ResNet18(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = DCN8(n_classes=n_classes)
+        self.decoder = DCN(n_classes=n_classes, variant='8')
 
         self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        x4, x3, x2, *_ = self.encoder(x)
-        z = self.decoder((x4, x3, x2))
+        z = self.encoder(x)
+        z = self.decoder(z)
 
         return z
 
@@ -970,14 +1053,14 @@ class FCN8ResNet34(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = DCN8(n_classes=n_classes)
+        self.decoder = DCN(n_classes=n_classes, variant='8')
 
         self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        x4, x3, x2, *_ = self.encoder(x)
-        z = self.decoder((x4, x3, x2))
+        z = self.encoder(x)
+        z = self.decoder(z)
 
         return z
 
@@ -994,14 +1077,14 @@ class FCN8ResNet50(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
                               encoder=True)
 
-        self.decoder = DCN8(n_classes=n_classes, in_channel=2048)
+        self.decoder = DCN(n_classes=n_classes, in_channel=2048, variant='8')
 
         self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        x4, x3, x2, *_ = self.encoder(x)
-        z = self.decoder((x4, x3, x2))
+        z = self.encoder(x)
+        z = self.decoder(z)
 
         return z
 
@@ -1022,14 +1105,17 @@ def get_output_shape(model: torch.nn.Module, image_dim: Union[list, tuple]):
     return model(torch.rand([1, *image_dim])).data.shape[1:]
 
 
-def bilinear_init(in_channels: int, out_channels: int, kernel_size: int):
+def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> torch.Tensor:
     factor = (kernel_size + 1) // 2
+
     if kernel_size % 2 == 1:
         center = factor - 1
     else:
         center = factor - 0.5
+
     og = np.ogrid[:kernel_size, :kernel_size]
     filt = (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
     weight = np.zeros((in_channels, out_channels, kernel_size, kernel_size), dtype='float32')
     weight[range(in_channels), range(out_channels), :, :] = filt
+
     return torch.from_numpy(weight)
