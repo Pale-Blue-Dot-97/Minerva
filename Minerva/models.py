@@ -770,7 +770,8 @@ class ResNet18(MinervaModel, ABC):
         self.input_shape = input_size
         self.n_classes = n_classes
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> Union[
+            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         return self.network(x)
 
 
@@ -789,7 +790,8 @@ class ResNet34(MinervaModel, ABC):
         self.input_shape = input_size
         self.n_classes = n_classes
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> Union[
+            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         return self.network(x)
 
 
@@ -808,14 +810,15 @@ class ResNet50(MinervaModel, ABC):
         self.input_shape = input_size
         self.n_classes = n_classes
 
-    def forward(self, x: torch.FloatTensor):
+    def forward(self, x: torch.FloatTensor) -> Union[
+            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
         return self.network(x)
 
 
 class _FCN(MinervaModel, ABC):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  backbone: str = 'ResNet18', decoder: str = 'DCN', decoder_variant: str = '32', batch_size: int = 16,
-                 backbone_kwargs: dict = None):
+                 backbone_kwargs: dict = None) -> None:
 
         super(_FCN, self).__init__(criterion=criterion)
 
@@ -839,7 +842,6 @@ class _FCN(MinervaModel, ABC):
 class FCNResNet18(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  batch_size: int = 16, **resnet_kwargs) -> None:
-
         super(FCNResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                           batch_size=batch_size, backbone='ResNet18', decoder='Decoder',
                                           backbone_kwargs=resnet_kwargs)
@@ -848,7 +850,6 @@ class FCNResNet18(_FCN):
 class FCNResNet34(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  batch_size: int = 16, **resnet_kwargs) -> None:
-
         super(FCNResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                           batch_size=batch_size, backbone='ResNet34', decoder='Decoder',
                                           backbone_kwargs=resnet_kwargs)
@@ -857,7 +858,6 @@ class FCNResNet34(_FCN):
 class FCNResNet50(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  batch_size: int = 16, **resnet_kwargs) -> None:
-
         super(FCNResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                           batch_size=batch_size, backbone='ResNet50', decoder='Decoder',
                                           backbone_kwargs=resnet_kwargs)
@@ -866,7 +866,6 @@ class FCNResNet50(_FCN):
 class FCN32ResNet18(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  **resnet_kwargs) -> None:
-
         super(FCN32ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone='ResNet18', decoder_variant='32', backbone_kwargs=resnet_kwargs)
 
@@ -874,7 +873,6 @@ class FCN32ResNet18(_FCN):
 class FCN32ResNet34(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  **resnet_kwargs) -> None:
-
         super(FCN32ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone='ResNet34', decoder_variant='32', backbone_kwargs=resnet_kwargs)
 
@@ -882,7 +880,6 @@ class FCN32ResNet34(_FCN):
 class FCN16ResNet18(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  **resnet_kwargs) -> None:
-
         super(FCN16ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone='ResNet18', decoder_variant='16', backbone_kwargs=resnet_kwargs)
 
@@ -890,7 +887,6 @@ class FCN16ResNet18(_FCN):
 class FCN16ResNet34(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  **resnet_kwargs) -> None:
-
         super(FCN16ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone='ResNet34', decoder_variant='16', backbone_kwargs=resnet_kwargs)
 
@@ -898,7 +894,6 @@ class FCN16ResNet34(_FCN):
 class FCN8ResNet18(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  **resnet_kwargs) -> None:
-
         super(FCN8ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone='ResNet18', decoder_variant='8', backbone_kwargs=resnet_kwargs)
 
@@ -906,7 +901,6 @@ class FCN8ResNet18(_FCN):
 class FCN8ResNet34(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  **resnet_kwargs) -> None:
-
         super(FCN8ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone='ResNet34', decoder_variant='8', backbone_kwargs=resnet_kwargs)
 
@@ -914,7 +908,6 @@ class FCN8ResNet34(_FCN):
 class FCN8ResNet50(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
                  **resnet_kwargs) -> None:
-
         super(FCN8ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone='ResNet50', decoder_variant='8', backbone_kwargs=resnet_kwargs)
 
