@@ -21,7 +21,7 @@ dir:
     - 'FCNResNet'
 
 # Kwargs for make_datasets
-model_name: 'FCN32ResNet18-MkI' # Name of model. Substring before hyphen is used to find and initialise model object.
+model_name: 'FCN16ResNet34-MkI' # Name of model. Substring before hyphen is used to find and initialise model object.
 model_type: 'segmentation'      # Type of model. Can be mlp, scene_classifier, segmentation.
 frac: 0.5                       # Fraction of patches in the dataset to use.
 split: [0.8, 0.15, 0.05]        # Fractional size of the train, validation and test datasets.
