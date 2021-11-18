@@ -153,9 +153,6 @@ class Trainer:
         """
         model_params = self.params['hyperparams']['model_params']
 
-        if self.params['model_type'] == 'segmentation':
-            model_params['batch_size'] = self.batch_size
-
         # Gets the model requested by config parameters.
         model = utils.func_by_str('Minerva.models', self.params['model_name'].split('-')[0])
 

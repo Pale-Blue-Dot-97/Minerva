@@ -554,7 +554,7 @@ class ResNet(MinervaModel, ABC):
             x (torch.Tensor): Input data to network.
 
         Returns:
-            If inited as an encoder, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
                 of the likelihoods the network places on the input 'x' being of each class.
         """
         return self._forward_impl(x)
@@ -669,7 +669,7 @@ class Decoder(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network. Should be from an encoder.
+            x (torch.Tensor): Input data to network. Should be from an backbone.
 
         Returns:
             torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
@@ -756,25 +756,80 @@ class DCN(MinervaModel, ABC):
 
 
 class ResNet18(MinervaModel, ABC):
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+    def __init__(self, criterion=None, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 zero_init_residual: bool = False,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer=None):
+                 norm_layer=None, encoder: bool = False) -> None:
         super(ResNet18, self).__init__(criterion=criterion)
 
-        self.network = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0],
-                              n_classes=n_classes,
-                              zero_init_residual=zero_init_residual,
-                              groups=groups,
-                              width_per_group=width_per_group,
+        self.network = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=1, width_per_group=64,
                               replace_stride_with_dilation=replace_stride_with_dilation,
-                              norm_layer=norm_layer)
+                              norm_layer=norm_layer, encoder=encoder)
 
         self.input_shape = input_size
         self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor):
         return self.network(x)
+
+
+class ResNet34(MinervaModel, ABC):
+    def __init__(self, criterion=None, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 zero_init_residual: bool = False,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+                 norm_layer=None, encoder: bool = False) -> None:
+        super(ResNet34, self).__init__(criterion=criterion)
+
+        self.network = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=1, width_per_group=64,
+                              replace_stride_with_dilation=replace_stride_with_dilation,
+                              norm_layer=norm_layer, encoder=encoder)
+
+        self.input_shape = input_size
+        self.n_classes = n_classes
+
+    def forward(self, x: torch.FloatTensor):
+        return self.network(x)
+
+
+class ResNet50(MinervaModel, ABC):
+    def __init__(self, criterion=None, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+                 norm_layer=None, encoder: bool = False) -> None:
+        super(ResNet50, self).__init__(criterion=criterion)
+
+        self.network = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
+                              replace_stride_with_dilation=replace_stride_with_dilation,
+                              norm_layer=norm_layer, encoder=encoder)
+
+        self.input_shape = input_size
+        self.n_classes = n_classes
+
+    def forward(self, x: torch.FloatTensor):
+        return self.network(x)
+
+
+class _FCN(MinervaModel, ABC):
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 backbone: str = 'ResNet18', decoder_variant: str = '32', backbone_kwargs: dict = None):
+
+        super(_FCN, self).__init__(criterion=criterion)
+
+        self.backbone = globals()[backbone](input_size=input_size, n_classes=n_classes, encoder=True,
+                                            **backbone_kwargs)
+        self.decoder = DCN(n_classes=n_classes, variant=decoder_variant)
+
+        self.input_shape = input_size
+        self.n_classes = n_classes
+
+    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
+        z = self.backbone(x)
+        z = self.decoder(z)
+
+        return z
 
 
 class FCNResNet18(MinervaModel, ABC):
@@ -849,148 +904,52 @@ class FCNResNet50(MinervaModel, ABC):
         return z
 
 
-class FCN32ResNet18(MinervaModel, ABC):
+class FCN32ResNet18(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+                 **resnet_kwargs) -> None:
 
-        super(FCN32ResNet18, self).__init__(criterion=criterion)
-
-        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
-                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
-                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
-                              encoder=True)
-
-        self.decoder = DCN(n_classes=n_classes, variant='32')
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
-
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
-        z = self.decoder(z)
-
-        return z
+        super(FCN32ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                            backbone='ResNet18', decoder_variant='32', backbone_kwargs=resnet_kwargs)
 
 
-class FCN32ResNet34(MinervaModel, ABC):
+class FCN32ResNet34(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+                 **resnet_kwargs) -> None:
 
-        super(FCN32ResNet34, self).__init__(criterion=criterion)
-
-        self.encoder = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
-                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
-                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
-                              encoder=True)
-
-        self.decoder = DCN(n_classes=n_classes, variant='32')
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
-
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
-        z = self.decoder(z)
-
-        return z
+        super(FCN32ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                            backbone='ResNet34', decoder_variant='32', backbone_kwargs=resnet_kwargs)
 
 
-class FCN16ResNet18(MinervaModel, ABC):
+class FCN16ResNet18(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+                 **resnet_kwargs) -> None:
 
-        super(FCN16ResNet18, self).__init__(criterion=criterion)
-
-        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
-                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
-                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
-                              encoder=True)
-
-        self.decoder = DCN(n_classes=n_classes, variant='16')
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
-
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
-        z = self.decoder(z)
-
-        return z
+        super(FCN16ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                            backbone='ResNet18', decoder_variant='16', backbone_kwargs=resnet_kwargs)
 
 
-class FCN8ResNet18(MinervaModel, ABC):
+class FCN8ResNet18(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+                 **resnet_kwargs) -> None:
 
-        super(FCN8ResNet18, self).__init__(criterion=criterion)
-
-        self.encoder = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
-                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
-                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
-                              encoder=True)
-
-        self.decoder = DCN(n_classes=n_classes, variant='8')
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
-
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
-        z = self.decoder(z)
-
-        return z
+        super(FCN8ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                           backbone='ResNet18', decoder_variant='8', backbone_kwargs=resnet_kwargs)
 
 
-class FCN8ResNet34(MinervaModel, ABC):
+class FCN8ResNet34(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+                 **resnet_kwargs) -> None:
 
-        super(FCN8ResNet34, self).__init__(criterion=criterion)
-
-        self.encoder = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
-                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
-                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
-                              encoder=True)
-
-        self.decoder = DCN(n_classes=n_classes, variant='8')
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
-
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
-        z = self.decoder(z)
-
-        return z
+        super(FCN8ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                           backbone='ResNet34', decoder_variant='8', backbone_kwargs=resnet_kwargs)
 
 
-class FCN8ResNet50(MinervaModel, ABC):
+class FCN8ResNet50(_FCN):
     def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, norm_layer=None):
+                 **resnet_kwargs) -> None:
 
-        super(FCN8ResNet50, self).__init__(criterion=criterion)
-
-        self.encoder = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
-                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
-                              replace_stride_with_dilation=replace_stride_with_dilation, norm_layer=norm_layer,
-                              encoder=True)
-
-        self.decoder = DCN(n_classes=n_classes, in_channel=2048, variant='8')
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
-
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
-        z = self.encoder(x)
-        z = self.decoder(z)
-
-        return z
+        super(FCN8ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                           backbone='ResNet50', decoder_variant='8', backbone_kwargs=resnet_kwargs)
 
 
 # =====================================================================================================================
