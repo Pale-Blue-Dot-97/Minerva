@@ -68,6 +68,7 @@ run_tensorboard: False
 save: True
 show: False
 p_dist: False
+calc_norm: False
 
 # Settings for RGB image creation
 rgb_params:

@@ -1378,7 +1378,7 @@ def calc_grad(model: torch.nn.Module) -> Union[float, None]:
         total_norm (float): Total 2D grad norm of the model.
 
     Raises:
-        AttributeError: If model has not attribute parameters.
+        AttributeError: If model has no attribute 'parameters'.
     """
     total_norm = 0.0
 
@@ -1398,7 +1398,7 @@ def calc_grad(model: torch.nn.Module) -> Union[float, None]:
 
         return total_norm
     except AttributeError:
-        print('Model has no attribute .parameters. Cannot calculate grad norms')
+        print('Model has no attribute \'parameters\'. Cannot calculate grad norms')
 
         return
 

@@ -266,7 +266,8 @@ class Trainer:
         else:
             self.metrics['{}_acc'.format(mode)]['y'].append(total_correct / (self.n_batches[mode] * self.batch_size))
 
-        # total_norm = utils.calc_grad(self.model)
+        if self.params['calc_norm']:
+            _ = utils.calc_grad(self.model)
 
         if mode is 'test':
             return test_predictions, test_labels, test_ids, test_probs
