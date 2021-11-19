@@ -674,7 +674,8 @@ class Decoder(MinervaModel, ABC):
             x (torch.Tensor): Input data to network. Should be from a backbone.
 
         Returns:
-            torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
+            torch.Tensor segmentation mask with a channel for each class of the likelihoods the network places on
+                each pixel input 'x' being of that class.
         """
         return self._forward_impl(x[0])
 
@@ -758,6 +759,21 @@ class DCN(MinervaModel, ABC):
             self.dbn8 = torch.nn.BatchNorm2d(self.cls_num)
 
     def forward(self, x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]) -> torch.Tensor:
+        """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
+        throughout pass from the encoder.
+
+        Overwrites MinervaModel abstract method.
+
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+
+        Args:
+            x (tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]): Input data to network.
+                Should be from a backbone that supports output at multiple points e.g ResNet.
+
+        Returns:
+            torch.Tensor segmentation mask with a channel for each class of the likelihoods the network places on
+                each pixel input 'x' being of that class.
+        """
         # Unpack outputs from the ResNet layers.
         x4, x3, x2, *_ = x
 
