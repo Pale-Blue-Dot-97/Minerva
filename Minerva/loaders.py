@@ -30,6 +30,8 @@ Attributes:
 
 TODO:
     * Re-incorporate the use of WeightedRandomSampler as an option
+    * Further reduce boilerplate of datasets by introducing abstract classes
+    * Incorporate config updating into make_datasets
 """
 # =====================================================================================================================
 #                                                     IMPORTS
