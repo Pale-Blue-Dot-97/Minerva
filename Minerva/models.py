@@ -561,7 +561,9 @@ class ResNet(MinervaModel, ABC):
 
 
 class Decoder(MinervaModel, ABC):
-    """
+    """Decoder network taken from an autoencoder example:
+
+    https://github.com/arnaghosh/Auto-Encoder/blob/master/resnet.py
 
     Attributes:
         batch_size (int): Number of samples in each batch supplied to the network.
@@ -678,7 +680,42 @@ class Decoder(MinervaModel, ABC):
 
 
 class DCN(MinervaModel, ABC):
-    def __init__(self, in_channel=512, n_classes=21, variant: str = '32') -> None:
+    """Generic DCN defined by the FCN paper. Can construct the DCN32, DCN16 or DCN8 variants defined in the paper.
+
+    Based on the example found here: https://github.com/haoran1062/FCN-pytorch/blob/master/FCN.py
+
+    Attributes:
+        variant (str): Defines which DCN variant this object is, altering the layers constructed
+            and the computational graph. Will be either '32', '16' or '8'.
+            See the FCN paper for details on these variants.
+        cls_num (int): Number of classes in dataset. Defines number of output classification channels.
+        relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
+        Conv1x1 (torch.nn.Conv2d): First Conv1x1 layer acting as input to the network from the final output of
+            the encoder and common to all variants.
+        bn1 (torch.nn.BatchNorm2d): First batch norm layer common to all variants that comes after Conv1x1.
+        DC32 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 32 for DCN32 variant.
+        dbn32 (torch.nn.BatchNorm2d): Batch norm layer after DC32.
+        Conv1x1_x3 (torch.nn.Conv2d): Conv1x1 layer acting as input to the network taking the output from the
+            third layer from the ResNet encoder.
+        DC2 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 2 for DCN16 & DCN8 variants.
+        dbn2 (torch.nn.BatchNorm2d): Batch norm layer after DC2.
+        DC16 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 16 for DCN16 variant.
+        dbn16 (torch.nn.BatchNorm2d): Batch norm layer after DC16.
+        Conv1x1_x2 (torch.nn.Conv2d): Conv1x1 layer acting as input to the network taking the output from the
+            second layer from the ResNet encoder.
+        DC4 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 2 for DCN8 variant.
+        dbn4 (torch.nn.BatchNorm2d): Batch norm layer after DC4.
+        DC8 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 8 for DCN8 variant.
+        dbn8 (torch.nn.BatchNorm2d): Batch norm layer after DC8.
+
+    Args:
+        in_channel (int): Number of channels in the input layer of the network.
+            Should match the number of output channels (likely feature maps) from the encoder.
+        n_classes (int): Number of classes in dataset. Defines number of output classification channels.
+        variant (str): Flag for which DCN variant to construct. Must be either '32', '16' or '8'.
+            See the FCN paper for details on these variants.
+    """
+    def __init__(self, in_channel: int = 512, n_classes: int = 21, variant: str = '32') -> None:
         super(DCN, self).__init__()
         self.variant = variant
         self.cls_num = n_classes
@@ -689,35 +726,35 @@ class DCN(MinervaModel, ABC):
         self.bn1 = torch.nn.BatchNorm2d(self.cls_num)
 
         if variant == '32':
-            self.DCN32 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(64, 64),
-                                                  stride=(32, 32), dilation=1, padding=(16, 16))
-            self.DCN32.weight.data = bilinear_init(self.cls_num, self.cls_num, 64)
+            self.DC32 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(64, 64),
+                                                 stride=(32, 32), dilation=1, padding=(16, 16))
+            self.DC32.weight.data = bilinear_init(self.cls_num, self.cls_num, 64)
             self.dbn32 = torch.nn.BatchNorm2d(self.cls_num)
 
         if variant in ('16', '8'):
             self.Conv1x1_x3 = torch.nn.Conv2d(int(in_channel / 2), self.cls_num, kernel_size=(1, 1))
-            self.DCN2 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
-                                                 dilation=1, padding=(1, 1))
-            self.DCN2.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
+            self.DC2 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+                                                dilation=1, padding=(1, 1))
+            self.DC2.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
             self.dbn2 = torch.nn.BatchNorm2d(self.cls_num)
 
         if variant == '16':
-            self.DCN16 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(32, 32), stride=(16, 16),
-                                                  dilation=1, padding=(8, 8))
-            self.DCN16.weight.data = bilinear_init(self.cls_num, self.cls_num, 32)
+            self.DC16 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(32, 32), stride=(16, 16),
+                                                 dilation=1, padding=(8, 8))
+            self.DC16.weight.data = bilinear_init(self.cls_num, self.cls_num, 32)
             self.dbn16 = torch.nn.BatchNorm2d(self.cls_num)
 
         if variant == '8':
             self.Conv1x1_x2 = torch.nn.Conv2d(int(in_channel / 4), self.cls_num, kernel_size=(1, 1))
 
-            self.DCN4 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
-                                                 dilation=1, padding=(1, 1))
-            self.DCN4.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
+            self.DC4 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+                                                dilation=1, padding=(1, 1))
+            self.DC4.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
             self.dbn4 = torch.nn.BatchNorm2d(self.cls_num)
 
-            self.DCN8 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(16, 16), stride=(8, 8),
-                                                 dilation=1, padding=(4, 4))
-            self.DCN8.weight.data = bilinear_init(self.cls_num, self.cls_num, 16)
+            self.DC8 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(16, 16), stride=(8, 8),
+                                                dilation=1, padding=(4, 4))
+            self.DC8.weight.data = bilinear_init(self.cls_num, self.cls_num, 16)
             self.dbn8 = torch.nn.BatchNorm2d(self.cls_num)
 
     def forward(self, x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]) -> torch.Tensor:
@@ -727,30 +764,30 @@ class DCN(MinervaModel, ABC):
         # All DCNs have a common 1x1 Conv input block.
         z = self.bn1(self.relu(self.Conv1x1(x4)))
 
-        # If DCN32, forward pass through DCN32 and DBN32 and return output.
+        # If DCN32, forward pass through DC32 and DBN32 and return output.
         if self.variant == '32':
-            z = self.dbn32(self.relu(self.DCN32(z)))
+            z = self.dbn32(self.relu(self.DC32(z)))
             return z
 
         # Common Conv1x1 layer to DCN16 & DCN8.
         x3 = self.bn1(self.relu(self.Conv1x1_x3(x3)))
-        z = self.dbn2(self.relu(self.DCN2(z)))
+        z = self.dbn2(self.relu(self.DC2(z)))
 
         z = z + x3
 
         # If DCN16, forward pass through DCN16 and DBN16 and return output.
         if self.variant == '16':
-            z = self.dbn16(self.relu(self.DCN16(z)))
+            z = self.dbn16(self.relu(self.DC16(z)))
             return z
 
         # If DCN8, continue through remaining layers to output.
         elif self.variant == '8':
             x2 = self.bn1(self.relu(self.Conv1x1_x2(x2)))
-            z = self.dbn4(self.relu(self.DCN4(z)))
+            z = self.dbn4(self.relu(self.DC4(z)))
 
             z = z + x2
 
-            z = self.dbn8(self.relu(self.DCN8(z)))
+            z = self.dbn8(self.relu(self.DC8(z)))
 
             return z
 
