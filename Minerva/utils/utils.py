@@ -43,6 +43,7 @@ Attributes:
 
 TODO:
     * Add exception handling where appropriate
+    * Add safeguards against memory overflow for micro average ROC calculations
 """
 # =====================================================================================================================
 #                                                     IMPORTS
