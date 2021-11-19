@@ -26,7 +26,6 @@ Created under a project funded by the Ordnance Survey Ltd.
 
 TODO:
     * Add missing docstrings
-    * Add grad norm calculating as method to abstract class MinervaModel
 """
 # =====================================================================================================================
 #                                                     IMPORTS
