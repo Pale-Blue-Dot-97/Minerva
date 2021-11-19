@@ -1249,6 +1249,18 @@ def get_output_shape(model: torch.nn.Module, image_dim: Union[list, tuple]):
 
 
 def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> torch.Tensor:
+    """Constructs the weights for the bi-linear interpolation kernel for use in transpose convolutional layers.
+
+    Source: https://github.com/haoran1062/FCN-pytorch/blob/master/FCN.py
+
+    Args:
+        in_channels (int): Number of input channels to the layer.
+        out_channels (int): Number of output channels from the layer.
+        kernel_size (int): Size of the (square) kernel.
+
+    Returns:
+        Tensor of the initialised bi-linear interpolated weights for the transpose convolutional layer's kernels.
+    """
     factor = (kernel_size + 1) // 2
 
     if kernel_size % 2 == 1:
