@@ -28,6 +28,7 @@ Attributes:
     _timeout (int): Default time till timeout waiting for a user input in seconds.
 
 TODO:
+    * Add ability to plot the final training and validation results as well as testing
 """
 # =====================================================================================================================
 #                                                     IMPORTS
