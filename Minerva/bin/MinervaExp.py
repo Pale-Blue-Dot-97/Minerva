@@ -27,12 +27,6 @@ Created under a project funded by the Ordnance Survey Ltd.
 Attributes:
     config_path (str): Path to master config YAML file.
     config (dict): Master config defining how the experiment should be conducted.
-    aux_configs (dict): Dict containing the auxiliary config dicts loaded from YAML.
-    dataset_config (dict): Config defining the properties of the data used in the experiment.
-    imagery_config (dict): Config defining the properties of the imagery used in the experiment.
-    n_pixels (int): Total number of pixels in each sample (per band).
-    wheel_size: Length of each `wheel' to used in class balancing sampling. Set to n_pixels.
-        This is essentially the number of pixel stacks per class to have queued at any one time.
 
 TODO:
     * Add arg parsing from CLI
@@ -51,24 +45,14 @@ from Minerva.trainer import Trainer
 # =====================================================================================================================
 config_path = '../../config/config.yml'
 
-config, aux_configs = utils.load_configs(config_path)
-dataset_config = aux_configs['data_config']
-imagery_config = aux_configs['imagery_config']
-
-# Calculates the number of pixels in each patch from the size of the images.
-n_pixels = imagery_config['data_specs']['image_size'][0] * imagery_config['data_specs']['image_size'][1]
-
-# Sets the wheel size to be the same as the number of pixels in each patch.
-wheel_size = n_pixels
+config, _ = utils.load_configs(config_path)
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(wheel_size=wheel_size,
-                                                                                           n_pixels=n_pixels,
-                                                                                           **config)
+    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(**config)
 
     config['hyperparams']['model_params']['n_classes'] = len(new_classes)
     config['classes'] = new_classes
