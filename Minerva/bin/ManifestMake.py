@@ -30,7 +30,6 @@ Attributes:
     data_dir (str): Path to directory holding dataset.
 
 TODO:
-    * Document make_manifest
 """
 # =====================================================================================================================
 #                                                     IMPORTS
