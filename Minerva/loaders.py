@@ -493,11 +493,12 @@ def make_transformations(transform_params: dict):
     return transforms.Compose(transformations)
 
 
+@utils.return_updated_kwargs
 def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None, n_patches: Optional[int] = None,
                   split: Tuple[float, float, float] = (0.7, 0.15, 0.15), wheel_size: int = 65536,
                   n_pixels: int = 65536, seed: int = 42, shuffle: bool = True, plot: bool = False,
                   balance: bool = False, over_factor: int = 1, model_type: str = 'scene classifier',
-                  p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader], dict, list, dict, dict, dict]:
+                  p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader], dict, list, dict, dict]:
     """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
 
     Args:
@@ -531,8 +532,7 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
         n_batches (dict): Dictionary of the number of batches to return/ yield in each train, validation and test epoch.
         class_dist (list): The class distribution of the entire dataset, sorted from largest to smallest class.
         ids (dict): Dictionary of the IDs (patch or scene) defining each dataset and the entire dataset.
-        new_classes (dict): Dictionary mapping class labels to class names - modified to remove empty classes.
-        new_colours (dict): Dictionary mapping class labels to colours - modified to remove empty classes.
+        updated_keys (dict):
     """
     # Gets out the parameters for the DataLoaders from params.
     dataloader_params = params['hyperparams']['params']
@@ -658,4 +658,8 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
     if p_dist:
         utils.print_class_dist(class_dist)
 
-    return loaders, n_batches, class_dist, ids, new_classes, new_colours
+    params['hyperparams']['model_params']['n_classes'] = len(new_classes)
+    params['classes'] = new_classes
+    params['colours'] = new_colours
+
+    return loaders, n_batches, class_dist, ids, params

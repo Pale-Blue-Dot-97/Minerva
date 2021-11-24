@@ -51,13 +51,11 @@ config, _ = utils.load_configs(config_path)
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, ids, new_classes, new_colours = loaders.make_datasets(**config)
+    datasets, n_batches, class_dist, ids, new_config = loaders.make_datasets(**config)
 
-    config['hyperparams']['model_params']['n_classes'] = len(new_classes)
-    config['classes'] = new_classes
-    config['colours'] = new_colours
+    print(new_config)
 
-    trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **config)
+    trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config)
     trainer.fit()
     trainer.test()
 
