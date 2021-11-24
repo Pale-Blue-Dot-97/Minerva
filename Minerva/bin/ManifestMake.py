@@ -27,6 +27,7 @@ Created under a project funded by the Ordnance Survey Ltd.
 Attributes:
     config_path (str): Path to master config YAML file.
     config (dict): Master config defining how the experiment should be conducted.
+    data_dir (str): Path to directory holding dataset.
 
 TODO:
     * Document make_manifest
@@ -52,7 +53,14 @@ data_dir = os.sep.join(config['dir']['data'])
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def make_manifest():
+def make_manifest() -> pd.DataFrame:
+    """Constructs a manifest of the dataset detailing each sample therein.
+
+    The dataset to construct a manifest of is defined by the 'data_config' value in the config.
+
+    Returns:
+        df (pd.DataFrame): The completed manifest as a DataFrame.
+    """
     print('GETTING PATCH IDs')
     patch_ids = utils.patch_grab()
     scenes = []
