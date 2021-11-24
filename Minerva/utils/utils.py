@@ -49,6 +49,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Tuple, Union, Optional, Any, Iterator
+import functools
 from Minerva.utils import visutils
 import yaml
 import os
@@ -1708,3 +1709,14 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
     roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
 
     return fpr, tpr, roc_auc
+
+
+def return_updated_kwargs(func):
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        print(kwargs)
+        results = func(*args, **kwargs)
+        kwargs.update(results[-1])
+        return (*results[:-1], kwargs)
+    return wrapper
