@@ -29,7 +29,7 @@ Attributes:
     config (dict): Master config defining how the experiment should be conducted.
 
 TODO:
-    Document make_manifest
+    * Document make_manifest
 """
 # =====================================================================================================================
 #                                                     IMPORTS
