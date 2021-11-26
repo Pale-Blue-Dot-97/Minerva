@@ -47,10 +47,17 @@ class MinervaModel(torch.nn.Module, ABC):
 
     Attributes:
         criterion: PyTorch loss function model will use.
+        input_shape (tuple[int, int, int] or list[int]): The shape of the input data in order of
+            number of channels, image width, image height.
+        n_classes (int): Number of classes in input data.
+        output_shape: The shape of the output of the network. Determined and set by determine_output_dim.
         optimiser: PyTorch optimiser model will use, to be initialised with inherited model's parameters.
 
     Args:
         criterion: Optional; PyTorch loss function model will use.
+        input_shape (tuple[int, int, int] or list[int]): Optional; Defines the shape of the input data in order of
+            number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in input data.
     """
     __metaclass__ = abc.ABCMeta
 
@@ -81,6 +88,7 @@ class MinervaModel(torch.nn.Module, ABC):
         self.optimiser = optimiser
 
     def determine_output_dim(self) -> None:
+        """Uses get_output_shape to find the dimensions of the output of this model and sets to attribute."""
         self.output_shape = get_output_shape(self, self.input_shape)
 
     @abc.abstractmethod
