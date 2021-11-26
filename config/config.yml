@@ -51,14 +51,16 @@ hyperparams:
   transforms:
     #CenterCrop:
       #size: 128
-  max_epochs: 5
+  max_epochs: 2
 
 # Which plots to make
 plots:
   History: True
   CM: True
   Pred: True
-  ROC: False
+  ROC: True
+  micro: True
+  macro: True
   Mask: True
   PvT: False
 

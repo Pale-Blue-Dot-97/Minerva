@@ -53,8 +53,6 @@ config, _ = utils.load_configs(config_path)
 def main():
     datasets, n_batches, class_dist, ids, new_config = loaders.make_datasets(**config)
 
-    print(new_config)
-
     trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config)
     trainer.fit()
     trainer.test()

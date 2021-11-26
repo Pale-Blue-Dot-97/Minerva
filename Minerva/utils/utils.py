@@ -48,12 +48,14 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import sys
 from typing import Tuple, Union, Optional, Any, Iterator
 import functools
 from Minerva.utils import visutils
 import yaml
 import os
 import glob
+import psutil
 import math
 import importlib
 import webbrowser
@@ -1646,7 +1648,7 @@ def run_tensorboard(path: Optional[Union[str, list, tuple]] = None, env_name: st
 
 
 def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
-                       class_labels: list) -> Tuple[dict, dict, dict]:
+                       class_labels: list, micro: bool = True, macro: bool = True) -> Tuple[dict, dict, dict]:
     """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
     The micro and macro averages are for each of these variables is also computed.
 
@@ -1658,6 +1660,8 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
             should have a list of the predicted probability for each class.
         labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
         class_labels (list): List of class label numbers.
+        micro (bool): Optional; Whether or not to compute the micro average ROC curves.
+        macro (bool): Optional; Whether or not to compute the macro average ROC curves.
 
     Returns:
         fpr (dict): Dictionary of false-positive rates for each class and micro and macro averages.
@@ -1683,30 +1687,50 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
             roc_auc[key] = auc(fpr[key], tpr[key])
             bar('Class {}'.format(key))
 
-    # Compute micro-average ROC curve and ROC AUC.
-    print('Calculating micro average ROC curve')
-    fpr['micro'], tpr['micro'], _ = roc_curve(targets.ravel(), probs.ravel())
-    roc_auc['micro'] = auc(fpr['micro'], tpr['micro'])
+    if micro:
+        # Get the current memory utilisation of the system.
+        sysvmem = psutil.virtual_memory()
+        print(sys.getsizeof(probs))
+        print(sysvmem.free)
 
-    # Aggregate all false positive rates.
-    all_fpr = np.unique(np.concatenate([fpr[key] for key in class_labels]))
+        if sys.getsizeof(probs) < 0.25 * sysvmem.free:
+            try:
+                # Compute micro-average ROC curve and ROC AUC.
+                print('Calculating micro average ROC curve')
+                fpr['micro'], tpr['micro'], _ = roc_curve(targets.ravel(), probs.ravel())
+                roc_auc['micro'] = auc(fpr['micro'], tpr['micro'])
+            except MemoryError as err:
+                print(err)
+                pass
+        else:
+            try:
+                raise MemoryError
+            except MemoryError:
+                print('WARNING: Size of predicted probabilities may exceed free system memory.')
+                print('Aborting micro averaging.')
+                pass
 
-    # Then interpolate all ROC curves at these points.
-    print('Interpolating macro average ROC curve')
-    mean_tpr = np.zeros_like(all_fpr)
-    # Initialises a progress bar.
-    with alive_bar(len(class_labels), bar='blocks') as bar:
-        for key in class_labels:
-            mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
-            bar('Interpolating about class {}'.format(key))
+    if macro:
+        # Aggregate all false positive rates.
+        all_fpr = np.unique(np.concatenate([fpr[key] for key in class_labels]))
 
-    # Finally average it and compute AUC
-    mean_tpr /= len(class_labels)
+        # Then interpolate all ROC curves at these points.
+        print('Interpolating macro average ROC curve')
+        mean_tpr = np.zeros_like(all_fpr)
 
-    # Add macro FPR, TPR and AUCs to dicts.
-    fpr["macro"] = all_fpr
-    tpr["macro"] = mean_tpr
-    roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+        # Initialises a progress bar.
+        with alive_bar(len(class_labels), bar='blocks') as bar:
+            for key in class_labels:
+                mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
+                bar('Interpolating about class {}'.format(key))
+
+        # Finally average it and compute AUC
+        mean_tpr /= len(class_labels)
+
+        # Add macro FPR, TPR and AUCs to dicts.
+        fpr["macro"] = all_fpr
+        tpr["macro"] = mean_tpr
+        roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
 
     return fpr, tpr, roc_auc
 
@@ -1715,7 +1739,6 @@ def return_updated_kwargs(func):
 
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        print(kwargs)
         results = func(*args, **kwargs)
         kwargs.update(results[-1])
         return (*results[:-1], kwargs)

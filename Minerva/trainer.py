@@ -101,6 +101,8 @@ class Trainer:
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
+        self.model.determine_output_dim()
+
         self.max_epochs = params['hyperparams']['max_epochs']
         self.loaders = loaders
         self.n_batches = n_batches
@@ -188,7 +190,7 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode: str) -> Optional[Tuple[list, list, list, list]]:
+    def epoch(self, mode: str) -> Optional[Tuple[list, list, list, np.ndarray]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -202,7 +204,8 @@ class Trainer:
         total_correct = 0.0
         test_labels = []
         test_predictions = []
-        test_probs = []
+        test_probs = np.empty((self.n_batches['test'], self.batch_size,
+                               self.model.n_classes, *self.model.output_shape), dtype=np.float16)
         test_ids = []
 
         # Initialises a progress bar for the epoch.
@@ -232,7 +235,7 @@ class Trainer:
                     loss, z = self.model.testing_step(x, y)
 
                     # Add the estimated probabilities to test_probs.
-                    test_probs.append(z.detach().cpu().numpy())
+                    test_probs[self.step_num[mode]] = z.detach().cpu().numpy()
 
                     # Arg max the estimated probabilities and add to predictions.
                     test_predictions.append(torch.argmax(z, 1).cpu().numpy())
@@ -241,7 +244,7 @@ class Trainer:
                     test_labels.append(y.cpu().numpy())
                     test_ids.append(sample_id)
 
-                self.step_num['{}'.format(mode)] += 1
+                self.step_num[mode] += 1
 
                 ls = loss.item()
                 correct = (torch.argmax(z, 1) == y).sum().item()
@@ -250,10 +253,10 @@ class Trainer:
                 total_correct += correct
 
                 self.writer.add_scalar(tag='{}_loss'.format(mode), scalar_value=ls,
-                                       global_step=self.step_num['{}'.format(mode)])
+                                       global_step=self.step_num[mode])
                 self.writer.add_scalar(tag='{}_acc'.format(mode),
                                        scalar_value=correct / len(torch.flatten(y_batch)),
-                                       global_step=self.step_num['{}'.format(mode)])
+                                       global_step=self.step_num[mode])
 
                 # Updates progress bar that sample has been processed.
                 bar()

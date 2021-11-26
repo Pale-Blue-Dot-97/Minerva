@@ -895,7 +895,8 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
 
 
 def make_roc_curves(probs: Union[list, np.ndarray], labels: Union[list, np.ndarray], class_names: dict, colours: dict,
-                    filename: Optional[str] = None, show: bool = False, save: bool = True) -> None:
+                    micro: bool = True, macro: bool = True, filename: Optional[str] = None, show: bool = False,
+                    save: bool = True) -> None:
     """Plots ROC curves for each class, the micro and macro average ROC curves and accompanying AUCs.
 
     Adapted from Scikit-learn's example at:
@@ -907,6 +908,8 @@ def make_roc_curves(probs: Union[list, np.ndarray], labels: Union[list, np.ndarr
         labels (list or np.ndarray): List of corresponding ground truth labels.
         class_names (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
+        micro (bool): Optional; Whether or not to compute and plot the micro average ROC curves.
+        macro (bool): Optional; Whether or not to compute and plot the macro average ROC curves.
         filename (str): Optional; Name of file to save plot to.
         save (bool): Optional; Whether to save the plots to file.
         show (bool): Optional; Whether to show the plots.
@@ -921,29 +924,31 @@ def make_roc_curves(probs: Union[list, np.ndarray], labels: Union[list, np.ndarr
     probs = np.reshape(probs, (len(labels), len(class_labels)))
 
     # Computes all class, micro and macro average ROC curves and AUCs.
-    fpr, tpr, roc_auc = utils.compute_roc_curves(probs, labels, class_labels)
+    fpr, tpr, roc_auc = utils.compute_roc_curves(probs, labels, class_labels, micro=micro, macro=macro)
 
     # Plot all ROC curves
     print('\nPlotting ROC Curves')
     plt.figure()
 
-    # Plot micro average ROC curves.
-    plt.plot(
-        fpr["micro"],
-        tpr["micro"],
-        label="Micro-average (AUC = {:.2f})".format(roc_auc["micro"]),
-        color="deeppink",
-        linestyle="dotted",
-    )
+    if micro:
+        # Plot micro average ROC curves.
+        plt.plot(
+            fpr["micro"],
+            tpr["micro"],
+            label="Micro-average (AUC = {:.2f})".format(roc_auc["micro"]),
+            color="deeppink",
+            linestyle="dotted",
+        )
 
-    # Plot macro average ROC curves.
-    plt.plot(
-        fpr["macro"],
-        tpr["macro"],
-        label="Macro-average (AUC = {:.2f})".format(roc_auc["macro"]),
-        color="navy",
-        linestyle="dotted",
-    )
+    if macro:
+        # Plot macro average ROC curves.
+        plt.plot(
+            fpr["macro"],
+            tpr["macro"],
+            label="Macro-average (AUC = {:.2f})".format(roc_auc["macro"]),
+            color="navy",
+            linestyle="dotted",
+        )
 
     # Plot all class ROC curves.
     for key in class_labels:
@@ -1064,7 +1069,7 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
     if plots['ROC']:
         print('\nPLOTTING ROC CURVES')
         make_roc_curves(probs, flat_y, class_names=class_names, colours=colours, filename=filenames['ROC'],
-                        save=save, show=show)
+                        micro=plots['micro'], macro=plots['macro'], save=save, show=show)
 
     if plots['PvT']:
         os.mkdir(os.path.join(*results_dir, 'Test PvTs'))
