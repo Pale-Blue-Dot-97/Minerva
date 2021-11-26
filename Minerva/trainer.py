@@ -190,7 +190,7 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode: str) -> Optional[Tuple[list, list, list, np.ndarray]]:
+    def epoch(self, mode: str) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -202,11 +202,11 @@ class Trainer:
         # Initialises variables to hold overall epoch results.
         total_loss = 0.0
         total_correct = 0.0
-        test_labels = []
-        test_predictions = []
-        test_probs = np.empty((self.n_batches['test'], self.batch_size,
-                               self.model.n_classes, *self.model.output_shape), dtype=np.float16)
-        test_ids = []
+        labels = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.int16)
+        predictions = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.int16)
+        probs = np.empty((self.n_batches[mode], self.batch_size, self.model.n_classes, *self.model.output_shape),
+                         dtype=np.float16)
+        ids = np.empty((self.n_batches[mode], self.batch_size), dtype=str)
 
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
@@ -215,6 +215,8 @@ class Trainer:
                 self.model.train()
             else:
                 self.model.eval()
+
+            batch_num = 0
 
             # Core of the epoch.
             for x_batch, y_batch, sample_id in islice(self.loaders[mode], self.n_batches[mode]):
@@ -234,15 +236,15 @@ class Trainer:
                 elif mode is 'test':
                     loss, z = self.model.testing_step(x, y)
 
-                    # Add the estimated probabilities to test_probs.
-                    test_probs[self.step_num[mode]] = z.detach().cpu().numpy()
+                # Add the estimated probabilities to probs.
+                probs[batch_num] = z.detach().cpu().numpy()
 
-                    # Arg max the estimated probabilities and add to predictions.
-                    test_predictions.append(torch.argmax(z, 1).cpu().numpy())
+                # Arg max the estimated probabilities and add to predictions.
+                predictions[batch_num] = torch.argmax(z, 1).cpu().numpy()
 
-                    # Add the labels and sample IDs to lists.
-                    test_labels.append(y.cpu().numpy())
-                    test_ids.append(sample_id)
+                # Add the labels and sample IDs to lists.
+                labels[batch_num] = y.cpu().numpy()
+                ids[batch_num] = sample_id
 
                 self.step_num[mode] += 1
 
@@ -257,6 +259,8 @@ class Trainer:
                 self.writer.add_scalar(tag='{}_acc'.format(mode),
                                        scalar_value=correct / len(torch.flatten(y_batch)),
                                        global_step=self.step_num[mode])
+
+                batch_num += 1
 
                 # Updates progress bar that sample has been processed.
                 bar()
@@ -274,7 +278,7 @@ class Trainer:
             _ = utils.calc_grad(self.model)
 
         if mode is 'test':
-            return test_predictions, test_labels, test_ids, test_probs
+            return predictions, labels, ids, probs
         else:
             return
 
