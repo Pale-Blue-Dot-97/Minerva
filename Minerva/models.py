@@ -54,11 +54,17 @@ class MinervaModel(torch.nn.Module, ABC):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, criterion=None) -> None:
+    def __init__(self, criterion=None, input_shape: Optional[tuple] = None, n_classes: Optional[int] = None) -> None:
         super(MinervaModel, self).__init__()
 
         # Sets loss function
         self.criterion = criterion
+
+        self.input_shape = input_shape
+        self.n_classes = n_classes
+
+        # Output shape initialised as None. Should be set by calling determine_output_dim.
+        self.output_shape = None
 
         # Optimiser initialised as None as the model parameters created by its init is required to init a
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
@@ -73,6 +79,9 @@ class MinervaModel(torch.nn.Module, ABC):
             optimiser: PyTorch optimiser model will use, initialised with this model's parameters.
         """
         self.optimiser = optimiser
+
+    def determine_output_dim(self) -> None:
+        self.output_shape = get_output_shape(self, self.input_shape)
 
     @abc.abstractmethod
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
@@ -238,9 +247,6 @@ class CNN(MinervaModel, ABC):
     Should be used in tandem with Trainer.
 
     Attributes:
-        input_shape (tuple[int, int, int] or list[int, int, int]): Defines the shape of the input data in order of
-            number of channels, image width, image height.
-        n_classes (int): Number of classes in input data.
         flattened_size (int): Length of the vector resulting from the flattening of the output from the convolutional
             network.
         conv_net (torch.nn.Sequential): Convolutional network of the model.
@@ -264,10 +270,10 @@ class CNN(MinervaModel, ABC):
                  conv_kernel_size: Union[int, tuple] = 3, conv_stride: Union[int, tuple] = 1,
                  max_kernel_size: Union[int, tuple] = 2, max_stride: Union[int, tuple] = 2, conv_do: bool = True,
                  fc_do: bool = True, p_conv_do: float = 0.1, p_fc_do: float = 0.5) -> None:
-        super(CNN, self).__init__(criterion=criterion)
+        super(CNN, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
-        self.input_shape = input_size
-        self.n_classes = n_classes
+        #self.input_shape = input_size
+        #self.n_classes = n_classes
         self._conv_layers = OrderedDict()
         self._fc_layers = OrderedDict()
 
@@ -593,10 +599,10 @@ class Decoder(MinervaModel, ABC):
     """
 
     def __init__(self, batch_size: int, n_classes: int, image_size: Union[Tuple[int, int, int], List[int]]) -> None:
-        super(Decoder, self).__init__()
+        super(Decoder, self).__init__(n_classes=n_classes)
 
         self.batch_size = batch_size
-        self.n_classes = n_classes
+        #self.n_classes = n_classes
         self.image_size = image_size
 
         # Init ReLU for use throughout network.
@@ -687,7 +693,7 @@ class DCN(MinervaModel, ABC):
         variant (str): Defines which DCN variant this object is, altering the layers constructed
             and the computational graph. Will be either '32', '16' or '8'.
             See the FCN paper for details on these variants.
-        cls_num (int): Number of classes in dataset. Defines number of output classification channels.
+        n_classes (int): Number of classes in dataset. Defines number of output classification channels.
         relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
         Conv1x1 (torch.nn.Conv2d): First Conv1x1 layer acting as input to the network from the final output of
             the encoder and common to all variants.
@@ -715,46 +721,46 @@ class DCN(MinervaModel, ABC):
             See the FCN paper for details on these variants.
     """
     def __init__(self, in_channel: int = 512, n_classes: int = 21, variant: str = '32') -> None:
-        super(DCN, self).__init__()
+        super(DCN, self).__init__(n_classes=n_classes)
         self.variant = variant
-        self.cls_num = n_classes
+        #self.n_classes = n_classes
 
         # Common to all variants.
         self.relu = torch.nn.ReLU(inplace=True)
-        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.cls_num, kernel_size=(1, 1))
-        self.bn1 = torch.nn.BatchNorm2d(self.cls_num)
+        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.n_classes, kernel_size=(1, 1))
+        self.bn1 = torch.nn.BatchNorm2d(self.n_classes)
 
         if variant == '32':
-            self.DC32 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(64, 64),
+            self.DC32 = torch.nn.ConvTranspose2d(self.n_classes, self.n_classes, kernel_size=(64, 64),
                                                  stride=(32, 32), dilation=1, padding=(16, 16))
-            self.DC32.weight.data = bilinear_init(self.cls_num, self.cls_num, 64)
-            self.dbn32 = torch.nn.BatchNorm2d(self.cls_num)
+            self.DC32.weight.data = bilinear_init(self.n_classes, self.n_classes, 64)
+            self.dbn32 = torch.nn.BatchNorm2d(self.n_classes)
 
         if variant in ('16', '8'):
-            self.Conv1x1_x3 = torch.nn.Conv2d(int(in_channel / 2), self.cls_num, kernel_size=(1, 1))
-            self.DC2 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+            self.Conv1x1_x3 = torch.nn.Conv2d(int(in_channel / 2), self.n_classes, kernel_size=(1, 1))
+            self.DC2 = torch.nn.ConvTranspose2d(self.n_classes, self.n_classes, kernel_size=(4, 4), stride=(2, 2),
                                                 dilation=1, padding=(1, 1))
-            self.DC2.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
-            self.dbn2 = torch.nn.BatchNorm2d(self.cls_num)
+            self.DC2.weight.data = bilinear_init(self.n_classes, self.n_classes, 4)
+            self.dbn2 = torch.nn.BatchNorm2d(self.n_classes)
 
         if variant == '16':
-            self.DC16 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(32, 32), stride=(16, 16),
+            self.DC16 = torch.nn.ConvTranspose2d(self.n_classes, self.n_classes, kernel_size=(32, 32), stride=(16, 16),
                                                  dilation=1, padding=(8, 8))
-            self.DC16.weight.data = bilinear_init(self.cls_num, self.cls_num, 32)
-            self.dbn16 = torch.nn.BatchNorm2d(self.cls_num)
+            self.DC16.weight.data = bilinear_init(self.n_classes, self.n_classes, 32)
+            self.dbn16 = torch.nn.BatchNorm2d(self.n_classes)
 
         if variant == '8':
-            self.Conv1x1_x2 = torch.nn.Conv2d(int(in_channel / 4), self.cls_num, kernel_size=(1, 1))
+            self.Conv1x1_x2 = torch.nn.Conv2d(int(in_channel / 4), self.n_classes, kernel_size=(1, 1))
 
-            self.DC4 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(4, 4), stride=(2, 2),
+            self.DC4 = torch.nn.ConvTranspose2d(self.n_classes, self.n_classes, kernel_size=(4, 4), stride=(2, 2),
                                                 dilation=1, padding=(1, 1))
-            self.DC4.weight.data = bilinear_init(self.cls_num, self.cls_num, 4)
-            self.dbn4 = torch.nn.BatchNorm2d(self.cls_num)
+            self.DC4.weight.data = bilinear_init(self.n_classes, self.n_classes, 4)
+            self.dbn4 = torch.nn.BatchNorm2d(self.n_classes)
 
-            self.DC8 = torch.nn.ConvTranspose2d(self.cls_num, self.cls_num, kernel_size=(16, 16), stride=(8, 8),
+            self.DC8 = torch.nn.ConvTranspose2d(self.n_classes, self.n_classes, kernel_size=(16, 16), stride=(8, 8),
                                                 dilation=1, padding=(4, 4))
-            self.DC8.weight.data = bilinear_init(self.cls_num, self.cls_num, 16)
-            self.dbn8 = torch.nn.BatchNorm2d(self.cls_num)
+            self.DC8.weight.data = bilinear_init(self.n_classes, self.n_classes, 16)
+            self.dbn8 = torch.nn.BatchNorm2d(self.n_classes)
 
     def forward(self, x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]) -> torch.Tensor:
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
@@ -812,9 +818,6 @@ class ResNet18(MinervaModel, ABC):
 
     Attributes:
         network (ResNet): ResNet18 network.
-        input_shape (tuple[int] or list[int]): Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Number of classes in data to be classified.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -836,15 +839,12 @@ class ResNet18(MinervaModel, ABC):
                  zero_init_residual: bool = False,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
                  norm_layer=None, encoder: bool = False) -> None:
-        super(ResNet18, self).__init__(criterion=criterion)
+        super(ResNet18, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
                               zero_init_residual=zero_init_residual, groups=1, width_per_group=64,
                               replace_stride_with_dilation=replace_stride_with_dilation,
                               norm_layer=norm_layer, encoder=encoder)
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> Union[
             torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
@@ -870,9 +870,6 @@ class ResNet34(MinervaModel, ABC):
 
     Attributes:
         network (ResNet): ResNet34 network.
-        input_shape (tuple[int] or list[int]): Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Number of classes in data to be classified.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -894,15 +891,12 @@ class ResNet34(MinervaModel, ABC):
                  zero_init_residual: bool = False,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
                  norm_layer=None, encoder: bool = False) -> None:
-        super(ResNet34, self).__init__(criterion=criterion)
+        super(ResNet34, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
                               zero_init_residual=zero_init_residual, groups=1, width_per_group=64,
                               replace_stride_with_dilation=replace_stride_with_dilation,
                               norm_layer=norm_layer, encoder=encoder)
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> Union[
             torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
@@ -928,9 +922,6 @@ class ResNet50(MinervaModel, ABC):
 
     Attributes:
         network (ResNet): ResNet50 network.
-        input_shape (tuple[int] or list[int]): Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Number of classes in data to be classified.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -954,15 +945,12 @@ class ResNet50(MinervaModel, ABC):
                  zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
                  norm_layer=None, encoder: bool = False) -> None:
-        super(ResNet50, self).__init__(criterion=criterion)
+        super(ResNet50, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
                               zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
                               replace_stride_with_dilation=replace_stride_with_dilation,
                               norm_layer=norm_layer, encoder=encoder)
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> Union[
             torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
@@ -992,9 +980,6 @@ class _FCN(MinervaModel, ABC):
             extracts learned representations.
         decoder (torch.nn.Module): Decoder that takes the learned representations from the backbone encoder
             and de-convolves to output a classification segmentation mask.
-        input_shape (tuple[int] or list[int]): Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Number of classes in data to be classified.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1014,17 +999,16 @@ class _FCN(MinervaModel, ABC):
                  backbone_name: str = 'ResNet18', decoder_name: str = 'DCN', decoder_variant: str = '32',
                  batch_size: int = 16, backbone_kwargs: dict = None) -> None:
 
-        super(_FCN, self).__init__(criterion=criterion)
+        super(_FCN, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.backbone = globals()[backbone_name](input_size=input_size, n_classes=n_classes, encoder=True,
                                                  **backbone_kwargs)
+        self.backbone.determine_output_dim()
+
         if decoder_name == 'DCN':
-            self.decoder = DCN(n_classes=n_classes, variant=decoder_variant)
+            self.decoder = DCN(in_channel=self.backbone.output_shape[0], n_classes=n_classes, variant=decoder_variant)
         if decoder_name == 'Decoder':
             self.decoder = Decoder(batch_size=batch_size, image_size=input_size[1:], n_classes=n_classes)
-
-        self.input_shape = input_size
-        self.n_classes = n_classes
 
     def forward(self, x: torch.FloatTensor) -> torch.Tensor:
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
@@ -1243,7 +1227,8 @@ def get_output_shape(model: torch.nn.Module, image_dim: Union[list, tuple]):
     Returns:
         The shape of the output data from the model.
     """
-    return model(torch.rand([1, *image_dim])).data.shape[1:]
+    output = model(torch.rand([1, *image_dim]))
+    return output[0].data.shape[1:]
 
 
 def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> torch.Tensor:
