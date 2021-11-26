@@ -190,7 +190,7 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode: str) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
+    def epoch(self, mode: str, record: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -202,11 +202,18 @@ class Trainer:
         # Initialises variables to hold overall epoch results.
         total_loss = 0.0
         total_correct = 0.0
-        labels = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.int16)
-        predictions = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.int16)
-        probs = np.empty((self.n_batches[mode], self.batch_size, self.model.n_classes, *self.model.output_shape),
-                         dtype=np.float16)
-        ids = np.empty((self.n_batches[mode], self.batch_size), dtype=str)
+
+        labels = 0
+        predictions = 0
+        probs = 0
+        ids = 0
+
+        if record:
+            labels = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.int16)
+            predictions = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.int16)
+            probs = np.empty((self.n_batches[mode], self.batch_size, self.model.n_classes, *self.model.output_shape),
+                             dtype=np.float16)
+            ids = np.empty((self.n_batches[mode], self.batch_size), dtype=str)
 
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
@@ -277,7 +284,7 @@ class Trainer:
         if self.params['calc_norm']:
             _ = utils.calc_grad(self.model)
 
-        if mode is 'test':
+        if record:
             return predictions, labels, ids, probs
         else:
             return
@@ -327,7 +334,7 @@ class Trainer:
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        predictions, labels, test_ids, probabilities = self.epoch('test')
+        predictions, labels, test_ids, probabilities = self.epoch('test', record=True)
 
         # Prints test loss and accuracy to stdout.
         print('Test | Loss: {} | Accuracy: {}% \n'.format(self.metrics['test_loss']['y'][0],
