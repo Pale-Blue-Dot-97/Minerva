@@ -101,6 +101,8 @@ imageio.plugins.freeimage.download()
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+_max_samples = 25
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -562,7 +564,10 @@ def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_i
     y = np.array([y_i.reshape((int(np.sqrt(y_shape[1])), int(np.sqrt(y_shape[1])))) for y_i in flat_y])
 
     print('PRODUCING PREDICTED VERSUS GROUND TRUTH PLOTS')
+    # Limits number of masks to produce to a fractional number of total and no more than _max_samples.
     n_samples = int(frac * len(patch_ids))
+    if n_samples > _max_samples:
+        n_samples = _max_samples
 
     # Initialises a progress bar for the epoch.
     with alive_bar(n_samples, bar='blocks') as bar:
@@ -737,7 +742,11 @@ def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefi
     new_cs.ImportFromEPSG(data_config['co_sys']['id'])
 
     print('PRODUCING PREDICTED MASKS')
+
+    # Limits number of masks to produce to a fractional number of total and no more than _max_samples.
     n_samples = int(frac * len(ids))
+    if n_samples > _max_samples:
+        n_samples = _max_samples
 
     # Initialises a progress bar for the epoch.
     with alive_bar(n_samples, bar='blocks') as bar:
@@ -855,8 +864,8 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
     """Creates a heat-map of the confusion matrix of the given model.
 
     Args:
-        test_pred(list[list[int]]): Predictions made by model on test images.
-        test_labels (list[list[int]]): Accompanying ground truth labels for testing images.
+        test_pred(list[int]): Predictions made by model on test images.
+        test_labels (list[int]): Accompanying ground truth labels for testing images.
         classes (dict): Dictionary mapping class labels to class names.
         filename (str): Optional; Name of file to save plot to.
         show (bool): Optional; Whether to show plot.
@@ -867,11 +876,14 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
     """
     test_pred, test_labels, classes = utils.check_test_empty(test_pred, test_labels, classes)
 
+    test_pred = np.array(test_pred, dtype=np.uint8)
+    test_labels = np.array(test_labels, dtype=np.uint8)
+
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
-    cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred).numpy()
+    cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred, dtype=np.uint8).numpy()
 
     # Normalises confusion matrix.
-    cm_norm = np.around(cm.astype('float') / cm.sum(axis=1)[:, np.newaxis], decimals=2)
+    cm_norm = np.around(cm.astype(np.float16) / cm.sum(axis=1)[:, np.newaxis], decimals=2)
     np.nan_to_num(cm_norm, copy=False)
 
     # Extract class names from dict in numeric order to ensure labels match matrix.
@@ -1010,29 +1022,31 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
                  'Pred': standard_format('TP') + '.png',
                  'CM': standard_format('CM') + '.png',
                  'ROC': standard_format('ROC' + '.png'),
-                 'Mask': standard_format('Mask', 'Test Masks'),
-                 'PvT': standard_format('PvT', 'Test PvTs')}
+                 'Mask': standard_format('Mask', 'Masks'),
+                 'PvT': standard_format('PvT', 'PvTs')}
 
     return filenames
 
 
-def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndarray], ids: list,
-                 probs: Union[list, np.ndarray], class_names: dict, colours: dict, save: bool = True,
+def plot_results(plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndarray], metrics: Optional[dict] = None,
+                 ids: Optional[list] = None, probs: Optional[Union[list, np.ndarray]] = None,
+                 class_names: Optional[dict] = None, colours: Optional[dict] = None, save: bool = True,
                  show: bool = False, model_name: Optional[str] = None, timestamp: Optional[str] = None,
                  results_dir: Optional[Union[list, tuple]] = None) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
     Args:
-        metrics (dict): Dictionary containing a log of various metrics used to assess the performance of a model.
         plots (dict): Dictionary defining which plots to make.
         z (list[list[int]] or np.ndarray[np.ndarray[int]]): List of predicted label masks.
         y (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
-        ids (list[str]): List of IDs defining the origin of samples to the model.
+        metrics (dict): Optional; Dictionary containing a log of various metrics used to assess
+            the performance of a model.
+        ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
             May be either patch IDs or scene tags.
-        probs (list or np.ndarray): Array of probabilistic predicted classes from model where each sample
+        probs (list or np.ndarray): Optional; Array of probabilistic predicted classes from model where each sample
             should have a list of the predicted probability for each class.
-        class_names (dict): Dictionary mapping class labels to class names.
-        colours (dict): Dictionary mapping class labels to colours.
+        class_names (dict): Optional; Dictionary mapping class labels to class names.
+        colours (dict): Optional; Dictionary mapping class labels to colours.
         save (bool): Optional; Whether to save the plots to file.
         show (bool): Optional; Whether to show the plots.
         model_name (str): Optional; Name of model. e.g. MLP-MkVI.
@@ -1054,11 +1068,16 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
+    try:
+        os.mkdir(os.sep.join(results_dir))
+    except FileExistsError as err:
+        print(err)
+
     if plots['History']:
         print('\nPLOTTING MODEL HISTORY')
         plot_history(metrics, filename=filenames['History'], save=save, show=show)
     if plots['Pred']:
-        print('\nPLOTTING CLASS DISTRIBUTION OF TEST PREDICTIONS')
+        print('\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS')
         plot_subpopulations(utils.find_subpopulations(flat_z), class_names=class_names,
                             cmap_dict=colours, filename=filenames['Pred'], save=save, show=show)
     if plots['CM']:
@@ -1072,9 +1091,9 @@ def plot_results(metrics: dict, plots: dict, z: Union[list, np.ndarray], y: Unio
                         micro=plots['micro'], macro=plots['macro'], save=save, show=show)
 
     if plots['PvT']:
-        os.mkdir(os.path.join(*results_dir, 'Test PvTs'))
+        os.mkdir(os.path.join(*results_dir, 'PvTs'))
         plot_all_pvl(z, y, ids, classes=class_names, colours=colours, fn_prefix=filenames['PvT'])
 
     if plots['Mask']:
-        os.mkdir(os.path.join(*results_dir, 'Test Masks'))
+        os.mkdir(os.path.join(*results_dir, 'Masks'))
         seg_plot(z, y, ids, fn_prefix=filenames['Mask'], classes=class_names, colours=colours)
