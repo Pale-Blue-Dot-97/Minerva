@@ -880,8 +880,12 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
     test_labels = np.array(test_labels, dtype=np.uint8)
 
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
-    cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred, dtype=np.uint8).numpy()
-
+    cm = []
+    try:
+        cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred, dtype=np.uint8).numpy()
+    except RuntimeWarning:
+        pass
+    
     # Normalises confusion matrix.
     cm_norm = np.around(cm.astype(np.float16) / cm.sum(axis=1)[:, np.newaxis], decimals=2)
     np.nan_to_num(cm_norm, copy=False)
