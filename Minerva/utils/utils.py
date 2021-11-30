@@ -1532,6 +1532,9 @@ def model_output_flatten(x: Any) -> Union[np.ndarray, list]:
         x: Either a flattened ndarray or if this failed, a list that has it's first 2 dimensions flattened.
     """
     try:
+        x = x.flatten()
+
+    except AttributeError:
         x = np.array(x).flatten()
 
     except ValueError:
@@ -1689,8 +1692,6 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
     if micro:
         # Get the current memory utilisation of the system.
         sysvmem = psutil.virtual_memory()
-        print(sys.getsizeof(probs))
-        print(sysvmem.free)
 
         if sys.getsizeof(probs) < 0.25 * sysvmem.free:
             try:
