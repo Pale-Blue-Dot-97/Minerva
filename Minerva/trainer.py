@@ -190,11 +190,15 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode: str, record: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]:
+    def epoch(self, mode: str, record_int: bool = False,
+              record_float: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, list, np.ndarray]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
             mode (str): Either train, val or test. Defines the type of epoch to run on the model.
+            record_int (bool): Optional; Whether or not to record the integer results
+                (i.e ground truth and predicted labels).
+            record_float (bool): Optional; Whether or not to record the floating point results i.e class probabilities.
 
         Returns:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
@@ -206,14 +210,18 @@ class Trainer:
         labels = 0
         predictions = 0
         probs = 0
-        ids = 0
+        ids = []
 
-        if record:
-            labels = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.int16)
-            predictions = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.int16)
-            probs = np.empty((self.n_batches[mode], self.batch_size, self.model.n_classes, *self.model.output_shape),
-                             dtype=np.float16)
-            ids = np.empty((self.n_batches[mode], self.batch_size), dtype=str)
+        if record_int:
+            labels = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.uint8)
+            predictions = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.uint8)
+
+        if record_float:
+            try:
+                probs = np.empty((self.n_batches[mode], self.batch_size, self.model.n_classes,
+                                  *self.model.output_shape), dtype=np.float16)
+            except MemoryError:
+                print('Dataset too large to record probabilities of predicted classes!')
 
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
@@ -243,15 +251,17 @@ class Trainer:
                 elif mode is 'test':
                     loss, z = self.model.testing_step(x, y)
 
-                # Add the estimated probabilities to probs.
-                probs[batch_num] = z.detach().cpu().numpy()
+                if record_int:
+                    # Arg max the estimated probabilities and add to predictions.
+                    predictions[batch_num] = torch.argmax(z, 1).cpu().numpy()
 
-                # Arg max the estimated probabilities and add to predictions.
-                predictions[batch_num] = torch.argmax(z, 1).cpu().numpy()
+                    # Add the labels and sample IDs to lists.
+                    labels[batch_num] = y.cpu().numpy()
+                    ids.append(sample_id)
 
-                # Add the labels and sample IDs to lists.
-                labels[batch_num] = y.cpu().numpy()
-                ids[batch_num] = sample_id
+                if record_float:
+                    # Add the estimated probabilities to probs.
+                    probs[batch_num] = z.detach().cpu().numpy()
 
                 self.step_num[mode] += 1
 
@@ -284,7 +294,7 @@ class Trainer:
         if self.params['calc_norm']:
             _ = utils.calc_grad(self.model)
 
-        if record:
+        if record_int:
             return predictions, labels, ids, probs
         else:
             return
@@ -294,27 +304,48 @@ class Trainer:
         for epoch in range(self.max_epochs):
             print(f'\nEpoch: {epoch + 1}/{self.max_epochs} ==========================================================')
 
-            # Conduct training epoch.
-            self.epoch('train')
+            # Conduct training or validation epoch.
+            for mode in ('train', 'val'):
 
-            # Add epoch number to training metrics.
-            self.metrics['{}_loss'.format('train')]['x'].append(epoch + 1)
-            self.metrics['{}_acc'.format('train')]['x'].append(epoch + 1)
+                # Special case for final train/ val epoch to plot results if configured so.
+                if epoch == (self.max_epochs - 1) and self.params['plot_last_epoch']:
+                    predictions, labels, ids, _ = self.epoch(mode, record_int=True)
 
-            # Print training epoch results.
-            print('Training | Loss: {} | Accuracy: {}% \n'.format(self.metrics['train_loss']['y'][epoch],
-                                                                  self.metrics['train_acc']['y'][epoch] * 100.0))
+                    # Ensures that the model history will not be plotted.
+                    # That should be done with the plotting of test results.
+                    plots = self.params['plots'].copy()
+                    plots['History'] = False
+                    plots['CM'] = False
+                    plots['ROC'] = False
 
-            # Conduct validation epoch.
-            self.epoch('val')
+                    # Ensures that inappropriate plots are not attempted for incompatible outputs.
+                    if self.params['model_type'] in ('scene classifier', 'segmentation'):
+                        plots['PvT'] = False
 
-            # Add epoch number to validation results.
-            self.metrics['{}_loss'.format('val')]['x'].append(epoch + 1)
-            self.metrics['{}_acc'.format('val')]['x'].append(epoch + 1)
+                    if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
+                        plots['Mask'] = False
 
-            # Print validation epoch results.
-            print('Validation | Loss: {} | Accuracy: {}% \n'.format(self.metrics['val_loss']['y'][epoch],
-                                                                    self.metrics['val_acc']['y'][epoch] * 100.0))
+                    # Amends the results directory to add a new level for train or validation.
+                    results_dir = self.params['dir']['results'].copy()
+                    results_dir.append(mode)
+
+                    # Plots the results of this epoch.
+                    visutils.plot_results(plots, predictions, labels, ids=ids,
+                                          class_names=self.params['classes'], colours=self.params['colours'],
+                                          save=True, show=False, model_name=self.params['model_name'],
+                                          timestamp=self.params['timestamp'], results_dir=results_dir)
+
+                else:
+                    self.epoch(mode)
+
+                # Add epoch number to training metrics.
+                self.metrics['{}_loss'.format(mode)]['x'].append(epoch + 1)
+                self.metrics['{}_acc'.format(mode)]['x'].append(epoch + 1)
+
+                # Print training epoch results.
+                print('{} | Loss: {} | Accuracy: {}% \n'.format(mode, self.metrics['{}_loss'.format(mode)]['y'][epoch],
+                                                                self.metrics['{}_acc'.format(mode)]['y'][epoch]
+                                                                * 100.0))
 
     def test(self, save: bool = True, show: bool = False) -> None:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
@@ -334,7 +365,7 @@ class Trainer:
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        predictions, labels, test_ids, probabilities = self.epoch('test', record=True)
+        predictions, labels, test_ids, probabilities = self.epoch('test', record_int=True, record_float=True)
 
         # Prints test loss and accuracy to stdout.
         print('Test | Loss: {} | Accuracy: {}% \n'.format(self.metrics['test_loss']['y'][0],
@@ -364,10 +395,15 @@ class Trainer:
         if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
             plots['Mask'] = False
 
+        # Amends the results directory to add a new level for test results.
+        results_dir = self.params['dir']['results']
+        results_dir.append('test')
+
         # Plots the results.
-        visutils.plot_results(sub_metrics, plots, predictions, labels, test_ids, probabilities, self.params['classes'],
-                              self.params['colours'], save=save, show=show, model_name=self.params['model_name'],
-                              timestamp=self.params['timestamp'], results_dir=self.params['dir']['results'])
+        visutils.plot_results(plots, predictions, labels, metrics=sub_metrics, ids=test_ids, probs=probabilities,
+                              class_names=self.params['classes'], colours=self.params['colours'], save=save, show=show,
+                              model_name=self.params['model_name'], timestamp=self.params['timestamp'],
+                              results_dir=results_dir)
 
         # Checks whether to run TensorBoard on the log from the experiment.
         # If defined as optional in the config, a user confirmation is required to run TensorBoard with a 60s timeout.
