@@ -280,8 +280,6 @@ class CNN(MinervaModel, ABC):
                  fc_do: bool = True, p_conv_do: float = 0.1, p_fc_do: float = 0.5) -> None:
         super(CNN, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
-        #self.input_shape = input_size
-        #self.n_classes = n_classes
         self._conv_layers = OrderedDict()
         self._fc_layers = OrderedDict()
 
@@ -610,7 +608,6 @@ class Decoder(MinervaModel, ABC):
         super(Decoder, self).__init__(n_classes=n_classes)
 
         self.batch_size = batch_size
-        #self.n_classes = n_classes
         self.image_size = image_size
 
         # Init ReLU for use throughout network.
@@ -731,7 +728,6 @@ class DCN(MinervaModel, ABC):
     def __init__(self, in_channel: int = 512, n_classes: int = 21, variant: str = '32') -> None:
         super(DCN, self).__init__(n_classes=n_classes)
         self.variant = variant
-        #self.n_classes = n_classes
 
         # Common to all variants.
         self.relu = torch.nn.ReLU(inplace=True)
@@ -1129,6 +1125,24 @@ class FCN32ResNet34(_FCN):
                  **resnet_kwargs) -> None:
         super(FCN32ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet34', decoder_variant='32',
+                                            backbone_kwargs=resnet_kwargs)
+
+
+class FCN32ResNet50(_FCN):
+    """Fully Convolutional Network (FCN) using a ResNet34 backbone with a DCN32 decoder.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+                 **resnet_kwargs) -> None:
+        super(FCN32ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                            backbone_name='ResNet50', decoder_variant='32',
                                             backbone_kwargs=resnet_kwargs)
 
 
