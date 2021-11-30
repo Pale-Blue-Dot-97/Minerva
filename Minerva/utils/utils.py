@@ -72,6 +72,7 @@ import torch
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import classification_report, roc_curve, auc
+from sklearn.exceptions import UndefinedMetricWarning
 from torch.backends import cudnn
 from alive_progress import alive_bar
 
@@ -1685,9 +1686,12 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
         # Compute ROC curve and ROC AUC for each class.
         print('Computing class ROC curves')
         for key in class_labels:
-            fpr[key], tpr[key], _ = roc_curve(targets[:, key], probs[:, key], pos_label=1)
-            roc_auc[key] = auc(fpr[key], tpr[key])
-            bar('Class {}'.format(key))
+            try:
+                fpr[key], tpr[key], _ = roc_curve(targets[:, key], probs[:, key], pos_label=1)
+                roc_auc[key] = auc(fpr[key], tpr[key])
+                bar(f'Class {key}')
+            except UndefinedMetricWarning:
+                bar(f'Class {key} empty!')
 
     if micro:
         # Get the current memory utilisation of the system.
