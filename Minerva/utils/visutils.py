@@ -883,8 +883,9 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
     cm = []
     try:
         cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred, dtype=np.uint8).numpy()
-    except RuntimeWarning:
-        pass
+    except RuntimeWarning as err:
+        print(err)
+        print('At least one class had no ground truth or no predicted labels!')
     
     # Normalises confusion matrix.
     cm_norm = np.around(cm.astype(np.float16) / cm.sum(axis=1)[:, np.newaxis], decimals=2)
