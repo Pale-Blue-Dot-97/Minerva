@@ -54,6 +54,7 @@ s3 = boto3.client('s3')
 
 p = ThreadPool(20)
 
+data_dir = os.sep.join(('..', '..', 'data'))
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -236,6 +237,64 @@ def download_request(classes: Optional[Union[list, str]] = None, max_items_downl
         p.map(download, d)
 
 
+def format_download_request(classes: Optional[Union[List[str], str]] = None,
+                            items: Optional[Union[List[int], int]] = None,
+                            download_dir: str = data_dir) -> None:
+    """Formats the correct arguments for download_request based on the types of input given for classes and items.
+
+    Args:
+        classes (list[str] or str): Optional; The classes from which to prioritise in the selection of items
+            to download.
+        items (list[int] or int): Optional; The number of items to download, either per class or as a whole.
+        download_dir (str): Optional; The path to the directory to download data to.
+
+    Returns:
+        None
+    """
+    def str_reformat(string: Optional[str] = None) -> Optional[str]:
+        """Removes any hyphens or underscores from the provided string. Takes None argument to allow pass-through.
+
+        Args:
+            string (str): Optional; String for hyphens and underscores to be removed from.
+
+        Returns:
+            string (str): String with hyphens and underscores removed or None if None parsed.
+        """
+
+        if string is None:
+            return
+        else:
+            string.replace('_', '')
+            string.replace('-', '')
+            return string
+
+    # Change directory to specified location for downloads.
+    try:
+        os.chdir(download_dir)
+    except FileNotFoundError:
+        os.mkdir(download_dir)
+        os.chdir(download_dir)
+    
+    # If certain classes from which to download from was specified:
+    if classes is not None:
+        # If multiple classes were specified:
+        if type(items) is list:
+            for i in range(len(classes)):
+                print('{} - {}'.format(classes[i], items[i]))
+                download_request(classes=str_reformat(classes[i]), max_items_downloaded=items[i])
+        else:
+            download_request(classes=str_reformat(classes), max_items_downloaded=items)
+
+    # If classes were not specified:
+    else:
+        # Ensure only a int is sent to specify the maximum number of items of the dataset to download.
+        if type(items) is list:
+            download_request(max_items_downloaded=items[0])
+
+        else:
+            download_request(max_items_downloaded=items)
+
+
 def main(classes: Optional[Union[list, str]] = None, items: Optional[Union[list, int]] = None) -> None:
 
     # Fetches and prints API credentials
@@ -244,35 +303,7 @@ def main(classes: Optional[Union[list, str]] = None, items: Optional[Union[list,
     # Print all possible classes in dataset.
     get_classes()
 
-    def str_reformat(string: str) -> str:
-        string.replace('_', '')
-        string.replace('-', '')
-
-        return string
-
-    os.chdir('../../data')
-
-    if classes is not None:
-        if type(items) is list:
-            for i in range(len(classes)):
-                print('{} - {}'.format(classes[i], items[i]))
-                download_request(classes=str_reformat(classes[i]), max_items_downloaded=items[i])
-
-        elif type(items) is int:
-            download_request(classes=str_reformat(classes), max_items_downloaded=items)
-
-        else:
-            download_request(classes=str_reformat(classes), max_items_downloaded=10)
-
-    else:
-        if type(items) is list:
-            download_request(max_items_downloaded=items[0])
-
-        elif items is int:
-            download_request(max_items_downloaded=items)
-
-        else:
-            download_request()
+    format_download_request(classes=classes, items=items)
 
 
 if __name__ == '__main__':
