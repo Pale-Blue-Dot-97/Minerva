@@ -58,6 +58,15 @@ p = ThreadPool(20)
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def print_credentials():
+    """Prints the credentials of the API from the returned response."""
+    r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
+    print(f'\nDescription: {r.json()["description"]}')
+    print(f'License: {r.json()["license"]}')
+    print(f'DOI: {r.json()["sci:doi"]}')
+    print(f'Citation: {r.json()["sci:citation"]}\n')
+
+
 def get_classes() -> list:
     """Fetches and prints all possible classes in the dataset
 
@@ -114,17 +123,20 @@ def download(d: List[str]) -> None:
         download_http(download_uri, path)
 
 
-def get_source_item_assets(args) -> list:
-    path = args[0]
-    href = args[1]
+def get_source_item_assets(path_args) -> list:
+    path = path_args[0]
+    href = path_args[1]
     asset_downloads = []
+
     try:
         r = requests.get(href, params={'key': API_KEY})
-    except:
+    except requests.exceptions.RequestException:
         print('ERROR: Could Not Load', href)
         return []
+
     dt = arrow.get(r.json()['properties']['datetime']).format('YYYY_MM_DD')
     asset_path = os.path.join(path, dt)
+
     if not os.path.exists(asset_path):
         os.makedirs(asset_path)
 
@@ -227,11 +239,7 @@ def download_request(classes: Optional[Union[list, str]] = None, max_items_downl
 def main(classes: Optional[Union[list, str]] = None, items: Optional[Union[list, int]] = None) -> None:
 
     # Fetches and prints API credentials
-    r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
-    print(f'Description: {r.json()["description"]}')
-    print(f'License: {r.json()["license"]}')
-    print(f'DOI: {r.json()["sci:doi"]}')
-    print(f'Citation: {r.json()["sci:citation"]}')
+    print_credentials()
 
     # Print all possible classes in dataset.
     get_classes()
