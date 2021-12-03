@@ -170,15 +170,31 @@ def download_source_and_labels(item) -> list:
     return results
 
 
-def get_items(uri: str, classes: Optional[Union[list, str]] = None, max_items_downloaded: Optional[int] = None,
+def get_items(uri: str, classes: Optional[Union[List[str], str]] = None, max_items_downloaded: Optional[int] = None,
               items_downloaded: int = 0, downloads: Optional[list] = None) -> list:
+    """Loops over the dataset selecting items to download matching criteria given until limit is reached.
+
+    Args:
+        uri (str): URI to the dataset collection.
+        classes (list[str], str): Optional; Classes to prioritise in the selection of items to download.
+        max_items_downloaded (int): Optional; Maximum number of items to download.
+        items_downloaded (int): Optional; Number of items downloaded thus far.
+        downloads (list): Optional; Cumulative items selected for download from previous loop.
+
+    Returns:
+        downloads (list): Items selected for download from dataset.
+    """
+
     if downloads is None:
         downloads = []
+
     print('Loading', uri, '...')
+
     r = requests.get(uri, params={'key': API_KEY})
     collection = r.json()
+
     for feature in collection.get('features', []):
-        # Check if the item has one of the label classes we're interested in
+        # Check if the item has one of the label classes we're interested in.
         matches_class = True
         if classes is not None:
             matches_class = False
@@ -187,7 +203,7 @@ def get_items(uri: str, classes: Optional[Union[list, str]] = None, max_items_do
                     matches_class = True
                     break
 
-        # If the item does not match all of the criteria we specify, skip it
+        # If the item does not match all of the criteria we specify, skip it.
         if not matches_class:
             continue
 
@@ -197,15 +213,15 @@ def get_items(uri: str, classes: Optional[Union[list, str]] = None, max_items_do
             continue
 
         print('Getting Source Imagery Assets for', feature['id'])
-        # Download the label and source imagery for the item
+        # Download the label and source imagery for the item.
         downloads.extend(download_source_and_labels(feature))
 
-        # Stop downloaded items if we reached the maximum we specify
+        # Stop downloaded items if we reached the maximum we specify.
         items_downloaded += 1
         if max_items_downloaded is not None and items_downloaded >= max_items_downloaded:
             return downloads
 
-    # Get the next page if results, if available
+    # Get the next page if results, if available.
     for link in collection.get('links', []):
         if link['rel'] == 'next' and link['href'] is not None:
             get_items(link['href'], classes=classes, max_items_downloaded=max_items_downloaded,
@@ -214,17 +230,18 @@ def get_items(uri: str, classes: Optional[Union[list, str]] = None, max_items_do
     return downloads
 
 
-def download_request(classes: Optional[Union[list, str]] = None, max_items_downloaded: Optional[int] = None) -> None:
+def download_request(classes: Optional[Union[List[str], str]] = None,
+                     max_items_downloaded: Optional[int] = None) -> None:
     """Given a request, downloads the items matching the query from the Radiant MLHub LandCoverNet API.
 
     Args:
-        classes (list):
-        max_items_downloaded (int): Maximum number of items downloaded from request
+        classes (list[str], str): Optional; Classes to prioritise in the selection of items from the dataset.
+        max_items_downloaded (int): Optional; Maximum number of items to download from request.
 
     Returns:
         None
-
     """
+
     # Creates a list of items to download from the collection based on the request query submitted
     to_download = get_items(f'{API_BASE}/collections/{COLLECTION_ID}/items',
                             classes=classes,
@@ -243,9 +260,9 @@ def format_download_request(classes: Optional[Union[List[str], str]] = None,
     """Formats the correct arguments for download_request based on the types of input given for classes and items.
 
     Args:
-        classes (list[str] or str): Optional; The classes from which to prioritise in the selection of items
+        classes (list[str], str): Optional; The classes from which to prioritise in the selection of items
             to download.
-        items (list[int] or int): Optional; The number of items to download, either per class or as a whole.
+        items (list[int], int): Optional; The number of items to download, either per class or as a whole.
         download_dir (str): Optional; The path to the directory to download data to.
 
     Returns:
@@ -274,7 +291,7 @@ def format_download_request(classes: Optional[Union[List[str], str]] = None,
     except FileNotFoundError:
         os.mkdir(download_dir)
         os.chdir(download_dir)
-    
+
     # If certain classes from which to download from was specified:
     if classes is not None:
         # If multiple classes were specified:
