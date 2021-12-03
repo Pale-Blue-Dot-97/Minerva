@@ -1,8 +1,31 @@
-"""Landcovernet_Download_API.
+"""API for downloading the LandCoverNet dataset.
+
+Based on the old version of the API tutorial from LandCoverNet but is still functional.
+
+Notes:
+    Requires a Radiant Earth API key. With a Radiant MLHub account, your API key can be created within the
+    `Settings & Keys' section of your profile. This key should then be copied into a file named `API Key.txt'
+    within the package directory.
+
+Source: https://github.com/radiantearth/mlhub-tutorials/blob/main/notebooks/radiant-mlhub-landcovernet.ipynb
+
+Edited by: Harry James Baker
+
+Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
+
+Institution: University of Southampton
+
+Created under a project funded by the Ordnance Survey Ltd.
+
+Attributes:
+    API_KEY (str): API key loaded in from API Key.txt. Should be the user key from dashboard.mlhub.earth.
+    API_BASE (str): URL to the API.
+    COLLECTION_ID (str): The ID for the LandCoverNetV1 dataset.
+    s3:
+    p: Thread pool to use for multi-threaded downloading of files.
 
 TODO:
     * Fully document
-
 """
 
 # =====================================================================================================================
@@ -35,10 +58,20 @@ p = ThreadPool(20)
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_classes():
-    # Fetches and prints all possible classes in the dataset
+def get_classes() -> list:
+    """Fetches and prints all possible classes in the dataset
+
+    Returns:
+        List of all possible label classes.
+    """
+
+    # Get response from API.
     r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}/items', params={'key': API_KEY})
+
+    # Get the JSON for the classes in the dataset.
     label_classes = r.json()['features'][0]['properties']['label:classes']
+
+    # Print the classes in the dataset in alphabetical order.
     for label_class in label_classes:
         print(f'Classes for {label_class["name"]}')
         for c in sorted(label_class['classes']):
@@ -69,7 +102,7 @@ def get_download_uri(uri: str):
     return r.headers['Location']
 
 
-def download(d: List[str, str]) -> None:
+def download(d: List[str]) -> None:
     href = d[0]
     path = d[1]
     download_uri = get_download_uri(href)
@@ -124,7 +157,7 @@ def download_source_and_labels(item) -> list:
     return results
 
 
-def get_items(uri: str, classes: Optional[list, str] = None, max_items_downloaded: Optional[int] = None,
+def get_items(uri: str, classes: Optional[Union[list, str]] = None, max_items_downloaded: Optional[int] = None,
               items_downloaded: int = 0, downloads: Optional[list] = None) -> list:
     if downloads is None:
         downloads = []
@@ -168,7 +201,7 @@ def get_items(uri: str, classes: Optional[list, str] = None, max_items_downloade
     return downloads
 
 
-def download_request(classes: Optional[list, str] = None, max_items_downloaded: Optional[int] = None) -> None:
+def download_request(classes: Optional[Union[list, str]] = None, max_items_downloaded: Optional[int] = None) -> None:
     """Given a request, downloads the items matching the query from the Radiant MLHub LandCoverNet API.
 
     Args:
@@ -191,13 +224,17 @@ def download_request(classes: Optional[list, str] = None, max_items_downloaded: 
         p.map(download, d)
 
 
-def main(classes: Optional[list, str] = None, items: Optional[Union[list, int]] = None) -> None:
+def main(classes: Optional[Union[list, str]] = None, items: Optional[Union[list, int]] = None) -> None:
+
     # Fetches and prints API credentials
     r = requests.get(f'{API_BASE}/collections/{COLLECTION_ID}', params={'key': API_KEY})
     print(f'Description: {r.json()["description"]}')
     print(f'License: {r.json()["license"]}')
     print(f'DOI: {r.json()["sci:doi"]}')
     print(f'Citation: {r.json()["sci:citation"]}')
+
+    # Print all possible classes in dataset.
+    get_classes()
 
     def str_reformat(string: str) -> str:
         string.replace('_', '')
