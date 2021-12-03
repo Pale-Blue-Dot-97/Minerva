@@ -21,7 +21,6 @@ Attributes:
     API_KEY (str): API key loaded in from API Key.txt. Should be the user key from dashboard.mlhub.earth.
     API_BASE (str): URL to the API.
     COLLECTION_ID (str): The ID for the LandCoverNetV1 dataset.
-    s3:
     p: Thread pool to use for multi-threaded downloading of files.
 
 TODO:
@@ -50,11 +49,12 @@ API_BASE = 'https://api.radiant.earth/mlhub/v1'
 
 COLLECTION_ID = 'ref_landcovernet_v1_labels'
 
-s3 = boto3.client('s3')
+_s3 = boto3.client('s3')
 
 p = ThreadPool(20)
 
 data_dir = os.sep.join(('..', '..', 'data'))
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -90,14 +90,14 @@ def get_classes() -> list:
     return label_classes[0]['classes']
 
 
-def download_s3(uri: str, path: str) -> None:
+def _download_s3(uri: str, path: str) -> None:
     parsed = urlparse(uri)
     bucket = parsed.netloc
     key = parsed.path[1:]
-    s3.download_file(bucket, key, os.path.join(path, key.split('/')[-1]))
+    _s3.download_file(bucket, key, os.path.join(path, key.split('/')[-1]))
 
 
-def download_http(uri: str, path: str) -> None:
+def _download_http(uri: str, path: str) -> None:
     parsed = urlparse(uri)
     r = requests.get(uri)
     f = open(os.path.join(path, parsed.path.split('/')[-1]), 'wb')
@@ -107,24 +107,24 @@ def download_http(uri: str, path: str) -> None:
     f.close()
 
 
-def get_download_uri(uri: str):
+def _get_download_uri(uri: str):
     r = requests.get(uri, allow_redirects=False)
     return r.headers['Location']
 
 
-def download(d: List[str]) -> None:
+def _download(d: List[str]) -> None:
     href = d[0]
     path = d[1]
-    download_uri = get_download_uri(href)
+    download_uri = _get_download_uri(href)
     parsed = urlparse(download_uri)
 
     if parsed.scheme in ['s3']:
-        download_s3(download_uri, path)
+        _download_s3(download_uri, path)
     elif parsed.scheme in ['http', 'https']:
-        download_http(download_uri, path)
+        _download_http(download_uri, path)
 
 
-def get_source_item_assets(path_args) -> list:
+def _get_source_item_assets(path_args) -> list:
     path = path_args[0]
     href = path_args[1]
     asset_downloads = []
@@ -147,7 +147,7 @@ def get_source_item_assets(path_args) -> list:
     return asset_downloads
 
 
-def download_source_and_labels(item) -> list:
+def _download_source_and_labels(item) -> list:
     labels = item.get('assets').get('labels')
     links = item.get('links')
 
@@ -164,7 +164,7 @@ def download_source_and_labels(item) -> list:
             continue
         source_items.append((path, link['href']))
 
-    results = p.map(get_source_item_assets, source_items)
+    results = p.map(_get_source_item_assets, source_items)
     results.append([(labels['href'], path)])
 
     return results
@@ -214,7 +214,7 @@ def get_items(uri: str, classes: Optional[Union[List[str], str]] = None, max_ite
 
         print('Getting Source Imagery Assets for', feature['id'])
         # Download the label and source imagery for the item.
-        downloads.extend(download_source_and_labels(feature))
+        downloads.extend(_download_source_and_labels(feature))
 
         # Stop downloaded items if we reached the maximum we specify.
         items_downloaded += 1
@@ -251,7 +251,7 @@ def download_request(classes: Optional[Union[List[str], str]] = None,
     # Downloads the requested list of items from the collection
     print('Downloading Assets')
     for d in tqdm(to_download):
-        p.map(download, d)
+        p.map(_download, d)
 
 
 def format_download_request(classes: Optional[Union[List[str], str]] = None,
