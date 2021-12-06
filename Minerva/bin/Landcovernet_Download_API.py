@@ -4,7 +4,7 @@ Based on the old version of the API tutorial from LandCoverNet but is still func
 
 Notes:
     Requires a Radiant Earth API key. With a Radiant MLHub account, your API key can be created within the
-    `Settings & Keys' section of your profile. This key should then be copied into a file named `API Key.txt'
+    `Settings & Keys' section of your profile. This key should then be copied into a file named `API_Key.txt'
     within the package directory.
 
 Source: https://github.com/radiantearth/mlhub-tutorials/blob/main/notebooks/radiant-mlhub-landcovernet.ipynb
@@ -18,7 +18,7 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 Attributes:
-    API_KEY (str): API key loaded in from API Key.txt. Should be the user key from dashboard.mlhub.earth.
+    API_KEY (str): API key loaded in from API_Key.txt. Should be the user key from dashboard.mlhub.earth.
     API_BASE (str): URL to the API.
     COLLECTION_ID (str): The ID for the LandCoverNetV1 dataset.
     p: Thread pool to use for multi-threaded downloading of files.
@@ -44,7 +44,7 @@ from tqdm import tqdm
 #                                                     GLOBALS
 # =====================================================================================================================
 # copy your API key from dashboard.mlhub.earth and paste it in the following
-API_KEY = open('../../API Key', 'r').read()
+API_KEY = open('../../API_Key', 'r').read()
 API_BASE = 'https://api.radiant.earth/mlhub/v1'
 
 COLLECTION_ID = 'ref_landcovernet_v1_labels'
