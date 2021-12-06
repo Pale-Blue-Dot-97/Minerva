@@ -24,7 +24,6 @@ Attributes:
     p: Thread pool to use for multi-threaded downloading of files.
 
 TODO:
-    * Fully document
 """
 
 # =====================================================================================================================
