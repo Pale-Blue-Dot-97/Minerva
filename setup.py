@@ -18,10 +18,12 @@ setup(name='Minerva',
       license_files=['LICENCE.txt'],
       packages=['Minerva',
                 'Minerva.utils'],
-      scripts=['Minerva/bin/DownloadStrapper.py',
+      scripts=['DataVis.py',
+               'Minerva/bin/DownloadStrapper.py',
                'Minerva/bin/Landcovernet_Download_API.py',
                'Minerva/bin/MinervaExp.py',
                'Minerva/bin/ManifestMake.py',
                'Minerva/bin/TiffCutter.py'],
-      package_data={'landcovernet': ['data/landcovernet']}
+      package_data={'landcovernet': ['data/landcovernet'],
+                    'Esri2020': ['data/ESRI2020']}
       )
