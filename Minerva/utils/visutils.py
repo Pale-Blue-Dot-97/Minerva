@@ -60,7 +60,7 @@ from matplotlib.transforms import Bbox
 from matplotlib.colors import ListedColormap
 from matplotlib.ticker import MaxNLocator
 import cv2
-import osr
+from osgeo import osr
 from alive_progress import alive_bar
 
 # =====================================================================================================================
@@ -96,7 +96,7 @@ plt.rcParams['savefig.dpi'] = 300
 plt.rcParams['axes.xmargin'] = 0
 
 # Downloads required plugin for imageio if not already present.
-imageio.plugins.freeimage.download()
+#imageio.plugins.freeimage.download()
 
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'

@@ -7,7 +7,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name='Minerva',
-      version='0.5',
+      version='0.6.0',
       description='Package to build, train and test neural network models on land cover data',
       long_description=long_description,
       long_description_content_type='text/markdown',
