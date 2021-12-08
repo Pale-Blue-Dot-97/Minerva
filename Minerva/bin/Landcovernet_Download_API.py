@@ -333,6 +333,7 @@ def main(classes: Optional[Union[list, str]] = None, items: Optional[Union[list,
 
 if __name__ == '__main__':
     CLI = argparse.ArgumentParser()
+
     CLI.add_argument(
         "--classes",  # name on the CLI - drop the `--` for positional/required parameters
         nargs="*",  # 0 or more values expected => creates a list
@@ -347,7 +348,6 @@ if __name__ == '__main__':
     )
     CLI.add_argument(
         "--d",
-        nargs="1",
         type=str,  # any type/callable can be used here
         default=None,
     )
