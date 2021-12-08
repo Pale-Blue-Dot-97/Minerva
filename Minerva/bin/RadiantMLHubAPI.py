@@ -214,7 +214,7 @@ def download_labels_and_source(item, assets=None, output_dir: str = data_dir) ->
 
 
 def main(classes: Optional[List[str]] = None, max_items: Optional[int] = None,
-         assets: Optional[List[str]] = None, download_dir: Optional[str] = None,
+         assets: Optional[List[str]] = None, download_dir: str = data_dir,
          archive_download: bool = False) -> None:
     print_credentials()
 
@@ -256,7 +256,7 @@ if __name__ == '__main__':
     CLI.add_argument(
         "--d",
         type=str,  # any type/callable can be used here
-        default=None,
+        default=data_dir,
     )
     CLI.add_argument(
         "--archive_download",
