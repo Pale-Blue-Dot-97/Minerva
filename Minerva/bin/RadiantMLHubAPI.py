@@ -57,6 +57,8 @@ config, _ = utils.load_configs(config_path)
 
 data_dir = os.sep.join(config['dir']['data'][:-1])
 
+max_workers = 16
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -199,12 +201,12 @@ def download_labels_and_source(item, assets=None, output_dir: str = data_dir) ->
 
     source_links = [link for link in item['links'] if link['rel'] == 'source']
 
-    with ThreadPoolExecutor(max_workers=16) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         for argument_batch in executor.map(_get_download_args, source_links):
             download_args += argument_batch
 
     print(f'Downloading {len(download_args)} assets...')
-    with ThreadPoolExecutor(max_workers=16) as executor:
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
         with tqdm(total=len(download_args)) as pbar:
             for _ in executor.map(lambda triplet: download(*triplet), download_args):
                 pbar.update(1)
