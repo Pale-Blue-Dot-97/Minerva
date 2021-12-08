@@ -136,3 +136,5 @@ lightning_logs/
 data/*
 data/landcovernet/ESRI_Manifest.csv
 data/landcovernet/RE_Manifest.csv
+
+config/config.yml
