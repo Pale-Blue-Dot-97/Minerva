@@ -123,8 +123,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
-API Key Alpha
-API_Key.txt
 *.tif
 *.png
 *.gif
