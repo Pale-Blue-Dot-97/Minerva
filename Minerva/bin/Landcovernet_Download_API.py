@@ -22,6 +22,9 @@ Attributes:
     API_BASE (str): URL to the API.
     COLLECTION_ID (str): The ID for the LandCoverNetV1 dataset.
     p: Thread pool to use for multi-threaded downloading of files.
+    config_path (str): Path to master config YAML file.
+    config (dict): Master config defining how the experiment should be conducted.
+    data_dir (list): Path to directory holding dataset.
 
 TODO:
 """
@@ -29,6 +32,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from Minerva.utils import utils
 from typing import Optional, Union, List
 import argparse
 import requests
@@ -52,7 +56,11 @@ _s3 = boto3.client('s3')
 
 p = ThreadPool(20)
 
-data_dir = os.sep.join(('..', '..', 'data'))
+config_path = '../../config/config.yml'
+
+config, _ = utils.load_configs(config_path)
+
+data_dir = os.sep.join(config['dir']['data'][:-1])
 
 
 # =====================================================================================================================
@@ -303,7 +311,7 @@ def format_download_request(classes: Optional[Union[List[str], str]] = None,
 
     # If classes were not specified:
     else:
-        # Ensure only a int is sent to specify the maximum number of items of the dataset to download.
+        # Ensure only an int is sent to specify the maximum number of items of the dataset to download.
         if type(items) is list:
             download_request(max_items_downloaded=items[0])
 
@@ -311,7 +319,8 @@ def format_download_request(classes: Optional[Union[List[str], str]] = None,
             download_request(max_items_downloaded=items)
 
 
-def main(classes: Optional[Union[list, str]] = None, items: Optional[Union[list, int]] = None) -> None:
+def main(classes: Optional[Union[list, str]] = None, items: Optional[Union[list, int]] = None,
+         download_dir: Optional[str] = None) -> None:
 
     # Fetches and prints API credentials
     print_credentials()
@@ -319,7 +328,7 @@ def main(classes: Optional[Union[list, str]] = None, items: Optional[Union[list,
     # Print all possible classes in dataset.
     get_classes()
 
-    format_download_request(classes=classes, items=items)
+    format_download_request(classes=classes, items=items, download_dir=download_dir)
 
 
 if __name__ == '__main__':
@@ -336,6 +345,12 @@ if __name__ == '__main__':
         type=int,  # any type/callable can be used here
         default=None,
     )
+    CLI.add_argument(
+        "--d",
+        nargs="1",
+        type=str,  # any type/callable can be used here
+        default=None,
+    )
 
     args = CLI.parse_args()
 
@@ -345,7 +360,7 @@ if __name__ == '__main__':
     command = input('Proceed? (Y/N): \n')
 
     if command in ['Y', 'y' 'yes', 'Yes', 'YES']:
-        main(classes=args.classes, items=args.items)
+        main(classes=args.classes, items=args.items, download_dir=args.d)
 
     else:
         print('ABORT')
