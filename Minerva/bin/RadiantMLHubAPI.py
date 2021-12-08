@@ -48,7 +48,7 @@ from radiant_mlhub import client, get_session
 #                                                     GLOBALS
 # =====================================================================================================================
 # Copy your API key from dashboard.mlhub.earth and paste it in the following:
-os.environ['MLHUB_API_KEY'] = str(open('../../API_Key.txt', 'r').read())
+#os.environ['MLHUB_API_KEY'] = str(open('../../API_Key.txt', 'r').read())
 
 collection_id = 'ref_landcovernet_v1_labels'
 
