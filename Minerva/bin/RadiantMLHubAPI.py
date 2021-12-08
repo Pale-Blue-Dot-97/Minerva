@@ -4,8 +4,8 @@ Based on the API notebook tutorial of the Radiant MLHub API for downloading Land
 
 Notes:
     Requires a Radiant Earth API key. With a Radiant MLHub account, your API key can be created within the
-    `Settings & Keys' section of your profile. This key should then be copied into a file named `API_Key.txt'
-    within the package directory.
+    `Settings & Keys' section of your profile. This key should then set to the environment by
+    calling `mlhub configure'. See https://mlhub.earth/docs for more details.
 
 Source: https://github.com/radiantearth/mlhub-tutorials/blob/main/notebooks/radiant-mlhub-landcovernet.ipynb
 
@@ -41,15 +41,12 @@ from pathlib import Path
 import itertools as it
 from functools import partial
 from concurrent.futures import ThreadPoolExecutor
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 from radiant_mlhub import client, get_session
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-# Copy your API key from dashboard.mlhub.earth and paste it in the following:
-#os.environ['MLHUB_API_KEY'] = str(open('../../API_Key.txt', 'r').read())
-
 collection_id = 'ref_landcovernet_v1_labels'
 
 items_pattern = re.compile(r'^/mlhub/v1/collections/(\w+)/items/(\w+)$')
