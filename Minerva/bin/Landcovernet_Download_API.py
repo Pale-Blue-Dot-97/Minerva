@@ -1,6 +1,6 @@
-"""API for downloading the LandCoverNet dataset.
+"""DEFUNCT! API for downloading the LandCoverNet dataset.
 
-Based on the old version of the API tutorial from LandCoverNet but is still functional.
+Based on the old version of the API tutorial from LandCoverNet and no longer fully functional!
 
 Notes:
     Requires a Radiant Earth API key. With a Radiant MLHub account, your API key can be created within the
@@ -27,6 +27,7 @@ Attributes:
     data_dir (list): Path to directory holding dataset.
 
 TODO:
+    * Depreciate
 """
 
 # =====================================================================================================================
