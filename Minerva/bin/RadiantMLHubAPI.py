@@ -75,8 +75,6 @@ def get_classes():
     items = client.list_collection_items(collection_id, limit=1)
 
     first_item = next(items)
-    print(first_item)
-    print(first_item['id'])
 
     label_classes = first_item['properties']['label:classes']
     for label_class in label_classes:
@@ -85,7 +83,7 @@ def get_classes():
             print(f'- {c}')
 
 
-def filter_item(item, classes=None, cloud_and_shadow=None, seasonal_snow=None):
+def filter_item(item, output_dir=data_dir, classes=None, cloud_and_shadow=None, seasonal_snow=None):
     """Function to be used as an argument to Python's built-in filter function that filters out any items that
     do not match the given classes, cloud_and_shadow, and/or seasonal_snow values.
 
@@ -94,8 +92,13 @@ def filter_item(item, classes=None, cloud_and_shadow=None, seasonal_snow=None):
     where item['properties']['cloud_and_shadow'] == 'true',
     and will not filter based on classes/labels, or seasonal_snow.
     """
-    # Match classes, if provided
 
+    # Check if item already exists
+    existing_items = os.listdir(output_dir)
+    if item['id'] in existing_items:
+        return False
+
+    # Match classes, if provided
     item_labels = item['properties'].get('labels', [])
     if classes is not None and not any(label in classes for label in item_labels):
         return False
@@ -113,13 +116,14 @@ def filter_item(item, classes=None, cloud_and_shadow=None, seasonal_snow=None):
     return True
 
 
-def get_items(cid: str, classes=None, cloud_and_shadow=None, seasonal_snow=None, max_items=1):
+def get_items(cid: str, output_dir=data_dir, classes=None, cloud_and_shadow=None, seasonal_snow=None, max_items=1):
     """Generator that yields up to max_items items that match the given classes, cloud_and_shadow, and seasonal_snow
     values. Setting one of these filter arguments to None will cause that filter to be ignored (e.g. classes=None
     means that items will not be filtered by class/label).
     """
     filter_fn = partial(
         filter_item,
+        output_dir=output_dir,
         classes=classes,
         cloud_and_shadow=cloud_and_shadow,
         seasonal_snow=seasonal_snow
@@ -227,6 +231,7 @@ def main(classes: Optional[List[str]] = None, max_items: Optional[int] = None,
     else:
         items = get_items(
             collection_id,
+            output_dir=download_dir,
             classes=classes,
             max_items=max_items,
         )
