@@ -55,7 +55,7 @@ config_path = '../../config/config.yml'
 
 config, _ = utils.load_configs(config_path)
 
-data_dir = os.sep.join(config['dir']['data'][:-1])
+data_dir = os.sep.join(config['dir']['data'])
 
 max_workers = 16
 
@@ -75,6 +75,8 @@ def get_classes():
     items = client.list_collection_items(collection_id, limit=1)
 
     first_item = next(items)
+    print(first_item)
+    print(first_item['id'])
 
     label_classes = first_item['properties']['label:classes']
     for label_class in label_classes:
