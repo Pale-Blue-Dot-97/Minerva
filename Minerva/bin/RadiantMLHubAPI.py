@@ -47,7 +47,7 @@ from radiant_mlhub import client, get_session
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-collection_id = 'ref_landcovernet_v1_labels'
+collection_id = 'ref_landcovernet_v1_source'
 
 items_pattern = re.compile(r'^/mlhub/v1/collections/(\w+)/items/(\w+)$')
 
