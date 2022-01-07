@@ -95,7 +95,6 @@ def filter_item(item, output_dir=data_dir, classes=None, cloud_and_shadow=None, 
 
     # Check if item already exists
     existing_items = os.listdir(output_dir)
-    print(existing_items)
 
     if item['id'] in existing_items:
         print('skip ', item['id'])
@@ -134,7 +133,7 @@ def get_items(cid: str, output_dir=data_dir, classes=None, cloud_and_shadow=None
     filtered = filter(
         filter_fn,
 
-        client.list_collection_items(cid, limit=max_items)
+        client.list_collection_items(cid, limit=None)
     )
     yield from it.islice(filtered, max_items)
 
