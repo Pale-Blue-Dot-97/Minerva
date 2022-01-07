@@ -130,11 +130,15 @@ def get_items(cid: str, output_dir=data_dir, classes=None, cloud_and_shadow=None
         cloud_and_shadow=cloud_and_shadow,
         seasonal_snow=seasonal_snow
     )
+    print(filter_fn)
+
     filtered = filter(
         filter_fn,
 
         client.list_collection_items(cid, limit=None)
     )
+    print(filtered)
+
     yield from it.islice(filtered, max_items)
 
 
