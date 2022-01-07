@@ -231,11 +231,14 @@ def main(classes: Optional[List[str]] = None, max_items: Optional[int] = None,
         client.download_archive(collection_id, output_dir=download_dir)
 
     else:
+        # Check how many existing items there are and adds that number to max_items.
+        n_existing_items = len(os.listdir(download_dir))
+
         items = get_items(
             collection_id,
             output_dir=download_dir,
             classes=classes,
-            max_items=max_items,
+            max_items=max_items + n_existing_items,
         )
         for item in items:
             download_labels_and_source(item, assets=assets, output_dir=download_dir)
