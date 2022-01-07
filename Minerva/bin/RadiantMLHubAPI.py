@@ -95,7 +95,10 @@ def filter_item(item, output_dir=data_dir, classes=None, cloud_and_shadow=None, 
 
     # Check if item already exists
     existing_items = os.listdir(output_dir)
+    print(existing_items)
+
     if item['id'] in existing_items:
+        print('skip ', item['id'])
         return False
 
     # Match classes, if provided
