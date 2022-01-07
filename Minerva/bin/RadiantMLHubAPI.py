@@ -233,6 +233,8 @@ def main(classes: Optional[List[str]] = None, max_items: Optional[int] = None,
     else:
         # Check how many existing items there are and adds that number to max_items.
         n_existing_items = len(os.listdir(download_dir))
+        print(n_existing_items)
+        print(max_items + n_existing_items)
 
         items = get_items(
             collection_id,
