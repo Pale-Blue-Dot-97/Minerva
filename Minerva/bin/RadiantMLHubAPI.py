@@ -225,7 +225,7 @@ def main(classes: Optional[List[str]] = None, max_items: Optional[int] = None,
          archive_download: bool = False) -> None:
     print_credentials()
 
-    get_classes()
+    #get_classes()
 
     if archive_download:
         client.download_archive(collection_id, output_dir=download_dir)
