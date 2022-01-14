@@ -512,8 +512,8 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
         n_pixels (int): Optional; Total number of pixels in each sample (per band).
         seed (int): Optional; Random seed number to fix the shuffling of the data split.
         shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
-        plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
-        balance (bool): Optional; Whether or not to attempt to balance the class distributions within each dataset.
+        plot (bool): Optional; Whether to plot pie charts of the class distributions within each dataset.
+        balance (bool): Optional; Whether to attempt to balance the class distributions within each dataset.
         over_factor (int): Optional; On average, the maximum number of times the same sample will occur in a dataset.
             Will be at the maximum value for the smallest class being over-sampled.
         model_type (str): Optional; Must be either mlp, MLP, scene classifier or segmentation.
@@ -523,7 +523,7 @@ def make_datasets(patch_ids: Optional[list] = None, frac: Optional[float] = None
         hyperparams (dict): Dictionary of hyper-parameters for the model.
         batch_size (int): Number of samples in each batch to be returned by the DataLoaders.
         scene_selector (str): Name of function to use to select which scenes of a patch to include in the datasets.
-        elim (bool): Whether or not to eliminate classes with no samples in.
+        elim (bool): Whether to eliminate classes with no samples in.
         centre_only (bool): Whether to modify samples to be an array of zeros apart from the original centre pixel.
 
     Returns:
