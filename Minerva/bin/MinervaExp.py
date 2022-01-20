@@ -1,6 +1,6 @@
-"""Script to execute the creation, fitting and testing of an image segmentation model to classify land cover.
+"""Script to execute the creation, fitting and testing of a computer vision neural network model to classify land cover.
 
-    Copyright (C) 2021 Harry James Baker
+    Copyright (C) 2022 Harry James Baker
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ config, _ = utils.load_configs(config_path)
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, ids, new_config = loaders.make_datasets(**config)
+    datasets, n_batches, class_dist, new_config = loaders.make_datasets(**config)
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config)
     trainer.fit()
