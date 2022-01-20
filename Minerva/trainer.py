@@ -81,7 +81,7 @@ class Trainer:
             n_batches (dict): Dictionary of the number of batches to supply to the model for train, validation and
                 testing.
         Keyword Args:
-            results (list[str]): Path to the results directory to save plots to.
+            results (list[str]): Path to the results' directory to save plots to.
             model_name (str): Name of the model to be used in filenames of results.
             batch_size (int): Size of each batch of samples supplied to the model.
             max_epochs (int): Number of epochs to train the model for.
@@ -92,7 +92,7 @@ class Trainer:
         # Sets the timestamp of the experiment.
         self.params['timestamp'] = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
 
-        # Sets experiment name and adds this to the path to the results directory.
+        # Sets experiment name and adds this to the path to the results' directory.
         self.params['exp_name'] = '{}_{}'.format(self.params['model_name'], self.params['timestamp'])
         self.params['dir']['results'].append(self.params['exp_name'])
 
@@ -127,7 +127,7 @@ class Trainer:
         }
 
         # Initialise TensorBoard logger
-        self.writer = SummaryWriter(os.path.join(*self.params['dir']['results']))
+        self.writer = SummaryWriter(os.sep.join(self.params['dir']['results']))
 
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
@@ -196,9 +196,9 @@ class Trainer:
 
         Args:
             mode (str): Either train, val or test. Defines the type of epoch to run on the model.
-            record_int (bool): Optional; Whether or not to record the integer results
-                (i.e ground truth and predicted labels).
-            record_float (bool): Optional; Whether or not to record the floating point results i.e class probabilities.
+            record_int (bool): Optional; Whether to record the integer results
+                (i.e. ground truth and predicted labels).
+            record_float (bool): Optional; Whether to record the floating point results i.e. class probabilities.
 
         Returns:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
@@ -226,7 +226,7 @@ class Trainer:
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
             # Sets the model up for training or evaluation modes
-            if mode is 'train':
+            if mode == 'train':
                 self.model.train()
             else:
                 self.model.eval()
@@ -235,20 +235,23 @@ class Trainer:
 
             # Core of the epoch.
             for x_batch, y_batch, sample_id in islice(self.loaders[mode], self.n_batches[mode]):
+                print('x: ', x_batch)
+                print('y: ', y_batch)
+                print('third: ', sample_id)
 
                 # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
 
                 # Runs a training epoch.
-                if mode is 'train':
+                if mode == 'train':
                     loss, z = self.model.training_step(x, y)
 
                 # Runs a validation epoch.
-                elif mode is 'val':
+                elif mode == 'val':
                     loss, z = self.model.validation_step(x, y)
 
                 # Runs a testing epoch.
-                elif mode is 'test':
+                elif mode == 'test':
                     loss, z = self.model.testing_step(x, y)
 
                 if record_int:
@@ -325,7 +328,7 @@ class Trainer:
                     if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
                         plots['Mask'] = False
 
-                    # Amends the results directory to add a new level for train or validation.
+                    # Amends the results' directory to add a new level for train or validation.
                     results_dir = self.params['dir']['results'].copy()
                     results_dir.append(mode)
 
@@ -352,8 +355,8 @@ class Trainer:
         analysis of them.
 
         Args:
-            save (bool): Optional; Determines whether or not to save the plots created to file.
-            show (bool): Optional; Determines whether or not to show the plots created.
+            save (bool): Optional; Determines whether to save the plots created to file.
+            show (bool): Optional; Determines whether to show the plots created.
 
         Notes:
             save = True, show = False regardless of input for plots made for each sample such as PvT or Mask plots.
@@ -395,7 +398,7 @@ class Trainer:
         if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
             plots['Mask'] = False
 
-        # Amends the results directory to add a new level for test results.
+        # Amends the results' directory to add a new level for test results.
         results_dir = self.params['dir']['results']
         results_dir.append('test')
 
