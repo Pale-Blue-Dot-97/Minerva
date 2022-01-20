@@ -1,4 +1,6 @@
-# Paths to directories containing the data and the results
+# EXAMPLE MASTER CONFIG FILE
+
+# === PATHS ===========================================================================================================
 dir:
   data:
    - 'G:'
@@ -25,20 +27,104 @@ model_name: 'FCN32ResNet50-MkI' # Name of model. Substring before hyphen is used
 model_type: 'segmentation'      # Type of model. Can be mlp, scene_classifier, segmentation.
 frac: 1.0                       # Fraction of patches in the dataset to use.
 split: [0.8, 0.15, 0.05]        # Fractional size of the train, validation and test datasets.
-elim: True
-scene_selector: 'threshold'
-centre_only: False
-balance: True
+elim: False
+balance: False
+patch_size: [56, 56]
+
+# === DATASET PARAMETERS ==============================================================================================
+dataset_params:
+  # Training Dataset
+  train:
+    module: 'torchgeo.datasets'
+    name: 'ChesapeakeCVPR'
+    root:
+    params:
+      splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
+      layers: ['naip-new', 'lc']
+
+  # Validation Dataset
+  val:
+    module: 'torchgeo.datasets'
+    name: 'ChesapeakeCVPR'
+    root:
+    params:
+      splits: ['va-val', 'pa-val', 'md-val']
+      layers: ['naip-new', 'lc']
+
+  # Test Dataset
+  test:
+    module: 'torchgeo.datasets'
+    name: 'ChesapeakeCVPR'
+    root:
+    params:
+      splits: ['wv-test', 'va-test', 'pa-test']
+      layers: ['naip-new', 'lc']
+
+# === SAMPLER PARAMETERS ==============================================================================================
+sampler_params:
+  # Training Dataset Sampler
+  train:
+    module: 'torchgeo.samplers'
+    name: 'RandomBatchGeoSampler'
+    params:
+      size: 56
+      batch_size: 16
+      length: 1600
+
+  # Validation Dataset Sampler
+  val:
+    module: 'torchgeo.samplers'
+    name: 'RandomBatchGeoSampler'
+    params:
+      size: 56
+      batch_size: 16
+      length: 400
+
+  # Test Dataset Sampler
+  test:
+    module: 'torchgeo.samplers'
+    name: 'RandomBatchGeoSampler'
+    params:
+      size: 56
+      batch_size: 16
+      length: 400
+
+
+# === TRANSFORM PARAMETERS ============================================================================================
+transform_params:
+  # Training Dataset Transforms
+  train:
+    module: None
+    name: None
+    #params:
+    #  size:
+    #  length:
+
+  # Validation Dataset Transforms
+  val:
+    module: None
+    name: None
+    #params:
+    #  size:
+    #  length:
+
+  # Test Dataset Transforms
+  test:
+    module: None
+    name: None
+    #params:
+    #  size:
+    #  length:
 
 # Model hyper-parameters
 hyperparams:
   params:
     batch_size: 16
-    num_workers: 10
+    num_workers: 6
     pin_memory: True
   model_params:
-    input_size: [6, 256, 256]
-    n_classes: 11
+    input_size: [4, 56, 56]
+    n_classes: 16
     #groups: 32
     #width_per_group: 4
     #batch_size: 16
@@ -48,9 +134,6 @@ hyperparams:
     #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
-  transforms:
-    #CenterCrop:
-      #size: 128
   max_epochs: 20
 
 # Which plots to make
@@ -74,8 +157,8 @@ calc_norm: False
 plot_last_epoch: True
 
 # Settings for RGB image creation
-rgb_params:
-  band_ID: 'SCL'           # 3 char alpha-numeric Band ID
-  R_band: 'B02'            # Red, Green, Blue band IDs for RGB images
-  G_band: 'B03'
-  B_band: 'B04'
+#rgb_params:
+#  band_ID: 'SCL'           # 3 char alpha-numeric Band ID
+#  R_band: 'B02'            # Red, Green, Blue band IDs for RGB images
+#  G_band: 'B03'
+#  B_band: 'B04'
