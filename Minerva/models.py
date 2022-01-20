@@ -217,7 +217,7 @@ class MLP(MinervaModel, ABC):
 
         # Constructs layers of the network based on the input size, the hidden sizes and the number of classes.
         for i in range(len(hidden_sizes)):
-            if i is 0:
+            if i == 0:
                 self._layers['Linear-0'] = torch.nn.Linear(input_size, hidden_sizes[i])
             elif i > 0:
                 self._layers['Linear-{}'.format(i)] = torch.nn.Linear(hidden_sizes[i - 1], hidden_sizes[i])
@@ -289,7 +289,7 @@ class CNN(MinervaModel, ABC):
 
         # Constructs the convolutional layers determined by the number of input channels and the features of these.
         for i in range(len(features)):
-            if i is 0:
+            if i == 0:
                 self._conv_layers['Conv-0'] = torch.nn.Conv2d(self.input_shape[0], features[i],
                                                               conv_kernel_size[0], stride=conv_stride[0])
             elif i > 0:
@@ -313,7 +313,7 @@ class CNN(MinervaModel, ABC):
         # and getting the shape of the output.
         out_shape = []
         for i in range(len(features)):
-            if i is 0:
+            if i == 0:
                 out_shape = get_output_shape(self._conv_layers['MaxPool-{}'.format(i)],
                                              get_output_shape(self._conv_layers['Conv-{}'.format(i)], self.input_shape))
             if i > 0:
@@ -325,7 +325,7 @@ class CNN(MinervaModel, ABC):
 
         # Constructs the fully connected layers determined by the number of input channels and the features of these.
         for i in range(len(fc_sizes)):
-            if i is 0:
+            if i == 0:
                 self._fc_layers['Linear-0'] = torch.nn.Linear(self.flattened_size, fc_sizes[i])
             elif i > 0:
                 self._fc_layers['Linear-{}'.format(i)] = torch.nn.Linear(fc_sizes[i - 1], fc_sizes[i])
@@ -400,7 +400,7 @@ class ResNet(MinervaModel, ABC):
             of Bottleneck Blocks. Not compatible with Basic Block!
         replace_stride_with_dilation (tuple): Optional; Each element in the tuple indicates whether to replace the
             2x2 stride with a dilated convolution instead. Must be a three element tuple of bools.
-        norm_layer (function): Optional; Normalisation layer to use in each block. Typically torch.nn.BatchNorm2d.
+        norm_layer (function): Optional; Normalisation layer to use in each block. Typically, torch.nn.BatchNorm2d.
         encoder (bool): Optional; Whether to initialise the ResNet as an encoder or end-to-end classifier.
             If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
             If False, adds a global average pooling layer after the last block, flattens the output
