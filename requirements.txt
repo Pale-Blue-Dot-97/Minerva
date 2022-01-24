@@ -11,6 +11,7 @@ rasterio>=1.1.0
 imageio>=2.9.0
 torchinfo
 torchvision
+torchgeo~=0.2.0
 setuptools
 fiona>=1.8.13.post1
 tabulate

@@ -35,58 +35,97 @@ patch_size: [56, 56]
 dataset_params:
   # Training Dataset
   train:
-    module: 'torchgeo.datasets'
-    name: 'ChesapeakeCVPR'
-    root:
-    params:
-      splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
-      layers: ['naip-new', 'lc']
+    imagery:
+      module: 'torchgeo.datasets'
+      name: 'NAIP'
+      root: 'NAIP'
+      params:
+        crs: None
+        #download: True
+        #checksum: True
+        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
+        #layers: ['naip-new', 'lc']
+    labels:
+      module: 'torchgeo.datasets'
+      name: 'ChesapeakeDE'
+      root: 'DE'
+      params:
+        download: False
+        checksum: False
+        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
+        #layers: ['naip-new', 'lc']
 
   # Validation Dataset
   val:
-    module: 'torchgeo.datasets'
-    name: 'ChesapeakeCVPR'
-    root:
-    params:
-      splits: ['va-val', 'pa-val', 'md-val']
-      layers: ['naip-new', 'lc']
+    imagery:
+      module: 'torchgeo.datasets'
+      name: 'NAIP'
+      root: 'NAIP'
+      params:
+        res: None
+        #download: False
+        #checksum: False
+        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
+        #layers: ['naip-new', 'lc']
+    labels:
+      module: 'torchgeo.datasets'
+      name: 'ChesapeakeDE'
+      root: 'DE'
+      params:
+        download: False
+        checksum: False
+        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
+        #layers: ['naip-new', 'lc']
 
   # Test Dataset
   test:
-    module: 'torchgeo.datasets'
-    name: 'ChesapeakeCVPR'
-    root:
-    params:
-      splits: ['wv-test', 'va-test', 'pa-test']
-      layers: ['naip-new', 'lc']
+    imagery:
+      module: 'torchgeo.datasets'
+      name: 'NAIP'
+      root: 'NAIP'
+      params:
+        res: None
+        #download: False
+        #checksum: False
+        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
+        #layers: ['naip-new', 'lc']
+    labels:
+      module: 'torchgeo.datasets'
+      name: 'ChesapeakeDE'
+      root: 'DE'
+      params:
+        download: False
+        checksum: False
+        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
+        #layers: ['naip-new', 'lc']
 
 # === SAMPLER PARAMETERS ==============================================================================================
 sampler_params:
   # Training Dataset Sampler
   train:
     module: 'torchgeo.samplers'
-    name: 'RandomBatchGeoSampler'
+    name: 'RandomGeoSampler'
     params:
       size: 56
-      batch_size: 16
+      #batch_size: 16
       length: 1600
 
   # Validation Dataset Sampler
   val:
     module: 'torchgeo.samplers'
-    name: 'RandomBatchGeoSampler'
+    name: 'RandomGeoSampler'
     params:
       size: 56
-      batch_size: 16
+      #batch_size: 16
       length: 400
 
   # Test Dataset Sampler
   test:
     module: 'torchgeo.samplers'
-    name: 'RandomBatchGeoSampler'
+    name: 'RandomGeoSampler'
     params:
       size: 56
-      batch_size: 16
+      #batch_size: 16
       length: 400
 
 
