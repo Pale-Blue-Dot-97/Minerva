@@ -42,7 +42,7 @@ from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import pandas as pd
-from itertools import islice
+#from itertools import islice
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
 
@@ -234,10 +234,11 @@ class Trainer:
             batch_num = 0
 
             # Core of the epoch.
-            for x_batch, y_batch, sample_id in islice(self.loaders[mode], self.n_batches[mode]):
+            for sample in self.loaders[mode]:
+                x_batch = sample['image']
+                y_batch = sample['mask']
                 print('x: ', x_batch)
                 print('y: ', y_batch)
-                print('third: ', sample_id)
 
                 # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
@@ -260,7 +261,7 @@ class Trainer:
 
                     # Add the labels and sample IDs to lists.
                     labels[batch_num] = y.cpu().numpy()
-                    ids.append(sample_id)
+                    #ids.append(sample_id)
 
                 if record_float:
                     # Add the estimated probabilities to probs.

@@ -175,14 +175,21 @@ def make_datasets(root: Optional[str] = '', frac: Optional[float] = None, n_patc
         if root is None:
             root = os.sep.join(params['dir']['data'])
 
+        print(f'CREATING {mode} DATASET')
         dataset = _dataset(root=root, **dataset_params[mode]['params'])
+        print('DONE')
 
         # --+ MAKE SAMPLERS +=========================================================================================+
         _sampler = utils.func_by_str(module=sampler_params[mode]['module'], func=sampler_params[mode]['name'])
+
+        print(f'CREATING {mode} SAMPLER')
         sampler = _sampler(dataset=dataset, **sampler_params[mode]['params'])
+        print('DONE')
 
         # --+ MAKE DATALOADERS +======================================================================================+
+        print(f'CREATING {mode} LOADER')
         loaders[mode] = DataLoader(dataset, sampler=sampler,  **dataloader_params)
+        print('DONE')
 
     # Combines all scenes together to output a class_dist for the entire dataset.
     #all_scenes = scenes['train'] + scenes['val'] + scenes['test']
