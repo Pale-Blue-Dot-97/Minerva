@@ -134,23 +134,29 @@ transform_params:
   # Training Dataset Transforms
   train:
     imagery:
-      ConvertImageDtype: torch.FloatTensor
+      ConvertImageDtype:
+        dtype: torch.FloatTensor
     labels:
-      ConvertImageDtype: torch.LongTensor
+      ConvertImageDtype:
+        dtype: torch.LongTensor
 
   # Validation Dataset Transforms
   val:
     imagery:
-      ConvertImageDtype: torch.FloatTensor
+      ConvertImageDtype:
+        dtype: torch.FloatTensor
     labels:
-      ConvertImageDtype: torch.LongTensor
+      ConvertImageDtype:
+        dtype: torch.LongTensor
 
   # Test Dataset Transforms
   test:
     imagery:
-      ConvertImageDtype: torch.FloatTensor
+      ConvertImageDtype:
+        dtype: torch.FloatTensor
     labels:
-      ConvertImageDtype: torch.LongTensor
+      ConvertImageDtype:
+        dtype: torch.LongTensor
 
 # Collation
 collator:
