@@ -243,6 +243,8 @@ class Trainer:
 
                 print('x type:', type(x_batch[0][0][0][0]))
                 print('y type:', type(y_batch[0][0][0][0]))
+                x_batch = x_batch.to(torch.float)
+                y_batch = y_batch.to(torch.long)
 
                 # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
