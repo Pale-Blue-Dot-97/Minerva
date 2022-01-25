@@ -133,27 +133,24 @@ sampler_params:
 transform_params:
   # Training Dataset Transforms
   train:
-    module: None
-    name: None
-    #params:
-    #  size:
-    #  length:
+    imagery:
+      ConvertImageDtype: torch.FloatTensor
+    labels:
+      ConvertImageDtype: torch.LongTensor
 
   # Validation Dataset Transforms
   val:
-    module: None
-    name: None
-    #params:
-    #  size:
-    #  length:
+    imagery:
+      ConvertImageDtype: torch.FloatTensor
+    labels:
+      ConvertImageDtype: torch.LongTensor
 
   # Test Dataset Transforms
   test:
-    module: None
-    name: None
-    #params:
-    #  size:
-    #  length:
+    imagery:
+      ConvertImageDtype: torch.FloatTensor
+    labels:
+      ConvertImageDtype: torch.LongTensor
 
 # Collation
 collator:

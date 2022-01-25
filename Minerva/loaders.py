@@ -126,6 +126,7 @@ def make_datasets(root: Optional[str] = '', frac: Optional[float] = None, n_patc
     dataloader_params = params['hyperparams']['params']
     dataset_params = params['dataset_params']
     sampler_params = params['sampler_params']
+    transform_params = params['transform_params']
     batch_size = dataloader_params['batch_size']
 
     """
@@ -190,8 +191,12 @@ def make_datasets(root: Optional[str] = '', frac: Optional[float] = None, n_patc
             download_url(naip_url + tile, imagery_root)
 
         print(f'CREATING {mode} DATASET')
-        image_dataset = _image_dataset(root=imagery_root, **dataset_params[mode]['imagery']['params'])
-        label_dataset = _label_dataset(root=labels_root, **dataset_params[mode]['labels']['params'])
+        image_dataset = _image_dataset(root=imagery_root,
+                                       transforms=make_transformations(transform_params[mode]['imagery']),
+                                       **dataset_params[mode]['imagery']['params'])
+        label_dataset = _label_dataset(root=labels_root,
+                                       transforms=make_transformations(transform_params[mode]['labels']),
+                                       **dataset_params[mode]['labels']['params'])
 
         dataset = image_dataset & label_dataset
         print('DONE')
