@@ -237,14 +237,9 @@ class Trainer:
             for sample in self.loaders[mode]:
                 x_batch = sample['image']
                 y_batch = sample['mask']
-                print('sample', sample)
-                print('x shape: ', x_batch.shape)
-                print('y shape: ', y_batch.shape)
 
-                print('x type:', type(x_batch[0][0][0][0]))
-                print('y type:', type(y_batch[0][0][0][0]))
                 x_batch = x_batch.to(torch.float)
-                y_batch = y_batch.to(torch.long)
+                y_batch = torch.tensor(np.squeeze(y_batch, axis=1), dtype=torch.long)
 
                 # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
