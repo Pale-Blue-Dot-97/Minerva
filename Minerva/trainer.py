@@ -237,8 +237,12 @@ class Trainer:
             for sample in self.loaders[mode]:
                 x_batch = sample['image']
                 y_batch = sample['mask']
-                print('x: ', x_batch)
-                print('y: ', y_batch)
+                print('sample', sample)
+                print('x shape: ', x_batch.shape)
+                print('y shape: ', y_batch.shape)
+
+                print('x type:', x_batch[0].type)
+                print('y type:', y_batch[0].type)
 
                 # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
