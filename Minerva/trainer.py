@@ -241,8 +241,8 @@ class Trainer:
                 print('x shape: ', x_batch.shape)
                 print('y shape: ', y_batch.shape)
 
-                print('x type:', x_batch[0].type)
-                print('y type:', y_batch[0].type)
+                print('x type:', type(x_batch[0]))
+                print('y type:', type(y_batch[0]))
 
                 # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
