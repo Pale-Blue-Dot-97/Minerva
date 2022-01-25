@@ -60,7 +60,7 @@ from matplotlib.transforms import Bbox
 from matplotlib.colors import ListedColormap
 from matplotlib.ticker import MaxNLocator
 import cv2
-from osgeo import osr
+from rasterio.crs import CRS
 from alive_progress import alive_bar
 
 # =====================================================================================================================
@@ -158,7 +158,7 @@ def de_interlace(x: Union[list, np.ndarray], f: int) -> np.ndarray:
     return np.array(new_x).flatten()
 
 
-def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: osr.SpatialReference,
+def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: CRS,
                spacing: int = 32) -> Tuple[Tuple[int, int, int, int], np.ndarray, np.ndarray]:
     """Gets the extent of the image with 'shape' and at data_fn in latitude, longitude of system new_cs.
 
@@ -166,7 +166,7 @@ def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: osr.SpatialReferenc
         shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
         data_fn (str): Path and filename of the TIF file whose geospatial meta data will be used
             to get the corners of the image in latitude and longitude.
-        new_cs(osr.SpatialReference): Co-ordinate system to convert co-ordinates found in data_fn TIF file to.
+        new_cs(CRS): Co-ordinate system to convert co-ordinates found in data_fn TIF file to.
         spacing (int): Spacing of the lat - lon ticks.
 
     Returns:
@@ -286,7 +286,7 @@ def make_rgb_image(scene_path: str, rgb: dict, block_size: int = 32):
 def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
                        classes: Optional[Union[list, tuple, np.ndarray]] = None, block_size: int = 32,
                        cmap_style: Optional[Union[str, ListedColormap]] = None, alpha: float = 0.5,
-                       new_cs: Optional[osr.SpatialReference] = None,
+                       new_cs: Optional[CRS] = None,
                        show: bool = True, save: bool = True, figdim: tuple = (8.02, 10.32)) -> str:
     """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top.
 
@@ -298,7 +298,7 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
         block_size (int): Optional; Size of block image sub-division in pixels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
-        new_cs(osr.SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
         show (bool): Optional; True for show figure when plotted. False if not.
         save (bool): Optional; True to save figure to file. False if not.
         figdim (tuple): Optional; Figure (height, width) in inches.
@@ -407,7 +407,7 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
 def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: int = 1,
              classes: Optional[Union[list, tuple, np.ndarray]] = None,
              cmap_style: Optional[Union[str, ListedColormap]] = None,
-             new_cs: Optional[osr.SpatialReference] = None, alpha: float = 0.5, save: bool = False,
+             new_cs: Optional[CRS] = None, alpha: float = 0.5, save: bool = False,
              figdim: tuple = (8.02, 10.32)) -> None:
     """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes.
 
@@ -418,7 +418,7 @@ def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: i
         data_band (int): Optional; Band number of data .tif file.
         classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
-        new_cs(osr.SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
         save (bool): Optional; True to save figure to file. False if not.
         figdim (tuple): Optional; Figure (height, width) in inches.
@@ -463,7 +463,7 @@ def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: i
 def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1,
                       classes: Optional[Union[list, tuple, np.ndarray]] = None,
                       cmap_style: Optional[Union[str, ListedColormap]] = None,
-                      new_cs: Optional[osr.SpatialReference] = None,
+                      new_cs: Optional[CRS] = None,
                       alpha: float = 0.5, figdim: tuple = (8.02, 10.32)) -> None:
     """Wrapper to make_gifs() to iterate through all patches in dataset.
 
@@ -473,7 +473,7 @@ def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1
         data_band (int): Optional; Band number of data .tif file.
         classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
-        new_cs(SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
         figdim (tuple): Optional; Figure (height, width) in inches.
 
@@ -551,8 +551,7 @@ def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_i
     patch_ids = [patch_ids[i] for i in np.arange(start=0, stop=len(patch_ids), step=n_pixels)]
 
     # Create a new projection system in lat-lon
-    new_cs = osr.SpatialReference()
-    new_cs.ImportFromEPSG(data_config['co_sys']['id'])
+    new_cs = CRS.from_epsg(data_config['co_sys']['id'])
 
     flat_z = np.array(list(chunks(z, int(len(z) / len(patch_ids)))))
     flat_y = np.array(list(chunks(y, int(len(y) / len(patch_ids)))))
@@ -581,7 +580,7 @@ def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_i
 
 
 def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: Literal['scene', 'patch'],
-                    new_cs: osr.SpatialReference, exp_id: Optional[str] = None, classes: Optional[dict] = None,
+                    new_cs: CRS, exp_id: Optional[str] = None, classes: Optional[dict] = None,
                     block_size: int = 32, cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True,
                     save: bool = True, fig_dim: Optional[Tuple[float, float]] = None,
                     fn_prefix: Optional[str] = None) -> None:
@@ -738,8 +737,7 @@ def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefi
     ids = np.array(ids).flatten()
 
     # Create a new projection system in lat-lon.
-    new_cs = osr.SpatialReference()
-    new_cs.ImportFromEPSG(data_config['co_sys']['id'])
+    new_cs = CRS.from_epsg(data_config['co_sys']['id'])
 
     print('PRODUCING PREDICTED MASKS')
 

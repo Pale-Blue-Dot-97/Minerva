@@ -65,9 +65,11 @@ from datetime import datetime
 from collections import Counter, OrderedDict, Mapping
 import rasterio as rt
 import rasterio.mask as rtmask
+from rasterio.crs import CRS
+from rasterio.warp import transform_bounds
 import fiona
 from tabulate import tabulate
-from osgeo import gdal, osr
+#from osgeo import gdal, osr
 import torch
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import label_binarize
@@ -497,43 +499,21 @@ def cut_to_extents(patch_id: str, tile_id: str, tile_dir: str) -> None:
         os.remove(fn)
 
 
-def transform_coordinates(path: str, new_cs: osr.SpatialReference) -> list:
+def transform_coordinates(path: str, new_crs: CRS) -> list:
     """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
     in the new co-ordinates system provided.
 
     Args:
         path (str): Path to GeoTiff to extract and transform co-ordinates from.
-        new_cs(osr.SpatialReference): Co-ordinate system to convert GeoTiff co-ordinates from.
+        new_crs(CRS): Co-ordinate system to convert GeoTiff co-ordinates from.
 
     Returns:
         The corners of the image in the new co-ordinate system.
     """
-    # Open GeoTiff in GDAL
-    ds = gdal.Open(path)
-    w = ds.RasterXSize
-    h = ds.RasterYSize
+    # Open source raster.
+    src_rst = rt.open(path)
 
-    # Create SpatialReference object
-    old_cs = osr.SpatialReference()
-
-    # Fetch projection system from GeoTiff and set to old_cs
-    old_cs.ImportFromWkt(ds.GetProjectionRef())
-
-    # Create co-ordinate transformation object
-    trans = osr.CoordinateTransformation(old_cs, new_cs)
-
-    # Fetch the geospatial data from the GeoTiff file
-    gt_data = ds.GetGeoTransform()
-
-    # Calculate the minimum and maximum x and y extent of the file in the old co-ordinate system
-    min_x = gt_data[0]
-    min_y = gt_data[3] + w * gt_data[4] + h * gt_data[5]
-    max_x = gt_data[0] + w * gt_data[1] + h * gt_data[2]
-    max_y = gt_data[3]
-
-    # Return the transformation of the corners of the file from the old co-ordinate system into the new
-    return [[trans.TransformPoint(min_x, max_y)[:2], trans.TransformPoint(max_x, max_y)[:2]],
-            [trans.TransformPoint(min_x, min_y)[:2], trans.TransformPoint(max_x, min_y)[:2]]]
+    return [transform_bounds(src_crs=src_rst.crs, dst_crs=new_crs, *src_rst.bounds)]
 
 
 def deg_to_dms(deg: float, axis: str = 'lat') -> str:
@@ -545,7 +525,7 @@ def deg_to_dms(deg: float, axis: str = 'lat') -> str:
         axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier.
 
     Returns:
-        str of inputted deg in degrees, minutes and seconds in the form DegreesºMinutes Seconds Hemisphere.
+        str of inputted deg in degrees, minutes and seconds in the form Degreesº Minutes Seconds Hemisphere.
     """
     # Split decimal degrees into units and decimals
     decimals, number = math.modf(deg)
