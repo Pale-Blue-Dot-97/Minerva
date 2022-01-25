@@ -155,6 +155,11 @@ transform_params:
     #  size:
     #  length:
 
+# Collation
+collator:
+  module: 'torchgeo.datasets'
+  name: 'stack_samples'
+
 # Model hyper-parameters
 hyperparams:
   params:
