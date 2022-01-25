@@ -205,7 +205,8 @@ def make_datasets(root: Optional[str] = '', frac: Optional[float] = None, n_patc
 
         # --+ MAKE DATALOADERS +======================================================================================+
         print(f'CREATING {mode} LOADER')
-        loaders[mode] = DataLoader(dataset, sampler=sampler,  **dataloader_params)
+        collator = utils.func_by_str(params['collator']['module'], params['collator']['name'])
+        loaders[mode] = DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
         print('DONE')
 
     # Combines all scenes together to output a class_dist for the entire dataset.
