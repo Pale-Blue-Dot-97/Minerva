@@ -5,15 +5,15 @@ scikit-learn>=0.23.2
 matplotlib>=3.3.2
 tqdm
 pandas>=1.2.0
-seaborn>=0.11.1
+seaborn
 tensorflow>=2.4.0
-rasterio>=1.1.0
-imageio>=2.9.0
+rasterio
+imageio
 torchinfo
 torchvision
 torchgeo~=0.2.0
 setuptools
-fiona>=1.8.13.post1
+fiona
 tabulate
 inputimeout
 psutil
@@ -21,7 +21,7 @@ typing_extensions
 alive_progress
 radiant_mlhub
 zipfile-deflate64
-opencv-python~=4.5.4
+opencv-python
 
 --find-links https://download.pytorch.org/whl/torch_stable.html
 torch>=1.9.0

@@ -10,7 +10,7 @@ dir:
    - 'data'
    - 'landcovernet'
   configs:
-    data_config: '../../config/ESRI.yml'
+    data_config: '../../config/ChesapeakeCVPR.yml'
     imagery_config: '../../config/landcovernet.yml'
   results:
     - 'F:'

@@ -227,9 +227,15 @@ def make_datasets(root: Optional[str] = '', frac: Optional[float] = None, n_patc
     #if p_dist:
     #    utils.print_class_dist(class_dist)
 
-    #params['hyperparams']['model_params']['n_classes'] = len(new_classes)
-    #params['classes'] = new_classes
-    #params['colours'] = new_colours
+    # TEMP -- ELIMINATE CLASSES NEEDS FIXING!
+    _, aux_configs = utils.load_configs('../../config/config.yml')
+    data_config = aux_configs['data_config']
+    new_classes = data_config['classes']
+    new_colours = data_config['colours']
+
+    params['hyperparams']['model_params']['n_classes'] = len(new_classes)
+    params['classes'] = new_classes
+    params['colours'] = new_colours
 
     class_dist = []
 
