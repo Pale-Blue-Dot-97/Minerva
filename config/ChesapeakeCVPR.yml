@@ -36,7 +36,7 @@ colours:
   14: '#000000'  # Transparent
   15: '#000000'  # Transparent
 
-#label_suffix: '_2020_LC_10m'
+label_suffix: '_2020_LC_10m'
 
 co_sys:
   id: 26918
