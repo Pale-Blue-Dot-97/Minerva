@@ -3,12 +3,12 @@
 # === PATHS ===========================================================================================================
 dir:
   data:
-   - 'G:'
-   - 'GitHub'
-   - 'Minerva'
-   - 'Minerva'
-   - 'data'
-   - 'landcovernet'
+    - 'G:'
+    - 'GitHub'
+    - 'Minerva'
+    - 'Minerva'
+    - 'data'
+    - 'landcovernet'
   configs:
     data_config: '../../config/ChesapeakeCVPR.yml'
     imagery_config: '../../config/landcovernet.yml'
