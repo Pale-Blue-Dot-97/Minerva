@@ -165,16 +165,6 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
         imagery_root = os.sep.join((*params['dir']['data'], dataset_params[mode]['imagery']['root']))
         labels_root = os.sep.join((*params['dir']['data'], dataset_params[mode]['labels']['root']))
 
-        naip_url = "https://naipblobs.blob.core.windows.net/naip/v002/de/2018/de_060cm_2018/38075/"
-        tiles = [
-            "m_3807511_ne_18_060_20181104.tif",
-            "m_3807511_se_18_060_20181104.tif",
-            "m_3807512_nw_18_060_20180815.tif",
-            "m_3807512_sw_18_060_20180815.tif",
-        ]
-        for tile in tiles:
-            download_url(naip_url + tile, imagery_root)
-
         print(f'CREATING {mode} DATASET')
         image_dataset = _image_dataset(root=imagery_root,
                                        transforms=make_transformations(transform_params[mode]['imagery']),
