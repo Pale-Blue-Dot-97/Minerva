@@ -1,6 +1,6 @@
-"""Module containing classes defining custom (Iterable)Dataset classes for use in the fitting of neural networks.
+"""Module for constructing loaders, samplers, datasets and transforms using torchvision-style structures.
 
-    Copyright (C) 2021 Harry James Baker
+    Copyright (C) 2022 Harry James Baker
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -35,7 +35,6 @@ from typing import Optional, Union, Tuple, Dict
 from Minerva.utils import utils
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from torchgeo.datasets.utils import download_url
 
 
 # =====================================================================================================================

@@ -1,6 +1,6 @@
-"""Module to visualise .tiff images and associated label masks.
+"""Module to visualise .tiff images, label masks and results from the fitting of neural networks for remote sensing.
 
-    Copyright (C) 2021 Harry James Baker
+    Copyright (C) 2022 Harry James Baker
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
