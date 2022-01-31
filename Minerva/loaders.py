@@ -90,31 +90,21 @@ def make_transformations(transform_params: dict):
 
 
 @utils.return_updated_kwargs
-def make_datasets(root: Optional[str] = '', frac: Optional[float] = None, n_patches: Optional[int] = None,
-                  #split: Tuple[float, float, float] = (0.7, 0.15, 0.15),
-                  patch_size: Optional[Union[int, Tuple[int]]] = 256, seed: int = 42, shuffle: bool = True,
-                  plot: bool = False, balance: bool = False, model_type: str = 'scene classifier',
-                  p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader], dict, list, dict]:
+def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15),
+                  patch_size: Optional[Union[int, Tuple[int]]] = 256, plot: bool = False, p_dist: bool = False,
+                  **params) -> Tuple[Dict[str, DataLoader], dict, list, dict]:
     """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
 
     Args:
-        frac (float): Optional; Fraction of the all patch IDs to include in the construction of the datasets.
-        n_patches (float): Optional; The number of patches to use in the construction of datasets.
-        split (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets, in the
+        n_samples (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets, in the
             order (train, validation, test).
-        seed (int): Optional; Random seed number to fix the shuffling of the data split.
-        shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
         plot (bool): Optional; Whether to plot pie charts of the class distributions within each dataset.
-        balance (bool): Optional; Whether to attempt to balance the class distributions within each dataset.
-        model_type (str): Optional; Must be either mlp, MLP, scene classifier or segmentation.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Keyword Args:
         hyperparams (dict): Dictionary of hyper-parameters for the model.
         batch_size (int): Number of samples in each batch to be returned by the DataLoaders.
-        scene_selector (str): Name of function to use to select which scenes of a patch to include in the datasets.
         elim (bool): Whether to eliminate classes with no samples in.
-        centre_only (bool): Whether to modify samples to be an array of zeros apart from the original centre pixel.
 
     Returns:
         loaders (dict): Dictionary of the DataLoader for training, validation and testing.
@@ -134,11 +124,6 @@ def make_datasets(root: Optional[str] = '', frac: Optional[float] = None, n_patc
     label_func = utils.lc_load
     if model_type == 'scene classifier':
         label_func = utils.find_centre_label
-
-    # Splits the dataset into train, validation and test.
-    print('\nSPLITTING DATASET TO {}% TRAIN, {}% VAL, {}% TEST'.format(split[0] * 100, split[1] * 100, split[2] * 100))
-    ids, patch_class_dists = utils.split_data(patch_ids=patch_ids, split=split, func=label_func, seed=seed,
-                                              shuffle=shuffle, balance=False, p_dist=p_dist, plot=plot)
     """
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
