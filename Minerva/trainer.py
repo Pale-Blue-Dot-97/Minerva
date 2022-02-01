@@ -42,7 +42,6 @@ from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import pandas as pd
-#from itertools import islice
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
 

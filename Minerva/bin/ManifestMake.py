@@ -1,6 +1,6 @@
 """Script to create manifests of data for use in Minerva pre-processing to reduce computation time.
 
-    Copyright (C) 2021 Harry James Baker
+    Copyright (C) 2022 Harry James Baker
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ Created under a project funded by the Ordnance Survey Ltd.
 Attributes:
     config_path (str): Path to master config YAML file.
     config (dict): Master config defining how the experiment should be conducted.
-    data_dir (str): Path to directory holding dataset.
 
 TODO:
     * Re-engineer for use with torchvision style datasets
@@ -39,21 +38,27 @@ TODO:
 from Minerva.utils import utils
 import pandas as pd
 import os
+from torch.utils.data import DataLoader
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = '../../config/config.yml'
+config_path = '../../config/mf_config.yml'
 
 config, _ = utils.load_configs(config_path)
-
-# Path to directory holding dataset
-data_dir = os.sep.join(config['dir']['data'])
 
 
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def load_all_samples(dataloader):
+    samples = {}
+    for i, sample in enumerate(dataloader):
+        samples[i] = sample['mask']
+
+    return samples
+
+
 def make_manifest() -> pd.DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -62,24 +67,36 @@ def make_manifest() -> pd.DataFrame:
     Returns:
         df (pd.DataFrame): The completed manifest as a DataFrame.
     """
-    print('GETTING PATCH IDs')
-    patch_ids = utils.patch_grab()
-    scenes = []
-    clouds = []
+    dataloader_params = config['dataloader_params']
+    dataset_params = config['dataset_params']
+    sampler_params = config['sampler_params']
 
-    print('GETTING CLDs and SCENES')
-    for patch_id in patch_ids:
-        clds, dates = utils.cloud_grab(patch_id)
-        scenes += [(patch_id, scene) for scene in dates]
-        clouds += clds
+    print('CONSTRUCTING DATASET')
+    _image_dataset = utils.func_by_str(module=dataset_params['imagery']['module'],
+                                       func=dataset_params['imagery']['name'])
 
-    print('CONSTRUCTING DATAFRAME')
+    _label_dataset = utils.func_by_str(module=dataset_params['labels']['module'],
+                                       func=dataset_params['labels']['name'])
+
+    imagery_root = os.sep.join((*config['dir']['data'], dataset_params['imagery']['root']))
+    labels_root = os.sep.join((*config['dir']['data'], dataset_params['labels']['root']))
+
+    image_dataset = _image_dataset(root=imagery_root, **dataset_params['imagery']['params'])
+    label_dataset = _label_dataset(root=labels_root, **dataset_params['labels']['params'])
+
+    dataset = image_dataset & label_dataset
+
+    # --+ MAKE SAMPLERS +=========================================================================================+
+    sampler = utils.func_by_str(module=sampler_params['module'], func=sampler_params['name'])
+    sampler = sampler(dataset=image_dataset, **sampler_params['params'])
+
+    # --+ MAKE DATALOADERS +======================================================================================+
+    collator = utils.func_by_str(config['collator']['module'], config['collator']['name'])
+    loader = DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
+
+    print('FETCHING SAMPLES')
     df = pd.DataFrame()
-    df['SCENE'] = scenes
-    df['PATCH'] = df['SCENE'].apply(utils.extract_patch_ids)
-    df['DATE'] = df['SCENE'].apply(utils.extract_dates)
-    scene_tags = utils.scene_tag(scenes)
-    df['SCENE'] = scene_tags
+    df['PATCHES'] = load_all_samples(loader)
 
     print('CALCULATING CLASS MODES')
     # Calculates the class modes of each patch.
@@ -89,18 +106,6 @@ def make_manifest() -> pd.DataFrame:
     # Calculates the fractional size of each class in each patch.
     df = pd.DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
     df.fillna(0, inplace=True)
-
-    print('CALCULATING CLOUD COVER')
-    df['CLD'] = clouds
-    # Calculates the cloud cover percentage for every scene and adds to DataFrame.
-    df['COVER'] = df['CLD'].apply(utils.cloud_cover)
-
-    # Removes unneeded CLD and MODES columns.
-    del df['CLD']
-    del df['MODES']
-
-    print('FINDING CENTRE LABELS')
-    df['CPL'] = utils.dataset_lc_load(df['PATCH'], utils.find_centre_label)
 
     return df
 
@@ -113,9 +118,11 @@ def main():
 
     print(manifest)
 
-    fn = os.sep.join([data_dir, '{}_Manifest.csv'.format(utils.get_dataset_name())])
+    output_dir = os.sep.join(config['dir']['output'])
 
-    print('MANIFEST TO FILE -----> {}'.format(fn))
+    fn = os.sep.join([output_dir, f'{utils.get_dataset_name()}_Manifest.csv'])
+
+    print(f'MANIFEST TO FILE -----> {fn}')
     manifest.to_csv(fn)
 
 
