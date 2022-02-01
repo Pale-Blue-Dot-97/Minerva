@@ -893,16 +893,16 @@ def class_dist_transform(class_dist: Union[list, tuple, np.ndarray], matrix: dic
     return new_class_dist
 
 
-def find_patch_modes(patch_id: str) -> list:
+def find_patch_modes(patch) -> list:
     """Finds the distribution of the classes within this patch.
 
     Args:
-        patch_id (str): Unique patch ID.
+        patch (list, np.ndarray): Patch mask.
 
     Returns:
         Modal distribution of classes in the patch provided in order of most common mode.
     """
-    return Counter(np.array(lc_load(patch_id)).flatten()).most_common()
+    return Counter(np.array(patch).flatten()).most_common()
 
 
 def class_frac(patch: pd.Series) -> Mapping:
