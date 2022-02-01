@@ -26,6 +26,8 @@ Created under a project funded by the Ordnance Survey Ltd.
 
 TODO:
     * Re-incorporate the use of WeightedRandomSampler as an option
+    * Re-incorporate class distribution calculations
+    * Consider incorporation into utils or trainer
 """
 # =====================================================================================================================
 #                                                     IMPORTS

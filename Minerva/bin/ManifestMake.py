@@ -30,6 +30,8 @@ Attributes:
     data_dir (str): Path to directory holding dataset.
 
 TODO:
+    * Re-engineer for use with torchvision style datasets
+    * Consider use of parquet format rather than csv
 """
 # =====================================================================================================================
 #                                                     IMPORTS
