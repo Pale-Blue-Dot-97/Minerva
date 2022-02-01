@@ -1,0 +1,66 @@
+# EXAMPLE MANIFEST CONFIG FILE
+
+# === PATHS ===========================================================================================================
+dir:
+  data:
+    - 'G:'
+    - 'GitHub'
+    - 'Minerva'
+    - 'Minerva'
+    - 'data'
+    - 'ChesapeakeCVPR'
+  configs:
+    data_config: '../../config/ChesapeakeCVPR.yml'
+    #imagery_config: '../../config/landcovernet.yml'
+  output:
+    - 'G:'
+    - 'GitHub'
+    - 'Minerva'
+    - 'Minerva'
+    - 'cache'
+
+# === DATASET PARAMETERS ==============================================================================================
+dataset_params:
+  imagery:
+    module: 'torchgeo.datasets'
+    name: 'ChesapeakeCVPR'
+    root: 'cvpr_chesapeake_landcover'
+    params:
+      splits: ['ny-train', 'ny-val', 'ny-test',
+               'de-train', 'de-val', 'de-test',
+               'md-train', 'md-val', 'md-test',
+               'wv-train', 'wv-val', 'wv-test',
+               'va-train', 'va-val', 'va-test',
+               'pa-train', 'pa-val', 'pa-test']
+      layers: ['naip-new']
+  labels:
+    module: 'torchgeo.datasets'
+    name: 'ChesapeakeCVPR'
+    root: 'cvpr_chesapeake_landcover'
+    params:
+      splits: [ 'ny-train', 'ny-val', 'ny-test',
+                'de-train', 'de-val', 'de-test',
+                'md-train', 'md-val', 'md-test',
+                'wv-train', 'wv-val', 'wv-test',
+                'va-train', 'va-val', 'va-test',
+                'pa-train', 'pa-val', 'pa-test' ]
+      layers: ['lc']
+
+# === SAMPLER PARAMETERS ==============================================================================================
+sampler_params:
+  module: 'torchgeo.samplers'
+  name: 'GridGeoSampler'
+  params:
+    size: 256
+    stride: 256
+
+# Collation
+collator:
+  module: 'torchgeo.datasets'
+  name: 'stack_samples'
+
+# Dataloader
+dataloader_params:
+  batch_size: 16
+  num_workers: 6
+  pin_memory: True
