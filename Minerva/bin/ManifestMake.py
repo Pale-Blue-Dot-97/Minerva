@@ -36,9 +36,9 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import utils
+from Minerva.loaders import construct_dataloader
 import pandas as pd
 import os
-from torch.utils.data import DataLoader
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -54,6 +54,7 @@ config, _ = utils.load_configs(config_path)
 def load_all_samples(dataloader):
     samples = {}
     for i, sample in enumerate(dataloader):
+        print(f'Sample {i}')
         samples[i] = sample['mask']
 
     return samples
@@ -72,27 +73,8 @@ def make_manifest() -> pd.DataFrame:
     sampler_params = config['sampler_params']
 
     print('CONSTRUCTING DATASET')
-    _image_dataset = utils.func_by_str(module=dataset_params['imagery']['module'],
-                                       func=dataset_params['imagery']['name'])
-
-    _label_dataset = utils.func_by_str(module=dataset_params['labels']['module'],
-                                       func=dataset_params['labels']['name'])
-
-    imagery_root = os.sep.join((*config['dir']['data'], dataset_params['imagery']['root']))
-    labels_root = os.sep.join((*config['dir']['data'], dataset_params['labels']['root']))
-
-    image_dataset = _image_dataset(root=imagery_root, **dataset_params['imagery']['params'])
-    label_dataset = _label_dataset(root=labels_root, **dataset_params['labels']['params'])
-
-    dataset = image_dataset & label_dataset
-
-    # --+ MAKE SAMPLERS +=========================================================================================+
-    sampler = utils.func_by_str(module=sampler_params['module'], func=sampler_params['name'])
-    sampler = sampler(dataset=image_dataset, **sampler_params['params'])
-
-    # --+ MAKE DATALOADERS +======================================================================================+
-    collator = utils.func_by_str(config['collator']['module'], config['collator']['name'])
-    loader = DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
+    loader = construct_dataloader(config['dir']['data'], dataset_params, sampler_params, 
+                                  dataloader_params)
 
     print('FETCHING SAMPLES')
     df = pd.DataFrame()
@@ -106,6 +88,9 @@ def make_manifest() -> pd.DataFrame:
     # Calculates the fractional size of each class in each patch.
     df = pd.DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
     df.fillna(0, inplace=True)
+    
+    # Delete redunant MODES column.
+    del df['MODES']
 
     return df
 
