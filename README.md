@@ -1,57 +1,75 @@
 # Minerva
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva)
 
-Minerva is a package to aid in the building, fitting and testing of neural network models on land cover data.
+Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial 
+rasterised land cover data.  
  
 ## Installation
 
-TBC
+If one wishes to use [torchgeo](https://pypi.org/project/torchgeo/), installation on Linux is recommended to handle the 
+compilation of the required C-based libraries.
+
+The recommended installation order is to start with a fresh `conda` environment, specifying the `python`
+version and installing `pytorch` upon environment creation:
+
+```shell
+conda create env --name minerva-39 python=3.9 pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+```
+
+Then install `torchgeo` via `pip`:
+```shell
+pip install torchgeo
+```
+
+Then proceed with installing `Minerva`'s remaining requirements:
+```shell
+pip install tensorflow pandas imageio opencv-python seaborn tabulate torchinfo psutil alive-progress inputimeout
+```
+
+The `torchgeo` docs also recommend installing `radiant_mlhub` and `zipfile-deflate64`:
+```shell
+pip install zipfile-deflate64  radiant_mlhub
+```
 
 ## Requirements
 
-Currently, `Minerva` only supports the use of [Radiant MLHub LandCoverNetV1](http://registry.mlhub.earth/10.34911/rdnt.d2ce8i/) 
-dataset. Included in `Minerva\bin` is `Landcovernet_Download_API.py`, a script implementing the example implementation 
-of Radiant Earth's download API that can download the desired LandCoverNetV1 data. Users will require an API key that 
-can be obtained from Radiant Earth upon sign-up. This key should be placed in a file named `API Key.txt` to use the API.
+`Minerva` now supports the use of [torchgeo](http://registry.mlhub.earth/10.34911/rdnt.d2ce8i/) 
+datasets with upcoming support for [torchvision](https://pytorch.org/vision/stable/index.html) datasets. 
 
 Required Python modules for `Minerva` are stated in `requirements.txt`.
 
 ## Usage
-Minerva provides the modules to define `models` to fit and test, `loaders` to pre-process, load and parse data, 
-and a `Trainer` to handle all aspects of a model fitting.
+The core functionality of `Minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process, 
+load and parse data, and a `Trainer` to handle all aspects of a model fitting. Below is a MWE of creating datasets, 
+initialising a Trainer and model, and fitting and testing that model then outputting the results:
 
 ```python
-import Minerva.loaders as loaders
-from Minerva.trainer import Trainer
-import yaml
-import torch
-from torch.backends import cudnn
+from Minerva.utils import utils             # Module containing various utility functions
+from Minerva.loaders import make_datasets   # Module to handle the creation of datasets and torch loaders
+from Minerva.trainer import Trainer         # Class designed to handle fitting of model
 
-config_path = '../../config/config.yml'
+# Specify the path to a YAML master config.
+config_path = "../../config/config.yml"
 
-with open(config_path) as file:
-    config = yaml.safe_load(file)
+# Loads the master config from file as a dict.
+config, _ = utils.load_configs(config_path)
 
-# CUDA for PyTorch
-use_cuda = torch.cuda.is_available()
-device = torch.device("cuda:0" if use_cuda else "cpu")
-cudnn.benchmark = True
+# Get the dataset loaders, number of batches, the distribution of classes and an updated config.
+datasets, n_batches, class_dist, new_config = make_datasets(**config)
 
-# Parameters
-params = config['hyperparams']['params']
+# Initialise a Trainer. Also creates the model.
+trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config)
 
-datasets, n_batches, _, ids = loaders.make_datasets(cnn=True, params=params)
-
-trainer = Trainer(loaders=datasets, n_batches=n_batches, device=device, **config)
-
+# Run the fitting (train and validation epochs).
 trainer.fit()
 
-trainer.test({'History': True, 'Pred': True, 'CM': True}, save=False)
+# Run the testing epoch and output results.
+trainer.test()
 ```
 
 WIP!
 
-See `Minerva\bin\MinervaPercep.py` as an example script implementing `Minerva`.
+See `Minerva\bin\MinervaExp.py` as an example script implementing `Minerva`.
 
 ## License
 Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/licenses/gpl-3.0/).
