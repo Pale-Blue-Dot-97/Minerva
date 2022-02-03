@@ -139,8 +139,8 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
     """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
 
     Args:
-        n_samples (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets, in the
-            order (train, validation, test).
+        n_samples (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets,
+            in the order (train, validation, test).
         plot (bool): Optional; Whether to plot pie charts of the class distributions within each dataset.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
@@ -162,39 +162,19 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
     transform_params = params['transform_params']
     batch_size = dataloader_params['batch_size']
 
-    """
-    # Defines the function to use to load the labels. Either to load the whole mask or just the centre label.
-    label_func = utils.lc_load
-    if model_type == 'scene classifier':
-        label_func = utils.find_centre_label
-    """
+    # TODO: FIND CLASS DISTRIBUTION FROM MANIFEST
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
     # and new colours.
-    print('\nFINDING EMPTY CLASSES')
+    #print('\nFINDING EMPTY CLASSES')
     #new_classes, forwards, new_colours = utils.eliminate_classes(
     #    utils.find_empty_classes(class_dist=class_dists['ALL']))
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
     loaders = {}
-    class_dists = {}
 
     for mode in ('train', 'val', 'test'):
-        print('\nFINDING CLASS DISTRIBUTION OF SCENES')
-        # Find class distribution of dataset by scene IDs, not patch IDs.
-        #class_dist = utils.subpopulations_from_manifest(utils.select_df_by_scenes(manifest, scenes[mode]),
-        #                                                func=label_func, plot=plot)
-
-        # Prints class distribution in a pretty text format using tabulate to stdout.
-        #if p_dist:
-        #    utils.print_class_dist(class_dist)
-
-        # Transform class dist if elimination of classes has occurred.
-        #if params['elim']:
-        #    class_dist = utils.class_dist_transform(class_dist, forwards)
-        #class_dists[mode] = class_dist
-
         # Calculates number of batches.
         n_batches[mode] = int(sampler_params[mode]['params']['length'] / batch_size)
 
