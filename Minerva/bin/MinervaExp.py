@@ -36,7 +36,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import utils
-import Minerva.loaders as loaders
+from Minerva.loaders import make_datasets
 from Minerva.trainer import Trainer
 
 # =====================================================================================================================
@@ -51,7 +51,7 @@ config, _ = utils.load_configs(config_path)
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, new_config = loaders.make_datasets(**config)
+    datasets, n_batches, class_dist, new_config = make_datasets(**config)
 
     trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config)
     trainer.fit()
