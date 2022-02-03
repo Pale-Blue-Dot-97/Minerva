@@ -42,6 +42,47 @@ from torchvision import transforms
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def intersect_datasets(datasets):
+    def intersect_pair_datasets(a, b):
+        return a & b
+    
+    for i in range(len(datasets) - 1):
+        datasets[0] = intersect_pair_datasets(datasets[0], datasets[i + 1])
+
+    return datasets[0]
+
+
+def construct_dataloader(data_dir, dataset_params, sampler_params, dataloader_params, 
+                         collator_params=None, transform_params=None):
+    subdatasets = []
+    for key in dataset_params.keys():
+        subdataset_params = dataset_params[key]
+        _subdataset = utils.func_by_str(module=subdataset_params['module'],
+                                        func=subdataset_params['name'])
+        subdataset_root = os.sep.join((*data_dir, subdataset_params['root']))
+        
+        transforms = None
+        if transform_params is not None:
+            transforms = make_transformations(transform_params[key])
+        
+        subdatasets.append(_subdataset(root=subdataset_root, transforms=transforms, **dataset_params[key]['params']))
+
+    dataset = subdatasets[0]
+    if len(subdatasets) > 1:
+        dataset = intersect_datasets(subdatasets)
+
+    # --+ MAKE SAMPLERS +=========================================================================================+
+    sampler = utils.func_by_str(module=sampler_params['module'], func=sampler_params['name'])
+    sampler = sampler(dataset=subdatasets[0], **sampler_params['params'])
+
+    # --+ MAKE DATALOADERS +======================================================================================+
+    collator = None
+    if collator_params is not None:
+        collator = utils.func_by_str(collator_params['module'], collator_params['name'])
+
+    return DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
+
+
 def get_transform(name: str, params: dict):
     """Creates a TensorBoard transform object based on config parameters.
 
@@ -157,38 +198,12 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
         n_batches[mode] = int(sampler_params[mode]['params']['length'] / batch_size)
 
         # --+ MAKE DATASETS +=========================================================================================+
-        _image_dataset = utils.func_by_str(module=dataset_params[mode]['imagery']['module'],
-                                           func=dataset_params[mode]['imagery']['name'])
-
-        _label_dataset = utils.func_by_str(module=dataset_params[mode]['labels']['module'],
-                                           func=dataset_params[mode]['labels']['name'])
-
-        imagery_root = os.sep.join((*params['dir']['data'], dataset_params[mode]['imagery']['root']))
-        labels_root = os.sep.join((*params['dir']['data'], dataset_params[mode]['labels']['root']))
-
         print(f'CREATING {mode} DATASET')
-        image_dataset = _image_dataset(root=imagery_root,
-                                       transforms=make_transformations(transform_params[mode]['imagery']),
-                                       **dataset_params[mode]['imagery']['params'])
-        label_dataset = _label_dataset(root=labels_root,
-                                       transforms=make_transformations(transform_params[mode]['labels']),
-                                       **dataset_params[mode]['labels']['params'])
-
-        dataset = image_dataset & label_dataset
+        loaders[mode] = construct_dataloader(params['dir']['data'], dataset_params[mode], sampler_params[mode], 
+                                             dataloader_params, collator_params=params['collator'], 
+                                             transform_params=transform_params[mode])
         print('DONE')
 
-        # --+ MAKE SAMPLERS +=========================================================================================+
-        sampler = utils.func_by_str(module=sampler_params[mode]['module'], func=sampler_params[mode]['name'])
-
-        print(f'CREATING {mode} SAMPLER')
-        sampler = sampler(dataset=image_dataset, **sampler_params[mode]['params'])
-        print('DONE')
-
-        # --+ MAKE DATALOADERS +======================================================================================+
-        print(f'CREATING {mode} LOADER')
-        collator = utils.func_by_str(params['collator']['module'], params['collator']['name'])
-        loaders[mode] = DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
-        print('DONE')
 
     # Combines all scenes together to output a class_dist for the entire dataset.
     #all_scenes = scenes['train'] + scenes['val'] + scenes['test']
