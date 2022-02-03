@@ -61,11 +61,12 @@ def construct_dataloader(data_dir, dataset_params, sampler_params, dataloader_pa
                                         func=subdataset_params['name'])
         subdataset_root = os.sep.join((*data_dir, subdataset_params['root']))
         
-        transforms = None
+        transformations = None
         if transform_params is not None:
-            transforms = make_transformations(transform_params[key])
+            transformations = make_transformations(transform_params[key])
         
-        subdatasets.append(_subdataset(root=subdataset_root, transforms=transforms, **dataset_params[key]['params']))
+        subdatasets.append(_subdataset(root=subdataset_root, transforms=transformations,
+                                       **dataset_params[key]['params']))
 
     dataset = subdatasets[0]
     if len(subdatasets) > 1:
