@@ -33,7 +33,10 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
-from typing import Optional, Union, Tuple, Dict
+from typing import Optional, Union, Tuple, Dict, Iterable
+
+import pandas as pd
+
 from Minerva.utils import utils
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -44,7 +47,7 @@ from alive_progress import alive_it
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def intersect_datasets(datasets):
+def intersect_datasets(datasets: list):
     def intersect_pair_datasets(a, b):
         return a & b
     
@@ -54,8 +57,21 @@ def intersect_datasets(datasets):
     return datasets[0]
 
 
-def construct_dataloader(data_dir, dataset_params, sampler_params, dataloader_params, 
-                         collator_params=None, transform_params=None):
+def construct_dataloader(data_dir: Iterable[str], dataset_params: dict, sampler_params: dict, dataloader_params: dict,
+                         collator_params: Optional[dict] = None, transform_params: Optional[dict] = None) -> DataLoader:
+    """
+
+    Args:
+        data_dir (Iterable[str]): A list of str defining the common path for all datasets to be constructed.
+        dataset_params (dict):
+        sampler_params (dict):
+        dataloader_params (dict):
+        collator_params (dict): Optional;
+        transform_params: Optional;
+
+    Returns:
+        loader (DataLoader):
+    """
     subdatasets = []
     for key in dataset_params.keys():
         subdataset_params = dataset_params[key]
@@ -86,9 +102,18 @@ def construct_dataloader(data_dir, dataset_params, sampler_params, dataloader_pa
     return DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
 
 
-def load_all_samples(dataloader):
+def load_all_samples(dataloader: DataLoader) -> np.ndarray:
+    """Loads all sample masks from parsed DataLoader and computes the modes of their classes.
+
+    Args:
+        dataloader (DataLoader): DataLoader containing samples. Must be using a dataset with __len__ attribute
+            and a sampler that returns a dict with a 'mask' key.
+
+    Returns:
+        sample_modes (np.ndarray): 2D array of the class modes within every sample defined by the parsed DataLoader.
+    """
     sample_modes = []
-    for i, sample in enumerate(alive_it(dataloader)):
+    for sample in alive_it(dataloader):
         modes = utils.find_patch_modes(sample['mask'])
         sample_modes.append(modes)
 
@@ -175,13 +200,14 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
     transform_params = params['transform_params']
     batch_size = dataloader_params['batch_size']
 
-    # TODO: FIND CLASS DISTRIBUTION FROM MANIFEST
+    # Load manifest from cache for this dataset.
+    manifest = pd.read_csv(utils.get_manifest())
+    class_dist = utils.subpopulations_from_manifest(manifest)
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
     # and new colours.
-    #print('\nFINDING EMPTY CLASSES')
-    #new_classes, forwards, new_colours = utils.eliminate_classes(
-    #    utils.find_empty_classes(class_dist=class_dists['ALL']))
+    print('\nFINDING EMPTY CLASSES')
+    new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(class_dist=class_dist))
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
@@ -198,30 +224,16 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
                                              transform_params=transform_params[mode])
         print('DONE')
 
-
-    # Combines all scenes together to output a class_dist for the entire dataset.
-    #all_scenes = scenes['train'] + scenes['val'] + scenes['test']
-    #class_dist = utils.subpopulations_from_manifest(utils.select_df_by_scenes(manifest, all_scenes),
-    #                                                func=label_func, plot=plot)
-
     # Transform class dist if elimination of classes has occurred.
-    #if params['elim']:
-    #    class_dist = utils.class_dist_transform(class_dist, forwards)
+    if params['elim']:
+        class_dist = utils.class_dist_transform(class_dist, forwards)
 
     # Prints class distribution in a pretty text format using tabulate to stdout.
-    #if p_dist:
-    #    utils.print_class_dist(class_dist)
-
-    # TEMP -- ELIMINATE CLASSES NEEDS FIXING!
-    _, aux_configs = utils.load_configs('../../config/config.yml')
-    data_config = aux_configs['data_config']
-    new_classes = data_config['classes']
-    new_colours = data_config['colours']
+    if p_dist:
+        utils.print_class_dist(class_dist)
 
     params['hyperparams']['model_params']['n_classes'] = len(new_classes)
     params['classes'] = new_classes
     params['colours'] = new_colours
-
-    class_dist = []
 
     return loaders, n_batches, class_dist, params

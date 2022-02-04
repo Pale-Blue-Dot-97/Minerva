@@ -77,7 +77,7 @@ def make_manifest() -> pd.DataFrame:
     df = pd.DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
     df.fillna(0, inplace=True)
     
-    # Delete redunant MODES column.
+    # Delete redundant MODES column.
     del df['MODES']
 
     return df
