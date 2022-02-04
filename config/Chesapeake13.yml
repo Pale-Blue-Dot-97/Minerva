@@ -1,0 +1,43 @@
+# Chesapeake Bay Watershed land cover classes reformatted to split across two lines for neater plots
+classes:
+  0: "No Data"
+  1: "Water"
+  2: "Wetlands"
+  3: "Trees"
+  4: "Shrubland"
+  5: "Low Vegetation\nField"
+  6: "Barren"
+  7: "Structures"
+  8: "Impervious Surfaces"
+  9: "Impervious Roads"
+  10: "Tree Canopy\n(over Structures)"
+  11: "Tree Canopy\n(over Impervious Surfaces)"
+  12: "Tree Canopy\n(over Impervious Roads)"
+  13: "Aberdeen Proving Ground"
+  14: "No Data"
+  15: "No Data"
+
+# Custom colour mapping specified by ESRI
+colours:
+  0: '#000000'  # Transparent
+  1: '#00c5ff'  # Light Blue
+  2: '#00a884'  # Teal
+  3: '#267300'  # Dark green
+  4: '#4ce600'  # Light green
+  5: '#a3ff73'  # v. Light green
+  6: '#ffaa00'  # Orange
+  7: '#ff0000'  # Red
+  8: '#9c9c9c'  # Light grey
+  9: '#000000'  # Black
+  10: '#737300'  # Yellow-Green
+  11: '#e6e600'  # Yellow
+  12: '#ffff73'  # Light yellow
+  13: '#c500ff'  # Purple
+  14: '#000000'  # Transparent
+  15: '#000000'  # Transparent
+
+label_suffix: '_2020_LC_10m'
+
+co_sys:
+  id: 26918
+  name: 'WGS84_26918'
