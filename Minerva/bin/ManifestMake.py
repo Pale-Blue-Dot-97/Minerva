@@ -36,7 +36,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import utils
-from Minerva.loaders import construct_dataloader
+from Minerva.loaders import construct_dataloader, load_all_samples
 import pandas as pd
 import os
 
@@ -51,15 +51,6 @@ config, _ = utils.load_configs(config_path)
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def load_all_samples(dataloader):
-    samples = {}
-    for i, sample in enumerate(dataloader):
-        print(f'Sample {i}')
-        samples[i] = sample['mask']
-
-    return samples
-
-
 def make_manifest() -> pd.DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -71,18 +62,15 @@ def make_manifest() -> pd.DataFrame:
     dataloader_params = config['dataloader_params']
     dataset_params = config['dataset_params']
     sampler_params = config['sampler_params']
+    collator_params = config['collator']
 
     print('CONSTRUCTING DATASET')
     loader = construct_dataloader(config['dir']['data'], dataset_params, sampler_params, 
-                                  dataloader_params)
+                                  dataloader_params, collator_params=collator_params)
 
     print('FETCHING SAMPLES')
     df = pd.DataFrame()
-    df['PATCHES'] = load_all_samples(loader)
-
-    print('CALCULATING CLASS MODES')
-    # Calculates the class modes of each patch.
-    df['MODES'] = df['PATCH'].apply(utils.find_patch_modes)
+    df['MODES'] = load_all_samples(loader)
 
     print('CALCULATING CLASS FRACTIONS')
     # Calculates the fractional size of each class in each patch.

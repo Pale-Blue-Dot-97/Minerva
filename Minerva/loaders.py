@@ -37,6 +37,8 @@ from typing import Optional, Union, Tuple, Dict
 from Minerva.utils import utils
 from torch.utils.data import DataLoader
 from torchvision import transforms
+import numpy as np
+from alive_progress import alive_it
 
 
 # =====================================================================================================================
@@ -82,6 +84,17 @@ def construct_dataloader(data_dir, dataset_params, sampler_params, dataloader_pa
         collator = utils.func_by_str(collator_params['module'], collator_params['name'])
 
     return DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
+
+
+def load_all_samples(dataloader):
+    sample_modes = []
+    for i, sample in enumerate(alive_it(dataloader)):
+        modes = utils.find_patch_modes(sample['mask'])
+        sample_modes.append(modes)
+
+    sample_modes = np.array(sample_modes)
+    
+    return sample_modes
 
 
 def get_transform(name: str, params: dict):
