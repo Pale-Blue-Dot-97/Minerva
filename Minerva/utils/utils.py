@@ -53,7 +53,6 @@ import functools
 from Minerva.utils import visutils
 import yaml
 import os
-import glob
 import psutil
 import math
 import importlib
@@ -71,7 +70,6 @@ import fiona
 from tabulate import tabulate
 #from osgeo import gdal, osr
 import torch
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.exceptions import UndefinedMetricWarning
@@ -97,6 +95,9 @@ with open(data_config_path) as file:
 
 # Path to directory holding dataset.
 data_dir = os.sep.join(config['dir']['data'])
+
+# Path to cache directory.
+cache_dir = os.sep.join(config['dir']['cache'])
 
 # Path to directory to output plots to.
 results_dir = os.path.join(*config['dir']['results'])
@@ -246,119 +247,6 @@ def prefix_format(patch_id: str, scene: str) -> str:
                         datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
 
 
-def scene_grab(patch_id: str) -> list:
-    """Finds all scenes for a given patch.
-
-        Args:
-            patch_id (str): Unique patch ID.
-
-        Returns:
-            scene_names (list[str]): List of scene dates in YY_MM_DD.
-        """
-    path = '{}{}{}{}'.format(data_dir, os.sep, patch_dir_prefix, patch_id)
-
-    # Get the name of all the directories for this patch
-    scene_dirs = glob.glob('{}{}*{}'.format(path, os.sep, os.sep))
-
-    # Extract the scene names (i.e the dates) from the paths
-    return [scene.partition(path)[2].replace(os.sep, '') for scene in scene_dirs]
-
-
-def cloud_grab(patch_id: str) -> Tuple[list, list]:
-    """Finds and loads all CLDs for a given patch.
-
-    Args:
-        patch_id (str): Unique patch ID.
-
-    Returns:
-        scenes (list): List of CLD masks for each scene.
-        scene_names (list): List of scene dates in YY_MM_DD.
-    """
-    # Extract the scene names (i.e the dates) from the paths
-    scene_names = scene_grab(patch_id)
-
-    # List to hold scenes
-    scenes = []
-
-    # Finds and appends each CLD of each scene of a patch to scenes
-    for date in scene_names:
-        scenes.append(load_array('%s_CLD_10m.tif' % prefix_format(patch_id, date), 1))
-
-    return scenes, scene_names
-
-
-def patch_grab() -> list:
-    """Fetches the patch IDs from the directory holding the whole dataset.
-
-    Returns:
-        (list): List of unique patch IDs.
-    """
-    # Fetches the names of the all the patch directories in the dataset
-    patch_dirs = glob.glob('%s/%s*/' % (data_dir, patch_dir_prefix))
-
-    # Extracts the patch ID from the directory names and returns the list
-    return [(patch.partition(patch_dir_prefix)[2])[:-1] for patch in patch_dirs]
-
-
-def tile_grab(tile_dir: str, tile_suffix: str) -> list:
-    """Finds and returns all unique tile IDs within the specified directory with the matching suffixes.
-
-    Args:
-        tile_dir (str): Path to directory containing the tiles.
-        tile_suffix (str): Suffix of the filenames of the tiles to be found.
-
-    Returns:
-        tile_ids (list): List of unique tile IDs found.
-    """
-    tiles = glob.glob(os.sep.join([tile_dir, '*_{}.tif'.format(tile_suffix)]))
-
-    return [(tile.partition(tile_suffix)[0])[-4:-1] for tile in tiles]
-
-
-def get_patches_in_tile(tile_id: str, patch_ids: Optional[Union[list, tuple, np.ndarray]] = None) -> list:
-    """Finds all the IDs of patches within the supplied tile.
-
-    Args:
-        tile_id (str): Unique ID of tile.
-        patch_ids (list[str]): Optional; List of unique patch IDs that are members of the tile ID supplied.
-
-    Returns:
-        List of patch IDs belonging to tile_id.
-    """
-    if patch_ids is None:
-        patch_ids = patch_grab()
-
-    return [patch_id for patch_id in patch_ids if tile_id in patch_id]
-
-
-def date_grab(patch_id: str) -> list:
-    """Finds all the name of all the scene directories for a patch and returns a list of the dates reformatted.
-
-    Args:
-        patch_id (str): Unique patch ID.
-
-    Returns:
-        (list): List of the dates of the scenes in DD.MM.YYYY format for this patch_ID.
-    """
-    # Extract the scene names (i.e the dates) from the paths
-    scene_names = scene_grab(patch_id)
-
-    # Format the dates from US YYYY_MM_DD format into UK DD.MM.YYYY format and return list
-    return [datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y') for date in scene_names]
-
-
-def get_label_path(patch_id: str) -> str:
-    """Gets the path to the file containing the labels for the patch with ID supplied.
-
-    Args:
-        patch_id (str): Unique patch ID.
-
-    Returns:
-        Path to file containing the labels for the patch.
-    """
-    return os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id + '{}.tif'.format(label_suffix)])
-
-
 def get_dataset_name() -> str:
     """Gets the name of the dataset to be used from the config name.
 
@@ -374,7 +262,7 @@ def get_manifest() -> str:
     Returns:
         Path to manifest as string.
     """
-    return os.sep.join([data_dir, '{}_Manifest.csv'.format(get_dataset_name())])
+    return os.sep.join([cache_dir, f'{get_dataset_name()}_Manifest.csv'])
 
 
 def load_array(path: str, band: int):
@@ -392,45 +280,6 @@ def load_array(path: str, band: int):
     data = raster.read(band)
 
     return data
-
-
-def lc_load(patch_id: str):
-    """Loads the LC labels for a given patch.
-
-    Args:
-        patch_id (str): Unique patch ID.
-
-    Returns:
-        LC_label (list): 2D array containing LC labels for each pixel of a patch.
-    """
-    return load_array(get_label_path(patch_id), 1)
-
-
-def dataset_lc_load(ids: Union[list, tuple, np.ndarray], func: callable = lc_load) -> list:
-    """Loads Labels for the given patch IDs using the provided loading function.
-
-    Args:
-        ids (list[str]): List of patch IDs.
-        func (function): Optional; Function that loads label(s) via a patch ID input.
-
-    Returns:
-        Labels for the given patch IDs.
-    """
-    return [func(patch_id) for patch_id in ids]
-
-
-def find_centre_label(patch_id: str) -> int:
-    """Gets the annual land cover label for the central pixel of the given patch.
-
-    Args:
-        patch_id (str): Unique ID for the patch to find the centre label from.
-
-    Returns:
-        The land cover label of the central pixel of the patch.
-    """
-    labels = np.array(lc_load(patch_id))
-
-    return labels[int(labels.shape[0] / 2)][int(labels.shape[1] / 2)]
 
 
 def centre_pixel_only(image: Union[list, np.ndarray]) -> np.ndarray:
@@ -579,71 +428,6 @@ def labels_to_ohe(labels: Union[list, tuple, np.ndarray], n_classes: int) -> np.
     return np.eye(n_classes)[targets]
 
 
-def split_data(patch_ids: Optional[Union[list, tuple, np.ndarray]] = None,
-               split: Union[list, tuple, np.ndarray] = (0.7, 0.15, 0.15), func: callable = lc_load, seed: int = 42,
-               shuffle: bool = True, balance: bool = True, p_dist: bool = False,
-               plot: bool = False) -> Tuple[dict, dict]:
-    """Splits the patch IDs into train, validation and test id sets.
-
-    Args:
-        patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
-            the patch IDs are inferred from the directory using patch_grab.
-        split (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets, in the
-            order (train, validation, test).
-        func (callable): Optional;
-        seed (int): Optional; Random seed number to fix the shuffling of the data split.
-        shuffle (bool): Optional; Whether to shuffle the patch IDs in the splitting of the IDs.
-        balance (bool): Optional; If True, uses make_sorted_streams to modify the list of patch IDs that attempt
-            to balance the distribution of classes amongst the dataset more evenly based on the majority classes
-            in patches.
-        p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
-        plot (bool): Optional; Whether or not to plot pie charts of the class distributions within each dataset.
-
-    Returns:
-        ids (dict): Dictionary of patch IDs representing train, validation and test datasets.
-        class_dists (dict): Dictionary of class dists for the train, validation, test and entire datasets.
-    """
-    # Fetches all patch IDs in the dataset
-    if patch_ids is None:
-        patch_ids = patch_grab()
-
-    if balance:
-        stream_df = make_sorted_streams(patch_ids, func=func)
-        patch_ids = stream_df.to_numpy().flatten().tolist()
-
-    # Splits the dataset into train and val-test
-    train_ids, val_test_ids = train_test_split(patch_ids, train_size=split[0], test_size=(split[1] + split[2]),
-                                               shuffle=shuffle, random_state=seed)
-
-    # Splits the val-test dataset into validation and test
-    val_ids, test_ids = train_test_split(val_test_ids, train_size=(split[1] / (split[1] + split[2])),
-                                         test_size=(split[2] / (split[1] + split[2])), shuffle=shuffle,
-                                         random_state=seed)
-
-    manifest = pd.read_csv(get_manifest())
-    class_dists = {'train': subpopulations_from_manifest(select_df_by_patch(manifest, train_ids), func, plot=plot),
-                   'val': subpopulations_from_manifest(select_df_by_patch(manifest, val_ids), func, plot=plot),
-                   'test': subpopulations_from_manifest(select_df_by_patch(manifest, test_ids), func, plot=plot),
-                   'ALL': subpopulations_from_manifest(select_df_by_patch(manifest, patch_ids), func, plot=plot)}
-
-    # Prints the class sub-populations of each dataset to screen.
-    if p_dist or plot:
-        print('\nTrain:')
-        print_class_dist(class_dists['train'])
-        print('\nValidation:')
-        print_class_dist(class_dists['val'])
-        print('\nTest:')
-        print_class_dist(class_dists['test'])
-        print('\nALL:')
-        print_class_dist(class_dists['ALL'])
-
-    ids = {'train': train_ids,
-           'val': val_ids,
-           'test': test_ids}
-
-    return ids, class_dists
-
-
 def class_weighting(class_dist: Union[list, tuple, np.ndarray], normalise: bool = False) -> dict:
     """Constructs weights for each class defined by the distribution provided. Each class weight is the inverse
     of the number of samples of that class. Note: This will most likely mean that the weights will not sum to unity.
@@ -674,55 +458,16 @@ def class_weighting(class_dist: Union[list, tuple, np.ndarray], normalise: bool 
     return class_weights
 
 
-def weight_samples(scenes: Union[list, tuple, np.ndarray], func: callable = find_centre_label,
-                   class_weights: Optional[dict] = None, normalise: bool = False) -> list:
-    """Produces a weight for each sample in the dataset defined by the scene - patch ID tuple pairs provided.
+def find_empty_classes(class_dist: list) -> list:
+    """Finds which classes defined by config files are not present in the dataset.
 
     Args:
-        scenes (list[list[str]] or tuple[tuple[str]]): List of patch ID - scene date tuple pairs that define
-            the dataset.
-        func (callable): Optional; Function to load the labels from the dataset with.
-        class_weights (dict): Optional; Dictionary mapping class number to its weight.
-        normalise (bool): Optional; Whether or not to normalise the weights to the total number of samples.
-
-    Returns:
-        sample_weights (list[float]): List of weights for every sample in the dataset defined by patch IDs.
-    """
-    # Uses class_weighting to generate the class weights given the patch IDs and function provided.
-    if class_weights is None:
-        patch_ids = [scene[0] for scene in scenes]
-        print(find_subpopulations(dataset_lc_load(patch_ids, func)))
-        class_weights = class_weighting(find_subpopulations(dataset_lc_load(patch_ids, func)), normalise=normalise)
-
-    sample_weights = []
-
-    # Computes the sample weights
-    for scene in scenes:
-        # Adds a sample weight per scene based on the corresponding patch class weight of the scene.
-        sample_weights.append(class_weights[find_centre_label(scene[0])])
-
-    return sample_weights
-
-
-def find_empty_classes(patch_ids: Optional[Union[list, tuple, np.ndarray]] = None, func: callable = find_centre_label,
-                       class_dist: Optional[Union[list, tuple, np.ndarray]] = None) -> list:
-    """Finds which classes defined by config files are not present in the dataset defined by supplied patch IDs.
-
-    Args:
-        patch_ids (list[str]): Optional; List of patch IDs that outline the whole dataset to be used. If not provided,
-            the patch IDs are inferred from the directory using patch_grab.
-        func (callable): Optional; Function to load the labels from the dataset with.
-        class_dist (list[list[int]]): Optional; 2D iterable which should be of the form created
-            from Counter.most_common(). If not provided, is computed from patch IDs and function provided.
+        class_dist (list): Optional; 2D iterable which should be of the form created
+            from Counter.most_common().
 
     Returns:
         empty (list[int]): List of classes not found in class_dist and are thus empty/ not present in dataset.
     """
-    if class_dist is None:
-        if patch_ids is None:
-            patch_ids = patch_grab()
-        class_dist = find_subpopulations(dataset_lc_load(patch_ids, func), plot=False)
-
     empty = []
 
     # Checks which classes are not present in class_dist
@@ -950,92 +695,6 @@ def extract_dates(scene: Union[list, tuple, np.ndarray]) -> str:
     return scene[1]
 
 
-def make_sorted_streams(patch_ids: Optional[Union[list, tuple, np.ndarray]] = None,
-                        scenes: Optional[Union[list, tuple, np.ndarray]] = None,
-                        func: callable = lc_load) -> pd.DataFrame:
-    """Creates a DataFrame with columns of patch IDs sorted for each class by class size in those patches.
-
-    Args:
-        patch_ids (list[str]): List of patch IDs defining the dataset to be sorted.
-        scenes (list[list[str]]): Optional; List of patch ID - scene date tuple pairs that define the dataset.
-        func (function): Optional; Function to use to load labels from file with.
-
-    Returns:
-        streams_df (pd.DataFrame): Database of list of patch IDs sorted by fractional sizes of class labels.
-    """
-    sample_type = 'ERROR'
-    if scenes is None and patch_ids is not None:
-        sample_type = 'PATCH'
-    if scenes is not None and patch_ids is None:
-        sample_type = 'SCENE'
-
-    df = pd.DataFrame()
-    if sample_type == 'PATCH':
-        df['PATCH'] = patch_ids
-    if sample_type == 'SCENE':
-        df['SCENE'] = scenes
-        df['PATCH'] = df['SCENE'].apply(extract_patch_ids)
-    else:
-        raise ValueError
-    # Calculates the class modes of each patch.
-    df['MODES'] = df['PATCH'].apply(find_patch_modes)
-
-    # Calculates the fractional size of each class in each patch.
-    df = pd.DataFrame([row for row in df.apply(class_frac, axis=1)])
-
-    df.fillna(0, inplace=True)
-
-    class_dist = find_subpopulations(dataset_lc_load(df['PATCH'], func=func), plot=False)
-
-    stream_size = int(len(df['PATCH']) / len(class_dist))
-
-    streams = {}
-
-    for mode in reversed(class_dist):
-        stream = df.sort_values(by=mode[0], ascending=False)[sample_type][:stream_size]
-        streams[mode[0]] = stream.tolist()
-        df.drop(stream.index, inplace=True)
-
-    streams_df = pd.DataFrame(streams)
-
-    return streams_df
-
-
-def hard_balance(scenes: Union[list, tuple, np.ndarray], over_factor: int = 1, seed: int = 42) -> list:
-    """Under and over samples supplied scenes to create a new list of scenes that have a perfect class balance.
-
-    Args:
-        scenes (list[list[str]]): List of patch ID - scene date tuple pairs that define the dataset.
-        over_factor (int): Optional; How many times on average will the same scene from the smallest class be sampled.
-        seed (int): Optional; Fixes the random number sequence to use to ensure repeatability.
-
-    Returns:
-        List of perfectly balanced scene patch ID - date pairs.
-    """
-    df = pd.DataFrame()
-    df['SCENE'] = scenes
-    df['PATCH'] = df['SCENE'].apply(extract_patch_ids)
-
-    # Calculates the class modes of each patch.
-    df['LABEL'] = df['PATCH'].apply(find_centre_label)
-
-    class_dist = find_subpopulations(df['LABEL'], plot=False)
-    print(class_dist)
-
-    balanced_scenes = []
-    scenes_per_class = int(class_dist[-1][1] * over_factor)
-    print(scenes_per_class)
-
-    for mode in reversed(class_dist):
-        class_scenes_df = df[df['LABEL'] == mode[0]]['SCENE']
-        class_scenes = class_scenes_df.sample(n=scenes_per_class, random_state=seed, replace=True)
-        class_scenes = class_scenes.tolist()
-        for scene in class_scenes:
-            balanced_scenes.append(scene)
-
-    return balanced_scenes
-
-
 def cloud_cover(scene: np.ndarray) -> float:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
@@ -1207,37 +866,6 @@ def make_time_series(patch_id: str, manifest) -> np.ndarray:
     return np.moveaxis(np.array(x), 0, 2)
 
 
-def load_patch_df(patch_id: str, manifest) -> pd.DataFrame:
-    """Loads a patch using patch ID from disk into a Pandas.DataFrame and returns.
-
-    Args:
-        patch_id (str): ID for patch to be loaded.
-        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
-
-    Returns:
-        df (pd.DataFrame): Patch loaded into a DataFrame.
-    """
-    # Initialise DataFrame object
-    df = pd.DataFrame()
-
-    # Load patch from disk and create time-series pixel stacks
-    patch = make_time_series(patch_id, manifest)
-
-    # Reshape patch
-    patch = patch.reshape((patch.shape[0] * patch.shape[1], patch.shape[2] * patch.shape[3]))
-
-    # Loads accompanying labels from file and flattens
-    labels = lc_load(patch_id).flatten()
-
-    # Wraps each pixel stack in an numpy.array, appends to a list and adds as a column to df
-    df['PATCH'] = [np.array(pixel) for pixel in patch]
-
-    # Adds labels as a column to df
-    df['LABELS'] = labels
-
-    return df
-
-
 def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
     """Gets the timestamp of the datetime now.
 
@@ -1270,34 +898,29 @@ def find_subpopulations(labels: Union[list, tuple, np.ndarray], plot: bool = Fal
     return class_dist
 
 
-def subpopulations_from_manifest(manifest: pd.DataFrame, func: callable = lc_load, plot: bool = False) -> list:
-    """Uses the dataset manifest to calculate the size of classes within the dataset without
-        loading the label files.
+def subpopulations_from_manifest(manifest: pd.DataFrame, plot: bool = False) -> list:
+    """Uses the dataset manifest to calculate the fractional size of classes within the dataset without
+    loading the label files.
 
     Args:
         manifest (pd.DataFrame): DataFrame containing the fractional sizes of classes and centre pixel labels
             of all samples of the dataset to be used.
-        func (function): Optional;
-        plot (bool): Optional; Whether or not to plot the class distribution pie chart.
+        plot (bool): Optional; Whether to plot the class distribution pie chart.
 
     Returns:
         class_dist (list): Modal distribution of classes in the dataset provided.
     """
     class_dist = Counter()
-    if func is lc_load:
-        for classification in classes.keys():
-            try:
-                count = manifest['%d' % classification].sum() * image_size[0] * image_size[1]
-                if count == 0.0 or count == 0:
-                    continue
-                else:
-                    class_dist[classification] = count
-            except KeyError:
+    for classification in classes.keys():
+        try:
+            count = manifest[f'{classification}'].sum() / len(manifest)
+            if count == 0.0 or count == 0:
                 continue
-        class_dist = class_dist.most_common()
-
-    elif func is find_centre_label:
-        class_dist = Counter(manifest['CPL']).most_common()
+            else:
+                class_dist[classification] = count
+        except KeyError:
+            continue
+    class_dist = class_dist.most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
