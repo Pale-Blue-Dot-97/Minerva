@@ -916,8 +916,12 @@ def class_frac(patch: pd.Series) -> Mapping:
             of fractional size of class plus a key-value pair for the patch ID
     """
     new_columns = patch.to_dict()
+    counts = 0
     for mode in patch['MODES']:
-        new_columns[mode[0]] = mode[1] / (image_size[0] * image_size[1])
+        counts += mode[1]
+
+    for mode in patch['MODES']:
+        new_columns[mode[0]] = mode[1] / counts
 
     return new_columns
 
