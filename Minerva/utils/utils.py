@@ -547,6 +547,13 @@ def eliminate_classes(empty_classes: Union[list, tuple, np.ndarray], old_classes
         return reordered_classes, conversion, reordered_colours
 
 
+def load_data_specs(class_dist: list, elim: bool = False) -> Tuple[dict, dict, dict]:
+    if not elim:
+        return classes, {}, cmap_dict
+    if elim:
+        return eliminate_classes(find_empty_classes(class_dist=class_dist))
+
+
 def class_transform(label: int, matrix: dict) -> int:
     """Transforms labels from one schema to another mapped by a supplied dictionary.
 

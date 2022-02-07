@@ -34,9 +34,7 @@ TODO:
 # =====================================================================================================================
 import os
 from typing import Optional, Union, Tuple, Dict, Iterable
-
 import pandas as pd
-
 from Minerva.utils import utils
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -221,8 +219,7 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
     # and new colours.
-    print('\nFINDING EMPTY CLASSES')
-    new_classes, forwards, new_colours = utils.eliminate_classes(utils.find_empty_classes(class_dist=class_dist))
+    classes, forwards, colours = utils.load_data_specs(class_dist=class_dist, elim=params['elim'])
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
@@ -247,10 +244,8 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
     if p_dist:
         utils.print_class_dist(class_dist)
 
-    params['hyperparams']['model_params']['n_classes'] = len(new_classes)
-    params['classes'] = new_classes
-    params['colours'] = new_colours
+    params['hyperparams']['model_params']['n_classes'] = len(classes)
+    params['classes'] = classes
+    params['colours'] = colours
 
-    print(new_classes)
-    
     return loaders, n_batches, class_dist, params
