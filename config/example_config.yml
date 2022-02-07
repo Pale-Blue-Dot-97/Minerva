@@ -21,6 +21,12 @@ dir:
     - 'Output Plots'
     - 'MinervaPercep'
     - 'FCNResNet'
+  cache:
+    - 'G:'
+    - 'GitHub'
+    - 'Minerva'
+    - 'Minerva'
+    - 'cache'
 
 # Kwargs for make_datasets
 model_name: 'FCN32ResNet50-MkI' # Name of model. Substring before hyphen is used to find and initialise model object.
@@ -38,66 +44,54 @@ dataset_params:
     imagery:
       module: 'torchgeo.datasets'
       name: 'NAIP'
-      root: 'NAIP'
+      root: 'NAIP 2013'
       params:
-        crs: None
-        #download: True
-        #checksum: True
-        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
-        #layers: ['naip-new', 'lc']
+        res: 1.0
+
     labels:
       module: 'torchgeo.datasets'
-      name: 'ChesapeakeDE'
-      root: 'DE'
+      name: 'Chesapeake13'
+      root: 'Chesapeake'
       params:
+        res: 1.0
         download: False
         checksum: False
-        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
-        #layers: ['naip-new', 'lc']
 
   # Validation Dataset
   val:
     imagery:
       module: 'torchgeo.datasets'
       name: 'NAIP'
-      root: 'NAIP'
+      root: 'NAIP 2013'
       params:
-        res: None
-        #download: False
-        #checksum: False
-        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
-        #layers: ['naip-new', 'lc']
+        res: 1.0
+
     labels:
       module: 'torchgeo.datasets'
-      name: 'ChesapeakeDE'
-      root: 'DE'
+      name: 'Chesapeake13'
+      root: 'Chesapeake'
       params:
+        res: 1.0
         download: False
         checksum: False
-        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
-        #layers: ['naip-new', 'lc']
 
   # Test Dataset
   test:
     imagery:
       module: 'torchgeo.datasets'
       name: 'NAIP'
-      root: 'NAIP'
+      root: 'NAIP 2013'
       params:
-        res: None
-        #download: False
-        #checksum: False
-        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
-        #layers: ['naip-new', 'lc']
+        res: 1.0
+
     labels:
       module: 'torchgeo.datasets'
-      name: 'ChesapeakeDE'
-      root: 'DE'
+      name: 'Chesapeake13'
+      root: 'Chesapeake'
       params:
+        res: 1.0
         download: False
         checksum: False
-        #splits: ['ny-train', 'de-train', 'md-train', 'wv-train', 'va-train', 'pa-train']
-        #layers: ['naip-new', 'lc']
 
 # === SAMPLER PARAMETERS ==============================================================================================
 sampler_params:
@@ -106,7 +100,7 @@ sampler_params:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
     params:
-      size: 56
+      size: 256
       #batch_size: 16
       length: 1600
 
@@ -115,7 +109,7 @@ sampler_params:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
     params:
-      size: 56
+      size: 256
       #batch_size: 16
       length: 400
 
@@ -124,7 +118,7 @@ sampler_params:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
     params:
-      size: 56
+      size: 256
       #batch_size: 16
       length: 400
 
@@ -133,30 +127,30 @@ sampler_params:
 transform_params:
   # Training Dataset Transforms
   train:
-    imagery:
-      ConvertImageDtype:
-        dtype: torch.FloatTensor
-    labels:
-      ConvertImageDtype:
-        dtype: torch.LongTensor
+    imagery: False
+      #ConvertImageDtype:
+        #dtype: torch.FloatTensor
+    labels: False
+      #ConvertImageDtype:
+        #dtype: torch.LongTensor
 
   # Validation Dataset Transforms
   val:
-    imagery:
-      ConvertImageDtype:
-        dtype: torch.FloatTensor
-    labels:
-      ConvertImageDtype:
-        dtype: torch.LongTensor
+    imagery: False
+      #ConvertImageDtype:
+        #dtype: torch.FloatTensor
+    labels: False
+      #ConvertImageDtype:
+        #dtype: torch.LongTensor
 
   # Test Dataset Transforms
   test:
-    imagery:
-      ConvertImageDtype:
-        dtype: torch.FloatTensor
-    labels:
-      ConvertImageDtype:
-        dtype: torch.LongTensor
+    imagery: False
+      #ConvertImageDtype:
+        #dtype: torch.FloatTensor
+    labels: False
+      #ConvertImageDtype:
+        #dtype: torch.LongTensor
 
 # Collation
 collator:
@@ -170,7 +164,7 @@ hyperparams:
     num_workers: 6
     pin_memory: True
   model_params:
-    input_size: [4, 56, 56]
+    input_size: [4, 256, 256]
     n_classes: 16
     #groups: 32
     #width_per_group: 4
@@ -181,17 +175,17 @@ hyperparams:
     #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
-  max_epochs: 20
+  max_epochs: 5
 
 # Which plots to make
 plots:
   History: True
   CM: True
   Pred: True
-  ROC: True
+  ROC: False
   micro: False
   macro: True
-  Mask: True
+  Mask: False
   PvT: False
 
 # opt to ask at runtime; auto or True to automatically do so; or False, None etc to not
@@ -202,10 +196,3 @@ show: False
 p_dist: False
 calc_norm: False
 plot_last_epoch: True
-
-# Settings for RGB image creation
-#rgb_params:
-#  band_ID: 'SCL'           # 3 char alpha-numeric Band ID
-#  R_band: 'B02'            # Red, Green, Blue band IDs for RGB images
-#  G_band: 'B03'
-#  B_band: 'B04'
