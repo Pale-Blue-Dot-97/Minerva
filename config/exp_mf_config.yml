@@ -11,7 +11,6 @@ dir:
     - 'ChesapeakeCVPR'
   configs:
     data_config: '../../config/ChesapeakeCVPR.yml'
-    #imagery_config: '../../config/landcovernet.yml'
   output:
     - 'G:'
     - 'GitHub'
@@ -23,44 +22,34 @@ dir:
 dataset_params:
   imagery:
     module: 'torchgeo.datasets'
-    name: 'ChesapeakeCVPR'
-    root: 'cvpr_chesapeake_landcover'
+    name: 'NAIP'
+    root: 'NAIP 2013'
     params:
-      splits: ['ny-train', 'ny-val', 'ny-test',
-               'de-train', 'de-val', 'de-test',
-               'md-train', 'md-val', 'md-test',
-               'wv-train', 'wv-val', 'wv-test',
-               'va-train', 'va-val', 'va-test',
-               'pa-train', 'pa-val', 'pa-test']
-      layers: ['naip-new']
+      res: 1.0
   labels:
     module: 'torchgeo.datasets'
-    name: 'ChesapeakeCVPR'
-    root: 'cvpr_chesapeake_landcover'
+    name: 'Chesapeake13'
+    root: 'Chesapeake'
     params:
-      splits: [ 'ny-train', 'ny-val', 'ny-test',
-                'de-train', 'de-val', 'de-test',
-                'md-train', 'md-val', 'md-test',
-                'wv-train', 'wv-val', 'wv-test',
-                'va-train', 'va-val', 'va-test',
-                'pa-train', 'pa-val', 'pa-test' ]
-      layers: ['lc']
+      res: 1.0
+      download: False
+      checksum: False
+  
 
 # === SAMPLER PARAMETERS ==============================================================================================
 sampler_params:
   module: 'torchgeo.samplers'
   name: 'GridGeoSampler'
   params:
-    size: 256
-    stride: 256
+    size: [1000, 1000]
+    stride: [1000, 1000]
 
-# Collation
 collator:
   module: 'torchgeo.datasets'
   name: 'stack_samples'
 
 # Dataloader
 dataloader_params:
-  batch_size: 16
-  num_workers: 6
-  pin_memory: True
+  batch_size: 8
+  num_workers: 4
+  pin_memory: False
