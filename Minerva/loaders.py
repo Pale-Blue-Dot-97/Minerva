@@ -59,42 +59,57 @@ def intersect_datasets(datasets: list):
 
 def construct_dataloader(data_dir: Iterable[str], dataset_params: dict, sampler_params: dict, dataloader_params: dict,
                          collator_params: Optional[dict] = None, transform_params: Optional[dict] = None) -> DataLoader:
-    """
+    """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
     Args:
         data_dir (Iterable[str]): A list of str defining the common path for all datasets to be constructed.
-        dataset_params (dict):
-        sampler_params (dict):
-        dataloader_params (dict):
-        collator_params (dict): Optional;
-        transform_params: Optional;
+        dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
+        sampler_params (dict): Dictionary of parameters for the sampler to be used to sample from the dataset.
+        dataloader_params (dict): Dictionary of parameters for the DataLoader itself.
+        collator_params (dict): Optional; Dictionary of parameters defining the function to collate
+            and stack samples from the sampler.
+        transform_params: Optional; Dictionary defining the parameters of the transforms to perform
+            when sampling from the dataset.
 
     Returns:
-        loader (DataLoader):
+        loader (DataLoader): Object to handle the returning of batched samples from the dataset.
     """
+    # --+ MAKE SUB-DATASETS +=========================================================================================+
+    # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
     subdatasets = []
+
+    # Iterate through all the sub-datasets defined in dataset_params.
     for key in dataset_params.keys():
+
+        # Get the params for this sub-dataset.
         subdataset_params = dataset_params[key]
+
+        # Get the constructor for the class of dataset defined in params.
         _subdataset = utils.func_by_str(module=subdataset_params['module'],
                                         func=subdataset_params['name'])
+
+        # Construct the root to the sub-dataset's files.
         subdataset_root = os.sep.join((*data_dir, subdataset_params['root']))
-        
+
+        # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations = None
         if transform_params is not None:
             transformations = make_transformations(transform_params[key])
-        
+
+        # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
         subdatasets.append(_subdataset(root=subdataset_root, transforms=transformations,
                                        **dataset_params[key]['params']))
 
+    # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = subdatasets[0]
     if len(subdatasets) > 1:
         dataset = intersect_datasets(subdatasets)
 
-    # --+ MAKE SAMPLERS +=========================================================================================+
+    # --+ MAKE SAMPLERS +=============================================================================================+
     sampler = utils.func_by_str(module=sampler_params['module'], func=sampler_params['name'])
     sampler = sampler(dataset=subdatasets[0], **sampler_params['params'])
 
-    # --+ MAKE DATALOADERS +======================================================================================+
+    # --+ MAKE DATALOADERS +==========================================================================================+
     collator = None
     if collator_params is not None:
         collator = utils.func_by_str(collator_params['module'], collator_params['name'])
@@ -236,4 +251,6 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
     params['classes'] = new_classes
     params['colours'] = new_colours
 
+    print(new_classes)
+    
     return loaders, n_batches, class_dist, params
