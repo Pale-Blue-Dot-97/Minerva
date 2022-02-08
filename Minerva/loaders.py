@@ -40,6 +40,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import numpy as np
 from alive_progress import alive_it
+from torchgeo.datasets.utils import BoundingBox
 
 
 # =====================================================================================================================
@@ -105,7 +106,7 @@ def construct_dataloader(data_dir: Iterable[str], dataset_params: dict, sampler_
 
     # --+ MAKE SAMPLERS +=============================================================================================+
     sampler = utils.func_by_str(module=sampler_params['module'], func=sampler_params['name'])
-    sampler = sampler(dataset=subdatasets[0], **sampler_params['params'])
+    sampler = sampler(dataset=subdatasets[0], roi=make_bounding_box(sampler_params['roi']), **sampler_params['params'])
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = None
@@ -133,6 +134,13 @@ def load_all_samples(dataloader: DataLoader) -> np.ndarray:
     sample_modes = np.array(sample_modes)
     
     return sample_modes
+
+
+def make_bounding_box(roi: Optional[Union[tuple, list]] = None) -> Optional[BoundingBox]:
+    if roi is None:
+        return None
+    else:
+        return BoundingBox(*roi)
 
 
 def get_transform(name: str, params: dict):
