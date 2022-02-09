@@ -136,8 +136,8 @@ def load_all_samples(dataloader: DataLoader) -> np.ndarray:
     return sample_modes
 
 
-def make_bounding_box(roi: Optional[Union[tuple, list]] = None) -> Optional[BoundingBox]:
-    if roi is None:
+def make_bounding_box(roi: Optional[Union[tuple, list, bool]] = False) -> Optional[BoundingBox]:
+    if roi is False:
         return None
     else:
         return BoundingBox(*roi)
