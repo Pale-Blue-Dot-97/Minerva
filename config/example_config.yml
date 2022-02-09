@@ -35,7 +35,7 @@ frac: 1.0                       # Fraction of patches in the dataset to use.
 split: [0.8, 0.15, 0.05]        # Fractional size of the train, validation and test datasets.
 elim: False
 balance: False
-patch_size: [56, 56]
+patch_size: [256, 256]
 
 # === DATASET PARAMETERS ==============================================================================================
 dataset_params:
@@ -99,7 +99,7 @@ sampler_params:
   train:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
-    roi: None
+    roi: False
     params:
       size: 256
       #batch_size: 16
@@ -109,7 +109,7 @@ sampler_params:
   val:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
-    roi: None
+    roi: False
     params:
       size: 256
       #batch_size: 16
@@ -119,7 +119,7 @@ sampler_params:
   test:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
-    roi: None
+    roi: False
     params:
       size: 256
       #batch_size: 16
