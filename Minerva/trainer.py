@@ -100,13 +100,13 @@ class Trainer:
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
+        self.model.determine_output_dim()
+
         # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             print(f'{torch.cuda.device_count()} GPUs detected')
             self.model = torch.nn.DataParallel(self.model)
-
-        self.model.determine_output_dim()
-
+        
         self.max_epochs = params['hyperparams']['max_epochs']
         self.loaders = loaders
         self.n_batches = n_batches
