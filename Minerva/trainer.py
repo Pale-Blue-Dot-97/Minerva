@@ -102,6 +102,7 @@ class Trainer:
 
         # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
+            print(f'{torch.cuda.device_count()} GPUs detected')
             self.model = torch.nn.DataParallel(self.model)
 
         self.model.determine_output_dim()
