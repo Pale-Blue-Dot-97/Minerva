@@ -803,8 +803,6 @@ def plot_history(metrics: dict, filename: Optional[str] = None, save: bool = Tru
     # Initialise figure.
     plt.figure()
 
-    print(metrics)
-
     # Plots each metric in metrics, appending their artist handles.
     handles = []
     for metric in metrics.values():
@@ -814,7 +812,7 @@ def plot_history(metrics: dict, filename: Optional[str] = None, save: bool = Tru
     plt.legend(handles=handles, labels=metrics.keys())
 
     # Forces x-axis ticks to be integers.
-    plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+    #plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Adds a grid overlay with green dashed lines.
     plt.grid(color='green', linestyle='--', linewidth=0.5)  # For some funky gridlines
