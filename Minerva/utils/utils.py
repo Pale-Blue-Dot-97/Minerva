@@ -1303,9 +1303,9 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
             try:
                 fpr[key], tpr[key], _ = roc_curve(targets[:, key], probs[:, key], pos_label=1)
                 roc_auc[key] = auc(fpr[key], tpr[key])
-                bar(f'Class {key}')
+                bar()
             except UndefinedMetricWarning:
-                bar(f'Class {key} empty!')
+                bar('Class empty!')
 
     if micro:
         # Get the current memory utilisation of the system.
@@ -1340,7 +1340,7 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
         with alive_bar(len(class_labels), bar='blocks') as bar:
             for key in class_labels:
                 mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
-                bar('Interpolating about class {}'.format(key))
+                bar()
 
         # Finally average it and compute AUC
         mean_tpr /= len(class_labels)
