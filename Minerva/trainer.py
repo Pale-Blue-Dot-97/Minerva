@@ -243,7 +243,8 @@ class Trainer:
                 y_batch = sample['mask']
 
                 x_batch = x_batch.to(torch.float)
-                y_batch = torch.tensor(np.squeeze(y_batch, axis=1), dtype=torch.long)
+                y_batch = np.squeeze(y_batch, axis=1)
+                y_batch = y_batch.type(torch.long)
 
                 # Transfer to GPU.
                 x, y = x_batch.to(self.device), y_batch.to(self.device)
