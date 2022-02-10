@@ -446,11 +446,11 @@ class Trainer:
         self.writer.close()
 
         # Path to experiment directory and experiment name.
-        fn = os.path.join(*self.params['dir']['results'], self.params['exp_name'])
+        fn = os.sep.join(self.params['dir']['results'] + [self.params['exp_name']])
 
         print('\nSAVING EXPERIMENT CONFIG TO FILE')
         # Outputs the modified YAML parameters config file used for this experiment to file.
-        with open('{}.yml'.format(fn), 'w') as outfile:
+        with open(f'{fn}.yml', 'w') as outfile:
             yaml.dump(self.params, outfile)
 
         # Writes the recorded training and validation metrics of the experiment to file.
@@ -460,7 +460,7 @@ class Trainer:
             metrics_df = pd.DataFrame(sub_metrics)
             metrics_df['Epoch'] = self.metrics['train_loss']['x']
             metrics_df.set_index('Epoch', inplace=True, drop=True)
-            metrics_df.to_csv('{}_metrics.csv'.format(fn))
+            metrics_df.to_csv(f'{fn}_metrics.csv')
 
         except (ValueError, KeyError):
             print('\n*ERROR* in saving metrics to file.')
@@ -471,7 +471,7 @@ class Trainer:
                 res = inputimeout(prompt='\nSave model to file? (Y/N): ', timeout=_timeout)
                 if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'save', 'SAVE', 'Save'):
                     # Saves model state dict to PyTorch file.
-                    torch.save(self.model.state_dict(), '{}.pt'.format(fn))
+                    torch.save(self.model.state_dict(), f'{fn}.pt')
                     print('MODEL PARAMETERS SAVED')
                 elif res in ('N', 'n', 'no', 'No', 'NO'):
                     print('Model will NOT be saved to file')
@@ -484,7 +484,7 @@ class Trainer:
         elif self.params['save_model'] in (True, 'auto', 'Auto'):
             print('\nSAVING MODEL PARAMETERS TO FILE')
             # Saves model state dict to PyTorch file.
-            torch.save(self.model.state_dict(), '{}.pt'.format(fn))
+            torch.save(self.model.state_dict(), f'{fn}.pt')
 
     def compute_classification_report(self, predictions: Union[list, np.ndarray],
                                       labels: Union[list, np.ndarray]) -> None:
@@ -505,7 +505,7 @@ class Trainer:
         cr_df = utils.make_classification_report(predictions, labels, self.params['classes'])
 
         # Defines the filename and path for the classification report to be saved to.
-        fn = os.path.join(*self.params['dir']['results'], self.params['exp_name'])
+        fn = os.sep.join(self.params['dir']['results'] + [self.params['exp_name']])
 
         # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f'{fn}_classification-report.csv')

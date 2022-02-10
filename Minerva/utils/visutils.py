@@ -667,10 +667,10 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: L
 
     if fn_prefix is None:
         path = os.path.join(*config['dir']['results'])
-        fn_prefix = os.sep.join([path, '{}_{}_Mask'.format(exp_id, utils.timestamp_now())])
+        fn_prefix = os.sep.join([path, f'{exp_id}_{utils.timestamp_now()}_Mask'])
 
     # Path and file name of figure.
-    fn = '{}_{}.png'.format(fn_prefix, sample_id)
+    fn = f'{fn_prefix}_{sample_id}.png'
 
     # If true, save file to fn.
     if save:
@@ -993,8 +993,8 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
         Returns:
             String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
         """
-        filename = '{}_{}_{}'.format(model_name, timestamp, plot_type)
-        return os.path.join(*path, *sub_dir, filename)
+        filename = f'{model_name}_{timestamp}_{plot_type}'
+        return os.sep.join(path + [*sub_dir, filename])
 
     filenames = {'History': standard_format('MH') + '.png',
                  'Pred': standard_format('TP') + '.png',
@@ -1047,6 +1047,7 @@ def plot_results(plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndar
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
     try:
+        print(os.sep.join(results_dir))
         os.mkdir(os.sep.join(results_dir))
     except FileExistsError as err:
         print(err)
