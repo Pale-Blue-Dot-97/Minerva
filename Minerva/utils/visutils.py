@@ -108,34 +108,7 @@ _max_samples = 25
 #                                                     METHODS
 # =====================================================================================================================
 def path_format(names: dict) -> Tuple[Dict[str, str], str, str, str]:
-    """Takes a dictionary of unique IDs to format the paths and names of files associated with the desired scene.
-
-    Args:
-        names (dict): Dictionary of IDs to uniquely identify the scene and selected bands.
-
-    Returns:
-        scene_path (str): Path to directory holding images from desired scene.
-        rgb (dict): Dictionary of filenames of R, G & B band images.
-        scene_data_name (str): Name of the file containing the scene classification label mask.
-        patch_data_name (str): Path to the file containing the annual classification label mask.
-    """
-    # Format the two required date formats used by REF MLHub.
-    date1 = utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y_%m_%d')
-    date2 = utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d')
-
-    # Format path to the directory holding all the scene files.
-    scene_path = "{}{}".format(os.sep.join((*data_dir, patch_dir_prefix + names['patch_ID'], date1)), os.sep)
-
-    # Format the name of the file containing the label mask data.
-    scene_data_name = '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['band_ID'])
-    patch_data_name = utils.get_label_path(names['patch_ID'])
-
-    # Create a dictionary of the names of the requested red, green, blue images.
-    rgb = {'R': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['R_band']),
-           'G': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['G_band']),
-           'B': '%s_%s_%s_10m.tif' % (names['patch_ID'], date2, names['B_band'])}
-
-    return rgb, scene_path, scene_data_name, patch_data_name
+    pass
 
 
 def de_interlace(x: Union[list, np.ndarray], f: int) -> np.ndarray:
@@ -164,7 +137,7 @@ def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: CRS,
 
     Args:
         shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
-        data_fn (str): Path and filename of the TIF file whose geospatial meta data will be used
+        data_fn (str): Path and filename of the TIF file whose geospatial metadata will be used
             to get the corners of the image in latitude and longitude.
         new_cs(CRS): Co-ordinate system to convert co-ordinates found in data_fn TIF file to.
         spacing (int): Spacing of the lat - lon ticks.
@@ -197,7 +170,7 @@ def discrete_heatmap(data, classes: Optional[Union[list, tuple, np.ndarray]] = N
         data (list or np.ndarray): 2D Array of data to be plotted as a heat map.
         classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
-        block_size (int): Optional; Size of block image sub-division in pixels.
+        block_size (int): Optional; Size of block image subdivision in pixels.
 
     Returns:
         None
@@ -288,14 +261,14 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
                        cmap_style: Optional[Union[str, ListedColormap]] = None, alpha: float = 0.5,
                        new_cs: Optional[CRS] = None,
                        show: bool = True, save: bool = True, figdim: tuple = (8.02, 10.32)) -> str:
-    """Produces a layered image of an RGB image and it's associated label mask heat map alpha blended on top.
+    """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
         names (dict): Dictionary of IDs to uniquely identify the scene and selected bands.
         mode (str): Optional; Whether to plot the `patch' level labels or the scene. Default `scene'.
         data_band (int): Optional; Band number of data .tif file.
         classes (list[str]): Optional; List of all possible class labels.
-        block_size (int): Optional; Size of block image sub-division in pixels.
+        block_size (int): Optional; Size of block image subdivision in pixels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
         new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
@@ -337,18 +310,18 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
     ax1.set_xticks(np.arange(0, data.shape[0] + 1, block_size))
     ax1.set_yticks(np.arange(0, data.shape[1] + 1, block_size))
 
-    # Creates a secondary x and y axis to hold lat-lon.
+    # Creates a secondary x and y-axis to hold lat-lon.
     ax2 = ax1.twiny().twinx()
 
     # Plots an invisible line across the diagonal of the image to create the secondary axis for lat-lon.
     ax2.plot(lon_extent, lat_extent, ' ',
              clip_box=Bbox.from_extents(lon_extent[0], lat_extent[0], lon_extent[-1], lat_extent[-1]))
 
-    # Sets ticks for lat-lon.
+    # Set ticks for lat-lon.
     ax2.set_xticks(lon_extent)
     ax2.set_yticks(lat_extent)
 
-    # Sets the limits of the secondary axis so they should align with the primary.
+    # Sets the limits of the secondary axis, so they should align with the primary.
     ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
 
@@ -830,6 +803,8 @@ def plot_history(metrics: dict, filename: Optional[str] = None, save: bool = Tru
     # Initialise figure.
     plt.figure()
 
+    print(metrics)
+
     # Plots each metric in metrics, appending their artist handles.
     handles = []
     for metric in metrics.values():
@@ -896,7 +871,7 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
     cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
 
     # Plots figure.
-    plt.figure()
+    plt.figure(figsize=data_config['fig_sizes']['CM'])
     sns.heatmap(cm_df, annot=True, square=True, cmap=plt.cm.get_cmap('Blues'), vmin=0.0, vmax=1.0)
     plt.ylabel('Ground Truth')
     plt.xlabel('Predicted')
@@ -923,8 +898,8 @@ def make_roc_curves(probs: Union[list, np.ndarray], labels: Union[list, np.ndarr
         labels (list or np.ndarray): List of corresponding ground truth labels.
         class_names (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
-        micro (bool): Optional; Whether or not to compute and plot the micro average ROC curves.
-        macro (bool): Optional; Whether or not to compute and plot the macro average ROC curves.
+        micro (bool): Optional; Whether to compute and plot the micro average ROC curves.
+        macro (bool): Optional; Whether to compute and plot the macro average ROC curves.
         filename (str): Optional; Name of file to save plot to.
         save (bool): Optional; Whether to save the plots to file.
         show (bool): Optional; Whether to show the plots.
@@ -1013,7 +988,7 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
 
         Args:
             plot_type (str): Plot type to use in filename.
-            sub_dir (str): Additional sub-directories to add to path to filename.
+            sub_dir (str): Additional subdirectories to add to path to filename.
 
         Returns:
             String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
@@ -1045,7 +1020,7 @@ def plot_results(plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndar
         metrics (dict): Optional; Dictionary containing a log of various metrics used to assess
             the performance of a model.
         ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
-            May be either patch IDs or scene tags.
+            Maybe either patch IDs or scene tags.
         probs (list or np.ndarray): Optional; Array of probabilistic predicted classes from model where each sample
             should have a list of the predicted probability for each class.
         class_names (dict): Optional; Dictionary mapping class labels to class names.

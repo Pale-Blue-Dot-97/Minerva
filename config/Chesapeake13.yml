@@ -41,3 +41,6 @@ label_suffix: '_2020_LC_10m'
 co_sys:
   id: 26918
   name: 'WGS84_26918'
+
+fig_sizes:
+  cm: [10, 10]

@@ -106,7 +106,7 @@ class Trainer:
         if torch.cuda.device_count() > 1:
             print(f'{torch.cuda.device_count()} GPUs detected')
             self.model = torch.nn.DataParallel(self.model)
-        
+
         self.max_epochs = params['hyperparams']['max_epochs']
         self.loaders = loaders
         self.n_batches = n_batches
