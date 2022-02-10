@@ -43,4 +43,4 @@ co_sys:
   name: 'WGS84_26918'
 
 fig_sizes:
-  CM: [10, 10]
+  CM: [9, 8]
