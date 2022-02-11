@@ -1,12 +1,13 @@
 # Minerva
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva)
 
-Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial 
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva) ![BasicTests](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/tests.yml/badge.svg)
+
+Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial
 rasterised land cover data.  
- 
+
 ## Installation
 
-If one wishes to use [torchgeo](https://pypi.org/project/torchgeo/), installation on Linux is recommended to handle the 
+If one wishes to use [torchgeo](https://pypi.org/project/torchgeo/), installation on Linux is recommended to handle the
 compilation of the required C-based libraries.
 
 The recommended installation order is to start with a fresh `conda` environment, specifying the `python`
@@ -17,30 +18,34 @@ conda create env --name minerva-39 python=3.9 pytorch torchvision torchaudio cud
 ```
 
 Then install `torchgeo` via `pip`:
+
 ```shell
 pip install torchgeo
 ```
 
 Then proceed with installing `Minerva`'s remaining requirements:
+
 ```shell
 pip install tensorflow pandas imageio opencv-python seaborn tabulate torchinfo psutil alive-progress inputimeout
 ```
 
 The `torchgeo` docs also recommend installing `radiant_mlhub` and `zipfile-deflate64`:
+
 ```shell
 pip install zipfile-deflate64  radiant_mlhub
 ```
 
 ## Requirements
 
-`Minerva` now supports the use of [torchgeo](http://registry.mlhub.earth/10.34911/rdnt.d2ce8i/) 
-datasets with upcoming support for [torchvision](https://pytorch.org/vision/stable/index.html) datasets. 
+`Minerva` now supports the use of [torchgeo](http://registry.mlhub.earth/10.34911/rdnt.d2ce8i/)
+datasets with upcoming support for [torchvision](https://pytorch.org/vision/stable/index.html) datasets.
 
 Required Python modules for `Minerva` are stated in `requirements.txt`.
 
 ## Usage
-The core functionality of `Minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process, 
-load and parse data, and a `Trainer` to handle all aspects of a model fitting. Below is a MWE of creating datasets, 
+
+The core functionality of `Minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process,
+load and parse data, and a `Trainer` to handle all aspects of a model fitting. Below is a MWE of creating datasets,
 initialising a Trainer and model, and fitting and testing that model then outputting the results:
 
 ```python
@@ -72,14 +77,15 @@ WIP!
 See `Minerva\bin\MinervaExp.py` as an example script implementing `Minerva`.
 
 ## License
+
 Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/licenses/gpl-3.0/).
 
 ## Authors
 
-Created by Harry Baker as part of a project towards the award of a PhD Computer Science from the 
-University of Southampton. Funded by the Ordnance Survey Ltd. 
+Created by Harry Baker as part of a project towards the award of a PhD Computer Science from the
+University of Southampton. Funded by the Ordnance Survey Ltd.
 
-I'd like to acknowledge the invaluable supervision and contributions of Dr Jonathon Hare and 
+I'd like to acknowledge the invaluable supervision and contributions of Dr Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
 ## Project Status
