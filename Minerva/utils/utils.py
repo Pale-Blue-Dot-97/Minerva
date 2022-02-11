@@ -50,7 +50,7 @@ TODO:
 import sys
 from typing import Tuple, Union, Optional, Any, Iterator
 import functools
-from Minerva.utils import visutils
+from Minerva.utils import config, aux_configs, visutils
 import yaml
 import os
 import psutil
@@ -79,19 +79,11 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = '../../config/config.yml'
-
-with open(config_path) as file:
-    config = yaml.safe_load(file)
-
 imagery_config_path = config['dir']['configs']['imagery_config']
 data_config_path = config['dir']['configs']['data_config']
 
-with open(imagery_config_path) as file:
-    imagery_config = yaml.safe_load(file)
-
-with open(data_config_path) as file:
-    data_config = yaml.safe_load(file)
+data_config = aux_configs['data_config']
+imagery_config = aux_configs['imagery_config']
 
 # Path to directory holding dataset.
 data_dir = os.sep.join(config['dir']['data'])

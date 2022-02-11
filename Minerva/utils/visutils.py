@@ -45,7 +45,7 @@ TODO:
 # =====================================================================================================================
 from typing import Union, Optional, Tuple, Dict
 from typing_extensions import Literal
-from Minerva.utils import utils
+from Minerva.utils import utils, config, aux_configs
 import os
 import yaml
 import imageio
@@ -66,16 +66,8 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-config_path = '../../config/config.yml'
-
-with open(config_path) as file:
-    config = yaml.safe_load(file)
-
-with open(config['dir']['configs']['imagery_config']) as file:
-    imagery_config = yaml.safe_load(file)
-
-with open(config['dir']['configs']['data_config']) as file:
-    data_config = yaml.safe_load(file)
+data_config = aux_configs['data_config']
+imagery_config = aux_configs['imagery_config']
 
 # Path to directory holding dataset.
 data_dir = config['dir']['data']
@@ -94,9 +86,6 @@ plt.rcParams['savefig.dpi'] = 300
 
 # Removes margin in x-axis of plots.
 plt.rcParams['axes.xmargin'] = 0
-
-# Downloads required plugin for imageio if not already present.
-#imageio.plugins.freeimage.download()
 
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
