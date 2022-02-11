@@ -1277,8 +1277,8 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
             should have a list of the predicted probability for each class.
         labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
         class_labels (list): List of class label numbers.
-        micro (bool): Optional; Whether or not to compute the micro average ROC curves.
-        macro (bool): Optional; Whether or not to compute the macro average ROC curves.
+        micro (bool): Optional; Whether to compute the micro average ROC curves.
+        macro (bool): Optional; Whether to compute the macro average ROC curves.
 
     Returns:
         fpr (dict): Dictionary of false-positive rates for each class and micro and macro averages.

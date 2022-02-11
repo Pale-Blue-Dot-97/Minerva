@@ -811,7 +811,7 @@ def plot_history(metrics: dict, filename: Optional[str] = None, save: bool = Tru
     # Creates legend from plot artist handles and names of metrics.
     plt.legend(handles=handles, labels=metrics.keys())
 
-    # Forces x-axis ticks to be integers.
+    # Forces x-axis ticks to be integers. FEATURE DISABLED DUE TO BUG.
     #plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Adds a grid overlay with green dashed lines.
