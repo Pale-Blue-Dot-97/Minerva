@@ -10,8 +10,8 @@ dir:
     - 'data'
     - 'landcovernet'
   configs:
-    data_config: '../../config/ChesapeakeCVPR.yml'
-    imagery_config: '../../config/landcovernet.yml'
+    data_config: 'ChesapeakeCVPR.yml'
+    imagery_config: 'landcovernet.yml'
   results:
     - 'F:'
     - 'Harry'
