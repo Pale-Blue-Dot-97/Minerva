@@ -1,5 +1,6 @@
 import yaml
 import os
+import shutil
 from typing import Tuple
 
 config_dir_path = '../../config/'
@@ -58,6 +59,9 @@ cwd = os.getcwd()
 path = os.path.abspath(os.path.dirname(__file__))
 
 os.chdir(os.sep.join((path, config_dir_path)))
+
+if not os.path.exists(default_config_name):
+    shutil.copy("example_config.yml", default_config_name)
 
 config, aux_configs = load_configs(default_config_name)
 
