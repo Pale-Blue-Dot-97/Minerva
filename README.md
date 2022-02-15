@@ -37,7 +37,7 @@ pip install zipfile-deflate64  radiant_mlhub
 
 ## Requirements
 
-`Minerva` now supports the use of [torchgeo](http://registry.mlhub.earth/10.34911/rdnt.d2ce8i/)
+`Minerva` now supports the use of [torchgeo](https://torchgeo.readthedocs.io/en/latest/)
 datasets with upcoming support for [torchvision](https://pytorch.org/vision/stable/index.html) datasets.
 
 Required Python modules for `Minerva` are stated in `requirements.txt`.
@@ -47,6 +47,8 @@ Required Python modules for `Minerva` are stated in `requirements.txt`.
 The core functionality of `Minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process,
 load and parse data, and a `Trainer` to handle all aspects of a model fitting. Below is a MWE of creating datasets,
 initialising a Trainer and model, and fitting and testing that model then outputting the results:
+
+### MWE Driver Script
 
 ```python
 from Minerva.utils import utils             # Module containing various utility functions
@@ -72,9 +74,16 @@ trainer.fit()
 trainer.test()
 ```
 
-WIP!
-
 See `Minerva\bin\MinervaExp.py` as an example script implementing `Minerva`.
+
+### Config Structure
+
+See `config\example_config.yml` as an example config file.
+
+
+### Creating a Manifest for your Dataset
+
+
 
 ## License
 
