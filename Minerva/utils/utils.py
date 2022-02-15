@@ -48,7 +48,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import sys
-from typing import Tuple, Union, Optional, Any, Iterator
+from typing import Tuple, Union, Optional, Any, Iterator, List, Dict
 import functools
 from Minerva.utils import config, aux_configs, visutils
 import yaml
@@ -237,6 +237,14 @@ def prefix_format(patch_id: str, scene: str) -> str:
     """
     return os.sep.join([data_dir, patch_dir_prefix + patch_id, scene, patch_id + '_' +
                         datetime_reformat(scene, '%Y_%m_%d', '%Y%m%d')])
+
+
+def date_grab(id: str) -> str:
+    pass
+
+
+def patch_grab() -> List[str]:
+    pass
 
 
 def get_dataset_name() -> str:
