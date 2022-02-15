@@ -1,6 +1,6 @@
 # Minerva
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva) ![BasicTests](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/tests.yml/badge.svg)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva) ![Windows](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/Windows.yml/badge.svg) ![Ubuntu](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/Ubuntu.yml/badge.svg)
 
 Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial
 rasterised land cover data.  
