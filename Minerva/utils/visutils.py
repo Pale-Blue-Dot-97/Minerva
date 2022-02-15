@@ -43,11 +43,11 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict
+from typing import Union, Optional, Tuple, Dict, List, Any
 from typing_extensions import Literal
+from numpy.typing import NDArray
 from Minerva.utils import utils, config, aux_configs
 import os
-import yaml
 import imageio
 import random
 import numpy as np
@@ -59,6 +59,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import Bbox
 from matplotlib.colors import ListedColormap
 from matplotlib.ticker import MaxNLocator
+from matplotlib.image import AxesImage
 import cv2
 from rasterio.crs import CRS
 from alive_progress import alive_bar
@@ -96,11 +97,11 @@ _max_samples = 25
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def path_format(names: dict) -> Tuple[Dict[str, str], str, str, str]:
+def path_format(names: Dict[str, str]) -> Tuple[Dict[str, str], str, str, str]:
     pass
 
 
-def de_interlace(x: Union[list, np.ndarray], f: int) -> np.ndarray:
+def de_interlace(x: Union[List[Union[int, float]], NDArray[Any]], f: int) -> NDArray[Any]:
     """Separates interlaced arrays, `x' at a frequency of `f' from each other.
 
     Args:
@@ -110,7 +111,7 @@ def de_interlace(x: Union[list, np.ndarray], f: int) -> np.ndarray:
     Returns:
         De-interlaced array. Each source array is now sequentially connected.
     """
-    new_x = []
+    new_x: List[NDArray[Any]] = []
     for i in range(f):
         x_i = []
         for j in np.arange(start=i, stop=len(x), step=f):
@@ -121,7 +122,7 @@ def de_interlace(x: Union[list, np.ndarray], f: int) -> np.ndarray:
 
 
 def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: CRS,
-               spacing: int = 32) -> Tuple[Tuple[int, int, int, int], np.ndarray, np.ndarray]:
+               spacing: int = 32) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
     """Gets the extent of the image with 'shape' and at data_fn in latitude, longitude of system new_cs.
 
     Args:
@@ -151,7 +152,7 @@ def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: CRS,
     return extent, lat_extent, lon_extent
 
 
-def discrete_heatmap(data, classes: Optional[Union[list, tuple, np.ndarray]] = None,
+def discrete_heatmap(data, classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None,
                      cmap_style: Optional[Union[str, ListedColormap]] = None, block_size: int = 32) -> None:
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
@@ -193,7 +194,7 @@ def discrete_heatmap(data, classes: Optional[Union[list, tuple, np.ndarray]] = N
     plt.close()
 
 
-def stack_rgb(scene_path: str, rgb: dict) -> np.ndarray:
+def stack_rgb(scene_path: str, rgb: Dict[str, Any]) -> NDArray[Any]:
     """Stacks together red, green and blue image arrays from file to create a RGB array.
 
     Args:
@@ -216,7 +217,7 @@ def stack_rgb(scene_path: str, rgb: dict) -> np.ndarray:
     return np.dstack((bands[2], bands[1], bands[0]))
 
 
-def make_rgb_image(scene_path: str, rgb: dict, block_size: int = 32):
+def make_rgb_image(scene_path: str, rgb: Dict[str, Any], block_size: int = 32) -> AxesImage:
     """Creates an RGB image from a composition of red, green and blue band .tif images
 
     Args:
@@ -245,11 +246,12 @@ def make_rgb_image(scene_path: str, rgb: dict, block_size: int = 32):
     return rgb_image
 
 
-def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
-                       classes: Optional[Union[list, tuple, np.ndarray]] = None, block_size: int = 32,
+def labelled_rgb_image(names: Dict[str, str], mode: str = 'patch', data_band: int = 1,
+                       classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None, block_size: int = 32,
                        cmap_style: Optional[Union[str, ListedColormap]] = None, alpha: float = 0.5,
                        new_cs: Optional[CRS] = None,
-                       show: bool = True, save: bool = True, figdim: tuple = (8.02, 10.32)) -> str:
+                       show: bool = True, save: bool = True, 
+                       figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> str:
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
@@ -366,11 +368,11 @@ def labelled_rgb_image(names: dict, mode: str = 'patch', data_band: int = 1,
     return fn
 
 
-def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: int = 1,
-             classes: Optional[Union[list, tuple, np.ndarray]] = None,
+def make_gif(names: Dict[str, str], gif_name: str, frame_length: float = 1.0, data_band: int = 1,
+             classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None,
              cmap_style: Optional[Union[str, ListedColormap]] = None,
              new_cs: Optional[CRS] = None, alpha: float = 0.5, save: bool = False,
-             figdim: tuple = (8.02, 10.32)) -> None:
+             figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> None:
     """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes.
 
     Args:
@@ -422,11 +424,12 @@ def make_gif(names: dict, gif_name: str, frame_length: float = 1.0, data_band: i
         imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
-def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1,
-                      classes: Optional[Union[list, tuple, np.ndarray]] = None,
+def make_all_the_gifs(names: Dict[str, str], frame_length: float = 1.0, data_band: int = 1,
+                      classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None,
                       cmap_style: Optional[Union[str, ListedColormap]] = None,
                       new_cs: Optional[CRS] = None,
-                      alpha: float = 0.5, figdim: tuple = (8.02, 10.32)) -> None:
+                      alpha: float = 0.5, 
+                      figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> None:
     """Wrapper to make_gifs() to iterate through all patches in dataset.
 
     Args:
@@ -469,9 +472,10 @@ def make_all_the_gifs(names: dict, frame_length: float = 1.0, data_band: int = 1
     print('\r\nOPERATION COMPLETE')
 
 
-def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_ids: Union[list, tuple, np.ndarray],
-                 classes: dict, colours: dict, fn_prefix: str, frac: float = 0.05,
-                 fig_dim: Tuple[float, float] = (9.3, 10.5)) -> None:
+def plot_all_pvl(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], 
+                 patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]],
+                 classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05,
+                 fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Uses prediction_plot to plot all predicted versus ground truth comparison plots from MLP testing.
 
     Args:
@@ -515,8 +519,8 @@ def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_i
     # Create a new projection system in lat-lon
     new_cs = CRS.from_epsg(data_config['co_sys']['id'])
 
-    flat_z = np.array(list(chunks(z, int(len(z) / len(patch_ids)))))
-    flat_y = np.array(list(chunks(y, int(len(y) / len(patch_ids)))))
+    flat_z: NDArray[Any] = np.array(list(chunks(z, int(len(z) / len(patch_ids)))))
+    flat_y: NDArray[Any] = np.array(list(chunks(y, int(len(y) / len(patch_ids)))))
 
     z_shape = flat_z.shape
     y_shape = flat_y.shape
@@ -541,10 +545,10 @@ def plot_all_pvl(z: Union[list, np.ndarray], y: Union[list, np.ndarray], patch_i
             bar()
 
 
-def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: Literal['scene', 'patch'],
-                    new_cs: CRS, exp_id: Optional[str] = None, classes: Optional[dict] = None,
+def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_type: Literal['scene', 'patch'],
+                    new_cs: CRS, classes: Dict[str, str] = None, exp_id: Optional[str] = None, 
                     block_size: int = 32, cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True,
-                    save: bool = True, fig_dim: Optional[Tuple[float, float]] = None,
+                    save: bool = True, fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
                     fn_prefix: Optional[str] = None) -> None:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
@@ -555,8 +559,8 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: L
         sample_id (str): Unique ID of the patch.
         sample_type (str): Denotes what sort of sample is to be plotted. Must be either 'scene' or 'patch'.
         new_cs(osr.SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        classes (dict[str]): Dictionary mapping class labels to class names.
         exp_id (str): Optional; Unique ID for the experiment run that predictions and labels come from.
-        classes (dict[str]): Optional; Dictionary mapping class labels to class names.
         block_size (int): Optional; Size of block image sub-division in pixels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
         show (bool): Optional; True for show figure when plotted. False if not.
@@ -594,7 +598,7 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: L
 
     gs = GridSpec(nrows=2, ncols=2, figure=fig)
 
-    axes = np.array([fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[1, :])])
+    axes: NDArray[Any] = np.array([fig.add_subplot(gs[0, 0]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[1, :])])
 
     # Creates a cmap from query.
     cmap = plt.get_cmap(cmap_style, len(classes))
@@ -673,8 +677,9 @@ def prediction_plot(z: np.ndarray, y: np.ndarray, sample_id: str, sample_type: L
     plt.close()
 
 
-def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefix: str,
-             frac: float = 0.05, fig_dim: Tuple[float, float] = (9.3, 10.5)) -> None:
+def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Union[int, float]], NDArray[Any]], 
+             ids: List[str], classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05, 
+             fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
     Args:
@@ -696,7 +701,7 @@ def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefi
 
     z = np.reshape(z, (z.shape[0] * z.shape[1], z.shape[2], z.shape[3]))
     y = np.reshape(y, (y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
-    ids = np.array(ids).flatten()
+    ids: NDArray[Any] = np.array(ids).flatten()
 
     # Create a new projection system in lat-lon.
     new_cs = CRS.from_epsg(data_config['co_sys']['id'])
@@ -720,9 +725,10 @@ def seg_plot(z: list, y: list, ids: list, classes: dict, colours: dict, fn_prefi
             bar()
 
 
-def plot_subpopulations(class_dist: Union[list, tuple, np.ndarray], class_names: Optional[dict] = None,
-                        cmap_dict: Optional[dict] = None, filename: Optional[str] = None, save: bool = True,
-                        show: bool = False) -> None:
+def plot_subpopulations(class_dist: Union[List[Union[Tuple[int, ...], List[int]]], 
+                                          Tuple[Union[Tuple[int, ...], List[int]], ...]], 
+                        class_names: Dict[int, str] = None, cmap_dict: Optional[Dict[int, str]] = None, 
+                        filename: Optional[str] = None, save: bool = True, show: bool = False) -> None:
     """Creates a pie chart of the distribution of the classes within the data.
 
     Args:
@@ -777,7 +783,8 @@ def plot_subpopulations(class_dist: Union[list, tuple, np.ndarray], class_names:
         plt.close()
 
 
-def plot_history(metrics: dict, filename: Optional[str] = None, save: bool = True, show: bool = False) -> None:
+def plot_history(metrics: Dict[str, Any], filename: Optional[str] = None, save: bool = True, 
+                 show: bool = False) -> None:
     """Plots model history based on metrics supplied.
 
     Args:
@@ -818,8 +825,8 @@ def plot_history(metrics: dict, filename: Optional[str] = None, save: bool = Tru
         plt.close()
 
 
-def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union[list, np.ndarray],
-                          classes: dict, filename: Optional[str] = None, show: bool = True,
+def make_confusion_matrix(test_pred: Union[List[int], NDArray[Any]], test_labels: Union[List[int], NDArray[Any]],
+                          classes: Dict[int, str], filename: Optional[str] = None, show: bool = True,
                           save: bool = False) -> None:
     """Creates a heat-map of the confusion matrix of the given model.
 
@@ -871,8 +878,9 @@ def make_confusion_matrix(test_pred: Union[list, np.ndarray], test_labels: Union
         plt.close()
 
 
-def make_roc_curves(probs: Union[list, np.ndarray], labels: Union[list, np.ndarray], class_names: dict, colours: dict,
-                    micro: bool = True, macro: bool = True, filename: Optional[str] = None, show: bool = False,
+def make_roc_curves(probs: Union[List[float], NDArray[Any]], labels: Union[List[int], NDArray[Any]], 
+                    class_names: Dict[int, str], colours: Dict[int, str], micro: bool = True, 
+                    macro: bool = True, filename: Optional[str] = None, show: bool = False,
                     save: bool = True) -> None:
     """Plots ROC curves for each class, the micro and macro average ROC curves and accompanying AUCs.
 
@@ -959,7 +967,7 @@ def make_roc_curves(probs: Union[list, np.ndarray], labels: Union[list, np.ndarr
         plt.close()
 
 
-def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple]) -> dict:
+def format_plot_names(model_name: str, timestamp: str, path: Union[List[str], Tuple[str, ...]]) -> Dict[str, str]:
     """Creates unique filenames of plots in a standardised format.
 
     Args:
@@ -993,11 +1001,13 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[list, tuple])
     return filenames
 
 
-def plot_results(plots: dict, z: Union[list, np.ndarray], y: Union[list, np.ndarray], metrics: Optional[dict] = None,
-                 ids: Optional[list] = None, probs: Optional[Union[list, np.ndarray]] = None,
-                 class_names: Optional[dict] = None, colours: Optional[dict] = None, save: bool = True,
-                 show: bool = False, model_name: Optional[str] = None, timestamp: Optional[str] = None,
-                 results_dir: Optional[Union[list, tuple]] = None) -> None:
+def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], 
+                 metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None, 
+                 probs: Optional[Union[List[float], NDArray[Any]]] = None, 
+                 class_names: Optional[Dict[str, str]] = None, colours: Optional[Dict[int, str]] = None, 
+                 save: bool = True, show: bool = False, model_name: Optional[str] = None, 
+                 timestamp: Optional[str] = None, 
+                 results_dir: Optional[Union[List[str], Tuple[str, ...]]] = None) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
     Args:

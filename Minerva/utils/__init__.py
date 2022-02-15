@@ -1,13 +1,13 @@
 import yaml
 import os
 import shutil
-from typing import Tuple
+from typing import Tuple, Dict, Any
 
 config_dir_path = '../../config/'
 default_config_name = 'config.yml'
 
 
-def load_configs(master_config_path: str) -> Tuple:
+def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
     """Loads the master config from YAML. Finds other config paths within and loads them.
 
     Args:
@@ -17,7 +17,7 @@ def load_configs(master_config_path: str) -> Tuple:
         Master config and any other configs found from paths in the master config.
     """
 
-    def yaml_load(path: str) -> dict:
+    def yaml_load(path: str) -> Any:
         """Loads YAML file from path as dict.
         Args:
             path(str): Path to YAML file.
@@ -28,7 +28,7 @@ def load_configs(master_config_path: str) -> Tuple:
         with open(path) as f:
             return yaml.safe_load(f)
 
-    def aux_config_load(paths: dict) -> dict:
+    def aux_config_load(paths: Dict[str, str]) -> Dict[str, Dict[str, Any]]:
         """Loads and returns config files from YAML as dicts.
 
         Args:
