@@ -1,4 +1,4 @@
-name: BasicTests
+name: Ubuntu
 
 on:
   - push
