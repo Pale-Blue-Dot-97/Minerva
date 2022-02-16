@@ -1004,7 +1004,7 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[List[str], Tu
 def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], 
                  metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None, 
                  probs: Optional[Union[List[float], NDArray[Any]]] = None, 
-                 class_names: Optional[Dict[str, str]] = None, colours: Optional[Dict[int, str]] = None, 
+                 class_names: Optional[Dict[int, str]] = None, colours: Optional[Dict[int, str]] = None, 
                  save: bool = True, show: bool = False, model_name: Optional[str] = None, 
                  timestamp: Optional[str] = None, 
                  results_dir: Optional[Union[List[str], Tuple[str, ...]]] = None) -> None:
