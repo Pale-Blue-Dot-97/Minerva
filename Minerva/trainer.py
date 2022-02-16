@@ -211,10 +211,13 @@ class Trainer:
         total_loss = 0.0
         total_correct = 0.0
 
-        labels = 0
-        predictions = 0
-        probs = 0
+        labels = None
+        predictions = None
+        probs = None
         ids = []
+        bounds = None
+
+        n_samples = self.n_batches[mode] * self.batch_size
 
         if record_int:
             labels = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.uint8)
@@ -226,6 +229,11 @@ class Trainer:
                                   *self.model.output_shape), dtype=np.float16)
             except MemoryError:
                 print('Dataset too large to record probabilities of predicted classes!')
+            
+            try:
+                bounds = np.empty((self.n_batches[mode], self.batch_size, 4), dtype=np.float16)
+            except MemoryError:
+                print('Dataset too large to record bounding boxes of samples!')
 
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
@@ -241,6 +249,7 @@ class Trainer:
             for sample in self.loaders[mode]:
                 x_batch = sample['image']
                 y_batch = sample['mask']
+                # batch_bounds = sample['bounds']
 
                 x_batch = x_batch.to(torch.float)
                 y_batch = np.squeeze(y_batch, axis=1)
@@ -267,7 +276,10 @@ class Trainer:
 
                     # Add the labels and sample IDs to lists.
                     labels[batch_num] = y.cpu().numpy()
-                    # ids.append(sample_id)
+                    batch_ids = []
+                    for i in range(start=batch_num * self.batch_size, stop=(batch_num + 1) * self.batch_size):
+                        batch_ids.append(str(i).zfill(len(str(n_samples))))
+                    ids.append(batch_ids)
 
                 if record_float:
                     # Add the estimated probabilities to probs.
