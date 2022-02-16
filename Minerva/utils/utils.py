@@ -199,13 +199,17 @@ def patch_grab() -> List[str]:
     pass
 
 
-def get_dataset_name() -> Union[str, Any]:
+def get_dataset_name() -> Optional[Union[str, Any]]:
     """Gets the name of the dataset to be used from the config name.
 
     Returns:
         Name of dataset as string.
     """
-    return regex.search('config/(.*?)\.yml', data_config_path).group(1)
+    try:
+        return regex.search('(.*?)\.yml', data_config_path).group(1)
+    except AttributeError:
+        print('\nDataset not found!')
+        return None
 
 
 def get_manifest() -> str:
