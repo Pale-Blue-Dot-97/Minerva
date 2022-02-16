@@ -267,7 +267,7 @@ class Trainer:
 
                     # Add the labels and sample IDs to lists.
                     labels[batch_num] = y.cpu().numpy()
-                    #ids.append(sample_id)
+                    # ids.append(sample_id)
 
                 if record_float:
                     # Add the estimated probabilities to probs.

@@ -71,18 +71,6 @@ def print_credentials():
     print(f'Citation: {collection["sci:citation"]}')
 
 
-def get_classes():
-    items = client.list_collection_items(collection_id, limit=1)
-
-    first_item = next(items)
-
-    label_classes = first_item['properties']['label:classes']
-    for label_class in label_classes:
-        print(f'Classes for {label_class["name"]}')
-        for c in sorted(label_class['classes']):
-            print(f'- {c}')
-
-
 def filter_item(item, output_dir=data_dir, classes=None, cloud_and_shadow=None, seasonal_snow=None):
     """Function to be used as an argument to Python's built-in filter function that filters out any items that
     do not match the given classes, cloud_and_shadow, and/or seasonal_snow values.
@@ -224,8 +212,6 @@ def main(classes: Optional[List[str]] = None, max_items: Optional[int] = None,
          assets: Optional[List[str]] = None, download_dir: str = data_dir,
          archive_download: bool = False) -> None:
     print_credentials()
-
-    #get_classes()
 
     if archive_download:
         client.download_archive(collection_id, output_dir=download_dir)

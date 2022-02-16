@@ -250,7 +250,7 @@ def labelled_rgb_image(names: Dict[str, str], mode: str = 'patch', data_band: in
                        classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None, block_size: int = 32,
                        cmap_style: Optional[Union[str, ListedColormap]] = None, alpha: float = 0.5,
                        new_cs: Optional[CRS] = None,
-                       show: bool = True, save: bool = True, 
+                       show: bool = True, save: bool = True,
                        figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> str:
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
@@ -428,7 +428,7 @@ def make_all_the_gifs(names: Dict[str, str], frame_length: float = 1.0, data_ban
                       classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None,
                       cmap_style: Optional[Union[str, ListedColormap]] = None,
                       new_cs: Optional[CRS] = None,
-                      alpha: float = 0.5, 
+                      alpha: float = 0.5,
                       figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> None:
     """Wrapper to make_gifs() to iterate through all patches in dataset.
 
@@ -472,7 +472,7 @@ def make_all_the_gifs(names: Dict[str, str], frame_length: float = 1.0, data_ban
     print('\r\nOPERATION COMPLETE')
 
 
-def plot_all_pvl(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], 
+def plot_all_pvl(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]],
                  patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]],
                  classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05,
                  fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
@@ -546,7 +546,7 @@ def plot_all_pvl(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[
 
 
 def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_type: Literal['scene', 'patch'],
-                    new_cs: CRS, classes: Dict[str, str] = None, exp_id: Optional[str] = None, 
+                    new_cs: CRS, classes: Dict[str, str] = None, exp_id: Optional[str] = None,
                     block_size: int = 32, cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True,
                     save: bool = True, fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
                     fn_prefix: Optional[str] = None) -> None:
@@ -677,8 +677,8 @@ def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_typ
     plt.close()
 
 
-def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Union[int, float]], NDArray[Any]], 
-             ids: List[str], classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05, 
+def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Union[int, float]], NDArray[Any]],
+             ids: List[str], classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05,
              fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -725,9 +725,9 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
             bar()
 
 
-def plot_subpopulations(class_dist: Union[List[Union[Tuple[int, ...], List[int]]], 
-                                          Tuple[Union[Tuple[int, ...], List[int]], ...]], 
-                        class_names: Dict[int, str] = None, cmap_dict: Optional[Dict[int, str]] = None, 
+def plot_subpopulations(class_dist: Union[List[Union[Tuple[int, ...], List[int]]],
+                                          Tuple[Union[Tuple[int, ...], List[int]], ...]],
+                        class_names: Dict[int, str] = None, cmap_dict: Optional[Dict[int, str]] = None,
                         filename: Optional[str] = None, save: bool = True, show: bool = False) -> None:
     """Creates a pie chart of the distribution of the classes within the data.
 
@@ -783,7 +783,7 @@ def plot_subpopulations(class_dist: Union[List[Union[Tuple[int, ...], List[int]]
         plt.close()
 
 
-def plot_history(metrics: Dict[str, Any], filename: Optional[str] = None, save: bool = True, 
+def plot_history(metrics: Dict[str, Any], filename: Optional[str] = None, save: bool = True,
                  show: bool = False) -> None:
     """Plots model history based on metrics supplied.
 
@@ -808,7 +808,7 @@ def plot_history(metrics: Dict[str, Any], filename: Optional[str] = None, save: 
     plt.legend(handles=handles, labels=metrics.keys())
 
     # Forces x-axis ticks to be integers. FEATURE DISABLED DUE TO BUG.
-    #plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+    # plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Adds a grid overlay with green dashed lines.
     plt.grid(color='green', linestyle='--', linewidth=0.5)  # For some funky gridlines
@@ -879,7 +879,7 @@ def make_confusion_matrix(test_pred: Union[List[int], NDArray[Any]], test_labels
 
 
 def make_roc_curves(probs: Union[List[float], NDArray[Any]], labels: Union[List[int], NDArray[Any]], 
-                    class_names: Dict[int, str], colours: Dict[int, str], micro: bool = True, 
+                    class_names: Dict[int, str], colours: Dict[int, str], micro: bool = True,
                     macro: bool = True, filename: Optional[str] = None, show: bool = False,
                     save: bool = True) -> None:
     """Plots ROC curves for each class, the micro and macro average ROC curves and accompanying AUCs.
@@ -1001,12 +1001,12 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[List[str], Tu
     return filenames
 
 
-def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], 
-                 metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None, 
-                 probs: Optional[Union[List[float], NDArray[Any]]] = None, 
-                 class_names: Optional[Dict[int, str]] = None, colours: Optional[Dict[int, str]] = None, 
-                 save: bool = True, show: bool = False, model_name: Optional[str] = None, 
-                 timestamp: Optional[str] = None, 
+def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]],
+                 metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None,
+                 probs: Optional[Union[List[float], NDArray[Any]]] = None,
+                 class_names: Optional[Dict[int, str]] = None, colours: Optional[Dict[int, str]] = None,
+                 save: bool = True, show: bool = False, model_name: Optional[str] = None,
+                 timestamp: Optional[str] = None,
                  results_dir: Optional[Union[List[str], Tuple[str, ...]]] = None) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 

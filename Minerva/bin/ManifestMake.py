@@ -65,7 +65,7 @@ def make_manifest() -> pd.DataFrame:
     collator_params = config['collator']
 
     print('CONSTRUCTING DATASET')
-    loader = construct_dataloader(config['dir']['data'], dataset_params, sampler_params, 
+    loader = construct_dataloader(config['dir']['data'], dataset_params, sampler_params,
                                   dataloader_params, collator_params=collator_params)
 
     print('FETCHING SAMPLES')

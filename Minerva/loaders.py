@@ -49,7 +49,7 @@ from torchgeo.datasets.utils import BoundingBox
 def intersect_datasets(datasets: list):
     def intersect_pair_datasets(a, b):
         return a & b
-    
+
     for i in range(len(datasets) - 1):
         datasets[0] = intersect_pair_datasets(datasets[0], datasets[i + 1])
 
@@ -132,7 +132,7 @@ def load_all_samples(dataloader: DataLoader) -> np.ndarray:
         sample_modes.append(modes)
 
     sample_modes = np.array(sample_modes)
-    
+
     return sample_modes
 
 
@@ -239,8 +239,8 @@ def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float
 
         # --+ MAKE DATASETS +=========================================================================================+
         print(f'CREATING {mode} DATASET')
-        loaders[mode] = construct_dataloader(params['dir']['data'], dataset_params[mode], sampler_params[mode], 
-                                             dataloader_params, collator_params=params['collator'], 
+        loaders[mode] = construct_dataloader(params['dir']['data'], dataset_params[mode], sampler_params[mode],
+                                             dataloader_params, collator_params=params['collator'],
                                              transform_params=transform_params[mode])
         print('DONE')
 

@@ -31,7 +31,7 @@ Created under a project funded by the Ordnance Survey Ltd.
 from Minerva.utils import visutils
 import yaml
 from matplotlib.colors import ListedColormap
-from osgeo import osr
+from rasterio.crs import CRS
 
 
 # =====================================================================================================================
@@ -55,8 +55,7 @@ with open(esri_config_path) as file:
     esri_config = yaml.safe_load(file)
 
 # Create a new projection system in lat-lon
-WGS84_4326 = osr.SpatialReference()
-WGS84_4326.ImportFromEPSG(lcn_config['co_sys']['id'])
+WGS84_4326 = CRS.from_epsg(lcn_config['co_sys']['id'])
 
 # ======= RADIANT MLHUB PRESETS =======================================================================================
 # Radiant Earth land cover classes reformatted to split across two lines for neater plots

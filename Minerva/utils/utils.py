@@ -384,8 +384,8 @@ def labels_to_ohe(labels: Union[List[int], Tuple[int, ...], NDArray[Any]], n_cla
     return np.eye(n_classes)[targets]
 
 
-def class_weighting(class_dist: Union[List[Union[List[int], Tuple[int, ...]]], 
-                                      Tuple[Union[List[int], Tuple[int, ...]], ...], NDArray[Any]], 
+def class_weighting(class_dist: Union[List[Union[List[int], Tuple[int, ...]]],
+                                      Tuple[Union[List[int], Tuple[int, ...]], ...], NDArray[Any]],
                     normalise: bool = False) -> Dict[int, float]:
     """Constructs weights for each class defined by the distribution provided. Each class weight is the inverse
     of the number of samples of that class. Note: This will most likely mean that the weights will not sum to unity.
@@ -438,9 +438,9 @@ def find_empty_classes(class_dist: List[List[int]]) -> List[int]:
     return empty
 
 
-def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any]], 
+def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any]],
                       old_classes: Optional[Dict[int, str]] = None,
-                      old_cmap: Optional[Dict[int, str]] = None) -> Tuple[Dict[int, str], Dict[int, int], 
+                      old_cmap: Optional[Dict[int, str]] = None) -> Tuple[Dict[int, str], Dict[int, int],
                                                                           Dict[int, str]]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
@@ -507,7 +507,7 @@ def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[A
         return reordered_classes, conversion, reordered_colours
 
 
-def load_data_specs(class_dist: List[List[int]], 
+def load_data_specs(class_dist: List[List[int]],
                     elim: bool = False) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
     if not elim:
         return classes, {}, cmap_dict
@@ -544,9 +544,9 @@ def mask_transform(array: Union[List[Any], NDArray[Any]], matrix: Dict[int, int]
     return array
 
 
-def check_test_empty(pred: Union[List[int], NDArray[Any]], labels: Union[List[int], ArrayLike], 
+def check_test_empty(pred: Union[List[int], NDArray[Any]], labels: Union[List[int], ArrayLike],
                      class_labels: Dict[int, str],
-                     p_dist: bool = True) -> Tuple[Union[List[int], NDArray[Any]], Union[List[int], NDArray[Any]], 
+                     p_dist: bool = True) -> Tuple[Union[List[int], NDArray[Any]], Union[List[int], NDArray[Any]],
                                                    Dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class_labels.
@@ -849,7 +849,7 @@ def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
     return datetime.now().strftime(fmt)
 
 
-def find_subpopulations(labels: Union[List[int], Tuple[int, ...], NDArray[Any]], 
+def find_subpopulations(labels: Union[List[int], Tuple[int, ...], NDArray[Any]],
                         plot: bool = False) -> List[Tuple[int, int]]:
     """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class.
 
