@@ -61,7 +61,8 @@ import re as regex
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from collections import Counter, OrderedDict, Mapping
+from collections import Counter, OrderedDict
+from collections.abc import Mapping
 import rasterio as rt
 import rasterio.mask as rtmask
 from rasterio.crs import CRS
@@ -620,7 +621,7 @@ def find_patch_modes(patch: ArrayLike) -> List[Tuple[int, int]]:
     return Counter(np.array(patch).flatten()).most_common()
 
 
-def class_frac(patch: pd.Series) -> Mapping:
+def class_frac(patch: pd.Series) -> Mapping[int, Any]:
     """Computes the fractional sizes of the classes of the given patch and returns a dict of the results
 
     Args:
@@ -630,7 +631,7 @@ def class_frac(patch: pd.Series) -> Mapping:
         new_columns (Mapping): Dictionary-like object with keys as class numbers and associated values
             of fractional size of class plus a key-value pair for the patch ID
     """
-    new_columns = patch.to_dict()
+    new_columns: Mapping[int, Any] = patch.to_dict()
     counts = 0
     for mode in patch['MODES']:
         counts += mode[1]
@@ -665,7 +666,7 @@ def extract_dates(scene: Tuple[str, str]) -> str:
     return scene[1]
 
 
-def cloud_cover(scene: NDArray[Any]) -> float:
+def cloud_cover(scene: NDArray[Any]) -> Any:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
     Args:
@@ -677,7 +678,7 @@ def cloud_cover(scene: NDArray[Any]) -> float:
     return np.sum(scene) / scene.size
 
 
-def month_sort(df: pd.DataFrame, month: str) -> str:
+def month_sort(df: pd.DataFrame, month: str) -> Any:
     """Finds the the scene with the lowest cloud cover in a given month.
 
     Args:
@@ -715,7 +716,7 @@ def ref_scene_select(df: pd.DataFrame, n_scenes: int = 12) -> List[str]:
     return step1 + step2
 
 
-def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> list:
+def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> List[Any]:
     """Selects all scenes in a patch with a cloud cover less than the threshold provided.
 
     Args:
@@ -728,7 +729,8 @@ def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> list:
     return df.loc[df['COVER'] < thres]['DATE'].tolist()
 
 
-def find_best_of(patch_id: str, manifest: pd.DataFrame, selector: Callable = ref_scene_select, **kwargs) -> Any:
+def find_best_of(patch_id: str, manifest: pd.DataFrame, 
+                 selector: Callable[[pd.DataFrame, Any], List[str]] = ref_scene_select, **kwargs) -> List[str]:
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
@@ -751,7 +753,9 @@ def find_best_of(patch_id: str, manifest: pd.DataFrame, selector: Callable = ref
     return selector(patch_df, **kwargs)
 
 
-def pair_production(patch_id: str, manifest: pd.DataFrame, func: Callable = ref_scene_select, **kwargs) -> list:
+def pair_production(patch_id: str, manifest: pd.DataFrame, 
+                    func: Callable[[pd.DataFrame, Any], List[str]] = ref_scene_select, 
+                    **kwargs) -> List[Tuple[str, str]]:
     """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
 
     Args:
@@ -861,7 +865,7 @@ def find_subpopulations(labels: Union[List[int], Tuple[int, ...], NDArray[Any]],
         class_dist (list): Modal distribution of classes in the dataset provided.
     """
     # Finds the distribution of the classes within the data
-    class_dist = Counter(np.array(labels).flatten()).most_common()
+    class_dist: List[Tuple[int, int]] = Counter(np.array(labels).flatten()).most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
@@ -998,7 +1002,7 @@ def unzip_pairs(pairs: Union[List[Tuple[str, str]], Tuple[Tuple[str, str]]]) -> 
     return map(list, zip(*pairs))
 
 
-def select_df_by_patch(df: pd.DataFrame, patch_ids: Union[list, tuple, np.ndarray]) -> pd.DataFrame:
+def select_df_by_patch(df: pd.DataFrame, patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]]) -> pd.DataFrame:
     """Selects the section of the DataFrame for the patch IDs provided with no duplicate IDs.
         i.e not by patch and not by scene.
 
