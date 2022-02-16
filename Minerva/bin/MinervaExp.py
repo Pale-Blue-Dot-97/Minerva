@@ -35,7 +35,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import utils, config
+from Minerva.utils import config
 from Minerva.loaders import make_datasets
 from Minerva.trainer import Trainer
 
