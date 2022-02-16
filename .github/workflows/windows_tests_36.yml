@@ -1,4 +1,4 @@
-name: Ubuntu
+name: Windows
 
 on:
   - push
@@ -8,10 +8,10 @@ jobs:
   test:
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.9", "3.8", "3.7", "3.6"]
+        os: [windows-latest]
+        python-version: ["3.6"]
     
     steps:
     - uses: actions/checkout@v2
