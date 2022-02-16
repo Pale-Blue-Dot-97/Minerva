@@ -878,7 +878,7 @@ def make_confusion_matrix(test_pred: Union[List[int], NDArray[Any]], test_labels
         plt.close()
 
 
-def make_roc_curves(probs: Union[List[float], NDArray[Any]], labels: Union[List[int], NDArray[Any]], 
+def make_roc_curves(probs: Union[List[float], NDArray[Any]], labels: Union[List[int], NDArray[Any]],
                     class_names: Dict[int, str], colours: Dict[int, str], micro: bool = True,
                     macro: bool = True, filename: Optional[str] = None, show: bool = False,
                     save: bool = True) -> None:

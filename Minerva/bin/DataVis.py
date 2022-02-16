@@ -109,5 +109,5 @@ if __name__ == '__main__':
 
     visutils.labelled_rgb_image(my_names, mode='patch', classes=RE_classes, cmap_style=RE_cmap, new_cs=WGS84_4326,
                                 figdim=RE_figdim, show=True, save=False)
-    #visutils.make_all_the_gifs(my_names, frame_length=0.5, data_band=1, classes=S2_SCL_classes, cmap_style=S2_SCL_cmap,
+    # visutils.make_all_the_gifs(my_names, frame_length=0.5, data_band=1, classes=S2_SCL_classes, cmap_style=S2_SCL_cmap,
     #                           new_cs=WGS84_4326, alpha=0.3, fig_dim=S2_SCL_figdim)

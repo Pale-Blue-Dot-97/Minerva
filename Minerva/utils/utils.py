@@ -769,7 +769,7 @@ def pair_production(patch_id: str, manifest: pd.DataFrame, func: Callable = ref_
     return [(patch_id, scene) for scene in scenes]
 
 
-def scene_extract(patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]], manifest: pd.DataFrame, 
+def scene_extract(patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]], manifest: pd.DataFrame,
                   *args, **kwargs) -> List[Tuple[str, str]]:
     """Uses pair_production to produce patch ID - scene pairs for the whole dataset outlined by patch_ids.
 
@@ -1230,7 +1230,7 @@ def run_tensorboard(path: Optional[Union[str, List[str], Tuple[str, ...]]] = Non
 
 
 def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any]],
-                       class_labels: List[int], micro: bool = True, 
+                       class_labels: List[int], micro: bool = True,
                        macro: bool = True) -> Tuple[Dict[int, float], Dict[int, float], Dict[int, float]]:
     """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
     The micro and macro averages are for each of these variables is also computed.
