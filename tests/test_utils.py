@@ -1,4 +1,3 @@
-from pyparsing import dictOf
 from Minerva.utils import utils, config, aux_configs
 
 

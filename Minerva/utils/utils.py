@@ -1075,7 +1075,7 @@ def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: d
     print(tabulate(df, headers='keys', tablefmt='psql'))
 
 
-def scene_tag(scenes: Union[list, tuple, np.ndarray]) -> list:
+def scene_tag(scenes: List[Tuple[str, str]]) -> List[str]:
     """Creates a list of patch ID - date tags that uniquely identify each scene in a single string.
 
     Args:
@@ -1084,7 +1084,7 @@ def scene_tag(scenes: Union[list, tuple, np.ndarray]) -> list:
     Returns:
         List of scene tag strings that uniquely identify each scene.
     """
-    return ['{}-{}'.format(patch_id, date) for patch_id, date in scenes]
+    return [f'{patch_id}-{date}' for patch_id, date in scenes]
 
 
 def extract_from_tag(tag: str) -> Tuple[str, str]:
@@ -1125,8 +1125,8 @@ def model_output_flatten(x: Any) -> ArrayLike:
     return x
 
 
-def make_classification_report(pred: Union[list, np.ndarray], labels: Union[list, np.ndarray],
-                               class_labels: dict, print_cr: bool = True, p_dist: bool = False) -> pd.DataFrame:
+def make_classification_report(pred: Union[List[int], NDArray[Any]], labels: Union[List[int], NDArray[Any]],
+                               class_labels: Dict[int, str], print_cr: bool = True, p_dist: bool = False) -> pd.DataFrame:
     """Generates a DataFrame of the precision, recall, f-1 score and support of the supplied predictions
     and ground truth labels.
 
@@ -1179,7 +1179,7 @@ def make_classification_report(pred: Union[list, np.ndarray], labels: Union[list
     return cr_df
 
 
-def run_tensorboard(path: Optional[Union[str, list, tuple]] = None, env_name: str = 'env2',
+def run_tensorboard(path: Optional[Union[str, List[str], Tuple[str, ...]]] = None, env_name: str = 'env2',
                     exp_name: Optional[str] = None, host_num: Optional[Union[str, int]] = 6006) -> None:
     """Runs the TensorBoard logs and hosts on a local webpage.
 
@@ -1229,8 +1229,9 @@ def run_tensorboard(path: Optional[Union[str, list, tuple]] = None, env_name: st
     webbrowser.open('localhost:{}'.format(host_num))
 
 
-def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
-                       class_labels: list, micro: bool = True, macro: bool = True) -> Tuple[dict, dict, dict]:
+def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any]],
+                       class_labels: List[int], micro: bool = True, 
+                       macro: bool = True) -> Tuple[Dict[int, float], Dict[int, float], Dict[int, float]]:
     """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
     The micro and macro averages are for each of these variables is also computed.
 
@@ -1240,7 +1241,7 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
     Args:
         probs (np.ndarray): Array of probabilistic predicted classes from model where each sample
             should have a list of the predicted probability for each class.
-        labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
+        labels (list[int]): List of corresponding ground truth labels.
         class_labels (list): List of class label numbers.
         micro (bool): Optional; Whether to compute the micro average ROC curves.
         macro (bool): Optional; Whether to compute the macro average ROC curves.
@@ -1251,14 +1252,16 @@ def compute_roc_curves(probs: np.ndarray, labels: Union[list, np.ndarray],
         roc_auc (dict): Dictionary of AUCs for each class and micro and macro averages.
     """
 
+    print('\nBinarising labels')
+
     # One-hot-encoders the class labels to match binarised input expected by roc_curve.
     targets = label_binarize(labels, classes=class_labels)
 
     # Dicts to hold the false-positive rate, true-positive rate and Area Under Curves
     # of each class and micro, macro averages.
-    fpr = {}
-    tpr = {}
-    roc_auc = {}
+    fpr: Dict[int, float] = {}
+    tpr: Dict[int, float] = {}
+    roc_auc: Dict[int, float] = {}
 
     # Initialises a progress bar.
     with alive_bar(len(class_labels), bar='blocks') as bar:
