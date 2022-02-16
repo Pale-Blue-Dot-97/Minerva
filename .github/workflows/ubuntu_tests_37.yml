@@ -1,4 +1,4 @@
-name: Ubuntu
+name: Ubuntu-Py37
 
 on:
   - push

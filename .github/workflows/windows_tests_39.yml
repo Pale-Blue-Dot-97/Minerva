@@ -1,4 +1,4 @@
-name: Windows
+name: Windows-Py39
 
 on:
   - push
