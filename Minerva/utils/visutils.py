@@ -43,9 +43,9 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict, List, Any
+from typing import Union, Optional, Tuple, Dict, List, Any, Iterable
 from typing_extensions import Literal
-from numpy.typing import NDArray
+from numpy.typing import NDArray, ArrayLike
 from Minerva.utils import utils, config, aux_configs
 import os
 import imageio
@@ -101,7 +101,7 @@ def path_format(names: Dict[str, str]) -> Tuple[Dict[str, str], str, str, str]:
     pass
 
 
-def de_interlace(x: Union[List[Union[int, float]], NDArray[Any]], f: int) -> NDArray[Any]:
+def de_interlace(x: ArrayLike, f: int) -> NDArray[Any]:
     """Separates interlaced arrays, `x' at a frequency of `f' from each other.
 
     Args:
@@ -546,9 +546,9 @@ def plot_all_pvl(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[
 
 
 def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_type: Literal['scene', 'patch'],
-                    new_cs: CRS, classes: Dict[str, str] = None, exp_id: Optional[str] = None,
-                    block_size: int = 32, cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True,
-                    save: bool = True, fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
+                    new_cs: CRS, classes: Dict[str, str], exp_id: Optional[str] = None, block_size: int = 32,
+                    cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True, save: bool = True,
+                    fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
                     fn_prefix: Optional[str] = None) -> None:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
@@ -725,14 +725,13 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
             bar()
 
 
-def plot_subpopulations(class_dist: Union[List[Union[Tuple[int, ...], List[int]]],
-                                          Tuple[Union[Tuple[int, ...], List[int]], ...]],
-                        class_names: Dict[int, str] = None, cmap_dict: Optional[Dict[int, str]] = None,
-                        filename: Optional[str] = None, save: bool = True, show: bool = False) -> None:
+def plot_subpopulations(class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = None,
+                        cmap_dict: Optional[Dict[int, str]] = None, filename: Optional[str] = None,
+                        save: bool = True, show: bool = False) -> None:
     """Creates a pie chart of the distribution of the classes within the data.
 
     Args:
-        class_dist (list[list]): Modal distribution of classes in the dataset provided.
+        class_dist (list[tuple[int, int]]): Modal distribution of classes in the dataset provided.
         class_names (dict): Optional; Dictionary mapping class labels to class names.
         cmap_dict (dict): Optional; Dictionary mapping class labels to class colours.
         filename (str): Optional; Name of file to save plot to.
@@ -1006,8 +1005,7 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
                  probs: Optional[Union[List[float], NDArray[Any]]] = None,
                  class_names: Optional[Dict[int, str]] = None, colours: Optional[Dict[int, str]] = None,
                  save: bool = True, show: bool = False, model_name: Optional[str] = None,
-                 timestamp: Optional[str] = None,
-                 results_dir: Optional[Union[List[str], Tuple[str, ...]]] = None) -> None:
+                 timestamp: Optional[str] = None, results_dir: Optional[Iterable[str]] = None) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
     Args:
@@ -1040,6 +1038,12 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
 
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
+    
+    if model_name is None:
+        model_name = config['model_name']
+    
+    if results_dir is None:
+        results_dir = config['dir']['results']
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
@@ -1049,6 +1053,7 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
         print(err)
 
     if plots['History']:
+        assert metrics is not None
         print('\nPLOTTING MODEL HISTORY')
         plot_history(metrics, filename=filenames['History'], save=save, show=show)
     if plots['Pred']:

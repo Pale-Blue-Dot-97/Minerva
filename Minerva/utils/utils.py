@@ -48,7 +48,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import sys
-from typing import Tuple, Union, Optional, Any, Iterator, List, Dict, Callable
+from typing import Tuple, Union, Optional, Any, Iterator, List, Dict, Callable, Mapping
 from numpy.typing import NDArray, ArrayLike, DTypeLike
 import functools
 from Minerva.utils import config, aux_configs, visutils
@@ -62,7 +62,6 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 from collections import Counter, OrderedDict
-from collections.abc import Mapping
 import rasterio as rt
 import rasterio.mask as rtmask
 from rasterio.crs import CRS
@@ -1235,7 +1234,7 @@ def run_tensorboard(path: Optional[Union[str, List[str], Tuple[str, ...]]] = Non
 
 def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any]],
                        class_labels: List[int], micro: bool = True,
-                       macro: bool = True) -> Tuple[Dict[int, float], Dict[int, float], Dict[int, float]]:
+                       macro: bool = True) -> Tuple[Dict[Any, float], Dict[Any, float], Dict[Any, float]]:
     """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
     The micro and macro averages are for each of these variables is also computed.
 
