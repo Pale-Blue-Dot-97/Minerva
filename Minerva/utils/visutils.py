@@ -1044,7 +1044,6 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
     try:
-        print(os.sep.join(results_dir))
         os.mkdir(os.sep.join(results_dir))
     except FileExistsError as err:
         print(err)

@@ -277,7 +277,7 @@ class Trainer:
                     # Add the labels and sample IDs to lists.
                     labels[batch_num] = y.cpu().numpy()
                     batch_ids = []
-                    for i in range(start=batch_num * self.batch_size, stop=(batch_num + 1) * self.batch_size):
+                    for i in range(batch_num * self.batch_size, (batch_num + 1) * self.batch_size):
                         batch_ids.append(str(i).zfill(len(str(n_samples))))
                     ids.append(batch_ids)
 
