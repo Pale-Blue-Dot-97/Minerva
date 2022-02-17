@@ -1,11 +1,11 @@
 pyyaml
 numpy
-scikit-learn>=0.23.2
-matplotlib>=3.3.2
+scikit-learn
+matplotlib
 tqdm
-pandas>=1.2.0
+pandas
 seaborn
-tensorflow>=2.4.0
+tensorflow
 rasterio
 imageio
 torchinfo
