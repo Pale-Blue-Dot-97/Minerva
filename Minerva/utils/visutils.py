@@ -44,9 +44,12 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Union, Optional, Tuple, Dict, List, Any, Iterable
-from typing_extensions import Literal
-from numpy.typing import NDArray, ArrayLike
+try:
+    from numpy.typing import NDArray, ArrayLike
+except ImportError:
+    NDArray, ArrayLike = Iterable
 from Minerva.utils import utils, config, aux_configs
+from Minerva.loaders import make_dataset, make_bounding_box
 import os
 import imageio
 import random
@@ -121,15 +124,14 @@ def de_interlace(x: ArrayLike, f: int) -> NDArray[Any]:
     return np.array(new_x).flatten()
 
 
-def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: CRS,
-               spacing: int = 32) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
+def dec_extent_to_deg(shape: Tuple[int, int], bounds,
+                      spacing: int = 32) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
     """Gets the extent of the image with 'shape' and at data_fn in latitude, longitude of system new_cs.
 
     Args:
         shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
         data_fn (str): Path and filename of the TIF file whose geospatial metadata will be used
             to get the corners of the image in latitude and longitude.
-        new_cs(CRS): Co-ordinate system to convert co-ordinates found in data_fn TIF file to.
         spacing (int): Spacing of the lat - lon ticks.
 
     Returns:
@@ -141,12 +143,12 @@ def get_extent(shape: Tuple[int, int], data_fn: str, new_cs: CRS,
     extent = 0, shape[0], 0, shape[1]
 
     # Gets the co-ordinates of the corners of the image in decimal lat-lon.
-    corners = utils.transform_coordinates(data_fn, new_cs)
+    # corners = utils.transform_coordinates(data_fn, new_cs)
 
     # Creates a discrete mapping of the spaced ticks to latitude longitude extent of the image.
-    lat_extent = np.linspace(start=corners[1][1][0], stop=corners[0][1][0],
+    lat_extent = np.linspace(start=bounds['miny'], stop=bounds['maxy'],
                              num=int(shape[0] / spacing) + 1, endpoint=True)
-    lon_extent = np.linspace(start=corners[0][0][1], stop=corners[0][1][1],
+    lon_extent = np.linspace(start=bounds['minx'], stop=bounds['maxx'],
                              num=int(shape[0] / spacing) + 1, endpoint=True)
 
     return extent, lat_extent, lon_extent
@@ -283,7 +285,7 @@ def labelled_rgb_image(names: Dict[str, str], mode: str = 'patch', data_band: in
     # Loads data to plotted as heatmap from file.
     data = utils.load_array(data_name, band=data_band)
 
-    extent, lat_extent, lon_extent = get_extent(data.shape, data_name, new_cs, spacing=block_size)
+    extent, lat_extent, lon_extent = dec_extent_to_deg(data.shape, bounds=None, spacing=block_size)
 
     # Initialises a figure.
     fig, ax1 = plt.subplots()
@@ -472,81 +474,8 @@ def make_all_the_gifs(names: Dict[str, str], frame_length: float = 1.0, data_ban
     print('\r\nOPERATION COMPLETE')
 
 
-def plot_all_pvl(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]],
-                 patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]],
-                 classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05,
-                 fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
-    """Uses prediction_plot to plot all predicted versus ground truth comparison plots from MLP testing.
-
-    Args:
-        z (list[list[int]] or np.ndarray[np.ndarray[int]]): List of predicted label masks.
-        y (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
-        patch_ids (list[str]): List of IDs identifying the patches from which predictions and labels came from.
-        classes (dict[str]): Dictionary mapping class labels to class names.
-        colours (dict[str]): Dictionary mapping class labels to colours.
-        fn_prefix (str): Common filename prefix (including path to file) for all plots of this type
-            from this experiment to use.
-        frac (float): Optional; Fraction of patch samples to plot.
-        fig_dim (Tuple[float, float]): Optional; Figure (height, width) in inches.
-
-    Returns:
-        None
-    """
-    def chunks(x, n: int):
-        """Yield successive n-sized chunks from x.
-        Args:
-            x (list or np.ndarray): Array to be split into chunks.
-            n (int): Length of yielded array.
-        Yields:
-            n-sized chunks from x.
-        """
-        for i in range(0, len(x), n):
-            yield x[i:i + n]
-
-    # Gets the number of workers to use as the frequency for the de-interlacing operation.
-    num_workers = config['hyperparams']['params']['num_workers']
-
-    cmap = ListedColormap(colours.values(), N=len(colours.values()))
-
-    # `De-interlaces' the outputs to account for the effects of multi-threaded workloads.
-    z = de_interlace(z, num_workers)
-    y = de_interlace(y, num_workers)
-    patch_ids = de_interlace(patch_ids, num_workers)
-
-    # Extracts just a patch ID for each test patch supplied.
-    patch_ids = [patch_ids[i] for i in np.arange(start=0, stop=len(patch_ids), step=n_pixels)]
-
-    # Create a new projection system in lat-lon
-    new_cs = CRS.from_epsg(data_config['co_sys']['id'])
-
-    flat_z: NDArray[Any] = np.array(list(chunks(z, int(len(z) / len(patch_ids)))))
-    flat_y: NDArray[Any] = np.array(list(chunks(y, int(len(y) / len(patch_ids)))))
-
-    z_shape = flat_z.shape
-    y_shape = flat_y.shape
-
-    z = np.array([z_i.reshape((int(np.sqrt(z_shape[1])), int(np.sqrt(z_shape[1])))) for z_i in flat_z])
-    y = np.array([y_i.reshape((int(np.sqrt(y_shape[1])), int(np.sqrt(y_shape[1])))) for y_i in flat_y])
-
-    print('PRODUCING PREDICTED VERSUS GROUND TRUTH PLOTS')
-    # Limits number of masks to produce to a fractional number of total and no more than _max_samples.
-    n_samples = int(frac * len(patch_ids))
-    if n_samples > _max_samples:
-        n_samples = _max_samples
-
-    # Initialises a progress bar for the epoch.
-    with alive_bar(n_samples, bar='blocks') as bar:
-
-        # Plots the predicted versus ground truth labels for all test patches supplied.
-        for i in random.sample(range(len(patch_ids)), n_samples):
-            prediction_plot(z[i], y[i], patch_ids[i], 'patch', new_cs=new_cs, classes=classes, cmap_style=cmap,
-                            fn_prefix=fn_prefix, show=False, fig_dim=fig_dim)
-
-            bar()
-
-
-def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_type: Literal['scene', 'patch'],
-                    new_cs: CRS, classes: Dict[str, str], exp_id: Optional[str] = None, block_size: int = 32,
+def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: Dict[str, str], 
+                    exp_id: Optional[str] = None, block_size: int = 32,
                     cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True, save: bool = True,
                     fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
                     fn_prefix: Optional[str] = None) -> None:
@@ -554,11 +483,9 @@ def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_typ
         and a reference RGB image of the same patch.
 
     Args:
-        z (np.ndarray[np.ndarray[int]]): 2D array of the predicted label mask.
-        y (np.ndarray[np.ndarray[int]]): 2D array of the corresponding ground truth label mask.
+        sample (dict[str, Any]):
         sample_id (str): Unique ID of the patch.
-        sample_type (str): Denotes what sort of sample is to be plotted. Must be either 'scene' or 'patch'.
-        new_cs(osr.SpatialReference): Optional; Co-ordinate system to convert image to and use for labelling.
+        crs(CRS): Co-ordinate system to convert image to and use for labelling.
         classes (dict[str]): Dictionary mapping class labels to class names.
         exp_id (str): Optional; Unique ID for the experiment run that predictions and labels come from.
         block_size (int): Optional; Size of block image sub-division in pixels.
@@ -572,26 +499,13 @@ def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_typ
     Returns:
         None
     """
-    manifest = pd.read_csv(utils.get_manifest())
-
-    names = config['rgb_params']
-    patch_id = sample_id
-
-    if sample_type == 'scene':
-        patch_id, date = utils.extract_from_tag(sample_id)
-        names['date'] = utils.datetime_reformat(date, '%Y_%m_%d', '%d.%m.%Y')
-    if sample_type == 'patch':
-        names['date'] = utils.datetime_reformat(utils.find_best_of(patch_id, manifest)[-1], '%Y_%m_%d', '%d.%m.%Y')
-
-    names['patch_ID'] = patch_id
-
-    # Get required formatted paths and names.
-    rgb, scene_path, data_name, _ = path_format(names)
-
     # Stacks together the R, G, & B bands to form an array of the RGB image.
-    rgb_image = stack_rgb(scene_path, rgb)
+    rgb_image = sample['image']
+    z = sample['pred']
+    y = sample['mask']
+    bounds = sample['bounds']
 
-    extent, lat_extent, lon_extent = get_extent(y.shape, scene_path + data_name, new_cs, spacing=block_size)
+    extent, lat_extent, lon_extent = dec_extent_to_deg(y.shape, bounds, spacing=block_size)
 
     # Initialises a figure.
     fig = plt.figure(figsize=fig_dim)
@@ -641,10 +555,10 @@ def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_typ
     clb.ax.set_xticklabels(classes.values(), fontsize=9)
 
     # Set figure title and subplot titles.
-    fig.suptitle('{}'.format(patch_id), fontsize=15)
+    fig.suptitle(f'{sample_id}', fontsize=15)
     axes[0].set_title('Predicted', fontsize=13)
     axes[1].set_title('Ground Truth', fontsize=13)
-    axes[2].set_title('Reference Imagery From {}'.format(names['date']), fontsize=13)
+    # axes[2].set_title('Reference Imagery From {}'.format(names['date']), fontsize=13)
 
     # Set axis labels.
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)
@@ -678,7 +592,7 @@ def prediction_plot(z: NDArray[Any], y: NDArray[Any], sample_id: str, sample_typ
 
 
 def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Union[int, float]], NDArray[Any]],
-             ids: List[str], classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05,
+             ids: List[str], bounds: Iterable[Any], mode: str, classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05,
              fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -701,12 +615,16 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
 
     z = np.reshape(z, (z.shape[0] * z.shape[1], z.shape[2], z.shape[3]))
     y = np.reshape(y, (y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
-    ids: NDArray[Any] = np.array(ids).flatten()
+    ids = np.array(ids).flatten()
+
+    print('\nRE-CONSTRUCTING DATASET')
+    dataset, _ = make_dataset(config['dir']['data'], config['dataset_params'][mode])
 
     # Create a new projection system in lat-lon.
-    new_cs = CRS.from_epsg(data_config['co_sys']['id'])
+    # new_cs = CRS.from_epsg(data_config['co_sys']['id'])
+    new_cs = dataset.crs
 
-    print('PRODUCING PREDICTED MASKS')
+    print('\nPRODUCING PREDICTED MASKS')
 
     # Limits number of masks to produce to a fractional number of total and no more than _max_samples.
     n_samples = int(frac * len(ids))
@@ -718,7 +636,8 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
-            prediction_plot(z[i], y[i], ids[i], 'scene', exp_id=config['model_name'], new_cs=new_cs,
+            sample = {'image': dataset[make_bounding_box(bounds[i])], 'pred': z[i], 'mask': y[i], 'bounds': bounds}
+            prediction_plot(sample, ids[i], exp_id=config['model_name'], new_cs=new_cs,
                             classes=classes, fig_dim=fig_dim, show=False, fn_prefix=fn_prefix,
                             cmap_style=ListedColormap(colours.values(), N=len(colours)))
 
@@ -1069,10 +988,6 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
         print('\nPLOTTING ROC CURVES')
         make_roc_curves(probs, flat_y, class_names=class_names, colours=colours, filename=filenames['ROC'],
                         micro=plots['micro'], macro=plots['macro'], save=save, show=show)
-
-    if plots['PvT']:
-        os.mkdir(os.path.join(*results_dir, 'PvTs'))
-        plot_all_pvl(z, y, ids, classes=class_names, colours=colours, fn_prefix=filenames['PvT'])
 
     if plots['Mask']:
         os.mkdir(os.path.join(*results_dir, 'Masks'))

@@ -352,7 +352,7 @@ class Trainer:
                     results_dir.append(mode)
 
                     # Plots the results of this epoch.
-                    visutils.plot_results(plots, predictions, labels, ids=ids,
+                    visutils.plot_results(plots, predictions, labels, ids=ids, mode=mode,
                                           class_names=self.params['classes'], colours=self.params['colours'],
                                           save=True, show=False, model_name=self.params['model_name'],
                                           timestamp=self.params['timestamp'], results_dir=results_dir)
@@ -422,10 +422,10 @@ class Trainer:
         results_dir.append('test')
 
         # Plots the results.
-        visutils.plot_results(plots, predictions, labels, metrics=sub_metrics, ids=test_ids, probs=probabilities,
-                              class_names=self.params['classes'], colours=self.params['colours'], save=save, show=show,
-                              model_name=self.params['model_name'], timestamp=self.params['timestamp'],
-                              results_dir=results_dir)
+        visutils.plot_results(plots, predictions, labels, metrics=sub_metrics, ids=test_ids, mode='test',
+                              probs=probabilities, class_names=self.params['classes'], colours=self.params['colours'],
+                              save=save, show=show, model_name=self.params['model_name'],
+                              timestamp=self.params['timestamp'], results_dir=results_dir)
 
         # Checks whether to run TensorBoard on the log from the experiment.
         # If defined as optional in the config, a user confirmation is required to run TensorBoard with a 60s timeout.

@@ -33,7 +33,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
-from typing import Optional, Union, Tuple, Dict, Iterable
+from typing import Optional, Union, Tuple, Dict, Iterable, Any, List
 import pandas as pd
 from Minerva.utils import utils
 from torch.utils.data import DataLoader
@@ -56,23 +56,8 @@ def intersect_datasets(datasets: list):
     return datasets[0]
 
 
-def construct_dataloader(data_dir: Iterable[str], dataset_params: dict, sampler_params: dict, dataloader_params: dict,
-                         collator_params: Optional[dict] = None, transform_params: Optional[dict] = None) -> DataLoader:
-    """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
-
-    Args:
-        data_dir (Iterable[str]): A list of str defining the common path for all datasets to be constructed.
-        dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
-        sampler_params (dict): Dictionary of parameters for the sampler to be used to sample from the dataset.
-        dataloader_params (dict): Dictionary of parameters for the DataLoader itself.
-        collator_params (dict): Optional; Dictionary of parameters defining the function to collate
-            and stack samples from the sampler.
-        transform_params: Optional; Dictionary defining the parameters of the transforms to perform
-            when sampling from the dataset.
-
-    Returns:
-        loader (DataLoader): Object to handle the returning of batched samples from the dataset.
-    """
+def make_dataset(data_dir: Iterable[str], dataset_params: Dict[Any, Any],
+                 transform_params: Optional[Dict[Any, Any]] = None) -> Tuple[Any, List[Any]]:
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
     subdatasets = []
@@ -103,6 +88,28 @@ def construct_dataloader(data_dir: Iterable[str], dataset_params: dict, sampler_
     dataset = subdatasets[0]
     if len(subdatasets) > 1:
         dataset = intersect_datasets(subdatasets)
+    
+    return dataset, subdatasets
+
+
+def construct_dataloader(data_dir: Iterable[str], dataset_params: dict, sampler_params: dict, dataloader_params: dict,
+                         collator_params: Optional[dict] = None, transform_params: Optional[dict] = None) -> DataLoader:
+    """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
+
+    Args:
+        data_dir (Iterable[str]): A list of str defining the common path for all datasets to be constructed.
+        dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
+        sampler_params (dict): Dictionary of parameters for the sampler to be used to sample from the dataset.
+        dataloader_params (dict): Dictionary of parameters for the DataLoader itself.
+        collator_params (dict): Optional; Dictionary of parameters defining the function to collate
+            and stack samples from the sampler.
+        transform_params: Optional; Dictionary defining the parameters of the transforms to perform
+            when sampling from the dataset.
+
+    Returns:
+        loader (DataLoader): Object to handle the returning of batched samples from the dataset.
+    """
+    dataset, subdatasets = make_dataset(data_dir, dataset_params, transform_params)
 
     # --+ MAKE SAMPLERS +=============================================================================================+
     sampler = utils.func_by_str(module=sampler_params['module'], func=sampler_params['name'])
@@ -192,9 +199,9 @@ def make_transformations(transform_params: dict):
 
 
 @utils.return_updated_kwargs
-def make_datasets(root: Optional[str] = '', n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15),
-                  patch_size: Optional[Union[int, Tuple[int]]] = 256, plot: bool = False, p_dist: bool = False,
-                  **params) -> Tuple[Dict[str, DataLoader], dict, list, dict]:
+def make_loaders(root: Optional[str] = '', n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15),
+                 patch_size: Optional[Union[int, Tuple[int]]] = 256, plot: bool = False, p_dist: bool = False,
+                 **params) -> Tuple[Dict[str, DataLoader], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]]:
     """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
 
     Args:
