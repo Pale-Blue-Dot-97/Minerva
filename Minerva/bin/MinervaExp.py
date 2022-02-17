@@ -36,7 +36,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import config
-from Minerva.loaders import make_loaders
+from Minerva.utils.loaders import make_loaders
 from Minerva.trainer import Trainer
 
 

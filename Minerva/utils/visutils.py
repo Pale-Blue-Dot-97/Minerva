@@ -49,7 +49,7 @@ try:
 except ImportError:
     NDArray, ArrayLike = Iterable
 from Minerva.utils import utils, config, aux_configs
-from Minerva.loaders import make_dataset, make_bounding_box
+from Minerva.utils.loaders import make_dataset, make_bounding_box
 import os
 import imageio
 import random

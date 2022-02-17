@@ -36,7 +36,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import utils
-from Minerva.loaders import construct_dataloader, load_all_samples
+from Minerva.utils.loaders import construct_dataloader, load_all_samples
 import pandas as pd
 import os
 
