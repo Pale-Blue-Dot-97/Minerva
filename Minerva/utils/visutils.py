@@ -49,7 +49,7 @@ try:
 except ImportError:
     NDArray, ArrayLike = Iterable
 from Minerva.utils import utils, config, aux_configs
-from Minerva.utils.loaders import make_dataset, make_bounding_box
+import Minerva.utils.loaders as loaders
 import os
 import imageio
 import random
@@ -618,7 +618,7 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
     ids = np.array(ids).flatten()
 
     print('\nRE-CONSTRUCTING DATASET')
-    dataset, _ = make_dataset(config['dir']['data'], config['dataset_params'][mode])
+    dataset, _ = loaders.make_dataset(config['dir']['data'], config['dataset_params'][mode])
 
     # Create a new projection system in lat-lon.
     # new_cs = CRS.from_epsg(data_config['co_sys']['id'])
@@ -636,7 +636,11 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
-            sample = {'image': dataset[make_bounding_box(bounds[i])], 'pred': z[i], 'mask': y[i], 'bounds': bounds}
+            sample = {'image': dataset[loaders.make_bounding_box(bounds[i])], 
+                      'pred': z[i], 
+                      'mask': y[i], 
+                      'bounds': bounds}
+            
             prediction_plot(sample, ids[i], exp_id=config['model_name'], new_cs=new_cs,
                             classes=classes, fig_dim=fig_dim, show=False, fn_prefix=fn_prefix,
                             cmap_style=ListedColormap(colours.values(), N=len(colours)))
