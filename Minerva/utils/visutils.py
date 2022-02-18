@@ -49,7 +49,6 @@ try:
 except ImportError:
     NDArray, ArrayLike = Iterable
 from Minerva.utils import utils, config, aux_configs
-import Minerva.utils.loaders as loaders
 import os
 import imageio
 import random
@@ -618,7 +617,7 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
     ids = np.array(ids).flatten()
 
     print('\nRE-CONSTRUCTING DATASET')
-    dataset, _ = loaders.make_dataset(config['dir']['data'], config['dataset_params'][mode])
+    dataset, _ = utils.make_dataset(config['dir']['data'], config['dataset_params'][mode])
 
     # Create a new projection system in lat-lon.
     # new_cs = CRS.from_epsg(data_config['co_sys']['id'])
@@ -636,7 +635,7 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
-            sample = {'image': dataset[loaders.make_bounding_box(bounds[i])], 
+            sample = {'image': dataset[utils.make_bounding_box(bounds[i])], 
                       'pred': z[i], 
                       'mask': y[i], 
                       'bounds': bounds}

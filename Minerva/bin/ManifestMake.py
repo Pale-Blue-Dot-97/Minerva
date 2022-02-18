@@ -36,7 +36,6 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from Minerva.utils import utils
-from Minerva.utils.loaders import construct_dataloader, load_all_samples
 import pandas as pd
 import os
 
@@ -65,12 +64,12 @@ def make_manifest() -> pd.DataFrame:
     collator_params = config['collator']
 
     print('CONSTRUCTING DATASET')
-    loader = construct_dataloader(config['dir']['data'], dataset_params, sampler_params,
-                                  dataloader_params, collator_params=collator_params)
+    loader = utils.construct_dataloader(config['dir']['data'], dataset_params, sampler_params,
+                                        dataloader_params, collator_params=collator_params)
 
     print('FETCHING SAMPLES')
     df = pd.DataFrame()
-    df['MODES'] = load_all_samples(loader)
+    df['MODES'] = utils.load_all_samples(loader)
 
     print('CALCULATING CLASS FRACTIONS')
     # Calculates the fractional size of each class in each patch.
