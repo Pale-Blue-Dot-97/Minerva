@@ -46,8 +46,8 @@ TODO:
 from typing import Union, Optional, Tuple, Dict, List, Any, Iterable
 try:
     from numpy.typing import NDArray, ArrayLike
-except ImportError:
-    NDArray, ArrayLike = Iterable
+except ImportError or ModuleNotFoundError:
+    NDArray, ArrayLike = Iterable, Iterable
 from Minerva.utils import utils, config, aux_configs
 import os
 import imageio

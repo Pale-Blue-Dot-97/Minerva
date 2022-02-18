@@ -51,8 +51,8 @@ import sys
 from typing import Tuple, Union, Optional, Any, Iterator, List, Dict, Callable, Mapping, Iterable
 try:
     from numpy.typing import NDArray, ArrayLike, DTypeLike
-except ImportError:
-    NDArray, ArrayLike = Iterable
+except ImportError or ModuleNotFoundError:
+    NDArray, ArrayLike = Iterable, Iterable
     DTypeLike = Any
 import functools
 from Minerva.utils import config, aux_configs, visutils
