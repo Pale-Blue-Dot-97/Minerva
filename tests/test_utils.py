@@ -16,12 +16,13 @@ def test_datetime_reformat():
 
 def test_ohe_labels():
     labels = [3, 2, 4, 1, 0]
-    target = np.array([[0., 0., 0., 1., 0., 0.],
-                       [0., 0., 1., 0., 0., 0.],
-                       [0., 0., 0., 0., 1., 0.],
-                       [0., 1., 0., 0., 0., 0.],
-                       [1., 0., 0., 0., 0., 0.]])
-    assert assert_array_equal(target, utils.labels_to_ohe(labels=labels, n_classes=6))
+    correct_targets = np.array([[0., 0., 0., 1., 0., 0.],
+                                [0., 0., 1., 0., 0., 0.],
+                                [0., 0., 0., 0., 1., 0.],
+                                [0., 1., 0., 0., 0., 0.],
+                                [1., 0., 0., 0., 0., 0.]])
+    targets = utils.labels_to_ohe(labels=labels, n_classes=6)
+    assert assert_array_equal(correct_targets, targets) is None
 
 
 def test_empty_classes():
