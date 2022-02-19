@@ -123,7 +123,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 
 # =====================================================================================================================
-#                                                     METHODS
+#                                                   DECORATORS
 # =====================================================================================================================
 def return_updated_kwargs(func):
 
@@ -135,6 +135,9 @@ def return_updated_kwargs(func):
     return wrapper
 
 
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
 def get_cuda_device() -> torch.device:
     """Finds and returns the CUDA device, if one is available. Else, returns CPU as device.
     Assumes there is at most only one CUDA device.
@@ -433,7 +436,8 @@ def class_weighting(class_dist: Union[List[Union[List[int], Tuple[int, ...]]],
     return class_weights
 
 
-def find_empty_classes(class_dist: List[List[int]]) -> List[int]:
+def find_empty_classes(class_dist: List[Tuple[int, int]], 
+                       class_names: Optional[Dict[int, str]] = classes) -> List[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
     Args:
@@ -446,7 +450,7 @@ def find_empty_classes(class_dist: List[List[int]]) -> List[int]:
     empty: List[int] = []
 
     # Checks which classes are not present in class_dist
-    for label in classes.keys():
+    for label in class_names.keys():
 
         # If not present, add class label to empty.
         if label not in [mode[0] for mode in class_dist]:
@@ -745,7 +749,7 @@ def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> List[Any]:
     return df.loc[df['COVER'] < thres]['DATE'].tolist()
 
 
-def find_best_of(patch_id: str, manifest: pd.DataFrame, 
+def find_best_of(patch_id: str, manifest: pd.DataFrame,
                  selector: Callable[[pd.DataFrame, Any], List[str]] = ref_scene_select, **kwargs) -> List[str]:
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
@@ -769,8 +773,8 @@ def find_best_of(patch_id: str, manifest: pd.DataFrame,
     return selector(patch_df, **kwargs)
 
 
-def pair_production(patch_id: str, manifest: pd.DataFrame, 
-                    func: Callable[[pd.DataFrame, Any], List[str]] = ref_scene_select, 
+def pair_production(patch_id: str, manifest: pd.DataFrame,
+                    func: Callable[[pd.DataFrame, Any], List[str]] = ref_scene_select,
                     **kwargs) -> List[Tuple[str, str]]:
     """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
 
@@ -1365,7 +1369,7 @@ def make_dataset(data_dir: Iterable[str], dataset_params: Dict[Any, Any],
 
         # Get the constructor for the class of dataset defined in params.
         _subdataset = func_by_str(module=subdataset_params['module'],
-                                        func=subdataset_params['name'])
+                                  func=subdataset_params['name'])
 
         # Construct the root to the sub-dataset's files.
         subdataset_root = os.sep.join((*data_dir, subdataset_params['root']))
@@ -1383,7 +1387,7 @@ def make_dataset(data_dir: Iterable[str], dataset_params: Dict[Any, Any],
     dataset = subdatasets[0]
     if len(subdatasets) > 1:
         dataset = intersect_datasets(subdatasets)
-    
+
     return dataset, subdatasets
 
 
@@ -1559,4 +1563,3 @@ def make_loaders(root: Optional[str] = '', n_samples: Tuple[float, float, float]
     params['colours'] = colours
 
     return loaders, n_batches, class_dist, params
-

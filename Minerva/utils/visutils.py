@@ -473,7 +473,7 @@ def make_all_the_gifs(names: Dict[str, str], frame_length: float = 1.0, data_ban
     print('\r\nOPERATION COMPLETE')
 
 
-def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: Dict[str, str], 
+def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: Dict[str, str],
                     exp_id: Optional[str] = None, block_size: int = 32,
                     cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True, save: bool = True,
                     fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
@@ -635,9 +635,9 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
-            sample = {'image': dataset[utils.make_bounding_box(bounds[i])], 
-                      'pred': z[i], 
-                      'mask': y[i], 
+            sample = {'image': dataset[utils.make_bounding_box(bounds[i])],
+                      'pred': z[i],
+                      'mask': y[i],
                       'bounds': bounds}
             
             prediction_plot(sample, ids[i], exp_id=config['model_name'], new_cs=new_cs,
