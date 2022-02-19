@@ -1,6 +1,7 @@
 from cProfile import label
 from Minerva.utils import utils, config, aux_configs
 import numpy as np
+from numpy.testing import assert_array_equal
 
 
 def test_config_loading():
@@ -21,7 +22,7 @@ def test_ohe_labels():
                        np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0]),
                        np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0]),
                        np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])])
-    assert utils.labels_to_ohe(labels=labels, n_classes=n_classes) == target
+    assert assert_array_equal(target, utils.labels_to_ohe(labels=labels, n_classes=n_classes))
 
 
 def test_empty_classes():
@@ -36,7 +37,7 @@ def test_eliminate_classes():
     old_cmap = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5'}
     new_classes = {0: '5', 1: '1', 2: '4', 3: '3'}
     new_cmap = {0: '5', 1: '1', 2: '4', 3: '3'}
-    conversion = {0: 5, 1: 1, 2: 4, 3: 3}
+    conversion = {1: 1, 3: 3, 2: 4, 5: 0}
 
     results = utils.eliminate_classes(empty_classes=empty, old_classes=old_classes, old_cmap=old_cmap)
     
