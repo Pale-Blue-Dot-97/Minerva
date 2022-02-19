@@ -17,11 +17,11 @@ def test_datetime_reformat():
 def test_ohe_labels():
     labels = [3, 2, 4, 5, 6]
     n_classes = 10
-    target = np.array([np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0]),
-                       np.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0]),
-                       np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0]),
-                       np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0]),
-                       np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])])
+    target = np.array([np.array([0., 0., 0., 1., 0., 0., 0., 0., 0., 0.]),
+                       np.array([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.]),
+                       np.array([0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]),
+                       np.array([0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]),
+                       np.array([0., 0., 0., 0., 0., 0., 1., 0., 0., 0.])])
     assert assert_array_equal(target, utils.labels_to_ohe(labels=labels, n_classes=n_classes))
 
 
@@ -37,7 +37,7 @@ def test_eliminate_classes():
     old_cmap = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5'}
     new_classes = {0: '5', 1: '1', 2: '4', 3: '3'}
     new_cmap = {0: '5', 1: '1', 2: '4', 3: '3'}
-    conversion = {1: 1, 3: 3, 2: 4, 5: 0}
+    conversion = {1: 1, 3: 3, 4: 2, 5: 0}
 
     results = utils.eliminate_classes(empty_classes=empty, old_classes=old_classes, old_cmap=old_cmap)
     
