@@ -198,19 +198,6 @@ def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
     return datetime.strptime(timestamp, fmt1).strftime(fmt2)
 
 
-def prefix_format(patch_id: str, scene: str) -> str:
-    """Formats a string representing the prefix of a path to any file in a scene.
-
-    Args:
-        patch_id (str): Unique patch ID.
-        scene (str): Date of scene in YY_MM_DD format.
-
-    Returns:
-        prefix (str): Prefix of path to any file in a given scene.
-    """
-    pass
-
-
 def date_grab(id: str) -> str:
     pass
 
@@ -662,30 +649,6 @@ def class_frac(patch: pd.Series) -> Mapping[int, Any]:
     return new_columns
 
 
-def extract_patch_ids(scene: Tuple[str, str]) -> str:
-    """Gets the patch ID from the scene patch ID - date tuple.
-
-    Args:
-        scene (tuple[str, str]): Patch ID - date tuple that uniquely identifies a scene sample.
-
-    Returns:
-        Patch ID of the scene.
-    """
-    return scene[0]
-
-
-def extract_dates(scene: Tuple[str, str]) -> str:
-    """Gets the date from the scene patch ID - date tuple.
-
-    Args:
-        scene (tuple[str, str]): Patch ID - date tuple that uniquely identifies a scene sample.
-
-    Returns:
-        Date of the scene.
-    """
-    return scene[1]
-
-
 def cloud_cover(scene: NDArray[Any]) -> Any:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
@@ -711,31 +674,6 @@ def month_sort(df: pd.DataFrame, month: str) -> Any:
     return df.loc[month].sort_values(by='COVER')['DATE'][0]
 
 
-def ref_scene_select(df: pd.DataFrame, n_scenes: int = 12) -> List[str]:
-    """Selects the scene with the least cloud cover of each month of a patch plus n_scenes more of the remaining scenes.
-        Based on REF's 2-step selection criteria.
-
-    Args:
-        df (pd.DataFrame): Dataframe containing all scenes and their cloud cover percentages.
-        n_scenes (int): Optional; Number of additional scenes across the year to select
-            after selecting the best scene of each month.
-
-    Returns:
-        List of 12 + n_scene strings representing dates of the selected scenes in YY_MM_DD format.
-    """
-    # Step 1: Find scene with lowest cloud cover percentage in each month
-    step1: List[str] = []
-    for month in range(1, 13):
-        step1.append(month_sort(df, '%d-2018' % month))
-
-    # Step 2: Find the 12 scenes with the lowest cloud cover percentage of the remaining scenes
-    df.drop(index=pd.to_datetime(step1, format='%Y_%m_%d'), inplace=True)
-    step2: List[str] = df.sort_values(by='COVER')['DATE'][:n_scenes].tolist()
-
-    # Return 24 scenes selected by the 2-step REF criteria
-    return step1 + step2
-
-
 def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> List[Any]:
     """Selects all scenes in a patch with a cloud cover less than the threshold provided.
 
@@ -750,7 +688,7 @@ def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> List[Any]:
 
 
 def find_best_of(patch_id: str, manifest: pd.DataFrame,
-                 selector: Callable[[pd.DataFrame, Any], List[str]] = ref_scene_select, **kwargs) -> List[str]:
+                 selector: Callable[[pd.DataFrame, Any], List[str]] = threshold_scene_select, **kwargs) -> List[str]:
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
@@ -771,94 +709,6 @@ def find_best_of(patch_id: str, manifest: pd.DataFrame,
 
     # Sends DataFrame to scene_selection() and returns the selected scenes
     return selector(patch_df, **kwargs)
-
-
-def pair_production(patch_id: str, manifest: pd.DataFrame,
-                    func: Callable[[pd.DataFrame, Any], List[str]] = ref_scene_select,
-                    **kwargs) -> List[Tuple[str, str]]:
-    """Creates pairs of patch ID and date of scene to define the scenes to load from a patch.
-
-    Args:
-        patch_id (str): Unique ID of the patch.
-        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
-        func (callable): Optional; Function to use to select scenes.
-            Must take an appropriately constructed pd.DataFrame.
-        **kwargs: Kwargs for func.
-
-    Returns:
-        A list of tuples of pairs of patch ID and date of scene as strings.
-    """
-    scenes = find_best_of(patch_id, manifest, func, **kwargs)
-
-    return [(patch_id, scene) for scene in scenes]
-
-
-def scene_extract(patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]], manifest: pd.DataFrame,
-                  *args, **kwargs) -> List[Tuple[str, str]]:
-    """Uses pair_production to produce patch ID - scene pairs for the whole dataset outlined by patch_ids.
-
-    Args:
-        patch_ids (list[str]): List of patch IDs from which to extract scenes from.
-        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
-        *args: Args for pair_production
-        **kwargs: Kwargs for pair_production
-
-    Returns:
-        pairs (list[tuple[str, str]]): List of patch ID - scene pairs defining the dataset.
-    """
-    pairs: List[Tuple[str, str]] = []
-    for patch_id in patch_ids:
-        # Loads pairs for given patch ID
-        patch_pairs = pair_production(patch_id, manifest, *args, **kwargs)
-
-        pairs += patch_pairs
-
-    return pairs
-
-
-def stack_bands(patch_id: str, scene: str) -> NDArray[Any]:
-    """Stacks together all the bands of the SENTINEL-2 images in a given scene of a patch.
-
-    Args:
-        patch_id (str): Unique patch ID.
-        scene (str): Date of scene in YY_MM_DD format to stack bands in.
-
-    Returns:
-        Normalised and stacked red, green, blue arrays into RGB array.
-    """
-    bands: List[ArrayLike] = []
-    # Load R, G, B images from file and normalise
-    for band in band_ids:
-        image = load_array('%s_%s_10m.tif' % (prefix_format(patch_id, scene), band), 1).astype('float')
-        image /= 65535.0
-        bands.append(image)
-
-    # Stack together RGB bands
-    # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
-    return np.dstack(bands)
-
-
-def make_time_series(patch_id: str, manifest: pd.DataFrame) -> NDArray[Any]:
-    """Makes a time-series of each pixel of a patch across 24 scenes selected by REF's criteria using scene_selection().
-     All the bands in the chosen scene are stacked using stack_bands().
-
-    Args:
-        patch_id (str): Unique patch ID.
-        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
-
-    Returns:
-        (np.ndarray): Array of shape(rows, columns, 24, 12) holding all x for a patch.
-    """
-    # List of scene dates found by REF's selection criteria
-    scenes = find_best_of(patch_id, manifest)
-
-    # Loads all pixels in a patch across the 24 scenes and 12 bands
-    x: List[NDArray[Any]] = []
-    for scene in scenes:
-        x.append(stack_bands(patch_id, scene))
-
-    # Returns a reordered np.ndarray holding all x for the given patch
-    return np.moveaxis(np.array(x), 0, 2)
 
 
 def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
@@ -1010,18 +860,6 @@ def calc_grad(model: torch.nn.Module) -> Optional[float]:
         return
 
 
-def unzip_pairs(pairs: Union[List[Tuple[str, str]], Tuple[Tuple[str, str]]]) -> Iterator:
-    """Splits the patch ID and scene date strings from scene pairs into separate lists.
-
-    Args:
-        pairs (list[Tuple[str, str] or Tuple[Tuple[str, str]):
-
-    Returns:
-        Iterator that creates a list of patch IDs and matching scene dates.
-    """
-    return map(list, zip(*pairs))
-
-
 def select_df_by_patch(df: pd.DataFrame, patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]]) -> pd.DataFrame:
     """Selects the section of the DataFrame for the patch IDs provided with no duplicate IDs.
         i.e not by patch and not by scene.
@@ -1036,22 +874,6 @@ def select_df_by_patch(df: pd.DataFrame, patch_ids: Union[List[str], Tuple[str, 
     # Drops the patch IDs for each scene so there are all unique IDs for each patch.
     new_df = df.drop_duplicates('PATCH')
     return new_df[new_df['PATCH'].isin(patch_ids)]
-
-
-def select_df_by_scenes(df: pd.DataFrame, scenes: Union[list, tuple, np.ndarray]) -> pd.DataFrame:
-    """Selects the section of the DataFrame for the scenes specified.
-
-    Args:
-        df (pd.DataFrame): DataFrame mapping patch IDs, scene dates and their properties.
-        scenes (list[list[str]]): List of patch ID - scene date tuple pairs to use as selection criteria.
-
-    Returns:
-        new_df (pd.DataFrame): DataFrame for the scenes specified.
-    """
-    # Converts scene pairs into scene tags to search the DataFrame for.
-    new_df = df[df['SCENE'].isin(scene_tag(scenes))]
-
-    return new_df
 
 
 def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: dict = classes) -> None:
@@ -1097,32 +919,6 @@ def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: d
 
     # Use tabulate to print the DataFrame in a pretty plain text format to stdout.
     print(tabulate(df, headers='keys', tablefmt='psql'))
-
-
-def scene_tag(scenes: List[Tuple[str, str]]) -> List[str]:
-    """Creates a list of patch ID - date tags that uniquely identify each scene in a single string.
-
-    Args:
-        scenes (list[list[str]]): List of patch ID - scene date tuple pairs create tags from.
-
-    Returns:
-        List of scene tag strings that uniquely identify each scene.
-    """
-    return [f'{patch_id}-{date}' for patch_id, date in scenes]
-
-
-def extract_from_tag(tag: str) -> Tuple[str, str]:
-    """Extracts the patch ID and date for a scene from a scene tag.
-
-    Args:
-        tag (str): Scene tag string that uniquely defines a scene. Should be of form: {patch_id}-{date}
-
-    Returns:
-        patch_id (str): Unique patch ID for scene.
-        date (str): Date of the scene.
-    """
-    patch_id, _, date = tag.partition('-')
-    return patch_id, date
 
 
 def model_output_flatten(x: Any) -> ArrayLike:
