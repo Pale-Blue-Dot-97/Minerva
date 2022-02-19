@@ -15,14 +15,13 @@ def test_datetime_reformat():
 
 
 def test_ohe_labels():
-    labels = [3, 2, 4, 5, 6]
-    n_classes = 10
-    target = np.array([np.array([0., 0., 0., 1., 0., 0., 0., 0., 0., 0.]),
-                       np.array([0., 0., 1., 0., 0., 0., 0., 0., 0., 0.]),
-                       np.array([0., 0., 0., 0., 1., 0., 0., 0., 0., 0.]),
-                       np.array([0., 0., 0., 0., 0., 1., 0., 0., 0., 0.]),
-                       np.array([0., 0., 0., 0., 0., 0., 1., 0., 0., 0.])])
-    assert assert_array_equal(target, utils.labels_to_ohe(labels=labels, n_classes=n_classes))
+    labels = [3, 2, 4, 1, 0]
+    target = np.array([[0., 0., 0., 1., 0., 0.],
+                       [0., 0., 1., 0., 0., 0.],
+                       [0., 0., 0., 0., 1., 0.],
+                       [0., 1., 0., 0., 0., 0.],
+                       [1., 0., 0., 0., 0., 0.]])
+    assert assert_array_equal(target, utils.labels_to_ohe(labels=labels, n_classes=6))
 
 
 def test_empty_classes():
