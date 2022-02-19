@@ -21,13 +21,13 @@ def test_ohe_labels():
                        np.array([0, 0, 0, 0, 1, 0, 0, 0, 0, 0]),
                        np.array([0, 0, 0, 0, 0, 1, 0, 0, 0, 0]),
                        np.array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0])])
-    assert utils.labels_to_ohe(labels=labels, n_classes=n_classes) is target
+    assert utils.labels_to_ohe(labels=labels, n_classes=n_classes) == target
 
 
 def test_empty_classes():
     labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
     classes = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5'}
-    assert utils.find_empty_classes(labels, classes) is [0, 2]
+    assert utils.find_empty_classes(labels, classes) == [0, 2]
 
 
 def test_eliminate_classes():
@@ -40,6 +40,6 @@ def test_eliminate_classes():
 
     results = utils.eliminate_classes(empty_classes=empty, old_classes=old_classes, old_cmap=old_cmap)
     
-    assert new_classes is results[0]
-    assert conversion is results[1]
-    assert new_cmap is results[2]
+    assert new_classes == results[0]
+    assert conversion == results[1]
+    assert new_cmap == results[2]

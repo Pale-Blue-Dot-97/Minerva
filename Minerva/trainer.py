@@ -247,6 +247,7 @@ class Trainer:
 
             # Core of the epoch.
             for sample in self.loaders[mode]:
+                print(sample)
                 x_batch = sample['image']
                 y_batch = sample['mask']
                 # batch_bounds = sample['bounds']
