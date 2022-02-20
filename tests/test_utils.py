@@ -1,7 +1,10 @@
+from typing import Union
 import os
 from Minerva.utils import utils, config, aux_configs
 import numpy as np
 from numpy.testing import assert_array_equal
+from datetime import datetime
+from torch.utils.data import DataLoader
 
 
 def test_config_loading():
@@ -63,3 +66,24 @@ def test_class_transform():
     assert utils.class_transform(5, matrix) == 0
     assert utils.class_transform(3, matrix) == 3
     assert utils.class_transform(4, matrix) == 2
+
+
+def test_check_len():
+    assert utils.check_len([0, 0, 0], [0, 0, 0]) == [0, 0, 0]
+    assert utils.check_len([0, 0], [0, 0, 0]) == [0, 0, 0]
+    assert utils.check_len(0, [0, 1, 0]) == [0, 0, 0]
+    assert utils.check_len(1, [3, 4, 2]) == [1, 1, 1]
+
+
+def test_func_by_str():
+    assert utils.func_by_str('typing', 'Union') is Union
+    assert utils.func_by_str('datetime', 'datetime') is datetime
+    assert utils.func_by_str('torch.utils.data', 'DataLoader') is DataLoader
+
+
+def test_timestamp_now():
+    assert utils.timestamp_now('%d-%m-%Y_%H%M') == datetime.now().strftime('%d-%m-%Y_%H%M')
+    assert utils.timestamp_now('%d-%m-%Y') == datetime.now().strftime('%d-%m-%Y')
+    assert utils.timestamp_now('%Y-%m-%d') == datetime.now().strftime('%Y-%m-%d')
+    assert utils.timestamp_now('%H%M') == datetime.now().strftime('%H%M')
+    assert utils.timestamp_now('%H:%M') == datetime.now().strftime('%H:%M')
