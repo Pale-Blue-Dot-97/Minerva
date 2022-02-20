@@ -48,7 +48,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import sys
-from typing import Tuple, Union, Optional, Any, Iterator, List, Dict, Callable, Mapping, Iterable
+from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Mapping, Iterable
 try:
     from numpy.typing import NDArray, ArrayLike, DTypeLike
 except ImportError or ModuleNotFoundError:
@@ -775,18 +775,6 @@ def subpopulations_from_manifest(manifest: pd.DataFrame, plot: bool = False) -> 
     return class_dist
 
 
-def num_batches(num_ids: int) -> int:
-    """Determines the number of batches needed to cover the dataset across ids.
-
-    Args:
-        num_ids (int): Number of patch IDs in the dataset to be loaded in by batches.
-
-    Returns:
-        num_batches (int): Number of batches needed to cover the whole dataset.
-    """
-    return int((num_ids * image_size[0] * image_size[1]) / params['batch_size'])
-
-
 def func_by_str(module: str, func: str) -> Any:
     """Gets the constructor or callable within a module defined by the names supplied.
 
@@ -858,22 +846,6 @@ def calc_grad(model: torch.nn.Module) -> Optional[float]:
         print('Model has no attribute \'parameters\'. Cannot calculate grad norms')
 
         return
-
-
-def select_df_by_patch(df: pd.DataFrame, patch_ids: Union[List[str], Tuple[str, ...], NDArray[Any]]) -> pd.DataFrame:
-    """Selects the section of the DataFrame for the patch IDs provided with no duplicate IDs.
-        i.e not by patch and not by scene.
-
-    Args:
-        df (pd.DataFrame): DataFrame mapping patch IDs, scene dates and their properties.
-        patch_ids (list[str] or tuple[str] or np.ndarray[str]): List of unique patch IDs to cut DataFrame to.
-
-    Returns:
-        new_df (pd.DataFrame): DataFrame for the patches specified.
-    """
-    # Drops the patch IDs for each scene so there are all unique IDs for each patch.
-    new_df = df.drop_duplicates('PATCH')
-    return new_df[new_df['PATCH'].isin(patch_ids)]
 
 
 def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: dict = classes) -> None:
