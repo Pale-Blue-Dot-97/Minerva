@@ -104,7 +104,7 @@ def path_format(names: Dict[str, str]) -> Tuple[Dict[str, str], str, str, str]:
 
 
 def de_interlace(x: ArrayLike, f: int) -> NDArray[Any]:
-    """Separates interlaced arrays, `x' at a frequency of `f' from each other.
+    """Separates interlaced arrays, `x` at a frequency of `f` from each other.
 
     Args:
         x (list or np.ndarray): Array of data to be de-interlaced.
