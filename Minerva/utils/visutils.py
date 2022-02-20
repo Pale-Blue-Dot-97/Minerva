@@ -635,10 +635,10 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
-            sample = {'image': dataset[utils.make_bounding_box(bounds[i])],
+            sample = {'image': dataset[bounds[i]],
                       'pred': z[i],
                       'mask': y[i],
-                      'bounds': bounds}
+                      'bounds': bounds[i]}
             
             prediction_plot(sample, ids[i], exp_id=config['model_name'], new_cs=new_cs,
                             classes=classes, fig_dim=fig_dim, show=False, fn_prefix=fn_prefix,
@@ -923,7 +923,8 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[List[str], Tu
 
 
 def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]],
-                 metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None,
+                 metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None, 
+                 mode: Optional[str] = 'test', bounds: Optional[NDArray[Any]] = None,
                  probs: Optional[Union[List[float], NDArray[Any]]] = None,
                  class_names: Optional[Dict[int, str]] = None, colours: Optional[Dict[int, str]] = None,
                  save: bool = True, show: bool = False, model_name: Optional[str] = None,
@@ -994,4 +995,4 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
 
     if plots['Mask']:
         os.mkdir(os.path.join(*results_dir, 'Masks'))
-        seg_plot(z, y, ids, fn_prefix=filenames['Mask'], classes=class_names, colours=colours)
+        seg_plot(z, y, ids, bounds, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours)

@@ -247,10 +247,8 @@ class Trainer:
 
             # Core of the epoch.
             for sample in self.loaders[mode]:
-                print(sample)
                 x_batch = sample['image']
                 y_batch = sample['mask']
-                # batch_bounds = sample['bounds']
 
                 x_batch = x_batch.to(torch.float)
                 y_batch = np.squeeze(y_batch, axis=1)
@@ -285,6 +283,7 @@ class Trainer:
                 if record_float:
                     # Add the estimated probabilities to probs.
                     probs[batch_num] = z.detach().cpu().numpy()
+                    bounds[batch_num] = sample['bbox']
 
                 self.step_num[mode] += 1
 
@@ -318,7 +317,7 @@ class Trainer:
             _ = utils.calc_grad(self.model)
 
         if record_int:
-            return predictions, labels, ids, probs
+            return predictions, labels, ids, probs, bounds
         else:
             return
 
@@ -332,7 +331,7 @@ class Trainer:
 
                 # Special case for final train/ val epoch to plot results if configured so.
                 if epoch == (self.max_epochs - 1) and self.params['plot_last_epoch']:
-                    predictions, labels, ids, _ = self.epoch(mode, record_int=True)
+                    predictions, labels, ids, _, _ = self.epoch(mode, record_int=True)
 
                     # Ensures that the model history will not be plotted.
                     # That should be done with the plotting of test results.
@@ -353,10 +352,10 @@ class Trainer:
                     results_dir.append(mode)
 
                     # Plots the results of this epoch.
-                    visutils.plot_results(plots, predictions, labels, ids=ids, mode=mode,
-                                          class_names=self.params['classes'], colours=self.params['colours'],
-                                          save=True, show=False, model_name=self.params['model_name'],
-                                          timestamp=self.params['timestamp'], results_dir=results_dir)
+                    visutils.plot_results(plots, predictions, labels, ids=ids, class_names=self.params['classes'],
+                                          colours=self.params['colours'], save=True, show=False,
+                                          model_name=self.params['model_name'], timestamp=self.params['timestamp'],
+                                          results_dir=results_dir)
 
                 else:
                     self.epoch(mode)
@@ -388,7 +387,7 @@ class Trainer:
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        predictions, labels, test_ids, probabilities = self.epoch('test', record_int=True, record_float=True)
+        predictions, labels, test_ids, probabilities, bounds = self.epoch('test', record_int=True, record_float=True)
 
         # Prints test loss and accuracy to stdout.
         print('Test | Loss: {} | Accuracy: {}% \n'.format(self.metrics['test_loss']['y'][0],
@@ -424,9 +423,10 @@ class Trainer:
 
         # Plots the results.
         visutils.plot_results(plots, predictions, labels, metrics=sub_metrics, ids=test_ids, mode='test',
-                              probs=probabilities, class_names=self.params['classes'], colours=self.params['colours'],
-                              save=save, show=show, model_name=self.params['model_name'],
-                              timestamp=self.params['timestamp'], results_dir=results_dir)
+                              bounds=bounds, probs=probabilities, class_names=self.params['classes'],
+                              colours=self.params['colours'], save=save, show=show,
+                              model_name=self.params['model_name'], timestamp=self.params['timestamp'],
+                              results_dir=results_dir)
 
         # Checks whether to run TensorBoard on the log from the experiment.
         # If defined as optional in the config, a user confirmation is required to run TensorBoard with a 60s timeout.
