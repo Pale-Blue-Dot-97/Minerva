@@ -1,4 +1,4 @@
-from cProfile import label
+import os
 from Minerva.utils import utils, config, aux_configs
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -44,3 +44,22 @@ def test_eliminate_classes():
     assert new_classes == results[0]
     assert conversion == results[1]
     assert new_cmap == results[2]
+
+
+def test_file_check():
+    fn = "tests/test.txt"
+    with open(fn, "x") as f:
+        f.write("")
+    
+    utils.exist_delete_check(fn)
+
+    assert os.path.exists(fn) is False
+
+
+def test_class_transform():
+    matrix = {1: 1, 3: 3, 4: 2, 5: 0}
+
+    assert utils.class_transform(1, matrix) == 1
+    assert utils.class_transform(5, matrix) == 0
+    assert utils.class_transform(3, matrix) == 3
+    assert utils.class_transform(4, matrix) == 2
