@@ -956,8 +956,9 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
     Returns:
         None
     """
-    flat_z = utils.model_output_flatten(z)
-    flat_y = utils.model_output_flatten(y)
+    flat_z = utils.batch_flatten(z)
+    flat_y = utils.batch_flatten(y)
+    flat_bbox = utils.batch_flatten(bounds)
 
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
@@ -995,4 +996,4 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
 
     if plots['Mask']:
         os.mkdir(os.path.join(*results_dir, 'Masks'))
-        seg_plot(z, y, ids, bounds, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours)
+        seg_plot(z, y, ids, flat_bbox, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours)

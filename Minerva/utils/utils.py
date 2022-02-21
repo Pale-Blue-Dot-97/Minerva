@@ -909,7 +909,7 @@ def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: d
     print(tabulate(df, headers='keys', tablefmt='psql'))
 
 
-def model_output_flatten(x: Any) -> ArrayLike:
+def batch_flatten(x: ArrayLike) -> ArrayLike:
     """Attempts to flatten the supplied array. If not ragged, should be flattened with numpy.
     If ragged, the first 2 dimensions will be flattened using list appending.
 

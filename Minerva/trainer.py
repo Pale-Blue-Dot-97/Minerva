@@ -231,7 +231,7 @@ class Trainer:
                 print('Dataset too large to record probabilities of predicted classes!')
             
             try:
-                bounds = np.empty((self.n_batches[mode], self.batch_size, 4), dtype=np.float16)
+                bounds = np.empty((self.n_batches[mode], self.batch_size), dtype=object)
             except MemoryError:
                 print('Dataset too large to record bounding boxes of samples!')
 
