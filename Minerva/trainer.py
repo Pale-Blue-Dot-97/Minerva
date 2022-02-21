@@ -511,8 +511,8 @@ class Trainer:
             None
         """
         # Ensures predictions and labels are flattened.
-        predictions = utils.model_output_flatten(predictions)
-        labels = utils.model_output_flatten(labels)
+        predictions = utils.batch_flatten(predictions)
+        labels = utils.batch_flatten(labels)
 
         # Uses utils to create a classification report in a DataFrame.
         cr_df = utils.make_classification_report(predictions, labels, self.params['classes'])
