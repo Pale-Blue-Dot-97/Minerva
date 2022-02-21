@@ -75,7 +75,7 @@ def make_manifest() -> pd.DataFrame:
     # Calculates the fractional size of each class in each patch.
     df = pd.DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
     df.fillna(0, inplace=True)
-    
+
     # Delete redundant MODES column.
     del df['MODES']
 

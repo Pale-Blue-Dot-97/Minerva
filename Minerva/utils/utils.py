@@ -215,7 +215,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
         Name of dataset as string.
     """
     try:
-        return regex.search('(.*?)\.yml', data_config_path).group(1)
+        return regex.search(r'(.*?)\.yml', data_config_path).group(1)
     except AttributeError:
         print('\nDataset not found!')
         return None
@@ -439,7 +439,7 @@ def class_weighting(class_dist: Union[List[Union[List[int], Tuple[int, ...]]],
     return class_weights
 
 
-def find_empty_classes(class_dist: List[Tuple[int, int]], 
+def find_empty_classes(class_dist: List[Tuple[int, int]],
                        class_names: Optional[Dict[int, str]] = classes) -> List[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
@@ -1067,9 +1067,9 @@ def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any
 
     # Dicts to hold the false-positive rate, true-positive rate and Area Under Curves
     # of each class and micro, macro averages.
-    fpr: Dict[int, float] = {}
-    tpr: Dict[int, float] = {}
-    roc_auc: Dict[int, float] = {}
+    fpr: Dict[Any, float] = {}
+    tpr: Dict[Any, float] = {}
+    roc_auc: Dict[Any, float] = {}
 
     # Initialises a progress bar.
     with alive_bar(len(class_labels), bar='blocks') as bar:
@@ -1129,7 +1129,7 @@ def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any
     return fpr, tpr, roc_auc
 
 
-def intersect_datasets(datasets: list):
+def intersect_datasets(datasets: List[Any]):
     def intersect_pair_datasets(a, b):
         return a & b
 
@@ -1175,8 +1175,9 @@ def make_dataset(data_dir: Iterable[str], dataset_params: Dict[Any, Any],
     return dataset, subdatasets
 
 
-def construct_dataloader(data_dir: Iterable[str], dataset_params: dict, sampler_params: dict, dataloader_params: dict,
-                         collator_params: Optional[dict] = None, transform_params: Optional[dict] = None) -> DataLoader:
+def construct_dataloader(data_dir: Iterable[str], dataset_params: Dict[str, Any], sampler_params: Dict[str, Any],
+                         dataloader_params: Dict[str, Any], collator_params: Optional[Dict[str, Any]] = None,
+                         transform_params: Optional[Dict[str, Any]] = None) -> DataLoader:
     """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
     Args:
@@ -1206,7 +1207,7 @@ def construct_dataloader(data_dir: Iterable[str], dataset_params: dict, sampler_
     return DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
 
 
-def load_all_samples(dataloader: DataLoader) -> np.ndarray:
+def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
     """Loads all sample masks from parsed DataLoader and computes the modes of their classes.
 
     Args:
@@ -1226,14 +1227,14 @@ def load_all_samples(dataloader: DataLoader) -> np.ndarray:
     return sample_modes
 
 
-def make_bounding_box(roi: Optional[Union[tuple, list, bool]] = False) -> Optional[BoundingBox]:
+def make_bounding_box(roi: Optional[Union[Tuple[float, ...], List[float], bool]] = False) -> Optional[BoundingBox]:
     if roi is False:
         return None
     else:
         return BoundingBox(*roi)
 
 
-def get_transform(name: str, params: dict):
+def get_transform(name: str, params: Dict[str, Any]) -> Any:
     """Creates a TensorBoard transform object based on config parameters.
 
     Returns:
@@ -1245,7 +1246,7 @@ def get_transform(name: str, params: dict):
     return transform(**params)
 
 
-def make_transformations(transform_params: dict):
+def make_transformations(transform_params: Dict[str, Any]) -> Optional[Any]:
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:

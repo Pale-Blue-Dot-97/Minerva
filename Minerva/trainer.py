@@ -33,13 +33,18 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple
+from typing import Optional, Tuple, List, Dict, Iterable
+try:
+    from numpy.typing import ArrayLike
+except ModuleNotFoundError or ImportError:
+    ArrayLike = Iterable
 import os
 import yaml
 from Minerva.utils import visutils, utils
 import torch
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
 from alive_progress import alive_bar
@@ -71,7 +76,7 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders: dict, n_batches: dict, class_dist: Optional[Union[list, tuple, np.ndarray]] = None,
+    def __init__(self, loaders: Dict[DataLoader], n_batches: Dict[str, int], class_dist: Optional[List[Tuple[int, int]]] = None,
                  **params) -> None:
         """Initialises the Trainer.
 
@@ -195,7 +200,8 @@ class Trainer:
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
     def epoch(self, mode: str, record_int: bool = False,
-              record_float: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, list, np.ndarray]]:
+              record_float: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, List[str],
+                                                            np.ndarray, np.ndarray]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -229,7 +235,7 @@ class Trainer:
                                   *self.model.output_shape), dtype=np.float16)
             except MemoryError:
                 print('Dataset too large to record probabilities of predicted classes!')
-            
+
             try:
                 bounds = np.empty((self.n_batches[mode], self.batch_size), dtype=object)
             except MemoryError:
@@ -499,8 +505,7 @@ class Trainer:
             # Saves model state dict to PyTorch file.
             torch.save(self.model.state_dict(), f'{fn}.pt')
 
-    def compute_classification_report(self, predictions: Union[list, np.ndarray],
-                                      labels: Union[list, np.ndarray]) -> None:
+    def compute_classification_report(self, predictions: ArrayLike, labels: ArrayLike) -> None:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
 
         Args:

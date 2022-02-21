@@ -43,7 +43,7 @@ def test_eliminate_classes():
     conversion = {1: 1, 3: 3, 4: 2, 5: 0}
 
     results = utils.eliminate_classes(empty_classes=empty, old_classes=old_classes, old_cmap=old_cmap)
-    
+
     assert new_classes == results[0]
     assert conversion == results[1]
     assert new_cmap == results[2]
@@ -53,7 +53,7 @@ def test_file_check():
     fn = "tests/test.txt"
     with open(fn, "x") as f:
         f.write("")
-    
+
     utils.exist_delete_check(fn)
 
     assert os.path.exists(fn) is False

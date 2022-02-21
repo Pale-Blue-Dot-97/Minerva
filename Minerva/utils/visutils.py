@@ -60,7 +60,7 @@ import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import Bbox
 from matplotlib.colors import ListedColormap
-from matplotlib.ticker import MaxNLocator
+# from matplotlib.ticker import MaxNLocator
 from matplotlib.image import AxesImage
 import cv2
 from rasterio.crs import CRS
@@ -153,7 +153,7 @@ def dec_extent_to_deg(shape: Tuple[int, int], bounds,
     return extent, lat_extent, lon_extent
 
 
-def discrete_heatmap(data, classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None,
+def discrete_heatmap(data, classes: Union[List[str], Tuple[str, ...]],
                      cmap_style: Optional[Union[str, ListedColormap]] = None, block_size: int = 32) -> None:
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
@@ -195,7 +195,7 @@ def discrete_heatmap(data, classes: Optional[Union[List[str], Tuple[str, ...], N
     plt.close()
 
 
-def stack_rgb(scene_path: str, rgb: Dict[str, Any]) -> NDArray[Any]:
+def stack_rgb(scene_path: str, rgb: Dict[str, Any]) -> Any:
     """Stacks together red, green and blue image arrays from file to create a RGB array.
 
     Args:
@@ -247,12 +247,10 @@ def make_rgb_image(scene_path: str, rgb: Dict[str, Any], block_size: int = 32) -
     return rgb_image
 
 
-def labelled_rgb_image(names: Dict[str, str], mode: str = 'patch', data_band: int = 1,
-                       classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None, block_size: int = 32,
-                       cmap_style: Optional[Union[str, ListedColormap]] = None, alpha: float = 0.5,
-                       new_cs: Optional[CRS] = None,
-                       show: bool = True, save: bool = True,
-                       figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> str:
+def labelled_rgb_image(names: Dict[str, str], classes: Union[List[str], Tuple[str, ...]], mode: str = 'patch',
+                       cmap_style: Optional[Union[str, ListedColormap]] = None, data_band: int = 1,
+                       block_size: int = 32,  alpha: float = 0.5, new_cs: Optional[CRS] = None, show: bool = True,
+                       save: bool = True, figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> str:
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
@@ -369,9 +367,8 @@ def labelled_rgb_image(names: Dict[str, str], mode: str = 'patch', data_band: in
     return fn
 
 
-def make_gif(names: Dict[str, str], gif_name: str, frame_length: float = 1.0, data_band: int = 1,
-             classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None,
-             cmap_style: Optional[Union[str, ListedColormap]] = None,
+def make_gif(names: Dict[str, str], classes: Union[List[str], Tuple[str, ...]], gif_name: str,
+             cmap_style: Optional[Union[str, ListedColormap]] = None, frame_length: float = 1.0, data_band: int = 1,
              new_cs: Optional[CRS] = None, alpha: float = 0.5, save: bool = False,
              figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> None:
     """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes.
@@ -425,11 +422,9 @@ def make_gif(names: Dict[str, str], gif_name: str, frame_length: float = 1.0, da
         imageio.mimsave(gif_name, frames, 'GIF-FI', duration=frame_length, quantizer='nq')
 
 
-def make_all_the_gifs(names: Dict[str, str], frame_length: float = 1.0, data_band: int = 1,
-                      classes: Optional[Union[List[str], Tuple[str, ...], NDArray[Any]]] = None,
-                      cmap_style: Optional[Union[str, ListedColormap]] = None,
-                      new_cs: Optional[CRS] = None,
-                      alpha: float = 0.5,
+def make_all_the_gifs(names: Dict[str, str], classes: Union[List[str], Tuple[str, ...]], frame_length: float = 1.0,
+                      cmap_style: Optional[Union[str, ListedColormap]] = None, data_band: int = 1,
+                      new_cs: Optional[CRS] = None, alpha: float = 0.5,
                       figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> None:
     """Wrapper to make_gifs() to iterate through all patches in dataset.
 
@@ -474,10 +469,9 @@ def make_all_the_gifs(names: Dict[str, str], frame_length: float = 1.0, data_ban
 
 
 def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: Dict[str, str],
-                    exp_id: Optional[str] = None, block_size: int = 32,
-                    cmap_style: Optional[Union[str, ListedColormap]] = None, show: bool = True, save: bool = True,
-                    fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
-                    fn_prefix: Optional[str] = None) -> None:
+                    cmap_style: Optional[Union[str, ListedColormap]] = None, exp_id: Optional[str] = None,
+                    fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None, block_size: int = 32,
+                    show: bool = True, save: bool = True, fn_prefix: Optional[str] = None) -> None:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
 
@@ -557,7 +551,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
     fig.suptitle(f'{sample_id}', fontsize=15)
     axes[0].set_title('Predicted', fontsize=13)
     axes[1].set_title('Ground Truth', fontsize=13)
-    axes[2].set_title(utils.lat_lon_to_loc(str(*utils.get_centre_loc(bounds))), fontsize=13)
+    axes[2].set_title(utils.lat_lon_to_loc(*str(utils.get_centre_loc(bounds))), fontsize=13)
 
     # Set axis labels.
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)
@@ -590,9 +584,9 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
     plt.close()
 
 
-def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Union[int, float]], NDArray[Any]],
-             ids: List[str], bounds: Iterable[Any], mode: str, classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str, frac: float = 0.05,
-             fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
+def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], ids: List[str],
+             bounds: Iterable[Any], mode: str, classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str,
+             frac: float = 0.05, fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
     Args:
@@ -639,7 +633,7 @@ def seg_plot(z: Union[List[Union[int, float]], NDArray[Any]], y: Union[List[Unio
                       'pred': z[i],
                       'mask': y[i],
                       'bounds': bounds[i]}
-            
+
             prediction_plot(sample, ids[i], exp_id=config['model_name'], new_cs=new_cs,
                             classes=classes, fig_dim=fig_dim, show=False, fn_prefix=fn_prefix,
                             cmap_style=ListedColormap(colours.values(), N=len(colours)))
@@ -923,7 +917,7 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[List[str], Tu
 
 
 def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]],
-                 metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None, 
+                 metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None,
                  mode: Optional[str] = 'test', bounds: Optional[NDArray[Any]] = None,
                  probs: Optional[Union[List[float], NDArray[Any]]] = None,
                  class_names: Optional[Dict[int, str]] = None, colours: Optional[Dict[int, str]] = None,
@@ -958,14 +952,13 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
     """
     flat_z = utils.batch_flatten(z)
     flat_y = utils.batch_flatten(y)
-    flat_bbox = utils.batch_flatten(bounds)
 
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
-    
+
     if model_name is None:
         model_name = config['model_name']
-    
+
     if results_dir is None:
         results_dir = config['dir']['results']
 
@@ -977,13 +970,16 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
         print(err)
 
     if plots['History']:
-        assert metrics is not None
+        assert metrics is Dict[str, Any]
+
         print('\nPLOTTING MODEL HISTORY')
         plot_history(metrics, filename=filenames['History'], save=save, show=show)
+
     if plots['Pred']:
         print('\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS')
         plot_subpopulations(utils.find_subpopulations(flat_z), class_names=class_names,
                             cmap_dict=colours, filename=filenames['Pred'], save=save, show=show)
+
     if plots['CM']:
         print('\nPLOTTING CONFUSION MATRIX')
         make_confusion_matrix(test_labels=flat_y, test_pred=flat_z, classes=class_names, filename=filenames['CM'],
@@ -995,5 +991,10 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
                         micro=plots['micro'], macro=plots['macro'], save=save, show=show)
 
     if plots['Mask']:
+        assert ids is List[str]
+        assert bounds is not None
+        assert mode is str
+
+        flat_bbox = utils.batch_flatten(bounds)
         os.mkdir(os.path.join(*results_dir, 'Masks'))
         seg_plot(z, y, ids, flat_bbox, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours)
