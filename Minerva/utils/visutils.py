@@ -585,7 +585,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
 
 
 def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], ids: List[str],
-             bounds: Iterable[Any], mode: str, classes: Dict[str, str], colours: Dict[str, str], fn_prefix: str,
+             bounds: Iterable[Any], mode: str, classes: Dict[int, str], colours: Dict[int, str], fn_prefix: str,
              frac: float = 0.05, fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -991,9 +991,9 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
                         micro=plots['micro'], macro=plots['macro'], save=save, show=show)
 
     if plots['Mask']:
-        assert ids is List[str]
+        assert ids is not None
         assert bounds is not None
-        assert mode is str
+        assert mode is not None
 
         flat_bbox = utils.batch_flatten(bounds)
         os.mkdir(os.path.join(*results_dir, 'Masks'))

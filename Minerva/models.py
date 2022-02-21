@@ -1,6 +1,6 @@
 """Module containing neural network model classes.
 
-    Copyright (C) 2021 Harry James Baker
+    Copyright (C) 2022 Harry James Baker
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, List, Callable, Type, Any
+from typing import Union, Optional, Tuple, List, Callable, Type, Any, Dict
 import abc
 from Minerva.utils import utils
 import torch
@@ -62,7 +62,8 @@ class MinervaModel(torch.nn.Module, ABC):
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, criterion=None, input_shape: Optional[tuple] = None, n_classes: Optional[int] = None) -> None:
+    def __init__(self, criterion=None, input_shape: Optional[Tuple[int, ...]] = None,
+                 n_classes: Optional[int] = None) -> None:
         super(MinervaModel, self).__init__()
 
         # Sets loss function
@@ -78,7 +79,7 @@ class MinervaModel(torch.nn.Module, ABC):
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
         self.optimiser = None
 
-    def set_optimiser(self, optimiser) -> None:
+    def set_optimiser(self, optimiser: Any) -> None:
         """Sets the optimiser used by the model.
 
         Must be called after initialising a model and supplied with a PyTorch optimiser using this model's parameters.
@@ -207,8 +208,8 @@ class MLP(MinervaModel, ABC):
             within the network. Also determines the number of layers other than the required input and output layers.
     """
 
-    def __init__(self, criterion, input_size: int = 288, n_classes: int = 8,
-                 hidden_sizes: Union[tuple, list] = (256, 144)) -> None:
+    def __init__(self, criterion: Any, input_size: int = 288, n_classes: int = 8,
+                 hidden_sizes: Union[Tuple[int, ...], List[int]] = (256, 144)) -> None:
         super(MLP, self).__init__(criterion=criterion)
 
         self.input_size = input_size
@@ -275,10 +276,11 @@ class CNN(MinervaModel, ABC):
     """
 
     def __init__(self, criterion, input_size: Union[Tuple[int, int, int], List[int]] = (12, 256, 256),
-                 n_classes: int = 8, features: Union[tuple, list] = (2, 1, 1), fc_sizes: Union[tuple, list] = (128, 64),
-                 conv_kernel_size: Union[int, tuple] = 3, conv_stride: Union[int, tuple] = 1,
-                 max_kernel_size: Union[int, tuple] = 2, max_stride: Union[int, tuple] = 2, conv_do: bool = True,
-                 fc_do: bool = True, p_conv_do: float = 0.1, p_fc_do: float = 0.5) -> None:
+                 n_classes: int = 8, features: Union[Tuple[int, ...], List[int]] = (2, 1, 1),
+                 fc_sizes: Union[Tuple[int, ...], List[int]] = (128, 64),
+                 conv_kernel_size: Union[int, Tuple[int, ...]] = 3, conv_stride: Union[int, Tuple[int, ...]] = 1,
+                 max_kernel_size: Union[int, Tuple[int, ...]] = 2, max_stride: Union[int, Tuple[int, ...]] = 2,
+                 conv_do: bool = True, fc_do: bool = True, p_conv_do: float = 0.1, p_fc_do: float = 0.5) -> None:
         super(CNN, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self._conv_layers = OrderedDict()
@@ -411,11 +413,10 @@ class ResNet(MinervaModel, ABC):
         ValueError: If replace_stride_with_dilation is not None or a 3-element tuple.
     """
 
-    def __init__(self, block: Type[Union[BasicBlock, Bottleneck]], layers: Union[list, tuple], in_channels: int = 3,
-                 n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None,
-                 encoder: bool = False) -> None:
+    def __init__(self, block: Type[Union[BasicBlock, Bottleneck]], layers: Union[List[int], Tuple[int, int, int, int]],
+                 in_channels: int = 3, n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1,
+                 width_per_group: int = 64, replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
         super(ResNet, self).__init__()
 
         # Inits normalisation layer for use in each block.
@@ -534,10 +535,10 @@ class ResNet(MinervaModel, ABC):
     def _forward_impl(self, x: torch.Tensor
                       ) -> Union[torch.Tensor,
                                  Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
-        x0 = self.conv1(x)
-        x0 = self.bn1(x0)
-        x0 = self.relu(x0)
-        x0: torch.Tensor = self.maxpool(x0)
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+        x0: torch.Tensor = self.maxpool(x)
 
         x1: torch.Tensor = self.layer1(x0)
         x2: torch.Tensor = self.layer2(x1)
@@ -639,7 +640,7 @@ class Decoder(MinervaModel, ABC):
         # Up-sampling operation to take output from de-convolutions and match to input size of image.
         self.upsample2 = torch.nn.Upsample(size=self.image_size)
 
-    def _forward_impl(self, x):
+    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
         # First block of fully connected layer batch norm and ReLU.
         x = self.relu(x)
         x = self.fc3(x)
@@ -840,10 +841,10 @@ class ResNet18(MinervaModel, ABC):
             and passes through a fully connected layer for classification output.
     """
 
-    def __init__(self, criterion=None, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 zero_init_residual: bool = False,
-                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer=None, encoder: bool = False) -> None:
+    def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, zero_init_residual: bool = False,
+                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, encoder: bool = False) -> None:
         super(ResNet18, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(BasicBlock, [2, 2, 2, 2], in_channels=input_size[0], n_classes=n_classes,
@@ -892,10 +893,10 @@ class ResNet34(MinervaModel, ABC):
             and passes through a fully connected layer for classification output.
     """
 
-    def __init__(self, criterion=None, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 zero_init_residual: bool = False,
+    def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, zero_init_residual: bool = False,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer=None, encoder: bool = False) -> None:
+                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
         super(ResNet34, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
@@ -946,10 +947,10 @@ class ResNet50(MinervaModel, ABC):
             and passes through a fully connected layer for classification output.
     """
 
-    def __init__(self, criterion=None, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+    def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer=None, encoder: bool = False) -> None:
+                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
         super(ResNet50, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
@@ -1000,9 +1001,9 @@ class _FCN(MinervaModel, ABC):
         backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int], List[int]] = (12, 256, 256), n_classes: int = 8,
                  backbone_name: str = 'ResNet18', decoder_name: str = 'DCN', decoder_variant: str = '32',
-                 batch_size: int = 16, backbone_kwargs: dict = None) -> None:
+                 batch_size: int = 16, backbone_kwargs: Optional[Dict[str, Any]] = None) -> None:
 
         super(_FCN, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
@@ -1048,8 +1049,8 @@ class FCNResNet18(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, batch_size: int = 16, **resnet_kwargs) -> None:
         super(FCNResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                           batch_size=batch_size, backbone_name='ResNet18', decoder_name='Decoder',
                                           backbone_kwargs=resnet_kwargs)
@@ -1067,8 +1068,8 @@ class FCNResNet34(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, batch_size: int = 16, **resnet_kwargs) -> None:
         super(FCNResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                           batch_size=batch_size, backbone_name='ResNet34', decoder_name='Decoder',
                                           backbone_kwargs=resnet_kwargs)
@@ -1086,8 +1087,8 @@ class FCNResNet50(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 batch_size: int = 16, **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, batch_size: int = 16, **resnet_kwargs) -> None:
         super(FCNResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                           batch_size=batch_size, backbone_name='ResNet50', decoder_name='Decoder',
                                           backbone_kwargs=resnet_kwargs)
@@ -1104,8 +1105,8 @@ class FCN32ResNet18(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN32ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet18', decoder_variant='32',
                                             backbone_kwargs=resnet_kwargs)
@@ -1122,8 +1123,8 @@ class FCN32ResNet34(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN32ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet34', decoder_variant='32',
                                             backbone_kwargs=resnet_kwargs)
@@ -1140,8 +1141,8 @@ class FCN32ResNet50(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN32ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet50', decoder_variant='32',
                                             backbone_kwargs=resnet_kwargs)
@@ -1158,8 +1159,8 @@ class FCN16ResNet18(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN16ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet18', decoder_variant='16',
                                             backbone_kwargs=resnet_kwargs)
@@ -1176,8 +1177,8 @@ class FCN16ResNet34(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN16ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet34', decoder_variant='16',
                                             backbone_kwargs=resnet_kwargs)
@@ -1194,8 +1195,8 @@ class FCN8ResNet18(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN8ResNet18, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone_name='ResNet18', decoder_variant='8',
                                            backbone_kwargs=resnet_kwargs)
@@ -1212,8 +1213,8 @@ class FCN8ResNet34(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN8ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone_name='ResNet34', decoder_variant='8',
                                            backbone_kwargs=resnet_kwargs)
@@ -1230,8 +1231,8 @@ class FCN8ResNet50(_FCN):
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion, input_size: Union[tuple, list] = (12, 256, 256), n_classes: int = 8,
-                 **resnet_kwargs) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN8ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone_name='ResNet50', decoder_variant='8',
                                            backbone_kwargs=resnet_kwargs)
@@ -1240,7 +1241,7 @@ class FCN8ResNet50(_FCN):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_output_shape(model: torch.nn.Module, image_dim: Union[list, tuple]):
+def get_output_shape(model: torch.nn.Module, image_dim: Union[List[int], Tuple[int, ...]]) -> Any:
     """Gets the output shape of a model.
 
     Args:

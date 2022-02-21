@@ -531,7 +531,7 @@ def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[A
         return reordered_classes, conversion, reordered_colours
 
 
-def load_data_specs(class_dist: List[List[int]],
+def load_data_specs(class_dist: List[Tuple[int, int]],
                     elim: bool = False) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
     if not elim:
         return classes, {}, cmap_dict
@@ -690,7 +690,7 @@ def month_sort(df: pd.DataFrame, month: str) -> Any:
     return df.loc[month].sort_values(by='COVER')['DATE'][0]
 
 
-def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> List[Any]:
+def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> Any:
     """Selects all scenes in a patch with a cloud cover less than the threshold provided.
 
     Args:
@@ -772,17 +772,17 @@ def subpopulations_from_manifest(manifest: pd.DataFrame, plot: bool = False) -> 
     Returns:
         class_dist (list): Modal distribution of classes in the dataset provided.
     """
-    class_dist = Counter()
+    class_counter: Counter[int, int] = Counter()
     for classification in classes.keys():
         try:
             count = manifest[f'{classification}'].sum() / len(manifest)
             if count == 0.0 or count == 0:
                 continue
             else:
-                class_dist[classification] = count
+                class_counter[classification] = count
         except KeyError:
             continue
-    class_dist = class_dist.most_common()
+    class_dist: List[Tuple[int, int]] = class_counter.most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
@@ -791,7 +791,7 @@ def subpopulations_from_manifest(manifest: pd.DataFrame, plot: bool = False) -> 
     return class_dist
 
 
-def func_by_str(module: str, func: str) -> Any:
+def func_by_str(module_path: str, func: str) -> Any:
     """Gets the constructor or callable within a module defined by the names supplied.
 
     Args:
@@ -802,7 +802,7 @@ def func_by_str(module: str, func: str) -> Any:
         Constructor or callable request by string.
     """
     # Gets module found from the path/ name supplied.
-    module = importlib.import_module(module)
+    module = importlib.import_module(module_path)
 
     # Returns the constructor/ callable within the module.
     return getattr(module, func)
@@ -861,10 +861,10 @@ def calc_grad(model: torch.nn.Module) -> Optional[float]:
     except AttributeError:
         print('Model has no attribute \'parameters\'. Cannot calculate grad norms')
 
-        return
+        return None
 
 
-def print_class_dist(class_dist: Union[list, tuple, np.ndarray], class_labels: dict = classes) -> None:
+def print_class_dist(class_dist: List[Tuple[int, int]], class_labels: Dict[int, str] = classes) -> None:
     """Prints the supplied class_dist in a pretty table format using tabulate.
 
     Args:
@@ -1152,7 +1152,7 @@ def make_dataset(data_dir: Iterable[str], dataset_params: Dict[Any, Any],
         subdataset_params = dataset_params[key]
 
         # Get the constructor for the class of dataset defined in params.
-        _subdataset = func_by_str(module=subdataset_params['module'],
+        _subdataset = func_by_str(module_path=subdataset_params['module'],
                                   func=subdataset_params['name'])
 
         # Construct the root to the sub-dataset's files.
@@ -1196,7 +1196,7 @@ def construct_dataloader(data_dir: Iterable[str], dataset_params: Dict[str, Any]
     dataset, subdatasets = make_dataset(data_dir, dataset_params, transform_params)
 
     # --+ MAKE SAMPLERS +=============================================================================================+
-    sampler = func_by_str(module=sampler_params['module'], func=sampler_params['name'])
+    sampler = func_by_str(module_path=sampler_params['module'], func=sampler_params['name'])
     sampler = sampler(dataset=subdatasets[0], roi=make_bounding_box(sampler_params['roi']), **sampler_params['params'])
 
     # --+ MAKE DATALOADERS +==========================================================================================+
@@ -1217,14 +1217,12 @@ def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
     Returns:
         sample_modes (np.ndarray): 2D array of the class modes within every sample defined by the parsed DataLoader.
     """
-    sample_modes = []
+    sample_modes: List[List[Tuple[int, int]]] = []
     for sample in alive_it(dataloader):
         modes = find_patch_modes(sample['mask'])
         sample_modes.append(modes)
 
-    sample_modes = np.array(sample_modes)
-
-    return sample_modes
+    return np.array(sample_modes)
 
 
 def make_bounding_box(roi: Optional[Union[Tuple[float, ...], List[float], bool]] = False) -> Optional[BoundingBox]:
