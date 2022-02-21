@@ -81,6 +81,8 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from alive_progress import alive_bar, alive_it
 from torchgeo.datasets.utils import BoundingBox
+from geopy.geocoders import Nominatim
+
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -375,6 +377,20 @@ def dec2deg(dec_co: Union[List[float], Tuple[float, ...], NDArray[Any]], axis: s
         deg_co.append(deg_to_dms(co, axis=axis))
 
     return deg_co
+
+
+def get_centre_loc(bounds) -> Tuple[float, float]:
+    mid_lat = bounds.maxy - (bounds.maxy - bounds.miny) / 2
+    mid_lon = bounds.maxx - (bounds.maxx - bounds.minx) / 2
+
+    return (mid_lat, mid_lon)
+
+
+def lat_lon_to_loc(lat: str, lon: str) -> str:
+    geolocator = Nominatim(user_agent="geoapiExercises")
+    location = geolocator.reverse(lat + "," + lon)
+
+    return location['city']
 
 
 def labels_to_ohe(labels: Union[List[int], Tuple[int, ...], NDArray[Any]], n_classes: int) -> NDArray[Any]:

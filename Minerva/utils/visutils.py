@@ -557,7 +557,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
     fig.suptitle(f'{sample_id}', fontsize=15)
     axes[0].set_title('Predicted', fontsize=13)
     axes[1].set_title('Ground Truth', fontsize=13)
-    # axes[2].set_title('Reference Imagery From {}'.format(names['date']), fontsize=13)
+    axes[2].set_title(utils.lat_lon_to_loc(str(*utils.get_centre_loc(bounds))), fontsize=13)
 
     # Set axis labels.
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)
