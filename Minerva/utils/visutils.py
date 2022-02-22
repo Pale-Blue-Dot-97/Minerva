@@ -28,6 +28,8 @@ Attributes:
     imagery_config (dict): Config defining the properties of the imagery used in the experiment.
     data_config (dict): Config defining the properties of the data used in the experiment.
     data_dir (list): Path to directory holding dataset.
+    band_ids (dict): Band IDs and position in sample image.
+    max_pixel_value (int): Maximum pixel value (e.g. 255 for 8-bit integer).
 
 TODO:
     * Reduce boilerplate
@@ -208,11 +210,10 @@ def stack_rgb(image: NDArray[Any], rgb: Optional[Dict[str, int]] = band_ids, max
     return np.dstack((channels[2], channels[1], channels[0]))
 
 
-def make_rgb_image(scene_path: str, rgb: Dict[str, Any], block_size: int = 32) -> AxesImage:
+def make_rgb_image(image: NDArray[Any], rgb: Dict[str, Any], block_size: int = 32) -> AxesImage:
     """Creates an RGB image from a composition of red, green and blue band .tif images
 
     Args:
-        scene_path (str): Path to directory holding images from desired scene
         rgb (dict): Dictionary of filenames of R, G & B band images.
         block_size (int): Optional; Size of block image sub-division in pixels.
 
@@ -220,7 +221,7 @@ def make_rgb_image(scene_path: str, rgb: Dict[str, Any], block_size: int = 32) -
         rgb_image (AxesImage): Plotted RGB image object
     """
     # Stack RGB image data together.
-    rgb_image_array = stack_rgb(scene_path, rgb)
+    rgb_image_array = stack_rgb(image, rgb)
 
     # Create RGB image.
     rgb_image = plt.imshow(rgb_image_array)
@@ -528,7 +529,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
     fig.suptitle(f'{sample_id}', fontsize=15)
     axes[0].set_title('Predicted', fontsize=13)
     axes[1].set_title('Ground Truth', fontsize=13)
-    axes[2].set_title(utils.lat_lon_to_loc(*str(utils.get_centre_loc(bounds))), fontsize=13)
+    axes[2].set_title(utils.lat_lon_to_loc(*utils.get_centre_loc(bounds)), fontsize=13)
 
     # Set axis labels.
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)

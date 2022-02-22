@@ -31,7 +31,7 @@ Attributes:
     data_config (dict): Config defining the properties of the data used in the experiment.
     data_dir (list): Path to directory holding dataset.
     results_dir (list): Path to directory to output plots to.
-    band_ids (list): Band IDs of images to be used.
+    band_ids (dict): Band IDs and position in sample image.
     image_size (tuple): Defines the shape of the images.
     classes (dict): Mapping of class labels to class names.
     cmap_dict (dict): Mapping of class labels to colours.
@@ -314,9 +314,9 @@ def get_centre_loc(bounds) -> Tuple[float, float]:
     return (mid_lat, mid_lon)
 
 
-def lat_lon_to_loc(lat: str, lon: str) -> str:
+def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
     geolocator = Nominatim(user_agent="geoapiExercises")
-    location = geolocator.reverse(lat + "," + lon)
+    location = geolocator.reverse(str(lat) + "," + str(lon))
 
     return location['city']
 
