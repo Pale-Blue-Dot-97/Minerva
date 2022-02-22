@@ -102,6 +102,8 @@ class Trainer:
 
         self.batch_size = params['hyperparams']['params']['batch_size']
 
+        self.max_pixel_value = params['max_pixel_value']
+
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
@@ -253,7 +255,7 @@ class Trainer:
 
             # Core of the epoch.
             for sample in self.loaders[mode]:
-                x_batch = sample['image']
+                x_batch = sample['image'] / self.max_pixel_value
                 y_batch = sample['mask']
 
                 x_batch = x_batch.to(torch.float)

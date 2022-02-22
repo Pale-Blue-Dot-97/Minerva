@@ -68,6 +68,12 @@ imagery_config = aux_configs['imagery_config']
 # Path to directory holding dataset.
 data_dir = config['dir']['data']
 
+# Band IDs and position in sample image.
+band_ids = imagery_config['data_specs']['band_ids']
+
+# Maximum pixel value (e.g. 255 for 8-bit integer).
+max_pixel_value = imagery_config['data_specs']['max_value']
+
 # Automatically fixes the layout of the figures to accommodate the colour bar legends.
 plt.rcParams['figure.constrained_layout.use'] = True
 
@@ -179,12 +185,12 @@ def discrete_heatmap(data, classes: Union[List[str], Tuple[str, ...]],
     plt.close()
 
 
-def stack_rgb(image: NDArray[Any], rgb: Dict[str, int], max_value: int = 255) -> Any:
+def stack_rgb(image: NDArray[Any], rgb: Optional[Dict[str, int]] = band_ids, max_value: int = max_pixel_value) -> Any:
     """Stacks together red, green and blue image arrays from file to create a RGB array.
 
     Args:
         image (np.ndarray): Image of separate channels to be normalised and reshaped into stacked RGB image.
-        rgb (dict): Dictionary of which channels in image are the R, G & B bands.
+        rgb (dict): Optional; Dictionary of which channels in image are the R, G & B bands.
 
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
@@ -599,7 +605,7 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
-            image = stack_rgb(dataset[bounds[i]]['image'].numpy(), imagery_config['data_specs']['band_ids'])
+            image = stack_rgb(dataset[bounds[i]]['image'].numpy())
             sample = {'image': image,
                       'pred': z[i],
                       'mask': y[i],

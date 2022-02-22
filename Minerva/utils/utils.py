@@ -95,7 +95,7 @@ cache_dir = os.sep.join(config['dir']['cache'])
 # Path to directory to output plots to.
 results_dir = os.path.join(*config['dir']['results'])
 
-# Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset.
+# Band IDs and position in sample image.
 band_ids = imagery_config['data_specs']['band_ids']
 
 # Defines size of the images to determine the number of batches.
@@ -1271,5 +1271,6 @@ def make_loaders(n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15), p_di
     params['hyperparams']['model_params']['n_classes'] = len(new_classes)
     params['classes'] = new_classes
     params['colours'] = new_colours
+    params['max_pixel_value'] = data_config['data_specs']['max_value']
 
     return loaders, n_batches, class_dist, params
