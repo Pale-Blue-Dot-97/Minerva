@@ -465,6 +465,10 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
     y = sample['mask']
     bounds = sample['bounds']
 
+    print(type(rgb_image))
+    print(rgb_image)
+    print(rgb_image.shape)
+
     extent, lat_extent, lon_extent = dec_extent_to_deg(y.shape, bounds, spacing=block_size)
 
     # Initialises a figure.
