@@ -599,7 +599,7 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
-            sample = {'image': dataset[bounds[i]],
+            sample = {'image': dataset[bounds[i]]['image'].numpy(),
                       'pred': z[i],
                       'mask': y[i],
                       'bounds': bounds[i]}
