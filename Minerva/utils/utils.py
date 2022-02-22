@@ -1271,6 +1271,6 @@ def make_loaders(n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15), p_di
     params['hyperparams']['model_params']['n_classes'] = len(new_classes)
     params['classes'] = new_classes
     params['colours'] = new_colours
-    params['max_pixel_value'] = data_config['data_specs']['max_value']
+    params['max_pixel_value'] = imagery_config['data_specs']['max_value']
 
     return loaders, n_batches, class_dist, params
