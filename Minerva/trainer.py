@@ -76,7 +76,7 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders: Dict[DataLoader], n_batches: Dict[str, int], class_dist: Optional[List[Tuple[int, int]]] = None,
+    def __init__(self, loaders: Dict[str, DataLoader], n_batches: Dict[str, int], class_dist: Optional[List[Tuple[int, int]]] = None,
                  **params) -> None:
         """Initialises the Trainer.
 
