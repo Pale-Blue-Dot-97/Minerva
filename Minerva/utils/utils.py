@@ -31,8 +31,6 @@ Attributes:
     data_config (dict): Config defining the properties of the data used in the experiment.
     data_dir (list): Path to directory holding dataset.
     results_dir (list): Path to directory to output plots to.
-    patch_dir_prefix (str): Prefix to every patch ID in every patch directory name.
-    label_suffix (str): Suffix of the label files identifying which dataset they belong to.
     band_ids (list): Band IDs of images to be used.
     image_size (tuple): Defines the shape of the images.
     classes (dict): Mapping of class labels to class names.
@@ -64,10 +62,8 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 import rasterio as rt
-import rasterio.mask as rtmask
 from rasterio.crs import CRS
 from rasterio.warp import transform_bounds
-import fiona
 from tabulate import tabulate
 import torch
 from sklearn.preprocessing import label_binarize
@@ -98,11 +94,6 @@ cache_dir = os.sep.join(config['dir']['cache'])
 
 # Path to directory to output plots to.
 results_dir = os.path.join(*config['dir']['results'])
-
-# Prefix to every patch ID in every patch directory name.
-patch_dir_prefix = imagery_config['patch_dir_prefix']
-
-label_suffix = data_config['label_suffix']
 
 # Band IDs of SENTINEL-2 images contained in the LandCoverNet dataset.
 band_ids = imagery_config['data_specs']['band_ids']
@@ -194,14 +185,6 @@ def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
     return datetime.strptime(timestamp, fmt1).strftime(fmt2)
 
 
-def date_grab(id: str) -> str:
-    pass
-
-
-def patch_grab() -> List[str]:
-    pass
-
-
 def get_dataset_name() -> Optional[Union[str, Any]]:
     """Gets the name of the dataset to be used from the config name.
 
@@ -256,55 +239,6 @@ def centre_pixel_only(image: Union[MutableSequence, NDArray[Any]]) -> NDArray[An
         int(image_size[1] / 2.0)]
 
     return new_image
-
-
-def cut_to_extents(patch_id: str, tile_id: str, tile_dir: str) -> None:
-    """Uses the extents of the patch defined by patch_id to cut out and save a new patch
-        at the same location and size from the tile defined by tile_id.
-
-    Args:
-        patch_id (str): Unique patch ID.
-        tile_id (str): Unique tile ID.
-        tile_dir (list[str]): Path to directory containing tile as a list of strings for each level.
-
-    Returns:
-        None
-    """
-    # Path to patch dir and patch ID prefix.
-    patch_path = os.sep.join([data_dir, patch_dir_prefix + patch_id, patch_id])
-
-    # Path to tile to be cut from.
-    tile_path = os.sep.join([tile_dir, tile_id + '_20200101-20210101.tif'])
-
-    # Constructs shape file from the provided patch label TIFF.
-    os.system('gdaltindex {}_SHP.shp {}_2018_LC_10m.tif '.format(patch_path, patch_path))
-
-    # Loads shape file.
-    with fiona.open("{}_SHP.shp".format(patch_path), "r") as shapefile:
-        shapes = [feature["geometry"] for feature in shapefile]
-
-    # Uses shape file to cut patch out from tile.
-    with rt.open(tile_path) as src:
-        out_image, out_transform = rtmask.mask(src, shapes, crop=True)
-        out_meta = src.meta
-
-    # Updates metadata of cut out patch with correct image size.
-    out_meta.update({"driver": "GTiff",
-                     "height": image_size[0],
-                     "width": image_size[1],
-                     "transform": out_transform})
-
-    # Deletes any previous versions of this cut out patch.
-    exist_delete_check("{}_2020_LC_10m.tif".format(patch_path))
-
-    # Saves new cut out patch to patch dir.
-    with rt.open("{}_2020_LC_10m.tif".format(patch_path), "w", **out_meta) as dest:
-        dest.write(out_image)
-
-    # Deletes temporary shape files.
-    for fn in ['{}_SHP.shp'.format(patch_path), '{}_SHP.shx'.format(patch_path),
-               '{}_SHP.dbf'.format(patch_path), '{}_SHP.prj'.format(patch_path)]:
-        os.remove(fn)
 
 
 def transform_coordinates(path: str, new_crs: CRS) -> List[float]:

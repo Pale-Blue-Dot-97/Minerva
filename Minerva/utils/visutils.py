@@ -28,14 +28,9 @@ Attributes:
     imagery_config (dict): Config defining the properties of the imagery used in the experiment.
     data_config (dict): Config defining the properties of the data used in the experiment.
     data_dir (list): Path to directory holding dataset.
-    patch_dir_prefix (str): Prefix to every patch ID in every patch directory name.
-    n_pixels (int): Total number of pixels in each sample (per band).
 
 TODO:
-    * Add ability to plot labelled RGB images using the annual land cover labels
-    * Add option to append annual land cover mask to patch GIFs
     * Reduce boilerplate
-
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -73,11 +68,6 @@ imagery_config = aux_configs['imagery_config']
 # Path to directory holding dataset.
 data_dir = config['dir']['data']
 
-# Prefix to every patch ID in every patch directory name.
-patch_dir_prefix = imagery_config['patch_dir_prefix']
-
-n_pixels = imagery_config['data_specs']['image_size'][0] * imagery_config['data_specs']['image_size'][1]
-
 # Automatically fixes the layout of the figures to accommodate the colour bar legends.
 plt.rcParams['figure.constrained_layout.use'] = True
 
@@ -97,10 +87,6 @@ _max_samples = 25
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def path_format(names: Dict[str, str]) -> Tuple[Dict[str, str], str, str, str]:
-    pass
-
-
 def de_interlace(x: ArrayLike, f: int) -> NDArray[Any]:
     """Separates interlaced arrays, `x` at a frequency of `f` from each other.
 
@@ -127,6 +113,8 @@ def dec_extent_to_deg(shape: Tuple[int, int], bounds: BoundingBox,
 
     Args:
         shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
+        bounds (BoundingBox): Object describing a geospatial bounding box.
+            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
         spacing (int): Spacing of the lat - lon ticks.
 
     Returns:
@@ -243,21 +231,18 @@ def make_rgb_image(scene_path: str, rgb: Dict[str, Any], block_size: int = 32) -
     return rgb_image
 
 
-def labelled_rgb_image(names: Dict[str, str], classes: Union[List[str], Tuple[str, ...]], mode: str = 'patch',
-                       cmap_style: Optional[Union[str, ListedColormap]] = None, data_band: int = 1,
-                       block_size: int = 32,  alpha: float = 0.5, new_cs: Optional[CRS] = None, show: bool = True,
+def labelled_rgb_image(image: NDArray[Any], mask: NDArray[Any], bounds: BoundingBox,
+                       path: str, name: str, classes: Union[List[str], Tuple[str, ...]],
+                       cmap_style: Optional[Union[str, ListedColormap]] = None,
+                       block_size: int = 32,  alpha: float = 0.5, show: bool = True,
                        save: bool = True, figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32)) -> str:
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
-        names (dict): Dictionary of IDs to uniquely identify the scene and selected bands.
-        mode (str): Optional; Whether to plot the `patch' level labels or the scene. Default `scene'.
-        data_band (int): Optional; Band number of data .tif file.
         classes (list[str]): Optional; List of all possible class labels.
         block_size (int): Optional; Size of block image subdivision in pixels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
-        new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
         show (bool): Optional; True for show figure when plotted. False if not.
         save (bool): Optional; True to save figure to file. False if not.
         figdim (tuple): Optional; Figure (height, width) in inches.
@@ -265,36 +250,23 @@ def labelled_rgb_image(names: Dict[str, str], classes: Union[List[str], Tuple[st
     Returns:
         fn (str): Path to figure save location
     """
-    # Get required formatted paths and names.
-    rgb, scene_path, scene_data_name, patch_data_name = path_format(names)
-
-    data_name = scene_path + scene_data_name
-    if mode == 'patch':
-        data_name = patch_data_name
-
-    # Stacks together the R, G, & B bands to form an array of the RGB image.
-    rgb_image = stack_rgb(scene_path, rgb)
-
-    # Loads data to plotted as heatmap from file.
-    data = utils.load_array(data_name, band=data_band)
-
-    extent, lat_extent, lon_extent = dec_extent_to_deg(data.shape, bounds=None, spacing=block_size)
+    extent, lat_extent, lon_extent = dec_extent_to_deg(mask.shape, bounds=bounds, spacing=block_size)
 
     # Initialises a figure.
     fig, ax1 = plt.subplots()
 
     # Create RGB image.
-    ax1.imshow(rgb_image, extent=extent)
+    ax1.imshow(image, extent=extent)
 
     # Creates a cmap from query.
     cmap = plt.get_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
-    heatmap = ax1.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha)
+    heatmap = ax1.imshow(mask, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha)
 
     # Sets tick intervals to standard 32x32 block size.
-    ax1.set_xticks(np.arange(0, data.shape[0] + 1, block_size))
-    ax1.set_yticks(np.arange(0, data.shape[1] + 1, block_size))
+    ax1.set_xticks(np.arange(0, mask.shape[0] + 1, block_size))
+    ax1.set_yticks(np.arange(0, mask.shape[1] + 1, block_size))
 
     # Creates a secondary x and y-axis to hold lat-lon.
     ax2 = ax1.twiny().twinx()
@@ -329,7 +301,7 @@ def labelled_rgb_image(names: Dict[str, str], classes: Union[List[str], Tuple[st
     clb.ax.set_yticklabels(classes, fontsize=11)
 
     # Bodge to get a figure title by using the colour bar title.
-    clb.ax.set_title('%s\n%s\nLand Cover' % (names['patch_ID'], names['date']), loc='left', fontsize=15)
+    clb.ax.set_title(f'{name}\nLand Cover', loc='left', fontsize=15)
 
     # Set axis labels.
     ax1.set_xlabel('(x) - Pixel Position', fontsize=14)
@@ -346,8 +318,7 @@ def labelled_rgb_image(names: Dict[str, str], classes: Union[List[str], Tuple[st
         plt.show()
 
     # Path and file name of figure.
-    fn = '%s/%s_%s_RGBHM.png' % (scene_path, names['patch_ID'],
-                                 utils.datetime_reformat(names['date'], '%d.%m.%Y', '%Y%m%d'))
+    fn = f'{path}/{name}_RGBHM.png'
 
     # If true, save file to fn.
     if save:
@@ -385,7 +356,7 @@ def make_gif(names: Dict[str, str], classes: Union[List[str], Tuple[str, ...]], 
         None
     """
     # Fetch all the scene dates for this patch in DD.MM.YYYY format.
-    dates = utils.date_grab(names['patch_ID'])
+    dates = []
 
     # Initialise progress bar.
     with alive_bar(len(dates), bar='blocks') as bar:
@@ -400,8 +371,8 @@ def make_gif(names: Dict[str, str], classes: Union[List[str], Tuple[str, ...]], 
             names['date'] = date
 
             # Create a frame of the GIF for a scene of the patch.
-            frame = labelled_rgb_image(names, data_band=data_band, classes=classes, cmap_style=cmap_style,
-                                       new_cs=new_cs, alpha=alpha, save=save, show=False, figdim=figdim)
+            frame = ''  # labelled_rgb_image(image, mask, classes=classes, cmap_style=cmap_style,
+            #                   alpha=alpha, save=save, show=False, figdim=figdim)
 
             # Read in frame just created and add to list of frames.
             frames.append(imageio.imread(frame))
@@ -438,7 +409,7 @@ def make_all_the_gifs(names: Dict[str, str], classes: Union[List[str], Tuple[str
         None
     """
     # Gets all the patch IDs from the dataset directory.
-    patches = utils.patch_grab()
+    patches = []
 
     # Iterator for progress counter.
     i = 0
@@ -455,7 +426,7 @@ def make_all_the_gifs(names: Dict[str, str], classes: Union[List[str], Tuple[str
         names['patch_ID'] = patch
 
         # Define name of GIF for this patch.
-        gif_name = '%s/%s%s/%s.gif' % (data_dir, patch_dir_prefix, names['patch_ID'], names['patch_ID'])
+        gif_name = f'{data_dir}/{patch}.gif'
 
         # Call make_gif() for this patch.
         make_gif(names, classes, gif_name, frame_length=frame_length, data_band=data_band,
