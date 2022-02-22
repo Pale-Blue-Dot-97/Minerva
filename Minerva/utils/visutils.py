@@ -179,27 +179,27 @@ def discrete_heatmap(data, classes: Union[List[str], Tuple[str, ...]],
     plt.close()
 
 
-def stack_rgb(scene_path: str, rgb: Dict[str, Any]) -> Any:
+def stack_rgb(image: NDArray[Any], rgb: Dict[str, int], max_value: int = 255) -> Any:
     """Stacks together red, green and blue image arrays from file to create a RGB array.
 
     Args:
-        scene_path (str): Path to directory holding images from desired scene.
-        rgb (dict): Dictionary of filenames of R, G & B band images.
+        image (np.ndarray): Image of separate channels to be normalised and reshaped into stacked RGB image.
+        rgb (dict): Dictionary of which channels in image are the R, G & B bands.
 
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
     """
 
     # Load R, G, B images from file and normalise
-    bands = []
-    for band in ['R', 'G', 'B']:
-        img = utils.load_array(scene_path + rgb[band], 1)
-        norm = np.zeros((img.shape[0], img.shape[1]))
-        bands.append(cv2.normalize(img, norm, 0, 255, cv2.NORM_MINMAX))
+    channels: List[Any] = []
+    for channel in ['R', 'G', 'B']:
+        band = image[rgb[channel]]
+        norm = np.zeros((band.shape[0], band.shape[1]))
+        channels.append(cv2.normalize(band, norm, 0, max_value, cv2.NORM_MINMAX))
 
     # Stack together RGB bands
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
-    return np.dstack((bands[2], bands[1], bands[0]))
+    return np.dstack((channels[2], channels[1], channels[0]))
 
 
 def make_rgb_image(scene_path: str, rgb: Dict[str, Any], block_size: int = 32) -> AxesImage:
@@ -599,7 +599,8 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(ids)), n_samples):
-            sample = {'image': dataset[bounds[i]]['image'].numpy(),
+            image = stack_rgb(dataset[bounds[i]]['image'].numpy(), imagery_config['data_specs']['band_ids'])
+            sample = {'image': image,
                       'pred': z[i],
                       'mask': y[i],
                       'bounds': bounds[i]}

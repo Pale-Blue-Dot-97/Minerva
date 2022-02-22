@@ -6,7 +6,7 @@ co_sys:
   name: 'WGS84_4326'
 
 data_specs:
-  band_ids: [#'B01',
+  band_ids: [ #'B01',
              'B02',
              'B03',
              'B04',
