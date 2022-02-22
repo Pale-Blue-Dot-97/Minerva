@@ -76,8 +76,8 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders: Dict[str, DataLoader], n_batches: Dict[str, int], class_dist: Optional[List[Tuple[int, int]]] = None,
-                 **params) -> None:
+    def __init__(self, loaders: Dict[str, DataLoader], n_batches: Dict[str, int],
+                 class_dist: Optional[List[Tuple[int, int]]] = None, **params) -> None:
         """Initialises the Trainer.
 
         Args:
@@ -202,7 +202,7 @@ class Trainer:
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
     def epoch(self, mode: str, record_int: bool = False,
-              record_float: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, List[str],
+              record_float: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, List[List[str]],
                                                             np.ndarray, np.ndarray]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
