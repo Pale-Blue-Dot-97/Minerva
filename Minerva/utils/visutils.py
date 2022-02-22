@@ -25,9 +25,6 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 Attributes:
-    config_path (str): Path to master config YAML file.
-    config (dict): Master config defining how the experiment should be conducted.
-        Must contain paths to auxiliary configs.
     imagery_config (dict): Config defining the properties of the imagery used in the experiment.
     data_config (dict): Config defining the properties of the data used in the experiment.
     data_dir (list): Path to directory holding dataset.
@@ -43,11 +40,12 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict, List, Any, Iterable
+from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, MutableSequence
 try:
     from numpy.typing import NDArray, ArrayLike
-except ImportError or ModuleNotFoundError:
-    NDArray, ArrayLike = Iterable, Iterable
+except ModuleNotFoundError:
+    NDArray, ArrayLike = MutableSequence, MutableSequence
+from torchgeo.datasets.utils import BoundingBox
 from Minerva.utils import utils, config, aux_configs
 import os
 import imageio
@@ -123,14 +121,12 @@ def de_interlace(x: ArrayLike, f: int) -> NDArray[Any]:
     return np.array(new_x).flatten()
 
 
-def dec_extent_to_deg(shape: Tuple[int, int], bounds,
+def dec_extent_to_deg(shape: Tuple[int, int], bounds: BoundingBox,
                       spacing: int = 32) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
     """Gets the extent of the image with 'shape' and at data_fn in latitude, longitude of system new_cs.
 
     Args:
         shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
-        data_fn (str): Path and filename of the TIF file whose geospatial metadata will be used
-            to get the corners of the image in latitude and longitude.
         spacing (int): Spacing of the lat - lon ticks.
 
     Returns:
@@ -145,9 +141,9 @@ def dec_extent_to_deg(shape: Tuple[int, int], bounds,
     # corners = utils.transform_coordinates(data_fn, new_cs)
 
     # Creates a discrete mapping of the spaced ticks to latitude longitude extent of the image.
-    lat_extent = np.linspace(start=bounds['miny'], stop=bounds['maxy'],
+    lat_extent = np.linspace(start=bounds.miny, stop=bounds.maxy,
                              num=int(shape[0] / spacing) + 1, endpoint=True)
-    lon_extent = np.linspace(start=bounds['minx'], stop=bounds['maxx'],
+    lon_extent = np.linspace(start=bounds.minx, stop=bounds.maxx,
                              num=int(shape[0] / spacing) + 1, endpoint=True)
 
     return extent, lat_extent, lon_extent
@@ -434,7 +430,7 @@ def make_all_the_gifs(names: Dict[str, str], classes: Union[List[str], Tuple[str
         data_band (int): Optional; Band number of data .tif file.
         classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
-        new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
+        new_cs (CRS): Optional; Co-ordinate system to convert image to and use for labelling.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
         figdim (tuple): Optional; Figure (height, width) in inches.
 
@@ -462,13 +458,13 @@ def make_all_the_gifs(names: Dict[str, str], classes: Union[List[str], Tuple[str
         gif_name = '%s/%s%s/%s.gif' % (data_dir, patch_dir_prefix, names['patch_ID'], names['patch_ID'])
 
         # Call make_gif() for this patch.
-        make_gif(names, gif_name, frame_length=frame_length, data_band=data_band, classes=classes,
+        make_gif(names, classes, gif_name, frame_length=frame_length, data_band=data_band,
                  cmap_style=cmap_style, new_cs=new_cs, alpha=alpha, save=True, figdim=figdim)
 
     print('\r\nOPERATION COMPLETE')
 
 
-def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: Dict[str, str],
+def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: Dict[int, str],
                     cmap_style: Optional[Union[str, ListedColormap]] = None, exp_id: Optional[str] = None,
                     fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None, block_size: int = 32,
                     show: bool = True, save: bool = True, fn_prefix: Optional[str] = None) -> None:
@@ -585,7 +581,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
 
 
 def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], ids: List[str],
-             bounds: Iterable[Any], mode: str, classes: Dict[int, str], colours: Dict[int, str], fn_prefix: str,
+             bounds: MutableSequence[Any], mode: str, classes: Dict[int, str], colours: Dict[int, str], fn_prefix: str,
              frac: float = 0.05, fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -614,8 +610,7 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
     dataset, _ = utils.make_dataset(config['dir']['data'], config['dataset_params'][mode])
 
     # Create a new projection system in lat-lon.
-    # new_cs = CRS.from_epsg(data_config['co_sys']['id'])
-    new_cs = dataset.crs
+    crs = dataset.crs
 
     print('\nPRODUCING PREDICTED MASKS')
 
@@ -634,7 +629,7 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
                       'mask': y[i],
                       'bounds': bounds[i]}
 
-            prediction_plot(sample, ids[i], exp_id=config['model_name'], new_cs=new_cs,
+            prediction_plot(sample, ids[i], exp_id=config['model_name'], crs=crs,
                             classes=classes, fig_dim=fig_dim, show=False, fn_prefix=fn_prefix,
                             cmap_style=ListedColormap(colours.values(), N=len(colours)))
 

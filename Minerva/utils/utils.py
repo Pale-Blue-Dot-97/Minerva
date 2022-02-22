@@ -25,8 +25,6 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 Attributes:
-    config_path (str): Path to master config YAML file.
-    config (dict): Master config defining how the experiment should be conducted.
     imagery_config_path (str): Path to the imagery config YAML file.
     data_config_path (str): Path to the data config YAML file.
     imagery_config (dict): Config defining the properties of the imagery used in the experiment.
@@ -39,7 +37,6 @@ Attributes:
     image_size (tuple): Defines the shape of the images.
     classes (dict): Mapping of class labels to class names.
     cmap_dict (dict): Mapping of class labels to colours.
-    params (dict): Sub-dict of the master config for the model hyper-parameters.
 
 TODO:
     * Add exception handling where appropriate
@@ -48,11 +45,12 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import sys
-from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Mapping, Iterable
+from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, MutableSequence
+from collections import Counter, OrderedDict
 try:
     from numpy.typing import NDArray, ArrayLike, DTypeLike
-except ImportError or ModuleNotFoundError:
-    NDArray, ArrayLike = Iterable, Iterable
+except ModuleNotFoundError:
+    NDArray, ArrayLike = MutableSequence, MutableSequence
     DTypeLike = Any
 import functools
 from Minerva.utils import config, aux_configs, visutils
@@ -65,7 +63,6 @@ import re as regex
 import numpy as np
 import pandas as pd
 from datetime import datetime
-from collections import Counter, OrderedDict
 import rasterio as rt
 import rasterio.mask as rtmask
 from rasterio.crs import CRS
@@ -116,9 +113,6 @@ image_size = imagery_config['data_specs']['image_size']
 classes = data_config['classes']
 
 cmap_dict = data_config['colours']
-
-# Parameters
-params = config['hyperparams']['params']
 
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -247,14 +241,14 @@ def load_array(path: str, band: int):
     return data
 
 
-def centre_pixel_only(image: ArrayLike) -> ArrayLike:
+def centre_pixel_only(image: Union[MutableSequence, NDArray[Any]]) -> NDArray[Any]:
     """Returns a copy of the image containing only zeros and the original central pixel.
 
     Args:
-        image (list of np.ndarray): Image to be modified.
+        image (list or np.ndarray): Image to be modified.
 
     Returns:
-        Image of only zeros with the exception of the original central pixel.
+        Image of only zeros except the original central pixel.
     """
     new_image = np.zeros((*image_size, len(band_ids)))
 
@@ -444,7 +438,7 @@ def find_empty_classes(class_dist: List[Tuple[int, int]],
     """Finds which classes defined by config files are not present in the dataset.
 
     Args:
-        class_dist (list): Optional; 2D iterable which should be of the form created
+        class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
             from Counter.most_common().
 
     Returns:
@@ -644,7 +638,7 @@ def find_patch_modes(patch: ArrayLike) -> List[Tuple[int, int]]:
     return Counter(np.array(patch).flatten()).most_common()
 
 
-def class_frac(patch: pd.Series) -> Mapping[int, Any]:
+def class_frac(patch: pd.Series) -> Dict[int, Any]:
     """Computes the fractional sizes of the classes of the given patch and returns a dict of the results
 
     Args:
@@ -654,7 +648,7 @@ def class_frac(patch: pd.Series) -> Mapping[int, Any]:
         new_columns (Mapping): Dictionary-like object with keys as class numbers and associated values
             of fractional size of class plus a key-value pair for the patch ID
     """
-    new_columns: Mapping[int, Any] = patch.to_dict()
+    new_columns: Dict[int, Any] = dict(patch.to_dict())
     counts = 0
     for mode in patch['MODES']:
         counts += mode[1]
@@ -795,7 +789,7 @@ def func_by_str(module_path: str, func: str) -> Any:
     """Gets the constructor or callable within a module defined by the names supplied.
 
     Args:
-        module (str): Name (and path to) of module desired function or class is within.
+        module_path (str): Name (and path to) of module desired function or class is within.
         func (str): Name of function or class desired.
 
     Returns:
@@ -830,7 +824,7 @@ def check_len(param: Any, comparator: Any) -> Union[Any, ArrayLike]:
 
 
 def calc_grad(model: torch.nn.Module) -> Optional[float]:
-    """Calculates and prints to standout the 2D grad norm of the model parameters.
+    """Calculates and prints to stdout the 2D grad norm of the model parameters.
 
     Args:
         model (torch.nn.Module): Torch model to calculate grad norms from.
@@ -868,7 +862,7 @@ def print_class_dist(class_dist: List[Tuple[int, int]], class_labels: Dict[int, 
     """Prints the supplied class_dist in a pretty table format using tabulate.
 
     Args:
-        class_dist (list[list[int]]): 2D iterable which should be of the form as that
+        class_dist (list[tuple[int, int]]): 2D iterable which should be of the form as that
             created from Counter.most_common().
         class_labels (dict): Mapping of class labels to class names.
 
@@ -909,7 +903,7 @@ def print_class_dist(class_dist: List[Tuple[int, int]], class_labels: Dict[int, 
     print(tabulate(df, headers='keys', tablefmt='psql'))
 
 
-def batch_flatten(x: ArrayLike) -> ArrayLike:
+def batch_flatten(x: Union[MutableSequence, NDArray[Any]]) -> Union[MutableSequence, NDArray[Any]]:
     """Attempts to flatten the supplied array. If not ragged, should be flattened with numpy.
     If ragged, the first 2 dimensions will be flattened using list appending.
 
@@ -917,7 +911,7 @@ def batch_flatten(x: ArrayLike) -> ArrayLike:
         x: Array to be flattened.
 
     Returns:
-        x: Either a flattened ndarray or if this failed, a list that has it's first 2 dimensions flattened.
+        x: Either a flattened ndarray or if this failed, a list that has its first 2 dimensions flattened.
     """
     try:
         x = x.flatten()
@@ -934,7 +928,8 @@ def batch_flatten(x: ArrayLike) -> ArrayLike:
 
 
 def make_classification_report(pred: Union[List[int], NDArray[Any]], labels: Union[List[int], NDArray[Any]],
-                               class_labels: Dict[int, str], print_cr: bool = True, p_dist: bool = False) -> pd.DataFrame:
+                               class_labels: Dict[int, str], print_cr: bool = True,
+                               p_dist: bool = False) -> pd.DataFrame:
     """Generates a DataFrame of the precision, recall, f-1 score and support of the supplied predictions
     and ground truth labels.
 
@@ -1067,9 +1062,9 @@ def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any
 
     # Dicts to hold the false-positive rate, true-positive rate and Area Under Curves
     # of each class and micro, macro averages.
-    fpr: Dict[Any, float] = {}
-    tpr: Dict[Any, float] = {}
-    roc_auc: Dict[Any, float] = {}
+    fpr: Dict[Any, Any] = {}
+    tpr: Dict[Any, Any] = {}
+    roc_auc: Dict[Any, Any] = {}
 
     # Initialises a progress bar.
     with alive_bar(len(class_labels), bar='blocks') as bar:
@@ -1139,7 +1134,7 @@ def intersect_datasets(datasets: List[Any]):
     return datasets[0]
 
 
-def make_dataset(data_dir: Iterable[str], dataset_params: Dict[Any, Any],
+def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
                  transform_params: Optional[Dict[Any, Any]] = None) -> Tuple[Any, List[Any]]:
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
@@ -1156,7 +1151,7 @@ def make_dataset(data_dir: Iterable[str], dataset_params: Dict[Any, Any],
                                   func=subdataset_params['name'])
 
         # Construct the root to the sub-dataset's files.
-        subdataset_root = os.sep.join((*data_dir, subdataset_params['root']))
+        subdataset_root = os.sep.join((*data_directory, subdataset_params['root']))
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations = None
@@ -1175,13 +1170,13 @@ def make_dataset(data_dir: Iterable[str], dataset_params: Dict[Any, Any],
     return dataset, subdatasets
 
 
-def construct_dataloader(data_dir: Iterable[str], dataset_params: Dict[str, Any], sampler_params: Dict[str, Any],
+def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str, Any], sampler_params: Dict[str, Any],
                          dataloader_params: Dict[str, Any], collator_params: Optional[Dict[str, Any]] = None,
                          transform_params: Optional[Dict[str, Any]] = None) -> DataLoader:
     """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
     Args:
-        data_dir (Iterable[str]): A list of str defining the common path for all datasets to be constructed.
+        data_directory (Iterable[str]): A list of str defining the common path for all datasets to be constructed.
         dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
         sampler_params (dict): Dictionary of parameters for the sampler to be used to sample from the dataset.
         dataloader_params (dict): Dictionary of parameters for the DataLoader itself.
@@ -1193,7 +1188,7 @@ def construct_dataloader(data_dir: Iterable[str], dataset_params: Dict[str, Any]
     Returns:
         loader (DataLoader): Object to handle the returning of batched samples from the dataset.
     """
-    dataset, subdatasets = make_dataset(data_dir, dataset_params, transform_params)
+    dataset, subdatasets = make_dataset(data_directory, dataset_params, transform_params)
 
     # --+ MAKE SAMPLERS +=============================================================================================+
     sampler = func_by_str(module_path=sampler_params['module'], func=sampler_params['name'])
@@ -1281,15 +1276,13 @@ def make_transformations(transform_params: Dict[str, Any]) -> Optional[Any]:
 
 
 @return_updated_kwargs
-def make_loaders(root: Optional[str] = '', n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15),
-                 patch_size: Optional[Union[int, Tuple[int]]] = 256, plot: bool = False, p_dist: bool = False,
+def make_loaders(n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15), p_dist: bool = False,
                  **params) -> Tuple[Dict[str, DataLoader], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]]:
     """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
 
     Args:
         n_samples (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets,
             in the order (train, validation, test).
-        plot (bool): Optional; Whether to plot pie charts of the class distributions within each dataset.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Keyword Args:
@@ -1316,7 +1309,7 @@ def make_loaders(root: Optional[str] = '', n_samples: Tuple[float, float, float]
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
     # and new colours.
-    classes, forwards, colours = load_data_specs(class_dist=class_dist, elim=params['elim'])
+    new_classes, forwards, new_colours = load_data_specs(class_dist=class_dist, elim=params['elim'])
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
@@ -1341,8 +1334,8 @@ def make_loaders(root: Optional[str] = '', n_samples: Tuple[float, float, float]
     if p_dist:
         print_class_dist(class_dist)
 
-    params['hyperparams']['model_params']['n_classes'] = len(classes)
-    params['classes'] = classes
-    params['colours'] = colours
+    params['hyperparams']['model_params']['n_classes'] = len(new_classes)
+    params['classes'] = new_classes
+    params['colours'] = new_colours
 
     return loaders, n_batches, class_dist, params
