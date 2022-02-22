@@ -970,7 +970,7 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
         print(err)
 
     if plots['History']:
-        assert metrics is Dict[str, Any]
+        assert metrics is not None
 
         print('\nPLOTTING MODEL HISTORY')
         plot_history(metrics, filename=filenames['History'], save=save, show=show)
