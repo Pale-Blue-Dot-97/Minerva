@@ -679,7 +679,7 @@ def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> Any:
 
 
 def find_best_of(patch_id: str, manifest: pd.DataFrame,
-                 selector: Callable[[pd.DataFrame, Any], List[str]] = threshold_scene_select, **kwargs) -> List[str]:
+                 selector: Callable[[pd.DataFrame], List[str]] = threshold_scene_select, **kwargs) -> List[str]:
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
@@ -747,7 +747,7 @@ def subpopulations_from_manifest(manifest: pd.DataFrame, plot: bool = False) -> 
     Returns:
         class_dist (list): Modal distribution of classes in the dataset provided.
     """
-    class_counter: Counter[int, int] = Counter()
+    class_counter: Counter[int] = Counter()
     for classification in classes.keys():
         try:
             count = manifest[f'{classification}'].sum() / len(manifest)
@@ -884,7 +884,7 @@ def print_class_dist(class_dist: List[Tuple[int, int]], class_labels: Dict[int, 
     print(tabulate(df, headers='keys', tablefmt='psql'))
 
 
-def batch_flatten(x: Union[MutableSequence, NDArray[Any]]) -> Union[MutableSequence, NDArray[Any]]:
+def batch_flatten(x: Union[MutableSequence[Any], NDArray[Any]]) -> Union[MutableSequence[Any], NDArray[Any]]:
     """Attempts to flatten the supplied array. If not ragged, should be flattened with numpy.
     If ragged, the first 2 dimensions will be flattened using list appending.
 

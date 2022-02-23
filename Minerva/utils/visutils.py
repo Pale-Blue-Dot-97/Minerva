@@ -996,4 +996,5 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
 
         flat_bbox = utils.batch_flatten(bounds)
         os.mkdir(os.path.join(*results_dir, 'Masks'))
-        seg_plot(z, y, ids, flat_bbox, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours)
+        seg_plot(z, y, ids, flat_bbox, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours, 
+                 fig_dim=data_config['fig_sizes']['Mask'])

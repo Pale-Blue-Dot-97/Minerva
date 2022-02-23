@@ -44,3 +44,4 @@ co_sys:
 
 fig_sizes:
   CM: [9, 8]
+  Mask: [12, 9]
