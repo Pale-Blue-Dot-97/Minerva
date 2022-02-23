@@ -115,12 +115,6 @@ wgs_84 = CRS.from_epsg(4326)
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-try:
-    geolocator = Nominatim(user_agent="geoapiExercises")
-except GeocoderUnavailable:
-    print("\nGeocoder unavailable")
-    geolocator = None
-
 
 # =====================================================================================================================
 #                                                   DECORATORS
@@ -355,11 +349,12 @@ def get_centre_loc(bounds) -> Tuple[float, float]:
 
 
 def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
-    if geolocator:
+    try:
+        geolocator = Nominatim(user_agent="geoapiExercises")
         location = geolocator.reverse(str(lat) + "," + str(lon))
-
         return location['city']
-    else:
+    except GeocoderUnavailable:
+        print("\nGeocoder unavailable")
         return ''
 
 
