@@ -35,15 +35,18 @@ Attributes:
     image_size (tuple): Defines the shape of the images.
     classes (dict): Mapping of class labels to class names.
     cmap_dict (dict): Mapping of class labels to colours.
+    wgs_84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
 
 TODO:
     * Add exception handling where appropriate
+    * Fully document
+    * Fix all type-hinting issues
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import sys
-from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, MutableSequence
+from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, MutableSequence, Literal
 from collections import Counter, OrderedDict
 try:
     from numpy.typing import NDArray, ArrayLike, DTypeLike
@@ -75,6 +78,7 @@ from torchvision import transforms
 from alive_progress import alive_bar, alive_it
 from torchgeo.datasets.utils import BoundingBox
 from geopy.geocoders import Nominatim
+from geopy.exc import GeocoderUnavailable
 
 
 # =====================================================================================================================
@@ -109,6 +113,12 @@ wgs_84 = CRS.from_epsg(4326)
 
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+try:
+    geolocator = Nominatim(user_agent="geoapiExercises")
+except GeocoderUnavailable:
+    print("\nGeocoder unavailable")
+    geolocator = None
 
 
 # =====================================================================================================================
@@ -344,18 +354,20 @@ def get_centre_loc(bounds) -> Tuple[float, float]:
 
 
 def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
-    geolocator = Nominatim(user_agent="geoapiExercises")
-    location = geolocator.reverse(str(lat) + "," + str(lon))
+    if geolocator:
+        location = geolocator.reverse(str(lat) + "," + str(lon))
 
-    return location['city']
+        return location['city']
+    else:
+        return ''
 
 
 def labels_to_ohe(labels: Union[List[int], Tuple[int, ...], NDArray[Any]], n_classes: int) -> NDArray[Any]:
     """Convert an iterable of indices to one-hot encoded labels.
 
     Args:
-        labels (list[int], tuple[int], np.ndarray[int]): List of class number labels to be converted to OHE
-        n_classes (int): Number of classes to determine length of OHE label
+        labels (list[int], tuple[int], np.ndarray[int]): List of class number labels to be converted to OHE.
+        n_classes (int): Number of classes to determine length of OHE label.
 
     Returns:
         Labels in OHE form.
@@ -1076,7 +1088,7 @@ def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any
                 mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
                 bar()
 
-        # Finally average it and compute AUC
+        # Finally, average it and compute AUC
         mean_tpr /= len(class_labels)
 
         # Add macro FPR, TPR and AUCs to dicts.
@@ -1088,6 +1100,14 @@ def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any
 
 
 def intersect_datasets(datasets: List[Any]):
+    """
+
+    Args:
+        datasets:
+
+    Returns:
+
+    """
     def intersect_pair_datasets(a, b):
         return a & b
 
@@ -1099,22 +1119,34 @@ def intersect_datasets(datasets: List[Any]):
 
 def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
                  transform_params: Optional[Dict[Any, Any]] = None) -> Tuple[Any, List[Any]]:
+    """Constructs a dataset object from `n` sub-datasets given by the parameters supplied.
+
+    Args:
+        data_directory (Iterable[str]): List defining the path to the directory containing the data.
+        dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
+        transform_params: Optional; Dictionary defining the parameters of the transforms to perform
+            when sampling from the dataset.
+
+    Returns:
+        dataset: Dataset object formed by the parameters given.
+        sub_datasets (list): List of the sub-datasets created that constitute `dataset`.
+    """
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
-    subdatasets = []
+    sub_datasets = []
 
     # Iterate through all the sub-datasets defined in dataset_params.
     for key in dataset_params.keys():
 
         # Get the params for this sub-dataset.
-        subdataset_params = dataset_params[key]
+        sub_dataset_params = dataset_params[key]
 
         # Get the constructor for the class of dataset defined in params.
-        _subdataset = func_by_str(module_path=subdataset_params['module'],
-                                  func=subdataset_params['name'])
+        _sub_dataset = func_by_str(module_path=sub_dataset_params['module'],
+                                   func=sub_dataset_params['name'])
 
         # Construct the root to the sub-dataset's files.
-        subdataset_root = os.sep.join((*data_directory, subdataset_params['root']))
+        sub_dataset_root = os.sep.join((*data_directory, sub_dataset_params['root']))
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations = None
@@ -1122,15 +1154,15 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
             transformations = make_transformations(transform_params[key])
 
         # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
-        subdatasets.append(_subdataset(root=subdataset_root, transforms=transformations,
-                                       **dataset_params[key]['params']))
+        sub_datasets.append(_sub_dataset(root=sub_dataset_root, transforms=transformations,
+                                         **dataset_params[key]['params']))
 
     # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
-    dataset = subdatasets[0]
-    if len(subdatasets) > 1:
-        dataset = intersect_datasets(subdatasets)
+    dataset = sub_datasets[0]
+    if len(sub_datasets) > 1:
+        dataset = intersect_datasets(sub_datasets)
 
-    return dataset, subdatasets
+    return dataset, sub_datasets
 
 
 def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str, Any], sampler_params: Dict[str, Any],
@@ -1183,7 +1215,17 @@ def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
     return np.array(sample_modes)
 
 
-def make_bounding_box(roi: Optional[Union[Tuple[float, ...], List[float], bool]] = False) -> Optional[BoundingBox]:
+def make_bounding_box(roi: Union[Tuple[float, ...], MutableSequence[float],
+                                 Literal[False]] = False) -> Optional[BoundingBox]:
+    """Construct a BoundingBox object from the corners of the box. False for no BoundingBox.
+
+    Args:
+        roi (tuple[float] or list[float] or bool): Either a tuple or array of values defining the corners
+            of a bounding box or False to designate no BoundingBox is defined.
+
+    Returns:
+        BoundingBox object made from parsed values or None if False was given.
+    """
     if roi is False:
         return None
     else:
@@ -1239,13 +1281,11 @@ def make_transformations(transform_params: Dict[str, Any]) -> Optional[Any]:
 
 
 @return_updated_kwargs
-def make_loaders(n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15), p_dist: bool = False,
-                 **params) -> Tuple[Dict[str, DataLoader], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]]:
+def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader], Dict[str, int],
+                                                          List[Tuple[int, int]], Dict[Any, Any]]:
     """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
 
     Args:
-        n_samples (list[float] or tuple[float]): Optional; Three values giving the fractional sizes of the datasets,
-            in the order (train, validation, test).
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Keyword Args:
@@ -1257,7 +1297,7 @@ def make_loaders(n_samples: Tuple[float, float, float] = (0.7, 0.15, 0.15), p_di
         loaders (dict): Dictionary of the DataLoader for training, validation and testing.
         n_batches (dict): Dictionary of the number of batches to return/ yield in each train, validation and test epoch.
         class_dist (list): The class distribution of the entire dataset, sorted from largest to smallest class.
-        updated_keys (dict):
+        params (dict):
     """
     # Gets out the parameters for the DataLoaders from params.
     dataloader_params = params['hyperparams']['params']
