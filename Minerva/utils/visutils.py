@@ -33,11 +33,13 @@ Attributes:
 
 TODO:
     * Reduce boilerplate
+    * Fix all type-hinting issues
+    * Fix methods broken by pivot to torchgeo
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, MutableSequence
+from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, MutableSequence, Literal
 try:
     from numpy.typing import NDArray, ArrayLike
 except ModuleNotFoundError:
@@ -215,6 +217,7 @@ def make_rgb_image(image: NDArray[Any], rgb: Dict[str, Any], block_size: int = 3
     """Creates an RGB image from a composition of red, green and blue band .tif images
 
     Args:
+        image (np.ndarray[int]): Array representing the image of shape (bands x height x width).
         rgb (dict): Dictionary of filenames of R, G & B band images.
         block_size (int): Optional; Size of block image sub-division in pixels.
 
@@ -247,6 +250,12 @@ def labelled_rgb_image(image: NDArray[Any], mask: NDArray[Any], bounds: Bounding
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
+        image (np.ndarray[int]): Array representing the image of shape (bands x height x width).
+        mask (np.ndarray[int]): Ground truth mask. Should be of shape (height x width) matching `image`.
+        path (str): Path to where to save created figure.
+        name (str): Name of figure. Will be used for title and in the filename.
+        bounds (BoundingBox): Object describing a geospatial bounding box.
+            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
         classes (list[str]): Optional; List of all possible class labels.
         block_size (int): Optional; Size of block image subdivision in pixels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
@@ -452,8 +461,9 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, s
         and a reference RGB image of the same patch.
 
     Args:
-        sample (dict[str, Any]):
-        sample_id (str): Unique ID of the patch.
+        sample (dict[str, Any]): Dictionary holding the `image`, ground truth (`mask`) and predicted (`pred`) masks
+            and the bounding box for this sample.
+        sample_id (str): ID for the sample.
         src_crs (CRS): Existing co-ordinate system of the image.
         new_crs(CRS): Co-ordinate system to convert image to and use for labelling.
         classes (dict[str]): Dictionary mapping class labels to class names.
@@ -477,7 +487,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, s
 
     extent, lat_extent, lon_extent = dec_extent_to_deg(y.shape, bounds, spacing=block_size)
 
-    centre = utils.transform_coordinates(*utils.get_centre_loc(bounds), src_crs=src_crs)
+    centre = utils.transform_coordinates(*utils.get_centre_loc(bounds), src_crs=src_crs, new_crs=new_crs)
 
     # Initialises a figure.
     fig = plt.figure(figsize=fig_dim)
@@ -564,14 +574,18 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, s
 
 
 def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], ids: List[str],
-             bounds: MutableSequence[Any], mode: str, classes: Dict[int, str], colours: Dict[int, str], fn_prefix: str,
-             frac: float = 0.05, fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
+             bounds: MutableSequence[Any], mode: Literal['train', 'val', 'test'], classes: Dict[int, str],
+             colours: Dict[int, str], fn_prefix: str, frac: float = 0.05,
+             fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
     Args:
         z (list[float]): Predicted segmentation masks by the network.
         y (list[float]): Corresponding ground truth masks.
         ids (list[str]): Corresponding patch IDs for the test data supplied to the network.
+        bounds (list[BoundingBox] or np.ndarray[BoundingBox]): Array of objects describing a geospatial bounding box.
+            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
+        mode (str): Optional; Mode samples are from. Must be 'train', 'val' or 'test'.
         classes (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
         fn_prefix (str): Common filename prefix (including path to file) for all plots of this type
@@ -897,7 +911,7 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[List[str], Tu
 
 def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]],
                  metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None,
-                 mode: Optional[str] = 'test', bounds: Optional[NDArray[Any]] = None,
+                 mode: Optional[Literal['train', 'val', 'test']] = 'test', bounds: Optional[NDArray[object]] = None,
                  probs: Optional[Union[List[float], NDArray[Any]]] = None,
                  class_names: Optional[Dict[int, str]] = None, colours: Optional[Dict[int, str]] = None,
                  save: bool = True, show: bool = False, model_name: Optional[str] = None,
@@ -912,6 +926,9 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
             the performance of a model.
         ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
             Maybe either patch IDs or scene tags.
+        mode (str): Optional; Mode samples are from. Must be 'train', 'val' or 'test'.
+        bounds (np.ndarray[BoundingBox]): Optional; Array of objects describing a geospatial bounding box for
+            each sample. Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
         probs (list or np.ndarray): Optional; Array of probabilistic predicted classes from model where each sample
             should have a list of the predicted probability for each class.
         class_names (dict): Optional; Dictionary mapping class labels to class names.
