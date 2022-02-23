@@ -30,6 +30,7 @@ Attributes:
     data_dir (list): Path to directory holding dataset.
     band_ids (dict): Band IDs and position in sample image.
     max_pixel_value (int): Maximum pixel value (e.g. 255 for 8-bit integer).
+    wgs_84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
 
 TODO:
     * Reduce boilerplate
@@ -77,6 +78,8 @@ band_ids = imagery_config['data_specs']['band_ids']
 
 # Maximum pixel value (e.g. 255 for 8-bit integer).
 max_pixel_value = imagery_config['data_specs']['max_value']
+
+wgs_84 = CRS.from_epsg(4326)
 
 # Automatically fixes the layout of the figures to accommodate the colour bar legends.
 plt.rcParams['figure.constrained_layout.use'] = True
@@ -453,7 +456,7 @@ def make_all_the_gifs(names: Dict[str, str], classes: Union[List[str], Tuple[str
 
 
 def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, str], src_crs: CRS,
-                    new_crs: Optional[CRS] = None, cmap_style: Optional[Union[str, ListedColormap]] = None,
+                    new_crs: CRS = wgs_84, cmap_style: Optional[Union[str, ListedColormap]] = None,
                     exp_id: Optional[str] = None, fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
                     block_size: int = 32, show: bool = True, save: bool = True,
                     fn_prefix: Optional[str] = None) -> None:
@@ -464,9 +467,9 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, s
         sample (dict[str, Any]): Dictionary holding the `image`, ground truth (`mask`) and predicted (`pred`) masks
             and the bounding box for this sample.
         sample_id (str): ID for the sample.
-        src_crs (CRS): Existing co-ordinate system of the image.
-        new_crs(CRS): Co-ordinate system to convert image to and use for labelling.
         classes (dict[str]): Dictionary mapping class labels to class names.
+        src_crs (CRS): Existing co-ordinate system of the image.
+        new_crs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
         exp_id (str): Optional; Unique ID for the experiment run that predictions and labels come from.
         block_size (int): Optional; Size of block image sub-division in pixels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.

@@ -109,6 +109,7 @@ classes = data_config['classes']
 
 cmap_dict = data_config['colours']
 
+# WGS84 co-ordinate reference system acting as a default CRS for transformations.
 wgs_84 = CRS.from_epsg(4326)
 
 # Filters out all TensorFlow messages other than errors.
@@ -408,13 +409,13 @@ def class_weighting(class_dist: Union[List[Union[List[int], Tuple[int, ...]]],
     return class_weights
 
 
-def find_empty_classes(class_dist: List[Tuple[int, int]],
-                       class_names: Optional[Dict[int, str]] = classes) -> List[int]:
+def find_empty_classes(class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = classes) -> List[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
     Args:
         class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
             from Counter.most_common().
+        class_names (dict): Optional; Dictionary mapping the class numbers to class names.
 
     Returns:
         empty (list[int]): List of classes not found in class_dist and are thus empty/ not present in dataset.
@@ -502,6 +503,16 @@ def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[A
 
 def load_data_specs(class_dist: List[Tuple[int, int]],
                     elim: bool = False) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
+    """
+
+    Args:
+        class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
+            from Counter.most_common().
+        elim (bool): Whether to eliminate classes with no samples in.
+
+    Returns:
+
+    """
     if not elim:
         return classes, {}, cmap_dict
     if elim:
