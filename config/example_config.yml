@@ -11,7 +11,7 @@ dir:
     - 'landcovernet'
   configs:
     data_config: 'ChesapeakeCVPR.yml'
-    imagery_config: 'landcovernet.yml'
+    imagery_config: 'NAIP.yml'
   results:
     - 'F:'
     - 'Harry'
