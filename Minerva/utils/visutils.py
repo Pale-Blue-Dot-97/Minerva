@@ -604,7 +604,7 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
 
     z = np.reshape(z, (z.shape[0] * z.shape[1], z.shape[2], z.shape[3]))
     y = np.reshape(y, (y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
-    ids = np.array(ids).flatten()
+    flat_ids: NDArray[Any] = np.array(ids).flatten()
 
     print('\nRE-CONSTRUCTING DATASET')
     dataset, _ = utils.make_dataset(config['dir']['data'], config['dataset_params'][mode])
@@ -615,7 +615,7 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
     print('\nPRODUCING PREDICTED MASKS')
 
     # Limits number of masks to produce to a fractional number of total and no more than _max_samples.
-    n_samples = int(frac * len(ids))
+    n_samples = int(frac * len(flat_ids))
     if n_samples > _max_samples:
         n_samples = _max_samples
 
@@ -623,21 +623,21 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
     with alive_bar(n_samples, bar='blocks') as bar:
 
         # Plots the predicted versus ground truth labels for all test patches supplied.
-        for i in random.sample(range(len(ids)), n_samples):
+        for i in random.sample(range(len(flat_ids)), n_samples):
             image = stack_rgb(dataset[bounds[i]]['image'].numpy())
             sample = {'image': image,
                       'pred': z[i],
                       'mask': y[i],
                       'bounds': bounds[i]}
 
-            prediction_plot(sample, ids[i], classes=classes, src_crs=crs, exp_id=config['model_name'],
+            prediction_plot(sample, flat_ids[i], classes=classes, src_crs=crs, exp_id=config['model_name'],
                             show=False, fn_prefix=fn_prefix, fig_dim=fig_dim,
                             cmap_style=ListedColormap(colours.values(), N=len(colours)))
 
             bar()
 
 
-def plot_subpopulations(class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = None,
+def plot_subpopulations(class_dist: List[Tuple[int, int]], class_names: Optional[Dict[int, str]] = None,
                         cmap_dict: Optional[Dict[int, str]] = None, filename: Optional[str] = None,
                         save: bool = True, show: bool = False) -> None:
     """Creates a pie chart of the distribution of the classes within the data.
