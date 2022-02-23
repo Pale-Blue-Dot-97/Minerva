@@ -105,6 +105,8 @@ classes = data_config['classes']
 
 cmap_dict = data_config['colours']
 
+wgs_84 = CRS.from_epsg(4326)
+
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -241,7 +243,7 @@ def centre_pixel_only(image: Union[MutableSequence, NDArray[Any]]) -> NDArray[An
     return new_image
 
 
-def transform_coordinates(path: str, new_crs: CRS) -> List[float]:
+def transform_raster(path: str, new_crs: CRS) -> List[float]:
     """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
     in the new co-ordinates system provided.
 
@@ -256,6 +258,33 @@ def transform_coordinates(path: str, new_crs: CRS) -> List[float]:
     src_rst = rt.open(path)
 
     return [transform_bounds(src_crs=src_rst.crs, dst_crs=new_crs, *src_rst.bounds)]
+
+
+def transform_coordinates(x: Union[MutableSequence[float], float], y: Union[MutableSequence[float], float],
+                          src_crs: CRS,
+                          new_crs: CRS = wgs_84) -> Union[Tuple[MutableSequence[float], MutableSequence[float]],
+                                                          Tuple[float, float]]:
+    single = False
+
+    # Checks if x is a float. Places x in a list if True.
+    if type(x) is float:
+        x = [x]
+        single = True
+
+    # Check that len(y) == len(x). Ensure y is in a list if a float.
+    y = check_len(y, x)
+
+    # Transform co-ordinates from source to new CRS and returns a tuple of (x, y)
+    co_ordinates = rt.warp.transform(src_crs=src_crs, dst_crs=new_crs, xs=x, ys=y)
+
+    if not single:
+        return co_ordinates
+
+    if single:
+        x_2 = co_ordinates[0][0]
+        y_2 = co_ordinates[1][0]
+
+        return x_2, y_2
 
 
 def deg_to_dms(deg: float, axis: str = 'lat') -> str:
@@ -311,7 +340,7 @@ def get_centre_loc(bounds) -> Tuple[float, float]:
     mid_lat = bounds.maxy - (bounds.maxy - bounds.miny) / 2
     mid_lon = bounds.maxx - (bounds.maxx - bounds.minx) / 2
 
-    return (mid_lat, mid_lon)
+    return mid_lat, mid_lon
 
 
 def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:

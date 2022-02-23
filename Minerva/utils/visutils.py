@@ -193,6 +193,7 @@ def stack_rgb(image: NDArray[Any], rgb: Optional[Dict[str, int]] = band_ids, max
     Args:
         image (np.ndarray): Image of separate channels to be normalised and reshaped into stacked RGB image.
         rgb (dict): Optional; Dictionary of which channels in image are the R, G & B bands.
+        max_value (int): Optional; The maximum pixel value in `image`. e.g. for 8 bit this will be 255.
 
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
@@ -442,17 +443,19 @@ def make_all_the_gifs(names: Dict[str, str], classes: Union[List[str], Tuple[str
     print('\r\nOPERATION COMPLETE')
 
 
-def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: Dict[int, str],
-                    cmap_style: Optional[Union[str, ListedColormap]] = None, exp_id: Optional[str] = None,
-                    fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None, block_size: int = 32,
-                    show: bool = True, save: bool = True, fn_prefix: Optional[str] = None) -> None:
+def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, str], src_crs: CRS,
+                    new_crs: Optional[CRS] = None, cmap_style: Optional[Union[str, ListedColormap]] = None,
+                    exp_id: Optional[str] = None, fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
+                    block_size: int = 32, show: bool = True, save: bool = True,
+                    fn_prefix: Optional[str] = None) -> None:
     """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
         and a reference RGB image of the same patch.
 
     Args:
         sample (dict[str, Any]):
         sample_id (str): Unique ID of the patch.
-        crs(CRS): Co-ordinate system to convert image to and use for labelling.
+        src_crs (CRS): Existing co-ordinate system of the image.
+        new_crs(CRS): Co-ordinate system to convert image to and use for labelling.
         classes (dict[str]): Dictionary mapping class labels to class names.
         exp_id (str): Optional; Unique ID for the experiment run that predictions and labels come from.
         block_size (int): Optional; Size of block image sub-division in pixels.
@@ -472,11 +475,9 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
     y = sample['mask']
     bounds = sample['bounds']
 
-    print(type(rgb_image))
-    print(rgb_image)
-    print(rgb_image.shape)
-
     extent, lat_extent, lon_extent = dec_extent_to_deg(y.shape, bounds, spacing=block_size)
+
+    centre = utils.transform_coordinates(*utils.get_centre_loc(bounds), src_crs=src_crs)
 
     # Initialises a figure.
     fig = plt.figure(figsize=fig_dim)
@@ -529,7 +530,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, crs: CRS, classes: D
     fig.suptitle(f'{sample_id}', fontsize=15)
     axes[0].set_title('Predicted', fontsize=13)
     axes[1].set_title('Ground Truth', fontsize=13)
-    axes[2].set_title(utils.lat_lon_to_loc(*utils.get_centre_loc(bounds)), fontsize=13)
+    axes[2].set_title(utils.lat_lon_to_loc(*centre), fontsize=13)
 
     # Set axis labels.
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)
@@ -612,8 +613,8 @@ def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]
                       'mask': y[i],
                       'bounds': bounds[i]}
 
-            prediction_plot(sample, ids[i], exp_id=config['model_name'], crs=crs,
-                            classes=classes, fig_dim=fig_dim, show=False, fn_prefix=fn_prefix,
+            prediction_plot(sample, ids[i], classes=classes, src_crs=crs, exp_id=config['model_name'],
+                            show=False, fn_prefix=fn_prefix, fig_dim=fig_dim,
                             cmap_style=ListedColormap(colours.values(), N=len(colours)))
 
             bar()
