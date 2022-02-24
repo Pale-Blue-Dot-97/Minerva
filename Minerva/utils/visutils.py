@@ -100,11 +100,11 @@ _max_samples = 25
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def de_interlace(x: ArrayLike, f: int) -> NDArray[Any]:
+def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any]:
     """Separates interlaced arrays, `x` at a frequency of `f` from each other.
 
     Args:
-        x (list or np.ndarray): Array of data to be de-interlaced.
+        x (Sequence): Array of data to be de-interlaced.
         f (int): Frequency at which interlacing occurs. Equivalent to number of sources interlaced together.
 
     Returns:
@@ -981,7 +981,7 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
 
     if plots['CM']:
         print('\nPLOTTING CONFUSION MATRIX')
-        make_confusion_matrix(test_labels=flat_y, test_pred=flat_z, classes=class_names, filename=filenames['CM'],
+        make_confusion_matrix(labels=flat_y, pred=flat_z, classes=class_names, filename=filenames['CM'],
                               save=save, show=show)
 
     if plots['ROC']:

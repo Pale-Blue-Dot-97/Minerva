@@ -46,7 +46,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import sys
-from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, Literal, Sequence, Match
+from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, Literal, Sequence, MutableSequence, Match
 from collections import Counter, OrderedDict
 try:
     from numpy.typing import NDArray, ArrayLike, DTypeLike
@@ -266,8 +266,7 @@ def transform_raster(path: str, new_crs: CRS) -> List[float]:
     return [transform_bounds(src_crs=src_rst.crs, dst_crs=new_crs, *src_rst.bounds)]
 
 
-def transform_coordinates(x: Union[Sequence[float], float], y: Union[Sequence[float], float],
-                          src_crs: CRS,
+def transform_coordinates(x: Union[Sequence[float], float], y: Union[Sequence[float], float], src_crs: CRS,
                           new_crs: CRS = wgs_84) -> Union[Tuple[Sequence[float], Sequence[float]],
                                                           Tuple[float, float]]:
     single = False
@@ -325,7 +324,7 @@ def deg_to_dms(deg: float, axis: str = 'lat') -> str:
     return '{}º{}\'{:.0f}"{}'.format(abs(d), abs(m), abs(s), compass_str)
 
 
-def dec2deg(dec_co: Union[List[float], Tuple[float, ...], NDArray[Any]], axis: str = 'lat') -> List[str]:
+def dec2deg(dec_co: Sequence[float], axis: str = 'lat') -> List[str]:
     """Wrapper for deg_to_dms.
 
     Args:
@@ -359,7 +358,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         return ''
 
 
-def labels_to_ohe(labels: Union[List[int], Tuple[int, ...], NDArray[Any]], n_classes: int) -> NDArray[Any]:
+def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
     """Convert an iterable of indices to one-hot encoded labels.
 
     Args:
@@ -373,9 +372,7 @@ def labels_to_ohe(labels: Union[List[int], Tuple[int, ...], NDArray[Any]], n_cla
     return np.eye(n_classes)[targets]
 
 
-def class_weighting(class_dist: Union[List[Union[List[int], Tuple[int, ...]]],
-                                      Tuple[Union[List[int], Tuple[int, ...]], ...], NDArray[Any]],
-                    normalise: bool = False) -> Dict[int, float]:
+def class_weighting(class_dist: List[Tuple[int, int]], normalise: bool = False) -> Dict[int, float]:
     """Constructs weights for each class defined by the distribution provided. Each class weight is the inverse
     of the number of samples of that class. Note: This will most likely mean that the weights will not sum to unity.
 
@@ -528,7 +525,7 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
     return matrix[label]
 
 
-def mask_transform(array: Union[List[Any], NDArray[Any]], matrix: Dict[int, int]) -> Union[List[Any], NDArray[Any]]:
+def mask_transform(array: MutableSequence[int], matrix: Dict[int, int]) -> MutableSequence[int]:
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
@@ -544,22 +541,20 @@ def mask_transform(array: Union[List[Any], NDArray[Any]], matrix: Dict[int, int]
     return array
 
 
-def check_test_empty(pred: Union[List[int], NDArray[Any]], labels: Union[List[int], ArrayLike],
-                     class_labels: Dict[int, str],
-                     p_dist: bool = True) -> Tuple[Union[List[int], NDArray[Any]], Union[List[int], NDArray[Any]],
-                                                   Dict[int, str]]:
+def check_test_empty(pred: Sequence[int], labels: Sequence[int], class_labels: Dict[int, str],
+                     p_dist: bool = True) -> Tuple[Sequence[int], Sequence[int], Dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class_labels.
 
     Args:
-        pred (list[int] or np.ndarray[int]): List of predicted labels.
-        labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
+        pred (Sequence[int]): List of predicted labels.
+        labels (Sequence[int]): List of corresponding ground truth labels.
         class_labels (dict): Dictionary mapping class labels to class names.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
-        pred (list[int] or np.ndarray[int]): List of predicted labels transformed to new classes.
-        labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels transformed to new classes.
+        pred (Sequence[int]): List of predicted labels transformed to new classes.
+        labels (Sequence[int]): List of corresponding ground truth labels transformed to new classes.
         class_labels (dict): Dictionary mapping new class labels to class names.
     """
     # Finds the distribution of the classes within the data.
@@ -584,10 +579,10 @@ def check_test_empty(pred: Union[List[int], NDArray[Any]], labels: Union[List[in
     new_class_labels, transform, _ = eliminate_classes(empty, old_classes=class_labels)
 
     # Converts labels to new classes after the elimination of empty classes.
-    labels = mask_transform(labels, transform)
-    pred = mask_transform(pred, transform)
+    new_labels = mask_transform(labels, transform)
+    new_pred = mask_transform(pred, transform)
 
-    return pred, labels, new_class_labels
+    return new_pred, new_labels, new_class_labels
 
 
 def class_dist_transform(class_dist: List[Tuple[int, int]], matrix: Dict[int, int]) -> List[Tuple[int, int]]:
@@ -715,8 +710,7 @@ def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
     return datetime.now().strftime(fmt)
 
 
-def find_subpopulations(labels: Union[List[int], Tuple[int, ...], NDArray[Any]],
-                        plot: bool = False) -> List[Tuple[int, int]]:
+def find_subpopulations(labels: Sequence[int], plot: bool = False) -> List[Tuple[int, int]]:
     """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class.
 
     Args:
@@ -784,7 +778,7 @@ def func_by_str(module_path: str, func: str) -> Any:
     return getattr(module, func)
 
 
-def check_len(param: Any, comparator: Any) -> Union[Any, ArrayLike]:
+def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
     """Checks the length of one object against a comparator object.
 
     Args:
@@ -909,9 +903,8 @@ def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> Union[List[Any], NDArray
     return x
 
 
-def make_classification_report(pred: Union[List[int], NDArray[Any]], labels: Union[List[int], NDArray[Any]],
-                               class_labels: Dict[int, str], print_cr: bool = True,
-                               p_dist: bool = False) -> pd.DataFrame:
+def make_classification_report(pred: Sequence[int], labels: Sequence[int], class_labels: Dict[int, str], 
+                               print_cr: bool = True, p_dist: bool = False) -> pd.DataFrame:
     """Generates a DataFrame of the precision, recall, f-1 score and support of the supplied predictions
     and ground truth labels.
 
@@ -1014,8 +1007,7 @@ def run_tensorboard(path: Optional[Union[str, List[str], Tuple[str, ...]]] = Non
     webbrowser.open('localhost:{}'.format(host_num))
 
 
-def compute_roc_curves(probs: NDArray[Any], labels: Union[List[int], NDArray[Any]],
-                       class_labels: List[int], micro: bool = True,
+def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels: List[int], micro: bool = True,
                        macro: bool = True) -> Tuple[Dict[Any, float], Dict[Any, float], Dict[Any, float]]:
     """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
     The micro and macro averages are for each of these variables is also computed.
