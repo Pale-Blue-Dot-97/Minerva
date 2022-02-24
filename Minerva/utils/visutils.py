@@ -40,11 +40,11 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, MutableSequence, Literal
+from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, Literal, Sequence
 try:
     from numpy.typing import NDArray, ArrayLike
 except ModuleNotFoundError:
-    NDArray, ArrayLike = MutableSequence, MutableSequence
+    NDArray, ArrayLike = Sequence, Sequence
 from torchgeo.datasets.utils import BoundingBox
 from Minerva.utils import utils, config, aux_configs
 import os
@@ -577,7 +577,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, s
 
 
 def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], ids: List[str],
-             bounds: MutableSequence[Any], mode: Literal['train', 'val', 'test'], classes: Dict[int, str],
+             bounds: Sequence[Any], mode: Literal['train', 'val', 'test'], classes: Dict[int, str],
              colours: Dict[int, str], fn_prefix: str, frac: float = 0.05,
              fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
@@ -736,14 +736,14 @@ def plot_history(metrics: Dict[str, Any], filename: Optional[str] = None, save: 
         plt.close()
 
 
-def make_confusion_matrix(test_pred: Union[List[int], NDArray[Any]], test_labels: Union[List[int], NDArray[Any]],
+def make_confusion_matrix(pred: Union[List[int], NDArray[Any]], labels: Union[List[int], NDArray[Any]],
                           classes: Dict[int, str], filename: Optional[str] = None, show: bool = True,
                           save: bool = False) -> None:
     """Creates a heat-map of the confusion matrix of the given model.
 
     Args:
-        test_pred(list[int]): Predictions made by model on test images.
-        test_labels (list[int]): Accompanying ground truth labels for testing images.
+        pred(list[int]): Predictions made by model on test images.
+        labels (list[int]): Accompanying ground truth labels for testing images.
         classes (dict): Dictionary mapping class labels to class names.
         filename (str): Optional; Name of file to save plot to.
         show (bool): Optional; Whether to show plot.
@@ -752,15 +752,15 @@ def make_confusion_matrix(test_pred: Union[List[int], NDArray[Any]], test_labels
     Returns:
         None
     """
-    test_pred, test_labels, classes = utils.check_test_empty(test_pred, test_labels, classes)
+    _pred, _labels, new_classes = utils.check_test_empty(pred, labels, classes)
 
-    test_pred = np.array(test_pred, dtype=np.uint8)
-    test_labels = np.array(test_labels, dtype=np.uint8)
+    _pred = np.array(_pred, dtype=np.uint8)
+    _labels = np.array(_labels, dtype=np.uint8)
 
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
     cm = []
     try:
-        cm = tf.math.confusion_matrix(labels=test_labels, predictions=test_pred, dtype=np.uint8).numpy()
+        cm = tf.math.confusion_matrix(labels=_labels, predictions=_pred, dtype=np.uint8).numpy()
     except RuntimeWarning as err:
         print('\n', err)
         print('At least one class had no ground truth or no predicted labels!')
@@ -770,7 +770,7 @@ def make_confusion_matrix(test_pred: Union[List[int], NDArray[Any]], test_labels
     np.nan_to_num(cm_norm, copy=False)
 
     # Extract class names from dict in numeric order to ensure labels match matrix.
-    class_names = [classes[key] for key in range(len(classes.keys()))]
+    class_names = [new_classes[key] for key in range(len(new_classes.keys()))]
 
     # Converts confusion matrix to Pandas.DataFrame.
     cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
@@ -996,5 +996,5 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
 
         flat_bbox = utils.batch_flatten(bounds)
         os.mkdir(os.path.join(*results_dir, 'Masks'))
-        seg_plot(z, y, ids, flat_bbox, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours, 
+        seg_plot(z, y, ids, flat_bbox, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours,
                  fig_dim=data_config['fig_sizes']['Mask'])

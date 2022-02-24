@@ -46,12 +46,12 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import sys
-from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, MutableSequence, Literal
+from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, Literal, Sequence, Match
 from collections import Counter, OrderedDict
 try:
     from numpy.typing import NDArray, ArrayLike, DTypeLike
 except ModuleNotFoundError:
-    NDArray, ArrayLike = MutableSequence, MutableSequence
+    NDArray, ArrayLike = Sequence, Sequence
     DTypeLike = Any
 import functools
 from Minerva.utils import config, aux_configs, visutils
@@ -199,7 +199,8 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
         Name of dataset as string.
     """
     try:
-        return regex.search(r'(.*?)\.yml', data_config_path).group(1)
+        match: Optional[Match[str]] = regex.search(r'(.*?)\.yml', data_config_path)
+        return match.group(1)
     except AttributeError:
         print('\nDataset not found!')
         return None
@@ -231,11 +232,11 @@ def load_array(path: str, band: int):
     return data
 
 
-def centre_pixel_only(image: Union[MutableSequence, NDArray[Any]]) -> NDArray[Any]:
+def centre_pixel_only(image: Sequence[Any]) -> NDArray[Any]:
     """Returns a copy of the image containing only zeros and the original central pixel.
 
     Args:
-        image (list or np.ndarray): Image to be modified.
+        image (Sequence): Image to be modified.
 
     Returns:
         Image of only zeros except the original central pixel.
@@ -265,9 +266,9 @@ def transform_raster(path: str, new_crs: CRS) -> List[float]:
     return [transform_bounds(src_crs=src_rst.crs, dst_crs=new_crs, *src_rst.bounds)]
 
 
-def transform_coordinates(x: Union[MutableSequence[float], float], y: Union[MutableSequence[float], float],
+def transform_coordinates(x: Union[Sequence[float], float], y: Union[Sequence[float], float],
                           src_crs: CRS,
-                          new_crs: CRS = wgs_84) -> Union[Tuple[MutableSequence[float], MutableSequence[float]],
+                          new_crs: CRS = wgs_84) -> Union[Tuple[Sequence[float], Sequence[float]],
                                                           Tuple[float, float]]:
     single = False
 
@@ -580,13 +581,13 @@ def check_test_empty(pred: Union[List[int], NDArray[Any]], labels: Union[List[in
             empty.append(label)
 
     # Eliminates and reorganises classes based on those not present during testing.
-    class_labels, transform, _ = eliminate_classes(empty, old_classes=class_labels)
+    new_class_labels, transform, _ = eliminate_classes(empty, old_classes=class_labels)
 
     # Converts labels to new classes after the elimination of empty classes.
     labels = mask_transform(labels, transform)
     pred = mask_transform(pred, transform)
 
-    return pred, labels, class_labels
+    return pred, labels, new_class_labels
 
 
 def class_dist_transform(class_dist: List[Tuple[int, int]], matrix: Dict[int, int]) -> List[Tuple[int, int]]:
@@ -884,7 +885,7 @@ def print_class_dist(class_dist: List[Tuple[int, int]], class_labels: Dict[int, 
     print(tabulate(df, headers='keys', tablefmt='psql'))
 
 
-def batch_flatten(x: Union[MutableSequence[Any], NDArray[Any]]) -> Union[MutableSequence[Any], NDArray[Any]]:
+def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> Union[List[Any], NDArray[Any]]:
     """Attempts to flatten the supplied array. If not ragged, should be flattened with numpy.
     If ragged, the first 2 dimensions will be flattened using list appending.
 
@@ -1221,8 +1222,7 @@ def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
     return np.array(sample_modes)
 
 
-def make_bounding_box(roi: Union[Tuple[float, ...], MutableSequence[float],
-                                 Literal[False]] = False) -> Optional[BoundingBox]:
+def make_bounding_box(roi: Union[Sequence[float], Literal[False]] = False) -> Optional[BoundingBox]:
     """Construct a BoundingBox object from the corners of the box. False for no BoundingBox.
 
     Args:
