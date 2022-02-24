@@ -8,12 +8,12 @@ classes:
   5: "Low Vegetation\nField"
   6: "Barren"
   7: "Structures"
-  8: "Impervious Surfaces"
-  9: "Impervious Roads"
-  10: "Trees\n(over Struct.)"
-  11: "Trees\n(over Surf.)"
+  8: "Surfaces"
+  9: "Roads"
+  10: "Trees\n(over Str.)"
+  11: "Trees\n(over Sur.)"
   12: "Trees\n(over Roads)"
-  13: "Military Base"
+  13: "Military\nBase"
   14: "No Data"
   15: "No Data"
 
@@ -44,4 +44,4 @@ co_sys:
 
 fig_sizes:
   CM: [9, 8]
-  Mask: [12, 9]
+  Mask: [12, 10]
