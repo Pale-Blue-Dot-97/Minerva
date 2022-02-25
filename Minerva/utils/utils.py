@@ -1230,14 +1230,19 @@ def make_bounding_box(roi: Union[Sequence[float], bool] = False) -> Optional[Bou
         return BoundingBox(*roi)
 
 
-def get_transform(name: str, params: Dict[str, Any]) -> Any:
+def get_transform(name: str, params: Dict[str, Any], module: str = 'torchvision.transforms') -> Any:
     """Creates a TensorBoard transform object based on config parameters.
 
     Returns:
         Initialised TensorBoard transform object specified by config parameters.
     """
+    try:
+        module = params['module']
+    except KeyError:
+        pass
+    
     # Gets the loss function requested by config parameters.
-    transform = func_by_str('torchvision.transforms', name)
+    transform = func_by_str(module, name)
 
     return transform(**params)
 
@@ -1317,6 +1322,10 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
     loaders = {}
 
     for mode in ('train', 'val', 'test'):
+        this_transform_params = transform_params[mode]
+        if params['elim']:
+            this_transform_params['ClassTransform'] = {'module': 'Minerva.transforms', 'transform': forwards}
+
         # Calculates number of batches.
         n_batches[mode] = int(sampler_params[mode]['params']['length'] / batch_size)
 
@@ -1324,7 +1333,7 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
         print(f'CREATING {mode} DATASET')
         loaders[mode] = construct_dataloader(params['dir']['data'], dataset_params[mode], sampler_params[mode],
                                              dataloader_params, collator_params=params['collator'],
-                                             transform_params=transform_params[mode])
+                                             transform_params=this_transform_params)
         print('DONE')
 
     # Transform class dist if elimination of classes has occurred.
