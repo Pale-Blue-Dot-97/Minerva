@@ -1270,7 +1270,6 @@ def make_transformations(transform_params: Dict[str, Any]) -> Optional[Any]:
 
         # If only one transform found, return.
         if len(transform_params) == 1:
-            print(transform)
             return transform
 
         # If more than one transform found, append to list for composition.

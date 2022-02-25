@@ -42,11 +42,13 @@ class ClassTransform:
     def __init__(self, transform: Dict[int, int]) -> None:
         self.transform = transform
 
-    def __call__(self, mask) -> Any:
-        print(mask)
+    def __call__(self, sample: Dict[Any, Any]) -> Dict[Any, Any]:
+        mask = sample.pop('mask')
+
         new_mask = utils.mask_transform(mask, self.transform)
-        print(new_mask)
-        return new_mask
+        
+        sample['mask'] = new_mask
+        return sample
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(transform={self.transform})"
