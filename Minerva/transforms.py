@@ -25,7 +25,6 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 Attributes:
-    
 
 TODO:
 """
@@ -43,9 +42,8 @@ class ClassTransform:
     def __init__(self, transform: Dict[int, int]) -> None:
         self.transform = transform
 
-    def __call__(self, sample) -> Any:
-        sample['mask'] = utils.mask_transform(sample['mask'], self.transform)
-        return sample
+    def __call__(self, mask) -> Any:
+        return utils.mask_transform(mask, self.transform)
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name___}()"
+        return f"{self.__class__.__name__}()"

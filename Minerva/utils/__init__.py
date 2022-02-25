@@ -43,8 +43,6 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
             configs[config_name] = yaml_load(paths[config_name])
         return configs
 
-    print(os.getcwd())
-
     # First loads the master config.
     master_config = yaml_load(master_config_path)
 
