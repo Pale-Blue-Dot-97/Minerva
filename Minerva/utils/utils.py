@@ -525,7 +525,7 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
     return matrix[label]
 
 
-def mask_transform(array: MutableSequence[int], matrix: Dict[int, int]) -> MutableSequence[int]:
+def mask_transform(array: NDArray[np.int_], matrix: Dict[int, int]) -> NDArray[np.int_]:
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
@@ -542,7 +542,7 @@ def mask_transform(array: MutableSequence[int], matrix: Dict[int, int]) -> Mutab
 
 
 def check_test_empty(pred: Sequence[int], labels: Sequence[int], class_labels: Dict[int, str],
-                     p_dist: bool = True) -> Tuple[Sequence[int], Sequence[int], Dict[int, str]]:
+                     p_dist: bool = True) -> Tuple[NDArray[np.int_], NDArray[np.int_], Dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class_labels.
 
@@ -577,10 +577,10 @@ def check_test_empty(pred: Sequence[int], labels: Sequence[int], class_labels: D
 
     # Eliminates and reorganises classes based on those not present during testing.
     new_class_labels, transform, _ = eliminate_classes(empty, old_classes=class_labels)
-
+    
     # Converts labels to new classes after the elimination of empty classes.
-    new_labels = mask_transform(labels, transform)
-    new_pred = mask_transform(pred, transform)
+    new_labels = mask_transform(np.array(labels), transform)
+    new_pred = mask_transform(np.array(pred), transform)
 
     return new_pred, new_labels, new_class_labels
 
