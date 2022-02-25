@@ -46,10 +46,10 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 import sys
-from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, Literal, Sequence, MutableSequence, Match
+from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, Sequence, Match
 from collections import Counter, OrderedDict
 try:
-    from numpy.typing import NDArray, ArrayLike, DTypeLike
+    from numpy.typing import NDArray, ArrayLike
 except ModuleNotFoundError:
     NDArray, ArrayLike = Sequence, Sequence
     DTypeLike = Any
@@ -577,7 +577,7 @@ def check_test_empty(pred: Sequence[int], labels: Sequence[int], class_labels: D
 
     # Eliminates and reorganises classes based on those not present during testing.
     new_class_labels, transform, _ = eliminate_classes(empty, old_classes=class_labels)
-    
+
     # Converts labels to new classes after the elimination of empty classes.
     new_labels = mask_transform(np.array(labels), transform)
     new_pred = mask_transform(np.array(pred), transform)
@@ -903,7 +903,7 @@ def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> Union[List[Any], NDArray
     return x
 
 
-def make_classification_report(pred: Sequence[int], labels: Sequence[int], class_labels: Dict[int, str], 
+def make_classification_report(pred: Sequence[int], labels: Sequence[int], class_labels: Dict[int, str],
                                print_cr: bool = True, p_dist: bool = False) -> pd.DataFrame:
     """Generates a DataFrame of the precision, recall, f-1 score and support of the supplied predictions
     and ground truth labels.
@@ -1214,7 +1214,7 @@ def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
     return np.array(sample_modes)
 
 
-def make_bounding_box(roi: Union[Sequence[float], Literal[False]] = False) -> Optional[BoundingBox]:
+def make_bounding_box(roi: Union[Sequence[float], bool] = False) -> Optional[BoundingBox]:
     """Construct a BoundingBox object from the corners of the box. False for no BoundingBox.
 
     Args:

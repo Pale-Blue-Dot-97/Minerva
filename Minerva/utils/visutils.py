@@ -40,7 +40,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, Literal, Sequence
+from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, Sequence
 try:
     from numpy.typing import NDArray, ArrayLike
 except ModuleNotFoundError:
@@ -577,9 +577,8 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, s
 
 
 def seg_plot(z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]], ids: List[str],
-             bounds: Sequence[Any], mode: Literal['train', 'val', 'test'], classes: Dict[int, str],
-             colours: Dict[int, str], fn_prefix: str, frac: float = 0.05,
-             fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
+             bounds: Sequence[Any], mode: str, classes: Dict[int, str], colours: Dict[int, str], fn_prefix: str,
+             frac: float = 0.05, fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5)) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
     Args:
@@ -914,7 +913,7 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[List[str], Tu
 
 def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]],
                  metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None,
-                 mode: Optional[Literal['train', 'val', 'test']] = 'test', bounds: Optional[NDArray[object]] = None,
+                 mode: str = 'test', bounds: Optional[NDArray[object]] = None,
                  probs: Optional[Union[List[float], NDArray[Any]]] = None,
                  class_names: Optional[Dict[int, str]] = None, colours: Optional[Dict[int, str]] = None,
                  save: bool = True, show: bool = False, model_name: Optional[str] = None,

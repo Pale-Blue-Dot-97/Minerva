@@ -57,7 +57,6 @@ def test_check_test_empty():
     old_pred_1 = [1, 4, 1, 5, 1, 4, 1, 5, 1]
     new_pred = [1, 2, 1, 0, 1, 2, 1, 0, 1]
 
-
     results_1 = utils.check_test_empty(old_pred_1, old_labels_1, old_classes)
 
     assert assert_array_equal(results_1[0], new_pred) is None
@@ -68,7 +67,7 @@ def test_check_test_empty():
     old_pred_2 = [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1]
 
     results_2 = utils.check_test_empty(old_pred_2, old_labels_2, old_classes)
-    
+
     assert assert_array_equal(results_2[0], old_pred_2) is None
     assert assert_array_equal(results_2[1], old_labels_2) is None
     assert results_2[2] == old_classes
