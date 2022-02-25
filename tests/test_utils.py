@@ -49,6 +49,40 @@ def test_eliminate_classes():
     assert new_cmap == results[2]
 
 
+def test_check_test_empty():
+    old_classes = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5'}
+    new_classes = {0: '5', 1: '1', 2: '4', 3: '3'}
+    old_labels_1 = [1, 1, 3, 5, 1, 4, 1, 5, 3]
+    new_labels = [1, 1, 3, 0, 1, 2, 1, 0, 3]
+    old_pred_1 = [1, 4, 1, 5, 1, 4, 1, 5, 1]
+    new_pred = [1, 2, 1, 0, 1, 2, 1, 0, 1]
+
+
+    results_1 = utils.check_test_empty(old_pred_1, old_labels_1, old_classes)
+
+    assert assert_array_equal(results_1[0], new_pred) is None
+    assert assert_array_equal(results_1[1], new_labels) is None
+    assert results_1[2] == new_classes
+
+    old_labels_2 = [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1]
+    old_pred_2 = [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1]
+
+    results_2 = utils.check_test_empty(old_pred_2, old_labels_2, old_classes)
+    
+    assert assert_array_equal(results_2[0], old_pred_2) is None
+    assert assert_array_equal(results_2[1], old_labels_2) is None
+    assert results_2[2] == old_classes
+
+    old_labels_3 = np.array(old_labels_2)
+    old_pred_3 = np.array(old_pred_2)
+
+    results_3 = utils.check_test_empty(old_pred_3, old_labels_3, old_classes)
+
+    assert assert_array_equal(results_3[0], old_pred_3) is None
+    assert assert_array_equal(results_3[1], old_labels_3) is None
+    assert results_3[2] == old_classes
+
+
 def test_file_check():
     fn = "tests/test.txt"
     with open(fn, "x") as f:
