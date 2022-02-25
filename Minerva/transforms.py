@@ -43,7 +43,10 @@ class ClassTransform:
         self.transform = transform
 
     def __call__(self, mask) -> Any:
-        return utils.mask_transform(mask, self.transform)
+        print(mask)
+        new_mask = utils.mask_transform(mask, self.transform)
+        print(new_mask)
+        return new_mask
 
     def __repr__(self) -> str:
-        return f"{self.__class__.__name__}()"
+        return f"{self.__class__.__name__}(transform={self.transform})"
