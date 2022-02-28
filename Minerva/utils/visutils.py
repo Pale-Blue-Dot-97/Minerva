@@ -770,12 +770,13 @@ def make_confusion_matrix(pred: Union[List[int], NDArray[Any]], labels: Union[Li
     # Extract class names from dict in numeric order to ensure labels match matrix.
     class_names = [new_classes[key] for key in range(len(new_classes.keys()))]
 
-    print(f'{class_names=}')
-    print(f'{new_classes=}')
-
     # Converts confusion matrix to Pandas.DataFrame.
     cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
 
+    print(f'{new_classes=}')
+    print(f'{cm_norm=}')
+    print(f'{cm_df=}')
+    
     # Plots figure.
     plt.figure(figsize=data_config['fig_sizes']['CM'])
     sns.heatmap(cm_df, annot=True, square=True, cmap=plt.cm.get_cmap('Blues'), vmin=0.0, vmax=1.0)
