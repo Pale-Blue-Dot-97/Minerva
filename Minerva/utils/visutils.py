@@ -753,23 +753,25 @@ def make_confusion_matrix(pred: Union[List[int], NDArray[Any]], labels: Union[Li
     """
     _pred, _labels, new_classes = utils.check_test_empty(pred, labels, classes)
 
-    _pred = np.array(_pred, dtype=np.uint8)
-    _labels = np.array(_labels, dtype=np.uint8)
-
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
-    cm = []
+    cm: Any
     try:
-        cm = tf.math.confusion_matrix(labels=_labels, predictions=_pred, dtype=np.uint8).numpy()
+        cm = tf.math.confusion_matrix(labels=_labels, predictions=_pred, dtype=np.uint16).numpy()
+        
+        # Normalises confusion matrix.
+        cm_norm = np.around(cm.astype(np.float16) / cm.sum(axis=1)[:, np.newaxis], decimals=2)
+    
     except RuntimeWarning as err:
         print('\n', err)
         print('At least one class had no ground truth or no predicted labels!')
-
-    # Normalises confusion matrix.
-    cm_norm = np.around(cm.astype(np.float16) / cm.sum(axis=1)[:, np.newaxis], decimals=2)
+    
     np.nan_to_num(cm_norm, copy=False)
 
     # Extract class names from dict in numeric order to ensure labels match matrix.
     class_names = [new_classes[key] for key in range(len(new_classes.keys()))]
+
+    print(f'{class_names=}')
+    print(f'{new_classes=}')
 
     # Converts confusion matrix to Pandas.DataFrame.
     cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
