@@ -31,7 +31,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 from Minerva.utils import utils
 
 
@@ -52,3 +52,14 @@ class ClassTransform:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(transform={self.transform})"
+
+
+class PairCreate:
+    def __init__(self) -> None:
+        pass
+
+    def __call__(self, sample: Any) -> Tuple[Any, Any]:
+        return sample, sample
+    
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
