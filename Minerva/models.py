@@ -1182,6 +1182,24 @@ class FCN16ResNet34(_FCN):
         super(FCN16ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet34', decoder_variant='16',
                                             backbone_kwargs=resnet_kwargs)
+                                        
+
+class FCN16ResNet50(_FCN):
+    """Fully Convolutional Network (FCN) using a ResNet50 backbone with a DCN16 decoder.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
+        super(FCN16ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                            backbone_name='ResNet50', decoder_variant='16',
+                                            backbone_kwargs=resnet_kwargs)                                        
 
 
 class FCN8ResNet18(_FCN):
