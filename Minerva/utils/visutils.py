@@ -54,6 +54,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
+import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 from matplotlib.transforms import Bbox
@@ -90,6 +91,9 @@ plt.rcParams['savefig.dpi'] = 300
 
 # Removes margin in x-axis of plots.
 plt.rcParams['axes.xmargin'] = 0
+
+# Ensures that the QT library is used as the backend on Iridis rather than TKinter.
+matplotlib.use('qtagg')
 
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
