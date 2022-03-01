@@ -342,17 +342,40 @@ def dec2deg(dec_co: Sequence[float], axis: str = 'lat') -> List[str]:
 
 
 def get_centre_loc(bounds) -> Tuple[float, float]:
-    mid_lat = bounds.maxy - (bounds.maxy - bounds.miny) / 2
-    mid_lon = bounds.maxx - (bounds.maxx - bounds.minx) / 2
+    mid_x = bounds.maxx - abs((bounds.maxx - bounds.minx) / 2)
+    mid_y = bounds.maxy - abs((bounds.maxy - bounds.miny) / 2)
 
-    return mid_lat, mid_lon
+    return mid_x, mid_y
 
 
 def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
     try:
         geolocator = Nominatim(user_agent="geoapiExercises")
-        location = geolocator.reverse(str(lat) + "," + str(lon))
-        return location['city']
+        location = geolocator.reverse(f'{lat},{lon}').raw['address']
+        
+        locs: list[str] = []
+        try:
+            locs.append(location['city'])
+        except KeyError:
+            try:
+                locs.append(location['county'])
+            except KeyError:
+                pass
+        try:
+            locs.append(location['state'])
+        except KeyError:
+            try:
+                locs.append(location['country'])
+            except KeyError:
+                pass
+
+        if len(locs) > 1:
+            return ', '.join(locs)
+        elif len(locs) == 1:
+            return locs
+        else:
+            return ''
+    
     except GeocoderUnavailable:
         print("\nGeocoder unavailable")
         return ''

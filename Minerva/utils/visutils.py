@@ -120,7 +120,7 @@ def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any]:
     return np.array(new_x).flatten()
 
 
-def dec_extent_to_deg(shape: Tuple[int, int], bounds: BoundingBox,
+def dec_extent_to_deg(shape: Tuple[int, int], bounds: BoundingBox, src_crs: CRS, new_crs: CRS = wgs_84,
                       spacing: int = 32) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
     """Gets the extent of the image with 'shape' and at data_fn in latitude, longitude of system new_cs.
 
@@ -139,12 +139,13 @@ def dec_extent_to_deg(shape: Tuple[int, int], bounds: BoundingBox,
     extent = 0, shape[0], 0, shape[1]
 
     # Gets the co-ordinates of the corners of the image in decimal lat-lon.
-    # corners = utils.transform_coordinates(data_fn, new_cs)
+    corners = utils.transform_coordinates(x=[bounds.minx, bounds.maxx], y=[bounds.miny, bounds.maxy], 
+                                         src_crs=src_crs, new_crs=new_crs)
 
     # Creates a discrete mapping of the spaced ticks to latitude longitude extent of the image.
-    lat_extent = np.linspace(start=bounds.miny, stop=bounds.maxy,
+    lat_extent = np.linspace(start=corners[1][0], stop=corners[1][1],
                              num=int(shape[0] / spacing) + 1, endpoint=True)
-    lon_extent = np.linspace(start=bounds.minx, stop=bounds.maxx,
+    lon_extent = np.linspace(start=corners[0][0], stop=corners[0][1],
                              num=int(shape[0] / spacing) + 1, endpoint=True)
 
     return extent, lat_extent, lon_extent
@@ -488,7 +489,7 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, s
     y = sample['mask']
     bounds = sample['bounds']
 
-    extent, lat_extent, lon_extent = dec_extent_to_deg(y.shape, bounds, spacing=block_size)
+    extent, lat_extent, lon_extent = dec_extent_to_deg(y.shape, bounds, src_crs, new_crs=new_crs, spacing=block_size)
 
     centre = utils.transform_coordinates(*utils.get_centre_loc(bounds), src_crs=src_crs, new_crs=new_crs)
 
@@ -540,10 +541,10 @@ def prediction_plot(sample: Dict[str, Any], sample_id: str, classes: Dict[int, s
     clb.ax.set_xticklabels(classes.values(), fontsize=9)
 
     # Set figure title and subplot titles.
-    fig.suptitle(f'{sample_id}', fontsize=15)
+    fig.suptitle(f'{sample_id}: {utils.lat_lon_to_loc(lat=str(centre[1]), lon=str(centre[0]))}', fontsize=15)
     axes[0].set_title('Predicted', fontsize=13)
     axes[1].set_title('Ground Truth', fontsize=13)
-    axes[2].set_title(utils.lat_lon_to_loc(*centre), fontsize=13)
+    axes[2].set_title('Reference Imagery', fontsize=13)
 
     # Set axis labels.
     axes[0].set_xlabel('(x) - Pixel Position', fontsize=10)
@@ -997,6 +998,6 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
         assert mode is not None
 
         flat_bbox = utils.batch_flatten(bounds)
-        os.mkdir(os.path.join(*results_dir, 'Masks'))
+        os.mkdir(os.sep.join([*results_dir, 'Masks']))
         seg_plot(z, y, ids, flat_bbox, mode, fn_prefix=filenames['Mask'], classes=class_names, colours=colours,
                  fig_dim=data_config['fig_sizes']['Mask'])
