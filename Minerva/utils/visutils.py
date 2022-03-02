@@ -95,7 +95,10 @@ plt.rcParams['axes.xmargin'] = 0
 print(matplotlib.get_backend())
 
 # Ensures that the QT library is used as the backend on Iridis rather than TKinter.
-matplotlib.use('Qt5Agg')
+try:
+    matplotlib.use('Qt5Agg')
+except ImportError:
+    pass
 
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
