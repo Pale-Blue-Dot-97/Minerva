@@ -92,8 +92,10 @@ plt.rcParams['savefig.dpi'] = 300
 # Removes margin in x-axis of plots.
 plt.rcParams['axes.xmargin'] = 0
 
+print(matplotlib.get_backend())
+
 # Ensures that the QT library is used as the backend on Iridis rather than TKinter.
-matplotlib.use('qtagg')
+matplotlib.use('Qt5Agg')
 
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
