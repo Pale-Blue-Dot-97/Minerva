@@ -1,6 +1,5 @@
 import yaml
-import os
-import shutil
+import os, sys, getopt, shutil
 from typing import Tuple, Dict, Any
 
 config_dir_path = '../../config/'
@@ -38,9 +37,9 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
             Config dictionaries loaded from YAML from paths.
         """
         configs = {}
-        for config_name in paths.keys():
+        for _config_name in paths.keys():
             # Loads config from YAML as dict.
-            configs[config_name] = yaml_load(paths[config_name])
+            configs[_config_name] = yaml_load(paths[_config_name])
         return configs
 
     # First loads the master config.
@@ -52,15 +51,33 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
     # Loads and returns the other configs along with master config.
     return master_config, aux_config_load(config_paths)
 
+# Get sys.argv and extract options and arguments.
+try:
+    opts, args = getopt.getopt(sys.argv[1:], "c:")
+except getopt.GetoptError as err:
+    print(err)
+    sys.exit(2)
+
+# Set the config path from the option found from sys.argv.
+config_name = None
+for o, a in opts:
+    if o == "-c":
+        config_name = a
 
 cwd = os.getcwd()
 path = os.path.abspath(os.path.dirname(__file__))
 
 os.chdir(os.sep.join((path, config_dir_path)))
 
+try:
+    if not os.path.exists(config_name):
+        config_name = default_config_name
+except TypeError:
+    config_name = default_config_name
+
 if not os.path.exists(default_config_name):
     shutil.copy("example_config.yml", default_config_name)
 
-config, aux_configs = load_configs(default_config_name)
+config, aux_configs = load_configs(config_name)
 
 os.chdir(cwd)

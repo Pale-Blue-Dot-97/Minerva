@@ -139,3 +139,4 @@ cache/*
 config/config.yml
 config/mf_config.yml
 .vscode/settings.json
+config/new_config.yml
