@@ -1182,7 +1182,7 @@ class FCN16ResNet34(_FCN):
         super(FCN16ResNet34, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet34', decoder_variant='16',
                                             backbone_kwargs=resnet_kwargs)
-                                        
+
 
 class FCN16ResNet50(_FCN):
     """Fully Convolutional Network (FCN) using a ResNet50 backbone with a DCN16 decoder.
@@ -1199,7 +1199,7 @@ class FCN16ResNet50(_FCN):
                  n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN16ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                             backbone_name='ResNet50', decoder_variant='16',
-                                            backbone_kwargs=resnet_kwargs)                                        
+                                            backbone_kwargs=resnet_kwargs)
 
 
 class FCN8ResNet18(_FCN):

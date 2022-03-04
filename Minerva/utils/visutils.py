@@ -146,8 +146,8 @@ def dec_extent_to_deg(shape: Tuple[int, int], bounds: BoundingBox, src_crs: CRS,
     extent = 0, shape[0], 0, shape[1]
 
     # Gets the co-ordinates of the corners of the image in decimal lat-lon.
-    corners = utils.transform_coordinates(x=[bounds.minx, bounds.maxx], y=[bounds.miny, bounds.maxy], 
-                                         src_crs=src_crs, new_crs=new_crs)
+    corners = utils.transform_coordinates(x=[bounds.minx, bounds.maxx], y=[bounds.miny, bounds.maxy],
+                                          src_crs=src_crs, new_crs=new_crs)
 
     # Creates a discrete mapping of the spaced ticks to latitude longitude extent of the image.
     lat_extent = np.linspace(start=corners[1][0], stop=corners[1][1],
@@ -762,17 +762,17 @@ def make_confusion_matrix(pred: Union[List[int], NDArray[Any]], labels: Union[Li
     _pred, _labels, new_classes = utils.check_test_empty(pred, labels, classes)
 
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
-    cm: Any
+    cm_norm: Any
     try:
         cm = tf.math.confusion_matrix(labels=_labels, predictions=_pred, dtype=np.uint16).numpy()
-        
+
         # Normalises confusion matrix.
         cm_norm = np.around(cm.astype(np.float16) / cm.sum(axis=1)[:, np.newaxis], decimals=2)
-    
+
     except RuntimeWarning as err:
         print('\n', err)
         print('At least one class had no ground truth or no predicted labels!')
-    
+
     np.nan_to_num(cm_norm, copy=False)
 
     # Extract class names from dict in numeric order to ensure labels match matrix.
@@ -784,7 +784,7 @@ def make_confusion_matrix(pred: Union[List[int], NDArray[Any]], labels: Union[Li
     print(f'{new_classes=}')
     print(f'{cm_norm=}')
     print(f'{cm_df=}')
-    
+
     # Plots figure.
     plt.figure(figsize=data_config['fig_sizes']['CM'])
     sns.heatmap(cm_df, annot=True, square=True, cmap=plt.cm.get_cmap('Blues'), vmin=0.0, vmax=1.0)

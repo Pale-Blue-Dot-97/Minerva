@@ -143,12 +143,12 @@ def dublicator(cls):
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
-        
+
         def __call__(self, pair: Tuple[Any, Any]) -> Tuple[Any, Any]:
             a, b = pair
 
             return self.wrap.__call__(a), self.wrap.__call__(b)
-        
+
         def __repr__(self) -> str:
             return f'dublicator({self.wrap.__repr__()})'
 
@@ -378,7 +378,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
     try:
         geolocator = Nominatim(user_agent="geoapiExercises")
         location = geolocator.reverse(f'{lat},{lon}').raw['address']
-        
+
         locs: list[str] = []
         try:
             locs.append(location['city'])
@@ -401,7 +401,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
             return locs
         else:
             return ''
-    
+
     except GeocoderUnavailable:
         print("\nGeocoder unavailable")
         return ''
@@ -1170,8 +1170,8 @@ def intersect_datasets(datasets: List[GeoDataset], sample_pairs: bool = False) -
     return master_dataset
 
 
-def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any], 
-                 transform_params: Optional[Dict[Any, Any]] = None, 
+def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
+                 transform_params: Optional[Dict[Any, Any]] = None,
                  sample_pairs: bool = False) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from `n` sub-datasets given by the parameters supplied.
 
@@ -1388,10 +1388,10 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
         this_transform_params = transform_params[mode]
         if params['elim']:
             if this_transform_params['labels'] is not Dict:
-                this_transform_params['labels'] = {'ClassTransform': {'module': 'Minerva.transforms', 
+                this_transform_params['labels'] = {'ClassTransform': {'module': 'Minerva.transforms',
                                                                       'transform': forwards}}
             else:
-                this_transform_params['labels']['ClassTransform'] = {'module': 'Minerva.transforms', 
+                this_transform_params['labels']['ClassTransform'] = {'module': 'Minerva.transforms',
                                                                      'transform': forwards}
 
         # Calculates number of batches.
@@ -1401,7 +1401,7 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
         print(f'CREATING {mode} DATASET')
         loaders[mode] = construct_dataloader(params['dir']['data'], dataset_params[mode], sampler_params[mode],
                                              dataloader_params, collator_params=params['collator'],
-                                             transform_params=this_transform_params, 
+                                             transform_params=this_transform_params,
                                              sample_pairs=params['sample_pairs'])
         print('DONE')
 
