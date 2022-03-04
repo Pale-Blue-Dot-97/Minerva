@@ -27,6 +27,7 @@ Created under a project funded by the Ordnance Survey Ltd.
 Attributes:
 
 TODO:
+    * Document classes
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -46,7 +47,7 @@ class ClassTransform:
         mask = sample.pop('mask')
 
         new_mask = utils.mask_transform(mask, self.transform)
-        
+
         sample['mask'] = new_mask
         return sample
 
@@ -60,6 +61,6 @@ class PairCreate:
 
     def __call__(self, sample: Any) -> Tuple[Any, Any]:
         return sample, sample
-    
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
