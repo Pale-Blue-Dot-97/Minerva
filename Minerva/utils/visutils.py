@@ -92,8 +92,6 @@ plt.rcParams['savefig.dpi'] = 300
 # Removes margin in x-axis of plots.
 plt.rcParams['axes.xmargin'] = 0
 
-print(matplotlib.get_backend())
-
 # Ensures that the QT library is used as the backend on Iridis rather than TKinter.
 try:
     matplotlib.use('Qt5Agg')
