@@ -31,10 +31,9 @@ dir:
 # Kwargs for make_datasets
 model_name: 'FCN32ResNet50-MkI' # Name of model. Substring before hyphen is used to find and initialise model object.
 model_type: 'segmentation'      # Type of model. Can be mlp, scene_classifier, segmentation.
-frac: 1.0                       # Fraction of patches in the dataset to use.
-split: [0.8, 0.15, 0.05]        # Fractional size of the train, validation and test datasets.
-elim: False
-balance: False
+sample_pairs: False
+elim: True
+balance: True
 patch_size: [256, 256]
 
 # === DATASET PARAMETERS ==============================================================================================
@@ -44,7 +43,7 @@ dataset_params:
     imagery:
       module: 'torchgeo.datasets'
       name: 'NAIP'
-      root: 'NAIP 2013'
+      root: 'NAIP 2013/Train'
       params:
         res: 1.0
 
@@ -62,7 +61,7 @@ dataset_params:
     imagery:
       module: 'torchgeo.datasets'
       name: 'NAIP'
-      root: 'NAIP 2013'
+      root: 'NAIP 2013/Validation'
       params:
         res: 1.0
 
@@ -80,7 +79,7 @@ dataset_params:
     imagery:
       module: 'torchgeo.datasets'
       name: 'NAIP'
-      root: 'NAIP 2013'
+      root: 'NAIP 2013/Test'
       params:
         res: 1.0
 
@@ -99,31 +98,31 @@ sampler_params:
   train:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
-    roi: False
+    roi: False #[23945, 529579, 4180520, 4413808, 2012, 2014]
     params:
       size: 256
       #batch_size: 16
-      length: 1600
+      length: 80
 
   # Validation Dataset Sampler
   val:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
-    roi: False
+    roi: False #[112615, 618249, 4404308, 4891997, 2012, 2014]
     params:
       size: 256
       #batch_size: 16
-      length: 400
+      length: 32
 
   # Test Dataset Sampler
   test:
     module: 'torchgeo.samplers'
     name: 'RandomGeoSampler'
-    roi: False
+    roi: False #[-103783, 483132, 4033791, 4259690, 2012, 2014]
     params:
       size: 256
       #batch_size: 16
-      length: 400
+      length: 32
 
 
 # === TRANSFORM PARAMETERS ============================================================================================
@@ -131,29 +130,17 @@ transform_params:
   # Training Dataset Transforms
   train:
     imagery: False
-      #ConvertImageDtype:
-        #dtype: torch.FloatTensor
     labels: False
-      #ConvertImageDtype:
-        #dtype: torch.LongTensor
 
   # Validation Dataset Transforms
   val:
     imagery: False
-      #ConvertImageDtype:
-        #dtype: torch.FloatTensor
     labels: False
-      #ConvertImageDtype:
-        #dtype: torch.LongTensor
 
   # Test Dataset Transforms
   test:
     imagery: False
-      #ConvertImageDtype:
-        #dtype: torch.FloatTensor
     labels: False
-      #ConvertImageDtype:
-        #dtype: torch.LongTensor
 
 # Collation
 collator:
@@ -178,18 +165,17 @@ hyperparams:
     #momentum: 0.9
   loss_name: CrossEntropyLoss
   loss_params:
-  max_epochs: 5
+  max_epochs: 2
 
 # Which plots to make
 plots:
   History: True
   CM: True
   Pred: True
-  ROC: False
+  ROC: True
   micro: False
   macro: True
-  Mask: False
-  PvT: False
+  Mask: True
 
 # opt to ask at runtime; auto or True to automatically do so; or False, None etc to not
 save_model: False
@@ -198,4 +184,4 @@ save: True
 show: False
 p_dist: False
 calc_norm: False
-plot_last_epoch: True
+plot_last_epoch: False
