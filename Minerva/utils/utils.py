@@ -77,6 +77,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from alive_progress import alive_bar, alive_it
 from torchgeo.datasets.utils import BoundingBox
+from torchgeo.datasets import concat_samples, GeoDataset, IntersectionDataset
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
 
@@ -127,6 +128,31 @@ def return_updated_kwargs(func):
         kwargs.update(results[-1])
         return (*results[:-1], kwargs)
     return wrapper
+
+
+def pair_collate(func):
+
+    @functools.wraps(func)
+    def wrapper(samples: Iterable[Tuple[Dict[Any, Any]]]) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+        a, b = tuple(zip(*samples))
+        return func(a), func(b)
+    return wrapper
+
+
+def dublicator(cls):
+    class Wrapper:
+        def __init__(self, *args, **kwargs) -> None:
+            self.wrap = cls(*args, **kwargs)
+        
+        def __call__(self, pair: Tuple[Any, Any]) -> Tuple[Any, Any]:
+            a, b = pair
+
+            return self.wrap.__call__(a), self.wrap.__call__(b)
+        
+        def __repr__(self) -> str:
+            return f'dublicator({self.wrap.__repr__()})'
+
+    return Wrapper
 
 
 # =====================================================================================================================
@@ -1121,7 +1147,7 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
     return fpr, tpr, roc_auc
 
 
-def intersect_datasets(datasets: List[Any]):
+def intersect_datasets(datasets: List[GeoDataset], sample_pairs: bool = False) -> IntersectionDataset:
     """
 
     Args:
@@ -1131,16 +1157,22 @@ def intersect_datasets(datasets: List[Any]):
 
     """
     def intersect_pair_datasets(a, b):
-        return a & b
+        if sample_pairs:
+            return IntersectionDataset(a, b, collate_fn=pair_collate(concat_samples))
+        else:
+            return a & b
+
+    master_dataset = datasets[0]
 
     for i in range(len(datasets) - 1):
-        datasets[0] = intersect_pair_datasets(datasets[0], datasets[i + 1])
+        master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
 
-    return datasets[0]
+    return master_dataset
 
 
-def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
-                 transform_params: Optional[Dict[Any, Any]] = None) -> Tuple[Any, List[Any]]:
+def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any], 
+                 transform_params: Optional[Dict[Any, Any]] = None, 
+                 sample_pairs: bool = False) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from `n` sub-datasets given by the parameters supplied.
 
     Args:
@@ -1172,8 +1204,8 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations = None
-        if transform_params is not None:
-            transformations = make_transformations(transform_params[key])
+        if transform_params is not None or sample_pairs:
+            transformations = make_transformations(transform_params[key], sample_pairs=sample_pairs)
 
         # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
         sub_datasets.append(_sub_dataset(root=sub_dataset_root, transforms=transformations,
@@ -1182,14 +1214,14 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
     # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
-        dataset = intersect_datasets(sub_datasets)
+        dataset = intersect_datasets(sub_datasets, sample_pairs=sample_pairs)
 
     return dataset, sub_datasets
 
 
 def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str, Any], sampler_params: Dict[str, Any],
                          dataloader_params: Dict[str, Any], collator_params: Optional[Dict[str, Any]] = None,
-                         transform_params: Optional[Dict[str, Any]] = None) -> DataLoader:
+                         transform_params: Optional[Dict[str, Any]] = None, sample_pairs: bool = False) -> DataLoader:
     """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
     Args:
@@ -1205,7 +1237,7 @@ def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str
     Returns:
         loader (DataLoader): Object to handle the returning of batched samples from the dataset.
     """
-    dataset, subdatasets = make_dataset(data_directory, dataset_params, transform_params)
+    dataset, subdatasets = make_dataset(data_directory, dataset_params, transform_params, sample_pairs=sample_pairs)
 
     # --+ MAKE SAMPLERS +=============================================================================================+
     sampler = func_by_str(module_path=sampler_params['module'], func=sampler_params['name'])
@@ -1215,6 +1247,8 @@ def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str
     collator = None
     if collator_params is not None:
         collator = func_by_str(collator_params['module'], collator_params['name'])
+        if sample_pairs:
+            collator = pair_collate(collator)
 
     return DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
 
@@ -1253,7 +1287,7 @@ def make_bounding_box(roi: Union[Sequence[float], bool] = False) -> Optional[Bou
         return BoundingBox(*roi)
 
 
-def get_transform(name: str, params: Dict[str, Any]) -> Any:
+def get_transform(name: str, params: Dict[str, Any], sample_pairs: bool = False) -> Any:
     """Creates a TensorBoard transform object based on config parameters.
 
     Returns:
@@ -1261,13 +1295,16 @@ def get_transform(name: str, params: Dict[str, Any]) -> Any:
     """
     module = params.pop('module', 'torchvision.transforms')
 
-    # Gets the loss function requested by config parameters.
+    # Gets the transform requested by config parameters.
     transform = func_by_str(module, name)
+
+    if sample_pairs:
+        transform = dublicator(transform)
 
     return transform(**params)
 
 
-def make_transformations(transform_params: Dict[str, Any]) -> Optional[Any]:
+def make_transformations(transform_params: Dict[str, Any], sample_pairs: bool = False) -> Optional[Any]:
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:
@@ -1281,18 +1318,24 @@ def make_transformations(transform_params: Dict[str, Any]) -> Optional[Any]:
             returns a Transforms object. If multiple transforms are defined, a Compose object of Transform
             objects is returned
     """
-    # If no transforms are specified, return None.
-    if not transform_params:
-        return None
-
     transformations = []
+
+    if sample_pairs:
+        transformations.append(get_transform('PairCreate', {'module': 'Minerva.transforms'}))
+
+    # If no transforms are specified, return None.
+        if not transform_params:
+            if sample_pairs:
+                return transformations[0]
+            else:
+                return None
 
     # Get each transform.
     for name in transform_params:
-        transform = get_transform(name, transform_params[name])
+        transform = get_transform(name, transform_params[name], sample_pairs=sample_pairs)
 
         # If only one transform found, return.
-        if len(transform_params) == 1:
+        if len(transform_params) == 1 and not sample_pairs:
             return transform
 
         # If more than one transform found, append to list for composition.
@@ -1344,8 +1387,12 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
     for mode in ('train', 'val', 'test'):
         this_transform_params = transform_params[mode]
         if params['elim']:
-            this_transform_params['labels'] = {'ClassTransform': {'module': 'Minerva.transforms', 
-                                                                  'transform': forwards}}
+            if this_transform_params['labels'] is not Dict:
+                this_transform_params['labels'] = {'ClassTransform': {'module': 'Minerva.transforms', 
+                                                                      'transform': forwards}}
+            else:
+                this_transform_params['labels']['ClassTransform'] = {'module': 'Minerva.transforms', 
+                                                                     'transform': forwards}
 
         # Calculates number of batches.
         n_batches[mode] = int(sampler_params[mode]['params']['length'] / batch_size)
@@ -1354,7 +1401,8 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
         print(f'CREATING {mode} DATASET')
         loaders[mode] = construct_dataloader(params['dir']['data'], dataset_params[mode], sampler_params[mode],
                                              dataloader_params, collator_params=params['collator'],
-                                             transform_params=this_transform_params)
+                                             transform_params=this_transform_params, 
+                                             sample_pairs=params['sample_pairs'])
         print('DONE')
 
     # Transform class dist if elimination of classes has occurred.
