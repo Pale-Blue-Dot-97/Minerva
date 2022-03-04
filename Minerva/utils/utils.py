@@ -1204,7 +1204,7 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations = None
-        if transform_params is not None or sample_pairs:
+        if transform_params[key] or sample_pairs:
             transformations = make_transformations(transform_params[key], sample_pairs=sample_pairs)
 
         # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
@@ -1304,7 +1304,7 @@ def get_transform(name: str, params: Dict[str, Any], sample_pairs: bool = False)
     return transform(**params)
 
 
-def make_transformations(transform_params: Dict[str, Any], sample_pairs: bool = False) -> Optional[Any]:
+def make_transformations(transform_params: Union[Dict[str, Any], bool], sample_pairs: bool = False) -> Optional[Any]:
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:
