@@ -1,9 +1,36 @@
 import yaml
-import os, sys, getopt, shutil
-from typing import Tuple, Dict, Any
+import os, sys, getopt, shutil, ntpath
+from typing import Tuple, Dict, Any, List, Optional
 
+# Default values for the path to the config directory and config name.
 config_dir_path = '../../config/'
 default_config_name = 'config.yml'
+
+# Objects to hold the config name and path.
+config_name = None
+config_path = None
+
+
+def get_sys_args(flags: str, long_options: Optional[List[str]] = None) -> Optional[Tuple[List[Tuple[str, str]], 
+                                                                                   List[Tuple[str, ...]]]]:
+    """Get sys.argv and extract options and arguments."""
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], flags, long_options)
+        return opts, args
+    except getopt.GetoptError as err:
+        print(err)
+        sys.exit(2)
+
+
+def chdir_to_default(config_name: str = config_name) -> None:
+    this_abs_path = os.path.abspath(os.path.dirname(__file__))
+    os.chdir(os.sep.join((this_abs_path, config_dir_path)))
+
+    try:
+        if not os.path.exists(config_name):
+            config_name = default_config_name
+    except TypeError:
+        config_name = default_config_name
 
 
 def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
@@ -51,33 +78,53 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
     # Loads and returns the other configs along with master config.
     return master_config, aux_config_load(config_paths)
 
-# Get sys.argv and extract options and arguments.
-try:
-    opts, args = getopt.getopt(sys.argv[1:], "c:")
-except getopt.GetoptError as err:
-    print(err)
-    sys.exit(2)
+
+# Gets the sys.args formatted using flags and options.
+opts, args = get_sys_args("c:", ["default_config_dir"])
 
 # Set the config path from the option found from sys.argv.
-config_name = None
 for o, a in opts:
     if o == "-c":
-        config_name = a
+        head, tail = ntpath.split(a)
+        if head !=  "" or head is not None:
+            config_path = head
+        elif head == "" or head is None:
+            config_path = ""
+        config_name = tail
 
+# Overwrites the config path if option found in sys.args regardless of -c args.
+for o, a in opts:
+    if o == "--default_config_dir":
+        if config_path is not None:
+            print("Warning: Config path specified with `--default_config_dir` option." +
+                  "\nDefault config directory path will be used.")
+        config_path = None
+
+# Store the current working directory (i.e where script is being run from).
 cwd = os.getcwd()
-path = os.path.abspath(os.path.dirname(__file__))
 
-os.chdir(os.sep.join((path, config_dir_path)))
+# If no config_path, change directory to the default config directory.
+if config_path is None:
+    chdir_to_default(config_name)
 
-try:
-    if not os.path.exists(config_name):
-        config_name = default_config_name
-except TypeError:
-    config_name = default_config_name
+# Check the config specified exists at the path given. If not, assume its in the default directory.
+else:
+    try:
+        if not os.path.exists(os.sep.join((config_path, config_name))):
+            chdir_to_default(config_name)
+    except TypeError:
+        chdir_to_default(config_name)
 
+# Ensures there is a config.yml to act as default for testing on GitHub etc. 
 if not os.path.exists(default_config_name):
     shutil.copy("example_config.yml", default_config_name)
 
-config, aux_configs = load_configs(config_name)
+path = config_name
+if config_path is not None:
+    path = os.sep.join((config_path, config_name))
 
+# Loads the configs from file using paths found in sys.args.
+config, aux_configs = load_configs(path)
+
+# Change the working directory back to script location.
 os.chdir(cwd)
