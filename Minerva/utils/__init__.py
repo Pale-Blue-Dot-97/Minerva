@@ -3,7 +3,7 @@ import os, sys, getopt, shutil, ntpath
 from typing import Tuple, Dict, Any, List, Optional
 
 # Default values for the path to the config directory and config name.
-config_dir_path = '../../config/'
+config_dir_path = '../../inbuilt_cfgs/'
 default_config_name = 'config.yml'
 
 # Objects to hold the config name and path.
