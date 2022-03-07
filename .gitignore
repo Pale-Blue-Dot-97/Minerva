@@ -132,11 +132,10 @@ dmypy.json
 
 lightning_logs/
 data/*
-data/landcovernet/ESRI_Manifest.csv
-data/landcovernet/RE_Manifest.csv
 cache/*
+user_cfgs/*
 
-config/config.yml
-config/mf_config.yml
+inbuilt_cfgs/config.yml
+inbuilt_cfgs/mf_config.yml
+
 .vscode/settings.json
-config/new_config.yml
