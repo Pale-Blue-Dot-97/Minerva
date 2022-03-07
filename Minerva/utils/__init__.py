@@ -4,7 +4,7 @@ from typing import Tuple, Dict, Any, List, Optional
 
 # Default values for the path to the config directory and config name.
 config_dir_path = '../../inbuilt_cfgs/'
-default_config_name = 'config.yml'
+default_config_name = 'example_config.yml'
 
 # Objects to hold the config name and path.
 config_name = None
@@ -22,15 +22,15 @@ def get_sys_args(flags: str, long_options: Optional[List[str]] = None) -> Option
         sys.exit(2)
 
 
-def chdir_to_default(config_name: str = config_name) -> None:
+def chdir_to_default(config_name: str = config_name) -> str:
     this_abs_path = os.path.abspath(os.path.dirname(__file__))
     os.chdir(os.sep.join((this_abs_path, config_dir_path)))
 
     try:
         if not os.path.exists(config_name):
-            config_name = default_config_name
+            return default_config_name
     except TypeError:
-        config_name = default_config_name
+        return default_config_name
 
 
 def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
@@ -105,19 +105,15 @@ cwd = os.getcwd()
 
 # If no config_path, change directory to the default config directory.
 if config_path is None:
-    chdir_to_default(config_name)
+    config_name = chdir_to_default(config_name)
 
 # Check the config specified exists at the path given. If not, assume its in the default directory.
 else:
     try:
         if not os.path.exists(os.sep.join((config_path, config_name))):
-            chdir_to_default(config_name)
+            config_name = chdir_to_default(config_name)
     except TypeError:
-        chdir_to_default(config_name)
-
-# Ensures there is a config.yml to act as default for testing on GitHub etc. 
-if not os.path.exists(default_config_name):
-    shutil.copy("example_config.yml", default_config_name)
+        config_name = chdir_to_default(config_name)
 
 path = config_name
 if config_path is not None:
