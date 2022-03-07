@@ -52,12 +52,11 @@ initialising a Trainer and model, and fitting and testing that model then output
 
 ```python
 from Minerva.utils import utils, config             # Module containing various utility functions.
-from Minerva.utils.loaders import make_loaders      # Module to handle the creation of datasets and torch loaders.
 from Minerva.trainer import Trainer                 # Class designed to handle fitting of model.
 
 
 # Get the dataset loaders, number of batches, the distribution of classes and an updated config.
-datasets, n_batches, class_dist, new_config = make_loaders(**config)
+datasets, n_batches, class_dist, new_config = utils.make_loaders(**config)
 
 # Initialise a Trainer. Also creates the model.
 trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config)
