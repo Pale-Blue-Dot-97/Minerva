@@ -51,15 +51,10 @@ initialising a Trainer and model, and fitting and testing that model then output
 ### MWE Driver Script
 
 ```python
-from Minerva.utils import utils             # Module containing various utility functions
-from Minerva.utils.loaders import make_loaders    # Module to handle the creation of datasets and torch loaders
-from Minerva.trainer import Trainer         # Class designed to handle fitting of model
+from Minerva.utils import utils, config             # Module containing various utility functions.
+from Minerva.utils.loaders import make_loaders      # Module to handle the creation of datasets and torch loaders.
+from Minerva.trainer import Trainer                 # Class designed to handle fitting of model.
 
-# Specify the path to a YAML master config.
-config_path = "../../config/config.yml"
-
-# Loads the master config from file as a dict.
-config, _ = utils.load_configs(config_path)
 
 # Get the dataset loaders, number of batches, the distribution of classes and an updated config.
 datasets, n_batches, class_dist, new_config = make_loaders(**config)
@@ -78,7 +73,7 @@ See `Minerva\bin\MinervaExp.py` as an example script implementing `Minerva`.
 
 ### Config Structure
 
-See `config\example_config.yml` as an example config file.
+See `inbuilt_cfgs\example_config.yml` as an example config file.
 
 ### Creating a Manifest for your Dataset
 
