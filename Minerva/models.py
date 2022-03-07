@@ -976,6 +976,114 @@ class ResNet50(MinervaModel, ABC):
         return self.network(x)
 
 
+class ResNet101(MinervaModel, ABC):
+    """ResNet101 modified from source to have customisable number of input channels and to be used as a backbone
+            by stripping classification layers away.
+
+    Attributes:
+        network (ResNet): ResNet50 network.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
+            so that the residual branch starts with zeros, and each residual block behaves like an identity.
+        groups (int): Number of convolutions in grouped convolutions of Bottleneck Blocks.
+        width_per_group (int): Modifies the number of feature maps in convolutional layers of Bottleneck Blocks.
+        replace_stride_with_dilation (tuple): Optional; Each element in the tuple indicates whether to replace the
+            2x2 stride with a dilated convolution instead. Must be a three element tuple of bools.
+        norm_layer (function): Optional; Normalisation layer to use in each block. Typically torch.nn.BatchNorm2d.
+        encoder (bool): Optional; Whether to initialise the ResNet as an encoder or end-to-end classifier.
+            If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
+            If False, adds a global average pooling layer after the last block, flattens the output
+            and passes through a fully connected layer for classification output.
+    """
+
+    def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
+        super(ResNet101, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
+
+        self.network = ResNet(Bottleneck, [3, 4, 23, 3], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
+                              replace_stride_with_dilation=replace_stride_with_dilation,
+                              norm_layer=norm_layer, encoder=encoder)
+
+    def forward(self, x: torch.FloatTensor) -> Union[
+            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Performs a forward pass of the ResNet.
+
+        Overwrites MinervaModel abstract method.
+
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+
+        Args:
+            x (torch.Tensor): Input data to network.
+
+        Returns:
+            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+                of the likelihoods the network places on the input 'x' being of each class.
+        """
+        return self.network(x)
+
+
+class ResNet152(MinervaModel, ABC):
+    """ResNet152 modified from source to have customisable number of input channels and to be used as a backbone
+            by stripping classification layers away.
+
+    Attributes:
+        network (ResNet): ResNet50 network.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
+            so that the residual branch starts with zeros, and each residual block behaves like an identity.
+        groups (int): Number of convolutions in grouped convolutions of Bottleneck Blocks.
+        width_per_group (int): Modifies the number of feature maps in convolutional layers of Bottleneck Blocks.
+        replace_stride_with_dilation (tuple): Optional; Each element in the tuple indicates whether to replace the
+            2x2 stride with a dilated convolution instead. Must be a three element tuple of bools.
+        norm_layer (function): Optional; Normalisation layer to use in each block. Typically torch.nn.BatchNorm2d.
+        encoder (bool): Optional; Whether to initialise the ResNet as an encoder or end-to-end classifier.
+            If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
+            If False, adds a global average pooling layer after the last block, flattens the output
+            and passes through a fully connected layer for classification output.
+    """
+
+    def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
+                 replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
+        super(ResNet152, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
+
+        self.network = ResNet(Bottleneck, [3, 8, 36, 3], in_channels=input_size[0], n_classes=n_classes,
+                              zero_init_residual=zero_init_residual, groups=groups, width_per_group=width_per_group,
+                              replace_stride_with_dilation=replace_stride_with_dilation,
+                              norm_layer=norm_layer, encoder=encoder)
+
+    def forward(self, x: torch.FloatTensor) -> Union[
+            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """Performs a forward pass of the ResNet.
+
+        Overwrites MinervaModel abstract method.
+
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+
+        Args:
+            x (torch.Tensor): Input data to network.
+
+        Returns:
+            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+                of the likelihoods the network places on the input 'x' being of each class.
+        """
+        return self.network(x)
+
+
 class _FCN(MinervaModel, ABC):
     """Base Fully Convolutional Network (FCN) class to be subclassed by FCN variants described in the FCN paper.
 
@@ -1253,6 +1361,42 @@ class FCN8ResNet50(_FCN):
                  n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN8ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone_name='ResNet50', decoder_variant='8',
+                                           backbone_kwargs=resnet_kwargs)
+
+
+class FCN8ResNet101(_FCN):
+    """Fully Convolutional Network (FCN) using a ResNet101 backbone with a DCN8 decoder.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
+        super(FCN8ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                           backbone_name='ResNet101', decoder_variant='8',
+                                           backbone_kwargs=resnet_kwargs)
+
+
+class FCN8ResNet152(_FCN):
+    """Fully Convolutional Network (FCN) using a ResNet152 backbone with a DCN8 decoder.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 n_classes: int = 8, **resnet_kwargs) -> None:
+        super(FCN8ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+                                           backbone_name='ResNet152', decoder_variant='8',
                                            backbone_kwargs=resnet_kwargs)
 
 
