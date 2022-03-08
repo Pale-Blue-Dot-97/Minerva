@@ -80,7 +80,7 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
 
 
 # Gets the sys.args formatted using flags and options.
-opts, args = get_sys_args("c:", ["default_config_dir", "basetemp"])
+opts, args = get_sys_args("c:", ["default_config_dir", "basetemp="])
 
 # Set the config path from the option found from sys.argv.
 for o, a in opts:
