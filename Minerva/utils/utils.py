@@ -1430,7 +1430,7 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
     batch_size = dataloader_params['batch_size']
 
     # Load manifest from cache for this dataset.
-    manifest = pd.read_csv(get_manifest())
+    manifest = get_manifest(get_manifest_path())
     class_dist = subpopulations_from_manifest(manifest)
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
