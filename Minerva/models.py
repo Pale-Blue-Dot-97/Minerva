@@ -1377,7 +1377,7 @@ class FCN8ResNet101(_FCN):
 
     def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, **resnet_kwargs) -> None:
-        super(FCN8ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+        super(FCN8ResNet101, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone_name='ResNet101', decoder_variant='8',
                                            backbone_kwargs=resnet_kwargs)
 
@@ -1395,7 +1395,7 @@ class FCN8ResNet152(_FCN):
 
     def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, **resnet_kwargs) -> None:
-        super(FCN8ResNet50, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
+        super(FCN8ResNet152, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone_name='ResNet152', decoder_variant='8',
                                            backbone_kwargs=resnet_kwargs)
 
