@@ -45,7 +45,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import sys
+# ---+ Typing +--------------------------------------------------------------------------------------------------------
 from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, Sequence, Match
 from collections import Counter, OrderedDict
 try:
@@ -53,12 +53,21 @@ try:
 except ModuleNotFoundError:
     NDArray, ArrayLike = Sequence, Sequence
     DTypeLike = Any
-import functools
+
+# ---+ Minerva +-------------------------------------------------------------------------------------------------------
 from Minerva.utils import config, aux_configs, visutils
+
+# ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
+import sys 
 import os
-import psutil
 import math
+import ntpath
 import importlib
+import functools
+import subprocess
+
+# ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
+import psutil
 import webbrowser
 import re as regex
 import numpy as np
@@ -224,21 +233,69 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     Returns:
         Name of dataset as string.
     """
+    data_config_fn = ntpath.basename(data_config_path)
     try:
-        match: Optional[Match[str]] = regex.search(r'(.*?)\.yml', data_config_path)
+        match: Optional[Match[str]] = regex.search(r'(.*?)\.yml', data_config_fn)
         return match.group(1)
     except AttributeError:
         print('\nDataset not found!')
         return None
 
 
-def get_manifest() -> str:
+def get_manifest_path() -> str:
     """Gets the path to the manifest for the dataset to be used.
 
     Returns:
         Path to manifest as string.
     """
     return os.sep.join([cache_dir, f'{get_dataset_name()}_Manifest.csv'])
+
+
+def get_manifest(manifest_path: str) -> pd.DataFrame:
+    try:
+        return pd.read_csv(manifest_path)
+    except FileNotFoundError as err:
+        print(err)
+
+        print('CONSTRUCTING MISSING MANIFEST')
+        manifest = make_manifest()
+
+        print(f'MANIFEST TO FILE -----> {manifest_path}')
+        manifest.to_csv(manifest_path)
+
+        return manifest
+
+
+def make_manifest(mf_config: Dict[Any, Any] = config) -> pd.DataFrame:
+    """Constructs a manifest of the dataset detailing each sample therein.
+
+    The dataset to construct a manifest of is defined by the 'data_config' value in the config.
+
+    Returns:
+        df (pd.DataFrame): The completed manifest as a DataFrame.
+    """
+    dataloader_params = mf_config['dataloader_params']
+    dataset_params = mf_config['dataset_params']
+    sampler_params = mf_config['sampler_params']
+    collator_params = mf_config['collator']
+
+    print('CONSTRUCTING DATASET')
+    loader = construct_dataloader(mf_config['dir']['data'], dataset_params, sampler_params,
+                                  dataloader_params, collator_params=collator_params)
+
+    print('FETCHING SAMPLES')
+    df = pd.DataFrame()
+    df['MODES'] = load_all_samples(loader)
+
+    print('CALCULATING CLASS FRACTIONS')
+    # Calculates the fractional size of each class in each patch.
+    df = pd.DataFrame([row for row in df.apply(class_frac, axis=1)])
+    df.fillna(0, inplace=True)
+
+    # Delete redundant MODES column.
+    del df['MODES']
+
+    return df
 
 
 def load_array(path: str, band: int):

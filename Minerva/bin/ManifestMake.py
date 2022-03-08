@@ -35,62 +35,20 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import utils
+from Minerva.utils import utils, config
 import pandas as pd
 import os
-
-# =====================================================================================================================
-#                                                     GLOBALS
-# =====================================================================================================================
-config_path = '../../config/mf_config.yml'
-
-config, _ = utils.load_configs(config_path)
-
-
-# =====================================================================================================================
-#                                                     METHODS
-# =====================================================================================================================
-def make_manifest() -> pd.DataFrame:
-    """Constructs a manifest of the dataset detailing each sample therein.
-
-    The dataset to construct a manifest of is defined by the 'data_config' value in the config.
-
-    Returns:
-        df (pd.DataFrame): The completed manifest as a DataFrame.
-    """
-    dataloader_params = config['dataloader_params']
-    dataset_params = config['dataset_params']
-    sampler_params = config['sampler_params']
-    collator_params = config['collator']
-
-    print('CONSTRUCTING DATASET')
-    loader = utils.construct_dataloader(config['dir']['data'], dataset_params, sampler_params,
-                                        dataloader_params, collator_params=collator_params)
-
-    print('FETCHING SAMPLES')
-    df = pd.DataFrame()
-    df['MODES'] = utils.load_all_samples(loader)
-
-    print('CALCULATING CLASS FRACTIONS')
-    # Calculates the fractional size of each class in each patch.
-    df = pd.DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
-    df.fillna(0, inplace=True)
-
-    # Delete redundant MODES column.
-    del df['MODES']
-
-    return df
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    manifest = make_manifest()
+    manifest = utils.make_manifest()
 
     print(manifest)
 
-    output_dir = os.sep.join(config['dir']['output'])
+    output_dir = os.sep.join(config['dir']['cache'])
 
     fn = os.sep.join([output_dir, f'{utils.get_dataset_name()}_Manifest.csv'])
 

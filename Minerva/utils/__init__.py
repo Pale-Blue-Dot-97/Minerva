@@ -1,5 +1,5 @@
 import yaml
-import os, sys, getopt, shutil, ntpath
+import os, sys, getopt, ntpath
 from typing import Tuple, Dict, Any, List, Optional
 
 # Default values for the path to the config directory and config name.
