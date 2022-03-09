@@ -1204,6 +1204,14 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
     return fpr, tpr, roc_auc
 
 
+def find_geo_similar(bbox: BoundingBox, r: int = 256) -> BoundingBox:
+    """Find an image that is less than or equal to the geo-spatial distance `r` from the intial image.
+    
+    Based on the the work of GeoCLR https://arxiv.org/abs/2108.06421v1.
+    """
+    pass
+
+
 def intersect_datasets(datasets: List[GeoDataset], sample_pairs: bool = False) -> IntersectionDataset:
     """
 
