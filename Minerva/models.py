@@ -208,13 +208,17 @@ class MLP(MinervaModel, ABC):
             within the network. Also determines the number of layers other than the required input and output layers.
     """
 
-    def __init__(self, criterion: Any, input_size: int = 288, n_classes: int = 8,
-                 hidden_sizes: Union[Tuple[int, ...], List[int]] = (256, 144)) -> None:
+    def __init__(self, criterion: Optional[Any] = None, input_size: int = 288, n_classes: int = 8,
+                 hidden_sizes: Union[Tuple[int, ...], List[int], int] = (256, 144)) -> None:
         super(MLP, self).__init__(criterion=criterion)
 
         self.input_size = input_size
         self.output_size = n_classes
+
+        if hidden_sizes is int:
+            hidden_sizes = (hidden_sizes)
         self.hidden_sizes = hidden_sizes
+
         self._layers = OrderedDict()
 
         # Constructs layers of the network based on the input size, the hidden sizes and the number of classes.
@@ -222,14 +226,14 @@ class MLP(MinervaModel, ABC):
             if i == 0:
                 self._layers['Linear-0'] = torch.nn.Linear(input_size, hidden_sizes[i])
             elif i > 0:
-                self._layers['Linear-{}'.format(i)] = torch.nn.Linear(hidden_sizes[i - 1], hidden_sizes[i])
+                self._layers[f'Linear-{i}'] = torch.nn.Linear(hidden_sizes[i - 1], hidden_sizes[i])
             else:
-                print('EXCEPTION on Layer {}'.format(i))
+                print(f'EXCEPTION on Layer {i}')
 
-            # Adds ReLu activation after every linear layer
-            self._layers['ReLu-{}'.format(i)] = torch.nn.ReLU()
+            # Adds ReLu activation after every linear layer.
+            self._layers[f'ReLu-{i}'] = torch.nn.ReLU()
 
-        # Adds the final classification layer
+        # Adds the final classification layer.
         self._layers['Classification'] = torch.nn.Linear(hidden_sizes[-1], n_classes)
 
         # Constructs network from the OrderedDict of layers
@@ -1118,7 +1122,7 @@ class _FCN(MinervaModel, ABC):
         self.backbone = globals()[backbone_name](input_size=input_size, n_classes=n_classes, encoder=True,
                                                  **backbone_kwargs)
         self.backbone.determine_output_dim()
-
+ 
         if decoder_name == 'DCN':
             self.decoder = DCN(in_channel=self.backbone.output_shape[0], n_classes=n_classes, variant=decoder_variant)
         if decoder_name == 'Decoder':
@@ -1398,6 +1402,52 @@ class FCN8ResNet152(_FCN):
         super(FCN8ResNet152, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
                                            backbone_name='ResNet152', decoder_variant='8',
                                            backbone_kwargs=resnet_kwargs)
+
+
+class _SimCLR(MinervaModel, ABC):
+    """Base SimCLR class to be subclassed by SimCLR variants.
+
+    Subclasses MinervaModel.
+
+    Attributes:
+        backbone (torch.nn.Module): Backbone of the FCN that takes the imagery input and
+            extracts learned representations.
+        ph (torch.nn.Module): Projection head that takes the learned representations from the backbone encoder
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
+        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int], List[int]] = (12, 256, 256), feature_dim: int = 128,
+                 backbone_name: str = 'ResNet18', backbone_kwargs: Optional[Dict[str, Any]] = None) -> None:
+
+        super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
+
+        self.backbone = globals()[backbone_name](input_size=input_size, encoder=True, **backbone_kwargs)
+        
+        self.backbone.determine_output_dim()
+
+        self.proj_head = torch.nn.Sequential(torch.nn.Linear(self.backbone.output_shape[0], 512, bias=False), 
+                                             torch.nn.BatchNorm1d(512),
+                                             torch.nn.ReLU(inplace=True), 
+                                             torch.nn.Linear(512, feature_dim, bias=True))
+
+    def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
+        """Performs a forward pass of GeoCLR by using the forward methods of the backbone and
+        feeding its output into the projection heads.
+
+        Overwrites MinervaModel abstract method.
+
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        """
+        z = self.backbone(x)
+
+        return self.proj_head(z)
 
 
 # =====================================================================================================================
