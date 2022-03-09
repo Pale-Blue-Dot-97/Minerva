@@ -1382,8 +1382,8 @@ class FCN8ResNet101(_FCN):
     def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN8ResNet101, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
-                                           backbone_name='ResNet101', decoder_variant='8',
-                                           backbone_kwargs=resnet_kwargs)
+                                            backbone_name='ResNet101', decoder_variant='8',
+                                            backbone_kwargs=resnet_kwargs)
 
 
 class FCN8ResNet152(_FCN):
@@ -1400,8 +1400,8 @@ class FCN8ResNet152(_FCN):
     def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, **resnet_kwargs) -> None:
         super(FCN8ResNet152, self).__init__(criterion=criterion, input_size=input_size, n_classes=n_classes,
-                                           backbone_name='ResNet152', decoder_variant='8',
-                                           backbone_kwargs=resnet_kwargs)
+                                            backbone_name='ResNet152', decoder_variant='8',
+                                            backbone_kwargs=resnet_kwargs)
 
 
 class _SimCLR(MinervaModel, ABC):
@@ -1412,19 +1412,19 @@ class _SimCLR(MinervaModel, ABC):
     Attributes:
         backbone (torch.nn.Module): Backbone of the FCN that takes the imagery input and
             extracts learned representations.
-        ph (torch.nn.Module): Projection head that takes the learned representations from the backbone encoder
+        proj_head (torch.nn.Module): Projection head that takes the learned representations from the backbone encoder
 
     Args:
         criterion: PyTorch loss function model will use.
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
         backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
         backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
-    def __init__(self, criterion: Any, input_size: Union[Tuple[int], List[int]] = (12, 256, 256), feature_dim: int = 128,
-                 backbone_name: str = 'ResNet18', backbone_kwargs: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int], List[int]] = (12, 256, 256),
+                 feature_dim: int = 128, backbone_name: str = 'ResNet18',
+                 backbone_kwargs: Optional[Dict[str, Any]] = None) -> None:
 
         super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
 
@@ -1450,6 +1450,22 @@ class _SimCLR(MinervaModel, ABC):
         features = torch.flatten(x, start_dim=1)
 
         return self.proj_head(features)
+
+
+class SimCLR18(_SimCLR):
+    """SimCLR network using a ResNet18 backbone.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 feature_dim: int = 128, **resnet_kwargs) -> None:
+        super(SimCLR18, self).__init__(criterion=criterion, input_size=input_size, feature_dim=feature_dim,
+                                       backbone_name='ResNet18', backbone_kwargs=resnet_kwargs)
 
 
 # =====================================================================================================================
