@@ -1445,9 +1445,11 @@ class _SimCLR(MinervaModel, ABC):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        z = self.backbone(x)
+        x = self.backbone(x)
 
-        return self.proj_head(z)
+        features = torch.flatten(x, start_dim=1)
+
+        return self.proj_head(features)
 
 
 # =====================================================================================================================
