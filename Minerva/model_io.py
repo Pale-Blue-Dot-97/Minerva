@@ -25,12 +25,40 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 TODO:
+    * Add a self-supervised IO.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Tuple
+import numpy as np
+import torch
 
 
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def sup_tg(sample, model, device, mode: str):
+    x_batch = sample['image']
+    y_batch = sample['mask']
+
+    x_batch = x_batch.to(torch.float)
+    y_batch = np.squeeze(y_batch, axis=1)
+    y_batch = y_batch.type(torch.long)
+
+    # Transfer to GPU.
+    x, y = x_batch.to(device), y_batch.to(device)
+
+    # Runs a training epoch.
+    if mode == 'train':
+        loss, z = model.training_step(x, y)
+
+    # Runs a validation epoch.
+    elif mode == 'val':
+        loss, z = model.validation_step(x, y)
+
+    # Runs a testing epoch.
+    elif mode == 'test':
+        loss, z = model.testing_step(x, y)
+    
+    return loss, z, y, sample['bbox']
