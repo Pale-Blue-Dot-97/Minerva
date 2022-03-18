@@ -32,7 +32,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Optional, Tuple, List, Dict, Iterable
+from typing import Optional, Tuple, List, Dict, Iterable, Any
 try:
     from numpy.typing import ArrayLike
 except ModuleNotFoundError or ImportError:
@@ -40,11 +40,13 @@ except ModuleNotFoundError or ImportError:
 import os
 import yaml
 from Minerva.utils import visutils, utils
+from Minerva.logger import STGLogger
+from Minerva.model_io import sup_tg
+from Minerva.metrics import SPMetrics
 import torch
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
-import numpy as np
 import pandas as pd
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
@@ -116,24 +118,15 @@ class Trainer:
         self.max_epochs = params['hyperparams']['max_epochs']
         self.loaders = loaders
         self.n_batches = n_batches
-        self.data_size = params['hyperparams']['model_params']['input_size']
 
+        self.metric_logger = SPMetrics(n_batches, batch_size=self.batch_size, 
+                                       data_size=params['hyperparams']['model_params']['input_size'])
+        
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
         self.step_num = {
             'train': 0,
             'val': 0,
             'test': 0
-        }
-
-        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics = {
-            'train_loss': {'x': [], 'y': []},
-            'val_loss': {'x': [], 'y': []},
-            'test_loss': {'x': [], 'y': []},
-
-            'train_acc': {'x': [], 'y': []},
-            'val_acc': {'x': [], 'y': []},
-            'test_acc': {'x': [], 'y': []}
         }
 
         # Initialise TensorBoard logger
@@ -200,9 +193,7 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
-    def epoch(self, mode: str, record_int: bool = False,
-              record_float: bool = False) -> Optional[Tuple[np.ndarray, np.ndarray, List[List[str]],
-                                                            np.ndarray, np.ndarray]]:
+    def epoch(self, mode: str, record_int: bool = False, record_float: bool = False) -> Dict[str, Any]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -214,34 +205,9 @@ class Trainer:
         Returns:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
         """
-        # Initialises variables to hold overall epoch results.
-        total_loss = 0.0
-        total_correct = 0.0
-
-        labels = None
-        predictions = None
-        probs = None
-        ids = []
-        bounds = None
-
-        n_samples = self.n_batches[mode] * self.batch_size
-
-        if record_int:
-            labels = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.uint8)
-            predictions = np.empty((self.n_batches[mode], self.batch_size, *self.model.output_shape), dtype=np.uint8)
-
-        if record_float:
-            try:
-                probs = np.empty((self.n_batches[mode], self.batch_size, self.model.n_classes,
-                                  *self.model.output_shape), dtype=np.float16)
-            except MemoryError:
-                print('Dataset too large to record probabilities of predicted classes!')
-
-            try:
-                bounds = np.empty((self.n_batches[mode], self.batch_size), dtype=object)
-            except MemoryError:
-                print('Dataset too large to record bounding boxes of samples!')
-
+        epoch_logger = STGLogger(self.n_batches, self.batch_size, self.model.output_shape, self.model.n_classes, 
+                                 record_int=record_int, record_float=record_float)
+        
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
             # Sets the model up for training or evaluation modes
@@ -250,83 +216,23 @@ class Trainer:
             else:
                 self.model.eval()
 
-            batch_num = 0
-
             # Core of the epoch.
             for sample in self.loaders[mode]:
-                x_batch = sample['image'] / self.max_pixel_value
-                y_batch = sample['mask']
-
-                x_batch = x_batch.to(torch.float)
-                y_batch = np.squeeze(y_batch, axis=1)
-                y_batch = y_batch.type(torch.long)
-
-                # Transfer to GPU.
-                x, y = x_batch.to(self.device), y_batch.to(self.device)
-
-                # Runs a training epoch.
-                if mode == 'train':
-                    loss, z = self.model.training_step(x, y)
-
-                # Runs a validation epoch.
-                elif mode == 'val':
-                    loss, z = self.model.validation_step(x, y)
-
-                # Runs a testing epoch.
-                elif mode == 'test':
-                    loss, z = self.model.testing_step(x, y)
-
-                if record_int:
-                    # Arg max the estimated probabilities and add to predictions.
-                    predictions[batch_num] = torch.argmax(z, 1).cpu().numpy()
-
-                    # Add the labels and sample IDs to lists.
-                    labels[batch_num] = y.cpu().numpy()
-                    batch_ids = []
-                    for i in range(batch_num * self.batch_size, (batch_num + 1) * self.batch_size):
-                        batch_ids.append(str(i).zfill(len(str(n_samples))))
-                    ids.append(batch_ids)
-
-                if record_float:
-                    # Add the estimated probabilities to probs.
-                    probs[batch_num] = z.detach().cpu().numpy()
-                    bounds[batch_num] = sample['bbox']
+                results = sup_tg(sample, self.model, self.device, mode)
+                epoch_logger.log(*results, mode, self.step_num[mode], self.writer)
 
                 self.step_num[mode] += 1
-
-                ls = loss.item()
-                correct = (torch.argmax(z, 1) == y).sum().item()
-
-                total_loss += ls
-                total_correct += correct
-
-                self.writer.add_scalar(tag='{}_loss'.format(mode), scalar_value=ls,
-                                       global_step=self.step_num[mode])
-                self.writer.add_scalar(tag='{}_acc'.format(mode),
-                                       scalar_value=correct / len(torch.flatten(y_batch)),
-                                       global_step=self.step_num[mode])
-
-                batch_num += 1
-
+                
                 # Updates progress bar that sample has been processed.
                 bar()
 
         # Updates metrics with epoch results.
-        self.metrics['{}_loss'.format(mode)]['y'].append(total_loss / self.n_batches[mode])
-
-        if self.params['model_type'] == 'segmentation':
-            self.metrics['{}_acc'.format(mode)]['y'].append(total_correct / (self.n_batches[mode] * self.batch_size *
-                                                                             self.data_size[1] * self.data_size[2]))
-        else:
-            self.metrics['{}_acc'.format(mode)]['y'].append(total_correct / (self.n_batches[mode] * self.batch_size))
+        self.metric_logger.calc_metrics((epoch_logger.get_logs()))
 
         if self.params['calc_norm']:
             _ = utils.calc_grad(self.model)
 
-        if record_int:
-            return predictions, labels, ids, probs, bounds
-        else:
-            return
+        return epoch_logger.get_logs()
 
     def fit(self) -> None:
         """Fits the model by running max_epochs number of training and validation epochs."""
@@ -338,7 +244,10 @@ class Trainer:
 
                 # Special case for final train/ val epoch to plot results if configured so.
                 if epoch == (self.max_epochs - 1) and self.params['plot_last_epoch']:
-                    predictions, labels, ids, _, _ = self.epoch(mode, record_int=True)
+                    logs = self.epoch(mode, record_int=True)
+                    predictions = logs['predictions'] 
+                    labels = logs['labels']
+                    ids = logs['ids']
 
                     # Ensures that the model history will not be plotted.
                     # That should be done with the plotting of test results.
@@ -368,13 +277,10 @@ class Trainer:
                     self.epoch(mode)
 
                 # Add epoch number to training metrics.
-                self.metrics['{}_loss'.format(mode)]['x'].append(epoch + 1)
-                self.metrics['{}_acc'.format(mode)]['x'].append(epoch + 1)
+                self.metric_logger.log_epoch_number(mode, epoch)
 
                 # Print training epoch results.
-                print('{} | Loss: {} | Accuracy: {}% \n'.format(mode, self.metrics['{}_loss'.format(mode)]['y'][epoch],
-                                                                self.metrics['{}_acc'.format(mode)]['y'][epoch]
-                                                                * 100.0))
+                self.metric_logger.print_epoch_results(mode, epoch)
 
     def test(self, save: bool = True, show: bool = False) -> None:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
@@ -394,15 +300,18 @@ class Trainer:
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        predictions, labels, test_ids, probabilities, bounds = self.epoch('test', record_int=True, record_float=True)
+        logs = self.epoch('test', record_int=True, record_float=True)
+        predictions = logs['predictions'] 
+        labels = logs['labels']
+        test_ids = logs['ids'] 
+        probabilities = logs['probs']
+        bounds = logs['bounds']
 
         # Prints test loss and accuracy to stdout.
-        print('Test | Loss: {} | Accuracy: {}% \n'.format(self.metrics['test_loss']['y'][0],
-                                                          self.metrics['test_acc']['y'][0] * 100.0))
+        self.metric_logger.print_epoch_results('test', 0)
 
         # Add epoch number to testing results.
-        self.metrics['{}_loss'.format('test')]['x'].append(1)
-        self.metrics['{}_acc'.format('test')]['x'].append(1)
+        self.metric_logger.log_epoch_number('test', 0)
 
         # Now experiment is complete, saves model parameters and config file to disk in case error is
         # encountered in plotting of results.
