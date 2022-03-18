@@ -92,12 +92,6 @@ plt.rcParams['savefig.dpi'] = 300
 # Removes margin in x-axis of plots.
 plt.rcParams['axes.xmargin'] = 0
 
-# Ensures that the QT library is used as the backend on Iridis rather than TKinter.
-try:
-    matplotlib.use('Qt5Agg')
-except ImportError:
-    pass
-
 # Filters out all TensorFlow messages other than errors.
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -955,6 +949,13 @@ def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: U
     Returns:
         None
     """
+    if not show:
+        # Ensures that there is no attempt to display figures incase no display is present.
+        try:
+            matplotlib.use('agg')
+        except ImportError:
+            pass
+
     flat_z = utils.batch_flatten(z)
     flat_y = utils.batch_flatten(y)
 
