@@ -1,0 +1,74 @@
+"""Module to calculate the metrics of a model's fitting.
+
+    Copyright (C) 2022 Harry James Baker
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program in LICENSE.txt. If not,
+    see <https://www.gnu.org/licenses/>.
+
+Author: Harry James Baker
+
+Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
+
+Institution: University of Southampton
+
+Created under a project funded by the Ordnance Survey Ltd.
+
+TODO:
+"""
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+from typing import Dict, Any
+
+
+# =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class SPMetrics():
+    def __init__(self, n_batches, batch_size, data_size) -> None:
+        self.n_batches = n_batches
+        self.batch_size = batch_size
+        self.data_size = data_size
+
+        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
+        self.metrics = {
+            'train_loss': {'x': [], 'y': []},
+            'val_loss': {'x': [], 'y': []},
+            'test_loss': {'x': [], 'y': []},
+
+            'train_acc': {'x': [], 'y': []},
+            'val_acc': {'x': [], 'y': []},
+            'test_acc': {'x': [], 'y': []}
+        }
+    
+    def calc_metrics(self, mode: str, logs, **params) -> None:
+        # Updates metrics with epoch results.
+        self.metrics[f'{mode}_loss']['y'].append(logs['total_loss'] / self.n_batches[mode])
+
+        if params['model_type'] == 'segmentation':
+            self.metrics[f'{mode}_acc']['y'].append(logs['total_correct'] / (self.n_batches[mode] * self.batch_size *
+                                                                             self.data_size[1] * self.data_size[2]))
+        else:
+            self.metrics[f'{mode}_acc']['y'].append(logs['total_correct'] / (self.n_batches[mode] * self.batch_size))
+    
+    def log_epoch_number(self, mode: str, epoch_no: int) -> None:
+        self.metrics[f'{mode}_loss']['x'].append(epoch_no + 1)
+        self.metrics[f'{mode}_acc']['x'].append(epoch_no + 1)
+
+    def get_metrics(self) -> Dict[str, Any]:
+        return self.metrics
+
+    def print_epoch_results(self, mode: str, epoch_no: int) -> None:
+        print('{} | Loss: {} | Accuracy: {}% \n'.format(mode, self.metrics[f'{mode}_loss']['y'][epoch_no],
+                                                        self.metrics[f'{mode}_acc']['y'][epoch_no] * 100.0))
