@@ -31,6 +31,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Union, Optional, Tuple, List, Callable, Type, Any, Dict
+from torch import Tensor, FloatTensor, LongTensor
 import abc
 from Minerva.utils import utils
 import torch
@@ -94,23 +95,23 @@ class MinervaModel(torch.nn.Module, ABC):
         self.output_shape = get_output_shape(self, self.input_shape)
 
     @abc.abstractmethod
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
+    def forward(self, x: FloatTensor) -> Tensor:
         """Abstract method for performing a forward pass. Needs implementing!
 
         Args:
-            x (torch.FloatTensor): Input data to network.
+            x (FloatTensor): Input data to network.
 
         Returns:
-            torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
+            Tensor of the likelihoods the network places on the input 'x' being of each class.
         """
         return x
 
-    def step(self, x: torch.FloatTensor, y: torch.LongTensor, train: bool) -> Tuple[Any, torch.Tensor]:
+    def step(self, x: FloatTensor, y: Union[LongTensor, FloatTensor], train: bool) -> Tuple[Any, Tensor]:
         """Generic step of model fitting using a batch of data.
 
         Args:
-            x (torch.FloatTensor): Batch of input data to network.
-            y (torch.LongTensor): Batch of ground truth labels for the input data.
+            x (FloatTensor): Batch of input data to network.
+            y (LongTensor or FloatTensor): Batch of ground truth labels for the input data.
             train (bool): Sets whether this shall be a training step or not. True for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
                 If False for a validation or testing step, these actions are not taken.
@@ -136,15 +137,15 @@ class MinervaModel(torch.nn.Module, ABC):
 
         return loss, z
 
-    def training_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple[Any, torch.Tensor]:
+    def training_step(self, x: FloatTensor, y: LongTensor) -> Tuple[Any, Tensor]:
         """Calls step with train=True to perform a training step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
         Hence the resulting `boilerplate' of this method and validation_step and testing_step.
 
         Args:
-            x (torch.FloatTensor): Batch of input data to network.
-            y (torch.LongTensor): Batch of ground truth labels for the input data.
+            x (FloatTensor): Batch of input data to network.
+            y (LongTensor): Batch of ground truth labels for the input data.
 
         Returns:
             loss: Loss computed by the loss function.
@@ -152,15 +153,15 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         return self.step(x, y, True)
 
-    def validation_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple[Any, torch.Tensor]:
+    def validation_step(self, x: FloatTensor, y: LongTensor) -> Tuple[Any, Tensor]:
         """Calls step with train=False to perform a validation step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
         Hence the resulting `boilerplate' of this method and training_step and testing_step.
 
         Args:
-            x (torch.FloatTensor): Batch of input data to network.
-            y (torch.LongTensor): Batch of ground truth labels for the input data.
+            x (FloatTensor): Batch of input data to network.
+            y (LongTensor): Batch of ground truth labels for the input data.
 
         Returns:
             loss: Loss computed by the loss function.
@@ -168,15 +169,15 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         return self.step(x, y, False)
 
-    def testing_step(self, x: torch.FloatTensor, y: torch.LongTensor) -> Tuple[Any, torch.Tensor]:
+    def testing_step(self, x: FloatTensor, y: LongTensor) -> Tuple[Any, Tensor]:
         """Calls step with train=False to perform a testing step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
         Hence the resulting `boilerplate' of this method and validation_step and training_step.
 
         Args:
-            x (torch.FloatTensor): Batch of input data to network.
-            y (torch.LongTensor): Batch of ground truth labels for the input data.
+            x (FloatTensor): Batch of input data to network.
+            y (LongTensor): Batch of ground truth labels for the input data.
 
         Returns:
             loss: Loss computed by the loss function.
@@ -239,16 +240,16 @@ class MLP(MinervaModel, ABC):
         # Constructs network from the OrderedDict of layers
         self.network = torch.nn.Sequential(self._layers)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the network.
 
         Can be called directly as a method of MLP (e.g. model.forward()) or when data is parsed to MLP (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
-            torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
+            Tensor of the likelihoods the network places on the input 'x' being of each class.
         """
         return self.network(x)
 
@@ -351,16 +352,16 @@ class CNN(MinervaModel, ABC):
         # Create fully connected network.
         self.fc_net = torch.nn.Sequential(self._fc_layers)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the convolutional network and then the fully connected network.
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
-            torch.Tensor of the likelihoods the network places on the input 'x' being of each class.
+            Tensor of the likelihoods the network places on the input 'x' being of each class.
         """
         # Inputs the data into the convolutional network.
         conv_out = self.conv_net(x)
@@ -536,18 +537,16 @@ class ResNet(MinervaModel, ABC):
 
         return torch.nn.Sequential(*layers)
 
-    def _forward_impl(self, x: torch.Tensor
-                      ) -> Union[torch.Tensor,
-                                 Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def _forward_impl(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        x0: torch.Tensor = self.maxpool(x)
+        x0: Tensor = self.maxpool(x)
 
-        x1: torch.Tensor = self.layer1(x0)
-        x2: torch.Tensor = self.layer2(x1)
-        x3: torch.Tensor = self.layer3(x2)
-        x4: torch.Tensor = self.layer4(x3)
+        x1: Tensor = self.layer1(x0)
+        x2: Tensor = self.layer2(x1)
+        x3: Tensor = self.layer3(x2)
+        x4: Tensor = self.layer4(x3)
 
         if self.encoder_on:
             return x4, x3, x2, x1, x0
@@ -559,8 +558,7 @@ class ResNet(MinervaModel, ABC):
 
             return x5
 
-    def forward(self, x: torch.Tensor
-                ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def forward(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the ResNet.
 
         Overwrites MinervaModel abstract method.
@@ -568,10 +566,10 @@ class ResNet(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
                 of the likelihoods the network places on the input 'x' being of each class.
         """
         return self._forward_impl(x)
@@ -644,7 +642,7 @@ class Decoder(MinervaModel, ABC):
         # Up-sampling operation to take output from de-convolutions and match to input size of image.
         self.upsample2 = torch.nn.Upsample(size=self.image_size)
 
-    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
+    def _forward_impl(self, x: Tensor) -> Tensor:
         # First block of fully connected layer batch norm and ReLU.
         x = self.relu(x)
         x = self.fc3(x)
@@ -678,7 +676,7 @@ class Decoder(MinervaModel, ABC):
 
         return x
 
-    def forward(self, x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
         """Performs a forward pass of the decoder.
 
         Overwrites MinervaModel abstract method.
@@ -686,10 +684,10 @@ class Decoder(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network. Should be from a backbone.
+            x (Tensor): Input data to network. Should be from a backbone.
 
         Returns:
-            torch.Tensor segmentation mask with a channel for each class of the likelihoods the network places on
+            Tensor segmentation mask with a channel for each class of the likelihoods the network places on
                 each pixel input 'x' being of that class.
         """
         return self._forward_impl(x[0])
@@ -772,7 +770,7 @@ class DCN(MinervaModel, ABC):
             self.DC8.weight.data = bilinear_init(self.n_classes, self.n_classes, 16)
             self.dbn8 = torch.nn.BatchNorm2d(self.n_classes)
 
-    def forward(self, x: Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]) -> torch.Tensor:
+    def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
 
@@ -781,11 +779,11 @@ class DCN(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]): Input data to network.
+            x (tuple[Tensor, Tensor, Tensor, Tensor, Tensor]): Input data to network.
                 Should be from a backbone that supports output at multiple points e.g ResNet.
 
         Returns:
-            torch.Tensor segmentation mask with a channel for each class of the likelihoods the network places on
+            Tensor segmentation mask with a channel for each class of the likelihoods the network places on
                 each pixel input 'x' being of that class.
         """
         # Unpack outputs from the ResNet layers.
@@ -856,8 +854,7 @@ class ResNet18(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation,
                               norm_layer=norm_layer, encoder=encoder)
 
-    def forward(self, x: torch.FloatTensor) -> Union[
-            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def forward(self, x: FloatTensor) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the ResNet.
 
         Overwrites MinervaModel abstract method.
@@ -865,10 +862,10 @@ class ResNet18(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.FloatTensor): Input data to network.
+            x (FloatTensor): Input data to network.
 
         Returns:
-            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
                 of the likelihoods the network places on the input 'x' being of each class.
         """
         return self.network(x)
@@ -908,8 +905,7 @@ class ResNet34(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation,
                               norm_layer=norm_layer, encoder=encoder)
 
-    def forward(self, x: torch.FloatTensor) -> Union[
-            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def forward(self, x: FloatTensor) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the ResNet.
 
         Overwrites MinervaModel abstract method.
@@ -917,10 +913,10 @@ class ResNet34(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
                 of the likelihoods the network places on the input 'x' being of each class.
         """
         return self.network(x)
@@ -962,8 +958,7 @@ class ResNet50(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation,
                               norm_layer=norm_layer, encoder=encoder)
 
-    def forward(self, x: torch.FloatTensor) -> Union[
-            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def forward(self, x: FloatTensor) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the ResNet.
 
         Overwrites MinervaModel abstract method.
@@ -971,10 +966,10 @@ class ResNet50(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
                 of the likelihoods the network places on the input 'x' being of each class.
         """
         return self.network(x)
@@ -1016,8 +1011,7 @@ class ResNet101(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation,
                               norm_layer=norm_layer, encoder=encoder)
 
-    def forward(self, x: torch.FloatTensor) -> Union[
-            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def forward(self, x: FloatTensor) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the ResNet.
 
         Overwrites MinervaModel abstract method.
@@ -1025,10 +1019,10 @@ class ResNet101(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
                 of the likelihoods the network places on the input 'x' being of each class.
         """
         return self.network(x)
@@ -1070,8 +1064,7 @@ class ResNet152(MinervaModel, ABC):
                               replace_stride_with_dilation=replace_stride_with_dilation,
                               norm_layer=norm_layer, encoder=encoder)
 
-    def forward(self, x: torch.FloatTensor) -> Union[
-            torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+    def forward(self, x: FloatTensor) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the ResNet.
 
         Overwrites MinervaModel abstract method.
@@ -1079,10 +1072,10 @@ class ResNet152(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.Tensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns torch.Tensor
+            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
                 of the likelihoods the network places on the input 'x' being of each class.
         """
         return self.network(x)
@@ -1128,7 +1121,7 @@ class _FCN(MinervaModel, ABC):
         if decoder_name == 'Decoder':
             self.decoder = Decoder(batch_size=batch_size, image_size=input_size[1:], n_classes=n_classes)
 
-    def forward(self, x: torch.FloatTensor) -> torch.Tensor:
+    def forward(self, x: FloatTensor) -> Tensor:
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
         feeding its output into the forward for the decoder.
 
@@ -1137,10 +1130,10 @@ class _FCN(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (torch.FloatTensor): Input data to network.
+            x (FloatTensor): Input data to network.
 
         Returns:
-            z (torch.Tensor): segmentation mask with a channel for each class of the likelihoods the network places on
+            z (Tensor): segmentation mask with a channel for each class of the likelihoods the network places on
                 each pixel input 'x' being of that class.
         """
         z = self.backbone(x)
@@ -1437,7 +1430,7 @@ class _SimCLR(MinervaModel, ABC):
                                              torch.nn.ReLU(inplace=True), 
                                              torch.nn.Linear(512, feature_dim, bias=True))
 
-    def forward(self, x: torch.FloatTensor) -> torch.FloatTensor:
+    def forward(self, x: FloatTensor) -> FloatTensor:
         """Performs a forward pass of GeoCLR by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -1485,7 +1478,7 @@ def get_output_shape(model: torch.nn.Module, image_dim: Union[List[int], Tuple[i
     return output[0].data.shape[1:]
 
 
-def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> torch.Tensor:
+def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tensor:
     """Constructs the weights for the bi-linear interpolation kernel for use in transpose convolutional layers.
 
     Source: https://github.com/haoran1062/FCN-pytorch/blob/master/FCN.py
