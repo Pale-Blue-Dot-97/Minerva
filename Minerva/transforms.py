@@ -64,3 +64,20 @@ class PairCreate:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
+
+
+class Normalise:
+    def __init__(self, norm_value: int) -> None:
+        self.norm_value = norm_value    
+    
+    def __call__(self, sample: Dict[Any, Any]) -> Dict[Any, Any]:
+        image = sample.pop('image')
+
+        norm_image = image / self.norm_value
+
+        sample['image'] = norm_image
+
+        return sample
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(norm_value={self.norm_value})"

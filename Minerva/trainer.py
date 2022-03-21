@@ -103,7 +103,7 @@ class Trainer:
 
         self.batch_size = params['hyperparams']['params']['batch_size']
 
-        self.max_pixel_value = params['max_pixel_value']
+        #self.max_pixel_value = params['max_pixel_value']
 
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
