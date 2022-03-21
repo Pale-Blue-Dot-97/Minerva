@@ -1269,8 +1269,11 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations = None
-        if transform_params[key] or sample_pairs:
-            transformations = make_transformations(transform_params[key], sample_pairs=sample_pairs)
+        try:
+            if transform_params[key] or sample_pairs:
+                transformations = make_transformations(transform_params[key], sample_pairs=sample_pairs)
+        except KeyError:
+            pass
 
         # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
         sub_datasets.append(_sub_dataset(root=sub_dataset_root, transforms=transformations,
