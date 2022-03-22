@@ -207,9 +207,9 @@ class Trainer:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
         """
         n_samples = self.n_batches[mode] * self.batch_size
-        
+
         epoch_logger = STGLogger(self.n_batches, self.batch_size, self.model.output_shape, self.model.n_classes, 
-                                 record_int=record_int, record_float=record_float)
+                                 n_samples, record_int=record_int, record_float=record_float)
         
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
