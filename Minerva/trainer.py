@@ -230,7 +230,7 @@ class Trainer:
                 bar()
 
         # Updates metrics with epoch results.
-        self.metric_logger.calc_metrics(mode, epoch_logger.get_logs(), self.params)
+        self.metric_logger.calc_metrics(mode, epoch_logger.get_logs(), **self.params)
 
         if self.params['calc_norm']:
             _ = utils.calc_grad(self.model)
