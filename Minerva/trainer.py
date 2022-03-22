@@ -37,6 +37,7 @@ try:
     from numpy.typing import ArrayLike
 except ModuleNotFoundError or ImportError:
     ArrayLike = Iterable
+from Minerva.models import MinervaModel
 import os
 import yaml
 from Minerva.utils import visutils, utils
@@ -151,7 +152,7 @@ class Trainer:
         # Adds a graphical layout of the model to the TensorBoard logger.
         self.writer.add_graph(self.model, input_to_model=torch.rand(*input_size, device=self.device))
 
-    def make_model(self) -> torch.nn.Module:
+    def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
 
         Returns:
@@ -205,6 +206,8 @@ class Trainer:
         Returns:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
         """
+        n_samples = self.n_batches[mode] * self.batch_size
+        
         epoch_logger = STGLogger(self.n_batches, self.batch_size, self.model.output_shape, self.model.n_classes, 
                                  record_int=record_int, record_float=record_float)
         
