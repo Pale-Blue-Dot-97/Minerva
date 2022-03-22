@@ -32,7 +32,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Optional, Tuple, List, Dict, Iterable, Any
+from typing import Callable, Optional, Tuple, List, Dict, Iterable, Any
 try:
     from numpy.typing import ArrayLike
 except ModuleNotFoundError or ImportError:
@@ -41,9 +41,7 @@ from Minerva.models import MinervaModel
 import os
 import yaml
 from Minerva.utils import visutils, utils
-from Minerva.logger import STGLogger
-from Minerva.model_io import sup_tg
-from Minerva.metrics import SPMetrics
+from Minerva.logger import MinervaLogger
 import torch
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
@@ -120,8 +118,9 @@ class Trainer:
         self.loaders = loaders
         self.n_batches = n_batches
 
-        self.metric_logger = SPMetrics(n_batches, batch_size=self.batch_size, 
-                                       data_size=params['hyperparams']['model_params']['input_size'])
+        self.make_metric_logger()
+        
+        self.modelio_func = self.get_io_func() 
         
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
         self.step_num = {
@@ -194,6 +193,17 @@ class Trainer:
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
+    def make_metric_logger(self) -> None:
+        metric_logger = utils.func_by_str('Minerva.metrics', self.params['metrics'])
+        self.metric_logger = metric_logger(self.n_batches, batch_size=self.batch_size, 
+                                       data_size=self.params['hyperparams']['model_params']['input_size'])
+
+    def get_logger(self) -> MinervaLogger:
+        return utils.func_by_str('Minerva.logger', self.params['logger'])
+    
+    def get_io_func(self) -> Callable:
+        return utils.func_by_str('Minerva.modelio', self.params['model_io'])
+
     def epoch(self, mode: str, record_int: bool = False, record_float: bool = False) -> Dict[str, Any]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
@@ -208,8 +218,9 @@ class Trainer:
         """
         n_samples = self.n_batches[mode] * self.batch_size
 
-        epoch_logger = STGLogger(self.n_batches, self.batch_size, self.model.output_shape, self.model.n_classes, 
-                                 n_samples, record_int=record_int, record_float=record_float)
+        epoch_logger: MinervaLogger = self.get_logger()
+        epoch_logger = epoch_logger(self.n_batches, self.batch_size, n_samples, self.model.output_shape,
+                                    self.model.n_classes, record_int=record_int, record_float=record_float)
         
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
@@ -221,8 +232,8 @@ class Trainer:
 
             # Core of the epoch.
             for sample in self.loaders[mode]:
-                results = sup_tg(sample, self.model, self.device, mode)
-                epoch_logger.log(*results, mode, self.step_num[mode], self.writer)
+                results = self.modelio_func(sample, self.model, self.device, mode)
+                epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
                 self.step_num[mode] += 1
                 
