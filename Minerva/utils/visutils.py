@@ -912,7 +912,8 @@ def format_plot_names(model_name: str, timestamp: str, path: Union[List[str], Tu
     return filenames
 
 
-def plot_results(plots: Dict[str, bool], z: Union[List[int], NDArray[Any]], y: Union[List[int], NDArray[Any]],
+def plot_results(plots: Dict[str, bool], z: Optional[Union[List[int], NDArray[Any]]] = None, 
+                 y: Optional[Union[List[int], NDArray[Any]]] = None,
                  metrics: Optional[Dict[str, Any]] = None, ids: Optional[List[str]] = None,
                  mode: str = 'test', bounds: Optional[NDArray[object]] = None,
                  probs: Optional[Union[List[float], NDArray[Any]]] = None,
