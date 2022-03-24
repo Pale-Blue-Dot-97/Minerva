@@ -50,7 +50,7 @@ from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, 
 from collections import Counter, OrderedDict
 try:
     from numpy.typing import NDArray, ArrayLike
-except ModuleNotFoundError:
+except (ModuleNotFoundError, ImportError):
     NDArray, ArrayLike = Sequence, Sequence
     DTypeLike = Any
 
@@ -64,7 +64,6 @@ import math
 import ntpath
 import importlib
 import functools
-import subprocess
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import psutil
@@ -1043,9 +1042,11 @@ def make_classification_report(pred: Sequence[int], labels: Sequence[int], class
     cr_df = pd.DataFrame(cr)
 
     # Delete unneeded columns.
-    del cr_df['accuracy']
-    del cr_df['macro avg']
-    del cr_df['weighted avg']
+    for column in ('accuracy', 'macro avg', 'micro avg', 'weighted avg'):
+        try:
+            del cr_df[column]
+        except KeyError:
+            pass
 
     # Transpose DataFrame so rows are classes and columns are metrics.
     cr_df = cr_df.T
@@ -1272,7 +1273,7 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
         try:
             if transform_params[key] or sample_pairs:
                 transformations = make_transformations(transform_params[key], sample_pairs=sample_pairs)
-        except KeyError:
+        except (KeyError, TypeError):
             pass
 
         # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
