@@ -30,7 +30,9 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Tuple
+from typing import Tuple, Dict, Any
+from torch import Tensor
+from Minerva.models import MinervaModel
 import numpy as np
 import torch
 
@@ -38,7 +40,7 @@ import torch
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def sup_tg(sample, model, device, mode: str):
+def sup_tg(sample: Dict[Any, Any], model, device, mode: str) -> Tuple[Any, Any, Any, Any]:
     x_batch = sample['image']
     y_batch = sample['mask']
 
@@ -60,5 +62,27 @@ def sup_tg(sample, model, device, mode: str):
     # Runs a testing epoch.
     elif mode == 'test':
         loss, z = model.testing_step(x, y)
+    
+    return loss, z, y, sample['bbox']
+
+
+def ssl_tg(sample: Dict[Any, Any], model: MinervaModel, device: torch.device, mode: str) -> Tuple[Any, Any, Any]:
+    x_batch: Tensor = sample['image']
+    
+    y_batch = torch.arange(model.output_shape[0])
+    y_batch = torch.cat([y_batch, y_batch], dim=0)
+
+    x_batch = x_batch.to(torch.float)
+
+    # Transfer to GPU.
+    x, y = x_batch.to(device), y_batch.to(device)
+
+    # Runs a training epoch.
+    if mode == 'train':
+        loss, z = model.training_step(x, y)
+
+    # Runs a validation epoch.
+    elif mode == 'val':
+        loss, z = model.validation_step(x, y)
     
     return loss, z, y, sample['bbox']
