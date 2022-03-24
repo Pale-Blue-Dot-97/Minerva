@@ -35,13 +35,14 @@ TODO:
 from typing import Callable, Optional, Tuple, List, Dict, Iterable, Any
 try:
     from numpy.typing import ArrayLike
-except ModuleNotFoundError or ImportError:
+except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
 from Minerva.models import MinervaModel
 import os
 import yaml
 from Minerva.utils import visutils, utils
 from Minerva.logger import MinervaLogger
+from Minerva.metrics import MinervaMetrics
 import torch
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
@@ -194,9 +195,11 @@ class Trainer:
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
     def make_metric_logger(self) -> None:
+        data_size = self.params['hyperparams']['model_params']['input_size']
+
         metric_logger = utils.func_by_str('Minerva.metrics', self.params['metrics'])
-        self.metric_logger = metric_logger(self.n_batches, batch_size=self.batch_size, 
-                                       data_size=self.params['hyperparams']['model_params']['input_size'])
+        self.metric_logger: MinervaMetrics = metric_logger(self.n_batches, batch_size=self.batch_size, 
+                                                           data_size=data_size)
 
     def get_logger(self) -> MinervaLogger:
         return utils.func_by_str('Minerva.logger', self.params['logger'])
@@ -204,7 +207,7 @@ class Trainer:
     def get_io_func(self) -> Callable:
         return utils.func_by_str('Minerva.modelio', self.params['model_io'])
 
-    def epoch(self, mode: str, record_int: bool = False, record_float: bool = False) -> Dict[str, Any]:
+    def epoch(self, mode: str, record_int: bool = False, record_float: bool = False) -> Optional[Dict[str, Any]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -219,9 +222,9 @@ class Trainer:
         n_samples = self.n_batches[mode] * self.batch_size
 
         epoch_logger: MinervaLogger = self.get_logger()
-        epoch_logger = epoch_logger(self.n_batches, self.batch_size, n_samples, self.model.output_shape,
+        epoch_logger = epoch_logger(self.n_batches[mode], self.batch_size, n_samples, self.model.output_shape,
                                     self.model.n_classes, record_int=record_int, record_float=record_float)
-        
+
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
             # Sets the model up for training or evaluation modes
@@ -236,17 +239,20 @@ class Trainer:
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
                 self.step_num[mode] += 1
-                
+
                 # Updates progress bar that sample has been processed.
                 bar()
 
         # Updates metrics with epoch results.
-        self.metric_logger.calc_metrics(mode, epoch_logger.get_logs(), **self.params)
+        self.metric_logger.calc_metrics(mode, epoch_logger.get_logs, **self.params)
 
         if self.params['calc_norm']:
             _ = utils.calc_grad(self.model)
 
-        return epoch_logger.get_logs()
+        if record_int or record_float:
+            return epoch_logger.get_results
+        else:
+            return
 
     def fit(self) -> None:
         """Fits the model by running max_epochs number of training and validation epochs."""
@@ -256,37 +262,10 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in ('train', 'val'):
 
-                # Special case for final train/ val epoch to plot results if configured so.
+                results = {}
+
                 if epoch == (self.max_epochs - 1) and self.params['plot_last_epoch']:
-                    logs = self.epoch(mode, record_int=True)
-                    predictions = logs['predictions'] 
-                    labels = logs['labels']
-                    ids = logs['ids']
-
-                    # Ensures that the model history will not be plotted.
-                    # That should be done with the plotting of test results.
-                    plots = self.params['plots'].copy()
-                    plots['History'] = False
-                    plots['CM'] = False
-                    plots['ROC'] = False
-
-                    # Ensures that inappropriate plots are not attempted for incompatible outputs.
-                    if self.params['model_type'] in ('scene classifier', 'segmentation'):
-                        plots['PvT'] = False
-
-                    if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
-                        plots['Mask'] = False
-
-                    # Amends the results' directory to add a new level for train or validation.
-                    results_dir = self.params['dir']['results'].copy()
-                    results_dir.append(mode)
-
-                    # Plots the results of this epoch.
-                    visutils.plot_results(plots, predictions, labels, ids=ids, class_names=self.params['classes'],
-                                          colours=self.params['colours'], save=True, show=False,
-                                          model_name=self.params['model_name'], timestamp=self.params['timestamp'],
-                                          results_dir=results_dir)
-
+                    results = self.epoch(mode, record_int=True)
                 else:
                     self.epoch(mode)
 
@@ -295,6 +274,36 @@ class Trainer:
 
                 # Print training epoch results.
                 self.metric_logger.print_epoch_results(mode, epoch)
+
+                # Special case for final train/ val epoch to plot results if configured so.
+                if epoch == (self.max_epochs - 1):
+                    # Ensures that plots likely to cause memory issues are not attempted.
+                    plots: Dict[str, bool] = self.params['plots'].copy()
+                    plots['CM'] = False
+                    plots['ROC'] = False
+
+                    if not self.params['plot_last_epoch']:
+                        # If not plotting results, ensure that only history plotting will remain 
+                        # if originally set to do so.
+                        plots['Mask'] = False
+                        plots['Pred'] = False
+                    
+                    # Create a subset of metrics which drops the testing results for plotting model history.
+                    sub_metrics = self.metric_logger.get_sub_metrics()
+
+                    if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
+                        plots['Mask'] = False
+
+                    # Amends the results' directory to add a new level for train or validation.
+                    results_dir: List[str] = self.params['dir']['results'].copy()
+                    results_dir.append(mode)
+
+                    # Plots the results of this epoch.
+                    visutils.plot_results(plots, metrics=sub_metrics, class_names=self.params['classes'],
+                                          colours=self.params['colours'], save=True, show=False,
+                                          model_name=self.params['model_name'], timestamp=self.params['timestamp'],
+                                          results_dir=results_dir, **results)
+
 
     def test(self, save: bool = True, show: bool = False) -> None:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
@@ -314,12 +323,7 @@ class Trainer:
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        logs = self.epoch('test', record_int=True, record_float=True)
-        predictions = logs['predictions'] 
-        labels = logs['labels']
-        test_ids = logs['ids'] 
-        probabilities = logs['probs']
-        bounds = logs['bounds']
+        results = self.epoch('test', record_int=True, record_float=True)
 
         # Prints test loss and accuracy to stdout.
         self.metric_logger.print_epoch_results('test', 0)
@@ -331,32 +335,27 @@ class Trainer:
         # encountered in plotting of results.
         self.close()
 
-        print('\nMAKING CLASSIFICATION REPORT')
-        self.compute_classification_report(predictions, labels)
-
-        # Create a subset of metrics which drops the testing results for plotting model history.
-        sub_metrics = {k: self.metrics[k] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
+        if 'z' in results and 'y' in results: 
+            print('\nMAKING CLASSIFICATION REPORT')
+            self.compute_classification_report(results['z'], results['y'])
 
         # Gets the dict from params that defines which plots to make from the results.
         plots = self.params['plots']
 
-        # Ensures that inappropriate plots are not attempted for incompatible outputs.
-        if self.params['model_type'] in ('scene classifier', 'segmentation'):
-            plots['PvT'] = False
+        # Ensure history is not plotted again.
+        plots['History'] = False
 
         if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
             plots['Mask'] = False
 
         # Amends the results' directory to add a new level for test results.
-        results_dir = self.params['dir']['results']
+        results_dir: List[str] = self.params['dir']['results']
         results_dir.append('test')
 
         # Plots the results.
-        visutils.plot_results(plots, predictions, labels, metrics=sub_metrics, ids=test_ids, mode='test',
-                              bounds=bounds, probs=probabilities, class_names=self.params['classes'],
-                              colours=self.params['colours'], save=save, show=show,
-                              model_name=self.params['model_name'], timestamp=self.params['timestamp'],
-                              results_dir=results_dir)
+        visutils.plot_results(plots, mode='test', class_names=self.params['classes'], colours=self.params['colours'], 
+                              save=save, show=show, model_name=self.params['model_name'], 
+                              timestamp=self.params['timestamp'], results_dir=results_dir, **results)
 
         # Checks whether to run TensorBoard on the log from the experiment.
         # If defined as optional in the config, a user confirmation is required to run TensorBoard with a 60s timeout.
@@ -399,9 +398,9 @@ class Trainer:
         # Writes the recorded training and validation metrics of the experiment to file.
         print('\nSAVING METRICS TO FILE')
         try:
-            sub_metrics = {k: self.metrics[k]['y'] for k in ('train_loss', 'val_loss', 'train_acc', 'val_acc')}
+            sub_metrics = self.metric_logger.get_sub_metrics()
             metrics_df = pd.DataFrame(sub_metrics)
-            metrics_df['Epoch'] = self.metrics['train_loss']['x']
+            metrics_df['Epoch'] = sub_metrics['train_loss']['x']
             metrics_df.set_index('Epoch', inplace=True, drop=True)
             metrics_df.to_csv(f'{fn}_metrics.csv')
 
