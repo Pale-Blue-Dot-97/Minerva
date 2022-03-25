@@ -108,7 +108,7 @@ class Trainer:
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
-        self.model.determine_output_dim()
+        self.model.determine_output_dim(sample_pairs=params['sample_pairs'])
 
         # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
@@ -145,6 +145,9 @@ class Trainer:
             input_size = (self.batch_size, self.model.input_size)
         else:
             input_size = (self.batch_size, *self.model.input_shape)
+
+        if self.params['sample_pairs']:
+            input_size = (2, *input_size)
 
         # Print model summary
         summary(self.model, input_size=input_size)
