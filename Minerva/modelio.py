@@ -66,13 +66,18 @@ def sup_tg(sample: Dict[Any, Any], model, device, mode: str) -> Tuple[Any, Any, 
     return loss, z, y, sample['bbox']
 
 
-def ssl_tg(sample: Dict[Any, Any], model: MinervaModel, device: torch.device, mode: str) -> Tuple[Any, Any, Any]:
-    x_batch: Tensor = sample['image']
-    
-    y_batch = torch.arange(model.output_shape[0])
+def ssl_pair_tg(sample_pair: Tuple[Dict[Any, Any], Dict[Any, Any]], model: MinervaModel, 
+                device: torch.device, mode: str) -> Tuple[Any, Any, Any]:
+    x_i_batch: Tensor = sample_pair[0]['image']
+    x_j_batch: Tensor = sample_pair[1]['image']
+
+    y_batch = torch.arange(len(x_i_batch))
     y_batch = torch.cat([y_batch, y_batch], dim=0)
 
-    x_batch = x_batch.to(torch.float)
+    x_i_batch = x_i_batch.to(torch.float)
+    x_j_batch = x_j_batch.to(torch.float)
+
+    x_batch = torch.stack([x_i_batch, x_j_batch])
 
     # Transfer to GPU.
     x, y = x_batch.to(device), y_batch.to(device)
@@ -85,4 +90,4 @@ def ssl_tg(sample: Dict[Any, Any], model: MinervaModel, device: torch.device, mo
     elif mode == 'val':
         loss, z = model.validation_step(x, y)
     
-    return loss, z, y, sample['bbox']
+    return loss, z, y, sample_pair[0]['bbox']
