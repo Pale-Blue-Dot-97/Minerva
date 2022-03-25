@@ -90,9 +90,9 @@ class MinervaModel(torch.nn.Module, ABC):
         """
         self.optimiser = optimiser
 
-    def determine_output_dim(self) -> None:
+    def determine_output_dim(self, sample_pairs: bool = False) -> None:
         """Uses get_output_shape to find the dimensions of the output of this model and sets to attribute."""
-        self.output_shape = get_output_shape(self, self.input_shape)
+        self.output_shape = get_output_shape(self, self.input_shape, sample_pairs=sample_pairs)
 
     @abc.abstractmethod
     def forward(self, x: FloatTensor) -> Tensor:
@@ -111,7 +111,7 @@ class MinervaModel(torch.nn.Module, ABC):
 
         Args:
             x (FloatTensor): Batch of input data to network.
-            y (LongTensor or FloatTensor): Batch of ground truth labels for the input data.
+            y (LongTensor or FloatTensor): Either a batch of ground truth labels or generated labels/ pairs.
             train (bool): Sets whether this shall be a training step or not. True for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
                 If False for a validation or testing step, these actions are not taken.
@@ -1112,8 +1112,9 @@ class _FCN(MinervaModel, ABC):
 
         super(_FCN, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
-        self.backbone = globals()[backbone_name](input_size=input_size, n_classes=n_classes, encoder=True,
-                                                 **backbone_kwargs)
+        self.backbone: MinervaModel = globals()[backbone_name](input_size=input_size, n_classes=n_classes, 
+                                                               encoder=True, **backbone_kwargs)
+
         self.backbone.determine_output_dim()
  
         if decoder_name == 'DCN':
@@ -1403,7 +1404,7 @@ class _SimCLR(MinervaModel, ABC):
     Subclasses MinervaModel.
 
     Attributes:
-        backbone (torch.nn.Module): Backbone of the FCN that takes the imagery input and
+        backbone (torch.nn.Module): Backbone of SimCLR that takes the imagery input and
             extracts learned representations.
         proj_head (torch.nn.Module): Projection head that takes the learned representations from the backbone encoder
 
@@ -1411,7 +1412,7 @@ class _SimCLR(MinervaModel, ABC):
         criterion: PyTorch loss function model will use.
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
-        backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
+        backbone_name (str): Optional; Name of the backbone within this module to use.
         backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1421,28 +1422,33 @@ class _SimCLR(MinervaModel, ABC):
 
         super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
 
-        self.backbone = globals()[backbone_name](input_size=input_size, encoder=True, **backbone_kwargs)
-        
+        self.backbone: MinervaModel = globals()[backbone_name](input_size=input_size, encoder=True, **backbone_kwargs)
+
         self.backbone.determine_output_dim()
 
-        self.proj_head = torch.nn.Sequential(torch.nn.Linear(self.backbone.output_shape[0], 512, bias=False), 
-                                             torch.nn.BatchNorm1d(512),
-                                             torch.nn.ReLU(inplace=True), 
-                                             torch.nn.Linear(512, feature_dim, bias=True))
+        self.proj_head = torch.nn.Sequential(
+            torch.nn.Linear(np.prod(self.backbone.output_shape), 512, bias=False), 
+            torch.nn.BatchNorm1d(512),
+            torch.nn.ReLU(inplace=True), 
+            torch.nn.Linear(512, feature_dim, bias=True))
 
     def forward(self, x: FloatTensor) -> FloatTensor:
-        """Performs a forward pass of GeoCLR by using the forward methods of the backbone and
+        """Performs a forward pass of SimCLR by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
         Overwrites MinervaModel abstract method.
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        x = self.backbone(x)
+        f_a = torch.flatten(self.backbone(x[0])[0], start_dim=1)
+        f_b = torch.flatten(self.backbone(x[1])[0], start_dim=1)
 
-        features = torch.flatten(x, start_dim=1)
+        g_a = self.proj_head(f_a)
+        g_b = self.proj_head(f_b)
 
-        return self.proj_head(features)
+        z = torch.cat([g_a, g_b], dim=0)
+
+        return z
 
 
 class SimCLR18(_SimCLR):
@@ -1464,7 +1470,8 @@ class SimCLR18(_SimCLR):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_output_shape(model: torch.nn.Module, image_dim: Union[List[int], Tuple[int, ...]]) -> Any:
+def get_output_shape(model: torch.nn.Module, image_dim: Union[List[int], Tuple[int, ...]],
+                     sample_pairs: bool = False) -> Union[int, Any]:
     """Gets the output shape of a model.
 
     Args:
@@ -1474,8 +1481,17 @@ def get_output_shape(model: torch.nn.Module, image_dim: Union[List[int], Tuple[i
     Returns:
         The shape of the output data from the model.
     """
-    output = model(torch.rand([1, *image_dim]))
-    return output[0].data.shape[1:]
+    random_input = torch.rand([4, *image_dim])
+    if sample_pairs:
+        random_input = torch.rand([2, 4, *image_dim])
+
+    output: Tensor = model(random_input)
+    
+    if len(output[0].data.shape) == 1:
+        return output[0].data.shape[0]
+
+    else:
+        return output[0].data.shape[1:]
 
 
 def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tensor:
