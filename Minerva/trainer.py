@@ -176,7 +176,9 @@ class Trainer:
             Initialised PyTorch loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        criterion = utils.func_by_str('torch.nn', self.params['hyperparams']['loss_name'])
+        loss_params: Dict[str, Any] = self.params['hyperparams']['loss_params'].copy()
+        module = loss_params.pop('module', 'torch.nn')
+        criterion = utils.func_by_str(module, loss_params['name'])
 
         if self.params['balance'] and self.params['model_type'] == 'segmentation':
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
@@ -186,7 +188,7 @@ class Trainer:
                 weights.append(weights_dict[i])
             return criterion(weight=torch.Tensor(weights))
         else:
-            return criterion()
+            return criterion(**loss_params['params'])
 
     def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
