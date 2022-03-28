@@ -38,11 +38,12 @@ try:
 except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
 from Minerva.models import MinervaModel
-import os
-import yaml
 from Minerva.utils import visutils, utils
 from Minerva.logger import MinervaLogger
 from Minerva.metrics import MinervaMetrics
+from Minerva.pytorchtools import EarlyStopping
+import os
+import yaml
 import torch
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
@@ -101,6 +102,9 @@ class Trainer:
         self.params['exp_name'] = '{}_{}'.format(self.params['model_name'], self.params['timestamp'])
         self.params['dir']['results'].append(self.params['exp_name'])
 
+        # Path to experiment directory and experiment name.
+        self.exp_fn = os.sep.join(self.params['dir']['results'] + [self.params['exp_name']])
+
         self.batch_size = params['hyperparams']['params']['batch_size']
 
         #self.max_pixel_value = params['max_pixel_value']
@@ -114,6 +118,11 @@ class Trainer:
         if torch.cuda.device_count() > 1:
             print(f'{torch.cuda.device_count()} GPUs detected')
             self.model = torch.nn.DataParallel(self.model)
+
+        self.stopper = None
+        self.early_stop = False
+        if 'stopping' in self.params['hyperparams']:    
+            self.stopper = EarlyStopping(path=self.exp_fn, **self.params['hyperparams']['stopping'])
 
         self.max_epochs = params['hyperparams']['max_epochs']
         self.loaders = loaders
@@ -280,35 +289,46 @@ class Trainer:
                 # Print training epoch results.
                 self.metric_logger.print_epoch_results(mode, epoch)
 
-                # Special case for final train/ val epoch to plot results if configured so.
-                if epoch == (self.max_epochs - 1):
-                    # Ensures that plots likely to cause memory issues are not attempted.
-                    plots: Dict[str, bool] = self.params['plots'].copy()
-                    plots['CM'] = False
-                    plots['ROC'] = False
+                if mode == 'val' and self.stopper is not None:
+                    val_loss = self.metric_logger.get_metrics['val_loss']['y'][epoch]
+                    self.stopper(val_loss, self.model)
+                    self.early_stop = self.stopper.early_stop
 
-                    if not self.params['plot_last_epoch']:
-                        # If not plotting results, ensure that only history plotting will remain 
-                        # if originally set to do so.
-                        plots['Mask'] = False
-                        plots['Pred'] = False
-                    
-                    # Create a subset of metrics which drops the testing results for plotting model history.
-                    sub_metrics = self.metric_logger.get_sub_metrics()
+            # Special case for final train/ val epoch to plot results if configured so.
+            if epoch == (self.max_epochs - 1) or self.early_stop:
+                if self.early_stop:
+                    print('\nEarly stopping triggered')
 
-                    if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
-                        plots['Mask'] = False
+                # Ensures that plots likely to cause memory issues are not attempted.
+                plots: Dict[str, bool] = self.params['plots'].copy()
+                plots['CM'] = False
+                plots['ROC'] = False
 
-                    # Amends the results' directory to add a new level for train or validation.
-                    results_dir: List[str] = self.params['dir']['results'].copy()
-                    results_dir.append(mode)
+                if not self.params['plot_last_epoch']:
+                    # If not plotting results, ensure that only history plotting will remain 
+                    # if originally set to do so.
+                    plots['Mask'] = False
+                    plots['Pred'] = False
 
-                    # Plots the results of this epoch.
-                    visutils.plot_results(plots, metrics=sub_metrics, class_names=self.params['classes'],
-                                          colours=self.params['colours'], save=True, show=False,
-                                          model_name=self.params['model_name'], timestamp=self.params['timestamp'],
-                                          results_dir=results_dir, **results)
+                # Create a subset of metrics which drops the testing results for plotting model history.
+                sub_metrics = self.metric_logger.get_sub_metrics()
 
+                if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
+                    plots['Mask'] = False
+
+                # Amends the results' directory to add a new level for train or validation.
+                results_dir: List[str] = self.params['dir']['results'].copy()
+                results_dir.append(mode)
+
+                # Plots the results of this epoch.
+                visutils.plot_results(plots, metrics=sub_metrics, class_names=self.params['classes'],
+                                      colours=self.params['colours'], save=True, show=False,
+                                      model_name=self.params['model_name'], timestamp=self.params['timestamp'],
+                                      results_dir=results_dir, **results)
+                
+                if self.early_stop:
+                    self.model.load_state_dict(torch.load(f'{self.exp_fn}.pt'))
+                    break
 
     def test(self, save: bool = True, show: bool = False) -> None:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
@@ -392,12 +412,9 @@ class Trainer:
         # Ensure the TensorBoard logger is closed.
         self.writer.close()
 
-        # Path to experiment directory and experiment name.
-        fn = os.sep.join(self.params['dir']['results'] + [self.params['exp_name']])
-
         print('\nSAVING EXPERIMENT CONFIG TO FILE')
         # Outputs the modified YAML parameters config file used for this experiment to file.
-        with open(f'{fn}.yml', 'w') as outfile:
+        with open(f'{self.exp_fn}.yml', 'w') as outfile:
             yaml.dump(self.params, outfile)
 
         # Writes the recorded training and validation metrics of the experiment to file.
@@ -407,7 +424,7 @@ class Trainer:
             metrics_df = pd.DataFrame(sub_metrics)
             metrics_df['Epoch'] = sub_metrics['train_loss']['x']
             metrics_df.set_index('Epoch', inplace=True, drop=True)
-            metrics_df.to_csv(f'{fn}_metrics.csv')
+            metrics_df.to_csv(f'{self.exp_fn}_metrics.csv')
 
         except (ValueError, KeyError):
             print('\n*ERROR* in saving metrics to file.')
@@ -418,7 +435,7 @@ class Trainer:
                 res = inputimeout(prompt='\nSave model to file? (Y/N): ', timeout=_timeout)
                 if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'save', 'SAVE', 'Save'):
                     # Saves model state dict to PyTorch file.
-                    torch.save(self.model.state_dict(), f'{fn}.pt')
+                    torch.save(self.model.state_dict(), f'{self.exp_fn}.pt')
                     print('MODEL PARAMETERS SAVED')
                 elif res in ('N', 'n', 'no', 'No', 'NO'):
                     print('Model will NOT be saved to file')
@@ -431,7 +448,7 @@ class Trainer:
         elif self.params['save_model'] in (True, 'auto', 'Auto'):
             print('\nSAVING MODEL PARAMETERS TO FILE')
             # Saves model state dict to PyTorch file.
-            torch.save(self.model.state_dict(), f'{fn}.pt')
+            torch.save(self.model.state_dict(), f'{self.exp_fn}.pt')
 
     def compute_classification_report(self, predictions: ArrayLike, labels: ArrayLike) -> None:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
@@ -450,11 +467,8 @@ class Trainer:
         # Uses utils to create a classification report in a DataFrame.
         cr_df = utils.make_classification_report(predictions, labels, self.params['classes'])
 
-        # Defines the filename and path for the classification report to be saved to.
-        fn = os.sep.join(self.params['dir']['results'] + [self.params['exp_name']])
-
         # Saves classification report DataFrame to a .csv file at fn.
-        cr_df.to_csv(f'{fn}_classification-report.csv')
+        cr_df.to_csv(f'{self.exp_fn}_classification-report.csv')
 
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
