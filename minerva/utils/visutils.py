@@ -46,7 +46,7 @@ try:
 except ModuleNotFoundError:
     NDArray, ArrayLike = Sequence, Sequence
 from torchgeo.datasets.utils import BoundingBox
-from Minerva.utils import utils, config, aux_configs
+from minerva.utils import utils, config, aux_configs
 import os
 import imageio
 import random

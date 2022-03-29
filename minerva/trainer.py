@@ -37,11 +37,11 @@ try:
     from numpy.typing import ArrayLike
 except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
-from Minerva.models import MinervaModel
-from Minerva.utils import visutils, utils
-from Minerva.logger import MinervaLogger
-from Minerva.metrics import MinervaMetrics
-from Minerva.pytorchtools import EarlyStopping
+from minerva.models import MinervaModel
+from minerva.utils import visutils, utils
+from minerva.logger import MinervaLogger
+from minerva.metrics import MinervaMetrics
+from minerva.pytorchtools import EarlyStopping
 import os
 import yaml
 import torch

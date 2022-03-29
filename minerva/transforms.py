@@ -1,4 +1,4 @@
-"""Script to create manifests of data for use in Minerva pre-processing to reduce computation time.
+"""Module containing custom transforms to be used with `torchvision.transforms`.
 
     Copyright (C) 2022 Harry James Baker
 
@@ -25,36 +25,59 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 Attributes:
-    config_path (str): Path to master config YAML file.
-    config (dict): Master config defining how the experiment should be conducted.
 
 TODO:
-    * Re-engineer for use with torchvision style datasets
-    * Consider use of parquet format rather than csv
+    * Document classes
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from Minerva.utils import utils, config
-import pandas as pd
-import os
+from typing import Any, Dict, Tuple
+from minerva.utils import utils
 
 
 # =====================================================================================================================
-#                                                      MAIN
+#                                                     CLASSES
 # =====================================================================================================================
-def main():
-    manifest = utils.make_manifest()
+class ClassTransform:
+    def __init__(self, transform: Dict[int, int]) -> None:
+        self.transform = transform
 
-    print(manifest)
+    def __call__(self, sample: Dict[Any, Any]) -> Dict[Any, Any]:
+        mask = sample.pop('mask')
 
-    output_dir = os.sep.join(config['dir']['cache'])
+        new_mask = utils.mask_transform(mask, self.transform)
 
-    fn = os.sep.join([output_dir, f'{utils.get_dataset_name()}_Manifest.csv'])
+        sample['mask'] = new_mask
+        return sample
 
-    print(f'MANIFEST TO FILE -----> {fn}')
-    manifest.to_csv(fn)
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(transform={self.transform})"
 
 
-if __name__ == '__main__':
-    main()
+class PairCreate:
+    def __init__(self) -> None:
+        pass
+
+    def __call__(self, sample: Any) -> Tuple[Any, Any]:
+        return sample, sample
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
+
+
+class Normalise:
+    def __init__(self, norm_value: int) -> None:
+        self.norm_value = norm_value
+
+    def __call__(self, sample: Dict[Any, Any]) -> Dict[Any, Any]:
+        image = sample.pop('image')
+
+        norm_image = image / self.norm_value
+
+        sample['image'] = norm_image
+
+        return sample
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(norm_value={self.norm_value})"

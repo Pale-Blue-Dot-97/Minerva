@@ -1,6 +1,6 @@
-"""Script to run the TensorBoard logs from experiments.
+"""Script to create manifests of data for use in Minerva pre-processing to reduce computation time.
 
-    Copyright (C) 2021 Harry James Baker
+    Copyright (C) 2022 Harry James Baker
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,53 +23,38 @@ Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
 Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd.
+
+Attributes:
+    config_path (str): Path to master config YAML file.
+    config (dict): Master config defining how the experiment should be conducted.
+
+TODO:
+    * Re-engineer for use with torchvision style datasets
+    * Consider use of parquet format rather than csv
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional
-from Minerva.utils import utils
-import argparse
+from minerva.utils import utils, config
+import pandas as pd
+import os
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-def main(path: Optional[Union[str, list]] = None, env_name: str = 'env2', exp_name: Optional[str] = None,
-         host_num: int = 6006) -> None:
-    if isinstance(path, list):
-        if len(path) == 1:
-            path = path[0]
+def main():
+    manifest = utils.make_manifest()
 
-    utils.run_tensorboard(path=path, env_name=env_name, exp_name=exp_name, host_num=host_num)
+    print(manifest)
+
+    output_dir = os.sep.join(config['dir']['cache'])
+
+    fn = os.sep.join([output_dir, f'{utils.get_dataset_name()}_Manifest.csv'])
+
+    print(f'MANIFEST TO FILE -----> {fn}')
+    manifest.to_csv(fn)
 
 
 if __name__ == '__main__':
-    CLI = argparse.ArgumentParser()
-    CLI.add_argument(
-        "--path",  # name on the CLI - drop the `--` for positional/required parameters
-        nargs="*",  # 0 or more values expected => creates a list
-        type=str,
-        default=None,  # default if nothing is provided
-    )
-    CLI.add_argument(
-        "--env_name",
-        nargs="1",
-        type=str,  # any type/callable can be used here
-        default=None,
-    )
-    CLI.add_argument(
-        "--exp_name",
-        nargs="1",
-        type=str,  # any type/callable can be used here
-        default=None,
-    )
-    CLI.add_argument(
-        "--host_num",
-        nargs="1",
-        type=int,  # any type/callable can be used here
-        default=None,
-    )
-
-    args = CLI.parse_args()
-    main(path=args.path, env_name=args.env_name, exp_name=args.exp_name, host_num=args.host_num)
+    main()

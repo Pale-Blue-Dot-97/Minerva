@@ -33,7 +33,7 @@ TODO:
 from typing import Union, Optional, Tuple, List, Callable, Type, Any, Dict
 from torch import Tensor, FloatTensor, LongTensor
 import abc
-from Minerva.utils import utils
+from minerva.utils import utils
 import torch
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
 from abc import ABC

@@ -1,6 +1,6 @@
 from typing import Union
 import os
-from Minerva.utils import utils, config, aux_configs
+from minerva.utils import utils, config, aux_configs
 import numpy as np
 from numpy.testing import assert_array_equal
 from datetime import datetime

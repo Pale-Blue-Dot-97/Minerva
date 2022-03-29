@@ -32,7 +32,7 @@ TODO:
 # =====================================================================================================================
 from typing import Tuple, Dict, Any
 from torch import Tensor
-from Minerva.models import MinervaModel
+from minerva.models import MinervaModel
 import numpy as np
 import torch
 

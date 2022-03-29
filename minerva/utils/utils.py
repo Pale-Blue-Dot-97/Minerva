@@ -55,7 +55,7 @@ except (ModuleNotFoundError, ImportError):
     DTypeLike = Any
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
-from Minerva.utils import config, aux_configs, visutils
+from minerva.utils import config, aux_configs, visutils
 
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import sys

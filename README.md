@@ -23,7 +23,7 @@ Then install `torchgeo` via `pip`:
 pip install torchgeo
 ```
 
-Then proceed with installing `Minerva`'s remaining requirements:
+Then proceed with installing `minerva`'s remaining requirements:
 
 ```shell
 pip install tensorflow pandas imageio opencv-python seaborn tabulate torchinfo psutil alive-progress inputimeout
@@ -37,22 +37,22 @@ pip install zipfile-deflate64  radiant_mlhub
 
 ## Requirements
 
-`Minerva` now supports the use of [torchgeo](https://torchgeo.readthedocs.io/en/latest/)
+`minerva` now supports the use of [torchgeo](https://torchgeo.readthedocs.io/en/latest/)
 datasets with upcoming support for [torchvision](https://pytorch.org/vision/stable/index.html) datasets.
 
-Required Python modules for `Minerva` are stated in `requirements.txt`.
+Required Python modules for `minerva` are stated in `requirements.txt`.
 
 ## Usage
 
-The core functionality of `Minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process,
+The core functionality of `minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process,
 load and parse data, and a `Trainer` to handle all aspects of a model fitting. Below is a MWE of creating datasets,
 initialising a Trainer and model, and fitting and testing that model then outputting the results:
 
 ### MWE Driver Script
 
 ```python
-from Minerva.utils import utils, config             # Module containing various utility functions.
-from Minerva.trainer import Trainer                 # Class designed to handle fitting of model.
+from minerva.utils import utils, config             # Module containing various utility functions.
+from minerva.trainer import Trainer                 # Class designed to handle fitting of model.
 
 
 # Get the dataset loaders, number of batches, the distribution of classes and an updated config.
@@ -68,7 +68,7 @@ trainer.fit()
 trainer.test()
 ```
 
-See `Minerva\bin\MinervaExp.py` as an example script implementing `Minerva`.
+See `minerva\bin\MinervaExp.py` as an example script implementing `minerva`.
 
 ### Config Structure
 
@@ -76,7 +76,7 @@ See `inbuilt_cfgs\example_config.yml` as an example config file.
 
 ### Creating a Manifest for your Dataset
 
-Use `Minerva\bin\ManifestMake.py` to construct a manifest to act as a look-up table for a dataset.
+Use `minerva\bin\ManifestMake.py` to construct a manifest to act as a look-up table for a dataset.
 
 ## License
 
