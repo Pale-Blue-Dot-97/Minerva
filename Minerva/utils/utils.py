@@ -58,7 +58,7 @@ except (ModuleNotFoundError, ImportError):
 from Minerva.utils import config, aux_configs, visutils
 
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
-import sys 
+import sys
 import os
 import math
 import ntpath
@@ -423,7 +423,7 @@ def dec2deg(dec_co: Sequence[float], axis: str = 'lat') -> List[str]:
     return deg_co
 
 
-def get_centre_loc(bounds) -> Tuple[float, float]:
+def get_centre_loc(bounds: BoundingBox) -> Tuple[float, float]:
     mid_x = bounds.maxx - abs((bounds.maxx - bounds.minx) / 2)
     mid_y = bounds.maxy - abs((bounds.maxy - bounds.miny) / 2)
 
@@ -1207,7 +1207,7 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
 
 def find_geo_similar(bbox: BoundingBox, r: int = 256) -> BoundingBox:
     """Find an image that is less than or equal to the geo-spatial distance `r` from the intial image.
-    
+
     Based on the the work of GeoCLR https://arxiv.org/abs/2108.06421v1.
     """
     pass

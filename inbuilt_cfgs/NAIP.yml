@@ -3,8 +3,8 @@ co_sys:
   name: 'WGS84_4326'
 
 data_specs:
-  band_ids: 
-    'R': 0 
+  band_ids:
+    'R': 0
     'G': 1
     'B': 2
     'NIR': 3

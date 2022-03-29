@@ -59,7 +59,7 @@ class MinervaMetrics(ABC):
     @abc.abstractmethod
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
         pass
-    
+
     @property
     def get_metrics(self) -> Dict[str, Any]:
         return self.metrics
@@ -102,7 +102,7 @@ class SP_Metrics(MinervaMetrics):
                                                                              self.data_size[1] * self.data_size[2]))
         else:
             self.metrics[f'{mode}_acc']['y'].append(logs['total_correct'] / (self.n_batches[mode] * self.batch_size))
-    
+
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
         self.metrics[f'{mode}_loss']['x'].append(epoch_no + 1)
         self.metrics[f'{mode}_acc']['x'].append(epoch_no + 1)
@@ -125,7 +125,7 @@ class SSL_Metrics(MinervaMetrics):
     def calc_metrics(self, mode: str, logs, **params) -> None:
         # Updates metrics with epoch results.
         self.metrics[f'{mode}_loss']['y'].append(logs['total_loss'] / self.n_batches[mode])
-    
+
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
         self.metrics[f'{mode}_loss']['x'].append(epoch_no + 1)
 

@@ -1112,11 +1112,11 @@ class _FCN(MinervaModel, ABC):
 
         super(_FCN, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
-        self.backbone: MinervaModel = globals()[backbone_name](input_size=input_size, n_classes=n_classes, 
+        self.backbone: MinervaModel = globals()[backbone_name](input_size=input_size, n_classes=n_classes,
                                                                encoder=True, **backbone_kwargs)
 
         self.backbone.determine_output_dim()
- 
+
         if decoder_name == 'DCN':
             self.decoder = DCN(in_channel=self.backbone.output_shape[0], n_classes=n_classes, variant=decoder_variant)
         if decoder_name == 'Decoder':
@@ -1427,9 +1427,9 @@ class _SimCLR(MinervaModel, ABC):
         self.backbone.determine_output_dim()
 
         self.proj_head = torch.nn.Sequential(
-            torch.nn.Linear(np.prod(self.backbone.output_shape), 512, bias=False), 
+            torch.nn.Linear(np.prod(self.backbone.output_shape), 512, bias=False),
             torch.nn.BatchNorm1d(512),
-            torch.nn.ReLU(inplace=True), 
+            torch.nn.ReLU(inplace=True),
             torch.nn.Linear(512, feature_dim, bias=True))
 
     def forward(self, x: FloatTensor) -> FloatTensor:
@@ -1486,7 +1486,7 @@ def get_output_shape(model: torch.nn.Module, image_dim: Union[List[int], Tuple[i
         random_input = torch.rand([2, 4, *image_dim])
 
     output: Tensor = model(random_input)
-    
+
     if len(output[0].data.shape) == 1:
         return output[0].data.shape[0]
 

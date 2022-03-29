@@ -44,7 +44,7 @@ from abc import ABC
 class MinervaLogger(ABC):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, n_batches: int, batch_size: int, n_samples: int, record_int: bool = True, 
+    def __init__(self, n_batches: int, batch_size: int, n_samples: int, record_int: bool = True,
                  record_float: bool = False) -> None:
         super(MinervaLogger, self).__init__()
         self.record_int = record_int
@@ -70,7 +70,7 @@ class MinervaLogger(ABC):
 
 
 class STG_Logger(MinervaLogger):
-    def __init__(self, n_batches: int, batch_size: int, n_samples: int, out_shape, n_classes: int, 
+    def __init__(self, n_batches: int, batch_size: int, n_samples: int, out_shape, n_classes: int,
                  record_int: bool = True, record_float: bool = False) -> None:
         super(STG_Logger, self).__init__(n_batches, batch_size, n_samples, record_int, record_float)
 
@@ -92,7 +92,7 @@ class STG_Logger(MinervaLogger):
 
         if self.record_float:
             try:
-                self.results['probs'] = np.empty((self.n_batches, self.batch_size, n_classes, *out_shape), 
+                self.results['probs'] = np.empty((self.n_batches, self.batch_size, n_classes, *out_shape),
                                               dtype=np.float16)
             except MemoryError:
                 print('Dataset too large to record probabilities of predicted classes!')
@@ -132,7 +132,7 @@ class STG_Logger(MinervaLogger):
 
 
 class SSL_Logger(MinervaLogger):
-    def __init__(self, n_batches: int, batch_size: int, n_samples: int, out_shape=None, n_classes: int = None, 
+    def __init__(self, n_batches: int, batch_size: int, n_samples: int, out_shape=None, n_classes: int = None,
                  record_int: bool = True, record_float: bool = False) -> None:
         super(SSL_Logger, self).__init__(n_batches, batch_size, n_samples, record_int, record_float)
 

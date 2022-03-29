@@ -121,7 +121,7 @@ class Trainer:
 
         self.stopper = None
         self.early_stop = False
-        if 'stopping' in self.params['hyperparams']:    
+        if 'stopping' in self.params['hyperparams']:
             self.stopper = EarlyStopping(path=self.exp_fn, **self.params['hyperparams']['stopping'])
 
         self.max_epochs = params['hyperparams']['max_epochs']
@@ -129,9 +129,9 @@ class Trainer:
         self.n_batches = n_batches
 
         self.make_metric_logger()
-        
-        self.modelio_func = self.get_io_func() 
-        
+
+        self.modelio_func = self.get_io_func()
+
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
         self.step_num = {
             'train': 0,
@@ -212,12 +212,12 @@ class Trainer:
         data_size = self.params['hyperparams']['model_params']['input_size']
 
         metric_logger = utils.func_by_str('Minerva.metrics', self.params['metrics'])
-        self.metric_logger: MinervaMetrics = metric_logger(self.n_batches, batch_size=self.batch_size, 
+        self.metric_logger: MinervaMetrics = metric_logger(self.n_batches, batch_size=self.batch_size,
                                                            data_size=data_size)
 
     def get_logger(self) -> MinervaLogger:
         return utils.func_by_str('Minerva.logger', self.params['logger'])
-    
+
     def get_io_func(self) -> Callable:
         return utils.func_by_str('Minerva.modelio', self.params['model_io'])
 
@@ -305,7 +305,7 @@ class Trainer:
                 plots['ROC'] = False
 
                 if not self.params['plot_last_epoch']:
-                    # If not plotting results, ensure that only history plotting will remain 
+                    # If not plotting results, ensure that only history plotting will remain
                     # if originally set to do so.
                     plots['Mask'] = False
                     plots['Pred'] = False
@@ -325,7 +325,7 @@ class Trainer:
                                       colours=self.params['colours'], save=True, show=False,
                                       model_name=self.params['model_name'], timestamp=self.params['timestamp'],
                                       results_dir=results_dir, **results)
-                
+
                 if self.early_stop:
                     self.model.load_state_dict(torch.load(f'{self.exp_fn}.pt'))
                     break
@@ -360,7 +360,7 @@ class Trainer:
         # encountered in plotting of results.
         self.close()
 
-        if 'z' in results and 'y' in results: 
+        if 'z' in results and 'y' in results:
             print('\nMAKING CLASSIFICATION REPORT')
             self.compute_classification_report(results['z'], results['y'])
 
@@ -378,8 +378,8 @@ class Trainer:
         results_dir.append('test')
 
         # Plots the results.
-        visutils.plot_results(plots, mode='test', class_names=self.params['classes'], colours=self.params['colours'], 
-                              save=save, show=show, model_name=self.params['model_name'], 
+        visutils.plot_results(plots, mode='test', class_names=self.params['classes'], colours=self.params['colours'],
+                              save=save, show=show, model_name=self.params['model_name'],
                               timestamp=self.params['timestamp'], results_dir=results_dir, **results)
 
         # Checks whether to run TensorBoard on the log from the experiment.

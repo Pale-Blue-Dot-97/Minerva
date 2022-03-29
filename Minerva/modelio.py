@@ -62,11 +62,11 @@ def sup_tg(sample: Dict[Any, Any], model, device, mode: str) -> Tuple[Any, Any, 
     # Runs a testing epoch.
     elif mode == 'test':
         loss, z = model.testing_step(x, y)
-    
+
     return loss, z, y, sample['bbox']
 
 
-def ssl_pair_tg(sample_pair: Tuple[Dict[Any, Any], Dict[Any, Any]], model: MinervaModel, 
+def ssl_pair_tg(sample_pair: Tuple[Dict[Any, Any], Dict[Any, Any]], model: MinervaModel,
                 device: torch.device, mode: str) -> Tuple[Any, Any, Any]:
     x_i_batch: Tensor = sample_pair[0]['image']
     x_j_batch: Tensor = sample_pair[1]['image']
@@ -89,5 +89,5 @@ def ssl_pair_tg(sample_pair: Tuple[Dict[Any, Any], Dict[Any, Any]], model: Miner
     # Runs a validation epoch.
     elif mode == 'val':
         loss, z = model.validation_step(x, y)
-    
+
     return loss, z, y, sample_pair[0]['bbox']

@@ -11,7 +11,7 @@ config_name = None
 config_path = None
 
 
-def get_sys_args(flags: str, long_options: Optional[List[str]] = None) -> Optional[Tuple[List[Tuple[str, str]], 
+def get_sys_args(flags: str, long_options: Optional[List[str]] = None) -> Optional[Tuple[List[Tuple[str, str]],
                                                                                    List[Tuple[str, ...]]]]:
     """Get sys.argv and extract options and arguments."""
     try:

@@ -68,8 +68,8 @@ class PairCreate:
 
 class Normalise:
     def __init__(self, norm_value: int) -> None:
-        self.norm_value = norm_value    
-    
+        self.norm_value = norm_value
+
     def __call__(self, sample: Dict[Any, Any]) -> Dict[Any, Any]:
         image = sample.pop('image')
 

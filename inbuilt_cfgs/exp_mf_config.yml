@@ -34,7 +34,7 @@ dataset_params:
       res: 1.0
       download: False
       checksum: False
-  
+
 
 # === SAMPLER PARAMETERS ==============================================================================================
 sampler_params:
