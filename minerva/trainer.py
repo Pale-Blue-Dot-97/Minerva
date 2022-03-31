@@ -68,7 +68,7 @@ class Trainer:
     Attributes:
         params (dict): Dictionary describing all the parameters that define how the model will be constructed, trained
             and evaluated. These should be defined via config YAML files.
-        model: Model to be fitted of a class contained within Minerva.models.
+        model: Model to be fitted of a class contained within `minerva.models`.
         max_epochs (int): Number of epochs to train the model for.
         batch_size (int): Size of each batch of samples supplied to the model.
         loaders (dict[DataLoader]): Dictionary containing DataLoaders for each dataset.
@@ -173,7 +173,7 @@ class Trainer:
         model_params = self.params['hyperparams']['model_params']
 
         # Gets the model requested by config parameters.
-        model = utils.func_by_str('Minerva.models', self.params['model_name'].split('-')[0])
+        model = utils.func_by_str('minerva.models', self.params['model_name'].split('-')[0])
 
         # Initialise model
         return model(self.make_criterion(), **model_params)
@@ -211,15 +211,15 @@ class Trainer:
     def make_metric_logger(self) -> None:
         data_size = self.params['hyperparams']['model_params']['input_size']
 
-        metric_logger = utils.func_by_str('Minerva.metrics', self.params['metrics'])
+        metric_logger = utils.func_by_str('minerva.metrics', self.params['metrics'])
         self.metric_logger: MinervaMetrics = metric_logger(self.n_batches, batch_size=self.batch_size,
                                                            data_size=data_size)
 
     def get_logger(self) -> MinervaLogger:
-        return utils.func_by_str('Minerva.logger', self.params['logger'])
+        return utils.func_by_str('minerva.logger', self.params['logger'])
 
     def get_io_func(self) -> Callable:
-        return utils.func_by_str('Minerva.modelio', self.params['model_io'])
+        return utils.func_by_str('minerva.modelio', self.params['model_io'])
 
     def epoch(self, mode: str, record_int: bool = False, record_float: bool = False) -> Optional[Dict[str, Any]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
@@ -248,13 +248,13 @@ class Trainer:
                 self.model.eval()
 
             # Core of the epoch.
-            for sample in self.loaders[mode]:
-                results = self.modelio_func(sample, self.model, self.device, mode)
+            for batch in self.loaders[mode]:
+                results = self.modelio_func(batch, self.model, self.device, mode)
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
                 self.step_num[mode] += 1
 
-                # Updates progress bar that sample has been processed.
+                # Updates progress bar that batch has been processed.
                 bar()
 
         # Updates metrics with epoch results.
