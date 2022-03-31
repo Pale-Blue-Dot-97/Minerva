@@ -122,7 +122,7 @@ class Trainer:
         self.stopper = None
         self.early_stop = False
         if 'stopping' in self.params['hyperparams']:
-            self.stopper = EarlyStopping(path=self.exp_fn, **self.params['hyperparams']['stopping'])
+            self.stopper = EarlyStopping(path=f'{self.exp_fn}.pt', **self.params['hyperparams']['stopping'])
 
         self.max_epochs = params['hyperparams']['max_epochs']
         self.loaders = loaders
@@ -195,9 +195,14 @@ class Trainer:
             weights = []
             for i in range(len(weights_dict)):
                 weights.append(weights_dict[i])
-            return criterion(weight=torch.Tensor(weights))
-        else:
+
+            loss_params['params']['weight'] = torch.Tensor(weights)
             return criterion(**loss_params['params'])
+        else:
+            if loss_params['params'] is None:
+                return criterion()
+            else:
+                return criterion(**loss_params['params'])
 
     def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
