@@ -244,6 +244,8 @@ class Trainer:
         epoch_logger = epoch_logger(self.n_batches[mode], self.batch_size, n_samples, self.model.output_shape,
                                     self.model.n_classes, record_int=record_int, record_float=record_float)
 
+        dataset = self.loaders[mode].dataset
+        
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
             # Sets the model up for training or evaluation modes
@@ -254,7 +256,7 @@ class Trainer:
 
             # Core of the epoch.
             for batch in self.loaders[mode]:
-                results = self.modelio_func(batch, self.model, self.device, mode)
+                results = self.modelio_func(batch, self.model, self.device, mode, dataset=dataset)
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
                 self.step_num[mode] += 1
