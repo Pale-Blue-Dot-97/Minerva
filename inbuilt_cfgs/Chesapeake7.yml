@@ -1,0 +1,31 @@
+# Chesapeake Bay Watershed land cover classes reformatted to split across two lines for neater plots
+classes:
+  0: "No Data"
+  1: "Water"
+  2: "Trees/Shrub"
+  3: "Low Vegetation"
+  4: "Barren"
+  5: "Surfaces"
+  6: "Roads"
+  7: "Military\nBase"
+
+# Custom colour mapping specified by ESRI
+colours:
+  0: '#000000'  # Transparent
+  1: '#00c5ff'  # Light Blue
+  2: '#267300'  # Dark green
+  3: '#a3ff73'  # v. Light green
+  4: '#ffaa00'  # Orange
+  5: '#9c9c9c'  # Light grey
+  6: '#000000'  # Black
+  7: '#c500ff'  # Purple
+
+label_suffix: ''
+
+co_sys:
+  id: 26918
+  name: 'WGS84_26918'
+
+fig_sizes:
+  CM: [9, 8]
+  Mask: [12, 10]
