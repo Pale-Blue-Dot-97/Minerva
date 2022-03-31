@@ -1390,7 +1390,7 @@ def make_transformations(transform_params: Union[Dict[str, Any], bool], sample_p
     transformations = []
 
     if sample_pairs:
-        transformations.append(get_transform('PairCreate', {'module': 'Minerva.transforms'}))
+        transformations.append(get_transform('PairCreate', {'module': 'minerva.transforms'}))
 
     # If no transforms are specified, return None.
         if not transform_params:
@@ -1457,10 +1457,10 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
         this_transform_params = transform_params[mode]
         if params['elim']:
             if this_transform_params['labels'] is not Dict:
-                this_transform_params['labels'] = {'ClassTransform': {'module': 'Minerva.transforms',
+                this_transform_params['labels'] = {'ClassTransform': {'module': 'minerva.transforms',
                                                                       'transform': forwards}}
             else:
-                this_transform_params['labels']['ClassTransform'] = {'module': 'Minerva.transforms',
+                this_transform_params['labels']['ClassTransform'] = {'module': 'minerva.transforms',
                                                                      'transform': forwards}
 
         # Calculates number of batches.
