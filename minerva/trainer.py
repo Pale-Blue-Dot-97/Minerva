@@ -126,17 +126,17 @@ class Trainer:
         self.early_stop = False
         if 'stopping' in self.params['hyperparams']:
             self.stopper = EarlyStopping(path=f'{self.exp_fn}.pt', **self.params['hyperparams']['stopping'])
-        
+
         # Sets the max number of epochs of fitting.
         self.max_epochs = params['hyperparams']['max_epochs']
-        
+
         self.loaders = loaders
 
         self.n_batches = n_batches
-        
+
         # Calculates number of samples in each mode of fitting.
         self.n_samples = {mode: self.n_batches[mode] * self.batch_size for mode in ('train', 'val', 'test')}
-        
+
         # Initialise the metric logger and model IO for the experiment.
         self.make_metric_logger()
         self.modelio_func = self.get_io_func()
@@ -249,7 +249,7 @@ class Trainer:
         Returns:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
         """
-        # Calculates the number of samples 
+        # Calculates the number of samples
         n_samples = self.n_batches[mode] * self.batch_size
 
         epoch_logger: MinervaLogger = self.get_logger()
@@ -258,7 +258,7 @@ class Trainer:
 
         # Deep-copies to avoid IO error from using same object simultaneously.
         dataset = copy.deepcopy(self.loaders[mode].dataset)
-        
+
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
             # Sets the model up for training or evaluation modes

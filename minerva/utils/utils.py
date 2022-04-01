@@ -172,17 +172,17 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
         def __call__(self, batch: Union[Dict[str, Any], torch.Tensor]) -> Dict[str, Any]:
             if isinstance(batch, torch.Tensor):
                 return self.wrap.__call__(batch)
-            
+
             elif isinstance(batch, dict):
                 aug_batch: Dict[str, Any] = {}
                 for key in self.keys:
                     aug_batch[key] = self.wrap.__call__(batch.pop(key))
-                    
+
                 return {**batch, **aug_batch}
-            
+
             else:
                 raise TypeError
-            
+
         def __repr__(self) -> str:
             return self.wrap.__repr__()
 
@@ -1248,7 +1248,7 @@ def find_geo_similar(bbox: BoundingBox, r: int = 256) -> BoundingBox:
 
 def extract_geo_pairs(bboxs, dataset: GeoDataset, r: int = 256) -> Dict[Any, Any]:
     samples = [dataset[find_geo_similar(bbox, r)] for bbox in bboxs]
-    
+
     collator = get_collator()
     return collator(samples)
 
@@ -1414,7 +1414,7 @@ def make_transformations(transform_params: Union[Dict[str, Any], bool], key: str
     # If no transforms are specified, return None.
     if not transform_params:
         return None
-            
+
     # Get each transform.
     for name in transform_params:
         transform = get_transform(name, transform_params[name], key=key)
