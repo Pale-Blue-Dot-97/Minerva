@@ -1486,8 +1486,7 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
         print(f'CREATING {mode} DATASET')
         loaders[mode] = construct_dataloader(params['dir']['data'], dataset_params[mode], sampler_params[mode],
                                              dataloader_params, collator_params=params['collator'],
-                                             transform_params=this_transform_params,
-                                             sample_pairs=params['sample_pairs'])
+                                             transform_params=this_transform_params)
         print('DONE')
 
     # Transform class dist if elimination of classes has occurred.
