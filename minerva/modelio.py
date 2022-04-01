@@ -32,7 +32,9 @@ TODO:
 # =====================================================================================================================
 from typing import Tuple, Dict, Any
 from torch import Tensor
+from torchgeo.datasets import GeoDataset
 from minerva.models import MinervaModel
+from minerva.utils import utils
 import numpy as np
 import torch
 
@@ -40,9 +42,9 @@ import torch
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def sup_tg(sample: Dict[Any, Any], model, device, mode: str) -> Tuple[Any, Any, Any, Any]:
-    x_batch = sample['image']
-    y_batch = sample['mask']
+def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device, mode: str) -> Tuple[Any, Any, Any, Any]:
+    x_batch: Tensor = batch['image']
+    y_batch: Tensor = batch['mask']
 
     x_batch = x_batch.to(torch.float)
     y_batch = np.squeeze(y_batch, axis=1)
@@ -63,13 +65,14 @@ def sup_tg(sample: Dict[Any, Any], model, device, mode: str) -> Tuple[Any, Any, 
     elif mode == 'test':
         loss, z = model.testing_step(x, y)
 
-    return loss, z, y, sample['bbox']
+    return loss, z, y, batch['bbox']
 
 
-def ssl_pair_tg(sample_pair: Tuple[Dict[Any, Any], Dict[Any, Any]], model: MinervaModel,
-                device: torch.device, mode: str) -> Tuple[Any, Any, Any]:
-    x_i_batch: Tensor = sample_pair[0]['image']
-    x_j_batch: Tensor = sample_pair[1]['image']
+def ssl_pair_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device, mode: str,
+                dataset: GeoDataset) -> Tuple[Any, Any, Any]:
+    x_i_batch: Tensor = batch['image']
+    j_batch = utils.extract_geo_pairs(batch['bbox'], dataset)
+    x_j_batch: Tensor = j_batch['image']
 
     y_batch = torch.arange(len(x_i_batch))
     y_batch = torch.cat([y_batch, y_batch], dim=0)
@@ -90,4 +93,4 @@ def ssl_pair_tg(sample_pair: Tuple[Dict[Any, Any], Dict[Any, Any]], model: Miner
     elif mode == 'val':
         loss, z = model.validation_step(x, y)
 
-    return loss, z, y, sample_pair[0]['bbox']
+    return loss, z, y, batch['bbox']
