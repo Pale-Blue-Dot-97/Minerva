@@ -1472,11 +1472,11 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
     for mode in ('train', 'val', 'test'):
         this_transform_params = transform_params[mode]
         if params['elim']:
-            if this_transform_params['labels'] is not Dict:
-                this_transform_params['labels'] = {'ClassTransform': {'module': 'minerva.transforms',
+            if this_transform_params['mask'] is not Dict:
+                this_transform_params['mask'] = {'ClassTransform': {'module': 'minerva.transforms',
                                                                       'transform': forwards}}
             else:
-                this_transform_params['labels']['ClassTransform'] = {'module': 'minerva.transforms',
+                this_transform_params['mask']['ClassTransform'] = {'module': 'minerva.transforms',
                                                                      'transform': forwards}
 
         # Calculates number of batches.
