@@ -85,7 +85,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 from alive_progress import alive_bar, alive_it
 from torchgeo.datasets.utils import BoundingBox
-from torchgeo.datasets import concat_samples, GeoDataset, IntersectionDataset
+from torchgeo.datasets import GeoDataset, IntersectionDataset
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
 
@@ -159,6 +159,32 @@ def dublicator(cls):
 
         def __repr__(self) -> str:
             return f'dublicator({self.wrap.__repr__()})'
+
+    return Wrapper
+
+
+def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
+    class Wrapper:
+        def __init__(self, *args, **kwargs) -> None:
+            self.wrap = cls(*args, **kwargs)
+            self.keys = keys
+
+        def __call__(self, batch: Union[Dict[str, Any], torch.Tensor]) -> Dict[str, Any]:
+            if isinstance(batch, torch.Tensor):
+                return self.wrap.__call__(batch)
+            
+            elif isinstance(batch, dict):
+                aug_batch: Dict[str, Any] = {}
+                for key in self.keys:
+                    aug_batch[key] = self.wrap.__call__(batch.pop(key))
+                    
+                return {**batch, **aug_batch}
+            
+            else:
+                raise TypeError
+            
+        def __repr__(self) -> str:
+            return self.wrap.__repr__()
 
     return Wrapper
 
@@ -1205,28 +1231,32 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
     return fpr, tpr, roc_auc
 
 
+def get_collator(collator_params: Dict[str, str] = config['collator']) -> Callable:
+    collator = None
+    if collator_params is not None:
+        collator = func_by_str(collator_params['module'], collator_params['name'])
+    return collator
+
+
 def find_geo_similar(bbox: BoundingBox, r: int = 256) -> BoundingBox:
     """Find an image that is less than or equal to the geo-spatial distance `r` from the intial image.
 
     Based on the the work of GeoCLR https://arxiv.org/abs/2108.06421v1.
     """
-    pass
+    return bbox
 
 
-def intersect_datasets(datasets: List[GeoDataset], sample_pairs: bool = False) -> IntersectionDataset:
-    """
+def extract_geo_pairs(bboxs, dataset: GeoDataset, r: int = 256) -> Dict[Any, Any]:
+    samples = [dataset[find_geo_similar(bbox, r)] for bbox in bboxs]
+    
+    collator = get_collator()
+    return collator(samples)
 
-    Args:
-        datasets:
 
-    Returns:
+def intersect_datasets(datasets: List[GeoDataset]) -> IntersectionDataset:
 
-    """
-    def intersect_pair_datasets(a, b):
-        if sample_pairs:
-            return IntersectionDataset(a, b, collate_fn=pair_collate(concat_samples))
-        else:
-            return a & b
+    def intersect_pair_datasets(a: GeoDataset, b: GeoDataset) -> IntersectionDataset:
+        return a & b
 
     master_dataset = datasets[0]
 
@@ -1237,8 +1267,7 @@ def intersect_datasets(datasets: List[GeoDataset], sample_pairs: bool = False) -
 
 
 def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
-                 transform_params: Optional[Dict[Any, Any]] = None,
-                 sample_pairs: bool = False) -> Tuple[Any, List[Any]]:
+                 transform_params: Optional[Dict[Any, Any]] = None) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from `n` sub-datasets given by the parameters supplied.
 
     Args:
@@ -1271,8 +1300,8 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations = None
         try:
-            if transform_params[key] or sample_pairs:
-                transformations = make_transformations(transform_params[key], sample_pairs=sample_pairs)
+            if transform_params[key]:
+                transformations = make_transformations(transform_params[key], key=key)
         except (KeyError, TypeError):
             pass
 
@@ -1283,14 +1312,14 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
     # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
-        dataset = intersect_datasets(sub_datasets, sample_pairs=sample_pairs)
+        dataset = intersect_datasets(sub_datasets)
 
     return dataset, sub_datasets
 
 
 def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str, Any], sampler_params: Dict[str, Any],
                          dataloader_params: Dict[str, Any], collator_params: Optional[Dict[str, Any]] = None,
-                         transform_params: Optional[Dict[str, Any]] = None, sample_pairs: bool = False) -> DataLoader:
+                         transform_params: Optional[Dict[str, Any]] = None) -> DataLoader:
     """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
     Args:
@@ -1306,18 +1335,14 @@ def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str
     Returns:
         loader (DataLoader): Object to handle the returning of batched samples from the dataset.
     """
-    dataset, subdatasets = make_dataset(data_directory, dataset_params, transform_params, sample_pairs=sample_pairs)
+    dataset, subdatasets = make_dataset(data_directory, dataset_params, transform_params)
 
     # --+ MAKE SAMPLERS +=============================================================================================+
     sampler = func_by_str(module_path=sampler_params['module'], func=sampler_params['name'])
     sampler = sampler(dataset=subdatasets[0], roi=make_bounding_box(sampler_params['roi']), **sampler_params['params'])
 
     # --+ MAKE DATALOADERS +==========================================================================================+
-    collator = None
-    if collator_params is not None:
-        collator = func_by_str(collator_params['module'], collator_params['name'])
-        if sample_pairs:
-            collator = pair_collate(collator)
+    collator = get_collator(collator_params)
 
     return DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
 
@@ -1356,7 +1381,7 @@ def make_bounding_box(roi: Union[Sequence[float], bool] = False) -> Optional[Bou
         return BoundingBox(*roi)
 
 
-def get_transform(name: str, params: Dict[str, Any], sample_pairs: bool = False) -> Any:
+def get_transform(name: str, params: Dict[str, Any], key: str = None) -> Any:
     """Creates a TensorBoard transform object based on config parameters.
 
     Returns:
@@ -1365,15 +1390,12 @@ def get_transform(name: str, params: Dict[str, Any], sample_pairs: bool = False)
     module = params.pop('module', 'torchvision.transforms')
 
     # Gets the transform requested by config parameters.
-    transform = func_by_str(module, name)
-
-    if sample_pairs:
-        transform = dublicator(transform)
+    transform = tg_to_torch(func_by_str(module, name), keys=[key])
 
     return transform(**params)
 
 
-def make_transformations(transform_params: Union[Dict[str, Any], bool], sample_pairs: bool = False) -> Optional[Any]:
+def make_transformations(transform_params: Union[Dict[str, Any], bool], key: str = None) -> Optional[Any]:
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:
@@ -1389,22 +1411,16 @@ def make_transformations(transform_params: Union[Dict[str, Any], bool], sample_p
     """
     transformations = []
 
-    if sample_pairs:
-        transformations.append(get_transform('PairCreate', {'module': 'minerva.transforms'}))
-
     # If no transforms are specified, return None.
-        if not transform_params:
-            if sample_pairs:
-                return transformations[0]
-            else:
-                return None
-
+    if not transform_params:
+        return None
+            
     # Get each transform.
     for name in transform_params:
-        transform = get_transform(name, transform_params[name], sample_pairs=sample_pairs)
+        transform = get_transform(name, transform_params[name], key=key)
 
         # If only one transform found, return.
-        if len(transform_params) == 1 and not sample_pairs:
+        if len(transform_params) == 1:
             return transform
 
         # If more than one transform found, append to list for composition.
