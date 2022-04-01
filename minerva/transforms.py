@@ -33,6 +33,7 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Any, Dict, Tuple
+from torch import Tensor
 from minerva.utils import utils
 
 
@@ -43,13 +44,8 @@ class ClassTransform:
     def __init__(self, transform: Dict[int, int]) -> None:
         self.transform = transform
 
-    def __call__(self, sample: Dict[Any, Any]) -> Dict[Any, Any]:
-        mask = sample.pop('mask')
-
-        new_mask = utils.mask_transform(mask, self.transform)
-
-        sample['mask'] = new_mask
-        return sample
+    def __call__(self, mask: Tensor) -> Tensor:
+        return utils.mask_transform(mask, self.transform)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(transform={self.transform})"
@@ -70,14 +66,8 @@ class Normalise:
     def __init__(self, norm_value: int) -> None:
         self.norm_value = norm_value
 
-    def __call__(self, sample: Dict[Any, Any]) -> Dict[Any, Any]:
-        image = sample.pop('image')
-
-        norm_image = image / self.norm_value
-
-        sample['image'] = norm_image
-
-        return sample
+    def __call__(self, img: Tensor) -> Dict[Any, Any]:
+        return img / self.norm_value
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(norm_value={self.norm_value})"
