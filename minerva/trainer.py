@@ -44,6 +44,7 @@ from minerva.metrics import MinervaMetrics
 from minerva.pytorchtools import EarlyStopping
 import os
 import yaml
+import copy
 import torch
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
@@ -112,6 +113,7 @@ class Trainer:
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
+        # Determines the output shape of the model.
         self.model.determine_output_dim(sample_pairs=params['sample_pairs'])
 
         # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
@@ -119,17 +121,24 @@ class Trainer:
             print(f'{torch.cuda.device_count()} GPUs detected')
             self.model = torch.nn.DataParallel(self.model)
 
+        # Sets up the early stopping functionality.
         self.stopper = None
         self.early_stop = False
         if 'stopping' in self.params['hyperparams']:
             self.stopper = EarlyStopping(path=f'{self.exp_fn}.pt', **self.params['hyperparams']['stopping'])
-
+        
+        # Sets the max number of epochs of fitting.
         self.max_epochs = params['hyperparams']['max_epochs']
+        
         self.loaders = loaders
+
         self.n_batches = n_batches
-
+        
+        # Calculates number of samples in each mode of fitting.
+        self.n_samples = {mode: self.n_batches[mode] * self.batch_size for mode in ('train', 'val', 'test')}
+        
+        # Initialise the metric logger and model IO for the experiment.
         self.make_metric_logger()
-
         self.modelio_func = self.get_io_func()
 
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
@@ -145,11 +154,13 @@ class Trainer:
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
 
+        # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device()
 
         # Transfer to GPU
         self.model.to(self.device)
 
+        # Determines the input size of the model.
         if self.params['model_type'] in ['MLP', 'mlp']:
             input_size = (self.batch_size, self.model.input_size)
         else:
@@ -158,7 +169,7 @@ class Trainer:
         if self.params['sample_pairs']:
             input_size = (2, *input_size)
 
-        # Print model summary
+        # Print model summary.
         summary(self.model, input_size=input_size)
 
         # Adds a graphical layout of the model to the TensorBoard logger.
@@ -238,13 +249,15 @@ class Trainer:
         Returns:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
         """
+        # Calculates the number of samples 
         n_samples = self.n_batches[mode] * self.batch_size
 
         epoch_logger: MinervaLogger = self.get_logger()
         epoch_logger = epoch_logger(self.n_batches[mode], self.batch_size, n_samples, self.model.output_shape,
                                     self.model.n_classes, record_int=record_int, record_float=record_float)
 
-        dataset = self.loaders[mode].dataset
+        # Deep-copies to avoid IO error from using same object simultaneously.
+        dataset = copy.deepcopy(self.loaders[mode].dataset)
         
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar='blocks') as bar:
