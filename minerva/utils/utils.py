@@ -1263,7 +1263,7 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     """
     # Find a random set of polar co-ordinates within the distance `max_r`.
     r = random.randint(0, max_r)
-    phi = random.random() * 360.0
+    phi = random.random() * math.pow(-1, random.randint(1, 2)) * math.pi
 
     # Convert from polar to cartesian co-ordinates and extract real and imaginary parts.
     z = cmath.rect(r, phi)
