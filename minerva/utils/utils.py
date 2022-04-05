@@ -1234,6 +1234,15 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
 
 
 def get_collator(collator_params: Dict[str, str] = config['collator']) -> Callable:
+    """Gets the function defined in parameters to collate samples together to form a batch.
+
+    Args:
+        collator_params (Dict[str, str]): Optional; Dictionary that must contain keys for
+            'module' and 'name' of the collation function. Defaults to config['collator'].
+
+    Returns:
+        Callable: Collation function found from parameters given.
+    """
     collator = None
     if collator_params is not None:
         collator = func_by_str(collator_params['module'], collator_params['name'])
@@ -1244,6 +1253,13 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     """Find an image that is less than or equal to the geo-spatial distance `r` from the intial image.
 
     Based on the the work of GeoCLR https://arxiv.org/abs/2108.06421v1.
+
+    Args:
+        bbox (BoundingBox): Original bounding box.
+        max_r (int): Optional; Maximum distance new bounding box can be from original. Defaults to 256.
+
+    Returns:
+        BoundingBox: New bounding box translated a random displacement from original.
     """
     # Find a random set of polar co-ordinates within the distance `max_r`.
     r = random.randint(0, max_r)
@@ -1257,18 +1273,45 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     return BoundingBox(minx=bbox.minx + x, maxx=bbox.maxx + x, miny=bbox.miny + y, maxy=bbox.maxy + y,
                        mint=bbox.mint, maxt=bbox.maxt)
 
-def ran_sample_by_bbox(dataset, bbox, max_r):
+
+def ran_sample_by_bbox(dataset: GeoDataset, bbox: BoundingBox, max_r: int) -> Dict[Any, Any]:
+    """Finds a sample a random displacement from the original sample.
+
+    Args:
+        dataset (GeoDataset): Dataset to slice samples from.
+        bbox (BoundingBox): Bounding box of the original sample.
+        max_r (int): Maximum distance from original sample from which to find the new sample.
+
+    Returns:
+        Dict[Any, Any]: New sample a random displacement away from the original.
+    """
+    # Tries to find a sample a random displacement away.
     try:
-        sample = dataset[find_geo_similar(bbox, max_r)]
-        return sample
+        return dataset[find_geo_similar(bbox, max_r)]
+    # If the new bbox is not within the bounds of the dataset, an IndexError will be thrown.
+    # In this case, run this method again to find a different random sample that may be within bounds.
     except IndexError:
         return ran_sample_by_bbox(dataset, bbox, max_r)
 
 
-def extract_geo_pairs(bboxs, dataset: GeoDataset, max_r: int = 256) -> Dict[Any, Any]:
-    samples = [ran_sample_by_bbox(dataset, bbox, max_r) for bbox in bboxs]
+def extract_geo_pairs(bboxs: Sequence[BoundingBox], dataset: GeoDataset, max_r: int = 256) -> Dict[Any, Any]:
+    """Extracts a accomanying batch of samples at a random geospatial displacement from the original.
 
+    Args:
+        bboxs (Sequence[BoundingBox]): List of bounding boxes defining the extents of the original batch of samples.
+        dataset (GeoDataset): Dataset to sample from.
+        max_r (int, optional): Maximum distance from original to find new samples from. Defaults to 256.
+
+    Returns:
+        Dict[Any, Any]: New matching batch of samples as a dict.
+    """
+    # Find new list of samples geospatially a random displacement from the originals.
+    samples: List[Dict[Any, Any]] = [ran_sample_by_bbox(dataset, bbox, max_r) for bbox in bboxs]
+
+    # Finds the collation function from parameters.
     collator = get_collator()
+
+    # Use collator function to collate samples together into batch and return.
     return collator(samples)
 
 
