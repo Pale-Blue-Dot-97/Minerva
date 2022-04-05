@@ -61,6 +61,8 @@ from minerva.utils import config, aux_configs, visutils
 import sys
 import os
 import math
+import cmath
+import random
 import ntpath
 import importlib
 import functools
@@ -1238,16 +1240,33 @@ def get_collator(collator_params: Dict[str, str] = config['collator']) -> Callab
     return collator
 
 
-def find_geo_similar(bbox: BoundingBox, r: int = 256) -> BoundingBox:
+def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     """Find an image that is less than or equal to the geo-spatial distance `r` from the intial image.
 
     Based on the the work of GeoCLR https://arxiv.org/abs/2108.06421v1.
     """
-    return bbox
+    # Find a random set of polar co-ordinates within the distance `max_r`.
+    r = random.randint(0, max_r)
+    phi = random.random() * 360.0
+
+    # Convert from polar to cartesian co-ordinates and extract real and imaginary parts.
+    z = cmath.rect(r, phi)
+    x, y = z.real, z.imag
+
+    # Translate `bbox` by (x, y) and return new `BoundingBox`.
+    return BoundingBox(minx=bbox.minx + x, maxx=bbox.maxx + x, miny=bbox.miny + y, maxy=bbox.maxy + y,
+                       mint=bbox.mint, maxt=bbox.maxt)
+
+def ran_sample_by_bbox(dataset, bbox, max_r):
+    try:
+        sample = dataset[find_geo_similar(bbox, max_r)]
+        return sample
+    except IndexError:
+        return ran_sample_by_bbox(dataset, bbox, max_r)
 
 
-def extract_geo_pairs(bboxs, dataset: GeoDataset, r: int = 256) -> Dict[Any, Any]:
-    samples = [dataset[find_geo_similar(bbox, r)] for bbox in bboxs]
+def extract_geo_pairs(bboxs, dataset: GeoDataset, max_r: int = 256) -> Dict[Any, Any]:
+    samples = [ran_sample_by_bbox(dataset, bbox, max_r) for bbox in bboxs]
 
     collator = get_collator()
     return collator(samples)
