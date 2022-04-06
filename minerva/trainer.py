@@ -28,6 +28,7 @@ Attributes:
     _timeout (int): Default time till timeout waiting for a user input in seconds.
 
 TODO:
+    * Add downstream task functionality for self-supervised learning.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -179,7 +180,7 @@ class Trainer:
         """Creates a model from the parameters specified by config.
 
         Returns:
-            Initialised model.
+            MinervaModel: Initialised model.
         """
         model_params = self.params['hyperparams']['model_params']
 
@@ -189,11 +190,11 @@ class Trainer:
         # Initialise model
         return model(self.make_criterion(), **model_params)
 
-    def make_criterion(self):
+    def make_criterion(self) -> Any:
         """Creates a PyTorch loss function based on config parameters.
 
         Returns:
-            Initialised PyTorch loss function specified by config parameters.
+            Any: Initialised PyTorch loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
         loss_params: Dict[str, Any] = self.params['hyperparams']['loss_params'].copy()
@@ -225,16 +226,31 @@ class Trainer:
         self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
 
     def make_metric_logger(self) -> None:
+        """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
+        # Gets the size of the input data to the network (without batch dimension).
         data_size = self.params['hyperparams']['model_params']['input_size']
 
+        # Gets constructor of the metric logger from name in the config.
         metric_logger = utils.func_by_str('minerva.metrics', self.params['metrics'])
+
+        # Initialises the metric logger with arguments.
         self.metric_logger: MinervaMetrics = metric_logger(self.n_batches, batch_size=self.batch_size,
                                                            data_size=data_size)
 
     def get_logger(self) -> MinervaLogger:
+        """Creates an object to log the results from each step of model fitting during an epoch.
+
+        Returns:
+            MinervaLogger: The constructor of logger to be intialised within the epoch.
+        """
         return utils.func_by_str('minerva.logger', self.params['logger'])
 
     def get_io_func(self) -> Callable:
+        """Fetches a func to handle IO for the type of model used in the experiment.
+
+        Returns:
+            Callable: Model IO function requested from parameters.
+        """
         return utils.func_by_str('minerva.modelio', self.params['model_io'])
 
     def epoch(self, mode: str, record_int: bool = False, record_float: bool = False) -> Optional[Dict[str, Any]]:
@@ -252,6 +268,7 @@ class Trainer:
         # Calculates the number of samples
         n_samples = self.n_batches[mode] * self.batch_size
 
+        # Creates object to log the results from each step of this epoch.
         epoch_logger: MinervaLogger = self.get_logger()
         epoch_logger = epoch_logger(self.n_batches[mode], self.batch_size, n_samples, self.model.output_shape,
                                     self.model.n_classes, record_int=record_int, record_float=record_float)
@@ -280,9 +297,11 @@ class Trainer:
         # Updates metrics with epoch results.
         self.metric_logger.calc_metrics(mode, epoch_logger.get_logs, **self.params)
 
+        # If configured to do so, calculates the grad norms.
         if self.params['calc_norm']:
             _ = utils.calc_grad(self.model)
 
+        # Returns the results of the epoch if configured to do so. Else, returns None.
         if record_int or record_float:
             return epoch_logger.get_results
         else:
@@ -298,17 +317,19 @@ class Trainer:
 
                 results = {}
 
+                # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
                 if epoch == (self.max_epochs - 1) and self.params['plot_last_epoch']:
                     results = self.epoch(mode, record_int=True)
                 else:
                     self.epoch(mode)
 
-                # Add epoch number to training metrics.
+                # Add epoch number to metrics.
                 self.metric_logger.log_epoch_number(mode, epoch)
 
-                # Print training epoch results.
+                # Print epoch results.
                 self.metric_logger.print_epoch_results(mode, epoch)
 
+                # Sends validation loss to the stopper and updates early stop bool.
                 if mode == 'val' and self.stopper is not None:
                     val_loss = self.metric_logger.get_metrics['val_loss']['y'][epoch]
                     self.stopper(val_loss, self.model)
@@ -333,6 +354,7 @@ class Trainer:
                 # Create a subset of metrics which drops the testing results for plotting model history.
                 sub_metrics = self.metric_logger.get_sub_metrics()
 
+                # Ensures masks are not plotted for model types that do not yield such outputs.
                 if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
                     plots['Mask'] = False
 
@@ -346,6 +368,8 @@ class Trainer:
                                       model_name=self.params['model_name'], timestamp=self.params['timestamp'],
                                       results_dir=results_dir, **results)
 
+                # If early stopping has been triggered, loads the last model save to replace current model,
+                # ready for testing.
                 if self.early_stop:
                     self.model.load_state_dict(torch.load(f'{self.exp_fn}.pt'))
                     break
@@ -474,8 +498,8 @@ class Trainer:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
 
         Args:
-            predictions (list or np.ndarray): List of predicted labels.
-            labels (list or np.ndarray): List of corresponding ground truth label masks.
+            predictions (ArrayLike): List of predicted labels.
+            labels (ArrayLike): List of corresponding ground truth label masks.
 
         Returns:
             None
