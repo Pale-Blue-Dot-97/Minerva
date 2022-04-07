@@ -38,7 +38,7 @@ try:
     from numpy.typing import ArrayLike
 except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
-from minerva.models import MinervaModel
+from minerva.models import MinervaModel, MinervaBackbone
 from minerva.utils import visutils, utils
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
@@ -253,6 +253,15 @@ class Trainer:
         """
         return utils.func_by_str('minerva.modelio', self.params['model_io'])
 
+    def downstream_config(self) -> None:
+        """Readies the model for use in downstream tasks and saves to file."""
+        # Checks that model has the required method to ready it for use on downstream tasks.
+        assert type(self.model) is MinervaBackbone
+        self.model.ready_downstream()
+
+        # With model now readied, saves the model to file for use in downstream tasks.
+        self.save_model()
+
     def epoch(self, mode: str, record_int: bool = False, record_float: bool = False) -> Optional[Dict[str, Any]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
@@ -308,7 +317,7 @@ class Trainer:
             return
 
     def fit(self) -> None:
-        """Fits the model by running max_epochs number of training and validation epochs."""
+        """Fits the model by running `max_epochs` number of training and validation epochs."""
         for epoch in range(self.max_epochs):
             print(f'\nEpoch: {epoch + 1}/{self.max_epochs} ==========================================================')
 
@@ -479,7 +488,7 @@ class Trainer:
                 res = inputimeout(prompt='\nSave model to file? (Y/N): ', timeout=_timeout)
                 if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'save', 'SAVE', 'Save'):
                     # Saves model state dict to PyTorch file.
-                    torch.save(self.model.state_dict(), f'{self.exp_fn}.pt')
+                    self.save_model()
                     print('MODEL PARAMETERS SAVED')
                 elif res in ('N', 'n', 'no', 'No', 'NO'):
                     print('Model will NOT be saved to file')
@@ -492,7 +501,7 @@ class Trainer:
         elif self.params['save_model'] in (True, 'auto', 'Auto'):
             print('\nSAVING MODEL PARAMETERS TO FILE')
             # Saves model state dict to PyTorch file.
-            torch.save(self.model.state_dict(), f'{self.exp_fn}.pt')
+            self.save_model()
 
     def compute_classification_report(self, predictions: ArrayLike, labels: ArrayLike) -> None:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
@@ -513,6 +522,10 @@ class Trainer:
 
         # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f'{self.exp_fn}_classification-report.csv')
+
+    def save_model(self) -> None:
+        """Saves model state dict to PyTorch file."""
+        torch.save(self.model.state_dict(), f'{self.exp_fn}.pt')
 
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
