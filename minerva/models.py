@@ -32,6 +32,8 @@ TODO:
 # =====================================================================================================================
 from typing import Union, Optional, Tuple, List, Callable, Type, Any, Dict
 from torch import Tensor, FloatTensor, LongTensor
+from torch.optim import Optimizer
+from torch.nn import Module
 import abc
 from minerva.utils import utils
 import torch
@@ -44,11 +46,11 @@ from collections import OrderedDict
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class MinervaModel(torch.nn.Module, ABC):
+class MinervaModel(Module, ABC):
     """Abstract class to act as a base for all Minerva Models. Designed to provide inter-compatability with Trainer.
 
     Attributes:
-        criterion: PyTorch loss function model will use.
+        criterion (Module): PyTorch loss function model will use.
         input_shape (tuple[int, int, int] or list[int]): The shape of the input data in order of
             number of channels, image width, image height.
         n_classes (int): Number of classes in input data.
@@ -56,14 +58,14 @@ class MinervaModel(torch.nn.Module, ABC):
         optimiser: PyTorch optimiser model will use, to be initialised with inherited model's parameters.
 
     Args:
-        criterion: Optional; PyTorch loss function model will use.
+        criterion (Module): Optional; PyTorch loss function model will use.
         input_shape (tuple[int, int, int] or list[int]): Optional; Defines the shape of the input data in order of
             number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in input data.
     """
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, criterion=None, input_shape: Optional[Tuple[int, ...]] = None,
+    def __init__(self, criterion: Module = None, input_shape: Optional[Tuple[int, ...]] = None,
                  n_classes: Optional[int] = None) -> None:
         super(MinervaModel, self).__init__()
 
@@ -78,9 +80,9 @@ class MinervaModel(torch.nn.Module, ABC):
 
         # Optimiser initialised as None as the model parameters created by its init is required to init a
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
-        self.optimiser = None
+        self.optimiser: Optimizer = None
 
-    def set_optimiser(self, optimiser: Any) -> None:
+    def set_optimiser(self, optimiser: Optimizer) -> None:
         """Sets the optimiser used by the model.
 
         Must be called after initialising a model and supplied with a PyTorch optimiser using this model's parameters.
@@ -186,7 +188,32 @@ class MinervaModel(torch.nn.Module, ABC):
         return self.step(x, y, False)
 
 
-class MLP(MinervaModel, ABC):
+class MinervaBackbone(ABC):
+    __metaclass__ = abc.ABCMeta
+    def __init__(self) -> None:
+        super().__init__()
+
+    @abc.abstractmethod
+    def ready_downstream(self) -> None:
+        pass
+
+
+class PreTrainedModel(MinervaModel):
+    def __init__(self, pretrained_model: MinervaModel, task_network_name, task_network_kwargs,
+                 criterion=None, n_classes: Optional[int] = None) -> None:
+        super().__init__(criterion, pretrained_model.input_shape, n_classes)
+
+        self.backbone = pretrained_model
+        self.downstream: MinervaModel = globals()[task_network_name](in_channel=self.backbone.output_shape[0],
+            n_classes=n_classes, **task_network_kwargs)
+
+    def forward(self, x: FloatTensor) -> FloatTensor:
+        z = self.backbone(x)
+        z = self.downstream(z)
+        return z
+
+
+class MLP(MinervaModel):
     """Simple class to construct a Multi-Layer Perceptron (MLP).
 
     Inherits from torch.nn.Module and MinervaModel. Designed for use with PyTorch functionality.
@@ -383,7 +410,7 @@ class ResNet(MinervaModel, ABC):
         groups (int): Number of convolutions in grouped convolutions of Bottleneck Blocks.
         base_width (int): Modifies the number of feature maps in convolutional layers of Bottleneck Blocks.
         conv1 (torch.nn.Conv2d): Input convolutional layer of Conv1 input block to the network.
-        bn1 (torch.nn.Module): Batch normalisation layer of the Conv1 input block to the network.
+        bn1 (Module): Batch normalisation layer of the Conv1 input block to the network.
         relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
         maxpool (torch.nn.MaxPool2d): 3x3 Max-pooling layer with stride 2 of the Conv1 input block to the network.
         layer1 (torch.nn.Sequential): `Layer' 1 of the ResNet comprising number and type of blocks defined by 'layers'.
@@ -421,7 +448,7 @@ class ResNet(MinervaModel, ABC):
     def __init__(self, block: Type[Union[BasicBlock, Bottleneck]], layers: Union[List[int], Tuple[int, int, int, int]],
                  in_channels: int = 3, n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1,
                  width_per_group: int = 64, replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
+                 norm_layer: Optional[Callable[..., Module]] = None, encoder: bool = False) -> None:
         super(ResNet, self).__init__()
 
         # Inits normalisation layer for use in each block.
@@ -845,7 +872,7 @@ class ResNet18(MinervaModel, ABC):
 
     def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, zero_init_residual: bool = False,
-                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None,
+                 norm_layer: Optional[Callable[..., Module]] = None,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None, encoder: bool = False) -> None:
         super(ResNet18, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
@@ -897,7 +924,7 @@ class ResNet34(MinervaModel, ABC):
     def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, zero_init_residual: bool = False,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
+                 norm_layer: Optional[Callable[..., Module]] = None, encoder: bool = False) -> None:
         super(ResNet34, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(BasicBlock, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
@@ -950,7 +977,7 @@ class ResNet50(MinervaModel, ABC):
     def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
+                 norm_layer: Optional[Callable[..., Module]] = None, encoder: bool = False) -> None:
         super(ResNet50, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(Bottleneck, [3, 4, 6, 3], in_channels=input_size[0], n_classes=n_classes,
@@ -1003,7 +1030,7 @@ class ResNet101(MinervaModel, ABC):
     def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
+                 norm_layer: Optional[Callable[..., Module]] = None, encoder: bool = False) -> None:
         super(ResNet101, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(Bottleneck, [3, 4, 23, 3], in_channels=input_size[0], n_classes=n_classes,
@@ -1056,7 +1083,7 @@ class ResNet152(MinervaModel, ABC):
     def __init__(self, criterion: Optional[Any] = None, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
                  n_classes: int = 8, zero_init_residual: bool = False, groups: int = 1, width_per_group: int = 64,
                  replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-                 norm_layer: Optional[Callable[..., torch.nn.Module]] = None, encoder: bool = False) -> None:
+                 norm_layer: Optional[Callable[..., Module]] = None, encoder: bool = False) -> None:
         super(ResNet152, self).__init__(criterion=criterion, input_shape=input_size, n_classes=n_classes)
 
         self.network = ResNet(Bottleneck, [3, 8, 36, 3], in_channels=input_size[0], n_classes=n_classes,
@@ -1087,9 +1114,9 @@ class _FCN(MinervaModel, ABC):
     Subclasses MinervaModel.
 
     Attributes:
-        backbone (torch.nn.Module): Backbone of the FCN that takes the imagery input and
+        backbone (Module): Backbone of the FCN that takes the imagery input and
             extracts learned representations.
-        decoder (torch.nn.Module): Decoder that takes the learned representations from the backbone encoder
+        decoder (Module): Decoder that takes the learned representations from the backbone encoder
             and de-convolves to output a classification segmentation mask.
 
     Args:
@@ -1398,15 +1425,15 @@ class FCN8ResNet152(_FCN):
                                             backbone_kwargs=resnet_kwargs)
 
 
-class _SimCLR(MinervaModel, ABC):
+class _SimCLR(MinervaModel, MinervaBackbone):
     """Base SimCLR class to be subclassed by SimCLR variants.
 
     Subclasses MinervaModel.
 
     Attributes:
-        backbone (torch.nn.Module): Backbone of SimCLR that takes the imagery input and
+        backbone (Module): Backbone of SimCLR that takes the imagery input and
             extracts learned representations.
-        proj_head (torch.nn.Module): Projection head that takes the learned representations from the backbone encoder
+        proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1450,6 +1477,10 @@ class _SimCLR(MinervaModel, ABC):
 
         return z
 
+    def ready_downstream(self) -> None:
+        """Deletes the projection head from the model ready for downstream tasks."""
+        del self.proj_head
+
 
 class SimCLR18(_SimCLR):
     """SimCLR network using a ResNet18 backbone.
@@ -1470,12 +1501,12 @@ class SimCLR18(_SimCLR):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_output_shape(model: torch.nn.Module, image_dim: Union[List[int], Tuple[int, ...]],
+def get_output_shape(model: Module, image_dim: Union[List[int], Tuple[int, ...]],
                      sample_pairs: bool = False) -> Union[int, Any]:
     """Gets the output shape of a model.
 
     Args:
-        model (torch.nn.Module): Model for which the shape of the output needs to be found.
+        model (Module): Model for which the shape of the output needs to be found.
         image_dim (list[int] or tuple[int]): Expected shape of the input data to the model.
 
     Returns:
