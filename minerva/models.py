@@ -1498,6 +1498,39 @@ class SimCLR18(_SimCLR):
                                        backbone_name='ResNet18', backbone_kwargs=resnet_kwargs)
 
 
+class SimCLR32(_SimCLR):
+    """SimCLR network using a ResNet32 backbone.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 feature_dim: int = 128, **resnet_kwargs) -> None:
+        super(SimCLR32, self).__init__(criterion=criterion, input_size=input_size, feature_dim=feature_dim,
+                                       backbone_name='ResNet32', backbone_kwargs=resnet_kwargs)
+
+
+class SimCLR50(_SimCLR):
+    """SimCLR network using a ResNet50 backbone.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(self, criterion: Any, input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+                 feature_dim: int = 128, **resnet_kwargs) -> None:
+        super(SimCLR50, self).__init__(criterion=criterion, input_size=input_size, feature_dim=feature_dim,
+                                       backbone_name='ResNet50', backbone_kwargs=resnet_kwargs)
+
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
