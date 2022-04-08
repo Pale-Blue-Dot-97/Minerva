@@ -71,7 +71,7 @@ def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device, mode: str, **kwar
 def ssl_pair_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device,
                 mode: str, dataset: GeoDataset, **kwargs) -> Tuple[Any, Any, Any]:
     x_i_batch: Tensor = batch['image']
-    j_batch = utils.extract_geo_pairs(batch['bbox'], dataset)
+    j_batch = utils.extract_geo_pairs(batch['bbox'], dataset, max_r=kwargs['max_r'])
     x_j_batch: Tensor = j_batch['image']
 
     y_batch = torch.arange(len(x_i_batch))

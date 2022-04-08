@@ -295,7 +295,7 @@ class Trainer:
 
             # Core of the epoch.
             for batch in self.loaders[mode]:
-                results = self.modelio_func(batch, self.model, self.device, mode, dataset=dataset)
+                results = self.modelio_func(batch, self.model, self.device, mode, dataset=dataset, **self.params)
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
                 self.step_num[mode] += 1
