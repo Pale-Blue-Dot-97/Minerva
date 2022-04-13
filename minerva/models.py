@@ -34,6 +34,7 @@ from typing import Union, Optional, Tuple, List, Callable, Type, Any, Dict
 from torch import Tensor, FloatTensor, LongTensor
 from torch.optim import Optimizer
 from torch.nn import Module
+from torch.nn.modules.loss import _Loss
 import abc
 from minerva.utils import utils
 import torch
@@ -108,7 +109,7 @@ class MinervaModel(Module, ABC):
         """
         return x
 
-    def step(self, x: FloatTensor, y: Union[LongTensor, FloatTensor], train: bool) -> Tuple[Any, Tensor]:
+    def step(self, x: FloatTensor, y: Union[LongTensor, FloatTensor], train: bool) -> Tuple[_Loss, Tensor]:
         """Generic step of model fitting using a batch of data.
 
         Args:
@@ -127,10 +128,10 @@ class MinervaModel(Module, ABC):
             self.optimiser.zero_grad()
 
         # Forward pass.
-        z = self.forward(x)
+        z: Tensor = self.forward(x)
 
         # Compute Loss.
-        loss = self.criterion(z, y)
+        loss: _Loss = self.criterion(z, y)
 
         # Performs a backward pass if this is a training step.
         if train:
@@ -139,7 +140,7 @@ class MinervaModel(Module, ABC):
 
         return loss, z
 
-    def training_step(self, x: FloatTensor, y: LongTensor) -> Tuple[Any, Tensor]:
+    def training_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
         """Calls step with train=True to perform a training step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
@@ -155,7 +156,7 @@ class MinervaModel(Module, ABC):
         """
         return self.step(x, y, True)
 
-    def validation_step(self, x: FloatTensor, y: LongTensor) -> Tuple[Any, Tensor]:
+    def validation_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
         """Calls step with train=False to perform a validation step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
@@ -171,7 +172,7 @@ class MinervaModel(Module, ABC):
         """
         return self.step(x, y, False)
 
-    def testing_step(self, x: FloatTensor, y: LongTensor) -> Tuple[Any, Tensor]:
+    def testing_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
         """Calls step with train=False to perform a testing step. See step for more details.
 
         Designed to be compatible with Trainer and future compatibility with PyTorchLightning.

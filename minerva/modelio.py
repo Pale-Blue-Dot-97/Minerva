@@ -31,6 +31,7 @@ TODO:
 # =====================================================================================================================
 from typing import Sequence, Tuple, Dict, Any, Literal
 from torch import Tensor
+from torch.nn.modules.loss import _Loss
 from torchgeo.datasets import GeoDataset
 from minerva.models import MinervaModel
 from torchgeo.datasets.utils import BoundingBox
@@ -43,7 +44,7 @@ import torch
 #                                                     METHODS
 # =====================================================================================================================
 def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device,
-           mode: Literal['train', 'val', 'test'], **kwargs) -> Tuple[Any, Tensor, Tensor, Sequence[BoundingBox]]:
+           mode: Literal['train', 'val', 'test'], **kwargs) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a supervised model using `torchgeo` datasets.
 
     Args:
@@ -53,7 +54,7 @@ def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device,
         mode (Literal['train', 'val', 'test']): Mode of model fitting to use.
 
     Returns:
-        Tuple[Any, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
+        Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
             and the bounding boxes of the input images supplied.
     """
     # Extracts the x and y batches from the dict.
@@ -84,7 +85,7 @@ def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device,
 
 
 def ssl_pair_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device, mode: Literal['train', 'val'],
-                dataset: GeoDataset, **kwargs) -> Tuple[Any, Tensor, Tensor, Sequence[BoundingBox]]:
+                dataset: GeoDataset, **kwargs) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using `torchgeo` datasets.
 
     Args:
@@ -96,7 +97,7 @@ def ssl_pair_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device
             to be used to sample the geo-similar batch.
 
     Returns:
-        Tuple[Any, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
+        Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
             and the bounding boxes of the original input images supplied.
     """
     # Extracts the x_i batch from the dict.
