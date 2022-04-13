@@ -379,6 +379,18 @@ def transform_raster(path: str, new_crs: CRS) -> List[float]:
 def transform_coordinates(x: Union[Sequence[float], float], y: Union[Sequence[float], float], src_crs: CRS,
                           new_crs: CRS = wgs_84) -> Union[Tuple[Sequence[float], Sequence[float]],
                                                           Tuple[float, float]]:
+    """Transforms co-ordinates from one CRS to another.
+
+    Args:
+        x (Union[Sequence[float], float]): The x co-ordinate(s)
+        y (Union[Sequence[float], float]): The y co-ordinate(s)
+        src_crs (CRS): The source co-orinates reference system (CRS)
+        new_crs (CRS, optional): The new CRS to transform co-ordinates to. Defaults to wgs_84.
+
+    Returns:
+        Union[Tuple[Sequence[float], Sequence[float]], Tuple[float, float]]: The transformed co-ordinates.
+            A tuple if only one `x` and `y` were provided, sequence of tuples if sequence of `x` and `y` provided.
+    """
     single = False
 
     # Checks if x is a float. Places x in a list if True.
@@ -452,6 +464,14 @@ def dec2deg(dec_co: Sequence[float], axis: str = 'lat') -> List[str]:
 
 
 def get_centre_loc(bounds: BoundingBox) -> Tuple[float, float]:
+    """Gets the centre co-ordinates of the parsed bounding box.
+
+    Args:
+        bounds (BoundingBox): Bounding box object.
+
+    Returns:
+        Tuple[float, float]: Tuple of the centre x, y co-ordinates of the bounding box.
+    """
     mid_x = bounds.maxx - abs((bounds.maxx - bounds.minx) / 2)
     mid_y = bounds.maxy - abs((bounds.maxy - bounds.miny) / 2)
 
@@ -459,10 +479,23 @@ def get_centre_loc(bounds: BoundingBox) -> Tuple[float, float]:
 
 
 def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
+    """Takes a latitude - longitude co-ordinate and returns a string of the semantic location.
+
+    Args:
+        lat (Union[str, float]): Latitude of location.
+        lon (Union[str, float]): Longitude of location.
+
+    Returns:
+        str: Semantic location of co-ordinates e.g. "Belper, Derbyshire, UK".
+    """
     try:
+        # Creates a geolocator object to query the server.
         geolocator = Nominatim(user_agent="geoapiExercises")
+
+        # Query to server with lat-lon co-ordinates.
         location = geolocator.reverse(f'{lat},{lon}').raw['address']
 
+        # Attempts to add possible fields to address of the location. Not all will be present for every query.
         locs: list[str] = []
         try:
             locs.append(location['city'])
@@ -479,13 +512,17 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
             except KeyError:
                 pass
 
+        # If more than one line in the address, join together with comma seperaters.
         if len(locs) > 1:
             return ', '.join(locs)
+        # If one line, just return this field as the location.
         elif len(locs) == 1:
             return locs
+        # If no fields found for query, return empty string.
         else:
             return ''
 
+    # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
     except GeocoderUnavailable:
         print("\nGeocoder unavailable")
         return ''
@@ -629,7 +666,7 @@ def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[A
 
 def load_data_specs(class_dist: List[Tuple[int, int]],
                     elim: bool = False) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
-    """
+    """Loads the `classes`, `forwards` (if `elim` is true) and `cmap_dict` dictionaries.
 
     Args:
         class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
@@ -637,7 +674,9 @@ def load_data_specs(class_dist: List[Tuple[int, int]],
         elim (bool): Whether to eliminate classes with no samples in.
 
     Returns:
-
+        Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]: The `classes`, `forwards` and `cmap_dict` dictionaries
+            transformed to new classes if `elim` is true. Else, the `forwards` dict is empty and `classes`
+            and `cmap_dict` are unaltered.
     """
     if not elim:
         return classes, {}, cmap_dict
@@ -653,7 +692,7 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
         matrix (dict): Dictionary mapping old labels to new.
 
     Returns:
-        Label transformed by matrix.
+        int: Label transformed by matrix.
     """
     return matrix[label]
 
@@ -666,7 +705,7 @@ def mask_transform(array: NDArray[np.int_], matrix: Dict[int, int]) -> NDArray[n
         matrix (dict): Dictionary mapping old labels to new.
 
     Returns:
-        Array of transformed labels.
+        np.ndarray[np.int_]: Array of transformed labels.
     """
     for key in matrix.keys():
         array[array == key] = matrix[key]
@@ -776,7 +815,7 @@ def cloud_cover(scene: NDArray[Any]) -> Any:
         scene (np.ndarray): Cloud cover mask for a particular scene.
 
     Returns:
-        (float): Percentage cloud cover of scene.
+        float: Percentage cloud cover of scene.
     """
     return np.sum(scene) / scene.size
 
@@ -1316,6 +1355,14 @@ def extract_geo_pairs(bboxs: Sequence[BoundingBox], dataset: GeoDataset, max_r: 
 
 
 def intersect_datasets(datasets: List[GeoDataset]) -> IntersectionDataset:
+    """Intersects a list of `GeoDataset`s together to return a single dataset object.
+
+    Args:
+        datasets (List[GeoDataset]): List of datasets to intersect together. Should have some geospatial overlap.
+
+    Returns:
+        IntersectionDataset: Final dataset object representing an intersection of all the parsed datasets.
+    """
 
     def intersect_pair_datasets(a: GeoDataset, b: GeoDataset) -> IntersectionDataset:
         return a & b
