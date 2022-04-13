@@ -45,8 +45,20 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 # ---+ Typing +--------------------------------------------------------------------------------------------------------
-from typing import Tuple, Union, Optional, Any, List, Dict, Callable, Iterable, Sequence, Match
+from typing import (
+    Tuple,
+    Union,
+    Optional,
+    Any,
+    List,
+    Dict,
+    Callable,
+    Iterable,
+    Sequence,
+    Match,
+)
 from collections import Counter, OrderedDict
+
 try:
     from numpy.typing import NDArray, ArrayLike
 except (ModuleNotFoundError, ImportError):
@@ -94,57 +106,59 @@ from geopy.exc import GeocoderUnavailable
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-imagery_config_path = config['dir']['configs']['imagery_config']
-data_config_path = config['dir']['configs']['data_config']
+imagery_config_path = config["dir"]["configs"]["imagery_config"]
+data_config_path = config["dir"]["configs"]["data_config"]
 
-data_config = aux_configs['data_config']
-imagery_config = aux_configs['imagery_config']
+data_config = aux_configs["data_config"]
+imagery_config = aux_configs["imagery_config"]
 
 # Path to directory holding dataset.
-data_dir = os.sep.join(config['dir']['data'])
+data_dir = os.sep.join(config["dir"]["data"])
 
 # Path to cache directory.
-cache_dir = os.sep.join(config['dir']['cache'])
+cache_dir = os.sep.join(config["dir"]["cache"])
 
 # Path to directory to output plots to.
-results_dir = os.path.join(*config['dir']['results'])
+results_dir = os.path.join(*config["dir"]["results"])
 
 # Band IDs and position in sample image.
-band_ids = imagery_config['data_specs']['band_ids']
+band_ids = imagery_config["data_specs"]["band_ids"]
 
 # Defines size of the images to determine the number of batches.
-image_size = imagery_config['data_specs']['image_size']
+image_size = imagery_config["data_specs"]["image_size"]
 
-classes = data_config['classes']
+classes = data_config["classes"]
 
-cmap_dict = data_config['colours']
+cmap_dict = data_config["colours"]
 
 # WGS84 co-ordinate reference system acting as a default CRS for transformations.
 wgs_84 = CRS.from_epsg(4326)
 
 # Filters out all TensorFlow messages other than errors.
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
 # =====================================================================================================================
 #                                                   DECORATORS
 # =====================================================================================================================
 def return_updated_kwargs(func):
-
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         results = func(*args, **kwargs)
         kwargs.update(results[-1])
         return (*results[:-1], kwargs)
+
     return wrapper
 
 
 def pair_collate(func):
-
     @functools.wraps(func)
-    def wrapper(samples: Iterable[Tuple[Dict[Any, Any]]]) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+    def wrapper(
+        samples: Iterable[Tuple[Dict[Any, Any]]]
+    ) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
         a, b = tuple(zip(*samples))
         return func(a), func(b)
+
     return wrapper
 
 
@@ -159,7 +173,7 @@ def dublicator(cls):
             return self.wrap.__call__(a), self.wrap.__call__(b)
 
         def __repr__(self) -> str:
-            return f'dublicator({self.wrap.__repr__()})'
+            return f"dublicator({self.wrap.__repr__()})"
 
     return Wrapper
 
@@ -170,7 +184,9 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
             self.wrap = cls(*args, **kwargs)
             self.keys = keys
 
-        def __call__(self, batch: Union[Dict[str, Any], torch.Tensor]) -> Dict[str, Any]:
+        def __call__(
+            self, batch: Union[Dict[str, Any], torch.Tensor]
+        ) -> Dict[str, Any]:
             if isinstance(batch, torch.Tensor):
                 return self.wrap.__call__(batch)
 
@@ -261,10 +277,10 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     """
     data_config_fn = ntpath.basename(data_config_path)
     try:
-        match: Optional[Match[str]] = regex.search(r'(.*?)\.yml', data_config_fn)
+        match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
         return match.group(1)
     except AttributeError:
-        print('\nDataset not found!')
+        print("\nDataset not found!")
         return None
 
 
@@ -274,7 +290,7 @@ def get_manifest_path() -> str:
     Returns:
         Path to manifest as string.
     """
-    return os.sep.join([cache_dir, f'{get_dataset_name()}_Manifest.csv'])
+    return os.sep.join([cache_dir, f"{get_dataset_name()}_Manifest.csv"])
 
 
 def get_manifest(manifest_path: str) -> pd.DataFrame:
@@ -283,10 +299,10 @@ def get_manifest(manifest_path: str) -> pd.DataFrame:
     except FileNotFoundError as err:
         print(err)
 
-        print('CONSTRUCTING MISSING MANIFEST')
+        print("CONSTRUCTING MISSING MANIFEST")
         manifest = make_manifest()
 
-        print(f'MANIFEST TO FILE -----> {manifest_path}')
+        print(f"MANIFEST TO FILE -----> {manifest_path}")
         manifest.to_csv(manifest_path)
 
         return manifest
@@ -300,26 +316,31 @@ def make_manifest(mf_config: Dict[Any, Any] = config) -> pd.DataFrame:
     Returns:
         df (pd.DataFrame): The completed manifest as a DataFrame.
     """
-    dataloader_params = mf_config['dataloader_params']
-    dataset_params = mf_config['dataset_params']
-    sampler_params = mf_config['sampler_params']
-    collator_params = mf_config['collator']
+    dataloader_params = mf_config["dataloader_params"]
+    dataset_params = mf_config["dataset_params"]
+    sampler_params = mf_config["sampler_params"]
+    collator_params = mf_config["collator"]
 
-    print('CONSTRUCTING DATASET')
-    loader = construct_dataloader(mf_config['dir']['data'], dataset_params, sampler_params,
-                                  dataloader_params, collator_params=collator_params)
+    print("CONSTRUCTING DATASET")
+    loader = construct_dataloader(
+        mf_config["dir"]["data"],
+        dataset_params,
+        sampler_params,
+        dataloader_params,
+        collator_params=collator_params,
+    )
 
-    print('FETCHING SAMPLES')
+    print("FETCHING SAMPLES")
     df = pd.DataFrame()
-    df['MODES'] = load_all_samples(loader)
+    df["MODES"] = load_all_samples(loader)
 
-    print('CALCULATING CLASS FRACTIONS')
+    print("CALCULATING CLASS FRACTIONS")
     # Calculates the fractional size of each class in each patch.
     df = pd.DataFrame([row for row in df.apply(class_frac, axis=1)])
     df.fillna(0, inplace=True)
 
     # Delete redundant MODES column.
-    del df['MODES']
+    del df["MODES"]
 
     return df
 
@@ -352,8 +373,9 @@ def centre_pixel_only(image: Sequence[Any]) -> NDArray[Any]:
     """
     new_image = np.zeros((*image_size, len(band_ids)))
 
-    new_image[int(image_size[0] / 2.0)][int(image_size[1] / 2.0)] = image[int(image_size[0] / 2.0)][
-        int(image_size[1] / 2.0)]
+    new_image[int(image_size[0] / 2.0)][int(image_size[1] / 2.0)] = image[
+        int(image_size[0] / 2.0)
+    ][int(image_size[1] / 2.0)]
 
     return new_image
 
@@ -375,9 +397,12 @@ def transform_raster(path: str, new_crs: CRS) -> List[float]:
     return [transform_bounds(src_crs=src_rst.crs, dst_crs=new_crs, *src_rst.bounds)]
 
 
-def transform_coordinates(x: Union[Sequence[float], float], y: Union[Sequence[float], float], src_crs: CRS,
-                          new_crs: CRS = wgs_84) -> Union[Tuple[Sequence[float], Sequence[float]],
-                                                          Tuple[float, float]]:
+def transform_coordinates(
+    x: Union[Sequence[float], float],
+    y: Union[Sequence[float], float],
+    src_crs: CRS,
+    new_crs: CRS = wgs_84,
+) -> Union[Tuple[Sequence[float], Sequence[float]], Tuple[float, float]]:
     """Transforms co-ordinates from one CRS to another.
 
     Args:
@@ -413,7 +438,7 @@ def transform_coordinates(x: Union[Sequence[float], float], y: Union[Sequence[fl
         return x_2, y_2
 
 
-def deg_to_dms(deg: float, axis: str = 'lat') -> str:
+def deg_to_dms(deg: float, axis: str = "lat") -> str:
     """Credit to Gustavo Gonçalves on Stack Overflow.
     https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
 
@@ -433,19 +458,16 @@ def deg_to_dms(deg: float, axis: str = 'lat') -> str:
     s = (deg - d - m / 60) * 3600.00
 
     # Define cardinal directions between latitude and longitude
-    compass = {
-        'lat': ('N', 'S'),
-        'lon': ('E', 'W')
-    }
+    compass = {"lat": ("N", "S"), "lon": ("E", "W")}
 
     # Select correct hemisphere
     compass_str = compass[axis][0 if d >= 0 else 1]
 
     # Return formatted str
-    return '{}º{}\'{:.0f}"{}'.format(abs(d), abs(m), abs(s), compass_str)
+    return "{}º{}'{:.0f}\"{}".format(abs(d), abs(m), abs(s), compass_str)
 
 
-def dec2deg(dec_co: Sequence[float], axis: str = 'lat') -> List[str]:
+def dec2deg(dec_co: Sequence[float], axis: str = "lat") -> List[str]:
     """Wrapper for deg_to_dms.
 
     Args:
@@ -492,39 +514,39 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         geolocator = Nominatim(user_agent="geoapiExercises")
 
         # Query to server with lat-lon co-ordinates.
-        location = geolocator.reverse(f'{lat},{lon}').raw['address']
+        location = geolocator.reverse(f"{lat},{lon}").raw["address"]
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
         locs: list[str] = []
         try:
-            locs.append(location['city'])
+            locs.append(location["city"])
         except KeyError:
             try:
-                locs.append(location['county'])
+                locs.append(location["county"])
             except KeyError:
                 pass
         try:
-            locs.append(location['state'])
+            locs.append(location["state"])
         except KeyError:
             try:
-                locs.append(location['country'])
+                locs.append(location["country"])
             except KeyError:
                 pass
 
         # If more than one line in the address, join together with comma seperaters.
         if len(locs) > 1:
-            return ', '.join(locs)
+            return ", ".join(locs)
         # If one line, just return this field as the location.
         elif len(locs) == 1:
             return locs
         # If no fields found for query, return empty string.
         else:
-            return ''
+            return ""
 
     # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
     except GeocoderUnavailable:
         print("\nGeocoder unavailable")
-        return ''
+        return ""
 
 
 def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
@@ -541,7 +563,9 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
     return np.eye(n_classes)[targets]
 
 
-def class_weighting(class_dist: List[Tuple[int, int]], normalise: bool = False) -> Dict[int, float]:
+def class_weighting(
+    class_dist: List[Tuple[int, int]], normalise: bool = False
+) -> Dict[int, float]:
     """Constructs weights for each class defined by the distribution provided. Each class weight is the inverse
     of the number of samples of that class. Note: This will most likely mean that the weights will not sum to unity.
 
@@ -571,7 +595,9 @@ def class_weighting(class_dist: List[Tuple[int, int]], normalise: bool = False) 
     return class_weights
 
 
-def find_empty_classes(class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = classes) -> List[int]:
+def find_empty_classes(
+    class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = classes
+) -> List[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
     Args:
@@ -594,10 +620,11 @@ def find_empty_classes(class_dist: List[Tuple[int, int]], class_names: Dict[int,
     return empty
 
 
-def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any]],
-                      old_classes: Optional[Dict[int, str]] = None,
-                      old_cmap: Optional[Dict[int, str]] = None) -> Tuple[Dict[int, str], Dict[int, int],
-                                                                          Dict[int, str]]:
+def eliminate_classes(
+    empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any]],
+    old_classes: Optional[Dict[int, str]] = None,
+    old_cmap: Optional[Dict[int, str]] = None,
+) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
 
@@ -631,7 +658,9 @@ def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[A
 
         # Holds keys that are over the length of the shortened dict.
         # i.e If there were 8 classes before and now there are 6 but class number 7 remains, it is an over key.
-        over_keys = [key for key in new_classes.keys() if key >= len(new_classes.keys())]
+        over_keys = [
+            key for key in new_classes.keys() if key >= len(new_classes.keys())
+        ]
 
         # Creates OrderedDicts of the key-value pairs of the over keys.
         over_classes = OrderedDict({key: new_classes[key] for key in over_keys})
@@ -663,8 +692,9 @@ def eliminate_classes(empty_classes: Union[List[int], Tuple[int, ...], NDArray[A
         return reordered_classes, conversion, reordered_colours
 
 
-def load_data_specs(class_dist: List[Tuple[int, int]],
-                    elim: bool = False) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
+def load_data_specs(
+    class_dist: List[Tuple[int, int]], elim: bool = False
+) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
     """Loads the `classes`, `forwards` (if `elim` is true) and `cmap_dict` dictionaries.
 
     Args:
@@ -712,8 +742,12 @@ def mask_transform(array: NDArray[np.int_], matrix: Dict[int, int]) -> NDArray[n
     return array
 
 
-def check_test_empty(pred: Sequence[int], labels: Sequence[int], class_labels: Dict[int, str],
-                     p_dist: bool = True) -> Tuple[NDArray[np.int_], NDArray[np.int_], Dict[int, str]]:
+def check_test_empty(
+    pred: Sequence[int],
+    labels: Sequence[int],
+    class_labels: Dict[int, str],
+    p_dist: bool = True,
+) -> Tuple[NDArray[np.int_], NDArray[np.int_], Dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class_labels.
 
@@ -734,16 +768,18 @@ def check_test_empty(pred: Sequence[int], labels: Sequence[int], class_labels: D
 
     if p_dist:
         # Prints class distributions of ground truth and predicted labels to stdout.
-        print('\nGROUND TRUTH:')
+        print("\nGROUND TRUTH:")
         print_class_dist(labels_dist, class_labels=class_labels)
-        print('\nPREDICTIONS:')
+        print("\nPREDICTIONS:")
         print_class_dist(pred_dist, class_labels=class_labels)
 
     empty = []
 
     # Checks which classes are not present in labels and predictions and adds to empty.
     for label in class_labels.keys():
-        if label not in [mode[0] for mode in labels_dist] and label not in [mode[0] for mode in pred_dist]:
+        if label not in [mode[0] for mode in labels_dist] and label not in [
+            mode[0] for mode in pred_dist
+        ]:
             empty.append(label)
 
     # Eliminates and reorganises classes based on those not present during testing.
@@ -756,7 +792,9 @@ def check_test_empty(pred: Sequence[int], labels: Sequence[int], class_labels: D
     return new_pred, new_labels, new_class_labels
 
 
-def class_dist_transform(class_dist: List[Tuple[int, int]], matrix: Dict[int, int]) -> List[Tuple[int, int]]:
+def class_dist_transform(
+    class_dist: List[Tuple[int, int]], matrix: Dict[int, int]
+) -> List[Tuple[int, int]]:
     """Transforms the class distribution from an old schema to a new one.
 
     Args:
@@ -798,10 +836,10 @@ def class_frac(patch: pd.Series) -> Dict[int, Any]:
     """
     new_columns: Dict[int, Any] = dict(patch.to_dict())
     counts = 0
-    for mode in patch['MODES']:
+    for mode in patch["MODES"]:
         counts += mode[1]
 
-    for mode in patch['MODES']:
+    for mode in patch["MODES"]:
         new_columns[mode[0]] = mode[1] / counts
 
     return new_columns
@@ -829,7 +867,7 @@ def month_sort(df: pd.DataFrame, month: str) -> Any:
     Returns:
         (str): Date of the scene with the lowest cloud cover percentage for the given month.
     """
-    return df.loc[month].sort_values(by='COVER')['DATE'][0]
+    return df.loc[month].sort_values(by="COVER")["DATE"][0]
 
 
 def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> Any:
@@ -842,11 +880,15 @@ def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> Any:
     Returns:
         List of strings representing dates of the selected scenes in YY_MM_DD format.
     """
-    return df.loc[df['COVER'] < thres]['DATE'].tolist()
+    return df.loc[df["COVER"] < thres]["DATE"].tolist()
 
 
-def find_best_of(patch_id: str, manifest: pd.DataFrame,
-                 selector: Callable[[pd.DataFrame], List[str]] = threshold_scene_select, **kwargs) -> List[str]:
+def find_best_of(
+    patch_id: str,
+    manifest: pd.DataFrame,
+    selector: Callable[[pd.DataFrame], List[str]] = threshold_scene_select,
+    **kwargs,
+) -> List[str]:
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
@@ -860,16 +902,18 @@ def find_best_of(patch_id: str, manifest: pd.DataFrame,
         scene_names (list): List of strings representing dates of the selected scenes in YY_MM_DD format.
     """
     # Select rows in manifest for given patch ID.
-    patch_df = manifest[manifest['PATCH'] == patch_id]
+    patch_df = manifest[manifest["PATCH"] == patch_id]
 
     # Re-indexes the DataFrame to datetime
-    patch_df.set_index(pd.to_datetime(patch_df['DATE'], format='%Y_%m_%d'), drop=True, inplace=True)
+    patch_df.set_index(
+        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"), drop=True, inplace=True
+    )
 
     # Sends DataFrame to scene_selection() and returns the selected scenes
     return selector(patch_df, **kwargs)
 
 
-def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
+def timestamp_now(fmt: str = "%d-%m-%Y_%H%M") -> str:
     """Gets the timestamp of the datetime now.
 
     Args:
@@ -881,7 +925,9 @@ def timestamp_now(fmt: str = '%d-%m-%Y_%H%M') -> str:
     return datetime.now().strftime(fmt)
 
 
-def find_subpopulations(labels: Sequence[int], plot: bool = False) -> List[Tuple[int, int]]:
+def find_subpopulations(
+    labels: Sequence[int], plot: bool = False
+) -> List[Tuple[int, int]]:
     """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class.
 
     Args:
@@ -892,16 +938,22 @@ def find_subpopulations(labels: Sequence[int], plot: bool = False) -> List[Tuple
         class_dist (list): Modal distribution of classes in the dataset provided.
     """
     # Finds the distribution of the classes within the data
-    class_dist: List[Tuple[int, int]] = Counter(np.array(labels).flatten()).most_common()
+    class_dist: List[Tuple[int, int]] = Counter(
+        np.array(labels).flatten()
+    ).most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
-        visutils.plot_subpopulations(class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True)
+        visutils.plot_subpopulations(
+            class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True
+        )
 
     return class_dist
 
 
-def subpopulations_from_manifest(manifest: pd.DataFrame, plot: bool = False) -> List[Tuple[int, int]]:
+def subpopulations_from_manifest(
+    manifest: pd.DataFrame, plot: bool = False
+) -> List[Tuple[int, int]]:
     """Uses the dataset manifest to calculate the fractional size of classes within the dataset without
     loading the label files.
 
@@ -916,7 +968,7 @@ def subpopulations_from_manifest(manifest: pd.DataFrame, plot: bool = False) -> 
     class_counter: Counter[int] = Counter()
     for classification in classes.keys():
         try:
-            count = manifest[f'{classification}'].sum() / len(manifest)
+            count = manifest[f"{classification}"].sum() / len(manifest)
             if count == 0.0 or count == 0:
                 continue
             else:
@@ -927,7 +979,9 @@ def subpopulations_from_manifest(manifest: pd.DataFrame, plot: bool = False) -> 
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
-        visutils.plot_subpopulations(class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True)
+        visutils.plot_subpopulations(
+            class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True
+        )
 
     return class_dist
 
@@ -961,7 +1015,7 @@ def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
         list with param[0] elements of length comparator if param =! comparator.
         list with param elements of length comparator if param does not have __len__.
     """
-    if hasattr(param, '__len__'):
+    if hasattr(param, "__len__"):
         if len(param) == len(comparator):
             return param
         else:
@@ -996,16 +1050,18 @@ def calc_grad(model: torch.nn.Module) -> Optional[float]:
 
         # Square-root to give final total_norm.
         total_norm **= 0.5
-        print('Total Norm:', total_norm)
+        print("Total Norm:", total_norm)
 
         return total_norm
     except AttributeError:
-        print('Model has no attribute \'parameters\'. Cannot calculate grad norms')
+        print("Model has no attribute 'parameters'. Cannot calculate grad norms")
 
         return None
 
 
-def print_class_dist(class_dist: List[Tuple[int, int]], class_labels: Dict[int, str] = classes) -> None:
+def print_class_dist(
+    class_dist: List[Tuple[int, int]], class_labels: Dict[int, str] = classes
+) -> None:
     """Prints the supplied class_dist in a pretty table format using tabulate.
 
     Args:
@@ -1028,26 +1084,29 @@ def print_class_dist(class_dist: List[Tuple[int, int]], class_labels: Dict[int, 
         Returns:
             Formatted string of the percentage size to 2 decimal places.
         """
-        return '{:.2f}%'.format(count * 100.0 / total)
+        return "{:.2f}%".format(count * 100.0 / total)
 
     # Convert class_dist to dict with class labels.
-    rows = [{'#': mode[0], 'LABEL': class_labels[mode[0]], 'COUNT': mode[1]} for mode in class_dist]
+    rows = [
+        {"#": mode[0], "LABEL": class_labels[mode[0]], "COUNT": mode[1]}
+        for mode in class_dist
+    ]
 
     # Create pandas DataFrame from dict.
     df = pd.DataFrame(rows)
 
     # Add percentage size of classes.
-    df['SIZE'] = df['COUNT'].apply(calc_frac, total=float(df['COUNT'].sum()))
+    df["SIZE"] = df["COUNT"].apply(calc_frac, total=float(df["COUNT"].sum()))
 
     # Convert dtype of COUNT from float to int64.
-    df = df.astype({'COUNT': 'int64'})
+    df = df.astype({"COUNT": "int64"})
 
     # Set the index to class numbers and sort into ascending order.
-    df.set_index('#', drop=True, inplace=True)
-    df.sort_values(by='#', inplace=True)
+    df.set_index("#", drop=True, inplace=True)
+    df.sort_values(by="#", inplace=True)
 
     # Use tabulate to print the DataFrame in a pretty plain text format to stdout.
-    print(tabulate(df, headers='keys', tablefmt='psql'))
+    print(tabulate(df, headers="keys", tablefmt="psql"))
 
 
 def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> Union[List[Any], NDArray[Any]]:
@@ -1074,8 +1133,13 @@ def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> Union[List[Any], NDArray
     return x
 
 
-def make_classification_report(pred: Sequence[int], labels: Sequence[int], class_labels: Dict[int, str],
-                               print_cr: bool = True, p_dist: bool = False) -> pd.DataFrame:
+def make_classification_report(
+    pred: Sequence[int],
+    labels: Sequence[int],
+    class_labels: Dict[int, str],
+    print_cr: bool = True,
+    p_dist: bool = False,
+) -> pd.DataFrame:
     """Generates a DataFrame of the precision, recall, f-1 score and support of the supplied predictions
     and ground truth labels.
 
@@ -1095,20 +1159,27 @@ def make_classification_report(pred: Sequence[int], labels: Sequence[int], class
     """
     # Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     # Returns corrected and re-ordered predictions, labels and class_labels.
-    pred, labels, class_labels = check_test_empty(pred, labels, class_labels, p_dist=p_dist)
+    pred, labels, class_labels = check_test_empty(
+        pred, labels, class_labels, p_dist=p_dist
+    )
 
     # Gets the list of class names from the dict.
     class_names = [class_labels[i] for i in range(len(class_labels))]
 
     # Uses Sci-kit Learn's classification_report to generate the report as a nested dict.
-    cr = classification_report(y_true=labels, y_pred=pred, labels=[i for i in range(len(class_labels))],
-                               zero_division=0, output_dict=True)
+    cr = classification_report(
+        y_true=labels,
+        y_pred=pred,
+        labels=[i for i in range(len(class_labels))],
+        zero_division=0,
+        output_dict=True,
+    )
 
     # Constructs DataFrame from classification report dict.
     cr_df = pd.DataFrame(cr)
 
     # Delete unneeded columns.
-    for column in ('accuracy', 'macro avg', 'micro avg', 'weighted avg'):
+    for column in ("accuracy", "macro avg", "micro avg", "weighted avg"):
         try:
             del cr_df[column]
         except KeyError:
@@ -1118,20 +1189,24 @@ def make_classification_report(pred: Sequence[int], labels: Sequence[int], class
     cr_df = cr_df.T
 
     # Add column for the class names.
-    cr_df['LABEL'] = class_names
+    cr_df["LABEL"] = class_names
 
     # Re-order the columns so the class names are on the left-hand side.
-    cr_df = cr_df[['LABEL', 'precision', 'recall', 'f1-score', 'support']]
+    cr_df = cr_df[["LABEL", "precision", "recall", "f1-score", "support"]]
 
     # Prints the DataFrame put through tabulate into a pretty text format to stdout.
     if print_cr:
-        print(tabulate(cr_df, headers='keys', tablefmt='psql'))
+        print(tabulate(cr_df, headers="keys", tablefmt="psql"))
 
     return cr_df
 
 
-def run_tensorboard(path: Optional[Union[str, List[str], Tuple[str, ...]]] = None, env_name: str = 'env2',
-                    exp_name: Optional[str] = None, host_num: Optional[Union[str, int]] = 6006) -> None:
+def run_tensorboard(
+    path: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
+    env_name: str = "env2",
+    exp_name: Optional[str] = None,
+    host_num: Optional[Union[str, int]] = 6006,
+) -> None:
     """Runs the TensorBoard logs and hosts on a local webpage.
 
     Args:
@@ -1150,17 +1225,19 @@ def run_tensorboard(path: Optional[Union[str, List[str], Tuple[str, ...]]] = Non
     """
     if not exp_name:
         try:
-            exp_name = config['exp_name']
+            exp_name = config["exp_name"]
             if not path:
                 try:
-                    path = config['dir']['results'][:-1]
+                    path = config["dir"]["results"][:-1]
                 except KeyError:
-                    print('KeyError: Path not specified and default cannot be found.')
-                    print('ABORT OPERATION')
+                    print("KeyError: Path not specified and default cannot be found.")
+                    print("ABORT OPERATION")
                     return
         except KeyError:
-            print('KeyError: Experiment name not specified and cannot be found in config.')
-            print('ABORT OPERATION')
+            print(
+                "KeyError: Experiment name not specified and cannot be found in config."
+            )
+            print("ABORT OPERATION")
             return
 
     # Changes working directory to that containing the TensorBoard log.
@@ -1171,17 +1248,22 @@ def run_tensorboard(path: Optional[Union[str, List[str], Tuple[str, ...]]] = Non
         os.chdir(path)
 
     # Activates the correct Conda environment.
-    os.system('conda activate {}'.format(env_name))
+    os.system("conda activate {}".format(env_name))
 
     # Runs TensorBoard log.
-    os.system('tensorboard --logdir={}'.format(exp_name))
+    os.system("tensorboard --logdir={}".format(exp_name))
 
     # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
-    webbrowser.open('localhost:{}'.format(host_num))
+    webbrowser.open("localhost:{}".format(host_num))
 
 
-def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels: List[int], micro: bool = True,
-                       macro: bool = True) -> Tuple[Dict[Any, float], Dict[Any, float], Dict[Any, float]]:
+def compute_roc_curves(
+    probs: NDArray[Any],
+    labels: Sequence[int],
+    class_labels: List[int],
+    micro: bool = True,
+    macro: bool = True,
+) -> Tuple[Dict[Any, float], Dict[Any, float], Dict[Any, float]]:
     """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
     The micro and macro averages are for each of these variables is also computed.
 
@@ -1202,7 +1284,7 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
         roc_auc (dict): Dictionary of AUCs for each class and micro and macro averages.
     """
 
-    print('\nBinarising labels')
+    print("\nBinarising labels")
 
     # One-hot-encoders the class labels to match binarised input expected by roc_curve.
     targets = label_binarize(labels, classes=class_labels)
@@ -1214,16 +1296,18 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
     roc_auc: Dict[Any, Any] = {}
 
     # Initialises a progress bar.
-    with alive_bar(len(class_labels), bar='blocks') as bar:
+    with alive_bar(len(class_labels), bar="blocks") as bar:
         # Compute ROC curve and ROC AUC for each class.
-        print('Computing class ROC curves')
+        print("Computing class ROC curves")
         for key in class_labels:
             try:
-                fpr[key], tpr[key], _ = roc_curve(targets[:, key], probs[:, key], pos_label=1)
+                fpr[key], tpr[key], _ = roc_curve(
+                    targets[:, key], probs[:, key], pos_label=1
+                )
                 roc_auc[key] = auc(fpr[key], tpr[key])
                 bar()
             except UndefinedMetricWarning:
-                bar('Class empty!')
+                bar("Class empty!")
 
     if micro:
         # Get the current memory utilisation of the system.
@@ -1232,9 +1316,11 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
         if sys.getsizeof(probs) < 0.25 * sysvmem.free:
             try:
                 # Compute micro-average ROC curve and ROC AUC.
-                print('Calculating micro average ROC curve')
-                fpr['micro'], tpr['micro'], _ = roc_curve(targets.ravel(), probs.ravel())
-                roc_auc['micro'] = auc(fpr['micro'], tpr['micro'])
+                print("Calculating micro average ROC curve")
+                fpr["micro"], tpr["micro"], _ = roc_curve(
+                    targets.ravel(), probs.ravel()
+                )
+                roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
             except MemoryError as err:
                 print(err)
                 pass
@@ -1242,8 +1328,10 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
             try:
                 raise MemoryError
             except MemoryError:
-                print('WARNING: Size of predicted probabilities may exceed free system memory.')
-                print('Aborting micro averaging.')
+                print(
+                    "WARNING: Size of predicted probabilities may exceed free system memory."
+                )
+                print("Aborting micro averaging.")
                 pass
 
     if macro:
@@ -1251,11 +1339,11 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
         all_fpr = np.unique(np.concatenate([fpr[key] for key in class_labels]))
 
         # Then interpolate all ROC curves at these points.
-        print('Interpolating macro average ROC curve')
+        print("Interpolating macro average ROC curve")
         mean_tpr = np.zeros_like(all_fpr)
 
         # Initialises a progress bar.
-        with alive_bar(len(class_labels), bar='blocks') as bar:
+        with alive_bar(len(class_labels), bar="blocks") as bar:
             for key in class_labels:
                 mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
                 bar()
@@ -1271,7 +1359,7 @@ def compute_roc_curves(probs: NDArray[Any], labels: Sequence[int], class_labels:
     return fpr, tpr, roc_auc
 
 
-def get_collator(collator_params: Dict[str, str] = config['collator']) -> Callable:
+def get_collator(collator_params: Dict[str, str] = config["collator"]) -> Callable:
     """Gets the function defined in parameters to collate samples together to form a batch.
 
     Args:
@@ -1283,7 +1371,7 @@ def get_collator(collator_params: Dict[str, str] = config['collator']) -> Callab
     """
     collator = None
     if collator_params is not None:
-        collator = func_by_str(collator_params['module'], collator_params['name'])
+        collator = func_by_str(collator_params["module"], collator_params["name"])
     return collator
 
 
@@ -1308,11 +1396,19 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     x, y = z.real, z.imag
 
     # Translate `bbox` by (x, y) and return new `BoundingBox`.
-    return BoundingBox(minx=bbox.minx + x, maxx=bbox.maxx + x, miny=bbox.miny + y, maxy=bbox.maxy + y,
-                       mint=bbox.mint, maxt=bbox.maxt)
+    return BoundingBox(
+        minx=bbox.minx + x,
+        maxx=bbox.maxx + x,
+        miny=bbox.miny + y,
+        maxy=bbox.maxy + y,
+        mint=bbox.mint,
+        maxt=bbox.maxt,
+    )
 
 
-def ran_sample_by_bbox(dataset: GeoDataset, bbox: BoundingBox, max_r: int) -> Dict[Any, Any]:
+def ran_sample_by_bbox(
+    dataset: GeoDataset, bbox: BoundingBox, max_r: int
+) -> Dict[Any, Any]:
     """Finds a sample a random displacement from the original sample.
 
     Args:
@@ -1332,7 +1428,9 @@ def ran_sample_by_bbox(dataset: GeoDataset, bbox: BoundingBox, max_r: int) -> Di
         return ran_sample_by_bbox(dataset, bbox, max_r)
 
 
-def extract_geo_pairs(bboxs: Sequence[BoundingBox], dataset: GeoDataset, max_r: int = 256) -> Dict[Any, Any]:
+def extract_geo_pairs(
+    bboxs: Sequence[BoundingBox], dataset: GeoDataset, max_r: int = 256
+) -> Dict[Any, Any]:
     """Extracts a accomanying batch of samples at a random geospatial displacement from the original.
 
     Args:
@@ -1344,7 +1442,9 @@ def extract_geo_pairs(bboxs: Sequence[BoundingBox], dataset: GeoDataset, max_r: 
         Dict[Any, Any]: New matching batch of samples as a dict.
     """
     # Find new list of samples geospatially a random displacement from the originals.
-    samples: List[Dict[Any, Any]] = [ran_sample_by_bbox(dataset, bbox, max_r) for bbox in bboxs]
+    samples: List[Dict[Any, Any]] = [
+        ran_sample_by_bbox(dataset, bbox, max_r) for bbox in bboxs
+    ]
 
     # Finds the collation function from parameters.
     collator = get_collator()
@@ -1374,8 +1474,11 @@ def intersect_datasets(datasets: List[GeoDataset]) -> IntersectionDataset:
     return master_dataset
 
 
-def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
-                 transform_params: Optional[Dict[Any, Any]] = None) -> Tuple[Any, List[Any]]:
+def make_dataset(
+    data_directory: Iterable[str],
+    dataset_params: Dict[Any, Any],
+    transform_params: Optional[Dict[Any, Any]] = None,
+) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from `n` sub-datasets given by the parameters supplied.
 
     Args:
@@ -1399,11 +1502,12 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
         sub_dataset_params = dataset_params[key]
 
         # Get the constructor for the class of dataset defined in params.
-        _sub_dataset = func_by_str(module_path=sub_dataset_params['module'],
-                                   func=sub_dataset_params['name'])
+        _sub_dataset = func_by_str(
+            module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
+        )
 
         # Construct the root to the sub-dataset's files.
-        sub_dataset_root = os.sep.join((*data_directory, sub_dataset_params['root']))
+        sub_dataset_root = os.sep.join((*data_directory, sub_dataset_params["root"]))
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations = None
@@ -1414,8 +1518,13 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
             pass
 
         # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
-        sub_datasets.append(_sub_dataset(root=sub_dataset_root, transforms=transformations,
-                                         **dataset_params[key]['params']))
+        sub_datasets.append(
+            _sub_dataset(
+                root=sub_dataset_root,
+                transforms=transformations,
+                **dataset_params[key]["params"],
+            )
+        )
 
     # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
@@ -1425,9 +1534,14 @@ def make_dataset(data_directory: Iterable[str], dataset_params: Dict[Any, Any],
     return dataset, sub_datasets
 
 
-def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str, Any], sampler_params: Dict[str, Any],
-                         dataloader_params: Dict[str, Any], collator_params: Optional[Dict[str, Any]] = None,
-                         transform_params: Optional[Dict[str, Any]] = None) -> DataLoader:
+def construct_dataloader(
+    data_directory: Iterable[str],
+    dataset_params: Dict[str, Any],
+    sampler_params: Dict[str, Any],
+    dataloader_params: Dict[str, Any],
+    collator_params: Optional[Dict[str, Any]] = None,
+    transform_params: Optional[Dict[str, Any]] = None,
+) -> DataLoader:
     """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
     Args:
@@ -1443,16 +1557,26 @@ def construct_dataloader(data_directory: Iterable[str], dataset_params: Dict[str
     Returns:
         loader (DataLoader): Object to handle the returning of batched samples from the dataset.
     """
-    dataset, subdatasets = make_dataset(data_directory, dataset_params, transform_params)
+    dataset, subdatasets = make_dataset(
+        data_directory, dataset_params, transform_params
+    )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
-    sampler = func_by_str(module_path=sampler_params['module'], func=sampler_params['name'])
-    sampler = sampler(dataset=subdatasets[0], roi=make_bounding_box(sampler_params['roi']), **sampler_params['params'])
+    sampler = func_by_str(
+        module_path=sampler_params["module"], func=sampler_params["name"]
+    )
+    sampler = sampler(
+        dataset=subdatasets[0],
+        roi=make_bounding_box(sampler_params["roi"]),
+        **sampler_params["params"],
+    )
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
 
-    return DataLoader(dataset, sampler=sampler, collate_fn=collator, **dataloader_params)
+    return DataLoader(
+        dataset, sampler=sampler, collate_fn=collator, **dataloader_params
+    )
 
 
 def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
@@ -1467,13 +1591,15 @@ def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
     """
     sample_modes: List[List[Tuple[int, int]]] = []
     for sample in alive_it(dataloader):
-        modes = find_patch_modes(sample['mask'])
+        modes = find_patch_modes(sample["mask"])
         sample_modes.append(modes)
 
     return np.array(sample_modes)
 
 
-def make_bounding_box(roi: Union[Sequence[float], bool] = False) -> Optional[BoundingBox]:
+def make_bounding_box(
+    roi: Union[Sequence[float], bool] = False
+) -> Optional[BoundingBox]:
     """Construct a BoundingBox object from the corners of the box. False for no BoundingBox.
 
     Args:
@@ -1495,7 +1621,7 @@ def get_transform(name: str, params: Dict[str, Any], key: str = None) -> Any:
     Returns:
         Initialised TensorBoard transform object specified by config parameters.
     """
-    module = params.pop('module', 'torchvision.transforms')
+    module = params.pop("module", "torchvision.transforms")
 
     # Gets the transform requested by config parameters.
     transform = tg_to_torch(func_by_str(module, name), keys=[key])
@@ -1503,7 +1629,9 @@ def get_transform(name: str, params: Dict[str, Any], key: str = None) -> Any:
     return transform(**params)
 
 
-def make_transformations(transform_params: Union[Dict[str, Any], bool], key: str = None) -> Optional[Any]:
+def make_transformations(
+    transform_params: Union[Dict[str, Any], bool], key: str = None
+) -> Optional[Any]:
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:
@@ -1540,8 +1668,11 @@ def make_transformations(transform_params: Union[Dict[str, Any], bool], key: str
 
 
 @return_updated_kwargs
-def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader], Dict[str, int],
-                                                          List[Tuple[int, int]], Dict[Any, Any]]:
+def make_loaders(
+    p_dist: bool = False, **params
+) -> Tuple[
+    Dict[str, DataLoader], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]
+]:
     """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
 
     Args:
@@ -1559,11 +1690,11 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
         params (dict):
     """
     # Gets out the parameters for the DataLoaders from params.
-    dataloader_params = params['hyperparams']['params']
-    dataset_params = params['dataset_params']
-    sampler_params = params['sampler_params']
-    transform_params = params['transform_params']
-    batch_size = dataloader_params['batch_size']
+    dataloader_params = params["hyperparams"]["params"]
+    dataset_params = params["dataset_params"]
+    sampler_params = params["sampler_params"]
+    transform_params = params["transform_params"]
+    batch_size = dataloader_params["batch_size"]
 
     # Load manifest from cache for this dataset.
     manifest = get_manifest(get_manifest_path())
@@ -1571,43 +1702,56 @@ def make_loaders(p_dist: bool = False, **params) -> Tuple[Dict[str, DataLoader],
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
     # and new colours.
-    new_classes, forwards, new_colours = load_data_specs(class_dist=class_dist, elim=params['elim'])
+    new_classes, forwards, new_colours = load_data_specs(
+        class_dist=class_dist, elim=params["elim"]
+    )
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
     loaders = {}
 
-    for mode in ('train', 'val', 'test'):
+    for mode in ("train", "val", "test"):
         this_transform_params = transform_params[mode]
-        if params['elim']:
-            if this_transform_params['mask'] is not Dict:
-                this_transform_params['mask'] = {'ClassTransform': {'module': 'minerva.transforms',
-                                                                      'transform': forwards}}
+        if params["elim"]:
+            if this_transform_params["mask"] is not Dict:
+                this_transform_params["mask"] = {
+                    "ClassTransform": {
+                        "module": "minerva.transforms",
+                        "transform": forwards,
+                    }
+                }
             else:
-                this_transform_params['mask']['ClassTransform'] = {'module': 'minerva.transforms',
-                                                                     'transform': forwards}
+                this_transform_params["mask"]["ClassTransform"] = {
+                    "module": "minerva.transforms",
+                    "transform": forwards,
+                }
 
         # Calculates number of batches.
-        n_batches[mode] = int(sampler_params[mode]['params']['length'] / batch_size)
+        n_batches[mode] = int(sampler_params[mode]["params"]["length"] / batch_size)
 
         # --+ MAKE DATASETS +=========================================================================================+
-        print(f'CREATING {mode} DATASET')
-        loaders[mode] = construct_dataloader(params['dir']['data'], dataset_params[mode], sampler_params[mode],
-                                             dataloader_params, collator_params=params['collator'],
-                                             transform_params=this_transform_params)
-        print('DONE')
+        print(f"CREATING {mode} DATASET")
+        loaders[mode] = construct_dataloader(
+            params["dir"]["data"],
+            dataset_params[mode],
+            sampler_params[mode],
+            dataloader_params,
+            collator_params=params["collator"],
+            transform_params=this_transform_params,
+        )
+        print("DONE")
 
     # Transform class dist if elimination of classes has occurred.
-    if params['elim']:
+    if params["elim"]:
         class_dist = class_dist_transform(class_dist, forwards)
 
     # Prints class distribution in a pretty text format using tabulate to stdout.
     if p_dist:
         print_class_dist(class_dist)
 
-    params['hyperparams']['model_params']['n_classes'] = len(new_classes)
-    params['classes'] = new_classes
-    params['colours'] = new_colours
-    params['max_pixel_value'] = imagery_config['data_specs']['max_value']
+    params["hyperparams"]["model_params"]["n_classes"] = len(new_classes)
+    params["classes"] = new_classes
+    params["colours"] = new_colours
+    params["max_pixel_value"] = imagery_config["data_specs"]["max_value"]
 
     return loaders, n_batches, class_dist, params

@@ -43,8 +43,13 @@ import torch
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device,
-           mode: Literal['train', 'val', 'test'], **kwargs) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
+def sup_tg(
+    batch: Dict[Any, Any],
+    model: MinervaModel,
+    device: torch.device,
+    mode: Literal["train", "val", "test"],
+    **kwargs
+) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a supervised model using `torchgeo` datasets.
 
     Args:
@@ -58,8 +63,8 @@ def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device,
             and the bounding boxes of the input images supplied.
     """
     # Extracts the x and y batches from the dict.
-    x_batch: Tensor = batch['image']
-    y_batch: Tensor = batch['mask']
+    x_batch: Tensor = batch["image"]
+    y_batch: Tensor = batch["mask"]
 
     # Re-arranges the x and y batches.
     x_batch = x_batch.to(torch.float)
@@ -70,22 +75,28 @@ def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device,
     x, y = x_batch.to(device), y_batch.to(device)
 
     # Runs a training epoch.
-    if mode == 'train':
+    if mode == "train":
         loss, z = model.training_step(x, y)
 
     # Runs a validation epoch.
-    elif mode == 'val':
+    elif mode == "val":
         loss, z = model.validation_step(x, y)
 
     # Runs a testing epoch.
-    elif mode == 'test':
+    elif mode == "test":
         loss, z = model.testing_step(x, y)
 
-    return loss, z, y, batch['bbox']
+    return loss, z, y, batch["bbox"]
 
 
-def ssl_pair_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device, mode: Literal['train', 'val'],
-                dataset: GeoDataset, **kwargs) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
+def ssl_pair_tg(
+    batch: Dict[Any, Any],
+    model: MinervaModel,
+    device: torch.device,
+    mode: Literal["train", "val"],
+    dataset: GeoDataset,
+    **kwargs
+) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using `torchgeo` datasets.
 
     Args:
@@ -101,12 +112,12 @@ def ssl_pair_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device
             and the bounding boxes of the original input images supplied.
     """
     # Extracts the x_i batch from the dict.
-    x_i_batch: Tensor = batch['image']
+    x_i_batch: Tensor = batch["image"]
 
     # The jth_batch (i.e. the other half of the pairs) are extracted by using the bounding boxes
     # of the original batch to find geo-similar samples.
-    j_batch = utils.extract_geo_pairs(batch['bbox'], dataset, max_r=kwargs['max_r'])
-    x_j_batch: Tensor = j_batch['image']
+    j_batch = utils.extract_geo_pairs(batch["bbox"], dataset, max_r=kwargs["max_r"])
+    x_j_batch: Tensor = j_batch["image"]
 
     # Creates an identity matrix to act as the y labels.
     y_batch = torch.arange(len(x_i_batch))
@@ -123,11 +134,11 @@ def ssl_pair_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device
     x, y = x_batch.to(device), y_batch.to(device)
 
     # Runs a training epoch.
-    if mode == 'train':
+    if mode == "train":
         loss, z = model.training_step(x, y)
 
     # Runs a validation epoch.
-    elif mode == 'val':
+    elif mode == "val":
         loss, z = model.validation_step(x, y)
 
-    return loss, z, y, batch['bbox']
+    return loss, z, y, batch["bbox"]

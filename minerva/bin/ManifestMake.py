@@ -48,13 +48,13 @@ def main():
 
     print(manifest)
 
-    output_dir = os.sep.join(config['dir']['cache'])
+    output_dir = os.sep.join(config["dir"]["cache"])
 
-    fn = os.sep.join([output_dir, f'{utils.get_dataset_name()}_Manifest.csv'])
+    fn = os.sep.join([output_dir, f"{utils.get_dataset_name()}_Manifest.csv"])
 
-    print(f'MANIFEST TO FILE -----> {fn}')
+    print(f"MANIFEST TO FILE -----> {fn}")
     manifest.to_csv(fn)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
