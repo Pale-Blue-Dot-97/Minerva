@@ -29,8 +29,10 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, Optional
 from torch import Tensor
+from torch.nn.modules.loss import _Loss
+from torchgeo.datasets.utils import BoundingBox
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import torch
@@ -42,6 +44,27 @@ from abc import ABC
 #                                                     CLASSES
 # =====================================================================================================================
 class MinervaLogger(ABC):
+    """Base abstract class for all `minerva` logger classes to ensure intercompatibility with `trainer`.
+
+    Attributes:
+        record_int (bool): Whether to record the integer values from an epoch of model fitting.
+        record_float (bool): Whether to record the floating point values from an epoch of model fitting.
+        n_batches (int): Number of batches in the epoch.
+        batch_size (int): Size of the batch.
+        n_samples (int): Total number of samples in the epoch.
+        logs (Dict[str, Any]): Dictionary to hold the logs from the epoch.
+            Logs should be more lightweight than `results`.
+        results (Dict[str, Any]): Dictionary to hold the results from the epoch.
+
+    Args:
+        n_batches (int): Number of batches in the epoch.
+        batch_size (int): Size of the batch.
+        n_samples (int): Total number of samples in the epoch.
+        record_int (bool): Optional; Whether to record the integer values from an epoch of model fitting.
+            Defaults to True.
+        record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
+            Defaults to False.
+    """
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, n_batches: int, batch_size: int, n_samples: int, record_int: bool = True,
@@ -56,21 +79,58 @@ class MinervaLogger(ABC):
         self.logs = {}
         self.results = {}
 
+    def __call__(self, *args: Any, **kwds: Any) -> None:
+        self.logs(*args, **kwds)
+
     @abc.abstractmethod
-    def log(self, mode: str, step_num: int, writer: SummaryWriter, loss, *args) -> None:
+    def log(self, mode: str, step_num: int, writer: SummaryWriter, loss: _Loss, *args) -> None:
+        """Abstract logging method, the core functionality of a logger. Must be overwritten.
+
+        Args:
+            mode (str): Mode of model fitting.
+            step_num (int): The global step number of for the mode of model fitting.
+            writer (SummaryWriter): Writer object from `tensorboard`.
+            loss (_Loss): Loss from this step of model fitting.
+
+        Returns:
+            None
+        """
         pass
 
     @property
     def get_logs(self) -> Dict[str, Any]:
+        """Gets the logs dictionary.
+
+        Returns:
+            Dict[str, Any]: Log dictionary of the logger.
+        """
         return self.logs
 
     @property
     def get_results(self) -> Dict[str,Any]:
+        """Gets the results dictionary.
+
+        Returns:
+            Dict[str,Any]: Results dictionary of the logger.
+        """
         return self.results
 
 
 class STG_Logger(MinervaLogger):
-    def __init__(self, n_batches: int, batch_size: int, n_samples: int, out_shape, n_classes: int,
+    """Logger designed for supervised learning using `torchgeo` datasets.
+
+    Args:
+        n_batches (int): Number of batches in the epoch.
+        batch_size (int): Size of the batch.
+        n_samples (int): Total number of samples in the epoch.
+        out_shape (Tuple[int, ...]): Shape of the model output.
+        n_classes (int): Number of classes in dataset.
+        record_int (bool): Optional; Whether to record the integer values from an epoch of model fitting.
+            Defaults to True.
+        record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
+            Defaults to False.
+    """
+    def __init__(self, n_batches: int, batch_size: int, n_samples: int, out_shape: Tuple[int, ...], n_classes: int,
                  record_int: bool = True, record_float: bool = False) -> None:
         super(STG_Logger, self).__init__(n_batches, batch_size, n_samples, record_int, record_float)
 
@@ -86,10 +146,12 @@ class STG_Logger(MinervaLogger):
             'ids': [],
             'bounds': None}
 
+        # Allocate memory for the integer values to be recorded.
         if self.record_int:
             self.results['y'] = np.empty((self.n_batches, self.batch_size, *out_shape), dtype=np.uint8)
             self.results['z'] = np.empty((self.n_batches, self.batch_size, *out_shape), dtype=np.uint8)
 
+        # Allocate memory for the floating point values to be recorded.
         if self.record_float:
             try:
                 self.results['probs'] = np.empty((self.n_batches, self.batch_size, n_classes, *out_shape),
@@ -102,7 +164,22 @@ class STG_Logger(MinervaLogger):
             except MemoryError:
                 print('Dataset too large to record bounding boxes of samples!')
 
-    def log(self, mode: str, step_num: int, writer: SummaryWriter, loss, z: Tensor, y: Tensor, bbox) -> None:
+    def log(self, mode: str, step_num: int, writer: SummaryWriter, loss: _Loss, z: Tensor, y: Tensor,
+            bbox: BoundingBox) -> None:
+        """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
+
+        Args:
+            mode (str): Mode of model fitting.
+            step_num (int): The global step number of for the mode of model fitting.
+            writer (SummaryWriter): Writer object from `tensorboard`.
+            loss (_Loss): Loss from this step of model fitting.
+            z (Tensor): Output tensor from the model.
+            y (Tensor): Labels to assess model output against.
+            bbox (BoundingBox): Bounding boxes of the input samples.
+
+        Returns:
+            None
+        """
         if self.record_int:
             # Arg max the estimated probabilities and add to predictions.
             self.results['z'][self.logs['batch_num']] = torch.argmax(z, 1).cpu().numpy()
@@ -119,19 +196,37 @@ class STG_Logger(MinervaLogger):
             self.results['probs'][self.logs['batch_num']] = z.detach().cpu().numpy()
             self.results['bounds'][self.logs['batch_num']] = bbox
 
+        # Computes the loss and the correct predictions from this step.
         ls = loss.item()
         correct = (torch.argmax(z, 1) == y).sum().item()
 
+        # Adds loss and correct predictions to logs.
         self.logs['total_loss'] += ls
         self.logs['total_correct'] += correct
 
+        # Writes loss and correct predictions to the writer.
         writer.add_scalar(tag=f'{mode}_loss', scalar_value=ls, global_step=step_num)
         writer.add_scalar(tag=f'{mode}_acc', scalar_value=correct / len(torch.flatten(y)), global_step=step_num)
 
+        # Adds 1 to batch number (step number).
         self.logs['batch_num'] += 1
 
 
 class SSL_Logger(MinervaLogger):
+    """Logger designed for self-supervised learning.
+
+    Args:
+        n_batches (int): Number of batches in the epoch.
+        batch_size (int): Size of the batch.
+        n_samples (int): Total number of samples in the epoch.
+        out_shape (Tuple[int, ...]): Shape of the model output.
+        n_classes (int): Number of classes in dataset.
+        record_int (bool): Optional; Whether to record the integer values from an epoch of model fitting.
+            Defaults to True.
+        record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
+            Defaults to False.
+    """
+
     def __init__(self, n_batches: int, batch_size: int, n_samples: int, out_shape=None, n_classes: int = None,
                  record_int: bool = True, record_float: bool = False) -> None:
         super(SSL_Logger, self).__init__(n_batches, batch_size, n_samples, record_int, record_float)
@@ -139,10 +234,25 @@ class SSL_Logger(MinervaLogger):
         self.logs: Dict[str, Any] = {'batch_num' : 0,
                                      'total_loss' : 0.0}
 
-    def log(self, mode: str, step_num: int, writer: SummaryWriter, loss, z: Tensor, y: Tensor, bbox) -> None:
+    def log(self, mode: str, step_num: int, writer: SummaryWriter, loss: _Loss,
+            z: Optional[Tensor] = None, y: Optional[Tensor] = None, bbox: Optional[BoundingBox] = None) -> None:
+        """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
+
+        Args:
+            mode (str): Mode of model fitting.
+            step_num (int): The global step number of for the mode of model fitting.
+            writer (SummaryWriter): Writer object from `tensorboard`.
+            loss (_Loss): Loss from this step of model fitting.
+            z (Tensor): Optional; Output tensor from the model.
+            y (Tensor): Optional; Labels to assess model output against.
+            bbox (BoundingBox): Optional; Bounding boxes of the input samples.
+        """
+        # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs['total_loss'] += ls
 
+        # Writes the loss to the writer.
         writer.add_scalar(tag=f'{mode}_loss', scalar_value=ls, global_step=step_num)
 
+        # Adds 1 to the batch number (step number).
         self.logs['batch_num'] += 1
