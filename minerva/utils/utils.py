@@ -38,9 +38,8 @@ Attributes:
     wgs_84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
 
 TODO:
-    * Add exception handling where appropriate
-    * Fully document
-    * Fix all type-hinting issues
+    * Add exception handling where appropriate.
+    * Fix all type-hinting issues.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
