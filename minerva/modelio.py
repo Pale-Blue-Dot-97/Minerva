@@ -25,15 +25,16 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 TODO:
-    * Add a self-supervised IO.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Tuple, Dict, Any
+from typing import Sequence, Tuple, Dict, Any, Literal
 from torch import Tensor
+from torch.nn.modules.loss import _Loss
 from torchgeo.datasets import GeoDataset
 from minerva.models import MinervaModel
+from torchgeo.datasets.utils import BoundingBox
 from minerva.utils import utils
 import numpy as np
 import torch
@@ -42,10 +43,30 @@ import torch
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device, mode: str, **kwargs) -> Tuple[Any, Any, Any, Any]:
-    x_batch: Tensor = batch['image']
-    y_batch: Tensor = batch['mask']
+def sup_tg(
+    batch: Dict[Any, Any],
+    model: MinervaModel,
+    device: torch.device,
+    mode: Literal["train", "val", "test"],
+    **kwargs
+) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
+    """Provides IO functionality for a supervised model using `torchgeo` datasets.
 
+    Args:
+        batch (Dict[Any, Any]): Batch of data in a dict. Must have 'image', 'mask' and 'bbox' keys.
+        model (MinervaModel): Model being fitted.
+        device (torch.device): `torch` device object to send data to (e.g. CUDA device).
+        mode (Literal['train', 'val', 'test']): Mode of model fitting to use.
+
+    Returns:
+        Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
+            and the bounding boxes of the input images supplied.
+    """
+    # Extracts the x and y batches from the dict.
+    x_batch: Tensor = batch["image"]
+    y_batch: Tensor = batch["mask"]
+
+    # Re-arranges the x and y batches.
     x_batch = x_batch.to(torch.float)
     y_batch = np.squeeze(y_batch, axis=1)
     y_batch = y_batch.type(torch.long)
@@ -54,43 +75,70 @@ def sup_tg(batch: Dict[Any, Any], model: MinervaModel, device, mode: str, **kwar
     x, y = x_batch.to(device), y_batch.to(device)
 
     # Runs a training epoch.
-    if mode == 'train':
+    if mode == "train":
         loss, z = model.training_step(x, y)
 
     # Runs a validation epoch.
-    elif mode == 'val':
+    elif mode == "val":
         loss, z = model.validation_step(x, y)
 
     # Runs a testing epoch.
-    elif mode == 'test':
+    elif mode == "test":
         loss, z = model.testing_step(x, y)
 
-    return loss, z, y, batch['bbox']
+    return loss, z, y, batch["bbox"]
 
 
-def ssl_pair_tg(batch: Dict[Any, Any], model: MinervaModel, device: torch.device,
-                mode: str, dataset: GeoDataset, **kwargs) -> Tuple[Any, Any, Any]:
-    x_i_batch: Tensor = batch['image']
-    j_batch = utils.extract_geo_pairs(batch['bbox'], dataset, max_r=kwargs['max_r'])
-    x_j_batch: Tensor = j_batch['image']
+def ssl_pair_tg(
+    batch: Dict[Any, Any],
+    model: MinervaModel,
+    device: torch.device,
+    mode: Literal["train", "val"],
+    dataset: GeoDataset,
+    **kwargs
+) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
+    """Provides IO functionality for a self-supervised Siamese model using `torchgeo` datasets.
 
+    Args:
+        batch (Dict[Any, Any]): Batch of data in a dict. Must have 'image' and 'bbox' keys.
+        model (MinervaModel): Model being fitted.
+        device (torch.device): `torch` device object to send data to (e.g. CUDA device).
+        mode (Literal['train', 'val']): Mode of model fitting to use.
+        dataset (GeoDataset): The same dataset object the `batch` was sampled from,
+            to be used to sample the geo-similar batch.
+
+    Returns:
+        Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
+            and the bounding boxes of the original input images supplied.
+    """
+    # Extracts the x_i batch from the dict.
+    x_i_batch: Tensor = batch["image"]
+
+    # The jth_batch (i.e. the other half of the pairs) are extracted by using the bounding boxes
+    # of the original batch to find geo-similar samples.
+    j_batch = utils.extract_geo_pairs(batch["bbox"], dataset, max_r=kwargs["max_r"])
+    x_j_batch: Tensor = j_batch["image"]
+
+    # Creates an identity matrix to act as the y labels.
     y_batch = torch.arange(len(x_i_batch))
     y_batch = torch.cat([y_batch, y_batch], dim=0)
 
+    # Ensures both batches of images are floats.
     x_i_batch = x_i_batch.to(torch.float)
     x_j_batch = x_j_batch.to(torch.float)
 
+    # Stacks each side of the pair batches together.
     x_batch = torch.stack([x_i_batch, x_j_batch])
 
     # Transfer to GPU.
     x, y = x_batch.to(device), y_batch.to(device)
 
     # Runs a training epoch.
-    if mode == 'train':
+    if mode == "train":
         loss, z = model.training_step(x, y)
 
     # Runs a validation epoch.
-    elif mode == 'val':
+    elif mode == "val":
         loss, z = model.validation_step(x, y)
 
-    return loss, z, y, batch['bbox']
+    return loss, z, y, batch["bbox"]

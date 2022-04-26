@@ -41,10 +41,12 @@ from minerva.trainer import Trainer
 def main():
     datasets, n_batches, class_dist, new_config = utils.make_loaders(**config)
 
-    trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config)
+    trainer = Trainer(
+        loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config
+    )
     trainer.fit()
     trainer.test()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -34,10 +34,12 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Callable, Optional, Tuple, List, Dict, Iterable, Any
+
 try:
     from numpy.typing import ArrayLike
 except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
+
 from minerva.models import MinervaModel, MinervaBackbone
 from minerva.utils import visutils, utils
 from minerva.logger import MinervaLogger
@@ -80,8 +82,13 @@ class Trainer:
         device: The CUDA device on which to fit the model.
     """
 
-    def __init__(self, loaders: Dict[str, DataLoader], n_batches: Dict[str, int],
-                 class_dist: Optional[List[Tuple[int, int]]] = None, **params) -> None:
+    def __init__(
+        self,
+        loaders: Dict[str, DataLoader],
+        n_batches: Dict[str, int],
+        class_dist: Optional[List[Tuple[int, int]]] = None,
+        **params,
+    ) -> None:
         """Initialises the Trainer.
 
         Args:
@@ -98,59 +105,64 @@ class Trainer:
         self.class_dist = class_dist
 
         # Sets the timestamp of the experiment.
-        self.params['timestamp'] = utils.timestamp_now(fmt='%d-%m-%Y_%H%M')
+        self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
 
         # Sets experiment name and adds this to the path to the results' directory.
-        self.params['exp_name'] = '{}_{}'.format(self.params['model_name'], self.params['timestamp'])
-        self.params['dir']['results'].append(self.params['exp_name'])
+        self.params["exp_name"] = "{}_{}".format(
+            self.params["model_name"], self.params["timestamp"]
+        )
+        self.params["dir"]["results"].append(self.params["exp_name"])
 
         # Path to experiment directory and experiment name.
-        self.exp_fn = os.sep.join(self.params['dir']['results'] + [self.params['exp_name']])
+        self.exp_fn = os.sep.join(
+            self.params["dir"]["results"] + [self.params["exp_name"]]
+        )
 
-        self.batch_size = params['hyperparams']['params']['batch_size']
+        self.batch_size = params["hyperparams"]["params"]["batch_size"]
 
-        #self.max_pixel_value = params['max_pixel_value']
+        # self.max_pixel_value = params['max_pixel_value']
 
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
         # Determines the output shape of the model.
-        self.model.determine_output_dim(sample_pairs=params['sample_pairs'])
+        self.model.determine_output_dim(sample_pairs=params["sample_pairs"])
 
         # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
-            print(f'{torch.cuda.device_count()} GPUs detected')
+            print(f"{torch.cuda.device_count()} GPUs detected")
             self.model = torch.nn.DataParallel(self.model)
 
         # Sets up the early stopping functionality.
         self.stopper = None
         self.early_stop = False
-        if 'stopping' in self.params['hyperparams']:
-            self.stopper = EarlyStopping(path=f'{self.exp_fn}.pt', **self.params['hyperparams']['stopping'])
+        if "stopping" in self.params["hyperparams"]:
+            self.stopper = EarlyStopping(
+                path=f"{self.exp_fn}.pt", **self.params["hyperparams"]["stopping"]
+            )
 
         # Sets the max number of epochs of fitting.
-        self.max_epochs = params['hyperparams']['max_epochs']
+        self.max_epochs = params["hyperparams"]["max_epochs"]
 
         self.loaders = loaders
 
         self.n_batches = n_batches
 
         # Calculates number of samples in each mode of fitting.
-        self.n_samples = {mode: self.n_batches[mode] * self.batch_size for mode in ('train', 'val', 'test')}
+        self.n_samples = {
+            mode: self.n_batches[mode] * self.batch_size
+            for mode in ("train", "val", "test")
+        }
 
         # Initialise the metric logger and model IO for the experiment.
         self.make_metric_logger()
         self.modelio_func = self.get_io_func()
 
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
-        self.step_num = {
-            'train': 0,
-            'val': 0,
-            'test': 0
-        }
+        self.step_num = {"train": 0, "val": 0, "test": 0}
 
         # Initialise TensorBoard logger
-        self.writer = SummaryWriter(os.sep.join(self.params['dir']['results']))
+        self.writer = SummaryWriter(os.sep.join(self.params["dir"]["results"]))
 
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
@@ -162,19 +174,21 @@ class Trainer:
         self.model.to(self.device)
 
         # Determines the input size of the model.
-        if self.params['model_type'] in ['MLP', 'mlp']:
+        if self.params["model_type"] in ["MLP", "mlp"]:
             input_size = (self.batch_size, self.model.input_size)
         else:
             input_size = (self.batch_size, *self.model.input_shape)
 
-        if self.params['sample_pairs']:
+        if self.params["sample_pairs"]:
             input_size = (2, *input_size)
 
         # Print model summary.
         summary(self.model, input_size=input_size)
 
         # Adds a graphical layout of the model to the TensorBoard logger.
-        self.writer.add_graph(self.model, input_to_model=torch.rand(*input_size, device=self.device))
+        self.writer.add_graph(
+            self.model, input_to_model=torch.rand(*input_size, device=self.device)
+        )
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
@@ -182,10 +196,12 @@ class Trainer:
         Returns:
             MinervaModel: Initialised model.
         """
-        model_params = self.params['hyperparams']['model_params']
+        model_params = self.params["hyperparams"]["model_params"]
 
         # Gets the model requested by config parameters.
-        model = utils.func_by_str('minerva.models', self.params['model_name'].split('-')[0])
+        model = utils.func_by_str(
+            "minerva.models", self.params["model_name"].split("-")[0]
+        )
 
         # Initialise model
         return model(self.make_criterion(), **model_params)
@@ -197,45 +213,52 @@ class Trainer:
             Any: Initialised PyTorch loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = self.params['hyperparams']['loss_params'].copy()
-        module = loss_params.pop('module', 'torch.nn')
-        criterion = utils.func_by_str(module, loss_params['name'])
+        loss_params: Dict[str, Any] = self.params["hyperparams"]["loss_params"].copy()
+        module = loss_params.pop("module", "torch.nn")
+        criterion = utils.func_by_str(module, loss_params["name"])
 
-        if self.params['balance'] and self.params['model_type'] == 'segmentation':
+        if self.params["balance"] and self.params["model_type"] == "segmentation":
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
             for i in range(len(weights_dict)):
                 weights.append(weights_dict[i])
 
-            loss_params['params']['weight'] = torch.Tensor(weights)
-            return criterion(**loss_params['params'])
+            loss_params["params"]["weight"] = torch.Tensor(weights)
+            return criterion(**loss_params["params"])
         else:
-            if loss_params['params'] is None:
+            if loss_params["params"] is None:
                 return criterion()
             else:
-                return criterion(**loss_params['params'])
+                return criterion(**loss_params["params"])
 
     def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
 
         # Gets the optimiser requested by config parameters.
-        optimiser = utils.func_by_str('torch.optim', self.params['hyperparams']['optim_name'])
+        optimiser = utils.func_by_str(
+            "torch.optim", self.params["hyperparams"]["optim_name"]
+        )
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(optimiser(self.model.parameters(), **self.params['hyperparams']['optim_params']))
+        self.model.set_optimiser(
+            optimiser(
+                self.model.parameters(), **self.params["hyperparams"]["optim_params"]
+            )
+        )
 
     def make_metric_logger(self) -> None:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
         # Gets the size of the input data to the network (without batch dimension).
-        data_size = self.params['hyperparams']['model_params']['input_size']
+        data_size = self.params["hyperparams"]["model_params"]["input_size"]
 
         # Gets constructor of the metric logger from name in the config.
-        metric_logger = utils.func_by_str('minerva.metrics', self.params['metrics'])
+        metric_logger = utils.func_by_str("minerva.metrics", self.params["metrics"])
 
         # Initialises the metric logger with arguments.
-        self.metric_logger: MinervaMetrics = metric_logger(self.n_batches, batch_size=self.batch_size,
-                                                           data_size=data_size)
+        self.metric_logger: MinervaMetrics = metric_logger(
+            self.n_batches, batch_size=self.batch_size, data_size=data_size
+        )
 
     def get_logger(self) -> MinervaLogger:
         """Creates an object to log the results from each step of model fitting during an epoch.
@@ -243,7 +266,7 @@ class Trainer:
         Returns:
             MinervaLogger: The constructor of logger to be intialised within the epoch.
         """
-        return utils.func_by_str('minerva.logger', self.params['logger'])
+        return utils.func_by_str("minerva.logger", self.params["logger"])
 
     def get_io_func(self) -> Callable:
         """Fetches a func to handle IO for the type of model used in the experiment.
@@ -251,7 +274,7 @@ class Trainer:
         Returns:
             Callable: Model IO function requested from parameters.
         """
-        return utils.func_by_str('minerva.modelio', self.params['model_io'])
+        return utils.func_by_str("minerva.modelio", self.params["model_io"])
 
     def downstream_config(self) -> None:
         """Readies the model for use in downstream tasks and saves to file."""
@@ -262,7 +285,9 @@ class Trainer:
         # With model now readied, saves the model to file for use in downstream tasks.
         self.save_model()
 
-    def epoch(self, mode: str, record_int: bool = False, record_float: bool = False) -> Optional[Dict[str, Any]]:
+    def epoch(
+        self, mode: str, record_int: bool = False, record_float: bool = False
+    ) -> Optional[Dict[str, Any]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
@@ -279,23 +304,32 @@ class Trainer:
 
         # Creates object to log the results from each step of this epoch.
         epoch_logger: MinervaLogger = self.get_logger()
-        epoch_logger = epoch_logger(self.n_batches[mode], self.batch_size, n_samples, self.model.output_shape,
-                                    self.model.n_classes, record_int=record_int, record_float=record_float)
+        epoch_logger = epoch_logger(
+            self.n_batches[mode],
+            self.batch_size,
+            n_samples,
+            self.model.output_shape,
+            self.model.n_classes,
+            record_int=record_int,
+            record_float=record_float,
+        )
 
         # Deep-copies to avoid IO error from using same object simultaneously.
         dataset = copy.deepcopy(self.loaders[mode].dataset)
 
         # Initialises a progress bar for the epoch.
-        with alive_bar(self.n_batches[mode], bar='blocks') as bar:
+        with alive_bar(self.n_batches[mode], bar="blocks") as bar:
             # Sets the model up for training or evaluation modes
-            if mode == 'train':
+            if mode == "train":
                 self.model.train()
             else:
                 self.model.eval()
 
             # Core of the epoch.
             for batch in self.loaders[mode]:
-                results = self.modelio_func(batch, self.model, self.device, mode, dataset=dataset, **self.params)
+                results = self.modelio_func(
+                    batch, self.model, self.device, mode, dataset=dataset, **self.params
+                )
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
                 self.step_num[mode] += 1
@@ -307,7 +341,7 @@ class Trainer:
         self.metric_logger.calc_metrics(mode, epoch_logger.get_logs, **self.params)
 
         # If configured to do so, calculates the grad norms.
-        if self.params['calc_norm']:
+        if self.params["calc_norm"]:
             _ = utils.calc_grad(self.model)
 
         # Returns the results of the epoch if configured to do so. Else, returns None.
@@ -319,15 +353,17 @@ class Trainer:
     def fit(self) -> None:
         """Fits the model by running `max_epochs` number of training and validation epochs."""
         for epoch in range(self.max_epochs):
-            print(f'\nEpoch: {epoch + 1}/{self.max_epochs} ==========================================================')
+            print(
+                f"\nEpoch: {epoch + 1}/{self.max_epochs} =========================================================="
+            )
 
             # Conduct training or validation epoch.
-            for mode in ('train', 'val'):
+            for mode in ("train", "val"):
 
                 results = {}
 
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
-                if epoch == (self.max_epochs - 1) and self.params['plot_last_epoch']:
+                if epoch == (self.max_epochs - 1) and self.params["plot_last_epoch"]:
                     results = self.epoch(mode, record_int=True)
                 else:
                     self.epoch(mode)
@@ -339,48 +375,56 @@ class Trainer:
                 self.metric_logger.print_epoch_results(mode, epoch)
 
                 # Sends validation loss to the stopper and updates early stop bool.
-                if mode == 'val' and self.stopper is not None:
-                    val_loss = self.metric_logger.get_metrics['val_loss']['y'][epoch]
+                if mode == "val" and self.stopper is not None:
+                    val_loss = self.metric_logger.get_metrics["val_loss"]["y"][epoch]
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
 
             # Special case for final train/ val epoch to plot results if configured so.
             if epoch == (self.max_epochs - 1) or self.early_stop:
                 if self.early_stop:
-                    print('\nEarly stopping triggered')
+                    print("\nEarly stopping triggered")
 
                 # Ensures that plots likely to cause memory issues are not attempted.
-                plots: Dict[str, bool] = self.params['plots'].copy()
-                plots['CM'] = False
-                plots['ROC'] = False
+                plots: Dict[str, bool] = self.params["plots"].copy()
+                plots["CM"] = False
+                plots["ROC"] = False
 
-                if not self.params['plot_last_epoch']:
+                if not self.params["plot_last_epoch"]:
                     # If not plotting results, ensure that only history plotting will remain
                     # if originally set to do so.
-                    plots['Mask'] = False
-                    plots['Pred'] = False
+                    plots["Mask"] = False
+                    plots["Pred"] = False
 
                 # Create a subset of metrics which drops the testing results for plotting model history.
                 sub_metrics = self.metric_logger.get_sub_metrics()
 
                 # Ensures masks are not plotted for model types that do not yield such outputs.
-                if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
-                    plots['Mask'] = False
+                if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
+                    plots["Mask"] = False
 
                 # Amends the results' directory to add a new level for train or validation.
-                results_dir: List[str] = self.params['dir']['results'].copy()
+                results_dir: List[str] = self.params["dir"]["results"].copy()
                 results_dir.append(mode)
 
                 # Plots the results of this epoch.
-                visutils.plot_results(plots, metrics=sub_metrics, class_names=self.params['classes'],
-                                      colours=self.params['colours'], save=True, show=False,
-                                      model_name=self.params['model_name'], timestamp=self.params['timestamp'],
-                                      results_dir=results_dir, **results)
+                visutils.plot_results(
+                    plots,
+                    metrics=sub_metrics,
+                    class_names=self.params["classes"],
+                    colours=self.params["colours"],
+                    save=True,
+                    show=False,
+                    model_name=self.params["model_name"],
+                    timestamp=self.params["timestamp"],
+                    results_dir=results_dir,
+                    **results,
+                )
 
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
                 if self.early_stop:
-                    self.model.load_state_dict(torch.load(f'{self.exp_fn}.pt'))
+                    self.model.load_state_dict(torch.load(f"{self.exp_fn}.pt"))
                     break
 
     def test(self, save: bool = True, show: bool = False) -> None:
@@ -397,113 +441,132 @@ class Trainer:
         Returns:
             None
         """
-        print('\r\nTESTING')
+        print("\r\nTESTING")
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        results = self.epoch('test', record_int=True, record_float=True)
+        results = self.epoch("test", record_int=True, record_float=True)
 
         # Prints test loss and accuracy to stdout.
-        self.metric_logger.print_epoch_results('test', 0)
+        self.metric_logger.print_epoch_results("test", 0)
 
         # Add epoch number to testing results.
-        self.metric_logger.log_epoch_number('test', 0)
+        self.metric_logger.log_epoch_number("test", 0)
 
         # Now experiment is complete, saves model parameters and config file to disk in case error is
         # encountered in plotting of results.
         self.close()
 
-        if 'z' in results and 'y' in results:
-            print('\nMAKING CLASSIFICATION REPORT')
-            self.compute_classification_report(results['z'], results['y'])
+        if "z" in results and "y" in results:
+            print("\nMAKING CLASSIFICATION REPORT")
+            self.compute_classification_report(results["z"], results["y"])
 
         # Gets the dict from params that defines which plots to make from the results.
-        plots = self.params['plots']
+        plots = self.params["plots"]
 
         # Ensure history is not plotted again.
-        plots['History'] = False
+        plots["History"] = False
 
-        if self.params['model_type'] in ('scene classifier', 'mlp', 'MLP'):
-            plots['Mask'] = False
+        if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
+            plots["Mask"] = False
 
         # Amends the results' directory to add a new level for test results.
-        results_dir: List[str] = self.params['dir']['results']
-        results_dir.append('test')
+        results_dir: List[str] = self.params["dir"]["results"]
+        results_dir.append("test")
 
         # Plots the results.
-        visutils.plot_results(plots, mode='test', class_names=self.params['classes'], colours=self.params['colours'],
-                              save=save, show=show, model_name=self.params['model_name'],
-                              timestamp=self.params['timestamp'], results_dir=results_dir, **results)
+        visutils.plot_results(
+            plots,
+            mode="test",
+            class_names=self.params["classes"],
+            colours=self.params["colours"],
+            save=save,
+            show=show,
+            model_name=self.params["model_name"],
+            timestamp=self.params["timestamp"],
+            results_dir=results_dir,
+            **results,
+        )
 
         # Checks whether to run TensorBoard on the log from the experiment.
         # If defined as optional in the config, a user confirmation is required to run TensorBoard with a 60s timeout.
-        if self.params['run_tensorboard'] in ('opt', 'optional', 'OPT', 'Optional'):
+        if self.params["run_tensorboard"] in ("opt", "optional", "OPT", "Optional"):
             try:
-                res = inputimeout(prompt='Run TensorBoard Logs? (Y/N): ', timeout=_timeout)
-                if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'run', 'RUN', 'Run'):
+                res = inputimeout(
+                    prompt="Run TensorBoard Logs? (Y/N): ", timeout=_timeout
+                )
+                if res in ("Y", "y", "yes", "Yes", "YES", "run", "RUN", "Run"):
                     self.run_tensorboard()
                     return
-                elif res in ('N', 'n', 'no', 'No', 'NO'):
+                elif res in ("N", "n", "no", "No", "NO"):
                     pass
                 else:
-                    print('\n*Input not recognised*. Please try again')
+                    print("\n*Input not recognised*. Please try again")
             except TimeoutOccurred:
-                print('Input timeout elapsed. TensorBoard logs will not be run.')
+                print("Input timeout elapsed. TensorBoard logs will not be run.")
 
         # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
-        elif self.params['run_tensorboard'] in (True, 'auto', 'Auto'):
+        elif self.params["run_tensorboard"] in (True, "auto", "Auto"):
             self.run_tensorboard()
             return
 
         # If the user declined, optional or auto wasn't defined in the config or a timeout occurred,
         # the user is informed how to run TensorBoard on the logs using RunTensorBoard.py.
-        print('\nTensorBoard logs will not be run but still can be by using RunTensorBoard.py and')
-        print('providing the path to this experiment\'s results directory and unique experiment ID')
+        print(
+            "\nTensorBoard logs will not be run but still can be by using RunTensorBoard.py and"
+        )
+        print(
+            "providing the path to this experiment's results directory and unique experiment ID"
+        )
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
         # Ensure the TensorBoard logger is closed.
         self.writer.close()
 
-        print('\nSAVING EXPERIMENT CONFIG TO FILE')
+        print("\nSAVING EXPERIMENT CONFIG TO FILE")
         # Outputs the modified YAML parameters config file used for this experiment to file.
-        with open(f'{self.exp_fn}.yml', 'w') as outfile:
+        with open(f"{self.exp_fn}.yml", "w") as outfile:
             yaml.dump(self.params, outfile)
 
         # Writes the recorded training and validation metrics of the experiment to file.
-        print('\nSAVING METRICS TO FILE')
+        print("\nSAVING METRICS TO FILE")
         try:
             sub_metrics = self.metric_logger.get_sub_metrics()
             metrics_df = pd.DataFrame(sub_metrics)
-            metrics_df['Epoch'] = sub_metrics['train_loss']['x']
-            metrics_df.set_index('Epoch', inplace=True, drop=True)
-            metrics_df.to_csv(f'{self.exp_fn}_metrics.csv')
+            metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
+            metrics_df.set_index("Epoch", inplace=True, drop=True)
+            metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
 
         except (ValueError, KeyError):
-            print('\n*ERROR* in saving metrics to file.')
+            print("\n*ERROR* in saving metrics to file.")
 
         # Checks whether to save the model parameters to file.
-        if self.params['save_model'] in ('opt', 'optional', 'OPT', 'Optional'):
+        if self.params["save_model"] in ("opt", "optional", "OPT", "Optional"):
             try:
-                res = inputimeout(prompt='\nSave model to file? (Y/N): ', timeout=_timeout)
-                if res in ('Y', 'y', 'yes', 'Yes', 'YES', 'save', 'SAVE', 'Save'):
+                res = inputimeout(
+                    prompt="\nSave model to file? (Y/N): ", timeout=_timeout
+                )
+                if res in ("Y", "y", "yes", "Yes", "YES", "save", "SAVE", "Save"):
                     # Saves model state dict to PyTorch file.
                     self.save_model()
-                    print('MODEL PARAMETERS SAVED')
-                elif res in ('N', 'n', 'no', 'No', 'NO'):
-                    print('Model will NOT be saved to file')
+                    print("MODEL PARAMETERS SAVED")
+                elif res in ("N", "n", "no", "No", "NO"):
+                    print("Model will NOT be saved to file")
                     pass
                 else:
-                    print('Input not recognised. Please try again')
+                    print("Input not recognised. Please try again")
             except TimeoutOccurred:
-                print('Input timeout elapsed. Model will not be saved')
+                print("Input timeout elapsed. Model will not be saved")
 
-        elif self.params['save_model'] in (True, 'auto', 'Auto'):
-            print('\nSAVING MODEL PARAMETERS TO FILE')
+        elif self.params["save_model"] in (True, "auto", "Auto"):
+            print("\nSAVING MODEL PARAMETERS TO FILE")
             # Saves model state dict to PyTorch file.
             self.save_model()
 
-    def compute_classification_report(self, predictions: ArrayLike, labels: ArrayLike) -> None:
+    def compute_classification_report(
+        self, predictions: ArrayLike, labels: ArrayLike
+    ) -> None:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
 
         Args:
@@ -518,18 +581,22 @@ class Trainer:
         labels = utils.batch_flatten(labels)
 
         # Uses utils to create a classification report in a DataFrame.
-        cr_df = utils.make_classification_report(predictions, labels, self.params['classes'])
+        cr_df = utils.make_classification_report(
+            predictions, labels, self.params["classes"]
+        )
 
         # Saves classification report DataFrame to a .csv file at fn.
-        cr_df.to_csv(f'{self.exp_fn}_classification-report.csv')
+        cr_df.to_csv(f"{self.exp_fn}_classification-report.csv")
 
     def save_model(self) -> None:
         """Saves model state dict to PyTorch file."""
-        torch.save(self.model.state_dict(), f'{self.exp_fn}.pt')
+        torch.save(self.model.state_dict(), f"{self.exp_fn}.pt")
 
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
-        utils.run_tensorboard(path=self.params['dir']['results'][:-1],
-                              env_name='env2',
-                              exp_name=self.params['exp_name'],
-                              host_num=6006)
+        utils.run_tensorboard(
+            path=self.params["dir"]["results"][:-1],
+            env_name="env2",
+            exp_name=self.params["exp_name"],
+            host_num=6006,
+        )
