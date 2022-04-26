@@ -24,10 +24,6 @@ Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd.
 
-Attributes:
-    config_path (str): Path to master config YAML file.
-    config (dict): Master config defining how the experiment should be conducted.
-
 TODO:
     * Add arg parsing from CLI
     * Add ability to conduct hyper-parameter iterative variation experimentation
