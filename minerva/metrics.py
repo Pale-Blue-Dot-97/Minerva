@@ -64,7 +64,7 @@ class MinervaMetrics(ABC):
     def get_metrics(self) -> Dict[str, Any]:
         return self.metrics
 
-    def get_sub_metrics(self, pattern: str = r'[train|val]') -> Dict[str, Any]:
+    def get_sub_metrics(self, pattern: str = r"[train|val]") -> Dict[str, Any]:
         reg_pattern = regex.compile(pattern)
         sub_metrics = {}
         for key in self.metrics.keys():
@@ -84,32 +84,47 @@ class SP_Metrics(MinervaMetrics):
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
-            'train_loss': {'x': [], 'y': []},
-            'val_loss': {'x': [], 'y': []},
-            'test_loss': {'x': [], 'y': []},
-
-            'train_acc': {'x': [], 'y': []},
-            'val_acc': {'x': [], 'y': []},
-            'test_acc': {'x': [], 'y': []}
+            "train_loss": {"x": [], "y": []},
+            "val_loss": {"x": [], "y": []},
+            "test_loss": {"x": [], "y": []},
+            "train_acc": {"x": [], "y": []},
+            "val_acc": {"x": [], "y": []},
+            "test_acc": {"x": [], "y": []},
         }
 
     def calc_metrics(self, mode: str, logs: Dict[str, Any], **params) -> None:
         # Updates metrics with epoch results.
-        self.metrics[f'{mode}_loss']['y'].append(logs['total_loss'] / self.n_batches[mode])
+        self.metrics[f"{mode}_loss"]["y"].append(
+            logs["total_loss"] / self.n_batches[mode]
+        )
 
-        if params['model_type'] == 'segmentation':
-            self.metrics[f'{mode}_acc']['y'].append(logs['total_correct'] / (self.n_batches[mode] * self.batch_size *
-                                                                             self.data_size[1] * self.data_size[2]))
+        if params["model_type"] == "segmentation":
+            self.metrics[f"{mode}_acc"]["y"].append(
+                logs["total_correct"]
+                / (
+                    self.n_batches[mode]
+                    * self.batch_size
+                    * self.data_size[1]
+                    * self.data_size[2]
+                )
+            )
         else:
-            self.metrics[f'{mode}_acc']['y'].append(logs['total_correct'] / (self.n_batches[mode] * self.batch_size))
+            self.metrics[f"{mode}_acc"]["y"].append(
+                logs["total_correct"] / (self.n_batches[mode] * self.batch_size)
+            )
 
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
-        self.metrics[f'{mode}_loss']['x'].append(epoch_no + 1)
-        self.metrics[f'{mode}_acc']['x'].append(epoch_no + 1)
+        self.metrics[f"{mode}_loss"]["x"].append(epoch_no + 1)
+        self.metrics[f"{mode}_acc"]["x"].append(epoch_no + 1)
 
     def print_epoch_results(self, mode: str, epoch_no: int) -> None:
-        print('{} | Loss: {} | Accuracy: {}% \n'.format(mode, self.metrics[f'{mode}_loss']['y'][epoch_no],
-                                                        self.metrics[f'{mode}_acc']['y'][epoch_no] * 100.0))
+        print(
+            "{} | Loss: {} | Accuracy: {}% \n".format(
+                mode,
+                self.metrics[f"{mode}_loss"]["y"][epoch_no],
+                self.metrics[f"{mode}_acc"]["y"][epoch_no] * 100.0,
+            )
+        )
 
 
 class SSL_Metrics(MinervaMetrics):
@@ -118,16 +133,22 @@ class SSL_Metrics(MinervaMetrics):
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
-            'train_loss': {'x': [], 'y': []},
-            'val_loss': {'x': [], 'y': []}
+            "train_loss": {"x": [], "y": []},
+            "val_loss": {"x": [], "y": []},
         }
 
     def calc_metrics(self, mode: str, logs, **params) -> None:
         # Updates metrics with epoch results.
-        self.metrics[f'{mode}_loss']['y'].append(logs['total_loss'] / self.n_batches[mode])
+        self.metrics[f"{mode}_loss"]["y"].append(
+            logs["total_loss"] / self.n_batches[mode]
+        )
 
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
-        self.metrics[f'{mode}_loss']['x'].append(epoch_no + 1)
+        self.metrics[f"{mode}_loss"]["x"].append(epoch_no + 1)
 
     def print_epoch_results(self, mode: str, epoch_no: int) -> None:
-        print('{} | Loss: {} | \n'.format(mode, self.metrics[f'{mode}_loss']['y'][epoch_no]))
+        print(
+            "{} | Loss: {} | \n".format(
+                mode, self.metrics[f"{mode}_loss"]["y"][epoch_no]
+            )
+        )

@@ -13,36 +13,42 @@ def test_config_loading():
 
 
 def test_datetime_reformat():
-    dt = '2018-12-15'
-    assert utils.datetime_reformat(dt, '%Y-%m-%d', '%d.%m.%Y') == '15.12.2018'
+    dt = "2018-12-15"
+    assert utils.datetime_reformat(dt, "%Y-%m-%d", "%d.%m.%Y") == "15.12.2018"
 
 
 def test_ohe_labels():
     labels = [3, 2, 4, 1, 0]
-    correct_targets = np.array([[0., 0., 0., 1., 0., 0.],
-                                [0., 0., 1., 0., 0., 0.],
-                                [0., 0., 0., 0., 1., 0.],
-                                [0., 1., 0., 0., 0., 0.],
-                                [1., 0., 0., 0., 0., 0.]])
+    correct_targets = np.array(
+        [
+            [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ]
+    )
     targets = utils.labels_to_ohe(labels=labels, n_classes=6)
     assert assert_array_equal(correct_targets, targets) is None
 
 
 def test_empty_classes():
     labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
-    classes = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5'}
+    classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     assert utils.find_empty_classes(labels, classes) == [0, 2]
 
 
 def test_eliminate_classes():
     empty = [0, 2]
-    old_classes = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5'}
-    old_cmap = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5'}
-    new_classes = {0: '5', 1: '1', 2: '4', 3: '3'}
-    new_cmap = {0: '5', 1: '1', 2: '4', 3: '3'}
+    old_classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+    old_cmap = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+    new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
+    new_cmap = {0: "5", 1: "1", 2: "4", 3: "3"}
     conversion = {1: 1, 3: 3, 4: 2, 5: 0}
 
-    results = utils.eliminate_classes(empty_classes=empty, old_classes=old_classes, old_cmap=old_cmap)
+    results = utils.eliminate_classes(
+        empty_classes=empty, old_classes=old_classes, old_cmap=old_cmap
+    )
 
     assert new_classes == results[0]
     assert conversion == results[1]
@@ -50,8 +56,8 @@ def test_eliminate_classes():
 
 
 def test_check_test_empty():
-    old_classes = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5'}
-    new_classes = {0: '5', 1: '1', 2: '4', 3: '3'}
+    old_classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+    new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
     old_labels_1 = [1, 1, 3, 5, 1, 4, 1, 5, 3]
     new_labels = [1, 1, 3, 0, 1, 2, 1, 0, 3]
     old_pred_1 = [1, 4, 1, 5, 1, 4, 1, 5, 1]
@@ -109,14 +115,16 @@ def test_check_len():
 
 
 def test_func_by_str():
-    assert utils.func_by_str('typing', 'Union') is Union
-    assert utils.func_by_str('datetime', 'datetime') is datetime
-    assert utils.func_by_str('torch.utils.data', 'DataLoader') is DataLoader
+    assert utils.func_by_str("typing", "Union") is Union
+    assert utils.func_by_str("datetime", "datetime") is datetime
+    assert utils.func_by_str("torch.utils.data", "DataLoader") is DataLoader
 
 
 def test_timestamp_now():
-    assert utils.timestamp_now('%d-%m-%Y_%H%M') == datetime.now().strftime('%d-%m-%Y_%H%M')
-    assert utils.timestamp_now('%d-%m-%Y') == datetime.now().strftime('%d-%m-%Y')
-    assert utils.timestamp_now('%Y-%m-%d') == datetime.now().strftime('%Y-%m-%d')
-    assert utils.timestamp_now('%H%M') == datetime.now().strftime('%H%M')
-    assert utils.timestamp_now('%H:%M') == datetime.now().strftime('%H:%M')
+    assert utils.timestamp_now("%d-%m-%Y_%H%M") == datetime.now().strftime(
+        "%d-%m-%Y_%H%M"
+    )
+    assert utils.timestamp_now("%d-%m-%Y") == datetime.now().strftime("%d-%m-%Y")
+    assert utils.timestamp_now("%Y-%m-%d") == datetime.now().strftime("%Y-%m-%d")
+    assert utils.timestamp_now("%H%M") == datetime.now().strftime("%H%M")
+    assert utils.timestamp_now("%H:%M") == datetime.now().strftime("%H:%M")

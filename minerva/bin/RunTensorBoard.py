@@ -35,16 +35,22 @@ import argparse
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-def main(path: Optional[Union[str, list]] = None, env_name: str = 'env2', exp_name: Optional[str] = None,
-         host_num: int = 6006) -> None:
+def main(
+    path: Optional[Union[str, list]] = None,
+    env_name: str = "env2",
+    exp_name: Optional[str] = None,
+    host_num: int = 6006,
+) -> None:
     if isinstance(path, list):
         if len(path) == 1:
             path = path[0]
 
-    utils.run_tensorboard(path=path, env_name=env_name, exp_name=exp_name, host_num=host_num)
+    utils.run_tensorboard(
+        path=path, env_name=env_name, exp_name=exp_name, host_num=host_num
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     CLI = argparse.ArgumentParser()
     CLI.add_argument(
         "--path",  # name on the CLI - drop the `--` for positional/required parameters
@@ -72,4 +78,9 @@ if __name__ == '__main__':
     )
 
     args = CLI.parse_args()
-    main(path=args.path, env_name=args.env_name, exp_name=args.exp_name, host_num=args.host_num)
+    main(
+        path=args.path,
+        env_name=args.env_name,
+        exp_name=args.exp_name,
+        host_num=args.host_num,
+    )

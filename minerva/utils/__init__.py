@@ -3,16 +3,17 @@ import os, sys, getopt, ntpath
 from typing import Tuple, Dict, Any, List, Optional
 
 # Default values for the path to the config directory and config name.
-config_dir_path = '../../inbuilt_cfgs/'
-default_config_name = 'example_config.yml'
+config_dir_path = "../../inbuilt_cfgs/"
+default_config_name = "example_config.yml"
 
 # Objects to hold the config name and path.
 config_name = None
 config_path = None
 
 
-def get_sys_args(flags: str, long_options: Optional[List[str]] = None) -> Optional[Tuple[List[Tuple[str, str]],
-                                                                                   List[Tuple[str, ...]]]]:
+def get_sys_args(
+    flags: str, long_options: Optional[List[str]] = None
+) -> Optional[Tuple[List[Tuple[str, str]], List[Tuple[str, ...]]]]:
     """Get sys.argv and extract options and arguments."""
     try:
         opts, args = getopt.getopt(sys.argv[1:], flags, long_options)
@@ -73,7 +74,7 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
     master_config = yaml_load(master_config_path)
 
     # Gets the paths for the other configs from master config.
-    config_paths = master_config['dir']['configs']
+    config_paths = master_config["dir"]["configs"]
 
     # Loads and returns the other configs along with master config.
     return master_config, aux_config_load(config_paths)
@@ -86,7 +87,7 @@ opts, args = get_sys_args("c:", ["default_config_dir", "basetemp="])
 for o, a in opts:
     if o == "-c":
         head, tail = ntpath.split(a)
-        if head !=  "" or head is not None:
+        if head != "" or head is not None:
             config_path = head
         elif head == "" or head is None:
             config_path = ""
@@ -96,8 +97,10 @@ for o, a in opts:
 for o, a in opts:
     if o == "--default_config_dir":
         if config_path is not None:
-            print("Warning: Config path specified with `--default_config_dir` option." +
-                  "\nDefault config directory path will be used.")
+            print(
+                "Warning: Config path specified with `--default_config_dir` option."
+                + "\nDefault config directory path will be used."
+            )
         config_path = None
 
 # Store the current working directory (i.e where script is being run from).
