@@ -106,33 +106,33 @@ from geopy.exc import GeocoderUnavailable
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-imagery_config_path = config["dir"]["configs"]["imagery_config"]
-data_config_path = config["dir"]["configs"]["data_config"]
+IMAGERY_CONFIG_PATH = config["dir"]["configs"]["imagery_config"]
+DATA_CONFIG_PATH = config["dir"]["configs"]["data_config"]
 
-data_config = aux_configs["data_config"]
-imagery_config = aux_configs["imagery_config"]
+DATA_CONFIG = aux_configs["data_config"]
+IMAGERY_CONFIG = aux_configs["imagery_config"]
 
 # Path to directory holding dataset.
-data_dir = os.sep.join(config["dir"]["data"])
+DATA_DIR = os.sep.join(config["dir"]["data"])
 
 # Path to cache directory.
-cache_dir = os.sep.join(config["dir"]["cache"])
+CACHE_DIR = os.sep.join(config["dir"]["cache"])
 
 # Path to directory to output plots to.
-results_dir = os.path.join(*config["dir"]["results"])
+RESULTS_DIR = os.path.join(*config["dir"]["results"])
 
 # Band IDs and position in sample image.
-band_ids = imagery_config["data_specs"]["band_ids"]
+BAND_IDS = IMAGERY_CONFIG["data_specs"]["band_ids"]
 
 # Defines size of the images to determine the number of batches.
-image_size = imagery_config["data_specs"]["image_size"]
+IMAGE_SIZE = IMAGERY_CONFIG["data_specs"]["image_size"]
 
-classes = data_config["classes"]
+CLASSES = DATA_CONFIG["classes"]
 
-cmap_dict = data_config["colours"]
+CMAP_DICT = DATA_CONFIG["colours"]
 
 # WGS84 co-ordinate reference system acting as a default CRS for transformations.
-wgs_84 = CRS.from_epsg(4326)
+WGS84 = CRS.from_epsg(4326)
 
 # Filters out all TensorFlow messages other than errors.
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -250,7 +250,7 @@ def mkexpdir(name: str) -> None:
         None
     """
     try:
-        os.mkdir(os.path.join(results_dir, name))
+        os.mkdir(os.path.join(RESULTS_DIR, name))
     except FileExistsError:
         pass
 
@@ -275,7 +275,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     Returns:
         Name of dataset as string.
     """
-    data_config_fn = ntpath.basename(data_config_path)
+    data_config_fn = ntpath.basename(DATA_CONFIG_PATH)
     try:
         match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
         return match.group(1)
@@ -290,7 +290,7 @@ def get_manifest_path() -> str:
     Returns:
         Path to manifest as string.
     """
-    return os.sep.join([cache_dir, f"{get_dataset_name()}_Manifest.csv"])
+    return os.sep.join([CACHE_DIR, f"{get_dataset_name()}_Manifest.csv"])
 
 
 def get_manifest(manifest_path: str) -> pd.DataFrame:
@@ -371,11 +371,11 @@ def centre_pixel_only(image: Sequence[Any]) -> NDArray[Any]:
     Returns:
         Image of only zeros except the original central pixel.
     """
-    new_image = np.zeros((*image_size, len(band_ids)))
+    new_image = np.zeros((*IMAGE_SIZE, len(BAND_IDS)))
 
-    new_image[int(image_size[0] / 2.0)][int(image_size[1] / 2.0)] = image[
-        int(image_size[0] / 2.0)
-    ][int(image_size[1] / 2.0)]
+    new_image[int(IMAGE_SIZE[0] / 2.0)][int(IMAGE_SIZE[1] / 2.0)] = image[
+        int(IMAGE_SIZE[0] / 2.0)
+    ][int(IMAGE_SIZE[1] / 2.0)]
 
     return new_image
 
@@ -401,7 +401,7 @@ def transform_coordinates(
     x: Union[Sequence[float], float],
     y: Union[Sequence[float], float],
     src_crs: CRS,
-    new_crs: CRS = wgs_84,
+    new_crs: CRS = WGS84,
 ) -> Union[Tuple[Sequence[float], Sequence[float]], Tuple[float, float]]:
     """Transforms co-ordinates from one CRS to another.
 
@@ -596,7 +596,7 @@ def class_weighting(
 
 
 def find_empty_classes(
-    class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = classes
+    class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = CLASSES
 ) -> List[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
@@ -639,9 +639,9 @@ def eliminate_classes(
         reordered_colours (dict): Mapping of remaining class labels to RGB colours.
     """
     if old_classes is None:
-        old_classes = classes
+        old_classes = CLASSES
     if old_cmap is None:
-        old_cmap = cmap_dict
+        old_cmap = CMAP_DICT
 
     if len(empty_classes) == 0:
         return old_classes, {}, old_cmap
@@ -708,7 +708,7 @@ def load_data_specs(
             and `cmap_dict` are unaltered.
     """
     if not elim:
-        return classes, {}, cmap_dict
+        return CLASSES, {}, CMAP_DICT
     if elim:
         return eliminate_classes(find_empty_classes(class_dist=class_dist))
 
@@ -945,7 +945,7 @@ def find_subpopulations(
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
         visutils.plot_subpopulations(
-            class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True
+            class_dist, class_names=CLASSES, cmap_dict=CMAP_DICT, save=False, show=True
         )
 
     return class_dist
@@ -966,7 +966,7 @@ def subpopulations_from_manifest(
         class_dist (list): Modal distribution of classes in the dataset provided.
     """
     class_counter: Counter[int] = Counter()
-    for classification in classes.keys():
+    for classification in CLASSES.keys():
         try:
             count = manifest[f"{classification}"].sum() / len(manifest)
             if count == 0.0 or count == 0:
@@ -980,7 +980,7 @@ def subpopulations_from_manifest(
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
         visutils.plot_subpopulations(
-            class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True
+            class_dist, class_names=CLASSES, cmap_dict=CMAP_DICT, save=False, show=True
         )
 
     return class_dist
@@ -1060,7 +1060,7 @@ def calc_grad(model: torch.nn.Module) -> Optional[float]:
 
 
 def print_class_dist(
-    class_dist: List[Tuple[int, int]], class_labels: Dict[int, str] = classes
+    class_dist: List[Tuple[int, int]], class_labels: Dict[int, str] = CLASSES
 ) -> None:
     """Prints the supplied class_dist in a pretty table format using tabulate.
 
@@ -1752,6 +1752,6 @@ def make_loaders(
     params["hyperparams"]["model_params"]["n_classes"] = len(new_classes)
     params["classes"] = new_classes
     params["colours"] = new_colours
-    params["max_pixel_value"] = imagery_config["data_specs"]["max_value"]
+    params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
 
     return loaders, n_batches, class_dist, params
