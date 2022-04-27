@@ -25,12 +25,12 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 Attributes:
-    imagery_config (dict): Config defining the properties of the imagery used in the experiment.
-    data_config (dict): Config defining the properties of the data used in the experiment.
-    data_dir (list): Path to directory holding dataset.
-    band_ids (dict): Band IDs and position in sample image.
-    max_pixel_value (int): Maximum pixel value (e.g. 255 for 8-bit integer).
-    wgs_84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
+    IMAGER_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
+    DATA_CONFIG (dict): Config defining the properties of the data used in the experiment.
+    DATA_DIR (list): Path to directory holding dataset.
+    BAND_IDS (dict): Band IDs and position in sample image.
+    MAX_PIXEL_VALUE (int): Maximum pixel value (e.g. 255 for 8-bit integer).
+    WGS84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
 
 TODO:
     * Reduce boilerplate
@@ -70,19 +70,19 @@ from alive_progress import alive_bar
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-data_config = aux_configs["data_config"]
-imagery_config = aux_configs["imagery_config"]
+DATA_CONFIG = aux_configs["data_config"]
+IMAGERY_CONFIG = aux_configs["imagery_config"]
 
 # Path to directory holding dataset.
-data_dir = config["dir"]["data"]
+DATA_DIR = config["dir"]["data"]
 
 # Band IDs and position in sample image.
-band_ids = imagery_config["data_specs"]["band_ids"]
+BAND_IDS = IMAGERY_CONFIG["data_specs"]["band_ids"]
 
 # Maximum pixel value (e.g. 255 for 8-bit integer).
-max_pixel_value = imagery_config["data_specs"]["max_value"]
+MAX_PIXEL_VALUE = IMAGERY_CONFIG["data_specs"]["max_value"]
 
-wgs_84 = CRS.from_epsg(4326)
+WGS84 = CRS.from_epsg(4326)
 
 # Automatically fixes the layout of the figures to accommodate the colour bar legends.
 plt.rcParams["figure.constrained_layout.use"] = True
@@ -97,7 +97,7 @@ plt.rcParams["axes.xmargin"] = 0
 # Filters out all TensorFlow messages other than errors.
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-_max_samples = 25
+_MAX_SAMPLES = 25
 
 
 # =====================================================================================================================
@@ -127,7 +127,7 @@ def dec_extent_to_deg(
     shape: Tuple[int, int],
     bounds: BoundingBox,
     src_crs: CRS,
-    new_crs: CRS = wgs_84,
+    new_crs: CRS = WGS84,
     spacing: int = 32,
 ) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
     """Gets the extent of the image with 'shape' and at data_fn in latitude, longitude of system new_cs.
@@ -219,8 +219,8 @@ def discrete_heatmap(
 
 def stack_rgb(
     image: NDArray[Any],
-    rgb: Optional[Dict[str, int]] = band_ids,
-    max_value: int = max_pixel_value,
+    rgb: Optional[Dict[str, int]] = BAND_IDS,
+    max_value: int = MAX_PIXEL_VALUE,
 ) -> Any:
     """Stacks together red, green and blue image arrays from file to create a RGB array.
 
@@ -514,7 +514,7 @@ def make_all_the_gifs(
         names["patch_ID"] = patch
 
         # Define name of GIF for this patch.
-        gif_name = f"{data_dir}/{patch}.gif"
+        gif_name = f"{DATA_DIR}/{patch}.gif"
 
         # Call make_gif() for this patch.
         make_gif(
@@ -538,7 +538,7 @@ def prediction_plot(
     sample_id: str,
     classes: Dict[int, str],
     src_crs: CRS,
-    new_crs: CRS = wgs_84,
+    new_crs: CRS = WGS84,
     cmap_style: Optional[Union[str, ListedColormap]] = None,
     exp_id: Optional[str] = None,
     fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
@@ -732,8 +732,8 @@ def seg_plot(
 
     # Limits number of masks to produce to a fractional number of total and no more than _max_samples.
     n_samples = int(frac * len(flat_ids))
-    if n_samples > _max_samples:
-        n_samples = _max_samples
+    if n_samples > _MAX_SAMPLES:
+        n_samples = _MAX_SAMPLES
 
     # Initialises a progress bar for the epoch.
     with alive_bar(n_samples, bar="blocks") as bar:
@@ -922,7 +922,7 @@ def make_confusion_matrix(
     cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
 
     # Plots figure.
-    plt.figure(figsize=data_config["fig_sizes"]["CM"])
+    plt.figure(figsize=DATA_CONFIG["fig_sizes"]["CM"])
     sns.heatmap(
         cm_df,
         annot=True,
@@ -1210,5 +1210,5 @@ def plot_results(
             fn_prefix=filenames["Mask"],
             classes=class_names,
             colours=colours,
-            fig_dim=data_config["fig_sizes"]["Mask"],
+            fig_dim=DATA_CONFIG["fig_sizes"]["Mask"],
         )
