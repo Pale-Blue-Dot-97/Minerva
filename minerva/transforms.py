@@ -24,8 +24,6 @@ Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd.
 
-Attributes:
-
 TODO:
     * Document classes
 """
@@ -41,10 +39,27 @@ from minerva.utils import utils
 #                                                     CLASSES
 # =====================================================================================================================
 class ClassTransform:
+    """Transform to be applied to a mask to convert from one labelling schema to another.
+
+    Attributes:
+        transform (Dict[int, int]): Mapping from one labelling schema to another.
+
+    Args:
+        transform (Dict[int, int]): Mapping from one labelling schema to another.
+    """
+
     def __init__(self, transform: Dict[int, int]) -> None:
         self.transform = transform
 
     def __call__(self, mask: Tensor) -> Tensor:
+        """Transforms the given mask from the original label schema to the new.
+
+        Args:
+            mask (Tensor): Mask in the original label schema.
+
+        Returns:
+            Tensor: Mask transformed into new label schema.
+        """
         return utils.mask_transform(mask, self.transform)
 
     def __repr__(self) -> str:
@@ -52,10 +67,20 @@ class ClassTransform:
 
 
 class PairCreate:
+    """Transform that takes a sample and returns a pair of the same sample."""
+
     def __init__(self) -> None:
         pass
 
     def __call__(self, sample: Any) -> Tuple[Any, Any]:
+        """Takes a sample and returns it and a copy as a tuple pair.
+
+        Args:
+            sample (Any): Sample to duplicate.
+
+        Returns:
+            Tuple[Any, Any]: Tuple of two copies of the sample.
+        """
         return sample, sample
 
     def __repr__(self) -> str:
@@ -63,10 +88,27 @@ class PairCreate:
 
 
 class Normalise:
+    """Transform that normalises an image tensor based on the bit size.
+
+    Attributes:
+        norm_value (int): Value to normalise image with.
+
+    Args:
+        norm_value (int): Value to normalise image with.
+    """
+
     def __init__(self, norm_value: int) -> None:
         self.norm_value = norm_value
 
-    def __call__(self, img: Tensor) -> Dict[Any, Any]:
+    def __call__(self, img: Tensor) -> Tensor:
+        """Normalises inputted image using `norm_value`.
+
+        Args:
+            img (Tensor): Image tensor to be normalised. Should have a bit size that relates to `norm_value`.
+
+        Returns:
+            Tensor: Input image tensor normalised by `norm_value`.
+        """
         return img / self.norm_value
 
     def __repr__(self) -> str:
