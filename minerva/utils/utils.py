@@ -25,17 +25,17 @@ Institution: University of Southampton
 Created under a project funded by the Ordnance Survey Ltd.
 
 Attributes:
-    imagery_config_path (str): Path to the imagery config YAML file.
-    data_config_path (str): Path to the data config YAML file.
-    imagery_config (dict): Config defining the properties of the imagery used in the experiment.
-    data_config (dict): Config defining the properties of the data used in the experiment.
-    data_dir (list): Path to directory holding dataset.
-    results_dir (list): Path to directory to output plots to.
-    band_ids (dict): Band IDs and position in sample image.
-    image_size (tuple): Defines the shape of the images.
-    classes (dict): Mapping of class labels to class names.
-    cmap_dict (dict): Mapping of class labels to colours.
-    wgs_84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
+    IMAGERY_CONFIG_PATH (str): Path to the imagery config YAML file.
+    DATA_CONFIG_PATH (str): Path to the data config YAML file.
+    IMAGERY_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
+    DATA_CONFIG (dict): Config defining the properties of the data used in the experiment.
+    DATA_DIR (list): Path to directory holding dataset.
+    RESULTS_DIR (list): Path to directory to output plots to.
+    BAND_IDS (dict): Band IDs and position in sample image.
+    IAMGE_SIZE (tuple): Defines the shape of the images.
+    CLASSES (dict): Mapping of class labels to class names.
+    CMAP_DICT (dict): Mapping of class labels to colours.
+    WGS84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
 
 TODO:
     * Add exception handling where appropriate.
