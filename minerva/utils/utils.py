@@ -1690,11 +1690,11 @@ def make_loaders(
         params (dict):
     """
     # Gets out the parameters for the DataLoaders from params.
-    dataloader_params = params["hyperparams"]["params"]
-    dataset_params = params["dataset_params"]
-    sampler_params = params["sampler_params"]
-    transform_params = params["transform_params"]
-    batch_size = dataloader_params["batch_size"]
+    dataloader_params: Dict[Any, Any] = params["hyperparams"]["params"]
+    dataset_params: Dict[str, Any] = params["dataset_params"]
+    sampler_params: Dict[str, Any] = params["sampler_params"]
+    transform_params: Dict[str, Any] = params["transform_params"]
+    batch_size: int = dataloader_params["batch_size"]
 
     # Load manifest from cache for this dataset.
     manifest = get_manifest(get_manifest_path())
@@ -1710,7 +1710,7 @@ def make_loaders(
     n_batches = {}
     loaders = {}
 
-    for mode in ("train", "val", "test"):
+    for mode in dataset_params.keys():
         this_transform_params = transform_params[mode]
         if params["elim"]:
             if this_transform_params["mask"] is not Dict:
