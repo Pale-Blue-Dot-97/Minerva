@@ -45,7 +45,12 @@ def main():
         loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config
     )
     trainer.fit()
-    trainer.test()
+
+    if config["pre_train"]:
+        trainer.downstream_config()
+
+    else:
+        trainer.test()
 
 
 if __name__ == "__main__":
