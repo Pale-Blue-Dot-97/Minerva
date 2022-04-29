@@ -207,10 +207,11 @@ class MinervaBackbone(ABC):
     def __init__(self) -> None:
         super().__init__()
 
-    @abc.abstractmethod
-    def ready_downstream(self) -> None:
-        """Abstract method for readying a model for use as a backbone on downstream tasks."""
-        pass
+        self.backbone = None
+
+    def get_backbone(self) -> Module:
+        """Gets the backbone network of the model."""
+        return self.backbone
 
 
 class PreTrainedModel(MinervaModel):
@@ -1443,6 +1444,7 @@ class _FCN(MinervaModel, ABC):
         decoder_name: str = "DCN",
         decoder_variant: str = "32",
         batch_size: int = 16,
+        backbone_weight_path: Optional[str] = None,
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
 
@@ -1453,6 +1455,10 @@ class _FCN(MinervaModel, ABC):
         self.backbone: MinervaModel = globals()[backbone_name](
             input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
         )
+        if backbone_weight_path is not None:
+            weights = torch.load(backbone_weight_path)
+            print(weights.keys())
+            self.backbone.load_state_dict(weights)
 
         self.backbone.determine_output_dim()
 
@@ -1506,6 +1512,7 @@ class FCNResNet18(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         batch_size: int = 16,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1516,6 +1523,7 @@ class FCNResNet18(_FCN):
             batch_size=batch_size,
             backbone_name="ResNet18",
             decoder_name="Decoder",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1538,6 +1546,7 @@ class FCNResNet34(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         batch_size: int = 16,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1548,6 +1557,7 @@ class FCNResNet34(_FCN):
             batch_size=batch_size,
             backbone_name="ResNet34",
             decoder_name="Decoder",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1570,6 +1580,7 @@ class FCNResNet50(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         batch_size: int = 16,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1580,6 +1591,7 @@ class FCNResNet50(_FCN):
             batch_size=batch_size,
             backbone_name="ResNet50",
             decoder_name="Decoder",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1600,6 +1612,7 @@ class FCN32ResNet18(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1609,6 +1622,7 @@ class FCN32ResNet18(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet18",
             decoder_variant="32",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1629,6 +1643,7 @@ class FCN32ResNet34(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1638,6 +1653,7 @@ class FCN32ResNet34(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet34",
             decoder_variant="32",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1658,6 +1674,7 @@ class FCN32ResNet50(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1667,6 +1684,7 @@ class FCN32ResNet50(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet50",
             decoder_variant="32",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1687,6 +1705,7 @@ class FCN16ResNet18(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1696,6 +1715,7 @@ class FCN16ResNet18(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet18",
             decoder_variant="16",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1716,6 +1736,7 @@ class FCN16ResNet34(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1725,6 +1746,7 @@ class FCN16ResNet34(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet34",
             decoder_variant="16",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1745,6 +1767,7 @@ class FCN16ResNet50(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1754,6 +1777,7 @@ class FCN16ResNet50(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet50",
             decoder_variant="16",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1774,6 +1798,7 @@ class FCN8ResNet18(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1783,6 +1808,7 @@ class FCN8ResNet18(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet18",
             decoder_variant="8",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1803,6 +1829,7 @@ class FCN8ResNet34(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1812,6 +1839,7 @@ class FCN8ResNet34(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet34",
             decoder_variant="8",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1832,6 +1860,7 @@ class FCN8ResNet50(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1841,6 +1870,7 @@ class FCN8ResNet50(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet50",
             decoder_variant="8",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1861,6 +1891,7 @@ class FCN8ResNet101(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1870,6 +1901,7 @@ class FCN8ResNet101(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet101",
             decoder_variant="8",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1890,6 +1922,7 @@ class FCN8ResNet152(_FCN):
         criterion: Any,
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
         **resnet_kwargs,
     ) -> None:
 
@@ -1899,6 +1932,7 @@ class FCN8ResNet152(_FCN):
             n_classes=n_classes,
             backbone_name="ResNet152",
             decoder_variant="8",
+            backbone_weight_path=backbone_weight_path,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1962,10 +1996,6 @@ class _SimCLR(MinervaModel, MinervaBackbone):
         z = torch.cat([g_a, g_b], dim=0)
 
         return z
-
-    def ready_downstream(self) -> None:
-        """Deletes the projection head from the model ready for downstream tasks."""
-        del self.proj_head
 
 
 class SimCLR18(_SimCLR):
