@@ -42,6 +42,8 @@ datasets with upcoming support for [torchvision](https://pytorch.org/vision/stab
 
 Required Python modules for `minerva` are stated in `requirements.txt`.
 
+`minerva` currently only supports `python` 3.7-3.9.
+
 ## Usage
 
 The core functionality of `minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process,
