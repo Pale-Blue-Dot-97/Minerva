@@ -1410,9 +1410,7 @@ class _FCN(MinervaModel, ABC):
             input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
         )
         if backbone_weight_path is not None:
-            weights = torch.load(backbone_weight_path)
-            print(weights.keys())
-            self.backbone.load_state_dict(weights)
+            self.backbone.load_state_dict(torch.load(backbone_weight_path))
 
         self.backbone.determine_output_dim()
 
