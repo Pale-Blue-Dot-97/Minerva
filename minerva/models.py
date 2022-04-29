@@ -210,7 +210,10 @@ class MinervaBackbone(ABC):
         self.backbone = None
 
     def get_backbone(self) -> Module:
-        """Gets the backbone network of the model."""
+        """Gets the backbone network of the model.
+        Returns:
+            Module: The backbone of the model.
+        """
         return self.backbone
 
 
@@ -1432,6 +1435,7 @@ class _FCN(MinervaModel, ABC):
             See the FCN paper for details on these variants.
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
             Only needed for Decoder, not DCN.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1503,6 +1507,7 @@ class FCNResNet18(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1537,6 +1542,7 @@ class FCNResNet34(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1571,6 +1577,7 @@ class FCNResNet50(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1604,6 +1611,7 @@ class FCN32ResNet18(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1635,6 +1643,7 @@ class FCN32ResNet34(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1666,6 +1675,7 @@ class FCN32ResNet50(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1697,6 +1707,7 @@ class FCN16ResNet18(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1728,6 +1739,7 @@ class FCN16ResNet34(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1759,6 +1771,7 @@ class FCN16ResNet50(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1790,6 +1803,7 @@ class FCN8ResNet18(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1821,6 +1835,7 @@ class FCN8ResNet34(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1852,6 +1867,7 @@ class FCN8ResNet50(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1883,6 +1899,7 @@ class FCN8ResNet101(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1914,6 +1931,7 @@ class FCN8ResNet152(_FCN):
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
