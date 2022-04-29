@@ -1,7 +1,8 @@
 name: Ubuntu-Py39
 
 on:
-  - workflow_dispatch
+  - push
+  - pull_request
 
 jobs:
   test:
