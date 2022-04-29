@@ -217,56 +217,6 @@ class MinervaBackbone(ABC):
         return self.backbone
 
 
-class PreTrainedModel(MinervaModel):
-    """Class to handle the use of a pre-trained backbone, applied on a downstream task network.
-
-    Attributes:
-        backbone (MinervaModel): Pre-trained backbone network.
-        downstream (MinervaModel): Downstream task network.
-
-    Args:
-        pretrained_model (MinervaModel): Pre-trained backbone network.
-        task_network_name (str): Name of a `MinervaModel` network to use as a downstream network.
-        task_network_kwargs (Dict[str, Any]): The kwargs for the downstream network.
-        criterion (Module): Optional; PyTorch loss function model will use.
-        n_classes (int): Optional; Number of classes in input data.
-    """
-
-    def __init__(
-        self,
-        pretrained_model: MinervaModel,
-        task_network_name: str,
-        task_network_kwargs: Dict[str, Any],
-        criterion: Optional[Module] = None,
-        n_classes: Optional[int] = None,
-    ) -> None:
-
-        super().__init__(criterion, pretrained_model.input_shape, n_classes)
-
-        self.backbone = pretrained_model
-        self.downstream: MinervaModel = globals()[task_network_name](
-            in_channel=self.backbone.output_shape[0],
-            n_classes=n_classes,
-            **task_network_kwargs,
-        )
-
-    def forward(self, x: Tensor) -> Tensor:
-        """Performs a forward pass of the network.
-
-        Can be called directly as a method of the network (e.g. model.forward())
-        or when data is parsed to the model (e.g. model()).
-
-        Args:
-            x (Tensor): Input data to network.
-
-        Returns:
-            Tensor: Output tensor of model.
-        """
-        z = self.backbone(x)
-        z = self.downstream(z)
-        return z
-
-
 class MLP(MinervaModel):
     """Simple class to construct a Multi-Layer Perceptron (MLP).
 
