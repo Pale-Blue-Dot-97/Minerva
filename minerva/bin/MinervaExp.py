@@ -47,7 +47,7 @@ def main():
     trainer.fit()
 
     if config["pre_train"]:
-        trainer.downstream_config()
+        trainer.save_backbone()
 
     else:
         trainer.test()
