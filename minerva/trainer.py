@@ -49,6 +49,7 @@ import os
 import yaml
 import copy
 import torch
+from torch.nn import Module
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader
@@ -104,6 +105,11 @@ class Trainer:
         self.params = params
         self.class_dist = class_dist
 
+        self.modes = params["dataset_params"].keys()
+
+        # Flag for a fine-tuning experiment.
+        self.fine_tune = self.params["fine_tune"]
+
         # Sets the timestamp of the experiment.
         self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
 
@@ -119,8 +125,6 @@ class Trainer:
         )
 
         self.batch_size = params["hyperparams"]["params"]["batch_size"]
-
-        # self.max_pixel_value = params['max_pixel_value']
 
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
@@ -150,8 +154,7 @@ class Trainer:
 
         # Calculates number of samples in each mode of fitting.
         self.n_samples = {
-            mode: self.n_batches[mode] * self.batch_size
-            for mode in ("train", "val", "test")
+            mode: self.n_batches[mode] * self.batch_size for mode in self.modes
         }
 
         # Initialise the metric logger and model IO for the experiment.
@@ -159,7 +162,7 @@ class Trainer:
         self.modelio_func = self.get_io_func()
 
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
-        self.step_num = {"train": 0, "val": 0, "test": 0}
+        self.step_num = {mode: 0 for mode in self.modes}
 
         # Initialise TensorBoard logger
         self.writer = SummaryWriter(os.sep.join(self.params["dir"]["results"]))
@@ -203,7 +206,16 @@ class Trainer:
             "minerva.models", self.params["model_name"].split("-")[0]
         )
 
-        # Initialise model
+        if self.fine_tune:
+            # Define path to the cached version of the desired pre-trained model.
+            weights_path = os.sep.join(
+                self.params["dir"]["cache"] + [self.params["pre_train_name"]]
+            )
+
+            # Add the path to the pre-trained weights to the model params.
+            model_params["backbone_weight_path"] = f"{weights_path}.pt"
+
+        # Initialise model.
         return model(self.make_criterion(), **model_params)
 
     def make_criterion(self) -> Any:
@@ -275,15 +287,6 @@ class Trainer:
             Callable: Model IO function requested from parameters.
         """
         return utils.func_by_str("minerva.modelio", self.params["model_io"])
-
-    def downstream_config(self) -> None:
-        """Readies the model for use in downstream tasks and saves to file."""
-        # Checks that model has the required method to ready it for use on downstream tasks.
-        assert type(self.model) is MinervaBackbone
-        self.model.ready_downstream()
-
-        # With model now readied, saves the model to file for use in downstream tasks.
-        self.save_model()
 
     def epoch(
         self, mode: str, record_int: bool = False, record_float: bool = False
@@ -549,7 +552,7 @@ class Trainer:
                 )
                 if res in ("Y", "y", "yes", "Yes", "YES", "save", "SAVE", "Save"):
                     # Saves model state dict to PyTorch file.
-                    self.save_model()
+                    self.save_model_weights()
                     print("MODEL PARAMETERS SAVED")
                 elif res in ("N", "n", "no", "No", "NO"):
                     print("Model will NOT be saved to file")
@@ -562,7 +565,7 @@ class Trainer:
         elif self.params["save_model"] in (True, "auto", "Auto"):
             print("\nSAVING MODEL PARAMETERS TO FILE")
             # Saves model state dict to PyTorch file.
-            self.save_model()
+            self.save_model_weights()
 
     def compute_classification_report(
         self, predictions: ArrayLike, labels: ArrayLike
@@ -588,9 +591,29 @@ class Trainer:
         # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f"{self.exp_fn}_classification-report.csv")
 
-    def save_model(self) -> None:
+    def save_model_weights(self, fn: Optional[str] = None) -> None:
         """Saves model state dict to PyTorch file."""
-        torch.save(self.model.state_dict(), f"{self.exp_fn}.pt")
+        if fn is None:
+            fn = self.exp_fn
+        torch.save(self.model.state_dict(), f"{fn}.pt")
+
+    def save_model(self, fn: Optional[str] = None) -> None:
+        """Saves the model object itself to PyTorch file."""
+        if fn is None:
+            fn = self.exp_fn
+        torch.save(self.model, f"{fn}.pt")
+
+    def save_backbone(self) -> None:
+        """Readies the model for use in downstream tasks and saves to file."""
+        # Checks that model has the required method to ready it for use on downstream tasks.
+        assert issubclass(type(self.model), MinervaBackbone)
+        pre_trained_backbone: Module = self.model.get_backbone()
+
+        # Saves the pre-trained backbone to the cache.
+        cache_fn = os.sep.join(
+            self.params["dir"]["cache"] + [self.params["model_name"]]
+        )
+        torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}.pt")
 
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
