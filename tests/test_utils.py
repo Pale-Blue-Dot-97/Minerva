@@ -1,23 +1,32 @@
 from typing import Union
 import os
+import random
+import math
+import cmath
 from minerva.utils import utils, config, aux_configs
 import numpy as np
+import torch
+from torchgeo.datasets.utils import BoundingBox
 from numpy.testing import assert_array_equal
 from datetime import datetime
 from torch.utils.data import DataLoader
 
 
-def test_config_loading():
+def test_cuda_device() -> None:
+    assert type(utils.get_cuda_device()) is torch.device
+
+
+def test_config_loading() -> None:
     assert type(config) is dict
     assert type(aux_configs) is dict
 
 
-def test_datetime_reformat():
+def test_datetime_reformat() -> None:
     dt = "2018-12-15"
     assert utils.datetime_reformat(dt, "%Y-%m-%d", "%d.%m.%Y") == "15.12.2018"
 
 
-def test_ohe_labels():
+def test_ohe_labels() -> None:
     labels = [3, 2, 4, 1, 0]
     correct_targets = np.array(
         [
@@ -32,13 +41,13 @@ def test_ohe_labels():
     assert assert_array_equal(correct_targets, targets) is None
 
 
-def test_empty_classes():
+def test_empty_classes() -> None:
     labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
     classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     assert utils.find_empty_classes(labels, classes) == [0, 2]
 
 
-def test_eliminate_classes():
+def test_eliminate_classes() -> None:
     empty = [0, 2]
     old_classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     old_cmap = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
@@ -55,7 +64,7 @@ def test_eliminate_classes():
     assert new_cmap == results[2]
 
 
-def test_check_test_empty():
+def test_check_test_empty() -> None:
     old_classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
     old_labels_1 = [1, 1, 3, 5, 1, 4, 1, 5, 3]
@@ -88,7 +97,18 @@ def test_check_test_empty():
     assert results_3[2] == old_classes
 
 
-def test_file_check():
+def test_find_subpopulations() -> None:
+    classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+    labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
+
+    class_dist = utils.find_subpopulations(labels)
+
+    assert class_dist == [(1, 4), (3, 3), (5, 2), (4, 1)]
+
+    assert utils.print_class_dist(class_dist, classes) is None
+
+
+def test_file_check() -> None:
     fn = "tests/test.txt"
     with open(fn, "x") as f:
         f.write("")
@@ -98,7 +118,7 @@ def test_file_check():
     assert os.path.exists(fn) is False
 
 
-def test_class_transform():
+def test_class_transform() -> None:
     matrix = {1: 1, 3: 3, 4: 2, 5: 0}
 
     assert utils.class_transform(1, matrix) == 1
@@ -107,20 +127,20 @@ def test_class_transform():
     assert utils.class_transform(4, matrix) == 2
 
 
-def test_check_len():
+def test_check_len() -> None:
     assert utils.check_len([0, 0, 0], [0, 0, 0]) == [0, 0, 0]
     assert utils.check_len([0, 0], [0, 0, 0]) == [0, 0, 0]
     assert utils.check_len(0, [0, 1, 0]) == [0, 0, 0]
     assert utils.check_len(1, [3, 4, 2]) == [1, 1, 1]
 
 
-def test_func_by_str():
+def test_func_by_str() -> None:
     assert utils.func_by_str("typing", "Union") is Union
     assert utils.func_by_str("datetime", "datetime") is datetime
     assert utils.func_by_str("torch.utils.data", "DataLoader") is DataLoader
 
 
-def test_timestamp_now():
+def test_timestamp_now() -> None:
     assert utils.timestamp_now("%d-%m-%Y_%H%M") == datetime.now().strftime(
         "%d-%m-%Y_%H%M"
     )
@@ -128,3 +148,33 @@ def test_timestamp_now():
     assert utils.timestamp_now("%Y-%m-%d") == datetime.now().strftime("%Y-%m-%d")
     assert utils.timestamp_now("%H%M") == datetime.now().strftime("%H%M")
     assert utils.timestamp_now("%H:%M") == datetime.now().strftime("%H:%M")
+
+
+def test_find_geo_similar() -> None:
+    max_r = 120
+
+    r = random.randint(0, max_r)
+    assert r <= 120
+
+    phi = random.random() * math.pow(-1, random.randint(1, 2)) * math.pi
+    assert phi <= math.pi
+    assert phi >= -math.pi
+
+    z = cmath.rect(r, phi)
+    x, y = z.real, z.imag
+
+    assert np.sqrt((math.pow(x, 2) + math.pow(y, 2))) <= max_r
+
+    bbox = BoundingBox(10, 20, 20, 30, 1, 2)
+
+    assert type(utils.find_geo_similar(bbox, max_r)) is BoundingBox
+
+
+def test_batch_flatten() -> None:
+    a = np.random.rand(256, 256)
+    b = np.random.rand(16, 128, 128)
+    c = list(a)
+
+    assert len(utils.batch_flatten(a)) == 256 * 256
+    assert len(utils.batch_flatten(b)) == 16 * 128 * 128
+    assert len(utils.batch_flatten(c)) == 256 * 256
