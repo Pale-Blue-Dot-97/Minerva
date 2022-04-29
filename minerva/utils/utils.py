@@ -90,18 +90,18 @@ from rasterio.crs import CRS
 from rasterio.warp import transform_bounds
 from tabulate import tabulate
 import torch
-from sklearn.preprocessing import label_binarize
-from sklearn.metrics import classification_report, roc_curve, auc
-from sklearn.exceptions import UndefinedMetricWarning
+from torch.nn import Module
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 from torchvision import transforms
-from alive_progress import alive_bar, alive_it
+from sklearn.preprocessing import label_binarize
+from sklearn.metrics import classification_report, roc_curve, auc
+from sklearn.exceptions import UndefinedMetricWarning
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.datasets import GeoDataset, IntersectionDataset
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
-
+from alive_progress import alive_bar, alive_it
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -1024,11 +1024,11 @@ def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
         return [param] * len(comparator)
 
 
-def calc_grad(model: torch.nn.Module) -> Optional[float]:
+def calc_grad(model: Module) -> Optional[float]:
     """Calculates and prints to stdout the 2D grad norm of the model parameters.
 
     Args:
-        model (torch.nn.Module): Torch model to calculate grad norms from.
+        model (Module): Torch model to calculate grad norms from.
 
     Returns:
         total_norm (float): Total 2D grad norm of the model.
