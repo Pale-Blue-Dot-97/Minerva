@@ -249,7 +249,7 @@ class Trainer:
 
         # Gets the optimiser requested by config parameters.
         optimiser_params: Dict[str, Any] = self.params["hyperparams"][
-            "optimiser_params"
+            "optim_params"
         ].copy()
         module = optimiser_params.pop("module", "torch.optim")
         optimiser = utils.func_by_str(module, optimiser_params["name"])
