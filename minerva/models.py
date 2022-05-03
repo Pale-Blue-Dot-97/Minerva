@@ -1386,6 +1386,8 @@ class _FCN(MinervaModel, ABC):
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
             Only needed for Decoder, not DCN.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1399,6 +1401,7 @@ class _FCN(MinervaModel, ABC):
         decoder_variant: str = "32",
         batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
 
@@ -1406,12 +1409,21 @@ class _FCN(MinervaModel, ABC):
             criterion=criterion, input_shape=input_size, n_classes=n_classes
         )
 
+        # Initialises the selected Minerva backbone.
         self.backbone: MinervaModel = globals()[backbone_name](
             input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
         )
+
+        # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:
             self.backbone.load_state_dict(torch.load(backbone_weight_path))
 
+            # Freezes the weights of backbone to avoid end-to-end training.
+            if freeze_backbone:
+                self.backbone.requires_grad_(False)
+
+        # Determines the output shape of the backbone so the correct input shape is known
+        # for the proceeding layers of the network.
         self.backbone.determine_output_dim()
 
         if decoder_name == "DCN":
@@ -1456,6 +1468,8 @@ class FCNResNet18(_FCN):
         n_classes (int): Optional; Number of classes in data to be classified.
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1466,6 +1480,7 @@ class FCNResNet18(_FCN):
         n_classes: int = 8,
         batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1477,6 +1492,7 @@ class FCNResNet18(_FCN):
             backbone_name="ResNet18",
             decoder_name="Decoder",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1491,6 +1507,8 @@ class FCNResNet34(_FCN):
         n_classes (int): Optional; Number of classes in data to be classified.
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1501,6 +1519,7 @@ class FCNResNet34(_FCN):
         n_classes: int = 8,
         batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1512,6 +1531,7 @@ class FCNResNet34(_FCN):
             backbone_name="ResNet34",
             decoder_name="Decoder",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1526,6 +1546,8 @@ class FCNResNet50(_FCN):
         n_classes (int): Optional; Number of classes in data to be classified.
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1536,6 +1558,7 @@ class FCNResNet50(_FCN):
         n_classes: int = 8,
         batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1547,6 +1570,7 @@ class FCNResNet50(_FCN):
             backbone_name="ResNet50",
             decoder_name="Decoder",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1560,6 +1584,8 @@ class FCN32ResNet18(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1569,6 +1595,7 @@ class FCN32ResNet18(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1579,6 +1606,7 @@ class FCN32ResNet18(_FCN):
             backbone_name="ResNet18",
             decoder_variant="32",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1592,6 +1620,8 @@ class FCN32ResNet34(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1601,6 +1631,7 @@ class FCN32ResNet34(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1611,6 +1642,7 @@ class FCN32ResNet34(_FCN):
             backbone_name="ResNet34",
             decoder_variant="32",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1624,6 +1656,8 @@ class FCN32ResNet50(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1633,6 +1667,7 @@ class FCN32ResNet50(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1643,6 +1678,7 @@ class FCN32ResNet50(_FCN):
             backbone_name="ResNet50",
             decoder_variant="32",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1656,6 +1692,8 @@ class FCN16ResNet18(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1665,6 +1703,7 @@ class FCN16ResNet18(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1675,6 +1714,7 @@ class FCN16ResNet18(_FCN):
             backbone_name="ResNet18",
             decoder_variant="16",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1688,6 +1728,8 @@ class FCN16ResNet34(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1697,6 +1739,7 @@ class FCN16ResNet34(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1707,6 +1750,7 @@ class FCN16ResNet34(_FCN):
             backbone_name="ResNet34",
             decoder_variant="16",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1720,6 +1764,8 @@ class FCN16ResNet50(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1729,6 +1775,7 @@ class FCN16ResNet50(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1739,6 +1786,7 @@ class FCN16ResNet50(_FCN):
             backbone_name="ResNet50",
             decoder_variant="16",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1752,6 +1800,8 @@ class FCN8ResNet18(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1761,6 +1811,7 @@ class FCN8ResNet18(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1771,6 +1822,7 @@ class FCN8ResNet18(_FCN):
             backbone_name="ResNet18",
             decoder_variant="8",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1784,6 +1836,8 @@ class FCN8ResNet34(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1793,6 +1847,7 @@ class FCN8ResNet34(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1803,6 +1858,7 @@ class FCN8ResNet34(_FCN):
             backbone_name="ResNet34",
             decoder_variant="8",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1816,6 +1872,8 @@ class FCN8ResNet50(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1825,6 +1883,7 @@ class FCN8ResNet50(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1835,6 +1894,7 @@ class FCN8ResNet50(_FCN):
             backbone_name="ResNet50",
             decoder_variant="8",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1848,6 +1908,8 @@ class FCN8ResNet101(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1857,6 +1919,7 @@ class FCN8ResNet101(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1867,6 +1930,7 @@ class FCN8ResNet101(_FCN):
             backbone_name="ResNet101",
             decoder_variant="8",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
@@ -1880,6 +1944,8 @@ class FCN8ResNet152(_FCN):
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
         resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
@@ -1889,6 +1955,7 @@ class FCN8ResNet152(_FCN):
         input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
 
@@ -1899,6 +1966,7 @@ class FCN8ResNet152(_FCN):
             backbone_name="ResNet152",
             decoder_variant="8",
             backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
             backbone_kwargs=resnet_kwargs,
         )
 
