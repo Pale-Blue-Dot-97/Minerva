@@ -248,16 +248,14 @@ class Trainer:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
 
         # Gets the optimiser requested by config parameters.
-        optimiser = utils.func_by_str(
-            "torch.optim", self.params["hyperparams"]["optim_name"]
-        )
+        optimiser_params: Dict[str, Any] = self.params["hyperparams"][
+            "optimiser_params"
+        ].copy()
+        module = optimiser_params.pop("module", "torch.optim")
+        optimiser = utils.func_by_str(module, optimiser_params["name"])
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(
-            optimiser(
-                self.model.parameters(), **self.params["hyperparams"]["optim_params"]
-            )
-        )
+        self.model.set_optimiser(optimiser(self.model.parameters(), **optimiser_params))
 
     def make_metric_logger(self) -> None:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
