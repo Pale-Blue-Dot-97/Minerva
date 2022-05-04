@@ -91,6 +91,7 @@ from rasterio.warp import transform_bounds
 from tabulate import tabulate
 import torch
 from torch.nn import Module
+from torch.nn import functional as F
 from torch.backends import cudnn
 from torch.utils.data import DataLoader
 from torchvision import transforms
@@ -1199,6 +1200,25 @@ def make_classification_report(
         print(tabulate(cr_df, headers="keys", tablefmt="psql"))
 
     return cr_df
+
+
+def calc_contrastive_acc(z: torch.Tensor) -> torch.Tensor:
+    cos_sim = F.cosine_similarity(z[:, None, :], z[None, :, :], dim=-1)
+    # Mask out cosine similarity to itself
+    self_mask = torch.eye(cos_sim.shape[0], dtype=torch.bool, device=cos_sim.device)
+    cos_sim.masked_fill_(self_mask, -9e15)
+    # Find positive example -> batch_size//2 away from the original example
+    pos_mask = self_mask.roll(shifts=cos_sim.shape[0] // 2, dims=0)
+
+    # Get ranking position of positive example
+    comb_sim = torch.cat(
+        [
+            cos_sim[pos_mask][:, None],  # First position positive example
+            cos_sim.masked_fill(pos_mask, -9e15),
+        ],
+        dim=-1,
+    )
+    return comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
 
 
 def run_tensorboard(
