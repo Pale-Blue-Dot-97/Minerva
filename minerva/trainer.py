@@ -255,7 +255,9 @@ class Trainer:
         optimiser = utils.func_by_str(module, optimiser_params["name"])
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(optimiser(self.model.parameters(), **optimiser_params))
+        self.model.set_optimiser(
+            optimiser(self.model.parameters(), **optimiser_params["params"])
+        )
 
     def make_metric_logger(self) -> None:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
