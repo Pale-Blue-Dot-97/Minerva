@@ -34,6 +34,7 @@ from torch import Tensor
 from torch.nn.modules.loss import _Loss
 from torchgeo.datasets.utils import BoundingBox
 from torch.utils.tensorboard import SummaryWriter
+from minerva.utils import utils
 import numpy as np
 import torch
 import abc
@@ -289,7 +290,12 @@ class SSL_Logger(MinervaLogger):
             n_batches, batch_size, n_samples, record_int, record_float
         )
 
-        self.logs: Dict[str, Any] = {"batch_num": 0, "total_loss": 0.0}
+        self.logs: Dict[str, Any] = {
+            "batch_num": 0,
+            "total_loss": 0.0,
+            "total_correct": 0.0,
+            "total_top5": 0.0,
+        }
 
     def log(
         self,
@@ -316,8 +322,27 @@ class SSL_Logger(MinervaLogger):
         ls = loss.item()
         self.logs["total_loss"] += ls
 
+        # Compute the TOP1 and TOP5 accuracies.
+        sim_argsort = utils.calc_contrastive_acc(z)
+        correct = (sim_argsort == 0).float().mean()
+        top5 = (sim_argsort < 5).float().mean()
+
+        # Add accuracies to log.
+        self.logs["total_correct"] += correct
+        self.logs["total_top5"] += top5
+
         # Writes the loss to the writer.
         writer.add_scalar(tag=f"{mode}_loss", scalar_value=ls, global_step=step_num)
+        writer.add_scalar(
+            tag=f"{mode}_acc",
+            scalar_value=correct / len(torch.flatten(y)),
+            global_step=step_num,
+        )
+        writer.add_scalar(
+            tag=f"{mode}_top5_acc",
+            scalar_value=top5 / len(torch.flatten(y)),
+            global_step=step_num,
+        )
 
         # Adds 1 to the batch number (step number).
         self.logs["batch_num"] += 1

@@ -135,6 +135,10 @@ class SSL_Metrics(MinervaMetrics):
         self.metrics = {
             "train_loss": {"x": [], "y": []},
             "val_loss": {"x": [], "y": []},
+            "train_acc": {"x": [], "y": []},
+            "val_acc": {"x": [], "y": []},
+            "train_top5_acc": {"x": [], "y": []},
+            "val_top5_acc": {"x": [], "y": []},
         }
 
     def calc_metrics(self, mode: str, logs, **params) -> None:
@@ -143,12 +147,44 @@ class SSL_Metrics(MinervaMetrics):
             logs["total_loss"] / self.n_batches[mode]
         )
 
+        if params["model_type"] == "segmentation":
+            self.metrics[f"{mode}_acc"]["y"].append(
+                logs["total_correct"]
+                / (
+                    self.n_batches[mode]
+                    * self.batch_size
+                    * self.data_size[1]
+                    * self.data_size[2]
+                )
+            )
+            self.metrics[f"{mode}_top5_acc"]["y"].append(
+                logs["total_top5"]
+                / (
+                    self.n_batches[mode]
+                    * self.batch_size
+                    * self.data_size[1]
+                    * self.data_size[2]
+                )
+            )
+        else:
+            self.metrics[f"{mode}_acc"]["y"].append(
+                logs["total_correct"] / (self.n_batches[mode] * self.batch_size)
+            )
+            self.metrics[f"{mode}_top5_acc"]["y"].append(
+                logs["total_top5"] / (self.n_batches[mode] * self.batch_size)
+            )
+
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
         self.metrics[f"{mode}_loss"]["x"].append(epoch_no + 1)
+        self.metrics[f"{mode}_acc"]["x"].append(epoch_no + 1)
+        self.metrics[f"{mode}_top5_acc"]["x"].append(epoch_no + 1)
 
     def print_epoch_results(self, mode: str, epoch_no: int) -> None:
         print(
-            "{} | Loss: {} | \n".format(
-                mode, self.metrics[f"{mode}_loss"]["y"][epoch_no]
+            "{} | Loss: {} | Accuracy: {}% | Top5 Accuracy: {}% \n".format(
+                mode,
+                self.metrics[f"{mode}_loss"]["y"][epoch_no],
+                self.metrics[f"{mode}_acc"]["y"][epoch_no] * 100.0,
+                self.metrics[f"{mode}_top5_acc"]["y"][epoch_no] * 100.0,
             )
         )
