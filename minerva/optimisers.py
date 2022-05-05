@@ -26,6 +26,7 @@ SOFTWARE.
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Dict, Any, Optional, Union, Iterable
 import torch
 from torch.optim.optimizer import Optimizer, required
 
@@ -39,7 +40,7 @@ class LARS(Optimizer):
     Source: https://github.com/noahgolmant/pytorch-lars/blob/master/lars.py
 
     Args:
-        params (iterable): iterable of parameters to optimize or dicts defining
+        params (iterable or dict): Iterable of parameters to optimize or dicts defining
             parameter groups
         lr (float): base learning rate (\gamma_0)
         momentum (float, optional): momentum factor (default: 0) ("m")
@@ -59,12 +60,12 @@ class LARS(Optimizer):
 
     def __init__(
         self,
-        params,
+        params: Union[Iterable[Any], Dict[Any, Any]],
         lr=required,
-        momentum=0.9,
-        weight_decay=0.0005,
-        eta=0.001,
-        max_epoch=200,
+        momentum: float = 0.9,
+        weight_decay: float = 0.0005,
+        eta: float = 0.001,
+        max_epoch: int = 200,
     ):
         if lr is not required and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -85,12 +86,12 @@ class LARS(Optimizer):
         )
         super(LARS, self).__init__(params, defaults)
 
-    def step(self, epoch=None, closure=None):
+    def step(self, epoch: Optional[int] = None, closure: Optional[callable] = None):
         """Performs a single optimization step.
         Arguments:
             closure (callable, optional): A closure that reevaluates the model
                 and returns the loss.
-            epoch: current epoch to calculate polynomial LR decay schedule.
+            epoch (int, optioanl): Current epoch to calculate polynomial LR decay schedule.
                    if None, uses self.epoch and increments it.
         """
         loss = None
