@@ -92,7 +92,6 @@ from tabulate import tabulate
 import torch
 from torch.nn import Module
 from torch.nn import functional as F
-from torch.backends import cudnn
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from sklearn.preprocessing import label_binarize
@@ -100,6 +99,7 @@ from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.exceptions import UndefinedMetricWarning
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.datasets import GeoDataset, IntersectionDataset
+from catalyst.data.sampler import DistributedSamplerWrapper
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
 from alive_progress import alive_bar, alive_it
@@ -210,16 +210,18 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_cuda_device() -> torch.device:
+def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> torch.device:
     """Finds and returns the CUDA device, if one is available. Else, returns CPU as device.
     Assumes there is at most only one CUDA device.
 
+    Args:
+        device_sig (Union[int, str], optional): Either the GPU number or string representing the torch device to find.
+            Defaults to 'cuda:0'.
     Returns:
-        CUDA device, if found. Else, CPU device.
+        torch.device: CUDA device, if found. Else, CPU device.
     """
     use_cuda = torch.cuda.is_available()
-    device = torch.device("cuda:0" if use_cuda else "cpu")
-    cudnn.benchmark = True
+    device = torch.device(device_sig if use_cuda else "cpu")
 
     return device
 
@@ -1561,6 +1563,8 @@ def construct_dataloader(
     dataloader_params: Dict[str, Any],
     collator_params: Optional[Dict[str, Any]] = None,
     transform_params: Optional[Dict[str, Any]] = None,
+    rank: int = 0,
+    world_size: int = 1,
 ) -> DataLoader:
     """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
@@ -1590,6 +1594,10 @@ def construct_dataloader(
         roi=make_bounding_box(sampler_params["roi"]),
         **sampler_params["params"],
     )
+
+    # Wraps sampler for distributed computing.
+    if world_size > 1:
+        sampler = DistributedSamplerWrapper(sampler, num_replicas=world_size, rank=rank)
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
@@ -1689,7 +1697,10 @@ def make_transformations(
 
 @return_updated_kwargs
 def make_loaders(
-    p_dist: bool = False, **params
+    rank: int = 0,
+    world_size: int = 1,
+    p_dist: bool = False,
+    **params,
 ) -> Tuple[
     Dict[str, DataLoader], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]
 ]:
@@ -1758,6 +1769,8 @@ def make_loaders(
             dataloader_params,
             collator_params=params["collator"],
             transform_params=this_transform_params,
+            rank=rank,
+            world_size=world_size,
         )
         print("DONE")
 
