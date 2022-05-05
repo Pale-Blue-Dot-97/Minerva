@@ -33,7 +33,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Callable, Optional, Tuple, List, Dict, Iterable, Any
+from typing import Callable, Optional, List, Dict, Iterable, Any
 
 try:
     from numpy.typing import ArrayLike
@@ -50,9 +50,9 @@ import yaml
 import copy
 import torch
 from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import DataLoader
 import pandas as pd
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
@@ -81,29 +81,42 @@ class Trainer:
             testing.
         metrics (dict): Dictionary to hold the loss and accuracy results from training, validation and testing.
         device: The CUDA device on which to fit the model.
+
+    Args:
+        gpu (int, optional): CUDA GPU device number. For use in distributed computing. Defaults to 0.
+        verbose (bool): Turns messages to stdout off/on.
+        params (Dict[str, Any]):
+
+    Keyword Args:
+        results (list[str]): Path to the results' directory to save plots to.
+        model_name (str): Name of the model to be used in filenames of results.
+        batch_size (int): Size of each batch of samples supplied to the model.
+        max_epochs (int): Number of epochs to train the model for.
     """
 
     def __init__(
         self,
-        loaders: Dict[str, DataLoader],
-        n_batches: Dict[str, int],
-        class_dist: Optional[List[Tuple[int, int]]] = None,
-        **params,
+        gpu: int = 0,
+        rank: int = 0,
+        world_size: int = 1,
+        verbose: bool = True,
+        **params: Dict[str, Any],
     ) -> None:
-        """Initialises the Trainer.
+        # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
+        loaders, n_batches, class_dist, new_params = utils.make_loaders(
+            rank=rank, world_size=world_size, **params
+        )
 
-        Args:
-            loaders (dict[DataLoader]): Dictionary containing DataLoaders for each dataset.
-            n_batches (dict): Dictionary of the number of batches to supply to the model for train, validation and
-                testing.
-        Keyword Args:
-            results (list[str]): Path to the results' directory to save plots to.
-            model_name (str): Name of the model to be used in filenames of results.
-            batch_size (int): Size of each batch of samples supplied to the model.
-            max_epochs (int): Number of epochs to train the model for.
-        """
-        self.params = params
+        # Sets the global GPU number for distributed computing. In single process, this will just be 0.
+        self.gpu = gpu
+
+        # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
+        self.verbose = verbose if gpu == 0 else False
+
+        self.params = new_params
         self.class_dist = class_dist
+        self.loaders = loaders
+        self.n_batches = n_batches
 
         self.modes = params["dataset_params"].keys()
 
@@ -126,6 +139,12 @@ class Trainer:
 
         self.batch_size = params["hyperparams"]["params"]["batch_size"]
 
+        # Finds and sets the CUDA device to be used.
+        self.device = utils.get_cuda_device(gpu)
+
+        # Transfer to GPU
+        self.model.to(self.device)
+
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
@@ -134,8 +153,8 @@ class Trainer:
 
         # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
-            print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = torch.nn.DataParallel(self.model)
+            self.print(f"{torch.cuda.device_count()} GPUs detected")
+            self.model = DistributedDataParallel(self.model, device_ids=[gpu])
 
         # Sets up the early stopping functionality.
         self.stopper = None
@@ -147,10 +166,6 @@ class Trainer:
 
         # Sets the max number of epochs of fitting.
         self.max_epochs = params["hyperparams"]["max_epochs"]
-
-        self.loaders = loaders
-
-        self.n_batches = n_batches
 
         # Calculates number of samples in each mode of fitting.
         self.n_samples = {
@@ -169,12 +184,6 @@ class Trainer:
 
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
-
-        # Finds and sets the CUDA device to be used.
-        self.device = utils.get_cuda_device()
-
-        # Transfer to GPU
-        self.model.to(self.device)
 
         # Determines the input size of the model.
         if self.params["model_type"] in ["MLP", "mlp"]:
@@ -229,20 +238,18 @@ class Trainer:
         module = loss_params.pop("module", "torch.nn")
         criterion = utils.func_by_str(module, loss_params["name"])
 
-        if self.params["balance"] and self.params["model_type"] == "segmentation":
-            weights_dict = utils.class_weighting(self.class_dist, normalise=False)
+        if loss_params["params"] is not None:
+            if self.params["balance"] and self.params["model_type"] == "segmentation":
+                weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
-            weights = []
-            for i in range(len(weights_dict)):
-                weights.append(weights_dict[i])
+                weights = []
+                for i in range(len(weights_dict)):
+                    weights.append(weights_dict[i])
 
-            loss_params["params"]["weight"] = torch.Tensor(weights)
-            return criterion(**loss_params["params"])
+                loss_params["params"]["weight"] = torch.Tensor(weights)
+            return criterion(**loss_params["params"]).cuda(self.gpu)
         else:
-            if loss_params["params"] is None:
-                return criterion()
-            else:
-                return criterion(**loss_params["params"])
+            return criterion().cuda(self.gpu)
 
     def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
@@ -356,7 +363,7 @@ class Trainer:
     def fit(self) -> None:
         """Fits the model by running `max_epochs` number of training and validation epochs."""
         for epoch in range(self.max_epochs):
-            print(
+            self.print(
                 f"\nEpoch: {epoch + 1}/{self.max_epochs} =========================================================="
             )
 
@@ -386,7 +393,7 @@ class Trainer:
             # Special case for final train/ val epoch to plot results if configured so.
             if epoch == (self.max_epochs - 1) or self.early_stop:
                 if self.early_stop:
-                    print("\nEarly stopping triggered")
+                    self.print("\nEarly stopping triggered")
 
                 # Ensures that plots likely to cause memory issues are not attempted.
                 plots: Dict[str, bool] = self.params["plots"].copy()
@@ -410,24 +417,26 @@ class Trainer:
                 results_dir: List[str] = self.params["dir"]["results"].copy()
                 results_dir.append(mode)
 
-                # Plots the results of this epoch.
-                visutils.plot_results(
-                    plots,
-                    metrics=sub_metrics,
-                    class_names=self.params["classes"],
-                    colours=self.params["colours"],
-                    save=True,
-                    show=False,
-                    model_name=self.params["model_name"],
-                    timestamp=self.params["timestamp"],
-                    results_dir=results_dir,
-                    **results,
-                )
+                if self.gpu == 0:
+                    # Plots the results of this epoch.
+                    visutils.plot_results(
+                        plots,
+                        metrics=sub_metrics,
+                        class_names=self.params["classes"],
+                        colours=self.params["colours"],
+                        save=True,
+                        show=False,
+                        model_name=self.params["model_name"],
+                        timestamp=self.params["timestamp"],
+                        results_dir=results_dir,
+                        **results,
+                    )
 
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
                 if self.early_stop:
-                    self.model.load_state_dict(torch.load(f"{self.exp_fn}.pt"))
+                    if self.gpu == 0:
+                        self.model.load_state_dict(torch.load(f"{self.exp_fn}.pt"))
                     break
 
     def test(self, save: bool = True, show: bool = False) -> None:
@@ -444,7 +453,7 @@ class Trainer:
         Returns:
             None
         """
-        print("\r\nTESTING")
+        self.print("\r\nTESTING")
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
@@ -460,112 +469,116 @@ class Trainer:
         # encountered in plotting of results.
         self.close()
 
-        if "z" in results and "y" in results:
-            print("\nMAKING CLASSIFICATION REPORT")
-            self.compute_classification_report(results["z"], results["y"])
+        if self.gpu == 0:
+            if "z" in results and "y" in results:
+                self.print("\nMAKING CLASSIFICATION REPORT")
+                self.compute_classification_report(results["z"], results["y"])
 
-        # Gets the dict from params that defines which plots to make from the results.
-        plots = self.params["plots"]
+            # Gets the dict from params that defines which plots to make from the results.
+            plots = self.params["plots"]
 
-        # Ensure history is not plotted again.
-        plots["History"] = False
+            # Ensure history is not plotted again.
+            plots["History"] = False
 
-        if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
-            plots["Mask"] = False
+            if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
+                plots["Mask"] = False
 
-        # Amends the results' directory to add a new level for test results.
-        results_dir: List[str] = self.params["dir"]["results"]
-        results_dir.append("test")
+            # Amends the results' directory to add a new level for test results.
+            results_dir: List[str] = self.params["dir"]["results"]
+            results_dir.append("test")
 
-        # Plots the results.
-        visutils.plot_results(
-            plots,
-            mode="test",
-            class_names=self.params["classes"],
-            colours=self.params["colours"],
-            save=save,
-            show=show,
-            model_name=self.params["model_name"],
-            timestamp=self.params["timestamp"],
-            results_dir=results_dir,
-            **results,
-        )
+            # Plots the results.
+            visutils.plot_results(
+                plots,
+                mode="test",
+                class_names=self.params["classes"],
+                colours=self.params["colours"],
+                save=save,
+                show=show,
+                model_name=self.params["model_name"],
+                timestamp=self.params["timestamp"],
+                results_dir=results_dir,
+                **results,
+            )
 
-        # Checks whether to run TensorBoard on the log from the experiment.
-        # If defined as optional in the config, a user confirmation is required to run TensorBoard with a 60s timeout.
-        if self.params["run_tensorboard"] in ("opt", "optional", "OPT", "Optional"):
-            try:
-                res = inputimeout(
-                    prompt="Run TensorBoard Logs? (Y/N): ", timeout=_timeout
-                )
-                if res in ("Y", "y", "yes", "Yes", "YES", "run", "RUN", "Run"):
-                    self.run_tensorboard()
-                    return
-                elif res in ("N", "n", "no", "No", "NO"):
-                    pass
-                else:
-                    print("\n*Input not recognised*. Please try again")
-            except TimeoutOccurred:
-                print("Input timeout elapsed. TensorBoard logs will not be run.")
+            # Checks whether to run TensorBoard on the log from the experiment. If defined as optional in the config,
+            # a user confirmation is required to run TensorBoard with a 60s timeout.
+            if self.params["run_tensorboard"] in ("opt", "optional", "OPT", "Optional"):
+                try:
+                    res = inputimeout(
+                        prompt="Run TensorBoard Logs? (Y/N): ", timeout=_timeout
+                    )
+                    if res in ("Y", "y", "yes", "Yes", "YES", "run", "RUN", "Run"):
+                        self.run_tensorboard()
+                        return
+                    elif res in ("N", "n", "no", "No", "NO"):
+                        pass
+                    else:
+                        self.print("\n*Input not recognised*. Please try again")
+                except TimeoutOccurred:
+                    self.print(
+                        "Input timeout elapsed. TensorBoard logs will not be run."
+                    )
 
-        # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
-        elif self.params["run_tensorboard"] in (True, "auto", "Auto"):
-            self.run_tensorboard()
-            return
+            # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
+            elif self.params["run_tensorboard"] in (True, "auto", "Auto"):
+                self.run_tensorboard()
+                return
 
-        # If the user declined, optional or auto wasn't defined in the config or a timeout occurred,
-        # the user is informed how to run TensorBoard on the logs using RunTensorBoard.py.
-        print(
-            "\nTensorBoard logs will not be run but still can be by using RunTensorBoard.py and"
-        )
-        print(
-            "providing the path to this experiment's results directory and unique experiment ID"
-        )
+            # If the user declined, optional or auto wasn't defined in the config or a timeout occurred,
+            # the user is informed how to run TensorBoard on the logs using RunTensorBoard.py.
+            self.print(
+                "\nTensorBoard logs will not be run but still can be by using RunTensorBoard.py and"
+            )
+            self.print(
+                "providing the path to this experiment's results directory and unique experiment ID"
+            )
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
         # Ensure the TensorBoard logger is closed.
         self.writer.close()
 
-        print("\nSAVING EXPERIMENT CONFIG TO FILE")
-        # Outputs the modified YAML parameters config file used for this experiment to file.
-        with open(f"{self.exp_fn}.yml", "w") as outfile:
-            yaml.dump(self.params, outfile)
+        if self.gpu == 0:
+            self.print("\nSAVING EXPERIMENT CONFIG TO FILE")
+            # Outputs the modified YAML parameters config file used for this experiment to file.
+            with open(f"{self.exp_fn}.yml", "w") as outfile:
+                yaml.dump(self.params, outfile)
 
-        # Writes the recorded training and validation metrics of the experiment to file.
-        print("\nSAVING METRICS TO FILE")
-        try:
-            sub_metrics = self.metric_logger.get_sub_metrics()
-            metrics_df = pd.DataFrame(sub_metrics)
-            metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
-            metrics_df.set_index("Epoch", inplace=True, drop=True)
-            metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
-
-        except (ValueError, KeyError):
-            print("\n*ERROR* in saving metrics to file.")
-
-        # Checks whether to save the model parameters to file.
-        if self.params["save_model"] in ("opt", "optional", "OPT", "Optional"):
+            # Writes the recorded training and validation metrics of the experiment to file.
+            self.print("\nSAVING METRICS TO FILE")
             try:
-                res = inputimeout(
-                    prompt="\nSave model to file? (Y/N): ", timeout=_timeout
-                )
-                if res in ("Y", "y", "yes", "Yes", "YES", "save", "SAVE", "Save"):
-                    # Saves model state dict to PyTorch file.
-                    self.save_model_weights()
-                    print("MODEL PARAMETERS SAVED")
-                elif res in ("N", "n", "no", "No", "NO"):
-                    print("Model will NOT be saved to file")
-                    pass
-                else:
-                    print("Input not recognised. Please try again")
-            except TimeoutOccurred:
-                print("Input timeout elapsed. Model will not be saved")
+                sub_metrics = self.metric_logger.get_sub_metrics()
+                metrics_df = pd.DataFrame(sub_metrics)
+                metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
+                metrics_df.set_index("Epoch", inplace=True, drop=True)
+                metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
 
-        elif self.params["save_model"] in (True, "auto", "Auto"):
-            print("\nSAVING MODEL PARAMETERS TO FILE")
-            # Saves model state dict to PyTorch file.
-            self.save_model_weights()
+            except (ValueError, KeyError):
+                self.print("\n*ERROR* in saving metrics to file.")
+
+            # Checks whether to save the model parameters to file.
+            if self.params["save_model"] in ("opt", "optional", "OPT", "Optional"):
+                try:
+                    res = inputimeout(
+                        prompt="\nSave model to file? (Y/N): ", timeout=_timeout
+                    )
+                    if res in ("Y", "y", "yes", "Yes", "YES", "save", "SAVE", "Save"):
+                        # Saves model state dict to PyTorch file.
+                        self.save_model_weights()
+                        self.print("MODEL PARAMETERS SAVED")
+                    elif res in ("N", "n", "no", "No", "NO"):
+                        self.print("Model will NOT be saved to file")
+                        pass
+                    else:
+                        self.print("Input not recognised. Please try again")
+                except TimeoutOccurred:
+                    self.print("Input timeout elapsed. Model will not be saved")
+
+            elif self.params["save_model"] in (True, "auto", "Auto"):
+                self.print("\nSAVING MODEL PARAMETERS TO FILE")
+                # Saves model state dict to PyTorch file.
+                self.save_model_weights()
 
     def compute_classification_report(
         self, predictions: ArrayLike, labels: ArrayLike
@@ -623,3 +636,7 @@ class Trainer:
             exp_name=self.params["exp_name"],
             host_num=6006,
         )
+
+    def print(self, msg: str) -> None:
+        if self.verbose and self.gpu == 0:
+            print(msg)
