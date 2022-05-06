@@ -1,6 +1,9 @@
 import yaml
-import os, sys, getopt, ntpath
-from typing import Tuple, Dict, Any, List, Optional
+import os
+import ntpath
+import argparse
+from typing import Tuple, Dict, Any
+
 
 # Default values for the path to the config directory and config name.
 config_dir_path = "../../inbuilt_cfgs/"
@@ -9,18 +12,6 @@ default_config_name = "example_config.yml"
 # Objects to hold the config name and path.
 config_name = None
 config_path = None
-
-
-def get_sys_args(
-    flags: str, long_options: Optional[List[str]] = None
-) -> Optional[Tuple[List[Tuple[str, str]], List[Tuple[str, ...]]]]:
-    """Get sys.argv and extract options and arguments."""
-    try:
-        opts, args = getopt.getopt(sys.argv[1:], flags, long_options)
-        return opts, args
-    except getopt.GetoptError as err:
-        print(err)
-        sys.exit(2)
 
 
 def chdir_to_default(config_name: str = config_name) -> str:
@@ -80,28 +71,38 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
     return master_config, aux_config_load(config_paths)
 
 
-# Gets the sys.args formatted using flags and options.
-opts, args = get_sys_args("c:", ["default_config_dir", "basetemp="])
+master_parser = argparse.ArgumentParser(add_help=False)
+master_parser.add_argument(
+    "-c",
+    "--config",
+    default=config_dir_path + default_config_name,
+    type=str,
+    help="Path to the config file defining experiment",
+)
+master_parser.add_argument(
+    "--default-config-dir",
+    dest="default_config_dir",
+    action="store_true",
+    help="Set config path to default",
+)
+args, _ = master_parser.parse_known_args()
 
-# Set the config path from the option found from sys.argv.
-for o, a in opts:
-    if o == "-c":
-        head, tail = ntpath.split(a)
-        if head != "" or head is not None:
-            config_path = head
-        elif head == "" or head is None:
-            config_path = ""
-        config_name = tail
+# Set the config path from the option found from args.
+head, tail = ntpath.split(args.config)
+if head != "" or head is not None:
+    config_path = head
+elif head == "" or head is None:
+    config_path = ""
+config_name = tail
 
-# Overwrites the config path if option found in sys.args regardless of -c args.
-for o, a in opts:
-    if o == "--default_config_dir":
-        if config_path is not None:
-            print(
-                "Warning: Config path specified with `--default_config_dir` option."
-                + "\nDefault config directory path will be used."
-            )
-        config_path = None
+# Overwrites the config path if option found in args regardless of -c args.
+if args.default_config_dir:
+    if config_path is not None:
+        print(
+            "Warning: Config path specified with `--default_config_dir` option."
+            + "\nDefault config directory path will be used."
+        )
+    config_path = None
 
 # Store the current working directory (i.e where script is being run from).
 cwd = os.getcwd()
