@@ -75,7 +75,6 @@ master_parser = argparse.ArgumentParser(add_help=False)
 master_parser.add_argument(
     "-c",
     "--config",
-    default=config_dir_path + default_config_name,
     type=str,
     help="Path to the config file defining experiment",
 )
@@ -88,12 +87,13 @@ master_parser.add_argument(
 args, _ = master_parser.parse_known_args()
 
 # Set the config path from the option found from args.
-head, tail = ntpath.split(args.config)
-if head != "" or head is not None:
-    config_path = head
-elif head == "" or head is None:
-    config_path = ""
-config_name = tail
+if args.config is not None:
+    head, tail = ntpath.split(args.config)
+    if head != "" or head is not None:
+        config_path = head
+    elif head == "" or head is None:
+        config_path = ""
+    config_name = tail
 
 # Overwrites the config path if option found in args regardless of -c args.
 if args.default_config_dir:
