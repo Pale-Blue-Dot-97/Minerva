@@ -31,7 +31,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from minerva.utils import config
+from minerva.utils import config, master_parser
 from minerva.trainer import Trainer
 import os
 import argparse
@@ -48,7 +48,7 @@ torch.manual_seed(0)
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-def main(gpu: int, args) -> None:
+def run(gpu: int, args) -> None:
     # Calculates the global rank of this process.
     rank = args.nr * args.gpus + gpu
 
@@ -67,8 +67,15 @@ def main(gpu: int, args) -> None:
         trainer.test()
 
 
+def main(args):
+    os.environ["MASTER_ADDR"] = "10.57.23.164"
+    os.environ["MASTER_PORT"] = "8888"
+
+    mp.spawn(run, nprocs=args.gpus, args=(args,))
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(parents=[master_parser])
     parser.add_argument("-n", "--nodes", default=1, type=int, metavar="N")
     parser.add_argument(
         "-g", "--gpus", default=1, type=int, help="number of gpus per node"
@@ -87,7 +94,4 @@ if __name__ == "__main__":
 
     args.world_size = args.gpus * args.nodes
 
-    os.environ["MASTER_ADDR"] = "10.57.23.164"
-    os.environ["MASTER_PORT"] = "8888"
-
-    mp.spawn(main, nprocs=args.gpus, args=(args,))
+    main(args)
