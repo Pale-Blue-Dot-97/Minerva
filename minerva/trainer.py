@@ -40,7 +40,7 @@ try:
 except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
 
-from minerva.models import MinervaModel, MinervaBackbone
+from minerva.models import MinervaModel, MinervaBackbone, MinervaDataParallel
 from minerva.utils import visutils, utils
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
@@ -135,7 +135,7 @@ class Trainer:
         # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = torch.nn.DataParallel(self.model)
+            self.model = MinervaDataParallel(self.model)
 
         # Sets up the early stopping functionality.
         self.stopper = None
