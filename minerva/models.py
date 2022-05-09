@@ -217,6 +217,27 @@ class MinervaBackbone(ABC):
         return self.backbone
 
 
+class MinervaDataParallel(Module):
+    def __init__(self, model: Module) -> None:
+        super(MinervaDataParallel, self).__init__()
+        self.model = torch.nn.DataParallel(model).cuda()
+
+    def forward(self, *input):
+        return self.model(*input)
+
+    def __call__(self, *input):
+        return self.model(*input)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.model.module, name)
+
+    def __repr__(self) -> str:
+        return f"DataParallel({super().__repr__()})"
+
+
 class MLP(MinervaModel):
     """Simple class to construct a Multi-Layer Perceptron (MLP).
 
