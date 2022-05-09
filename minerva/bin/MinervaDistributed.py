@@ -49,12 +49,16 @@ torch.manual_seed(0)
 #                                                      MAIN
 # =====================================================================================================================
 def run(gpu: int, args) -> None:
+    print(f"{gpu=}")
     # Calculates the global rank of this process.
     rank = args.nr * args.gpus + gpu
 
+    print(f"{rank=}")
+
     dist.init_process_group(
-        backend="nccl", init_method="env://", world_size=args.world_size, rank=rank
+        backend="gloo", init_method="env://", world_size=args.world_size, rank=rank
     )
+    print(f"INITIALISED PROCESS ON {rank}")
 
     trainer = Trainer(gpu=gpu, rank=rank, world_size=args.world_size, **config)
 
@@ -69,9 +73,12 @@ def run(gpu: int, args) -> None:
 
 def main(args):
     os.environ["MASTER_ADDR"] = "10.57.23.164"
-    os.environ["MASTER_PORT"] = "8888"
+    os.environ["MASTER_PORT"] = "12355"
 
-    mp.spawn(run, nprocs=args.gpus, args=(args,))
+    try:
+        mp.spawn(run, nprocs=args.gpus, args=(args,), join=True)
+    except KeyboardInterrupt:
+        dist.destroy_process_group()
 
 
 if __name__ == "__main__":
@@ -83,13 +90,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-nr", "--nr", default=0, type=int, help="ranking within the nodes"
     )
-    parser.add_argument(
-        "--epochs",
-        default=2,
-        type=int,
-        metavar="N",
-        help="number of total epochs to run",
-    )
+
     args = parser.parse_args()
 
     args.world_size = args.gpus * args.nodes
