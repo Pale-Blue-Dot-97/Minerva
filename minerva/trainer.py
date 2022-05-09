@@ -185,22 +185,23 @@ class Trainer:
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
 
-        # Determines the input size of the model.
-        if self.params["model_type"] in ["MLP", "mlp"]:
-            input_size = (self.batch_size, self.model.input_size)
-        else:
-            input_size = (self.batch_size, *self.model.input_shape)
+        if self.gpu == 0:
+            # Determines the input size of the model.
+            if self.params["model_type"] in ["MLP", "mlp"]:
+                input_size = (self.batch_size, self.model.input_size)
+            else:
+                input_size = (self.batch_size, *self.model.input_shape)
 
-        if self.params["sample_pairs"]:
-            input_size = (2, *input_size)
+            if self.params["sample_pairs"]:
+                input_size = (2, *input_size)
 
-        # Print model summary.
-        summary(self.model, input_size=input_size)
+            # Print model summary.
+            summary(self.model, input_size=input_size)
 
-        # Adds a graphical layout of the model to the TensorBoard logger.
-        self.writer.add_graph(
-            self.model, input_to_model=torch.rand(*input_size, device=self.device)
-        )
+            # Adds a graphical layout of the model to the TensorBoard logger.
+            self.writer.add_graph(
+                self.model, input_to_model=torch.rand(*input_size, device=self.device)
+            )
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
