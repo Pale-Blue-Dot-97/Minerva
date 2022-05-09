@@ -218,11 +218,27 @@ class MinervaBackbone(ABC):
 
 
 class MinervaDataParallel(Module):
+    """Custom wrapper for DataParallel that automatically fetches the attributes of the wrapped model.
+
+    Attributes:
+        model (Module): PyTorch Model to be wrapped by DataParallel.
+
+    Args:
+        model (Module): PyTorch Model to be wrapped by DataParallel.
+    """
+
     def __init__(self, model: Module) -> None:
         super(MinervaDataParallel, self).__init__()
         self.model = torch.nn.DataParallel(model).cuda()
 
-    def forward(self, *input):
+    def forward(self, *input: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
+        """Ensures a forward call to the model goes to the actual wrapped model.
+
+        Args:
+            input (Tuple[Tensor, ...]): Input of tensors to be parsed to the model forward.
+        Returns:
+            Tuple[Tensor, ...]: Output of model.
+        """
         return self.model(*input)
 
     def __call__(self, *input):
