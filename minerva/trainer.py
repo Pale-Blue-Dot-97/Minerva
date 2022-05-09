@@ -28,7 +28,6 @@ Attributes:
     _timeout (int): Default time till timeout waiting for a user input in seconds.
 
 TODO:
-    * Add downstream task functionality for self-supervised learning.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
