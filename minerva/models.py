@@ -2060,7 +2060,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
         """
         print(x.size())
         z_a = self.backbone(x[0])
-        print(z_a.size())
+        print(z_a[0].size())
         f_a = torch.flatten(z_a[0], start_dim=1)
         f_b = torch.flatten(self.backbone(x[1])[0], start_dim=1)
 
