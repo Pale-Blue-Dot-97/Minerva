@@ -1489,7 +1489,6 @@ class _FCN(MinervaModel, ABC):
             z (Tensor): segmentation mask with a channel for each class of the likelihoods the network places on
                 each pixel input 'x' being of that class.
         """
-        print(f"{x.size()=}")
         z = self.backbone(x)
         z = self.decoder(z)
 
@@ -2063,7 +2062,9 @@ class _SimCLR(MinervaModel, MinervaBackbone):
         z_a = self.backbone(x[0])
         print(f"{z_a[0].size()=}")
         f_a = torch.flatten(z_a[0], start_dim=1)
-        f_b = torch.flatten(self.backbone(x[1])[0], start_dim=1)
+        z_b = self.backbone(x[1])
+        print(f"{z_b[0].size()=}")
+        f_b = torch.flatten(z_b[0], start_dim=1)
 
         g_a = self.proj_head(f_a)
         g_b = self.proj_head(f_b)
