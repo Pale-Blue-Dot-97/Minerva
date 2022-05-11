@@ -232,18 +232,22 @@ class Trainer:
         module = loss_params.pop("module", "torch.nn")
         criterion = utils.func_by_str(module, loss_params["name"])
 
+        criterion_params_exist = utils.check_dict_key(loss_params, "params")
+
         if self.params["balance"] and self.params["model_type"] == "segmentation":
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
             for i in range(len(weights_dict)):
                 weights.append(weights_dict[i])
-            print(f"{weights=}")
-            print(f"{self.class_dist=}")
-            loss_params["params"]["weight"] = torch.Tensor(weights)
+
+            if not criterion_params_exist:
+                loss_params["params"] = {"weight": torch.Tensor(weights)}
+            else:
+                loss_params["params"]["weight"] = torch.Tensor(weights)
             return criterion(**loss_params["params"])
         else:
-            if loss_params["params"] is None:
+            if not criterion_params_exist:
                 return criterion()
             else:
                 return criterion(**loss_params["params"])
