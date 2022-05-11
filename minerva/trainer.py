@@ -193,7 +193,6 @@ class Trainer:
                 self.model, input_to_model=torch.rand(*input_size, device=self.device)
             )
         except RuntimeError as err:
-            print(err)
             print("ABORT adding graph to writer")
 
     def make_model(self) -> MinervaModel:
