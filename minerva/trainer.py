@@ -238,7 +238,8 @@ class Trainer:
             weights = []
             for i in range(len(weights_dict)):
                 weights.append(weights_dict[i])
-
+            print(f"{weights=}")
+            print(f"{self.class_dist=}")
             loss_params["params"]["weight"] = torch.Tensor(weights)
             return criterion(**loss_params["params"])
         else:
