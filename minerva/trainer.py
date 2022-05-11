@@ -182,15 +182,19 @@ class Trainer:
         # Print model summary.
         summary(self.model, input_size=input_size)
 
-        # Adds a graphical layout of the model to the TensorBoard logger.
-        self.writer.add_graph(
-            self.model, input_to_model=torch.rand(*input_size, device=self.device)
-        )
-
         # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             print(f"{torch.cuda.device_count()} GPUs detected")
             self.model = MinervaDataParallel(self.model)
+
+        # Adds a graphical layout of the model to the TensorBoard logger.
+        try:
+            self.writer.add_graph(
+                self.model, input_to_model=torch.rand(*input_size, device=self.device)
+            )
+        except RuntimeError as err:
+            print(err)
+            print("ABORT adding graph to writer")
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
