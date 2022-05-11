@@ -131,11 +131,6 @@ class Trainer:
         # Determines the output shape of the model.
         self.model.determine_output_dim(sample_pairs=params["sample_pairs"])
 
-        # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
-        if torch.cuda.device_count() > 1:
-            print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = MinervaDataParallel(self.model)
-
         # Sets up the early stopping functionality.
         self.stopper = None
         self.early_stop = False
@@ -191,6 +186,11 @@ class Trainer:
         self.writer.add_graph(
             self.model, input_to_model=torch.rand(*input_size, device=self.device)
         )
+
+        # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
+        if torch.cuda.device_count() > 1:
+            print(f"{torch.cuda.device_count()} GPUs detected")
+            self.model = MinervaDataParallel(self.model)
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
