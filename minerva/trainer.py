@@ -190,9 +190,11 @@ class Trainer:
         # Adds a graphical layout of the model to the TensorBoard logger.
         try:
             self.writer.add_graph(
-                self.model, input_to_model=torch.rand(*input_size, device=self.device)
+                self.model,
+                input_to_model=torch.rand(*input_size, device=self.device).detach(),
             )
         except RuntimeError as err:
+            print(err)
             print("ABORT adding graph to writer")
 
     def make_model(self) -> MinervaModel:
