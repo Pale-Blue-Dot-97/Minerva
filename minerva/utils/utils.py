@@ -256,6 +256,27 @@ def mkexpdir(name: str) -> None:
         pass
 
 
+def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
+    """Checks if a key exists in a dictionary and if it is None or False.
+
+    Args:
+        dictionary (Dict[Any, Any]): Dictionary to check key for.
+        key (Any): Key to be checked.
+
+    Returns:
+        bool: True if key exists and is not None or False. False if else.
+    """
+    if key in dictionary:
+        if dictionary[key] is None:
+            return False
+        elif dictionary[key] is False:
+            return False
+        else:
+            return True
+    else:
+        return False
+
+
 def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
     """Takes a str representing a time stamp in one format and returns it reformatted into a second.
 
