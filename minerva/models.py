@@ -2058,12 +2058,10 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        print(f"{x.size()=}")
         z_a = self.backbone(x[0])
-        print(f"{z_a[0].size()=}")
-        f_a = torch.flatten(z_a[0], start_dim=1)
         z_b = self.backbone(x[1])
-        print(f"{z_b[0].size()=}")
+
+        f_a = torch.flatten(z_a[0], start_dim=1)
         f_b = torch.flatten(z_b[0], start_dim=1)
 
         g_a = self.proj_head(f_a)
