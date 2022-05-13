@@ -98,11 +98,12 @@ from torchvision import transforms
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.exceptions import UndefinedMetricWarning
-from torchgeo.datasets.utils import BoundingBox
+from torchgeo.datasets.utils import BoundingBox, concat_samples
 from torchgeo.datasets import GeoDataset, IntersectionDataset
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
 from alive_progress import alive_bar, alive_it
+
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -137,6 +138,9 @@ WGS84 = CRS.from_epsg(4326)
 
 # Filters out all TensorFlow messages other than errors.
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
+
+_INTERSECTION_CHANGED = False
+_SUBDATASET_CLASSES = []
 
 
 # =====================================================================================================================
@@ -200,6 +204,28 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
 
             else:
                 raise TypeError
+
+        def __repr__(self) -> str:
+            return self.wrap.__repr__()
+
+    return Wrapper
+
+
+def pair_return(cls):
+    class Wrapper:
+        def __init__(self, *args, **kwargs) -> None:
+            self.wrap = cls(*args, **kwargs)
+
+        def __getitem__(self, queries: Any = None) -> Tuple[Any, Any]:
+            return self.wrap[queries[0]], self.wrap[queries[1]]
+
+        def __getattr__(self, item):
+            if item in self.__dict__:
+                return getattr(self, item)
+            elif item in self.wrap.__dict__:
+                return getattr(self.wrap, item)
+            else:
+                raise AttributeError
 
         def __repr__(self) -> str:
             return self.wrap.__repr__()
@@ -458,6 +484,20 @@ def transform_coordinates(
         y_2 = co_ordinates[1][0]
 
         return x_2, y_2
+
+
+def check_within_bounds(bbox: BoundingBox, bounds: BoundingBox) -> BoundingBox:
+    minx, maxx, miny, maxy = bbox.minx, bbox.maxx, bbox.miny, bbox.maxy
+    if minx < bounds.minx:
+        minx = bounds.minx
+    if maxx > bounds.maxx:
+        maxx = bounds.maxx
+    if miny < bounds.miny:
+        miny = bounds.miny
+    if maxy > bounds.maxy:
+        maxy = bounds.maxy
+
+    return BoundingBox(minx, maxx, miny, maxy, bbox.mint, bbox.maxt)
 
 
 def deg_to_dms(deg: float, axis: str = "lat") -> str:
@@ -1494,7 +1534,9 @@ def extract_geo_pairs(
     return collator(samples)
 
 
-def intersect_datasets(datasets: List[GeoDataset]) -> IntersectionDataset:
+def intersect_datasets(
+    datasets: List[GeoDataset], sample_pairs: bool = False
+) -> IntersectionDataset:
     """Intersects a list of `GeoDataset`s together to return a single dataset object.
 
     Args:
@@ -1505,9 +1547,15 @@ def intersect_datasets(datasets: List[GeoDataset]) -> IntersectionDataset:
     """
 
     def intersect_pair_datasets(a: GeoDataset, b: GeoDataset) -> IntersectionDataset:
-        return a & b
+        if sample_pairs:
+            return IntersectionDataset(a, b, collate_fn=pair_collate(concat_samples))
+        else:
+            return a & b
 
     master_dataset = datasets[0]
+
+    if sample_pairs and not _INTERSECTION_CHANGED:
+        IntersectionDataset = pair_return(IntersectionDataset)
 
     for i in range(len(datasets) - 1):
         master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
@@ -1519,6 +1567,7 @@ def make_dataset(
     data_directory: Iterable[str],
     dataset_params: Dict[Any, Any],
     transform_params: Optional[Dict[Any, Any]] = None,
+    sample_pairs: bool = False,
 ) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from `n` sub-datasets given by the parameters supplied.
 
@@ -1547,6 +1596,10 @@ def make_dataset(
             module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
         )
 
+        if sample_pairs and _sub_dataset not in _SUBDATASET_CLASSES:
+            _sub_dataset = pair_return(_sub_dataset)
+            _SUBDATASET_CLASSES.append(_sub_dataset)
+
         # Construct the root to the sub-dataset's files.
         sub_dataset_root = os.sep.join((*data_directory, sub_dataset_params["root"]))
 
@@ -1570,7 +1623,7 @@ def make_dataset(
     # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
-        dataset = intersect_datasets(sub_datasets)
+        dataset = intersect_datasets(sub_datasets, sample_pairs=sample_pairs)
 
     return dataset, sub_datasets
 
@@ -1582,6 +1635,7 @@ def construct_dataloader(
     dataloader_params: Dict[str, Any],
     collator_params: Optional[Dict[str, Any]] = None,
     transform_params: Optional[Dict[str, Any]] = None,
+    sample_pairs: bool = False,
 ) -> DataLoader:
     """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
@@ -1599,7 +1653,7 @@ def construct_dataloader(
         loader (DataLoader): Object to handle the returning of batched samples from the dataset.
     """
     dataset, subdatasets = make_dataset(
-        data_directory, dataset_params, transform_params
+        data_directory, dataset_params, transform_params, sample_pairs=sample_pairs
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
@@ -1614,6 +1668,9 @@ def construct_dataloader(
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
+
+    if sample_pairs:
+        collator = pair_collate(collator)
 
     return DataLoader(
         dataset, sampler=sampler, collate_fn=collator, **dataloader_params
@@ -1779,6 +1836,7 @@ def make_loaders(
             dataloader_params,
             collator_params=params["collator"],
             transform_params=this_transform_params,
+            sample_pairs=params["sample_pairs"],
         )
         print("DONE")
 
