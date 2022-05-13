@@ -327,9 +327,6 @@ class Trainer:
             record_float=record_float,
         )
 
-        # Deep-copies to avoid IO error from using same object simultaneously.
-        dataset = copy.deepcopy(self.loaders[mode].dataset)
-
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar="blocks") as bar:
             # Sets the model up for training or evaluation modes
@@ -341,7 +338,7 @@ class Trainer:
             # Core of the epoch.
             for batch in self.loaders[mode]:
                 results = self.modelio_func(
-                    batch, self.model, self.device, mode, dataset=dataset, **self.params
+                    batch, self.model, self.device, mode, **self.params
                 )
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
