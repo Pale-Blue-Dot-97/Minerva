@@ -1,5 +1,10 @@
 """Distributed Computing version of `MinervaExp`.
 
+Designed for use in SLURM clusters.
+
+Some code derived from Barlow Twins implementation of distributed computing:
+https://github.com/facebookresearch/barlowtwins
+
     Copyright (C) 2022 Harry James Baker
 
     This program is free software: you can redistribute it and/or modify
@@ -35,6 +40,8 @@ from minerva.utils import config, master_parser
 from minerva.trainer import Trainer
 import os
 import argparse
+import signal
+import subprocess
 import torch
 import torch.multiprocessing as mp
 import torch.distributed as dist
@@ -49,18 +56,25 @@ torch.manual_seed(0)
 #                                                      MAIN
 # =====================================================================================================================
 def run(gpu: int, args) -> None:
+    args.rank += gpu
     print(f"{gpu=}")
     # Calculates the global rank of this process.
-    rank = args.nr * args.gpus + gpu
+    # rank = args.nr * args.gpus + gpu
 
-    print(f"{rank=}")
+    print(f"{args.rank=}")
 
     dist.init_process_group(
-        backend="gloo", init_method="env://", world_size=args.world_size, rank=rank
+        backend="nccl",
+        init_method=args.dist_url,
+        world_size=args.world_size,
+        rank=args.rank,
     )
-    print(f"INITIALISED PROCESS ON {rank}")
+    print(f"INITIALISED PROCESS ON {args.rank}")
 
-    trainer = Trainer(gpu=gpu, rank=rank, world_size=args.world_size, **config)
+    torch.cuda.set_device(gpu)
+    torch.backends.cudnn.benchmark = True
+
+    trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **config)
 
     trainer.fit()
 
@@ -71,28 +85,77 @@ def run(gpu: int, args) -> None:
         trainer.test()
 
 
+def handle_sigusr1(signum, frame):
+    os.system(f'scontrol requeue {os.getenv("SLURM_JOB_ID")}')
+    exit()
+
+
+def handle_sigterm(signum, frame):
+    pass
+
+
 def main(args):
-    os.environ["MASTER_ADDR"] = "10.57.23.164"
-    os.environ["MASTER_PORT"] = "12355"
+    # os.environ["MASTER_ADDR"] = "10.57.23.164"
+    # os.environ["MASTER_PORT"] = "12355"
 
     try:
-        mp.spawn(run, nprocs=args.gpus, args=(args,), join=True)
+        mp.spawn(run, (args,), args.ngpus_per_node)
     except KeyboardInterrupt:
         dist.destroy_process_group()
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(parents=[master_parser])
-    parser.add_argument("-n", "--nodes", default=1, type=int, metavar="N")
+    # parser.add_argument("-n", "--nodes", default=1, type=int, metavar="N")
+    # parser.add_argument(
+    #    "-g", "--gpus", default=1, type=int, help="number of gpus per node"
+    # )
+    # parser.add_argument(
+    #    "-nr", "--nr", default=0, type=int, help="ranking within the nodes"
+    # )
     parser.add_argument(
-        "-g", "--gpus", default=1, type=int, help="number of gpus per node"
+        "--workers",
+        default=8,
+        type=int,
+        metavar="N",
+        help="number of data loader workers",
     )
     parser.add_argument(
-        "-nr", "--nr", default=0, type=int, help="ranking within the nodes"
+        "--epochs",
+        default=100,
+        type=int,
+        metavar="N",
+        help="number of total epochs to run",
+    )
+    parser.add_argument(
+        "--batch-size", default=256, type=int, metavar="N", help="mini-batch size"
     )
 
     args = parser.parse_args()
 
-    args.world_size = args.gpus * args.nodes
+    args.ngpus_per_node = torch.cuda.device_count()
+
+    if "SLURM_JOB_ID" in os.environ:
+        # Single-node and multi-node distributed training on SLURM cluster.
+        # Requeue job on SLURM preemption.
+        signal.signal(signal.SIGUSR1, handle_sigusr1)
+        signal.signal(signal.SIGTERM, handle_sigterm)
+
+        # Find a common host name on all nodes.
+        # Assume scontrol returns hosts in the same order on all nodes.
+        cmd = "scontrol show hostnames " + os.getenv("SLURM_JOB_NODELIST")
+        stdout = subprocess.check_output(cmd.split())
+        host_name = stdout.decode().splitlines()[0]
+        args.rank = int(os.getenv("SLURM_NODEID")) * args.ngpus_per_node
+        args.world_size = int(os.getenv("SLURM_NNODES")) * args.ngpus_per_node
+        args.dist_url = f"tcp://{host_name}:58472"
+
+    else:
+        # Single-node distributed training.
+        args.rank = 0
+        args.dist_url = "tcp://localhost:58472"
+        args.world_size = args.ngpus_per_node
+
+    # mp.spawn(main_worker, (args,), args.ngpus_per_node)
 
     main(args)
