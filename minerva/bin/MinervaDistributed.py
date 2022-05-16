@@ -105,10 +105,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    # parser = argparse.ArgumentParser(parents=[master_parser])
-    # args = parser.parse_args()
-
-    args = argparse.Namespace()
+    parser = argparse.ArgumentParser(parents=[master_parser])
+    args = parser.parse_args()
 
     args.ngpus_per_node = torch.cuda.device_count()
 
