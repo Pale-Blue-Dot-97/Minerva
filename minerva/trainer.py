@@ -254,10 +254,9 @@ class Trainer:
         if self.params["balance"] and self.params["model_type"] == "segmentation":
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
-
-                weights = []
-                for i in range(len(weights_dict)):
-                    weights.append(weights_dict[i])
+            weights = []
+            for i in range(len(weights_dict)):
+                weights.append(weights_dict[i])
 
             if not criterion_params_exist:
                 loss_params["params"] = {"weight": torch.Tensor(weights)}
