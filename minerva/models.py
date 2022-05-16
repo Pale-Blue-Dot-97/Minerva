@@ -217,6 +217,43 @@ class MinervaBackbone(ABC):
         return self.backbone
 
 
+class MinervaDataParallel(Module):
+    """Custom wrapper for DataParallel that automatically fetches the attributes of the wrapped model.
+
+    Attributes:
+        model (Module): PyTorch Model to be wrapped by DataParallel.
+
+    Args:
+        model (Module): PyTorch Model to be wrapped by DataParallel.
+    """
+
+    def __init__(self, model: Module) -> None:
+        super(MinervaDataParallel, self).__init__()
+        self.model = torch.nn.DataParallel(model).cuda()
+
+    def forward(self, *input: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
+        """Ensures a forward call to the model goes to the actual wrapped model.
+
+        Args:
+            input (Tuple[Tensor, ...]): Input of tensors to be parsed to the model forward.
+        Returns:
+            Tuple[Tensor, ...]: Output of model.
+        """
+        return self.model(*input)
+
+    def __call__(self, *input):
+        return self.model(*input)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.model.module, name)
+
+    def __repr__(self) -> str:
+        return f"DataParallel({super().__repr__()})"
+
+
 class MLP(MinervaModel):
     """Simple class to construct a Multi-Layer Perceptron (MLP).
 
@@ -2021,13 +2058,13 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        f_a = torch.flatten(self.backbone(x[0])[0], start_dim=1)
-        f_b = torch.flatten(self.backbone(x[1])[0], start_dim=1)
+        f_a = torch.nn.Parameter(torch.flatten(self.backbone(x[0])[0], start_dim=1))
+        f_b = torch.nn.Parameter(torch.flatten(self.backbone(x[1])[0], start_dim=1))
 
         g_a = self.proj_head(f_a)
         g_b = self.proj_head(f_b)
 
-        z = torch.cat([g_a, g_b], dim=0)
+        z = torch.nn.Parameter(torch.cat([g_a, g_b], dim=0))
 
         return z
 

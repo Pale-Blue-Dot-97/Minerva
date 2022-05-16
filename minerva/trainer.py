@@ -28,7 +28,6 @@ Attributes:
     _timeout (int): Default time till timeout waiting for a user input in seconds.
 
 TODO:
-    * Add downstream task functionality for self-supervised learning.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -40,7 +39,7 @@ try:
 except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
 
-from minerva.models import MinervaModel, MinervaBackbone
+from minerva.models import MinervaModel, MinervaBackbone, MinervaDataParallel
 from minerva.utils import visutils, utils
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
@@ -151,11 +150,6 @@ class Trainer:
         # Determines the output shape of the model.
         self.model.determine_output_dim(sample_pairs=params["sample_pairs"])
 
-        # Checks if multiple GPUs detected. If so, wraps model in DataParallel for multi-GPU use.
-        if torch.cuda.device_count() > 1:
-            self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = DistributedDataParallel(self.model, device_ids=[gpu])
-
         # Sets up the early stopping functionality.
         self.stopper = None
         self.early_stop = False
@@ -203,6 +197,22 @@ class Trainer:
                 self.model, input_to_model=torch.rand(*input_size, device=self.device)
             )
 
+        # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
+        if torch.cuda.device_count() > 1:
+            self.print(f"{torch.cuda.device_count()} GPUs detected")
+            self.model = DistributedDataParallel(self.model, device_ids=[gpu])
+
+        else:
+            # Adds a graphical layout of the model to the TensorBoard logger.
+            try:
+                self.writer.add_graph(
+                    self.model,
+                    input_to_model=torch.rand(*input_size, device=self.device),
+                )
+            except RuntimeError as err:
+                print(err)
+                print("ABORT adding graph to writer")
+
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
 
@@ -239,18 +249,26 @@ class Trainer:
         module = loss_params.pop("module", "torch.nn")
         criterion = utils.func_by_str(module, loss_params["name"])
 
-        if loss_params["params"] is not None:
-            if self.params["balance"] and self.params["model_type"] == "segmentation":
-                weights_dict = utils.class_weighting(self.class_dist, normalise=False)
+        criterion_params_exist = utils.check_dict_key(loss_params, "params")
+
+        if self.params["balance"] and self.params["model_type"] == "segmentation":
+            weights_dict = utils.class_weighting(self.class_dist, normalise=False)
+
 
                 weights = []
                 for i in range(len(weights_dict)):
                     weights.append(weights_dict[i])
 
+            if not criterion_params_exist:
+                loss_params["params"] = {"weight": torch.Tensor(weights)}
+            else:
                 loss_params["params"]["weight"] = torch.Tensor(weights)
-            return criterion(**loss_params["params"]).cuda(self.gpu)
+            return criterion(**loss_params["params"])
         else:
-            return criterion().cuda(self.gpu)
+            if not criterion_params_exist:
+                return criterion()
+            else:
+                return criterion(**loss_params["params"])
 
     def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
@@ -325,9 +343,6 @@ class Trainer:
             record_float=record_float,
         )
 
-        # Deep-copies to avoid IO error from using same object simultaneously.
-        dataset = copy.deepcopy(self.loaders[mode].dataset)
-
         # Initialises a progress bar for the epoch.
         with alive_bar(self.n_batches[mode], bar="blocks") as bar:
             # Sets the model up for training or evaluation modes
@@ -339,7 +354,7 @@ class Trainer:
             # Core of the epoch.
             for batch in self.loaders[mode]:
                 results = self.modelio_func(
-                    batch, self.model, self.device, mode, dataset=dataset, **self.params
+                    batch, self.model, self.device, mode, **self.params
                 )
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 

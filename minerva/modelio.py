@@ -90,17 +90,16 @@ def sup_tg(
 
 
 def ssl_pair_tg(
-    batch: Dict[Any, Any],
+    batch: Tuple[Dict[str, Any], Dict[str, Any]],
     model: MinervaModel,
     device: torch.device,
     mode: Literal["train", "val"],
-    dataset: GeoDataset,
     **kwargs
 ) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using `torchgeo` datasets.
 
     Args:
-        batch (Dict[Any, Any]): Batch of data in a dict. Must have 'image' and 'bbox' keys.
+        batch (Tuple[Dict[str, Any], Dict[str, Any]]): Pair of batches of data in dicts. Must have 'image' and 'bbox' keys.
         model (MinervaModel): Model being fitted.
         device (torch.device): `torch` device object to send data to (e.g. CUDA device).
         mode (Literal['train', 'val']): Mode of model fitting to use.
@@ -112,18 +111,14 @@ def ssl_pair_tg(
             and the bounding boxes of the original input images supplied.
     """
     # Extracts the x_i batch from the dict.
-    x_i_batch: Tensor = batch["image"]
-
-    # The jth_batch (i.e. the other half of the pairs) are extracted by using the bounding boxes
-    # of the original batch to find geo-similar samples.
-    j_batch = utils.extract_geo_pairs(batch["bbox"], dataset, max_r=kwargs["max_r"])
-    x_j_batch: Tensor = j_batch["image"]
+    x_i_batch: Tensor = batch[0]["image"]
+    x_j_batch: Tensor = batch[1]["image"]
 
     # Creates an identity matrix to act as the y labels.
     y_batch = torch.arange(len(x_i_batch))
     y_batch = torch.cat([y_batch, y_batch], dim=0)
 
-    # Ensures both batches of images are floats.
+    # Ensures images are floats.
     x_i_batch = x_i_batch.to(torch.float)
     x_j_batch = x_j_batch.to(torch.float)
 
@@ -141,4 +136,4 @@ def ssl_pair_tg(
     elif mode == "val":
         loss, z = model.validation_step(x, y)
 
-    return loss, z, y, batch["bbox"]
+    return loss, z, y, batch[0]["bbox"] + batch[1]["bbox"]
