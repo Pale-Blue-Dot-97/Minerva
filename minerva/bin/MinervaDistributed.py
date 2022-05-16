@@ -56,10 +56,10 @@ torch.manual_seed(0)
 #                                                      MAIN
 # =====================================================================================================================
 def run(gpu: int, args) -> None:
-    args.rank += gpu
     print(f"{gpu=}")
     # Calculates the global rank of this process.
     # rank = args.nr * args.gpus + gpu
+    args.rank += gpu
 
     print(f"{args.rank=}")
 
@@ -105,33 +105,10 @@ def main(args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(parents=[master_parser])
-    # parser.add_argument("-n", "--nodes", default=1, type=int, metavar="N")
-    # parser.add_argument(
-    #    "-g", "--gpus", default=1, type=int, help="number of gpus per node"
-    # )
-    # parser.add_argument(
-    #    "-nr", "--nr", default=0, type=int, help="ranking within the nodes"
-    # )
-    parser.add_argument(
-        "--workers",
-        default=8,
-        type=int,
-        metavar="N",
-        help="number of data loader workers",
-    )
-    parser.add_argument(
-        "--epochs",
-        default=100,
-        type=int,
-        metavar="N",
-        help="number of total epochs to run",
-    )
-    parser.add_argument(
-        "--batch-size", default=256, type=int, metavar="N", help="mini-batch size"
-    )
+    # parser = argparse.ArgumentParser(parents=[master_parser])
+    # args = parser.parse_args()
 
-    args = parser.parse_args()
+    args = argparse.Namespace()
 
     args.ngpus_per_node = torch.cuda.device_count()
 
@@ -155,7 +132,5 @@ if __name__ == "__main__":
         args.rank = 0
         args.dist_url = "tcp://localhost:58472"
         args.world_size = args.ngpus_per_node
-
-    # mp.spawn(main_worker, (args,), args.ngpus_per_node)
 
     main(args)
