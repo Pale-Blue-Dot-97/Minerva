@@ -1670,18 +1670,24 @@ def construct_dataloader(
         **sampler_params["params"],
     )
 
-    # Wraps sampler for distributed computing.
-    if world_size > 1:
-        sampler = DistributedSamplerWrapper(sampler, num_replicas=world_size, rank=rank)
-
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
+    _dataloader_params = dataloader_params.copy()
+
+    if world_size > 1:
+        # Wraps sampler for distributed computing.
+        sampler = DistributedSamplerWrapper(sampler, num_replicas=world_size, rank=rank)
+
+        # Splits batch size across devices.
+        assert dataloader_params["batch_size"] % world_size == 0
+        per_device_batch_size = dataloader_params["batch_size"] // world_size
+        _dataloader_params["batch_size"] = per_device_batch_size
 
     if sample_pairs:
         collator = pair_collate(collator)
 
     return DataLoader(
-        dataset, sampler=sampler, collate_fn=collator, **dataloader_params
+        dataset, sampler=sampler, collate_fn=collator, **_dataloader_params
     )
 
 
