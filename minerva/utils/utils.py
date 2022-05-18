@@ -234,8 +234,8 @@ def pair_return(cls):
             else:
                 raise AttributeError
 
-        def __reduce__(self) -> Union[str, Tuple[Any, ...]]:
-            return self.__class__, (self.wrap,)
+        def __reduce__(self) -> Tuple[Any, ...]:
+            return cls, (self.wrap,)
 
     return Wrapper
 
