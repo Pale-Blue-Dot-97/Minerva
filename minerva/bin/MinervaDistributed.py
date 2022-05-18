@@ -56,12 +56,9 @@ torch.manual_seed(0)
 #                                                      MAIN
 # =====================================================================================================================
 def run(gpu: int, args) -> None:
-    print(f"{gpu=}")
     # Calculates the global rank of this process.
     # rank = args.nr * args.gpus + gpu
     args.rank += gpu
-
-    print(f"{args.rank=}")
 
     dist.init_process_group(
         backend="gloo",
