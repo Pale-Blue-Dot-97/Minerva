@@ -181,6 +181,8 @@ def dublicator(cls):
         def __repr__(self) -> str:
             return f"dublicator({self.wrap.__repr__()})"
 
+    cls.__new__ = Wrapper
+
     return Wrapper
 
 
@@ -210,6 +212,8 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
         def __repr__(self) -> str:
             return self.wrap.__repr__()
 
+    cls.__new__ = Wrapper
+
     return Wrapper
 
 
@@ -231,7 +235,10 @@ def pair_return(cls):
                 raise AttributeError
 
         def __repr__(self) -> str:
+            print(self.wrap.__repr__())
             return self.wrap.__repr__()
+
+    cls.__new__ = Wrapper
 
     return Wrapper
 
