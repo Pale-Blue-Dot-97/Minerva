@@ -200,7 +200,9 @@ class Trainer:
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = DistributedDataParallel(self.model, device_ids=[gpu])
+            self.model = MinervaDataParallel(
+                self.model, DistributedDataParallel, device_ids=[gpu]
+            )
 
         else:
             # Adds a graphical layout of the model to the TensorBoard logger.
