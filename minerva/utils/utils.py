@@ -156,6 +156,7 @@ def return_updated_kwargs(func):
     return wrapper
 
 
+"""
 def pair_collate(func):
     @functools.wraps(func)
     def wrapper(
@@ -165,6 +166,7 @@ def pair_collate(func):
         return func(a), func(b)
 
     return wrapper
+"""
 
 
 def pair_collate(func):
@@ -180,7 +182,7 @@ def pair_collate(func):
             return self.func(a), self.func(b)
 
         def __reduce__(self) -> Tuple[Any, ...]:
-            return self.func, ()
+            return func, (self.func,)
 
     return Wrapper
 
