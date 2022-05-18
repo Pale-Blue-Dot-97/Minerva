@@ -238,7 +238,8 @@ def pair_return(cls):
             print(self.wrap.__repr__())
             return self.wrap.__repr__()
 
-    cls.__new__ = Wrapper
+    if cls not in _SUBDATASET_CLASSES:
+        cls.__new__ = Wrapper
 
     return Wrapper
 
