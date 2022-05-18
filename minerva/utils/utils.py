@@ -221,7 +221,7 @@ def pair_return(cls):
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
-            self.wrap = cls.__init__(*args, **kwargs)
+            self.wrap = cls.__init__(self, *args, **kwargs)
 
         def __getitem__(self, queries: Any = None) -> Tuple[Any, Any]:
             return self.wrap[queries[0]], self.wrap[queries[1]]
