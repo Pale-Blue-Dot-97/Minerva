@@ -182,7 +182,7 @@ def pair_collate(func):
             return self.func(a), self.func(b)
 
         def __reduce__(self) -> Tuple[Any, ...]:
-            return func, (self.func,)
+            return self.__class__, (self.func,)
 
     return Wrapper
 
