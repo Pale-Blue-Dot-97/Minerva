@@ -64,7 +64,7 @@ def run(gpu: int, args) -> None:
     print(f"{args.rank=}")
 
     dist.init_process_group(
-        backend="nccl",
+        backend="gloo",
         init_method=args.dist_url,
         world_size=args.world_size,
         rank=args.rank,
