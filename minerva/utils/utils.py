@@ -167,6 +167,24 @@ def pair_collate(func):
     return wrapper
 
 
+def pair_collate(func):
+    @functools.wraps(func, updated=())
+    class Wrapper:
+        def __init__(self) -> None:
+            self.func = func
+
+        def __call__(
+            self, samples: Iterable[Tuple[Dict[Any, Any]]]
+        ) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+            a, b = tuple(zip(*samples))
+            return self.func(a), self.func(b)
+
+        def __reduce__(self) -> Tuple[Any, ...]:
+            return self.func, ()
+
+    return Wrapper
+
+
 def dublicator(cls):
     @functools.wraps(cls, updated=())
     class Wrapper:
