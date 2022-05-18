@@ -1463,7 +1463,8 @@ def get_collator(collator_params: Dict[str, str] = config["collator"]) -> Callab
     """
     collator = None
     if collator_params is not None:
-        collator = func_by_str(collator_params["module"], collator_params["name"])
+        module = collator_params.pop("module", "")
+        collator = func_by_str(module, collator_params["name"])
     return collator
 
 
