@@ -1568,7 +1568,7 @@ def intersect_datasets(
 
     master_dataset = datasets[0]
 
-    if sample_pairs:  # and not _INTERSECTION_CHANGED:
+    if sample_pairs and not _INTERSECTION_CHANGED:
         IntersectionDataset = pair_return(IntersectionDataset)
 
     for i in range(len(datasets) - 1):
@@ -1610,7 +1610,7 @@ def make_dataset(
             module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
         )
 
-        if sample_pairs:  # and _sub_dataset not in _SUBDATASET_CLASSES:
+        if sample_pairs and _sub_dataset not in _SUBDATASET_CLASSES:
             _sub_dataset = pair_return(_sub_dataset)
             _SUBDATASET_CLASSES.append(_sub_dataset)
 
