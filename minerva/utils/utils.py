@@ -235,10 +235,6 @@ def pair_return(cls):
             else:
                 raise AttributeError
 
-        def __repr__(self) -> str:
-            print(self.wrap.__repr__())
-            return self.wrap.__repr__()
-
     if cls not in _SUBDATASET_CLASSES:
         cls.__new__ = Wrapper
 
