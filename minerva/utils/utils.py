@@ -97,7 +97,7 @@ from torchvision import transforms
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.exceptions import UndefinedMetricWarning
-from torchgeo.datasets.utils import BoundingBox, concat_samples
+from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
 from torchgeo.datasets import GeoDataset, IntersectionDataset
 from catalyst.data.sampler import DistributedSamplerWrapper
 from geopy.geocoders import Nominatim
@@ -156,7 +156,6 @@ def return_updated_kwargs(func):
     return wrapper
 
 
-"""
 def pair_collate(func):
     @functools.wraps(func)
     def wrapper(
@@ -166,25 +165,6 @@ def pair_collate(func):
         return func(a), func(b)
 
     return wrapper
-"""
-
-
-def pair_collate(func):
-    @functools.wraps(func, updated=())
-    class Wrapper:
-        def __init__(self) -> None:
-            self.func = func
-
-        def __call__(
-            self, samples: Iterable[Tuple[Dict[Any, Any]]]
-        ) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
-            a, b = tuple(zip(*samples))
-            return self.func(a), self.func(b)
-
-        def __reduce__(self) -> Tuple[Any, ...]:
-            return self.__class__, (self.func,)
-
-    return Wrapper
 
 
 def dublicator(cls):
@@ -1565,6 +1545,13 @@ def extract_geo_pairs(
     return collator(samples)
 
 
+def stack_sample_pairs(
+    samples: Iterable[Tuple[Dict[Any, Any]]]
+) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+    a, b = tuple(zip(*samples))
+    return stack_samples(a), stack_samples(b)
+
+
 def intersect_datasets(
     datasets: List[GeoDataset], sample_pairs: bool = False
 ) -> IntersectionDataset:
@@ -1712,7 +1699,7 @@ def construct_dataloader(
         per_device_batch_size = dataloader_params["batch_size"] // world_size
         _dataloader_params["batch_size"] = per_device_batch_size
 
-    if sample_pairs:
+    if sample_pairs and not torch.cuda.device_count() > 1:
         collator = pair_collate(collator)
 
     return DataLoader(
