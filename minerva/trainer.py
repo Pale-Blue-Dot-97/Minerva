@@ -144,11 +144,11 @@ class Trainer:
         # Creates model (and loss function) from specified parameters in params.
         self.model = self.make_model()
 
-        # Transfer to GPU
-        self.model.to(self.device)
-
         # Determines the output shape of the model.
         self.model.determine_output_dim(sample_pairs=params["sample_pairs"])
+
+        # Transfer to GPU
+        self.model.to(self.device)
 
         # Sets up the early stopping functionality.
         self.stopper = None
