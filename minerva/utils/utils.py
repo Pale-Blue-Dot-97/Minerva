@@ -1464,7 +1464,7 @@ def get_collator(collator_params: Dict[str, str] = config["collator"]) -> Callab
     collator = None
     if collator_params is not None:
         module = collator_params.pop("module", "")
-        if module is "":
+        if module == "":
             collator = globals()[collator_params["name"]]
         else:
             collator = func_by_str(module, collator_params["name"])
