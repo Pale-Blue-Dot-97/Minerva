@@ -168,7 +168,7 @@ def pair_collate(func):
 
 
 def dublicator(cls):
-    @functools.wraps(cls)
+    @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
@@ -185,7 +185,7 @@ def dublicator(cls):
 
 
 def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
-    @functools.wraps(cls)
+    @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
@@ -214,7 +214,7 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
 
 
 def pair_return(cls):
-    @functools.wraps(cls)
+    @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
