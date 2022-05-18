@@ -178,10 +178,11 @@ def dublicator(cls):
 
             return self.wrap.__call__(a), self.wrap.__call__(b)
 
+        def __reduce__(self) -> Tuple[Any, ...]:
+            return cls, (self.wrap,)
+
         def __repr__(self) -> str:
             return f"dublicator({self.wrap.__repr__()})"
-
-    # cls.__new__ = Wrapper
 
     return Wrapper
 
@@ -209,10 +210,11 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
             else:
                 raise TypeError
 
+        def __reduce__(self) -> Tuple[Any, ...]:
+            return cls, (self.wrap, self.keys)
+
         def __repr__(self) -> str:
             return self.wrap.__repr__()
-
-    # cls.__new__ = Wrapper
 
     return Wrapper
 
