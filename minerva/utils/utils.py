@@ -221,9 +221,7 @@ def pair_return(cls):
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
-            print(f"{self=}")
-            print(f"{cls=}")
-            self.wrap = cls.__init__(self, *args, **kwargs)
+            self.wrap = cls(*args, **kwargs)
 
         def __getitem__(self, queries: Any = None) -> Tuple[Any, Any]:
             return self.wrap[queries[0]], self.wrap[queries[1]]
@@ -236,8 +234,8 @@ def pair_return(cls):
             else:
                 raise AttributeError
 
-    if cls not in _SUBDATASET_CLASSES:
-        cls.__new__ = Wrapper
+        def __reduce__(self) -> Union[str, Tuple[Any, ...]]:
+            return self.__class__, (self.wrap,)
 
     return Wrapper
 
