@@ -1712,6 +1712,7 @@ def construct_dataloader(
     sampler = func_by_str(
         module_path=sampler_params["module"], func=sampler_params["name"]
     )
+    print(make_bounding_box(sampler_params["roi"]))
     sampler = sampler(
         dataset=subdatasets[0],
         roi=make_bounding_box(sampler_params["roi"]),
