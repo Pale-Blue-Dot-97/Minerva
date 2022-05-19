@@ -225,6 +225,12 @@ def pair_return(cls):
 
     @functools.wraps(cls, updated=())
     class Wrapper:
+        def __new__(cls, *args, **kwargs):
+            print(f"new: {cls=}")
+            print(f"{args=}")
+            print(f"{kwargs=}")
+            return super().__new__(cls)
+
         @overload
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
