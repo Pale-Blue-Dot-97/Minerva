@@ -238,8 +238,16 @@ def pair_return(cls):
             else:
                 raise AttributeError
 
+        """
         def __reduce__(self) -> Tuple[Any, ...]:
-            return cls, (self.wrap,)
+            return cls, (*self.args, self.kwargs)
+        """
+
+        def __getstate__(self):
+            return self.wrap
+
+        def __setstate__(self, wrap):
+            self.wrap = wrap
 
     return Wrapper
 
