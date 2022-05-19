@@ -67,6 +67,7 @@ except (ModuleNotFoundError, ImportError):
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
 from minerva.utils import config, aux_configs, visutils
+from minerva.datasets import PairedDataset
 
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import sys
@@ -1647,10 +1648,6 @@ def make_dataset(
             module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
         )
 
-        if sample_pairs and _sub_dataset not in _SUBDATASET_CLASSES:
-            _sub_dataset = pair_return(_sub_dataset)
-            _SUBDATASET_CLASSES.append(_sub_dataset)
-
         # Construct the root to the sub-dataset's files.
         sub_dataset_root = os.sep.join((*data_directory, sub_dataset_params["root"]))
 
@@ -1662,14 +1659,16 @@ def make_dataset(
         except (KeyError, TypeError):
             pass
 
-        # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
-        sub_datasets.append(
-            _sub_dataset(
-                root=sub_dataset_root,
-                transforms=transformations,
-                **dataset_params[key]["params"],
-            )
+        sub_dataset = _sub_dataset(
+            root=sub_dataset_root,
+            transforms=transformations,
+            **dataset_params[key]["params"],
         )
+
+        sub_dataset = PairedDataset(sub_dataset, transforms=transformations)
+
+        # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
+        sub_datasets.append(sub_dataset)
 
     # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
