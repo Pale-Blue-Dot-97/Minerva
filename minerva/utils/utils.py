@@ -103,6 +103,7 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
 from alive_progress import alive_bar, alive_it
+from overload import overload
 
 
 # =====================================================================================================================
@@ -224,8 +225,13 @@ def pair_return(cls):
 
     @functools.wraps(cls, updated=())
     class Wrapper:
+        @overload
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
+
+        @__init__.add
+        def __init__(self, _dict: Dict[str, Any]) -> None:
+            self.wrap = _dict
 
         def __getitem__(self, queries: Any = None) -> Tuple[Any, Any]:
             return self.wrap[queries[0]], self.wrap[queries[1]]
@@ -238,20 +244,20 @@ def pair_return(cls):
             else:
                 raise AttributeError
 
-        # def __reduce__(self) -> Tuple[Any, ...]:
-        #    print(f"reduce {cls=}")
-        #    print(f"reduce {self.wrap=}")
-        #    return cls, (self.wrap,)
+        def __reduce__(self) -> Tuple[Any, ...]:
+            print(f"reduce {cls=}")
+            print(f"reduce {self.wrap=}")
+            return cls, (self.wrap,)
 
-        def __getstate__(self):
-            print(f"getstate {cls=}")
-            print(f"getstate {self.wrap=}")
-            return self.wrap
+        # def __getstate__(self):
+        #    print(f"getstate {cls=}")
+        #    print(f"getstate {self.wrap=}")
+        #    return cls
 
-        def __setstate__(self, wrap) -> None:
-            print(f"setstate {cls=}")
-            print(f"setstate {wrap=}")
-            self.wrap = wrap
+        # def __setstate__(self, wrap) -> None:
+        #    print(f"setstate {cls=}")
+        #    print(f"setstate {wrap=}")
+        #    self.wrap = wrap
 
     return Wrapper
 
