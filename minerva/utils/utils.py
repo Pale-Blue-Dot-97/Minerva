@@ -247,7 +247,7 @@ def pair_return(cls):
         def __reduce__(self) -> Tuple[Any, ...]:
             print(f"reduce {cls=}")
             print(f"reduce {self.wrap=}")
-            return cls, (self.wrap)
+            return cls, (self.wrap,)
 
         # def __getstate__(self):
         #    print(f"getstate {cls=}")
