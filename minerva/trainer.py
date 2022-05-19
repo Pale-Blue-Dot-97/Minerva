@@ -46,7 +46,6 @@ from minerva.metrics import MinervaMetrics
 from minerva.pytorchtools import EarlyStopping
 import os
 import yaml
-import copy
 import torch
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel
@@ -55,6 +54,7 @@ from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
+
 
 # =====================================================================================================================
 #                                                     GLOBALS
