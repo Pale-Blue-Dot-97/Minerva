@@ -68,6 +68,7 @@ except (ModuleNotFoundError, ImportError):
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
 from minerva.utils import config, aux_configs, visutils
 from minerva.datasets import PairedDataset
+from minerva.transforms import MinervaCompose
 
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import sys
@@ -94,7 +95,6 @@ import torch
 from torch.nn import Module
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
-from torchvision import transforms
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.exceptions import UndefinedMetricWarning
@@ -104,7 +104,6 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
 from alive_progress import alive_bar, alive_it
-from overload import overload
 
 
 # =====================================================================================================================
@@ -1798,15 +1797,13 @@ def make_transformations(
         transform = get_transform(name, transform_params[name], key=key)
 
         # If only one transform found, return.
-        if len(transform_params) == 1:
-            return transform
+        # if len(transform_params) == 1:
+        #    return transform
 
-        # If more than one transform found, append to list for composition.
-        else:
-            transformations.append(transform)
+        transformations.append(transform)
 
     # Compose transforms together and return.
-    return transforms.Compose(transformations)
+    return MinervaCompose(transformations, key)
 
 
 @return_updated_kwargs
