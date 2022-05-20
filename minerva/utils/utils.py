@@ -1766,7 +1766,7 @@ def get_transform(name: str, params: Dict[str, Any], key: str = None) -> Any:
     module = params.pop("module", "torchvision.transforms")
 
     # Gets the transform requested by config parameters.
-    transform = tg_to_torch(func_by_str(module, name), keys=[key])
+    transform = func_by_str(module, name)  # , keys=[key])
 
     return transform(**params)
 
