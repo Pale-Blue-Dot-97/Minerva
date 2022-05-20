@@ -41,6 +41,7 @@ except (ModuleNotFoundError, ImportError):
 
 from minerva.models import MinervaModel, MinervaBackbone, MinervaDataParallel
 from minerva.utils import visutils, utils
+from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.pytorchtools import EarlyStopping
@@ -102,7 +103,7 @@ class Trainer:
         **params: Dict[str, Any],
     ) -> None:
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
-        loaders, n_batches, class_dist, new_params = utils.make_loaders(
+        loaders, n_batches, class_dist, new_params = make_loaders(
             rank=rank, world_size=world_size, **params
         )
 
