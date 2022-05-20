@@ -95,7 +95,7 @@ from torch.nn import functional as F
 from sklearn.preprocessing import label_binarize
 from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.exceptions import UndefinedMetricWarning
-from torchgeo.datasets.utils import BoundingBox, stack_samples
+from torchgeo.datasets.utils import BoundingBox
 from torchgeo.datasets import GeoDataset
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
@@ -1439,10 +1439,3 @@ def ran_sample_by_bbox(
     # In this case, run this method again to find a different random sample that may be within bounds.
     except IndexError:
         return ran_sample_by_bbox(dataset, bbox, max_r)
-
-
-def stack_sample_pairs(
-    samples: Iterable[Tuple[Dict[Any, Any]]]
-) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
-    a, b = tuple(zip(*samples))
-    return stack_samples(a), stack_samples(b)

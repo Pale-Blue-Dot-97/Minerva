@@ -37,7 +37,7 @@ except (ModuleNotFoundError, ImportError):
     NDArray = Sequence
 
 from torchgeo.datasets import RasterDataset, GeoDataset, IntersectionDataset
-from torchgeo.datasets.utils import BoundingBox, concat_samples
+from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
 from minerva.utils import config, aux_configs, utils
 from minerva.transforms import MinervaCompose
 import os
@@ -113,6 +113,13 @@ def get_collator(collator_params: Dict[str, str] = config["collator"]) -> Callab
         else:
             collator = utils.func_by_str(module, collator_params["name"])
     return collator
+
+
+def stack_sample_pairs(
+    samples: Iterable[Tuple[Dict[Any, Any]]]
+) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+    a, b = tuple(zip(*samples))
+    return stack_samples(a), stack_samples(b)
 
 
 def intersect_datasets(
