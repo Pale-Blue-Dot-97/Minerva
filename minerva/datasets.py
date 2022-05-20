@@ -41,9 +41,8 @@ class PairedDataset(RasterDataset):
     def __init__(
         self,
         dataset,
-        transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
     ) -> None:
-        super().__init__(transforms)
+        super().__init__()
         self.dataset = dataset
 
     def __getitem__(

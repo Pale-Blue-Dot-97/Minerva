@@ -1665,7 +1665,7 @@ def make_dataset(
             **dataset_params[key]["params"],
         )
 
-        sub_dataset = PairedDataset(sub_dataset, transforms=transformations)
+        sub_dataset = PairedDataset(sub_dataset)
 
         # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
         sub_datasets.append(sub_dataset)
