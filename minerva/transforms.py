@@ -159,7 +159,7 @@ class MinervaCompose:
         return sample
 
     def _transform_input(self, img: Tensor) -> Tensor:
-        if self.transforms is Iterable[Callable]:
+        if hasattr(self.transforms, "__len__"):
             for t in self.transforms:
                 img = t(img)
         else:
@@ -170,7 +170,7 @@ class MinervaCompose:
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
 
-        if self.transforms is Iterable[Callable]:
+        if hasattr(self.transforms, "__len__"):
             for t in self.transforms:
                 format_string += "\n"
                 format_string += "    {0}".format(t)
