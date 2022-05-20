@@ -40,10 +40,12 @@ from torchgeo.datasets.utils import BoundingBox
 class PairedDataset(RasterDataset):
     def __init__(
         self,
-        dataset,
+        dataset_cls: Callable,
+        *args,
+        **kwargs,
     ) -> None:
-        super().__init__()
-        self.dataset = dataset
+        super().__init__(*args, **kwargs)
+        self.dataset = dataset_cls(*args, **kwargs)
 
     def __getitem__(
         self, queries: Tuple[BoundingBox, BoundingBox]
@@ -59,3 +61,6 @@ class PairedDataset(RasterDataset):
             return getattr(self, item)
         else:
             raise AttributeError
+
+    def __repr__(self) -> str:
+        return self.dataset.__repr__()
