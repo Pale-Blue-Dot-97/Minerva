@@ -202,9 +202,11 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
             self, batch: Union[Dict[str, Any], torch.Tensor]
         ) -> Dict[str, Any]:
             if isinstance(batch, torch.Tensor):
+                print(batch.size())
                 return self.wrap.__call__(batch)
 
             elif isinstance(batch, dict):
+                print(batch.keys())
                 aug_batch: Dict[str, Any] = {}
                 for key in self.keys:
                     aug_batch[key] = self.wrap.__call__(batch.pop(key))
@@ -212,6 +214,7 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
                 return {**batch, **aug_batch}
 
             else:
+                print("ERROR")
                 raise TypeError
 
         def __reduce__(self) -> Tuple[Any, ...]:
@@ -228,19 +231,8 @@ def pair_return(cls):
 
     @functools.wraps(cls, updated=())
     class Wrapper:
-        def __new__(cls, *args, **kwargs):
-            print(f"new: {cls=}")
-            print(f"{args=}")
-            print(f"{kwargs=}")
-            return super().__new__(cls)
-
-        @overload
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
-
-        @__init__.add
-        def __init__(self, _dict: Dict[str, Any]) -> None:
-            self.wrap = _dict
 
         def __getitem__(self, queries: Any = None) -> Tuple[Any, Any]:
             return self.wrap[queries[0]], self.wrap[queries[1]]
@@ -252,24 +244,6 @@ def pair_return(cls):
                 return getattr(self.wrap, item)
             else:
                 raise AttributeError
-
-        # def __reduce__(self) -> Tuple[Any, ...]:
-        #    print(f"reduce {cls=}")
-        #    print(f"reduce {self.wrap=}")
-        #    try:
-        #        return cls, (self.wrap,)
-        #    except:
-        #        print("ERROR")
-
-        def __getstate__(self):
-            print(f"getstate {cls=}")
-            print(f"getstate {self.wrap=}")
-            return self.wrap
-
-        def __setstate__(self, wrap) -> None:
-            print(f"setstate {cls=}")
-            print(f"setstate {wrap=}")
-            self.wrap = wrap
 
     return Wrapper
 
