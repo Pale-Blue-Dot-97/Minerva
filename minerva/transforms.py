@@ -29,9 +29,10 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Tuple
+from typing import Any, Callable, Dict, Iterable, Tuple, Union, Optional
 from torch import Tensor
-from minerva.utils import utils
+from minerva.utils.utils import mask_transform
+from overload import overload
 
 
 # =====================================================================================================================
@@ -59,7 +60,7 @@ class ClassTransform:
         Returns:
             Tensor: Mask transformed into new label schema.
         """
-        return utils.mask_transform(mask, self.transform)
+        return mask_transform(mask, self.transform)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(transform={self.transform})"
@@ -112,3 +113,71 @@ class Normalise:
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(norm_value={self.norm_value})"
+
+
+class MinervaCompose:
+    """Extension of `Compose`. Composes several transforms together. This transform does not support torchscript.
+    Please, see the note below.
+
+    Args:
+        transforms (list of ``Transform`` objects): list of transforms to compose.
+
+    Example:
+        >>> transforms.Compose([
+        >>>     transforms.CenterCrop(10),
+        >>>     transforms.PILToTensor(),
+        >>>     transforms.ConvertImageDtype(torch.float),
+        >>> ])
+
+    .. note::
+        In order to script the transformations, please use ``torch.nn.Sequential`` as below.
+
+        >>> transforms = torch.nn.Sequential(
+        >>>     transforms.CenterCrop(10),
+        >>>     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        >>> )
+        >>> scripted_transforms = torch.jit.script(transforms)
+
+        Make sure to use only scriptable transformations, i.e. that work with ``torch.Tensor``, does not require
+        `lambda` functions or ``PIL.Image``.
+
+    """
+
+    def __init__(
+        self, transforms: Union[Iterable[Callable], Callable], key: Optional[str] = None
+    ) -> None:
+        self.transforms = transforms
+        self.key = key
+
+    @overload
+    def __call__(self, img: Tensor) -> Tensor:
+        return self._transform_input(img)
+
+    @__call__.add
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        sample[self.key] = self._transform_input(sample[self.key])
+        return sample
+
+    def _transform_input(self, img: Tensor) -> Tensor:
+        if self.transforms is Iterable[Callable]:
+            for t in self.transforms:
+                img = t(img)
+        else:
+            img = self.transforms(img)
+
+        return img
+
+    def __repr__(self) -> str:
+        format_string = self.__class__.__name__ + "("
+
+        if self.transforms is Iterable[Callable]:
+            for t in self.transforms:
+                format_string += "\n"
+                format_string += "    {0}".format(t)
+
+        else:
+            format_string += "    {0}".format(self.transforms)
+
+        format_string += "\n)"
+
+        return format_string
