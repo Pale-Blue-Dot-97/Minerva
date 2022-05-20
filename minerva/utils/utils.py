@@ -1659,13 +1659,19 @@ def make_dataset(
         except (KeyError, TypeError):
             pass
 
-        sub_dataset = _sub_dataset(
-            root=sub_dataset_root,
-            transforms=transformations,
-            **dataset_params[key]["params"],
-        )
-
-        sub_dataset = PairedDataset(sub_dataset)
+        if sample_pairs:
+            sub_dataset = PairedDataset(
+                _sub_dataset,
+                root=sub_dataset_root,
+                transforms=transformations,
+                **dataset_params[key]["params"],
+            )
+        else:
+            sub_dataset = _sub_dataset(
+                root=sub_dataset_root,
+                transforms=transformations,
+                **dataset_params[key]["params"],
+            )
 
         # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
         sub_datasets.append(sub_dataset)
