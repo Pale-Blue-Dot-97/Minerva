@@ -30,14 +30,14 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Tuple, Optional, Callable, Dict, Any, Iterable
-from torchgeo.datasets import GeoDataset
+from torchgeo.datasets import RasterDataset
 from torchgeo.datasets.utils import BoundingBox
 
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class PairedDataset(GeoDataset):
+class PairedDataset(RasterDataset):
     def __init__(
         self,
         dataset,
@@ -46,16 +46,17 @@ class PairedDataset(GeoDataset):
         super().__init__(transforms)
         self.dataset = dataset
 
-    def __getitem__(self, queries: Iterable[BoundingBox]) -> Tuple[Dict[str, Any], ...]:
-        samples = []
-        for query in queries:
-            samples.append(self.dataset.__getitem__(query))
-        return tuple(samples)
+    def __getitem__(
+        self, queries: Tuple[BoundingBox, BoundingBox]
+    ) -> Tuple[Dict[str, Any], ...]:
+        return self.dataset.__getitem__(queries[0]), self.dataset.__getitem__(
+            queries[1]
+        )
 
     def __getattr__(self, item):
-        if item in self.__dict__:
-            return getattr(self, item)
-        elif item in self.dataset.__dict__:
+        if item in self.dataset.__dict__:
             return getattr(self.dataset, item)
+        elif item in self.__dict__:
+            return getattr(self, item)
         else:
             raise AttributeError
