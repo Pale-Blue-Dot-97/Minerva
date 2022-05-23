@@ -12,6 +12,15 @@ Welcome to Minerva's documentation!
 
    usage/trainer
    usage/utils
+   usage/datasets
+   usage/samplers
+   usage/models
+   usage/metrics
+   usage/logger
+   usage/transforms
+   usage/modelio
+   usage/optimisers
+   usage/pytorchtools
 
 Indices and tables
 ==================
