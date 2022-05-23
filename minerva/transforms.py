@@ -176,7 +176,8 @@ class MinervaCompose:
                 format_string += "    {0}".format(t)
 
         else:
-            format_string += "    {0}".format(self.transforms)
+            format_string += "{0})".format(self.transforms)
+            return format_string
 
         format_string += "\n)"
 
