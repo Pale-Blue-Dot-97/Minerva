@@ -227,9 +227,9 @@ class MinervaDataParallel(Module):
         model (Module): PyTorch Model to be wrapped by DataParallel.
     """
 
-    def __init__(self, model: Module) -> None:
+    def __init__(self, model: Module, Paralleliser: Module, *args, **kwargs) -> None:
         super(MinervaDataParallel, self).__init__()
-        self.model = torch.nn.DataParallel(model).cuda()
+        self.model = Paralleliser(model, *args, **kwargs).cuda()
 
     def forward(self, *input: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
         """Ensures a forward call to the model goes to the actual wrapped model.
@@ -251,7 +251,7 @@ class MinervaDataParallel(Module):
             return getattr(self.model.module, name)
 
     def __repr__(self) -> str:
-        return f"DataParallel({super().__repr__()})"
+        return self.model.__repr__()
 
 
 class MLP(MinervaModel):

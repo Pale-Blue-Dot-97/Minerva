@@ -50,7 +50,11 @@ def main(config_path: str):
         )
 
         try:
-            exit_code = os.system(f"python MinervaExp.py -c {config[key]}")
+            if "SLURM_JOB_ID" in os.environ:
+                exit_code = os.system(f"python MinervaDist.py -c {config[key]}")
+            else:
+                exit_code = os.system(f"python MinervaExp.py -c {config[key]}")
+
             if exit_code != 0:
                 raise SystemExit()
         except KeyboardInterrupt as err:
