@@ -63,6 +63,7 @@ from inputimeout import inputimeout, TimeoutOccurred
 # Default time till timeout waiting for a user input in seconds.
 _timeout = 30
 
+__all__ = ["Trainer"]
 
 # =====================================================================================================================
 #                                                     CLASSES
