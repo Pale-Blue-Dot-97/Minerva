@@ -53,7 +53,7 @@ initialising a Trainer and model, and fitting and testing that model then output
 ### MWE Driver Script
 
 ```python
-from minerva.utils import config             # Module containing various utility functions.
+from minerva.utils import config                    # Module containing various utility functions.
 from minerva.trainer import Trainer                 # Class designed to handle fitting of model.
 
 
