@@ -53,15 +53,12 @@ initialising a Trainer and model, and fitting and testing that model then output
 ### MWE Driver Script
 
 ```python
-from minerva.utils import utils, config             # Module containing various utility functions.
+from minerva.utils import config             # Module containing various utility functions.
 from minerva.trainer import Trainer                 # Class designed to handle fitting of model.
 
 
-# Get the dataset loaders, number of batches, the distribution of classes and an updated config.
-datasets, n_batches, class_dist, new_config = utils.make_loaders(**config)
-
 # Initialise a Trainer. Also creates the model.
-trainer = Trainer(loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config)
+trainer = Trainer(**config)
 
 # Run the fitting (train and validation epochs).
 trainer.fit()
