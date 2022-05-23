@@ -1,0 +1,5 @@
+Samplers
+========
+
+.. automodule:: samplers
+   :members:
