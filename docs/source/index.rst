@@ -10,7 +10,8 @@ Welcome to Minerva's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   usage/trainer
+   usage/utils
 
 Indices and tables
 ==================
