@@ -31,7 +31,7 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from minerva.utils import utils, config
+from minerva.utils import config
 from minerva.trainer import Trainer
 
 
@@ -39,11 +39,7 @@ from minerva.trainer import Trainer
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    datasets, n_batches, class_dist, new_config = utils.make_loaders(**config)
-
-    trainer = Trainer(
-        loaders=datasets, n_batches=n_batches, class_dist=class_dist, **new_config
-    )
+    trainer = Trainer(**config)
     trainer.fit()
 
     if config["pre_train"]:
