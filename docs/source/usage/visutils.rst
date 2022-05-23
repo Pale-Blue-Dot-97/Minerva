@@ -1,5 +1,5 @@
 VisUtils
 ========
 
-.. automodule:: visutils
+.. automodule:: utils.visutils
     :members:
