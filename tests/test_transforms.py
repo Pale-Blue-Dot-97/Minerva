@@ -68,10 +68,25 @@ def test_compose() -> None:
     input_2 = torch.tensor(
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
     )
+
+    output_1 = input_1 / 255
     output_2 = torch.tensor([[0.8, 1.0, 0.7], [0.3, 0.5, 0.4], [0.5, 0.0, 1.0]])
 
-    assert assert_array_equal(compose_1(input_1), input_1 / 255) is None
+    input_3 = {"image": input_1}
+    input_4 = {"image": input_2}
+
+    compose_3 = MinervaCompose(transform_1, key="image")
+    compose_4 = MinervaCompose(
+        [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)], key="image"
+    )
+
+    output_3 = {"image": output_1}
+    output_4 = {"image": output_2}
+
+    assert assert_array_equal(compose_1(input_1), output_1) is None
     assert assert_array_equal(compose_2(input_2), output_2) is None
+    assert assert_array_equal(compose_3(input_3)["image"], output_3["image"]) is None
+    assert assert_array_equal(compose_4(input_4)["image"], output_4["image"]) is None
 
     assert repr(compose_1) == "MinervaCompose(Normalise(norm_value=255))"
     assert (
