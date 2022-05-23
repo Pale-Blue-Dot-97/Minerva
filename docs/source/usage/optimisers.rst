@@ -1,0 +1,5 @@
+Optimisers
+==========
+
+.. automodule:: optimisers
+    :members:
