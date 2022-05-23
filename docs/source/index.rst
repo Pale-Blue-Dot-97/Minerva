@@ -12,6 +12,7 @@ Welcome to Minerva's documentation!
 
    usage/trainer
    usage/utils
+   usage/visutils
    usage/datasets
    usage/samplers
    usage/models
