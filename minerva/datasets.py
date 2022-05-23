@@ -327,9 +327,9 @@ def make_transformations(
             e.g. {CenterCrop: {size: 128}}
 
     Returns:
-        If no parameters are parsed, None is returned. If only one transform is defined by the parameters,
-            returns a Transforms object. If multiple transforms are defined, a Compose object of Transform
-            objects is returned
+        If no parameters are parsed, None is returned.
+        If only one transform is defined by the parameters, returns a Transforms object.
+        If multiple transforms are defined, a Compose object of Transform objects is returned.
     """
     transformations = []
 
