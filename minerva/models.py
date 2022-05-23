@@ -2096,7 +2096,7 @@ class SimCLR18(_SimCLR):
         )
 
 
-class SimCLR32(_SimCLR):
+class SimCLR34(_SimCLR):
     """SimCLR network using a ResNet32 backbone.
 
     Args:
@@ -2114,11 +2114,11 @@ class SimCLR32(_SimCLR):
         **resnet_kwargs,
     ) -> None:
 
-        super(SimCLR32, self).__init__(
+        super(SimCLR34, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
-            backbone_name="ResNet32",
+            backbone_name="ResNet34",
             backbone_kwargs=resnet_kwargs,
         )
 
