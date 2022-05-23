@@ -1,0 +1,5 @@
+PyTorchTools
+============
+
+.. automodule:: pytorchtools
+    :members:
