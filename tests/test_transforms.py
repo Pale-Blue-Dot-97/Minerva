@@ -1,6 +1,7 @@
-from minerva.transforms import ClassTransform, PairCreate, Normalise
+from minerva.transforms import ClassTransform, PairCreate, Normalise, MinervaCompose
 from numpy.testing import assert_array_equal
 import torch
+from torchvision.transforms import RandomVerticalFlip, RandomHorizontalFlip
 
 
 def test_class_transform() -> None:
@@ -52,3 +53,22 @@ def test_normalise() -> None:
 
     assert repr(transform_1) == f"Normalise(norm_value=255)"
     assert repr(transform_2) == f"Normalise(norm_value=65535)"
+
+
+def test_compose() -> None:
+    transform_1 = Normalise(255)
+    compose_1 = MinervaCompose(transform_1)
+
+    compose_2 = MinervaCompose(
+        [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]
+    )
+
+    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])
+
+    input_2 = torch.tensor(
+        [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
+    )
+    output_2 = torch.tensor([[0.8, 1.0, 0.7], [0.3, 0.5, 0.4], [0.5, 0.0, 1.0]])
+
+    assert assert_array_equal(compose_1(input_1), input_1 / 255) is None
+    assert assert_array_equal(compose_2(input_2), output_2) is None
