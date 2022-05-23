@@ -72,3 +72,13 @@ def test_compose() -> None:
 
     assert assert_array_equal(compose_1(input_1), input_1 / 255) is None
     assert assert_array_equal(compose_2(input_2), output_2) is None
+
+    assert repr(compose_1) == "MinervaCompose(Normalise(norm_value=255))"
+    assert (
+        repr(compose_2)
+        == "MinervaCompose("
+        + "\n    Normalise(norm_value=255)"
+        + "\n    {0}".format(RandomHorizontalFlip(1.0))
+        + "\n    {0}".format(RandomVerticalFlip(1.0))
+        + "\n)"
+    )
