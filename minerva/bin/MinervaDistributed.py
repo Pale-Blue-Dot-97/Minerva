@@ -57,7 +57,6 @@ torch.manual_seed(0)
 # =====================================================================================================================
 def run(gpu: int, args) -> None:
     # Calculates the global rank of this process.
-    # rank = args.nr * args.gpus + gpu
     args.rank += gpu
 
     dist.init_process_group(
@@ -78,7 +77,7 @@ def run(gpu: int, args) -> None:
     if config["pre_train"] and gpu == 0:
         trainer.save_backbone()
 
-    else:
+    if not config["pre_train"]:
         trainer.test()
 
 
@@ -92,9 +91,6 @@ def handle_sigterm(signum, frame):
 
 
 def main(args):
-    # os.environ["MASTER_ADDR"] = "10.57.23.164"
-    # os.environ["MASTER_PORT"] = "12355"
-
     try:
         mp.spawn(run, (args,), args.ngpus_per_node)
     except KeyboardInterrupt:
