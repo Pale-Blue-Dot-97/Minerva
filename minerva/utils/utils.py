@@ -17,6 +17,9 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
+#
+# TODO: Add exception handling where appropriate.
+# TODO: Fix all type-hinting issues.
 """Module to handle all utility functions for training, testing and evaluation of a model.
 
 Attributes:
@@ -31,10 +34,6 @@ Attributes:
     CLASSES (dict): Mapping of class labels to class names.
     CMAP_DICT (dict): Mapping of class labels to colours.
     WGS84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
-
-TODO:
-    * Add exception handling where appropriate.
-    * Fix all type-hinting issues.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
