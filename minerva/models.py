@@ -17,11 +17,10 @@
 
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module containing neural network model classes.
-
-TODO:
-    * Consider removing redundant models
-"""
+#
+# TODO: Consider removing redundant models.
+#
+"""Module containing neural network model classes."""
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
