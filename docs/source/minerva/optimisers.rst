@@ -1,4 +1,4 @@
-Optimisers
+optimisers
 ==========
 
 .. automodule:: optimisers

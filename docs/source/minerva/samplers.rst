@@ -1,4 +1,4 @@
-Samplers
+samplers
 ========
 
 .. automodule:: samplers

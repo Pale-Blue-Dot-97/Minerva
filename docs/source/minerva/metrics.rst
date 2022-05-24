@@ -1,4 +1,4 @@
-Metrics
+metrics
 =======
 
 .. automodule:: metrics
