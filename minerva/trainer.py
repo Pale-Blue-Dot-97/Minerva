@@ -24,10 +24,6 @@ Institution: University of Southampton
 
 Created under a project funded by the Ordnance Survey Ltd.
 
-Attributes:
-    _timeout (int): Default time till timeout waiting for a user input in seconds.
-
-TODO:
 """
 # =====================================================================================================================
 #                                                     IMPORTS
