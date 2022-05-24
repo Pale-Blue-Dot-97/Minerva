@@ -222,8 +222,6 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
 
 
 def pair_return(cls):
-    print(f"{cls=}")
-
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
