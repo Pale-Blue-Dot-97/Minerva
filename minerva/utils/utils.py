@@ -435,6 +435,16 @@ def transform_coordinates(
 
 
 def check_within_bounds(bbox: BoundingBox, bounds: BoundingBox) -> BoundingBox:
+    """Ensures that the a bounding box is within another.
+
+    Args:
+        bbox (BoundingBox): First bounding box that needs to be within the second.
+        bounds (BoundingBox): Second outer bounding box to use as the bounds.
+
+    Returns:
+        BoundingBox: Copy of `bbox` if it is within `bounds` or a new bounding box that has been
+        limited to the dimensions of `bounds` if those of `bbox` exceeded them.
+    """
     minx, maxx, miny, maxy = bbox.minx, bbox.maxx, bbox.miny, bbox.maxy
     if minx < bounds.minx:
         minx = bounds.minx
