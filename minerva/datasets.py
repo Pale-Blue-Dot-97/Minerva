@@ -1,31 +1,24 @@
-"""Module containing custom samplers for `torch` datasets.
-
-    Copyright (C) 2022 Harry James Baker
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program in LICENSE.txt. If not,
-    see <https://www.gnu.org/licenses/>.
-
-Author: Harry James Baker
-
-Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
-
-Institution: University of Southampton
-
-Created under a project funded by the Ordnance Survey Ltd.
-
-TODO:
-"""
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (C) 2022 Harry Baker
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+#
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
+"""Functionality and custom code for constructing datasets, samplers and :class:`DataLoaders` for ``minerva``."""
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -48,6 +41,14 @@ import pandas as pd
 from catalyst.data.sampler import DistributedSamplerWrapper
 from alive_progress import alive_it
 
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2022 Harry Baker"
+
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -59,14 +60,39 @@ CACHE_DIR = os.sep.join(config["dir"]["cache"])
 
 _INTERSECTION_CHANGED = False
 
+__all__ = [
+    "PairedDataset",
+    "construct_dataloader",
+    "get_collator",
+    "get_manifest",
+    "get_transform",
+    "load_all_samples",
+    "make_bounding_box",
+    "make_dataset",
+    "make_loaders",
+    "make_manifest",
+    "make_transformations",
+    "stack_sample_pairs",
+    "intersect_datasets",
+    "get_manifest_path",
+]
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
 class PairedDataset(RasterDataset):
+    """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
+
+    Attributes:
+        dataset (RasterDataset): Wrapped dataset to sampled from.
+
+    Args:
+        dataset_cls (RasterDataset): Constructor for a :class:`RasterDataset` to be wrapped for paired sampling.
+    """
+
     def __init__(
         self,
-        dataset_cls: Callable,
+        dataset_cls: RasterDataset,
         *args,
         **kwargs,
     ) -> None:
@@ -115,6 +141,7 @@ def get_collator(collator_params: Dict[str, str] = config["collator"]) -> Callab
     return collator
 
 
+# TODO: Document :func:`stack_sample_pairs`.
 def stack_sample_pairs(
     samples: Iterable[Tuple[Dict[Any, Any]]]
 ) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
@@ -125,7 +152,7 @@ def stack_sample_pairs(
 def intersect_datasets(
     datasets: List[GeoDataset], sample_pairs: bool = False
 ) -> IntersectionDataset:
-    """Intersects a list of `GeoDataset`s together to return a single dataset object.
+    """Intersects a list of :class:`GeoDataset` together to return a single dataset object.
 
     Args:
         datasets (List[GeoDataset]): List of datasets to intersect together. Should have some geospatial overlap.

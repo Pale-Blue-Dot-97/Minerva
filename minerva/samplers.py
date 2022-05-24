@@ -1,31 +1,24 @@
-"""Module containing custom samplers for `torch` datasets.
-
-    Copyright (C) 2022 Harry James Baker
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program in LICENSE.txt. If not,
-    see <https://www.gnu.org/licenses/>.
-
-Author: Harry James Baker
-
-Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
-
-Institution: University of Southampton
-
-Created under a project funded by the Ordnance Survey Ltd.
-
-TODO:
-"""
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (C) 2022 Harry Baker
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+#
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
+"""Module containing custom samplers for `torch` datasets."""
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -36,6 +29,15 @@ from torchgeo.samplers import GeoSampler
 from torchgeo.samplers.utils import _to_tuple, get_random_bounding_box
 from minerva.utils import utils
 import random
+
+
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2022 Harry Baker"
 
 
 # =====================================================================================================================
