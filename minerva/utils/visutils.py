@@ -41,9 +41,10 @@ TODO:
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, Sequence
+from torch import Tensor
 
 try:
-    from numpy.typing import NDArray, ArrayLike
+    from numpy.typing import NDArray
 except ModuleNotFoundError:
     NDArray, ArrayLike = Sequence, Sequence
 from torchgeo.datasets.utils import BoundingBox
@@ -850,11 +851,20 @@ def plot_history(
 
     # Plots each metric in metrics, appending their artist handles.
     handles = []
-    for metric in metrics.values():
-        handles.append(plt.plot(metric["x"], metric["y"])[0])
+    labels = []
+    for key in metrics:
+        # Checks that the length of x matches y and is greater than 1 so can be plotted.
+        if len(metrics[key]["x"]) == len(metrics[key]["y"]) >= 1.0:
+            if isinstance(y, Tensor):
+                # Ensure data is on CPU and not on a CUDA device.
+                y = metrics[key]["y"].cpu().numpy()
+
+            # Plot metric.
+            handles.append(plt.plot(metrics[key]["x"], metrics[key]["y"])[0])
+            labels.append(key)
 
     # Creates legend from plot artist handles and names of metrics.
-    plt.legend(handles=handles, labels=metrics.keys())
+    plt.legend(handles=handles, labels=labels)
 
     # Forces x-axis ticks to be integers. FEATURE DISABLED DUE TO BUG.
     # plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
