@@ -1,4 +1,4 @@
-PyTorchTools
+pytorchtools
 ============
 
 .. automodule:: pytorchtools

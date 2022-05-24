@@ -1,4 +1,4 @@
-ModelIO
+modelio
 =======
 
 .. automodule:: modelio

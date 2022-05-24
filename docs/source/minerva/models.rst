@@ -1,4 +1,4 @@
-Models
+models
 ======
 
 .. automodule:: models

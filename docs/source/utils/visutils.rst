@@ -1,4 +1,4 @@
-VisUtils
+visutils
 ========
 
 .. automodule:: utils.visutils
