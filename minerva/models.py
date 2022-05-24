@@ -1,28 +1,24 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (C) 2022 Harry Baker
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
 """Module containing neural network model classes.
-
-    Copyright (C) 2022 Harry James Baker
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program in LICENSE.txt. If not,
-    see <https://www.gnu.org/licenses/>.
-
-Author: Harry James Baker
-
-Email: hjb1d20@soton.ac.uk or hjbaker97@gmail.com
-
-Institution: University of Southampton
-
-Created under a project funded by the Ordnance Survey Ltd.
 
 TODO:
     * Consider removing redundant models
@@ -45,10 +41,21 @@ from collections import OrderedDict
 
 
 # =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2022 Harry Baker"
+
+
+# =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
 class MinervaModel(Module, ABC):
-    """Abstract class to act as a base for all Minerva Models. Designed to provide inter-compatability with Trainer.
+    """Abstract class to act as a base for all Minerva Models.
+
+    Designed to provide inter-compatability with :class:`Trainer`.
 
     Attributes:
         criterion (Module): PyTorch loss function model will use.
@@ -107,7 +114,10 @@ class MinervaModel(Module, ABC):
 
     @abc.abstractmethod
     def forward(self, x: FloatTensor) -> Tensor:
-        """Abstract method for performing a forward pass. Needs implementing!
+        """Abstract method for performing a forward pass.
+
+        Note:
+            Needs implementing!
 
         Args:
             x (FloatTensor): Input data to network.
@@ -151,11 +161,13 @@ class MinervaModel(Module, ABC):
         return loss, z
 
     def training_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with train=True to perform a training step. See step for more details.
+        """Calls step with ``train=True`` to perform a training step.
 
-        Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate' of this method and validation_step and testing_step.
+        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
+        Hence the resulting `boilerplate` of this method and :func:`validation_step` and :func:`testing_step`.
 
+        See also:
+            :func:`step`
         Args:
             x (FloatTensor): Batch of input data to network.
             y (LongTensor): Batch of ground truth labels for the input data.
@@ -167,10 +179,13 @@ class MinervaModel(Module, ABC):
         return self.step(x, y, True)
 
     def validation_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with train=False to perform a validation step. See step for more details.
+        """Calls step with ``train=False`` to perform a validation step.
 
-        Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate' of this method and training_step and testing_step.
+        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
+        Hence the resulting `boilerplate` of this method and :func:`training_step` and :func:`testing_step`.
+
+        See also:
+            :func:`step`
 
         Args:
             x (FloatTensor): Batch of input data to network.
@@ -183,10 +198,13 @@ class MinervaModel(Module, ABC):
         return self.step(x, y, False)
 
     def testing_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with train=False to perform a testing step. See step for more details.
+        """Calls step with ``train=False`` to perform a testing step.
 
-        Designed to be compatible with Trainer and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate' of this method and validation_step and training_step.
+        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
+        Hence the resulting `boilerplate` of this method and :func:`validation_step` and :func:`training_step`.
+
+        See also:
+            :func:`step`
 
         Args:
             x (FloatTensor): Batch of input data to network.
@@ -221,10 +239,10 @@ class MinervaDataParallel(Module):
     """Custom wrapper for DataParallel that automatically fetches the attributes of the wrapped model.
 
     Attributes:
-        model (Module): PyTorch Model to be wrapped by DataParallel.
+        model (Module): PyTorch Model to be wrapped by :class:`DataParallel`.
 
     Args:
-        model (Module): PyTorch Model to be wrapped by DataParallel.
+        model (Module): PyTorch Model to be wrapped by :class:`DataParallel`.
     """
 
     def __init__(self, model: Module, Paralleliser: Module, *args, **kwargs) -> None:
@@ -257,9 +275,9 @@ class MinervaDataParallel(Module):
 class MLP(MinervaModel):
     """Simple class to construct a Multi-Layer Perceptron (MLP).
 
-    Inherits from torch.nn.Module and MinervaModel. Designed for use with PyTorch functionality.
+    Inherits from :class:`torch.nn.Module` and :class:`MinervaModel`. Designed for use with PyTorch functionality.
 
-    Should be used in tandem with Trainer.
+    Should be used in tandem with :class:`Trainer`.
 
     Attributes:
         input_size (int): Size of the input vector to the network.
@@ -319,13 +337,14 @@ class MLP(MinervaModel):
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the network.
 
-        Can be called directly as a method of MLP (e.g. model.forward()) or when data is parsed to MLP (e.g. model()).
+        Can be called directly as a method of :class:`MLP` (e.g. ``model.forward()``)
+        or when data is parsed to :class:`MLP` (e.g. ``model()``).
 
         Args:
             x (Tensor): Input data to network.
 
         Returns:
-            Tensor of the likelihoods the network places on the input 'x' being of each class.
+            Tensor of the likelihoods the network places on the input ``x`` being of each class.
         """
         return self.network(x)
 
@@ -333,9 +352,9 @@ class MLP(MinervaModel):
 class CNN(MinervaModel, ABC):
     """Simple class to construct a Convolutional Neural Network (CNN).
 
-    Inherits from torch.nn.Module and MinervaModel. Designed for use with PyTorch functionality.
+    Inherits from :class:`torch.nn.Module` and :class:`MinervaModel`. Designed for use with PyTorch functionality.
 
-    Should be used in tandem with Trainer.
+    Should be used in tandem with :class:`Trainer`.
 
     Attributes:
         flattened_size (int): Length of the vector resulting from the flattening of the output from the convolutional
@@ -465,13 +484,14 @@ class CNN(MinervaModel, ABC):
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the convolutional network and then the fully connected network.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. ``model.forward()``)
+        or when data is parsed to model (e.g. ``model()``).
 
         Args:
             x (Tensor): Input data to network.
 
         Returns:
-            Tensor of the likelihoods the network places on the input 'x' being of each class.
+            Tensor of the likelihoods the network places on the input ``x`` being of each class.
         """
         # Inputs the data into the convolutional network.
         conv_out = self.conv_net(x)
@@ -496,14 +516,14 @@ class ResNet(MinervaModel, ABC):
         bn1 (Module): Batch normalisation layer of the Conv1 input block to the network.
         relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
         maxpool (torch.nn.MaxPool2d): 3x3 Max-pooling layer with stride 2 of the Conv1 input block to the network.
-        layer1 (torch.nn.Sequential): `Layer' 1 of the ResNet comprising number and type of blocks defined by 'layers'.
-        layer2 (torch.nn.Sequential): `Layer' 2 of the ResNet comprising number and type of blocks defined by 'layers'.
-        layer3 (torch.nn.Sequential): `Layer' 3 of the ResNet comprising number and type of blocks defined by 'layers'.
-        layer4 (torch.nn.Sequential): `Layer' 4 of the ResNet comprising number and type of blocks defined by 'layers'.
+        layer1 (torch.nn.Sequential): `Layer` 1 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer2 (torch.nn.Sequential): `Layer` 2 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer3 (torch.nn.Sequential): `Layer` 3 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer4 (torch.nn.Sequential): `Layer` 4 of the ResNet comprising number and type of blocks defined by ``layers``.
         avgpool (torch.nn.AdaptiveAvgPool2d): Global average pooling layer taking the output from the last block.
-            Only initialised if encoder_on is False.
+            Only initialised if ``encoder_on=False``.
         fc (torch.nn.Linear): Fully connected layer that takes the flattened output from average pooling
-            to a classification output. Only initialised if encoder_on is False.
+            to a classification output. Only initialised if ``encoder_on=False``.
 
     Args:
         block (BasicBlock or Bottleneck): Type of `block operations' to use throughout network.
@@ -525,7 +545,7 @@ class ResNet(MinervaModel, ABC):
             and passes through a fully connected layer for classification output.
 
     Raises:
-        ValueError: If replace_stride_with_dilation is not None or a 3-element tuple.
+        ValueError: If ``replace_stride_with_dilation`` is not None or a 3-element tuple.
     """
 
     def __init__(
@@ -731,18 +751,19 @@ class ResNet(MinervaModel, ABC):
     def forward(
         self, x: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the ResNet.
+        """Performs a forward pass of the :class:`ResNet`.
 
-        Overwrites MinervaModel abstract method.
+        Overwrites :class:`MinervaModel` abstract method.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. ``model.forward()``)
+        or when data is parsed to model (e.g. ``model()``).
 
         Args:
             x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
-                of the likelihoods the network places on the input 'x' being of each class.
+            If inited as an backbone, returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor`
+                of the likelihoods the network places on the input ``x`` being of each class.
         """
         return self._forward_impl(x)
 
