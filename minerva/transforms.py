@@ -17,7 +17,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module containing custom transforms to be used with ``torchvision.transforms``."""
+"""Module containing custom transforms to be used with :mod:`torchvision.transforms`."""
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
