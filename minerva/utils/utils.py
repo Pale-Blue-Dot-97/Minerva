@@ -143,7 +143,22 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 # =====================================================================================================================
 #                                                   DECORATORS
 # =====================================================================================================================
-def return_updated_kwargs(func):
+def return_updated_kwargs(
+    func: Callable[[Any], Tuple[Any, ...]]
+) -> Callable[[Any], Tuple[Any, ...]]:
+    """Decorator that allows the `kwargs` supplied to the wrapped function to be returned with updated values.
+
+    Assumes that the wrapped function returns a :class:`dict` in the last position of the
+    :class:`tuple` of returns with keys in `kwargs` that have new values.
+
+    Args:
+        func (Callable[[Any], Tuple[Any, ...]): Function to be wrapped. Must take `kwargs` and return a :class:`dict`
+            with updated `kwargs` in the last position of the :class:`tuple`.
+
+    Returns:
+        Callable[[Any], Tuple[Any, ...]: Wrapped function.
+    """
+
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         results = func(*args, **kwargs)
@@ -153,11 +168,24 @@ def return_updated_kwargs(func):
     return wrapper
 
 
-def pair_collate(func):
+def pair_collate(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
+    """Wraps a collator function so that it can handle paired samples.
+
+    .. warning::
+        *NOT* compatible with :class:`DistributedDataParallel` due to it's use of :mod:`pickle`.
+        Use :func:`minerva.datasets.stack_sample_pairs` instead as a direct replacement for :func:`stack_samples`.
+
+    Args:
+        func (Callable[[Any], Any]): Collator function to be wrapped.
+
+    Returns:
+        Callable[[Any], Any]: Wrapped collator function.
+    """
+
     @functools.wraps(func)
     def wrapper(
-        samples: Iterable[Tuple[Dict[Any, Any]]]
-    ) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+        samples: Iterable[Union[Tuple[Any, Any], Tuple[Dict[Any, Any], Dict[Any, Any]]]]
+    ) -> Union[Tuple[Any, Any], Tuple[Dict[Any, Any], Dict[Any, Any]]]:
         a, b = tuple(zip(*samples))
         return func(a), func(b)
 
@@ -165,6 +193,8 @@ def pair_collate(func):
 
 
 def dublicator(cls):
+    """Dublicates decorated transform object to handle paired samples."""
+
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
@@ -175,9 +205,6 @@ def dublicator(cls):
 
             return self.wrap.__call__(a), self.wrap.__call__(b)
 
-        def __reduce__(self) -> Tuple[Any, ...]:
-            return cls, (self.wrap,)
-
         def __repr__(self) -> str:
             return f"dublicator({self.wrap.__repr__()})"
 
@@ -185,6 +212,20 @@ def dublicator(cls):
 
 
 def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
+    """Ensures wrapped transform can handle both :class:`torch.Tensor` and :mod:`torchgeo` style ``dict`` inputs.
+
+    .. warning::
+        *NOT* compatible with :class:`DistributedDataParallel` due to it's use of :mod:`pickle`.
+        This functionality is now handled within :class:`minerva.transforms.MinervaCompose`.
+
+    Args:
+        keys (Optional[Sequence[str]], optional): Keys to fields within ``dict`` inputs to transform values in.
+            Defaults to None.
+
+    Raises:
+        TypeError: If input is not a :class:`dict` or :class:`torch.Tensor`.
+    """
+
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
@@ -207,11 +248,10 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
                 return {**batch, **aug_batch}
 
             else:
-                print("ERROR")
-                raise TypeError
-
-        def __reduce__(self) -> Tuple[Any, ...]:
-            return cls, (self.wrap, self.keys)
+                raise TypeError(
+                    f"Inputted batch has type {type(batch)}"
+                    + "-- batch must be either a `Tensor` or `dict`"
+                )
 
         def __repr__(self) -> str:
             return self.wrap.__repr__()
@@ -220,6 +260,16 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
 
 
 def pair_return(cls):
+    """Wrapper for :mod:`torch` :class:`dataset` classes to be able to handle pairs of queries and returns.
+
+    .. warning::
+        *NOT* compatible with :class:`DistributedDataParallel` due to it's use of :mod:`pickle`.
+        Use :class:`minerva.datasets.PairedDataset` directly instead, supplying the dataset to `wrap` on init.
+
+    Raises:
+        AttributeError: If an attribute cannot be found in either the :class:`Wrapper` or the wrapped ``dataset``.
+    """
+
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
