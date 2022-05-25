@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright (C) 2022 Harry Baker
 #
@@ -24,6 +23,8 @@
 # =====================================================================================================================
 from typing import Any, Callable, Dict, Iterable, Tuple, Union, Optional
 from torch import Tensor
+import torch
+from torchvision.transforms import ColorJitter, functional_tensor as ft
 from minerva.utils.utils import mask_transform
 from overload import overload
 
@@ -103,13 +104,13 @@ class Normalise:
         self.norm_value = norm_value
 
     def __call__(self, img: Tensor) -> Tensor:
-        """Normalises inputted image using `norm_value`.
+        """Normalises inputted image using ``norm_value``.
 
         Args:
-            img (Tensor): Image tensor to be normalised. Should have a bit size that relates to `norm_value`.
+            img (Tensor): Image tensor to be normalised. Should have a bit size that relates to ``norm_value``.
 
         Returns:
-            Tensor: Input image tensor normalised by `norm_value`.
+            Tensor: Input image tensor normalised by ``norm_value``.
         """
         return img / self.norm_value
 
@@ -117,8 +118,46 @@ class Normalise:
         return f"{self.__class__.__name__}(norm_value={self.norm_value})"
 
 
+class DetachedColourJitter(ColorJitter):
+    """Sends RGB channels of multi-spectral images to be transformed by :class:`ColorJitter`."""
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    def forward(self, img: Tensor) -> Tensor:
+        """
+        Args:
+            img (Tensor): Input image.
+
+        Raises:
+            ValueError:
+
+        Returns:
+            Tensor: Color jittered image.
+        """
+        channels = ft.get_image_num_channels(img)
+
+        if channels > 3:
+            rgb_jitter = super().forward(img[:2])
+            jitter_img = torch.stack((rgb_jitter, img[3:]))
+
+        elif channels == 3:
+            jitter_img = super().forward(img)
+
+        else:
+            raise ValueError
+
+        return jitter_img
+
+    def __call__(self, img: Tensor) -> Tensor:
+        return self.forward(img)
+
+    def __repr__(self) -> str:
+        return f"Detached{super().__repr__()}"
+
+
 class MinervaCompose:
-    """Extension of `Compose`. Composes several transforms together. This transform does not support torchscript.
+    """Extension of :class:`Compose`. Composes several transforms together. This transform does not support torchscript.
     Please, see the note below.
 
     Args:
