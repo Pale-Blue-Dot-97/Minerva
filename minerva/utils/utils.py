@@ -185,8 +185,6 @@ def dublicator(cls):
 
 
 def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
-    print(f"tg_to_torch: {cls=}")
-
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
