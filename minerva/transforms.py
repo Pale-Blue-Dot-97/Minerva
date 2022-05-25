@@ -138,8 +138,8 @@ class DetachedColourJitter(ColorJitter):
         channels = ft.get_image_num_channels(img)
 
         if channels > 3:
-            rgb_jitter = super().forward(img[:2])
-            jitter_img = torch.stack((rgb_jitter, img[3:]))
+            rgb_jitter = super().forward(img[:3])
+            jitter_img = torch.cat((rgb_jitter, img[3:]), 0)
 
         elif channels == 3:
             jitter_img = super().forward(img)
