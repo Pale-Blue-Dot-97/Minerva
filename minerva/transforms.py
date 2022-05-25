@@ -125,12 +125,15 @@ class DetachedColourJitter(ColorJitter):
         super().__init__(*args, **kwargs)
 
     def forward(self, img: Tensor) -> Tensor:
-        """
+        """Detaches RGB channels of input image to be sent to :class:`ColorJitter`.
+
+        All other channels bypass :class:`ColorJitter` and are concatenated onto the colour jittered RGB channels.
+
         Args:
             img (Tensor): Input image.
 
         Raises:
-            ValueError:
+            ValueError: If number of channels of input ``img`` is 2.
 
         Returns:
             Tensor: Color jittered image.
@@ -141,11 +144,11 @@ class DetachedColourJitter(ColorJitter):
             rgb_jitter = super().forward(img[:3])
             jitter_img = torch.cat((rgb_jitter, img[3:]), 0)
 
-        elif channels == 3:
+        elif channels in (1, 3):
             jitter_img = super().forward(img)
 
         else:
-            raise ValueError
+            raise ValueError(f"{channels} channel images are not supported!")
 
         return jitter_img
 
