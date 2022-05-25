@@ -860,13 +860,9 @@ def plot_history(
     for key in metrics:
         # Checks that the length of x matches y and is greater than 1 so can be plotted.
         if len(metrics[key]["x"]) == len(metrics[key]["y"]) >= 1.0:
-            y = metrics[key]["y"]
-            if isinstance(y, Tensor):
-                # Ensure data is on CPU and not on a CUDA device.
-                y = metrics[key]["y"].cpu().numpy()
 
             # Plot metric.
-            handles.append(plt.plot(metrics[key]["x"], y)[0])
+            handles.append(plt.plot(metrics[key]["x"], metrics[key]["y"])[0])
             labels.append(key)
 
     # Creates legend from plot artist handles and names of metrics.
