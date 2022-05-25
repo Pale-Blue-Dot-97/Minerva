@@ -325,8 +325,8 @@ class SSL_Logger(MinervaLogger):
 
         # Compute the TOP1 and TOP5 accuracies.
         sim_argsort = utils.calc_contrastive_acc(z)
-        correct = (sim_argsort == 0).float().mean()
-        top5 = (sim_argsort < 5).float().mean()
+        correct = (sim_argsort == 0).float().mean().cpu().numpy()
+        top5 = (sim_argsort < 5).float().mean().cpu().numpy()
 
         # Add accuracies to log.
         self.logs["total_correct"] += correct
