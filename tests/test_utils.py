@@ -101,7 +101,7 @@ def test_find_subpopulations() -> None:
     classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
-    class_dist = utils.find_subpopulations(labels)
+    class_dist = utils.find_modes(labels)
 
     assert class_dist == [(1, 4), (3, 3), (5, 2), (4, 1)]
 
