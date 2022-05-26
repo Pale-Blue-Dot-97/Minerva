@@ -10,18 +10,8 @@ Welcome to Minerva's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-   source/minerva/trainer
-   source/utils/utils
-   source/utils/visutils
-   source/minerva/datasets
-   source/minerva/samplers
-   source/minerva/models
-   source/minerva/metrics
-   source/minerva/logger
-   source/minerva/transforms
-   source/minerva/modelio
-   source/minerva/optimisers
-   source/minerva/pytorchtools
+   source/minerva/index
+   source/utils/index
 
 Indices and tables
 ==================
