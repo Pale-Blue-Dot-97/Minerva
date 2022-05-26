@@ -1,4 +1,5 @@
 from typing import Union, Tuple, Dict, Any
+from collections import defaultdict
 import os
 import random
 import math
@@ -6,7 +7,7 @@ import cmath
 from minerva.utils import utils, config, aux_configs
 import numpy as np
 import torch
-from torchgeo.datasets.utils import BoundingBox
+from torchgeo.datasets.utils import BoundingBox, stack_samples
 from numpy.testing import assert_array_equal
 from datetime import datetime
 from torch.utils.data import DataLoader
@@ -51,7 +52,19 @@ def test_return_updated_kwargs() -> None:
 
 
 def test_pair_collate() -> None:
-    pass
+    collator = utils.pair_collate(stack_samples)
+
+    sample = {"image": torch.rand(4, 224, 224), "mask": torch.rand(224, 224)}
+
+    batch = [(sample, sample)] * 16
+
+    output = collator(batch)
+
+    assert type(output) is tuple
+    assert type(output[0]) is defaultdict
+    assert type(output[1]) is defaultdict
+    assert len(output[0]["image"]) == len(output[1]["image"])
+    assert len(output[1]["mask"]) == len(output[0]["image"])
 
 
 def test_cuda_device() -> None:
