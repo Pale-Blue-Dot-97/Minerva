@@ -190,9 +190,7 @@ def pair_collate(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
     """
 
     @functools.wraps(func)
-    def wrapper(
-        samples: Iterable[Union[Tuple[Any, Any], Tuple[Dict[Any, Any], Dict[Any, Any]]]]
-    ) -> Union[Tuple[Any, Any], Tuple[Dict[Any, Any], Dict[Any, Any]]]:
+    def wrapper(samples: Iterable[Tuple[Any, Any]]) -> Tuple[Any, Any]:
         a, b = tuple(zip(*samples))
         return func(a), func(b)
 
