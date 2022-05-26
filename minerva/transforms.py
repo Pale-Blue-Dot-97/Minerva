@@ -118,7 +118,7 @@ class Normalise:
         return f"{self.__class__.__name__}(norm_value={self.norm_value})"
 
 
-class DetachedColourJitter(ColorJitter):
+class DetachedColorJitter(ColorJitter):
     """Sends RGB channels of multi-spectral images to be transformed by :class:`ColorJitter`."""
 
     def __init__(self, *args, **kwargs) -> None:
@@ -156,7 +156,7 @@ class DetachedColourJitter(ColorJitter):
         return self.forward(img)
 
     def __repr__(self) -> str:
-        return f"Detached{super().__repr__()}"
+        return super().__repr__()
 
 
 class MinervaCompose:
