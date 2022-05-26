@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Tuple, Dict, Any
 import os
 import random
 import math
@@ -10,6 +10,48 @@ from torchgeo.datasets.utils import BoundingBox
 from numpy.testing import assert_array_equal
 from datetime import datetime
 from torch.utils.data import DataLoader
+
+
+def test_return_updated_kwargs() -> None:
+    @utils.return_updated_kwargs
+    def example_func(*args, **kwargs) -> Tuple[Any, Dict[str, Any]]:
+
+        _ = (
+            kwargs["update_1"] * kwargs["update_3"]
+            - kwargs["static_2"] / args[1] * args[0]
+        )
+
+        updates = {"update_1": 100, "update_2": "Minerva", "update_3": 24}
+
+        return 37, updates
+
+    old_kwargs = {
+        "update_1": 0,
+        "static_1": True,
+        "update_2": "minerva",
+        "update_3": 12,
+        "static_2": 42,
+    }
+
+    new_kwargs = {
+        "update_1": 100,
+        "static_1": True,
+        "update_2": "Minerva",
+        "update_3": 24,
+        "static_2": 42,
+    }
+
+    arg1, arg2 = 23, 45
+
+    results = example_func(arg1, arg2, **old_kwargs)
+
+    assert results[0] == 37
+    assert type(results[1]) is dict
+    assert results[1] == new_kwargs
+
+
+def test_pair_collate() -> None:
+    pass
 
 
 def test_cuda_device() -> None:
