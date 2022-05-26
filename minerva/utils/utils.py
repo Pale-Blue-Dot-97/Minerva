@@ -1273,14 +1273,32 @@ def make_classification_report(
 
 
 def calc_contrastive_acc(z: torch.Tensor) -> torch.Tensor:
+    """Calculates the accuracies of predicted samples in a constrastitive learning framework.
+
+    Note:
+        This function has to calculate the loss on the feature embeddings to obtain the gain the
+        rankings of the positive samples. This is depsite the likely scenario that the loss has
+        already been calculated by the embedded loss function in the model. Unfortuanately, this seemingly
+        inefficent computation must be done to obtain certain variables from within the loss calculation
+        needed to get the rankings.
+
+    Args:
+        z (torch.Tensor): Feature embeddings to calculate constrastive loss (and thereby accuracy) on.
+
+    Returns:
+        torch.Tensor: Rankings of positive samples across the batch.
+    """
+    # Calculates the cosine similarity between samples.
     cos_sim = F.cosine_similarity(z[:, None, :], z[None, :, :], dim=-1)
-    # Mask out cosine similarity to itself
+
+    # Mask out cosine similarity to itself.
     self_mask = torch.eye(cos_sim.shape[0], dtype=torch.bool, device=cos_sim.device)
     cos_sim.masked_fill_(self_mask, -9e15)
-    # Find positive example -> batch_size//2 away from the original example
+
+    # Find positive example -> batch_size//2 away from the original example.
     pos_mask = self_mask.roll(shifts=cos_sim.shape[0] // 2, dims=0)
 
-    # Get ranking position of positive example
+    # Get ranking position of positive example.
     comb_sim = torch.cat(
         [
             cos_sim[pos_mask][:, None],  # First position positive example
@@ -1304,7 +1322,7 @@ def run_tensorboard(
             Can be a string or a list of strings for each sub-directory.
         env_name (str): Name of the `Conda` environment to run :mod:`TensorBoard` in.
         exp_name (str): Unique name of the experiment to run the logs of.
-        host_num (str or int): Local host number :mod:`TensorBoard` will be hosted on.
+        host_num (Union[str, int]): Local host number :mod:`TensorBoard` will be hosted on.
 
     Raises:
         KeyError: If ``exp_name is None`` but the default cannot be found in ``config``, return ``None``.
