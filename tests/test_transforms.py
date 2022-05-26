@@ -1,4 +1,5 @@
 from minerva.transforms import ClassTransform, PairCreate, Normalise, MinervaCompose
+from minerva.utils import utils
 from numpy.testing import assert_array_equal
 import torch
 from torchvision.transforms import RandomVerticalFlip, RandomHorizontalFlip
@@ -97,3 +98,54 @@ def test_compose() -> None:
         + "\n    {0}".format(RandomVerticalFlip(1.0))
         + "\n)"
     )
+
+
+def test_dublicator() -> None:
+    transform_1 = (utils.dublicator(Normalise))(255)
+
+    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])
+
+    input_2 = torch.tensor(
+        [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
+    )
+
+    output_1 = input_1 / 255
+    output_2 = input_2 / 255
+
+    result_1, result_2 = transform_1((input_1, input_2))
+
+    assert assert_array_equal(result_1, output_1) is None
+    assert assert_array_equal(result_2, output_2) is None
+
+    assert repr(transform_1) == f"dublicator({repr(Normalise(255))})"
+
+
+def test_tg_to_torch() -> None:
+    transform_1 = (utils.tg_to_torch(Normalise))(255)
+
+    transform_2 = (utils.tg_to_torch(Normalise, keys=["image"]))(255)
+
+    transform_3 = (utils.tg_to_torch(RandomHorizontalFlip, keys=["image", "mask"]))(1.0)
+
+    img = torch.tensor(
+        [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
+    )
+
+    mask = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])
+
+    out_img = torch.tensor(
+        [[127.5, 0.0, 255.0], [76.5, 127.5, 102.0], [204.0, 255.0, 178.5]]
+    )
+
+    out_mask = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])
+
+    input_3 = {"image": img, "mask": mask}
+    output_3 = {"image": out_img, "mask": out_mask}
+
+    result_2 = transform_2({"image": img})
+    result_3 = transform_3(input_3)
+
+    assert assert_array_equal(transform_1(img), img / 255) is None
+    assert assert_array_equal(result_2["image"], img / 255) is None
+    assert assert_array_equal(result_3["image"], output_3["image"]) is None
+    assert assert_array_equal(result_3["mask"], output_3["mask"]) is None
