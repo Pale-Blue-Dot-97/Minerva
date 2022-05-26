@@ -1173,7 +1173,7 @@ def plot_results(
     if plots["Pred"]:
         print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
         plot_subpopulations(
-            utils.find_subpopulations(flat_z),
+            utils.find_modes(flat_z),
             class_names=class_names,
             cmap_dict=colours,
             filename=filenames["Pred"],

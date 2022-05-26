@@ -23,17 +23,18 @@
 """Module to handle all utility functions for training, testing and evaluation of a model.
 
 Attributes:
-    IMAGERY_CONFIG_PATH (str): Path to the imagery config YAML file.
-    DATA_CONFIG_PATH (str): Path to the data config YAML file.
-    IMAGERY_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
-    DATA_CONFIG (dict): Config defining the properties of the data used in the experiment.
-    DATA_DIR (list): Path to directory holding dataset.
-    RESULTS_DIR (list): Path to directory to output plots to.
-    BAND_IDS (dict): Band IDs and position in sample image.
-    IAMGE_SIZE (tuple): Defines the shape of the images.
-    CLASSES (dict): Mapping of class labels to class names.
-    CMAP_DICT (dict): Mapping of class labels to colours.
-    WGS84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
+    IMAGERY_CONFIG_PATH (Union[str, Sequence[str]]): Path to the imagery config ``YAML`` file.
+    DATA_CONFIG_PATH (Union[str, Sequence[str]]): Path to the data config ``YAML`` file.
+    IMAGERY_CONFIG (Dict[str, Any]): Config defining the properties of the imagery used in the experiment.
+    DATA_CONFIG (Dict[str, Any]): Config defining the properties of the data used in the experiment.
+    DATA_DIR (str): Path to directory holding dataset.
+    CACHE_DIR (str): Path to cache directory.
+    RESULTS_DIR (str): Path to directory to output plots to.
+    BAND_IDS (Union[List[int], Tuple[int, ...], Dict[str, Any]]): Band IDs and position in sample image.
+    IAMGE_SIZE (Union[int, Tuple[int, int], List[int]]): Defines the shape of the images.
+    CLASSES (Dict[str, Any]): Mapping of class labels to class names.
+    CMAP_DICT (Dict[str, Any]): Mapping of class labels to colours.
+    WGS84 (CRS): WGS84 co-ordinate reference system acting as a default :class:`CRS` for transformations.
 """
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -54,10 +55,9 @@ from typing import (
 from collections import Counter, OrderedDict
 
 try:
-    from numpy.typing import NDArray, ArrayLike
+    from numpy.typing import NDArray
 except (ModuleNotFoundError, ImportError):
-    NDArray, ArrayLike = Sequence, Sequence
-    DTypeLike = Any
+    NDArray = Sequence
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
 from minerva.utils import config, aux_configs, visutils
@@ -78,6 +78,7 @@ import webbrowser
 import re as regex
 import numpy as np
 import pandas as pd
+from pandas import DataFrame
 from datetime import datetime
 import rasterio as rt
 from rasterio.crs import CRS
@@ -108,33 +109,39 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-IMAGERY_CONFIG_PATH = config["dir"]["configs"]["imagery_config"]
-DATA_CONFIG_PATH = config["dir"]["configs"]["data_config"]
+IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = config["dir"]["configs"][
+    "imagery_config"
+]
+DATA_CONFIG_PATH: Union[str, Sequence[str]] = config["dir"]["configs"]["data_config"]
 
-DATA_CONFIG = aux_configs["data_config"]
-IMAGERY_CONFIG = aux_configs["imagery_config"]
+DATA_CONFIG: Dict[str, Any] = aux_configs["data_config"]
+IMAGERY_CONFIG: Dict[str, Any] = aux_configs["imagery_config"]
 
 # Path to directory holding dataset.
-DATA_DIR = os.sep.join(config["dir"]["data"])
+DATA_DIR: str = os.sep.join(config["dir"]["data"])
 
 # Path to cache directory.
-CACHE_DIR = os.sep.join(config["dir"]["cache"])
+CACHE_DIR: str = os.sep.join(config["dir"]["cache"])
 
 # Path to directory to output plots to.
-RESULTS_DIR = os.path.join(*config["dir"]["results"])
+RESULTS_DIR: str = os.path.join(*config["dir"]["results"])
 
 # Band IDs and position in sample image.
-BAND_IDS = IMAGERY_CONFIG["data_specs"]["band_ids"]
+BAND_IDS: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
+    "band_ids"
+]
 
 # Defines size of the images to determine the number of batches.
-IMAGE_SIZE = IMAGERY_CONFIG["data_specs"]["image_size"]
+IMAGE_SIZE: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
+    "image_size"
+]
 
-CLASSES = DATA_CONFIG["classes"]
+CLASSES: Dict[str, Any] = DATA_CONFIG["classes"]
 
-CMAP_DICT = DATA_CONFIG["colours"]
+CMAP_DICT: Dict[str, Any] = DATA_CONFIG["colours"]
 
 # WGS84 co-ordinate reference system acting as a default CRS for transformations.
-WGS84 = CRS.from_epsg(4326)
+WGS84: CRS = CRS.from_epsg(4326)
 
 # Filters out all TensorFlow messages other than errors.
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -341,14 +348,14 @@ def mkexpdir(name: str) -> None:
 
 
 def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
-    """Checks if a key exists in a dictionary and if it is None or False.
+    """Checks if a key exists in a dictionary and if it is ``None`` or ``False``.
 
     Args:
         dictionary (Dict[Any, Any]): Dictionary to check key for.
         key (Any): Key to be checked.
 
     Returns:
-        bool: True if key exists and is not None or False. False if else.
+        bool: ``True`` if key exists and is not ``None`` or ``False``. ``False`` if else.
     """
     if key in dictionary:
         if dictionary[key] is None:
@@ -362,7 +369,7 @@ def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
 
 
 def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
-    """Takes a str representing a time stamp in one format and returns it reformatted into a second.
+    """Takes a :class:`str` representing a time stamp in one format and returns it reformatted into a second.
 
     Args:
         timestamp (str): Datetime string to be reformatted.
@@ -370,7 +377,7 @@ def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
         fmt2 (str): New format for datetime.
 
     Returns:
-        (str): Datetime reformatted to fmt2.
+        str: Datetime reformatted to ``fmt2``.
     """
     return datetime.strptime(timestamp, fmt1).strftime(fmt2)
 
@@ -379,7 +386,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     """Gets the name of the dataset to be used from the config name.
 
     Returns:
-        Name of dataset as string.
+        Optional[Union[str, Any]]: Name of dataset as string.
     """
     data_config_fn = ntpath.basename(DATA_CONFIG_PATH)
     try:
@@ -390,15 +397,15 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
         return None
 
 
-def load_array(path: str, band: int):
-    """Extracts an array from opening a specific band of a .tif file.
+def load_raster(path: str, band: int) -> NDArray[Any]:
+    """Extracts an array from opening a specific band of a ``.tif`` file.
 
     Args:
         path (str): Path to file.
-        band (int): Band number of .tif file.
+        band (int): Band number of ``.tif`` file.
 
     Returns:
-        data (np.ndarray[np.ndarray[float]]): 2D array representing the image from the .tif band requested.
+        NDArray[Any]: 2D array representing the image from the ``.tif`` band requested.
     """
     raster = rt.open(path)
 
@@ -458,7 +465,7 @@ def transform_coordinates(
 
     Returns:
         Union[Tuple[Sequence[float], Sequence[float]], Tuple[float, float]]: The transformed co-ordinates.
-            A tuple if only one `x` and `y` were provided, sequence of tuples if sequence of `x` and `y` provided.
+        A tuple if only one `x` and `y` were provided, sequence of tuples if sequence of `x` and `y` provided.
     """
     single = False
 
@@ -508,15 +515,17 @@ def check_within_bounds(bbox: BoundingBox, bounds: BoundingBox) -> BoundingBox:
 
 
 def deg_to_dms(deg: float, axis: str = "lat") -> str:
-    """Credit to Gustavo Gonçalves on Stack Overflow.
+    """Converts between decimal degrees of lat/lon to degrees, minutes, seconds.
+
+    Credit to Gustavo Gonçalves on Stack Overflow.
     https://stackoverflow.com/questions/2579535/convert-dd-decimal-degrees-to-dms-degrees-minutes-seconds-in-python
 
     Args:
         deg (float): Decimal degrees of latitude or longitude.
-        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier.
+        axis (str): Identifier between latitude (``"lat"``) or longitude (``"lon"``) for N-S, E-W direction identifier.
 
     Returns:
-        str of inputted deg in degrees, minutes and seconds in the form Degreesº Minutes Seconds Hemisphere.
+        str: String of inputted ``deg`` in degrees, minutes and seconds in the form Degreesº Minutes Seconds Hemisphere.
     """
     # Split decimal degrees into units and decimals
     decimals, number = math.modf(deg)
@@ -537,14 +546,14 @@ def deg_to_dms(deg: float, axis: str = "lat") -> str:
 
 
 def dec2deg(dec_co: Sequence[float], axis: str = "lat") -> List[str]:
-    """Wrapper for deg_to_dms.
+    """Wrapper for :func:`deg_to_dms`.
 
     Args:
         dec_co (list[float]): Array of either latitude or longitude co-ordinates in decimal degrees.
-        axis (str): Identifier between latitude ('lat') or longitude ('lon') for N-S, E-W direction identifier.
+        axis (str): Identifier between latitude (``"lat"``) or longitude (``"lon"``) for N-S, E-W identifier.
 
     Returns:
-        deg_co (list[str]): List of formatted strings in degrees, minutes and seconds.
+        List[str]: List of formatted strings in degrees, minutes and seconds.
     """
     deg_co: List[str] = []
     for co in dec_co:
@@ -622,11 +631,11 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
     """Convert an iterable of indices to one-hot encoded labels.
 
     Args:
-        labels (list[int], tuple[int], np.ndarray[int]): List of class number labels to be converted to OHE.
+        labels (Sequence[int]): Sequence of class number labels to be converted to OHE.
         n_classes (int): Number of classes to determine length of OHE label.
 
     Returns:
-        Labels in OHE form.
+        NDArray[Any]: Labels in OHE form.
     """
     targets: NDArray[Any] = np.array(labels).reshape(-1)
     return np.eye(n_classes)[targets]
@@ -644,7 +653,7 @@ def class_weighting(
         normalise (bool): Optional; Whether to normalise class weights to total number of samples or not.
 
     Returns:
-        class_weights (dict): Dictionary mapping class number to its weight.
+        Dict[int, float]: Dictionary mapping class number to its weight.
     """
     # Finds total number of samples to normalise data
     n_samples: int = 0
@@ -671,11 +680,11 @@ def find_empty_classes(
 
     Args:
         class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
-            from Counter.most_common().
+            from :func:`Counter.most_common`.
         class_names (dict): Optional; Dictionary mapping the class numbers to class names.
 
     Returns:
-        empty (list[int]): List of classes not found in class_dist and are thus empty/ not present in dataset.
+        List[int]: List of classes not found in ``class_dist`` and are thus empty/ not present in dataset.
     """
     empty: List[int] = []
 
@@ -695,6 +704,7 @@ def eliminate_classes(
     old_cmap: Optional[Dict[int, str]] = None,
 ) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
+
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
 
     Args:
@@ -703,9 +713,10 @@ def eliminate_classes(
         old_cmap (dict): Optional; Previous mapping of class labels to colours.
 
     Returns:
-        reordered_classes (dict): Mapping of remaining class labels to class names.
-        conversion (dict): Mapping from old to new classes.
-        reordered_colours (dict): Mapping of remaining class labels to RGB colours.
+        Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]: Tuple of dictionaries:
+            * Mapping of remaining class labels to class names.
+            * Mapping from old to new classes.
+            * Mapping of remaining class labels to RGB colours.
     """
     if old_classes is None:
         old_classes = CLASSES
@@ -764,17 +775,17 @@ def eliminate_classes(
 def load_data_specs(
     class_dist: List[Tuple[int, int]], elim: bool = False
 ) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
-    """Loads the `classes`, `forwards` (if `elim` is true) and `cmap_dict` dictionaries.
+    """Loads the ``classes``, ``forwards`` (if ``elim`` is true) and ``cmap_dict`` dictionaries.
 
     Args:
         class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
-            from Counter.most_common().
+            from :func:`Counter.most_common()`.
         elim (bool): Whether to eliminate classes with no samples in.
 
     Returns:
-        Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]: The `classes`, `forwards` and `cmap_dict` dictionaries
-            transformed to new classes if `elim` is true. Else, the `forwards` dict is empty and `classes`
-            and `cmap_dict` are unaltered.
+        Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]: The ``classes``, ``forwards`` and ``cmap_dict`` dictionaries
+        transformed to new classes if ``elim`` is true. Else, the ``forwards`` dict is empty and ``classes``
+        and ``cmap_dict`` are unaltered.
     """
     if not elim:
         return CLASSES, {}, CMAP_DICT
@@ -799,11 +810,11 @@ def mask_transform(array: NDArray[np.int_], matrix: Dict[int, int]) -> NDArray[n
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
-        array (list or np.ndarray): N-dimensional array containing labels to be transformed.
-        matrix (dict): Dictionary mapping old labels to new.
+        array (NDArray[np.int_]): N-dimensional array containing labels to be transformed.
+        matrix (Dict[int, int]): Dictionary mapping old labels to new.
 
     Returns:
-        np.ndarray[np.int_]: Array of transformed labels.
+        NDArray[np.int_]: Array of transformed labels.
     """
     for key in matrix.keys():
         array[array == key] = matrix[key]
@@ -823,17 +834,18 @@ def check_test_empty(
     Args:
         pred (Sequence[int]): List of predicted labels.
         labels (Sequence[int]): List of corresponding ground truth labels.
-        class_labels (dict): Dictionary mapping class labels to class names.
+        class_labels (Dict[int, str]): Dictionary mapping class labels to class names.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
-        pred (Sequence[int]): List of predicted labels transformed to new classes.
-        labels (Sequence[int]): List of corresponding ground truth labels transformed to new classes.
-        class_labels (dict): Dictionary mapping new class labels to class names.
+        Tuple[NDArray[np.int_], NDArray[np.int_], Dict[int, str]]: Tuple of:
+            * List of predicted labels transformed to new classes.
+            * List of corresponding ground truth labels transformed to new classes.
+            * Dictionary mapping new class labels to class names.
     """
     # Finds the distribution of the classes within the data.
-    labels_dist = find_subpopulations(labels)
-    pred_dist = find_subpopulations(pred)
+    labels_dist = find_modes(labels)
+    pred_dist = find_modes(pred)
 
     if p_dist:
         # Prints class distributions of ground truth and predicted labels to stdout.
@@ -867,12 +879,12 @@ def class_dist_transform(
     """Transforms the class distribution from an old schema to a new one.
 
     Args:
-        class_dist (list[tuple[int, int]]): 2D iterable which should be of the form as that
-            created from Counter.most_common().
-        matrix (dict): Dictionary mapping old labels to new.
+        class_dist (List[Tuple[int, int]]): 2D iterable which should be of the form as that
+            created from :func:`Counter.most_common`.
+        matrix (Dict[int, int]): Dictionary mapping old labels to new.
 
     Returns:
-        new_class_dist (list[tuple[int, int]]): Class distribution updated to new labels.
+        List[Tuple[int, int]]: Class distribution updated to new labels.
     """
     new_class_dist: List[Tuple[int, int]] = []
     for mode in class_dist:
@@ -881,27 +893,15 @@ def class_dist_transform(
     return new_class_dist
 
 
-def find_patch_modes(patch: ArrayLike) -> List[Tuple[int, int]]:
-    """Finds the distribution of the classes within this patch.
-
-    Args:
-        patch (list, np.ndarray): Patch mask.
-
-    Returns:
-        Modal distribution of classes in the patch provided in order of most common mode.
-    """
-    return Counter(np.array(patch).flatten()).most_common()
-
-
 def class_frac(patch: pd.Series) -> Dict[int, Any]:
-    """Computes the fractional sizes of the classes of the given patch and returns a dict of the results
+    """Computes the fractional sizes of the classes of the given patch and returns a dict of the results.
 
     Args:
-        patch (pd.Series): Row of DataFrame representing the entry for a patch
+        patch (pd.Series): Row of :class:`DataFrame` representing the entry for a patch
 
     Returns:
-        new_columns (Mapping): Dictionary-like object with keys as class numbers and associated values
-            of fractional size of class plus a key-value pair for the patch ID
+        Mapping: Dictionary-like object with keys as class numbers and associated values
+        of fractional size of class plus a key-value pair for the patch ID
     """
     new_columns: Dict[int, Any] = dict(patch.to_dict())
     counts = 0
@@ -918,7 +918,7 @@ def cloud_cover(scene: NDArray[Any]) -> Any:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
     Args:
-        scene (np.ndarray): Cloud cover mask for a particular scene.
+        scene (NDArray[Any]): Cloud cover mask for a particular scene.
 
     Returns:
         float: Percentage cloud cover of scene.
@@ -926,49 +926,50 @@ def cloud_cover(scene: NDArray[Any]) -> Any:
     return np.sum(scene) / scene.size
 
 
-def month_sort(df: pd.DataFrame, month: str) -> Any:
+def month_sort(df: DataFrame, month: str) -> Any:
     """Finds the the scene with the lowest cloud cover in a given month.
 
     Args:
-        df (pd.DataFrame): Dataframe containing all scenes and their cloud cover percentages.
+        df (DataFrame): Dataframe containing all scenes and their cloud cover percentages.
         month (str): Month of a year to sort.
 
     Returns:
-        (str): Date of the scene with the lowest cloud cover percentage for the given month.
+        str: Date of the scene with the lowest cloud cover percentage for the given month.
     """
     return df.loc[month].sort_values(by="COVER")["DATE"][0]
 
 
-def threshold_scene_select(df: pd.DataFrame, thres: float = 0.3) -> Any:
+def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
     """Selects all scenes in a patch with a cloud cover less than the threshold provided.
 
     Args:
-        df (pd.DataFrame): Dataframe containing all scenes and their cloud cover percentages.
+        df (DataFrame): :class:`Dataframe` containing all scenes and their cloud cover percentages.
         thres (float): Optional; Fractional limit of cloud cover below which scenes shall be selected.
 
     Returns:
-        List of strings representing dates of the selected scenes in YY_MM_DD format.
+        List[str]: List of strings representing dates of the selected scenes in ``YY_MM_DD`` format.
     """
     return df.loc[df["COVER"] < thres]["DATE"].tolist()
 
 
 def find_best_of(
     patch_id: str,
-    manifest: pd.DataFrame,
-    selector: Callable[[pd.DataFrame], List[str]] = threshold_scene_select,
+    manifest: DataFrame,
+    selector: Callable[[DataFrame], List[str]] = threshold_scene_select,
     **kwargs,
 ) -> List[str]:
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
         patch_id (str): Unique patch ID.
-        manifest (pd.DataFrame): DataFrame outlining cloud cover percentages for all scenes in the patches desired.
+        manifest (DataFrame): :class:`DataFrame` outlining cloud cover percentages
+            for all scenes in the patches desired.
         selector (callable): Optional; Function to use to select scenes.
-            Must take an appropriately constructed pd.DataFrame.
+            Must take an appropriately constructed :class:`DataFrame`.
         **kwargs: Kwargs for func.
 
     Returns:
-        scene_names (list): List of strings representing dates of the selected scenes in YY_MM_DD format.
+        List[str]: List of strings representing dates of the selected scenes in ``YY_MM_DD`` format.
     """
     # Select rows in manifest for given patch ID.
     patch_df = manifest[manifest["PATCH"] == patch_id]
@@ -989,22 +990,22 @@ def timestamp_now(fmt: str = "%d-%m-%Y_%H%M") -> str:
         fmt (str): Format of the returned timestamp.
 
     Returns:
-        Timestamp of the datetime now.
+        str: Timestamp of the datetime now.
     """
     return datetime.now().strftime(fmt)
 
 
-def find_subpopulations(
-    labels: Sequence[int], plot: bool = False
-) -> List[Tuple[int, int]]:
-    """Loads all LC labels for the given patches using lc_load() then finds the number of samples for each class.
+def find_modes(labels: Sequence[int], plot: bool = False) -> List[Tuple[int, int]]:
+    """Finds the modal distribution of the classes within the labels provided.
+
+    Can plot the results as a pie chart if ``plot=True``.
 
     Args:
-        labels (list or np.ndarray): Class labels describing the data to be analysed.
-        plot (bool): Plots distribution of subpopulations if True.
+        labels (Iterable[int]): Class labels describing the data to be analysed.
+        plot (bool): Plots distribution of subpopulations if ``True``.
 
     Returns:
-        class_dist (list): Modal distribution of classes in the dataset provided.
+        List[Tuple[int, int]]: Modal distribution of classes in input in order of most common class.
     """
     # Finds the distribution of the classes within the data
     class_dist: List[Tuple[int, int]] = Counter(
@@ -1021,18 +1022,17 @@ def find_subpopulations(
 
 
 def subpopulations_from_manifest(
-    manifest: pd.DataFrame, plot: bool = False
+    manifest: DataFrame, plot: bool = False
 ) -> List[Tuple[int, int]]:
-    """Uses the dataset manifest to calculate the fractional size of classes within the dataset without
-    loading the label files.
+    """Uses the dataset manifest to calculate the fractional size of the classes.
 
     Args:
-        manifest (pd.DataFrame): DataFrame containing the fractional sizes of classes and centre pixel labels
+        manifest (DataFrame): :class:`DataFrame` containing the fractional sizes of classes and centre pixel labels
             of all samples of the dataset to be used.
         plot (bool): Optional; Whether to plot the class distribution pie chart.
 
     Returns:
-        class_dist (list): Modal distribution of classes in the dataset provided.
+        List[Tuple[int, int]]: Modal distribution of classes in the dataset provided.
     """
     class_counter: Counter[int] = Counter()
     for classification in CLASSES.keys():
@@ -1055,7 +1055,7 @@ def subpopulations_from_manifest(
     return class_dist
 
 
-def func_by_str(module_path: str, func: str) -> Any:
+def func_by_str(module_path: str, func: str) -> Callable[[Any], Any]:
     """Gets the constructor or callable within a module defined by the names supplied.
 
     Args:
@@ -1063,7 +1063,7 @@ def func_by_str(module_path: str, func: str) -> Any:
         func (str): Name of function or class desired.
 
     Returns:
-        Constructor or callable request by string.
+        Callable[[Any], Any]: Pointer to the constructor or function requested.
     """
     # Gets module found from the path/ name supplied.
     module = importlib.import_module(module_path)
@@ -1076,13 +1076,14 @@ def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
     """Checks the length of one object against a comparator object.
 
     Args:
-        param: Object to have length checked.
-        comparator: Object to compare length of param to.
+        param (Any): Object to have length checked.
+        comparator (Any): Object to compare length of param to.
 
     Returns:
-        param if length of param == comparator.
-        list with param[0] elements of length comparator if param =! comparator.
-        list with param elements of length comparator if param does not have __len__.
+        Union[Any, Sequence[Any]]:
+        * ``param`` if length of param == comparator,
+        * *or* :class:`list` with ``param[0]`` elements of length comparator if param =! comparator,
+        * *or* :class:`list` with param elements of length comparator if param does not have ``__len__``.
     """
     if hasattr(param, "__len__"):
         if len(param) == len(comparator):
@@ -1094,16 +1095,16 @@ def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
 
 
 def calc_grad(model: Module) -> Optional[float]:
-    """Calculates and prints to stdout the 2D grad norm of the model parameters.
+    """Calculates and prints to ``stdout`` the 2D grad norm of the model parameters.
 
     Args:
-        model (Module): Torch model to calculate grad norms from.
+        model (Module): :mod:`Torch` model to calculate grad norms from.
 
     Returns:
         total_norm (float): Total 2D grad norm of the model.
 
     Raises:
-        AttributeError: If model has no attribute 'parameters'.
+        AttributeError: If model has no attribute ``parameters``.
     """
     total_norm = 0.0
 
@@ -1131,11 +1132,11 @@ def calc_grad(model: Module) -> Optional[float]:
 def print_class_dist(
     class_dist: List[Tuple[int, int]], class_labels: Dict[int, str] = CLASSES
 ) -> None:
-    """Prints the supplied class_dist in a pretty table format using tabulate.
+    """Prints the supplied ``class_dist`` in a pretty table format using :mod:`tabulate`.
 
     Args:
         class_dist (list[tuple[int, int]]): 2D iterable which should be of the form as that
-            created from Counter.most_common().
+            created from :func:`Counter.most_common`.
         class_labels (dict): Mapping of class labels to class names.
 
     Returns:
@@ -1143,15 +1144,14 @@ def print_class_dist(
     """
 
     def calc_frac(count: float, total: float) -> str:
-        """Calculates the percentage size of the class from the number of counts and
-            supplied total counts across the dataset.
+        """Calculates the percentage size of the class from the number of counts and total counts across the dataset.
 
         Args:
             count (float): Number of samples in dataset belonging to this class.
             total (float): Total number of samples across dataset.
 
         Returns:
-            Formatted string of the percentage size to 2 decimal places.
+            str: Formatted string of the percentage size to 2 decimal places.
         """
         return "{:.2f}%".format(count * 100.0 / total)
 
@@ -1162,7 +1162,7 @@ def print_class_dist(
     ]
 
     # Create pandas DataFrame from dict.
-    df = pd.DataFrame(rows)
+    df = DataFrame(rows)
 
     # Add percentage size of classes.
     df["SIZE"] = df["COUNT"].apply(calc_frac, total=float(df["COUNT"].sum()))
@@ -1179,14 +1179,16 @@ def print_class_dist(
 
 
 def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> Union[List[Any], NDArray[Any]]:
-    """Attempts to flatten the supplied array. If not ragged, should be flattened with numpy.
+    """Attempts to flatten the supplied array. If not ragged, should be flattened with :mod:`numpy`.
+
     If ragged, the first 2 dimensions will be flattened using list appending.
 
     Args:
         x: Array to be flattened.
 
     Returns:
-        x: Either a flattened ndarray or if this failed, a list that has its first 2 dimensions flattened.
+        Union[List[Any], NDArray[Any]]: Either a flattened :class:`NDArray` or if this failed,
+        a :class:`list` that has its first 2 dimensions flattened.
     """
     try:
         x = x.flatten()
@@ -1208,7 +1210,7 @@ def make_classification_report(
     class_labels: Dict[int, str],
     print_cr: bool = True,
     p_dist: bool = False,
-) -> pd.DataFrame:
+) -> DataFrame:
     """Generates a DataFrame of the precision, recall, f-1 score and support of the supplied predictions
     and ground truth labels.
 
@@ -1219,12 +1221,12 @@ def make_classification_report(
         pred (list[int] or np.ndarray[int]): List of predicted labels.
         labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
         class_labels (dict): Dictionary mapping class labels to class names.
-        print_cr (bool): Optional; Whether to print a copy of the classification report DataFrame put through tabulate.
+        print_cr (bool): Optional; Whether to print a copy of the classification report :class:`DataFrame` put through tabulate.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
-        cr_df (pd.DataFrame): Classification report with the precision, recall, f-1 score and support
-        for each class in a DataFrame.
+        DataFrame: Classification report with the precision, recall, f-1 score and support
+        for each class in a :class:`DataFrame`.
     """
     # Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     # Returns corrected and re-ordered predictions, labels and class_labels.
@@ -1245,7 +1247,7 @@ def make_classification_report(
     )
 
     # Constructs DataFrame from classification report dict.
-    cr_df = pd.DataFrame(cr)
+    cr_df = DataFrame(cr)
 
     # Delete unneeded columns.
     for column in ("accuracy", "macro avg", "micro avg", "weighted avg"):
@@ -1295,18 +1297,18 @@ def run_tensorboard(
     exp_name: Optional[str] = None,
     host_num: Optional[Union[str, int]] = 6006,
 ) -> None:
-    """Runs the TensorBoard logs and hosts on a local webpage.
+    """Runs the :mod:`TensorBoard` logs and hosts on a local webpage.
 
     Args:
         path (str or list[str] or tuple[str]): Path to the directory holding the log.
             Can be a string or a list of strings for each sub-directory.
-        env_name (str): Name of the Conda environment to run TensorBoard in.
+        env_name (str): Name of the `Conda` environment to run :mod:`TensorBoard` in.
         exp_name (str): Unique name of the experiment to run the logs of.
-        host_num (str or int): Local host number TensorBoard will be hosted on.
+        host_num (str or int): Local host number :mod:`TensorBoard` will be hosted on.
 
     Raises:
-        KeyError: If exp_name is None but the default cannot be found in config, return None.
-        KeyError: If path is None but the default cannot be found in config, return None.
+        KeyError: If ``exp_name is None`` but the default cannot be found in ``config``, return ``None``.
+        KeyError: If ``path is None`` but the default cannot be found in ``config``, return ``None``.
 
     Returns:
         None
@@ -1367,9 +1369,10 @@ def compute_roc_curves(
         macro (bool): Optional; Whether to compute the macro average ROC curves.
 
     Returns:
-        fpr (dict): Dictionary of false-positive rates for each class and micro and macro averages.
-        tpr (dict): Dictionary of true-positive rates for each class and micro and macro averages.
-        roc_auc (dict): Dictionary of AUCs for each class and micro and macro averages.
+        Tuple[Dict[Any, float], Dict[Any, float], Dict[Any, float]]: Tuple of:
+            * Dictionary of false-positive rates for each class and micro and macro averages.
+            * Dictionary of true-positive rates for each class and micro and macro averages.
+            * Dictionary of AUCs for each class and micro and macro averages.
     """
 
     print("\nBinarising labels")
@@ -1448,13 +1451,13 @@ def compute_roc_curves(
 
 
 def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
-    """Find an image that is less than or equal to the geo-spatial distance `r` from the intial image.
+    """Find an image that is less than or equal to the geo-spatial distance ``r`` from the intial image.
 
     Based on the the work of GeoCLR https://arxiv.org/abs/2108.06421v1.
 
     Args:
         bbox (BoundingBox): Original bounding box.
-        max_r (int): Optional; Maximum distance new bounding box can be from original. Defaults to 256.
+        max_r (int): Optional; Maximum distance new bounding box can be from original. Defaults to ``256``.
 
     Returns:
         BoundingBox: New bounding box translated a random displacement from original.
