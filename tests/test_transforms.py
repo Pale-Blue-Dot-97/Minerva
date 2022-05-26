@@ -1,8 +1,15 @@
-from minerva.transforms import ClassTransform, PairCreate, Normalise, MinervaCompose
+from minerva.transforms import (
+    ClassTransform,
+    PairCreate,
+    Normalise,
+    MinervaCompose,
+    DetachedColorJitter,
+)
 from minerva.utils import utils
 from numpy.testing import assert_array_equal
 import torch
-from torchvision.transforms import RandomVerticalFlip, RandomHorizontalFlip
+from torchvision.transforms import RandomVerticalFlip, RandomHorizontalFlip, ColorJitter
+import pytest
 
 
 def test_class_transform() -> None:
@@ -98,6 +105,28 @@ def test_compose() -> None:
         + "\n    {0}".format(RandomVerticalFlip(1.0))
         + "\n)"
     )
+
+
+def test_detachedcolorjitter() -> None:
+    transform_1 = DetachedColorJitter(0.8, 0.8, 0.8, 0.2)
+    colorjitter_1 = ColorJitter(0.8, 0.8, 0.8, 0.2)
+
+    img = torch.rand(4, 224, 224)
+    img_rgb = img[:3]
+    img_nir = img[3:]
+
+    err_img = torch.rand(2, 224, 224)
+
+    manual_detach = torch.cat((colorjitter_1(img_rgb), img_nir), 0)
+
+    assert assert_array_equal(transform_1(img).size(), manual_detach.size()) is None
+    assert assert_array_equal(transform_1(img_rgb).size(), img_rgb.size()) is None
+    assert assert_array_equal(transform_1(img_nir).size(), img_nir.size()) is None
+
+    with pytest.raises(ValueError, match=r"\d channel images are not supported!"):
+        transform_1(err_img)
+
+    assert repr(transform_1) == f"Detached{repr(colorjitter_1)}"
 
 
 def test_dublicator() -> None:
