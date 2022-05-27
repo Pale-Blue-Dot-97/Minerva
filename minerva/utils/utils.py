@@ -573,7 +573,13 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         geolocator = Nominatim(user_agent="geoapiExercises")
 
         # Query to server with lat-lon co-ordinates.
-        location = geolocator.reverse(f"{lat},{lon}").raw["address"]
+        query = geolocator.reverse(f"{lat},{lon}")
+
+        if query is None:
+            print("No location found!")
+            return ""
+
+        location = query.raw["address"]
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
         locs: list[str] = []
@@ -597,7 +603,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
             return ", ".join(locs)
         # If one line, just return this field as the location.
         elif len(locs) == 1:
-            return locs
+            return locs[0]
         # If no fields found for query, return empty string.
         else:
             return ""
