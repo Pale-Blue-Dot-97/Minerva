@@ -887,11 +887,11 @@ def class_frac(patch: pd.Series) -> Dict[int, Any]:
     """Computes the fractional sizes of the classes of the given patch and returns a dict of the results.
 
     Args:
-        patch (pd.Series): Row of :class:`DataFrame` representing the entry for a patch
+        patch (pd.Series): Row of :class:`DataFrame` representing the entry for a patch.
 
     Returns:
         Mapping: Dictionary-like object with keys as class numbers and associated values
-        of fractional size of class plus a key-value pair for the patch ID
+        of fractional size of class plus a key-value pair for the patch ID.
     """
     new_columns: Dict[int, Any] = dict(patch.to_dict())
     counts = 0
