@@ -170,8 +170,8 @@ def intersect_datasets(
 
     master_dataset = datasets[0]
 
-    if sample_pairs and not _INTERSECTION_CHANGED:
-        IntersectionDataset = utils.pair_return(IntersectionDataset)
+    # if sample_pairs and not _INTERSECTION_CHANGED:
+    #    IntersectionDataset = utils.pair_return(IntersectionDataset)
 
     for i in range(len(datasets) - 1):
         master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
