@@ -381,3 +381,12 @@ def test_class_weighting() -> None:
 
     for key in results_2.keys():
         assert norm_cls_weights[key] == pytest.approx(results_2[key])
+
+
+def test_class_dist_transform() -> None:
+    old_class_dist = [(5, 750), (7, 150), (2, 60), (4, 20), (6, 12), (0, 8)]
+    new_class_dist = [(5, 750), (3, 150), (2, 60), (4, 20), (1, 12), (0, 8)]
+
+    transform = {5: 5, 7: 3, 2: 2, 4: 4, 6: 1, 0: 0}
+
+    assert utils.class_dist_transform(old_class_dist, transform) == new_class_dist
