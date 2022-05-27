@@ -359,3 +359,25 @@ def test_lat_lon_to_loc() -> None:
 
     assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
     assert utils.lat_lon_to_loc(lat_5, lon_5) == "Civitas Vaticana"
+
+
+def test_class_weighting() -> None:
+    class_dist = [(5, 750), (3, 150), (2, 60), (4, 20), (1, 12), (0, 8)]
+    cls_weights = {5: 1 / 750, 3: 1 / 150, 2: 1 / 60, 4: 1 / 20, 1: 1 / 12, 0: 1 / 8}
+    norm_cls_weights = {
+        5: 1000 / 750,
+        3: 1000 / 150,
+        2: 1000 / 60,
+        4: 1000 / 20,
+        1: 1000 / 12,
+        0: 1000 / 8,
+    }
+
+    results_1 = utils.class_weighting(class_dist)
+    results_2 = utils.class_weighting(class_dist, normalise=True)
+
+    for key in results_1.keys():
+        assert cls_weights[key] == pytest.approx(results_1[key])
+
+    for key in results_2.keys():
+        assert norm_cls_weights[key] == pytest.approx(results_2[key])
