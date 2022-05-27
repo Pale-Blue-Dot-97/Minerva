@@ -413,24 +413,6 @@ def load_raster(path: str, band: int) -> NDArray[Any]:
     return data
 
 
-def centre_pixel_only(image: Sequence[Any]) -> NDArray[Any]:
-    """Returns a copy of the image containing only zeros and the original central pixel.
-
-    Args:
-        image (Sequence): Image to be modified.
-
-    Returns:
-        Image of only zeros except the original central pixel.
-    """
-    new_image = np.zeros((*IMAGE_SIZE, len(BAND_IDS)))
-
-    new_image[int(IMAGE_SIZE[0] / 2.0)][int(IMAGE_SIZE[1] / 2.0)] = image[
-        int(IMAGE_SIZE[0] / 2.0)
-    ][int(IMAGE_SIZE[1] / 2.0)]
-
-    return new_image
-
-
 def transform_raster(path: str, new_crs: CRS) -> List[float]:
     """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
     in the new co-ordinates system provided.
