@@ -329,3 +329,33 @@ def test_get_centre_loc() -> None:
     centre = utils.get_centre_loc(bbox)
     assert pytest.approx(centre[0]) == 2.0
     assert pytest.approx(centre[1]) == 3.0
+
+
+def test_lat_lon_to_loc() -> None:
+    # Belper, UK.
+    lat_1 = 53.02324371916741
+    lon_1 = -1.482418942412615
+
+    # City of London.
+    lat_2 = 51.51331165954196
+    lon_2 = -0.08889921085815589
+
+    # Random point in Ohio.
+    lat_3 = 36.53849331792166
+    lon_3 = -102.65475905788739
+
+    # Bermuda Triangle.
+    lat_4 = 30.45028570174185
+    lon_4 = -76.49581035362436
+
+    # Vatican City.
+    lat_5 = 41.90204312927206
+    lon_5 = 12.45644780021287
+
+    assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
+    assert utils.lat_lon_to_loc(str(lat_1), str(lon_1)) == "Amber Valley, England"
+    assert utils.lat_lon_to_loc(lat_2, lon_2) == "City of London, England"
+    assert utils.lat_lon_to_loc(lat_3, lon_3) == "Cimarron County, Oklahoma"
+
+    assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
+    assert utils.lat_lon_to_loc(lat_5, lon_5) == "Civitas Vaticana"
