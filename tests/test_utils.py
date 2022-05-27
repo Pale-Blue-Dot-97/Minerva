@@ -11,6 +11,7 @@ from torchgeo.datasets.utils import BoundingBox, stack_samples
 from numpy.testing import assert_array_equal
 from datetime import datetime
 from torch.utils.data import DataLoader
+from torchvision.datasets import FakeData
 
 
 def test_return_updated_kwargs() -> None:
@@ -65,6 +66,21 @@ def test_pair_collate() -> None:
     assert type(output[1]) is defaultdict
     assert len(output[0]["image"]) == len(output[1]["image"])
     assert len(output[1]["mask"]) == len(output[0]["image"])
+
+
+def test_pair_return() -> None:
+    _dataset = utils.pair_return(FakeData)
+    dataset = _dataset(size=64)
+
+    returns = dataset[(1, 42)]
+    assert len(returns) == 2
+    assert len(returns[0]) == 2
+    assert len(returns[1]) == 2
+
+    assert hasattr(dataset, "size") is True
+    assert hasattr(dataset, "wrap") is True
+
+    assert repr(dataset) == repr(FakeData(size=64))
 
 
 def test_cuda_device() -> None:
