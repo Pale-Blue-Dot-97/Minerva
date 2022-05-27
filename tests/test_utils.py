@@ -307,3 +307,17 @@ def test_check_within_bounds() -> None:
     assert new_bbox_2 == correct_2
     assert new_bbox_3 != bbox_3
     assert new_bbox_3 == correct_3
+
+
+def test_dec2deg() -> None:
+    lon_1 = -1.3958972757520531
+    lat_1 = 50.936371897509154
+
+    lon_2 = 172.63809028021004
+    lat_2 = -43.525396528993525
+
+    assert utils.deg_to_dms(lon_1, "lon") == "1º23'45\"W"
+    assert utils.deg_to_dms(lat_1, "lat") == "50º56'11\"N"
+
+    assert utils.dec2deg([lon_1, lon_2], "lon") == ["1º23'45\"W", "172º38'17\"E"]
+    assert utils.dec2deg([lat_1, lat_2], "lat") == ["50º56'11\"N", "43º31'31\"S"]
