@@ -178,3 +178,10 @@ def test_tg_to_torch() -> None:
     assert assert_array_equal(result_2["image"], img / 255) is None
     assert assert_array_equal(result_3["image"], output_3["image"]) is None
     assert assert_array_equal(result_3["mask"], output_3["mask"]) is None
+
+    input_4 = ["wrongisimo!"]
+
+    with pytest.raises(TypeError):
+        transform_1(input_4)
+
+    assert repr(transform_1) == repr(Normalise(255))
