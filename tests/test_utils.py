@@ -4,6 +4,7 @@ import os
 import random
 import math
 import cmath
+import pytest
 from minerva.utils import utils, config, aux_configs
 import numpy as np
 import torch
@@ -79,6 +80,9 @@ def test_pair_return() -> None:
 
     assert hasattr(dataset, "size") is True
     assert hasattr(dataset, "wrap") is True
+
+    with pytest.raises(AttributeError):
+        getattr(dataset, "__len__")
 
     assert repr(dataset) == repr(FakeData(size=64))
 
