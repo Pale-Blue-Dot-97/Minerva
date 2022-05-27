@@ -631,12 +631,15 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
 def class_weighting(
     class_dist: List[Tuple[int, int]], normalise: bool = False
 ) -> Dict[int, float]:
-    """Constructs weights for each class defined by the distribution provided. Each class weight is the inverse
-    of the number of samples of that class. Note: This will most likely mean that the weights will not sum to unity.
+    """Constructs weights for each class defined by the distribution provided.
+
+    Note:
+        Each class weight is the inverse of the number of samples of that class.
+        This will most likely mean that the weights will not sum to unity.
 
     Args:
         class_dist (list[list[int]] or tuple[tuple[int]]): 2D iterable which should be of the form as that
-            created from Counter.most_common().
+            created from :func:`Counter.most_common`.
         normalise (bool): Optional; Whether to normalise class weights to total number of samples or not.
 
     Returns:
