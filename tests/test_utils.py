@@ -7,6 +7,7 @@ import cmath
 import pytest
 from minerva.utils import utils, config, aux_configs
 import numpy as np
+import pandas as pd
 import torch
 from torchgeo.datasets.utils import BoundingBox, stack_samples
 from numpy.testing import assert_array_equal
@@ -390,3 +391,27 @@ def test_class_dist_transform() -> None:
     transform = {5: 5, 7: 3, 2: 2, 4: 4, 6: 1, 0: 0}
 
     assert utils.class_dist_transform(old_class_dist, transform) == new_class_dist
+
+
+def test_class_frac() -> None:
+    class_dist = [(5, 750), (3, 150), (2, 60), (4, 20), (1, 12), (0, 8)]
+    row_dict = {"MODES": class_dist, "AnotherColumn": "stuff"}
+    row = pd.Series(row_dict)
+
+    new_row = {
+        "MODES": class_dist,
+        "AnotherColumn": "stuff",
+        5: 750 / 1000,
+        3: 150 / 1000,
+        2: 60 / 1000,
+        4: 20 / 1000,
+        1: 12 / 1000,
+        0: 8 / 1000,
+    }
+    new_row = utils.class_frac(row)
+
+    for mode in class_dist:
+        assert mode[1] / 1000 == pytest.approx(new_row[mode[0]])
+
+    assert new_row["MODES"] == class_dist
+    assert new_row["AnotherColumn"] == "stuff"
