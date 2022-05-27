@@ -415,3 +415,11 @@ def test_class_frac() -> None:
 
     assert new_row["MODES"] == class_dist
     assert new_row["AnotherColumn"] == "stuff"
+
+
+def test_cloud_cover() -> None:
+    assert utils.cloud_cover(np.zeros((5, 5))) == pytest.approx(0.0)
+
+    cloud_mask = [[0, 5, 0], [3, 4, 6], [1, 3, 10]]
+
+    assert utils.cloud_cover(np.array(cloud_mask)) == pytest.approx(32.0 / 9.0)
