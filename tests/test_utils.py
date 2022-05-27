@@ -321,3 +321,11 @@ def test_dec2deg() -> None:
 
     assert utils.dec2deg([lon_1, lon_2], "lon") == ["1º23'45\"W", "172º38'17\"E"]
     assert utils.dec2deg([lat_1, lat_2], "lat") == ["50º56'11\"N", "43º31'31\"S"]
+
+
+def test_get_centre_loc() -> None:
+    bbox = BoundingBox(1.0, 3.0, 1.0, 5.0, 0.0, 2.0)
+
+    centre = utils.get_centre_loc(bbox)
+    assert pytest.approx(centre[0]) == 2.0
+    assert pytest.approx(centre[1]) == 3.0
