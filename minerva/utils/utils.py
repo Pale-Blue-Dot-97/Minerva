@@ -241,11 +241,9 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
             self, batch: Union[Dict[str, Any], torch.Tensor]
         ) -> Dict[str, Any]:
             if isinstance(batch, torch.Tensor):
-                print(batch.size())
                 return self.wrap.__call__(batch)
 
             elif isinstance(batch, dict):
-                print(batch.keys())
                 aug_batch: Dict[str, Any] = {}
                 for key in self.keys:
                     aug_batch[key] = self.wrap.__call__(batch.pop(key))
@@ -255,7 +253,7 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
             else:
                 raise TypeError(
                     f"Inputted batch has type {type(batch)}"
-                    + "-- batch must be either a `Tensor` or `dict`"
+                    + " -- batch must be either a `Tensor` or `dict`"
                 )
 
         def __repr__(self) -> str:
@@ -290,6 +288,9 @@ def pair_return(cls):
                 return getattr(self.wrap, item)
             else:
                 raise AttributeError
+
+        def __repr__(self) -> str:
+            return self.wrap.__repr__()
 
     return Wrapper
 
