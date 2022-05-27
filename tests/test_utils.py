@@ -13,6 +13,7 @@ from numpy.testing import assert_array_equal
 from datetime import datetime
 from torch.utils.data import DataLoader
 from torchvision.datasets import FakeData
+from rasterio.crs import CRS
 
 
 def test_return_updated_kwargs() -> None:
@@ -253,3 +254,56 @@ def test_batch_flatten() -> None:
     assert len(utils.batch_flatten(a)) == 256 * 256
     assert len(utils.batch_flatten(b)) == 16 * 128 * 128
     assert len(utils.batch_flatten(c)) == 256 * 256
+
+
+def test_transform_coordinates() -> None:
+    x_1 = [-1.3958972757520531]
+    y_1 = 50.936371897509154
+
+    x_2 = [-1.3958972757520531, 0.0]
+    y_2 = [50.936371897509154, 51.47687968807581]
+
+    x_3 = 0.0
+    y_3 = 6706085.70
+
+    src_crs = utils.WGS84
+    new_crs = CRS.from_epsg(3857)
+
+    new_x_1 = [-155390.57]
+    new_y_1 = [6610046.36]
+
+    new_x_2 = [-155390.57, 0.0]
+    new_y_2 = [6610046.36, 6706085.70]
+
+    new_y_3 = 51.47687968807581
+
+    results_1 = utils.transform_coordinates(x_1, y_1, src_crs, new_crs)
+    results_2 = utils.transform_coordinates(x_2, y_2, src_crs, new_crs)
+    results_3 = utils.transform_coordinates(x_3, y_3, new_crs, src_crs)
+
+    assert results_1[0] == pytest.approx(new_x_1)
+    assert results_1[1] == pytest.approx(new_y_1)
+    assert results_2[0] == pytest.approx(new_x_2)
+    assert results_2[1] == pytest.approx(new_y_2)
+    assert results_3[0] == pytest.approx(0.0)
+    assert results_3[1] == pytest.approx(new_y_3)
+
+
+def test_check_within_bounds() -> None:
+    bounds = BoundingBox(0.0, 3.0, 0.0, 3.0, 0.0, 3.0)
+
+    bbox_1 = BoundingBox(1.0, 2.0, 1.0, 2.0, 1.0, 2.0)
+    bbox_2 = BoundingBox(1.0, 4.0, 1.0, 2.0, 1.0, 2.0)
+    bbox_3 = BoundingBox(-1.0, 1.0, -1.0, 1.0, 0.0, 4.0)
+
+    correct_2 = BoundingBox(1.0, 3.0, 1.0, 2.0, 1.0, 2.0)
+    correct_3 = BoundingBox(0.0, 1.0, 0.0, 1.0, 0.0, 4.0)
+
+    new_bbox_2 = utils.check_within_bounds(bbox_2, bounds)
+    new_bbox_3 = utils.check_within_bounds(bbox_3, bounds)
+
+    assert utils.check_within_bounds(bbox_1, bounds) == bbox_1
+    assert new_bbox_2 != bbox_2
+    assert new_bbox_2 == correct_2
+    assert new_bbox_3 != bbox_3
+    assert new_bbox_3 == correct_3
