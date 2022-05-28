@@ -423,3 +423,25 @@ def test_cloud_cover() -> None:
     cloud_mask = [[0, 5, 0], [3, 4, 6], [1, 3, 10]]
 
     assert utils.cloud_cover(np.array(cloud_mask)) == pytest.approx(32.0 / 9.0)
+
+
+def test_threshold_scene_select() -> None:
+    df = pd.DataFrame()
+
+    df["DATE"] = ["2018-12-12", "2017-04-24", "2018-06-21"]
+    df["COVER"] = [0.7, 0.8, 0.1]
+
+    assert utils.threshold_scene_select(df, thres=0.3) == ["2018-06-21"]
+
+
+def test_find_best_of() -> None:
+    df = pd.DataFrame()
+
+    df["PATCH"] = ["34MP", "34MP", "34MP", "56TG", "56TG"]
+    df["DATE"] = ["2018_12_12", "2017_04_24", "2018_06_21", "2018_07_18", "2018_08_23"]
+    df["COVER"] = [0.7, 0.8, 0.1, 0.4, 0.5]
+
+    scene = utils.find_best_of(
+        patch_id="34MP", manifest=df, selector=utils.threshold_scene_select, thres=0.3
+    )
+    assert scene == ["2018_06_21"]
