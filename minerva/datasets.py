@@ -411,7 +411,7 @@ def make_loaders(
 
     # Load manifest from cache for this dataset.
     manifest = get_manifest(get_manifest_path())
-    class_dist = utils.subpopulations_from_manifest(manifest)
+    class_dist = utils.modes_from_manifest(manifest)
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
     # and new colours.
