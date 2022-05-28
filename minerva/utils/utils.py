@@ -1439,25 +1439,3 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
         mint=bbox.mint,
         maxt=bbox.maxt,
     )
-
-
-def ran_sample_by_bbox(
-    dataset: GeoDataset, bbox: BoundingBox, max_r: int
-) -> Dict[Any, Any]:
-    """Finds a sample a random displacement from the original sample.
-
-    Args:
-        dataset (GeoDataset): Dataset to slice samples from.
-        bbox (BoundingBox): Bounding box of the original sample.
-        max_r (int): Maximum distance from original sample from which to find the new sample.
-
-    Returns:
-        Dict[Any, Any]: New sample a random displacement away from the original.
-    """
-    # Tries to find a sample a random displacement away.
-    try:
-        return dataset[find_geo_similar(bbox, max_r)]
-    # If the new bbox is not within the bounds of the dataset, an IndexError will be thrown.
-    # In this case, run this method again to find a different random sample that may be within bounds.
-    except IndexError:
-        return ran_sample_by_bbox(dataset, bbox, max_r)
