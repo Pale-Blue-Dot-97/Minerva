@@ -178,7 +178,7 @@ def test_find_modes() -> None:
     classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
-    class_dist = utils.find_modes(labels)
+    class_dist = utils.find_modes(labels, plot=True)
 
     assert class_dist == [(1, 4), (3, 3), (5, 2), (4, 1)]
 
@@ -466,9 +466,29 @@ def test_modes_from_manifest() -> None:
         (4, [2, 3, 0, 1, 4, 8, 2]),
         (6, [3, 4, 0, 1, 3, 1, 0]),
         (0, [1, 0, 0, 3, 4, 0, 0]),
+        (1, [0, 0, 0, 0, 0, 0, 0]),
     ]
 
     for mode in counts:
         df[mode[0]] = mode[1]
 
-    assert utils.modes_from_manifest(df) == class_dist
+    assert utils.modes_from_manifest(df, plot=True) == class_dist
+
+
+def test_make_classification_report() -> None:
+    pred = [0, 3, 3, 1, 3, 2, 0, 0]
+    labels = [0, 3, 2, 1, 3, 2, 1, 0]
+    class_labels = {0: "Class 0", 1: "Class 1", 2: "Class 2", 3: "Class 3"}
+
+    df = pd.DataFrame()
+    df["LABEL"] = class_labels.values()
+    df["precision"] = [2.0 / 3.0, 1.0, 1.0, 2.0 / 3.0]
+    df["recall"] = [1.0, 0.5, 0.5, 1.0]
+    df["f1-score"] = [0.8, 2.0 / 3.0, 2.0 / 3.0, 0.8]
+    df["support"] = [2.0, 2.0, 2.0, 2.0]
+
+    df.index = df.index.astype(str)
+
+    cr_df = utils.make_classification_report(pred, labels, class_labels, p_dist=True)
+
+    assert df.equals(cr_df)
