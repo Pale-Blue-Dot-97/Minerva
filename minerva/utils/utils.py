@@ -396,40 +396,6 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
         return None
 
 
-def load_raster(path: str, band: int) -> NDArray[Any]:
-    """Extracts an array from opening a specific band of a ``.tif`` file.
-
-    Args:
-        path (str): Path to file.
-        band (int): Band number of ``.tif`` file.
-
-    Returns:
-        NDArray[Any]: 2D array representing the image from the ``.tif`` band requested.
-    """
-    raster = rt.open(path)
-
-    data = raster.read(band)
-
-    return data
-
-
-def transform_raster(path: str, new_crs: CRS) -> List[float]:
-    """Extracts the co-ordinates of a GeoTiff file from path and returns the co-ordinates of the corners of that file
-    in the new co-ordinates system provided.
-
-    Args:
-        path (str): Path to GeoTiff to extract and transform co-ordinates from.
-        new_crs(CRS): Co-ordinate system to convert GeoTiff co-ordinates from.
-
-    Returns:
-        The corners of the image in the new co-ordinate system.
-    """
-    # Open source raster.
-    src_rst = rt.open(path)
-
-    return [transform_bounds(src_crs=src_rst.crs, dst_crs=new_crs, *src_rst.bounds)]
-
-
 def transform_coordinates(
     x: Union[Sequence[float], float],
     y: Union[Sequence[float], float],
@@ -914,19 +880,6 @@ def cloud_cover(scene: NDArray[Any]) -> Any:
         float: Percentage cloud cover of scene.
     """
     return np.sum(scene) / scene.size
-
-
-def month_sort(df: DataFrame, month: str) -> Any:
-    """Finds the the scene with the lowest cloud cover in a given month.
-
-    Args:
-        df (DataFrame): Dataframe containing all scenes and their cloud cover percentages.
-        month (str): Month of a year to sort.
-
-    Returns:
-        str: Date of the scene with the lowest cloud cover percentage for the given month.
-    """
-    return df.loc[month].sort_values(by="COVER")["DATE"][0]
 
 
 def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
@@ -1425,11 +1378,10 @@ def compute_roc_curves(
                 pass
         else:
             try:
-                raise MemoryError
-            except MemoryError:
-                print(
+                raise MemoryError(
                     "WARNING: Size of predicted probabilities may exceed free system memory."
                 )
+            except MemoryError:
                 print("Aborting micro averaging.")
                 pass
 
