@@ -174,7 +174,7 @@ def test_check_test_empty() -> None:
     assert results_3[2] == old_classes
 
 
-def test_find_subpopulations() -> None:
+def test_find_modes() -> None:
     classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
@@ -445,3 +445,30 @@ def test_find_best_of() -> None:
         patch_id="34MP", manifest=df, selector=utils.threshold_scene_select, thres=0.3
     )
     assert scene == ["2018_06_21"]
+
+
+def test_modes_from_manifest() -> None:
+    df = pd.DataFrame()
+
+    class_dist = [
+        (5, 750 / 7),
+        (7, 150 / 7),
+        (2, 60 / 7),
+        (4, 20 / 7),
+        (6, 12 / 7),
+        (0, 8 / 7),
+    ]
+
+    counts = [
+        (5, [250, 100, 50, 40, 60, 210, 40]),
+        (7, [10, 20, 20, 50, 40, 5, 5]),
+        (2, [2, 4, 6, 30, 10, 8, 0]),
+        (4, [2, 3, 0, 1, 4, 8, 2]),
+        (6, [3, 4, 0, 1, 3, 1, 0]),
+        (0, [1, 0, 0, 3, 4, 0, 0]),
+    ]
+
+    for mode in counts:
+        df[mode[0]] = mode[1]
+
+    assert utils.modes_from_manifest(df) == class_dist
