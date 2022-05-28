@@ -585,3 +585,60 @@ def test_compute_roc_curves() -> None:
         assert assert_array_equal(results[1][key], tpr[key]) is None
 
     assert results[2] == pytest.approx(auc)
+
+
+def test_check_dict_key() -> None:
+    dictionary = {
+        "exist_none": None,
+        "exist_false": False,
+        "exist_true": True,
+        "exist_value": 42,
+    }
+
+    assert utils.check_dict_key(dictionary, "exist_none") is False
+    assert utils.check_dict_key(dictionary, "exist_false") is False
+    assert utils.check_dict_key(dictionary, "exist_true")
+    assert utils.check_dict_key(dictionary, "exist_value")
+
+
+def test_load_data_specs() -> None:
+    class_dist = [(3, 321), (4, 112), (1, 671), (5, 456)]
+
+    new_classes = {
+        0: "Impervious Surfaces",
+        1: "Water",
+        2: "Barren Land",
+        3: "Low Vegetation\nField",
+    }
+    new_cmap = {0: "#9c9c9c", 1: "#00c5ff", 2: "#ffaa00", 3: "#a3ff73"}
+    conversion = {1: 1, 3: 3, 4: 2, 5: 0}
+
+    results_1 = utils.load_data_specs(class_dist, elim=False)
+    results_2 = utils.load_data_specs(class_dist, elim=True)
+
+    assert results_1[0] == utils.CLASSES
+    assert results_1[1] == {}
+    assert results_1[2] == utils.CMAP_DICT
+    assert new_classes == results_2[0]
+    assert conversion == results_2[1]
+    assert new_cmap == results_2[2]
+
+
+def test_make_expdir() -> None:
+    pass
+
+
+def test_get_dataset_name() -> None:
+    pass
+
+
+def test_run_tensorboard() -> None:
+    pass
+
+
+def test_calc_constrastive_acc() -> None:
+    pass
+
+
+def test_calc_grad() -> None:
+    pass
