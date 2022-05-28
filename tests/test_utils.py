@@ -492,3 +492,96 @@ def test_make_classification_report() -> None:
     cr_df = utils.make_classification_report(pred, labels, class_labels, p_dist=True)
 
     assert df.equals(cr_df)
+
+
+def test_compute_roc_curves() -> None:
+    probs = [
+        [0.7, 0.1, 0.05, 0.15],
+        [0.01, 0.01, 0.03, 0.95],
+        [0.005, 0.015, 0.08, 0.9],
+        [0.01, 0.29, 0.45, 0.25],
+        [0.02, 0.11, 0.06, 0.81],
+        [0.04, 0.08, 0.72, 0.16],
+        [0.35, 0.20, 0.15, 0.30],
+        [0.40, 0.25, 0.15, 0.20],
+    ]
+
+    labels = [0, 3, 2, 1, 3, 2, 1, 0]
+    class_labels = [0, 1, 2, 3]
+
+    fpr = {
+        0: np.array([0.0, 0.0, 0.0, 0.5, 5.0 / 6.0, 1.0]),
+        1: np.array([0.0, 0.0, 1.0 / 6.0, 1.0 / 6.0, 1.0]),
+        2: np.array([0.0, 0.0, 1.0 / 6.0, 0.5, 0.5, 1.0]),
+        3: np.array([0.0, 0.0, 1.0 / 6.0, 1.0 / 6.0, 1.0]),
+        "micro": np.array(
+            [
+                0.0,
+                0.0,
+                1.0 / 24.0,
+                1.0 / 24.0,
+                5.0 / 60.0,
+                5.0 / 60.0,
+                1.0 / 6.0,
+                1.0 / 6.0,
+                0.25,
+                7.0 / 24.0,
+                1.0 / 3.0,
+                11.0 / 24.0,
+                13.0 / 24.0,
+                14.0 / 24.0,
+                5.0 / 6.0,
+                23.0 / 24.0,
+                1.0,
+            ]
+        ),
+        "macro": np.array([0.0, 1.0 / 6.0, 0.5, 5.0 / 6.0, 1.0]),
+    }
+
+    tpr = {
+        0: np.array([0.0, 0.5, 1.0, 1.0, 1.0, 1.0]),
+        1: np.array([0.0, 0.5, 0.5, 1.0, 1.0]),
+        2: np.array([0.0, 0.5, 0.5, 0.5, 1.0, 1.0]),
+        3: np.array([0.0, 0.5, 0.5, 1.0, 1.0]),
+        "micro": np.array(
+            [
+                0.0,
+                0.125,
+                0.125,
+                0.5,
+                0.5,
+                0.625,
+                0.625,
+                0.75,
+                0.75,
+                0.875,
+                0.875,
+                0.875,
+                0.875,
+                1.0,
+                1.0,
+                1.0,
+                1.0,
+            ]
+        ),
+        "macro": np.array([0.625, 0.875, 1.0, 1.0, 1.0]),
+    }
+
+    auc = {
+        0: 1.0,
+        1: 11.0 / 12.0,
+        2: 0.75,
+        3: 11.0 / 12.0,
+        "micro": 0.8489583333333333,
+        "macro": 0.9375000000000001,
+    }
+
+    results = utils.compute_roc_curves(
+        np.array(probs), labels, class_labels, micro=True, macro=True
+    )
+
+    for key in fpr:
+        assert assert_array_equal(results[0][key], fpr[key]) is None
+        assert assert_array_equal(results[1][key], tpr[key]) is None
+
+    assert results[2] == pytest.approx(auc)
