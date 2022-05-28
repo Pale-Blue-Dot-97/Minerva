@@ -1011,7 +1011,7 @@ def find_modes(labels: Sequence[int], plot: bool = False) -> List[Tuple[int, int
     return class_dist
 
 
-def subpopulations_from_manifest(
+def modes_from_manifest(
     manifest: DataFrame, plot: bool = False
 ) -> List[Tuple[int, int]]:
     """Uses the dataset manifest to calculate the fractional size of the classes.
@@ -1027,7 +1027,7 @@ def subpopulations_from_manifest(
     class_counter: Counter[int] = Counter()
     for classification in CLASSES.keys():
         try:
-            count = manifest[f"{classification}"].sum() / len(manifest)
+            count = manifest[classification].sum() / len(manifest)
             if count == 0.0 or count == 0:
                 continue
             else:
