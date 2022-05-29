@@ -642,7 +642,7 @@ def test_mkexpdir() -> None:
 
 
 def test_get_dataset_name() -> None:
-    pass
+    assert utils.get_dataset_name() == "ChesapeakeCVPR"
 
 
 def test_run_tensorboard() -> None:
