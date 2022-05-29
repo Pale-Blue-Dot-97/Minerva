@@ -1,10 +1,13 @@
 from typing import Union, Tuple, Dict, Any
 from collections import defaultdict
 import os
+import multiprocessing
 import random
+import time
 import math
 import cmath
 import pytest
+import ntpath
 from minerva.utils import utils, config, aux_configs
 import numpy as np
 import pandas as pd
@@ -646,7 +649,47 @@ def test_get_dataset_name() -> None:
 
 
 def test_run_tensorboard() -> None:
-    pass
+    def run(foo, **kwargs):
+        p = multiprocessing.Process(target=foo, kwargs=kwargs)
+        try:
+            p.start()
+
+            # Wait 10 seconds for foo
+            time.sleep(0.1)
+
+            # Terminate foo
+            p.terminate()
+
+            # Cleanup
+            p.join(0.1)
+            p.close()
+            return 0
+
+        except:
+            return 1
+
+    env_name = ntpath.basename(os.environ["CONDA_DEFAULT_ENV"])
+    print(env_name)
+
+    exp_name = "exp1"
+    assert utils.run_tensorboard(env_name=env_name) is 1
+
+    utils.config["exp_name"] = "exp1"
+
+    assert run(utils.run_tensorboard, env_name=env_name, exp_name=exp_name) is 0
+
+    results_dir = utils.config["dir"]["results"]
+    del utils.config["dir"]["results"]
+
+    assert utils.run_tensorboard(env_name=env_name) is 1
+
+    path = os.path.join(*results_dir)
+
+    assert (
+        run(utils.run_tensorboard, env_name=env_name, exp_name=exp_name, path=path) is 0
+    )
+
+    utils.config["dir"]["results"] = results_dir
 
 
 def test_calc_constrastive_acc() -> None:
