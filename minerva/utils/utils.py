@@ -82,7 +82,6 @@ from pandas import DataFrame
 from datetime import datetime
 import rasterio as rt
 from rasterio.crs import CRS
-from rasterio.warp import transform_bounds
 from tabulate import tabulate
 import torch
 from torch.nn import Module
@@ -91,7 +90,6 @@ from sklearn.preprocessing import label_binarize
 from sklearn.metrics import classification_report, roc_curve, auc
 from sklearn.exceptions import UndefinedMetricWarning
 from torchgeo.datasets.utils import BoundingBox
-from torchgeo.datasets import GeoDataset
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderUnavailable
 from alive_progress import alive_bar
