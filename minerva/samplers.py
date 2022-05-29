@@ -21,10 +21,10 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Tuple, Optional, Union, Iterator
+from typing import Tuple, Optional, Union, Iterator, List
 from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
-from torchgeo.samplers import GeoSampler
+from torchgeo.samplers import GeoSampler, BatchGeoSampler
 from torchgeo.samplers.utils import _to_tuple, get_random_bounding_box
 from minerva.utils import utils
 import random
@@ -98,26 +98,9 @@ class RandomPairGeoSampler(GeoSampler):
             hit = random.choice(self.hits)
             bounds = BoundingBox(*hit.bounds)
 
-            # Choose a random index within that tile.
-            box_a = get_random_bounding_box(bounds, self.size, self.res)
+            bbox_a, bbox_b = get_pair_bboxes(bounds, self.size, self.res, self.r)
 
-            # Define a bounding box at max_r distance around the first box.
-            max_bounds = BoundingBox(
-                box_a.minx - self.r[0],
-                box_a.maxx + self.r[0],
-                box_a.miny - self.r[1],
-                box_a.maxy + self.r[1],
-                box_a.mint,
-                box_a.maxt,
-            )
-
-            # Check that the new bbox cannot exceed the bounds of the tile.
-            max_bounds = utils.check_within_bounds(max_bounds, bounds)
-
-            # Randomly sample another box at a max distance of max_r from box_a.
-            box_b = get_random_bounding_box(max_bounds, self.size, self.res)
-
-            yield box_a, box_b
+            yield bbox_a, bbox_b
 
     def __len__(self) -> int:
         """Return the number of samples in a single epoch.
@@ -126,3 +109,109 @@ class RandomPairGeoSampler(GeoSampler):
             length of the epoch
         """
         return self.length
+
+
+class RandomPairBatchGeoSampler(BatchGeoSampler):
+    """Samples batches of elements from a region of interest randomly.
+
+    This is particularly useful during training when you want to maximize the size of
+    the dataset and return as many random :term:`chips <chip>` as possible.
+    """
+
+    def __init__(
+        self,
+        dataset: GeoDataset,
+        size: Union[Tuple[float, float], float],
+        batch_size: int,
+        length: int,
+        roi: Optional[BoundingBox] = None,
+        max_r: Optional[float] = 256,
+    ) -> None:
+        """Initialize a new Sampler instance.
+
+        The ``size`` argument can either be:
+
+        * a single ``float`` - in which case the same value is used for the height and
+          width dimension
+        * a ``tuple`` of two floats - in which case, the first *float* is used for the
+          height dimension, and the second *float* for the width dimension
+
+        Args:
+            dataset: dataset to index from
+            size: dimensions of each :term:`patch` in units of CRS
+            batch_size: number of samples per batch
+            length: number of samples per epoch
+            roi: region of interest to sample from (minx, maxx, miny, maxy, mint, maxt)
+                (defaults to the bounds of ``dataset.index``)
+        """
+        super().__init__(dataset, roi)
+        self.size = _to_tuple(size)
+        self.batch_size = batch_size
+        self.length = length
+        self.max_r = max_r
+        self.hits = list(self.index.intersection(tuple(self.roi), objects=True))
+
+        # Define the distance to add to an existing bounding box to get
+        # the box to sample the other side of the pair from.
+        self.r = (self.max_r - self.size[0], self.max_r - self.size[1])
+
+    def __iter__(self) -> Iterator[Tuple[List[BoundingBox], List[BoundingBox]]]:
+        """Return the indices of a dataset.
+
+        Returns:
+            batch of (minx, maxx, miny, maxy, mint, maxt) coordinates to index a dataset
+        """
+        for _ in range(len(self)):
+            # Choose a random tile
+            hit = random.choice(self.hits)
+            bounds = BoundingBox(*hit.bounds)
+
+            # Choose random indices within that tile
+            batch_a = []
+            batch_b = []
+            for _ in range(self.batch_size):
+                bbox_a, bbox_b = get_pair_bboxes(bounds, self.size, self.res, self.r)
+                batch_a.append(bbox_a)
+                batch_b.append(bbox_b)
+
+            yield batch_a, batch_b
+
+    def __len__(self) -> int:
+        """Return the number of batches in a single epoch.
+
+        Returns:
+            number of batches in an epoch
+        """
+        return self.length // self.batch_size
+
+
+def get_greater_bbox(bbox: BoundingBox, r: Tuple[float, float]) -> BoundingBox:
+    """Return a bounding box at max_r distance around the first box."""
+    return BoundingBox(
+        bbox.minx - r[0],
+        bbox.maxx + r[0],
+        bbox.miny - r[1],
+        bbox.maxy + r[1],
+        bbox.mint,
+        bbox.maxt,
+    )
+
+
+def get_pair_bboxes(
+    bounds: BoundingBox,
+    size: Union[Tuple[float, float], float],
+    res: float,
+    r: Tuple[float, float],
+) -> Tuple[BoundingBox, BoundingBox]:
+    # Choose a random index within that tile.
+    bbox_a = get_random_bounding_box(bounds, size, res)
+
+    max_bounds = get_greater_bbox(bbox_a, r)
+
+    # Check that the new bbox cannot exceed the bounds of the tile.
+    max_bounds = utils.check_within_bounds(max_bounds, bounds)
+
+    # Randomly sample another box at a max distance of max_r from box_a.
+    bbox_b = get_random_bounding_box(max_bounds, size, res)
+
+    return bbox_a, bbox_b
