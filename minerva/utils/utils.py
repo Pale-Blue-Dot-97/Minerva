@@ -1254,10 +1254,10 @@ def calc_contrastive_acc(z: torch.Tensor) -> torch.Tensor:
 
 def run_tensorboard(
     path: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
-    env_name: str = "env2",
+    env_name: str = "env",
     exp_name: Optional[str] = None,
     host_num: Optional[Union[str, int]] = 6006,
-) -> None:
+) -> int:
     """Runs the :mod:`TensorBoard` logs and hosts on a local webpage.
 
     Args:
@@ -1272,7 +1272,7 @@ def run_tensorboard(
         KeyError: If ``path is None`` but the default cannot be found in ``config``, return ``None``.
 
     Returns:
-        None
+        int: Exitcode for testing purposes. Either ``0`` (``"success"``) or ``1`` (``"ABORT"``).
     """
     if not exp_name:
         try:
@@ -1283,13 +1283,13 @@ def run_tensorboard(
                 except KeyError:
                     print("KeyError: Path not specified and default cannot be found.")
                     print("ABORT OPERATION")
-                    return
+                    return 1
         except KeyError:
             print(
                 "KeyError: Experiment name not specified and cannot be found in config."
             )
             print("ABORT OPERATION")
-            return
+            return 1
 
     # Changes working directory to that containing the TensorBoard log.
     if isinstance(path, (list, tuple)):
@@ -1306,6 +1306,8 @@ def run_tensorboard(
 
     # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
     webbrowser.open("localhost:{}".format(host_num))
+
+    return 0
 
 
 def compute_roc_curves(
