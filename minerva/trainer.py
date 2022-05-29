@@ -637,7 +637,7 @@ class Trainer:
     def save_backbone(self) -> None:
         """Readies the model for use in downstream tasks and saves to file."""
         # Checks that model has the required method to ready it for use on downstream tasks.
-        assert issubclass(type(self.model), MinervaBackbone)
+        assert hasattr(self.model, "get_backbone")
         pre_trained_backbone: Module = self.model.get_backbone()
 
         # Saves the pre-trained backbone to the cache.
