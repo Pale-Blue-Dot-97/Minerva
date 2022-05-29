@@ -624,8 +624,21 @@ def test_load_data_specs() -> None:
     assert new_cmap == results_2[2]
 
 
-def test_make_expdir() -> None:
-    pass
+def test_mkexpdir() -> None:
+    name = "exp1"
+
+    try:
+        os.makedirs(utils.RESULTS_DIR)
+    except FileExistsError:
+        pass
+
+    utils.mkexpdir(name)
+
+    assert os.path.isdir(os.path.join(utils.RESULTS_DIR, name))
+
+    assert utils.mkexpdir(name) is None
+
+    os.rmdir(os.path.join(utils.RESULTS_DIR, name))
 
 
 def test_get_dataset_name() -> None:

@@ -13,14 +13,8 @@ dir:
     data_config: 'ChesapeakeCVPR.yml'
     imagery_config: 'NAIP.yml'
   results:
-    - 'F:'
-    - 'Harry'
-    - 'University'
-    - 'Postgraduate'
-    - 'OneDrive - University of Southampton'
-    - 'Output Plots'
-    - 'MinervaPercep'
-    - 'FCNResNet'
+    - 'tests'
+    - 'results'
   cache:
     - 'G:'
     - 'GitHub'
