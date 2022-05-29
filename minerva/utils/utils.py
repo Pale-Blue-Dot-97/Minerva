@@ -393,7 +393,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
         return match.group(1)
     except AttributeError:
         print("\nDataset not found!")
-        return None
+        return
 
 
 def transform_coordinates(
