@@ -33,3 +33,4 @@ mypy==0.931
 flake8==4.0.1
 tox==3.25.0
 sphinx-rtd-theme==1.0.0
+internet-sabotage3==0.1.6
