@@ -978,7 +978,8 @@ def modes_from_manifest(
     class_counter: Counter[int] = Counter()
     for classification in CLASSES.keys():
         try:
-            count = manifest[classification].sum() / len(manifest)
+            count = manifest[f"{classification}"].sum() / len(manifest)
+            print(f"{classification}: {count}")
             if count == 0.0 or count == 0:
                 continue
             else:
