@@ -155,7 +155,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         # the box to sample the other side of the pair from.
         self.r = (self.max_r - self.size[0], self.max_r - self.size[1])
 
-    def __iter__(self) -> Iterator[Tuple[List[BoundingBox], List[BoundingBox]]]:
+    def __iter__(self) -> Iterator[List[Tuple[BoundingBox, BoundingBox]]]:
         """Return the indices of a dataset.
 
         Returns:
@@ -167,14 +167,12 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
             bounds = BoundingBox(*hit.bounds)
 
             # Choose random indices within that tile
-            batch_a = []
-            batch_b = []
+            batch = []
             for _ in range(self.batch_size):
                 bbox_a, bbox_b = get_pair_bboxes(bounds, self.size, self.res, self.r)
-                batch_a.append(bbox_a)
-                batch_b.append(bbox_b)
+                batch.append((bbox_a, bbox_b))
 
-            yield batch_a, batch_b
+            yield batch
 
     def __len__(self) -> int:
         """Return the number of batches in a single epoch.

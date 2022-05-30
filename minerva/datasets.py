@@ -282,6 +282,14 @@ def construct_dataloader(
     sampler = utils.func_by_str(
         module_path=sampler_params["module"], func=sampler_params["name"]
     )
+
+    batch_sampler = True if "batch_size" in sampler_params["params"] else False
+
+    if batch_sampler:
+        assert sampler_params["params"]["batch_size"] % world_size == 0
+        per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
+        sampler_params["params"]["batch_size"] = per_device_batch_size
+
     sampler = sampler(
         dataset=subdatasets[0],
         roi=make_bounding_box(sampler_params["roi"]),
@@ -304,9 +312,13 @@ def construct_dataloader(
     if sample_pairs and not torch.cuda.device_count() > 1:
         collator = utils.pair_collate(collator)
 
-    return DataLoader(
-        dataset, sampler=sampler, collate_fn=collator, **_dataloader_params
-    )
+    if batch_sampler:
+        _dataloader_params["batch_sampler"] = sampler
+        del _dataloader_params["batch_size"]
+    else:
+        _dataloader_params["sampler"] = sampler
+
+    return DataLoader(dataset, collate_fn=collator, **_dataloader_params)
 
 
 def make_bounding_box(
