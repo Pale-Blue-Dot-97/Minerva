@@ -18,6 +18,7 @@ from datetime import datetime
 from torch.utils.data import DataLoader
 from torchvision.datasets import FakeData
 from rasterio.crs import CRS
+from internet_sabotage import no_connection
 
 
 def test_return_updated_kwargs() -> None:
@@ -298,10 +299,10 @@ def test_check_within_bounds() -> None:
 
     bbox_1 = BoundingBox(1.0, 2.0, 1.0, 2.0, 1.0, 2.0)
     bbox_2 = BoundingBox(1.0, 4.0, 1.0, 2.0, 1.0, 2.0)
-    bbox_3 = BoundingBox(-1.0, 1.0, -1.0, 1.0, 0.0, 4.0)
+    bbox_3 = BoundingBox(-1.0, 1.0, -1.0, 4.0, 0.0, 4.0)
 
     correct_2 = BoundingBox(1.0, 3.0, 1.0, 2.0, 1.0, 2.0)
-    correct_3 = BoundingBox(0.0, 1.0, 0.0, 1.0, 0.0, 4.0)
+    correct_3 = BoundingBox(0.0, 1.0, 0.0, 3.0, 0.0, 4.0)
 
     new_bbox_2 = utils.check_within_bounds(bbox_2, bounds)
     new_bbox_3 = utils.check_within_bounds(bbox_3, bounds)
@@ -363,6 +364,8 @@ def test_lat_lon_to_loc() -> None:
 
     assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
     assert utils.lat_lon_to_loc(lat_5, lon_5) == "Civitas Vaticana"
+    with no_connection():
+        assert utils.lat_lon_to_loc(lat_1, lon_1) == ""
 
 
 def test_class_weighting() -> None:
@@ -598,6 +601,7 @@ def test_check_dict_key() -> None:
         "exist_value": 42,
     }
 
+    assert utils.check_dict_key(dictionary, "does_not_exist") is False
     assert utils.check_dict_key(dictionary, "exist_none") is False
     assert utils.check_dict_key(dictionary, "exist_false") is False
     assert utils.check_dict_key(dictionary, "exist_true")
@@ -693,7 +697,20 @@ def test_run_tensorboard() -> None:
 
 
 def test_calc_constrastive_acc() -> None:
-    pass
+    pred = torch.Tensor(
+        [
+            [0.1642, 0.6131, 0.1704, 0.7223, 0.8332, 0.2259, 0.0694, 0.5820],
+            [0.5060, 0.3063, 0.0573, 0.2115, 0.5379, 0.3470, 0.7090, 0.8790],
+            [0.7996, 0.9784, 0.6017, 0.6036, 0.5077, 0.0555, 0.8548, 0.3769],
+            [0.9803, 0.1221, 0.9618, 0.8202, 0.8939, 0.9609, 0.6091, 0.8273],
+        ]
+    )
+
+    correct = torch.Tensor([1, 0, 2, 0]).tolist()
+
+    results = utils.calc_contrastive_acc(pred).tolist()
+
+    assert results == correct
 
 
 def test_calc_grad() -> None:
