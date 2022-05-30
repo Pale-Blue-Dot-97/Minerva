@@ -413,6 +413,8 @@ def make_loaders(
     manifest = get_manifest(get_manifest_path())
     class_dist = utils.modes_from_manifest(manifest)
 
+    print(class_dist)
+
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
     # and new colours.
     new_classes, forwards, new_colours = utils.load_data_specs(

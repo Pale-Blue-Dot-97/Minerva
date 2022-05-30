@@ -1482,8 +1482,6 @@ class _FCN(MinervaModel, ABC):
         # for the proceeding layers of the network.
         self.backbone.determine_output_dim()
 
-        print(self.backbone.output_shape)
-
         if decoder_name == "DCN":
             print(n_classes)
             self.decoder = DCN(
