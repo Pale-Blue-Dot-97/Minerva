@@ -975,11 +975,17 @@ def modes_from_manifest(
     Returns:
         List[Tuple[int, int]]: Modal distribution of classes in the dataset provided.
     """
+
+    def count_samples(cls):
+        try:
+            return manifest[cls].sum() / len(manifest)
+        except KeyError:
+            return manifest[f"{cls}"].sum() / len(manifest)
+
     class_counter: Counter[int] = Counter()
     for classification in CLASSES.keys():
         try:
-            count = manifest[f"{classification}"].sum() / len(manifest)
-            print(f"{classification}: {count}")
+            count = count_samples(classification)
             if count == 0.0 or count == 0:
                 continue
             else:
