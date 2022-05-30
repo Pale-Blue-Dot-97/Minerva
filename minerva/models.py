@@ -1485,6 +1485,7 @@ class _FCN(MinervaModel, ABC):
         print(self.backbone.output_shape)
 
         if decoder_name == "DCN":
+            print(n_classes)
             self.decoder = DCN(
                 in_channel=self.backbone.output_shape[0],
                 n_classes=n_classes,
