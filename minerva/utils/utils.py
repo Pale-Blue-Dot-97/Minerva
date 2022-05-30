@@ -1126,28 +1126,20 @@ def print_class_dist(
     print(tabulate(df, headers="keys", tablefmt="psql"))
 
 
-def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> Union[List[Any], NDArray[Any]]:
-    """Attempts to flatten the supplied array. If not ragged, should be flattened with :mod:`numpy`.
-
-    If ragged, the first 2 dimensions will be flattened using list appending.
+def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> NDArray[Any]:
+    """Flattens the supplied array with :func:`numpy`.
 
     Args:
         x: Array to be flattened.
 
     Returns:
-        Union[List[Any], NDArray[Any]]: Either a flattened :class:`NDArray` or if this failed,
-        a :class:`list` that has its first 2 dimensions flattened.
+        NDArray[Any]: Flattened :class:`NDArray`.
     """
     try:
         x = x.flatten()
 
     except AttributeError:
         x = np.array(x).flatten()
-
-    except ValueError:
-        for i in range(len(x)):
-            for j in range(len(x[i])):
-                x.append(x[i][j])
 
     return x
 
@@ -1258,53 +1250,57 @@ def calc_contrastive_acc(z: torch.Tensor) -> torch.Tensor:
 
 
 def run_tensorboard(
+    exp_name: str,
     path: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
     env_name: str = "env",
-    exp_name: Optional[str] = None,
-    host_num: Optional[Union[str, int]] = 6006,
-) -> int:
+    host_num: Union[str, int] = 6006,
+    _testing: bool = False,
+) -> Optional[int]:
     """Runs the :mod:`TensorBoard` logs and hosts on a local webpage.
 
     Args:
+        exp_name (str): Unique name of the experiment to run the logs of.
         path (str or list[str] or tuple[str]): Path to the directory holding the log.
             Can be a string or a list of strings for each sub-directory.
         env_name (str): Name of the `Conda` environment to run :mod:`TensorBoard` in.
-        exp_name (str): Unique name of the experiment to run the logs of.
         host_num (Union[str, int]): Local host number :mod:`TensorBoard` will be hosted on.
 
     Raises:
-        KeyError: If ``exp_name is None`` but the default cannot be found in ``config``, return ``None``.
         KeyError: If ``path is None`` but the default cannot be found in ``config``, return ``None``.
 
     Returns:
-        int: Exitcode for testing purposes. Either ``0`` (``"success"``) or ``1`` (``"ABORT"``).
+        int | None: Exitcode for testing purposes. ``None`` under normal use.
     """
-    if not exp_name:
+    if not path:
         try:
-            exp_name = config["exp_name"]
-            if not path:
-                try:
-                    path = config["dir"]["results"][:-1]
-                except KeyError:
-                    print("KeyError: Path not specified and default cannot be found.")
-                    print("ABORT OPERATION")
-                    return 1
+            path = config["dir"]["results"][:-1]
         except KeyError:
-            print(
-                "KeyError: Experiment name not specified and cannot be found in config."
-            )
+            print("KeyError: Path not specified and default cannot be found.")
             print("ABORT OPERATION")
-            return 1
+            return
+
+    # Get current working directory.
+    cwd = os.getcwd()
+
+    # Joins path together if a list or tuple.
+    if isinstance(path, (list, tuple)):
+        path = os.path.join(*path)
+
+    if not os.path.exists(os.path.join(path, exp_name)):
+        print(os.path.join(path, exp_name))
+        print("Expermiment directory does not exist!")
+        print("ABORT OPERATION")
+        return
 
     # Changes working directory to that containing the TensorBoard log.
-    if isinstance(path, (list, tuple)):
-        os.chdir(os.path.join(*path))
-
-    elif isinstance(path, str):
-        os.chdir(path)
+    os.chdir(path)
 
     # Activates the correct Conda environment.
     os.system("conda activate {}".format(env_name))
+
+    if _testing:
+        os.chdir(cwd)
+        return 0
 
     # Runs TensorBoard log.
     os.system("tensorboard --logdir={}".format(exp_name))
@@ -1312,7 +1308,10 @@ def run_tensorboard(
     # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
     webbrowser.open("localhost:{}".format(host_num))
 
-    return 0
+    # Changes back to the original CWD.
+    os.chdir(cwd)
+
+    return
 
 
 def compute_roc_curves(
