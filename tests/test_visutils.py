@@ -70,6 +70,27 @@ def test_discrete_heatmap() -> None:
     )
 
 
+def test_stack_rgb() -> None:
+    red = np.array([[25.0, 12.0, 11.0], [34.0, 55.0, 89.0], [23.0, 18.0, 76.0]])
+
+    blue = np.array([[16.0, 17.0, 18.0], [19.0, 23.0, 24.0], [78.0, 67.0, 54.0]])
+
+    green = np.array([[3.0, 2.0, 1.0], [9.0, 11.0, 34.0], [23.0, 15.0, 128.0]])
+
+    image_1 = np.array([red, green, blue])
+    rgb_1 = {"R": 0, "G": 1, "B": 2}
+
+    image_2 = np.array([blue, red, green])
+    rgb_2 = {"G": 2, "B": 0, "R": 1}
+
+    correct = np.dstack((blue, green, red)) / 255.0
+    result_1 = visutils.stack_rgb(image_1, rgb_1, max_value=255)
+    result_2 = visutils.stack_rgb(image_2, rgb_2, max_value=255)
+
+    assert assert_array_equal(result_1, correct) is None
+    assert assert_array_equal(result_2, correct) is None
+
+
 def test_format_names() -> None:
     timestamp = "01-01-1970"
     model_name = "tester"
