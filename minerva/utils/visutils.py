@@ -43,7 +43,6 @@ except ModuleNotFoundError:
     NDArray, ArrayLike = Sequence, Sequence
 from torchgeo.datasets.utils import BoundingBox
 from minerva.utils import utils, config, aux_configs
-from minerva.datasets import make_dataset
 import os
 import imageio
 import random
@@ -110,14 +109,14 @@ _MAX_SAMPLES = 25
 #                                                     METHODS
 # =====================================================================================================================
 def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any]:
-    """Separates interlaced arrays, `x` at a frequency of `f` from each other.
+    """Separates interlaced arrays, ``x`` at a frequency of ``f`` from each other.
 
     Args:
         x (Sequence): Array of data to be de-interlaced.
         f (int): Frequency at which interlacing occurs. Equivalent to number of sources interlaced together.
 
     Returns:
-        De-interlaced array. Each source array is now sequentially connected.
+        NDArray: De-interlaced array. Each source array is now sequentially connected.
     """
     new_x: List[NDArray[Any]] = []
     for i in range(f):
@@ -136,18 +135,19 @@ def dec_extent_to_deg(
     new_crs: CRS = WGS84,
     spacing: int = 32,
 ) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
-    """Gets the extent of the image with 'shape' and at data_fn in latitude, longitude of system new_cs.
+    """Gets the extent of the image with ``shape`` and at ``data_fn`` in latitude, longitude of system ``new_cs``.
 
     Args:
         shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
         bounds (BoundingBox): Object describing a geospatial bounding box.
-            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
+            Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
         spacing (int): Spacing of the lat - lon ticks.
 
     Returns:
-        extent (tuple[int, int, int, int]): The corners of the image in pixel co-ordinates e.g. (0, 256, 0, 256).
-        lat_extent (np.ndarray): The latitude extent of the image with ticks at intervals defined by 'spacing'.
-        lon_extent (np.ndarray): The longitude extent of the image with ticks at intervals defined by 'spacing'.
+        Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
+            * The corners of the image in pixel co-ordinates e.g. ``(0, 256, 0, 256)``.
+            * The latitude extent of the image with ticks at intervals defined by ``spacing``.
+            * The longitude extent of the image with ticks at intervals defined by ``spacing``.
     """
     # Defines the 'extent' for a composite image based on the size of shape.
     extent = 0, shape[0], 0, shape[1]
@@ -719,6 +719,10 @@ def seg_plot(
     Returns:
         None
     """
+    # TODO: This is a very naughty way of avoiding a circular import.
+    # Need to reorganise package to avoid need for this.
+    from minerva.datasets import make_dataset
+
     z = np.array(z)
     y = np.array(y)
 
