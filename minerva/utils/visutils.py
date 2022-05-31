@@ -252,11 +252,11 @@ def stack_rgb(
 def make_rgb_image(
     image: NDArray[Any], rgb: Dict[str, Any], block_size: int = 32
 ) -> AxesImage:
-    """Creates an RGB image from a composition of red, green and blue band ``.tif`` images
+    """Creates an RGB image from a composition of red, green and blue bands.
 
     Args:
         image (np.ndarray[int]): Array representing the image of shape (bands x height x width).
-        rgb (dict): Dictionary of filenames of R, G & B band images.
+        rgb (dict): Dictionary of channel numbers of R, G & B bands within ``image``.
         block_size (int): Optional; Size of block image sub-division in pixels.
 
     Returns:
@@ -416,8 +416,7 @@ def make_gif(
     gif_name: str,
     cmap_style: Optional[Union[str, ListedColormap]] = None,
     frame_length: float = 1.0,
-    data_band: int = 1,
-    new_cs: Optional[CRS] = None,
+    new_crs: Optional[CRS] = None,
     alpha: float = 0.5,
     save: bool = False,
     figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32),
@@ -455,11 +454,11 @@ def make_gif(
             names["date"] = date
 
             # Create a frame of the GIF for a scene of the patch.
-            frame = ""  # labelled_rgb_image(image, mask, classes=classes, cmap_style=cmap_style,
+            # frame = labelled_rgb_image(image, mask, classes=classes, cmap_style=cmap_style,
             #                   alpha=alpha, save=save, show=False, figdim=figdim)
 
             # Read in frame just created and add to list of frames.
-            frames.append(imageio.imread(frame))
+            # frames.append(imageio.imread(frame))
 
             # Update bar with step completion.
             bar()
