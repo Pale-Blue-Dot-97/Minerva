@@ -5,6 +5,7 @@ from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
 from matplotlib.colors import ListedColormap
+from matplotlib.image import AxesImage
 
 
 def test_de_interlace() -> None:
@@ -89,6 +90,13 @@ def test_stack_rgb() -> None:
 
     assert assert_array_equal(result_1, correct) is None
     assert assert_array_equal(result_2, correct) is None
+
+
+def test_make_rgb_image() -> None:
+    image = np.random.rand(3, 224, 224)
+    rgb = {"R": 0, "G": 1, "B": 2}
+
+    assert type(visutils.make_rgb_image(image, rgb)) is AxesImage
 
 
 def test_format_names() -> None:
