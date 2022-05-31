@@ -202,6 +202,47 @@ def test_prediction_plot() -> None:
     assert visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs) is None
 
 
+"""
+def test_seg_plot() -> None:
+    z = np.random.randint(0, 7, size=25*224*224)
+    y = np.random.randint(0, 7, size=25*224*224)
+    ids = ["ID"] * 25
+    bbox = BoundingBox(
+        -1.4153283567520825,
+        -1.3964510733477618,
+        50.91896360773007,
+        50.93781998522083,
+        1.0,
+        2.0,
+    )
+
+    bounds = [bbox] * 25
+
+    assert visutils.seg_plot(z, y, ids, bounds, ) is None
+"""
+
+
+def test_plot_history() -> None:
+    train_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
+    train_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
+
+    val_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
+    val_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
+
+    metrics = {
+        "train_loss": train_loss,
+        "train_acc": train_acc,
+        "val_loss": val_loss,
+        "val_acc": val_acc,
+    }
+
+    filename = "plot.png"
+
+    assert visutils.plot_history(metrics, filename, show=True) is None
+
+    os.remove(filename)
+
+
 def test_format_names() -> None:
     timestamp = "01-01-1970"
     model_name = "tester"
