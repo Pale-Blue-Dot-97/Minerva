@@ -679,8 +679,12 @@ def test_run_tensorboard() -> None:
 
     exp_name = "exp1"
 
-    os.rmdir(os.path.join(tempfile.gettempdir(), exp_name))
-    os.mkdir(os.path.join(tempfile.gettempdir(), exp_name))
+    path = tempfile.gettempdir()
+    if not isinstance(path, str):
+        path = os.path.join(*path)
+
+    if not os.path.exists(os.path.join(path, exp_name)):
+        os.mkdir(os.path.join(path, exp_name))
 
     assert (
         utils.run_tensorboard(
@@ -697,6 +701,8 @@ def test_run_tensorboard() -> None:
     assert utils.run_tensorboard(exp_name, env_name=env_name) is None
 
     utils.config["dir"]["results"] = results_dir
+
+    os.rmdir(os.path.join(path, exp_name))
 
 
 def test_calc_constrastive_acc() -> None:
