@@ -284,6 +284,7 @@ def labelled_rgb_image(
     image: NDArray[Any],
     mask: NDArray[Any],
     bounds: BoundingBox,
+    src_crs: CRS,
     path: str,
     name: str,
     classes: Union[List[str], Tuple[str, ...]],
@@ -297,25 +298,29 @@ def labelled_rgb_image(
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
-        image (np.ndarray[int]): Array representing the image of shape (bands x height x width).
-        mask (np.ndarray[int]): Ground truth mask. Should be of shape (height x width) matching `image`.
+        image (np.ndarray[int]): Array representing the image of shape (height x width x bands).
+        mask (np.ndarray[int]): Ground truth mask. Should be of shape (height x width) matching ``image``.
         path (str): Path to where to save created figure.
         name (str): Name of figure. Will be used for title and in the filename.
         bounds (BoundingBox): Object describing a geospatial bounding box.
-            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
+            Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
         classes (list[str]): Optional; List of all possible class labels.
         block_size (int): Optional; Size of block image subdivision in pixels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
-        show (bool): Optional; True for show figure when plotted. False if not.
-        save (bool): Optional; True to save figure to file. False if not.
+        show (bool): Optional; ``True`` for show figure when plotted. ``False`` if not.
+        save (bool): Optional; ``True`` to save figure to file. ``False`` if not.
         figdim (tuple): Optional; Figure (height, width) in inches.
 
     Returns:
-        fn (str): Path to figure save location
+        str: Path to figure save location.
     """
+    # Checks that the mask and image shapes will align.
+    assert mask.shape == image.shape[:2]
+
+    # Gets the extent of the image in pixel, lattitude and longitude dimensions.
     extent, lat_extent, lon_extent = dec_extent_to_deg(
-        mask.shape, bounds=bounds, spacing=block_size
+        mask.shape, bounds=bounds, src_crs=src_crs, spacing=block_size
     )
 
     # Initialises a figure.
