@@ -58,7 +58,6 @@ from matplotlib.colors import ListedColormap
 
 # from matplotlib.ticker import MaxNLocator
 from matplotlib.image import AxesImage
-import cv2
 from rasterio.crs import CRS
 from alive_progress import alive_bar
 
@@ -228,33 +227,32 @@ def stack_rgb(
     rgb: Optional[Dict[str, int]] = BAND_IDS,
     max_value: int = MAX_PIXEL_VALUE,
 ) -> Any:
-    """Stacks together red, green and blue image arrays from file to create a RGB array.
+    """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
         image (np.ndarray): Image of separate channels to be normalised and reshaped into stacked RGB image.
-        rgb (dict): Optional; Dictionary of which channels in image are the R, G & B bands.
-        max_value (int): Optional; The maximum pixel value in `image`. e.g. for 8 bit this will be 255.
+        rgb (Dict[str, int]): Optional; Dictionary of which channels in image are the R, G & B bands.
+        max_value (int): Optional; The maximum pixel value in ``image``. e.g. for 8 bit this will be 255.
 
     Returns:
         Normalised and stacked red, green, blue arrays into RGB array
     """
 
-    # Load R, G, B images from file and normalise
+    # Extract R, G, B bands from image and normalise.
     channels: List[Any] = []
     for channel in ["R", "G", "B"]:
-        band = image[rgb[channel]]
-        norm = np.zeros((band.shape[0], band.shape[1]))
-        channels.append(cv2.normalize(band, norm, 0, max_value, cv2.NORM_MINMAX))
+        band = image[rgb[channel]] / max_value
+        channels.append(band)
 
-    # Stack together RGB bands
-    # Note that it has to be order BGR not RGB due to the order numpy stacks arrays
+    # Stack together RGB bands.
+    # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
     return np.dstack((channels[2], channels[1], channels[0]))
 
 
 def make_rgb_image(
     image: NDArray[Any], rgb: Dict[str, Any], block_size: int = 32
 ) -> AxesImage:
-    """Creates an RGB image from a composition of red, green and blue band .tif images
+    """Creates an RGB image from a composition of red, green and blue band ``.tif`` images
 
     Args:
         image (np.ndarray[int]): Array representing the image of shape (bands x height x width).
@@ -262,7 +260,7 @@ def make_rgb_image(
         block_size (int): Optional; Size of block image sub-division in pixels.
 
     Returns:
-        rgb_image (AxesImage): Plotted RGB image object
+        AxesImage: Plotted RGB image object.
     """
     # Stack RGB image data together.
     rgb_image_array = stack_rgb(image, rgb)
