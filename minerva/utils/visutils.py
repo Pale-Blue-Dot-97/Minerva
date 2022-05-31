@@ -40,7 +40,7 @@ from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, Sequence
 try:
     from numpy.typing import NDArray
 except ModuleNotFoundError:
-    NDArray, ArrayLike = Sequence, Sequence
+    NDArray = Sequence
 from torchgeo.datasets.utils import BoundingBox
 from minerva.utils import utils, config, aux_configs
 import os
@@ -135,10 +135,10 @@ def dec_extent_to_deg(
     new_crs: CRS = WGS84,
     spacing: int = 32,
 ) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
-    """Gets the extent of the image with ``shape`` and at ``data_fn`` in latitude, longitude of system ``new_cs``.
+    """Gets the extent of the image with ``shape`` and with ``bounds`` in latitude, longitude of system ``new_cs``.
 
     Args:
-        shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
+        shape (Tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
         bounds (BoundingBox): Object describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
         spacing (int): Spacing of the lat - lon ticks.
