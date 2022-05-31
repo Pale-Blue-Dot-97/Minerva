@@ -36,7 +36,6 @@ Attributes:
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, Sequence
-from torch import Tensor
 
 try:
     from numpy.typing import NDArray
@@ -44,6 +43,7 @@ except ModuleNotFoundError:
     NDArray, ArrayLike = Sequence, Sequence
 from torchgeo.datasets.utils import BoundingBox
 from minerva.utils import utils, config, aux_configs
+from minerva.datasets import make_dataset
 import os
 import imageio
 import random
@@ -727,9 +727,7 @@ def seg_plot(
     flat_ids: NDArray[Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = utils.make_dataset(
-        config["dir"]["data"], config["dataset_params"][mode]
-    )
+    dataset, _ = make_dataset(config["dir"]["data"], config["dataset_params"][mode])
 
     # Create a new projection system in lat-lon.
     crs = dataset.crs
