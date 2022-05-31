@@ -508,8 +508,9 @@ def prediction_plot(
     save: bool = True,
     fn_prefix: Optional[str] = None,
 ) -> None:
-    """Produces a figure containing subplots of the predicted label mask, the ground truth label mask
-        and a reference RGB image of the same patch.
+    """
+    Produces a figure containing subplots of the predicted label mask, the ground truth label mask
+    and a reference RGB image of the same patch.
 
     Args:
         sample (dict[str, Any]): Dictionary holding the `image`, ground truth (`mask`) and predicted (`pred`) masks
