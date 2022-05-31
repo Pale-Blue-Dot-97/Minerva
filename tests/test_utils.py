@@ -7,7 +7,8 @@ import cmath
 import pytest
 import ntpath
 import tempfile
-from minerva.utils import utils, config, aux_configs
+import shutil
+from minerva.utils import utils, visutils, config, aux_configs
 import numpy as np
 import pandas as pd
 import torch
@@ -590,6 +591,26 @@ def test_compute_roc_curves() -> None:
         assert assert_array_equal(results[1][key], tpr[key]) is None
 
     assert results[2] == pytest.approx(auc)
+
+    class_names = {0: "Class 0", 1: "Class 1", 2: "Class 2", 3: "Class 3"}
+    cmap_dict = {0: "#000000", 1: "#00c5ff", 2: "#267300", 3: "#a3ff73"}
+
+    path = os.getcwd()
+    if isinstance(path, str):
+        path = os.path.join(path, "tmp")
+    else:
+        path = os.path.join(*path, "tmp")
+
+    os.makedirs(path, exist_ok=True)
+    fn = f"{path}/roc_curve.png"
+
+    assert (
+        visutils.make_roc_curves(probs, labels, class_names, cmap_dict, filename=fn)
+        is None
+    )
+
+    # CLean up.
+    shutil.rmtree(path)
 
 
 def test_check_dict_key() -> None:
