@@ -1,6 +1,8 @@
+from datetime import date
 from minerva.utils import visutils, utils
 import os
 import tempfile
+import shutil
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
@@ -35,7 +37,7 @@ def test_dec_extent_to_deg() -> None:
     )
 
     corners, lat, lon = visutils.dec_extent_to_deg(
-        shape, bounds, src_crs=utils.WGS84, new_crs=new_crs
+        shape, bounds, src_crs=visutils.WGS84, new_crs=new_crs
     )
 
     correct_lat = [
@@ -114,21 +116,78 @@ def test_labelled_rgb_image() -> None:
     )
 
     path = tempfile.gettempdir()
+    if not isinstance(path, str):
+        path = os.path.join(*path)
+
     name = "pretty_pic"
     cmap = ListedColormap(utils.CMAP_DICT.values())
 
     fn = visutils.labelled_rgb_image(
-        image, mask, bounds, utils.WGS84, path, name, utils.CLASSES.values(), cmap
+        image,
+        mask,
+        bounds,
+        visutils.WGS84,
+        path,
+        name,
+        utils.CLASSES.values(),
+        cmap_style=cmap,
     )
 
-    if isinstance(path, str):
-        correct_fn = os.path.join(path, name)
-    else:
-        correct_fn = os.path.join(*path, name)
-
-    correct_fn += "_RGBHM.png"
+    correct_fn = os.path.join(path, name) + "_RGBHM.png"
 
     assert fn == correct_fn
+
+
+def test_make_gif() -> None:
+    dates = [
+        "2018-01-15",
+        "2018-03-23",
+        "2018-05-02",
+        "2018-07-03",
+        "2018-09-12",
+        "2018-11-30",
+    ]
+    images = np.random.rand(6, 32, 32, 3)
+    masks = np.random.randint(0, 7, size=(6, 32, 32))
+    bounds = BoundingBox(
+        -1.4153283567520825,
+        -1.3964510733477618,
+        50.91896360773007,
+        50.93781998522083,
+        1.0,
+        2.0,
+    )
+
+    path = os.getcwd()
+    if isinstance(path, str):
+        path = os.path.join(path, "tmp")
+    else:
+        path = os.path.join(*path, "tmp")
+
+    os.makedirs(path, exist_ok=True)
+
+    # Creates the GIF filename.
+    gif_fn = f"{path}/new_gif.gif"
+
+    cmap = ListedColormap(utils.CMAP_DICT.values())
+
+    assert (
+        visutils.make_gif(
+            dates,
+            images,
+            masks,
+            bounds,
+            visutils.WGS84,
+            utils.CLASSES.values(),
+            gif_fn,
+            path,
+            cmap,
+        )
+        is None
+    )
+
+    # CLean up.
+    shutil.rmtree(path)
 
 
 def test_format_names() -> None:
