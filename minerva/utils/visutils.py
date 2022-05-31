@@ -289,6 +289,7 @@ def labelled_rgb_image(
     name: str,
     classes: Union[List[str], Tuple[str, ...]],
     cmap_style: Optional[Union[str, ListedColormap]] = None,
+    new_crs: Optional[CRS] = WGS84,
     block_size: int = 32,
     alpha: float = 0.5,
     show: bool = True,
@@ -320,7 +321,11 @@ def labelled_rgb_image(
 
     # Gets the extent of the image in pixel, lattitude and longitude dimensions.
     extent, lat_extent, lon_extent = dec_extent_to_deg(
-        mask.shape, bounds=bounds, src_crs=src_crs, spacing=block_size
+        mask.shape,
+        bounds=bounds,
+        src_crs=src_crs,
+        spacing=block_size,
+        new_crs=new_crs,
     )
 
     # Initialises a figure.
@@ -416,23 +421,25 @@ def labelled_rgb_image(
 
 
 def make_gif(
-    names: Dict[str, str],
+    dates: List[str],
+    images: NDArray[Any],
+    masks: NDArray[Any],
+    bounds: BoundingBox,
+    src_crs: CRS,
     classes: Union[List[str], Tuple[str, ...]],
     gif_name: str,
+    path: str,
     cmap_style: Optional[Union[str, ListedColormap]] = None,
-    frame_length: float = 1.0,
-    new_crs: Optional[CRS] = None,
+    fps: float = 1.0,
+    new_crs: Optional[CRS] = WGS84,
     alpha: float = 0.5,
-    save: bool = False,
     figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32),
 ) -> None:
-    """Wrapper to labelled_rgb_image() to make a GIF for a patch out of scenes.
+    """Wrapper to :func:`labelled_rgb_image` to make a GIF for a patch out of scenes.
 
     Args:
-        names (dict): Dictionary of IDs to uniquely identify the patch dir and selected bands.
         gif_name (str): Path to and name of GIF to be made.
-        frame_length (float): Optional; Length of each GIF frame in seconds.
-        data_band (int): Optional; Band number of data .tif file.
+        fps (float): Optional; Frames per second of GIF.
         classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
         new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
@@ -443,40 +450,48 @@ def make_gif(
     Returns:
         None
     """
-    # Fetch all the scene dates for this patch in DD.MM.YYYY format.
-    dates = []
-
     # Initialise progress bar.
     with alive_bar(len(dates), bar="blocks") as bar:
 
         # List to hold filenames and paths of images created.
         frames = []
-        for date in dates:
+        for i in range(len(dates)):
             # Update progress bar with current scene.
-            bar.text("SCENE ON %s" % date)
-
-            # Update names date field.
-            names["date"] = date
+            bar.text("SCENE ON %s" % dates[i])
 
             # Create a frame of the GIF for a scene of the patch.
-            # frame = labelled_rgb_image(image, mask, classes=classes, cmap_style=cmap_style,
-            #                   alpha=alpha, save=save, show=False, figdim=figdim)
+            frame = labelled_rgb_image(
+                images[i],
+                masks[i],
+                bounds,
+                src_crs,
+                path,
+                name=f"{i}",
+                classes=classes,
+                cmap_style=cmap_style,
+                new_crs=new_crs,
+                alpha=alpha,
+                save=True,
+                show=False,
+                figdim=figdim,
+            )
 
             # Read in frame just created and add to list of frames.
-            # frames.append(imageio.imread(frame))
+            frames.append(imageio.imread(frame))
 
             # Update bar with step completion.
             bar()
 
+    # Checks GIF doesn't already exist. Deletes if it does.
+    utils.exist_delete_check(gif_name)
+
     # Create a 'unknown' bar to 'spin' while the GIF is created.
     with alive_bar(unknown="waves") as bar:
         # Add current operation to spinner bar.
-        bar.text("MAKING PATCH %s GIF" % names["patch_ID"])
+        bar.text("MAKING PATCH GIF")
 
         # Create GIF.
-        imageio.mimsave(
-            gif_name, frames, "GIF-FI", duration=frame_length, quantizer="nq"
-        )
+        imageio.mimwrite(gif_name, frames, format=".gif", fps=fps)
 
 
 def make_all_the_gifs(
