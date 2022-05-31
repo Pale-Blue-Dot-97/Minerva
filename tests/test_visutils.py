@@ -183,6 +183,25 @@ def test_make_gif() -> None:
     shutil.rmtree(path)
 
 
+def test_prediction_plot() -> None:
+    image = np.random.rand(224, 224, 3)
+    mask = np.random.randint(0, 7, size=(224, 224))
+    pred = np.random.randint(0, 7, size=(224, 224))
+    bounds = BoundingBox(
+        -1.4153283567520825,
+        -1.3964510733477618,
+        50.91896360773007,
+        50.93781998522083,
+        1.0,
+        2.0,
+    )
+
+    src_crs = utils.WGS84
+
+    sample = {"image": image, "mask": mask, "pred": pred, "bounds": bounds}
+    assert visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs) is None
+
+
 def test_format_names() -> None:
     timestamp = "01-01-1970"
     model_name = "tester"
