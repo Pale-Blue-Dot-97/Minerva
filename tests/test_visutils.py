@@ -1,9 +1,12 @@
-from minerva.utils import visutils
+from minerva.utils import visutils, utils
 import numpy as np
+import pytest
 from numpy.testing import assert_array_equal
+from rasterio.crs import CRS
+from torchgeo.datasets.utils import BoundingBox
 
 
-def test_de_interlace():
+def test_de_interlace() -> None:
     x_1 = [1, 1, 1, 1, 1]
     x_2 = [2, 2, 2, 2, 2]
     x_3 = [3, 3, 3, 3, 3]
@@ -15,7 +18,50 @@ def test_de_interlace():
     assert assert_array_equal(visutils.de_interlace(x, 3), x2) is None
 
 
-def test_format_names():
+def test_dec_extent_to_deg() -> None:
+    shape = [224, 224]
+    new_crs = CRS.from_epsg(26918)
+    bounds = BoundingBox(
+        -1.4153283567520825,
+        -1.3964510733477618,
+        50.91896360773007,
+        50.93781998522083,
+        1.0,
+        2.0,
+    )
+
+    corners, lat, lon = visutils.dec_extent_to_deg(
+        shape, bounds, src_crs=utils.WGS84, new_crs=new_crs
+    )
+
+    correct_lat = [
+        8557744.60333314,
+        8558100.10001212,
+        8558455.5966911,
+        8558811.09337008,
+        8559166.59004907,
+        8559522.08672805,
+        8559877.58340703,
+        8560233.08008601,
+    ]
+
+    correct_lon = [
+        4974378.15360064,
+        4974110.85466129,
+        4973843.55572193,
+        4973576.25678258,
+        4973308.95784323,
+        4973041.65890387,
+        4972774.35996452,
+        4972507.06102517,
+    ]
+
+    assert corners == (0, 224, 0, 224)
+    assert lat == pytest.approx(list(correct_lat))
+    assert lon == pytest.approx(list(correct_lon))
+
+
+def test_format_names() -> None:
     timestamp = "01-01-1970"
     model_name = "tester"
     path = ["test", "path"]
