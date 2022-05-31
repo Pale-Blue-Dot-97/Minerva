@@ -1,4 +1,6 @@
 from minerva.utils import visutils, utils
+import os
+import tempfile
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
@@ -97,6 +99,36 @@ def test_make_rgb_image() -> None:
     rgb = {"R": 0, "G": 1, "B": 2}
 
     assert type(visutils.make_rgb_image(image, rgb)) is AxesImage
+
+
+def test_labelled_rgb_image() -> None:
+    image = np.random.rand(224, 224, 3)
+    mask = np.random.randint(0, 7, size=(224, 224))
+    bounds = BoundingBox(
+        -1.4153283567520825,
+        -1.3964510733477618,
+        50.91896360773007,
+        50.93781998522083,
+        1.0,
+        2.0,
+    )
+
+    path = tempfile.gettempdir()
+    name = "pretty_pic"
+    cmap = ListedColormap(utils.CMAP_DICT.values())
+
+    fn = visutils.labelled_rgb_image(
+        image, mask, bounds, utils.WGS84, path, name, utils.CLASSES.values(), cmap
+    )
+
+    if isinstance(path, str):
+        correct_fn = os.path.join(path, name)
+    else:
+        correct_fn = os.path.join(*path, name)
+
+    correct_fn += "_RGBHM.png"
+
+    assert fn == correct_fn
 
 
 def test_format_names() -> None:
