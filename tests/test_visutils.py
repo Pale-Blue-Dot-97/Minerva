@@ -1,13 +1,18 @@
 from minerva.utils import visutils
+import numpy as np
+from numpy.testing import assert_array_equal
 
-# import numpy as np
-# from numpy.testing import assert_array_equal
 
+def test_de_interlace():
+    x_1 = [1, 1, 1, 1, 1]
+    x_2 = [2, 2, 2, 2, 2]
+    x_3 = [3, 3, 3, 3, 3]
 
-# def test_de_interlace():
-#    x = [[1, 2, 3], [1, 2, 3], [1, 2, 3]]
-#    x2 = np.array([1, 1, 1, 2, 2, 2, 3, 3, 3])
-#    assert assert_array_equal(visutils.de_interlace(x, 3), x2) is None
+    x = [x_1, x_2, x_3, x_1, x_2, x_3]
+
+    x2 = np.array([x_1, x_1, x_2, x_2, x_3, x_3]).flatten()
+
+    assert assert_array_equal(visutils.de_interlace(x, 3), x2) is None
 
 
 def test_format_names():
