@@ -605,7 +605,9 @@ def test_compute_roc_curves() -> None:
     fn = f"{path}/roc_curve.png"
 
     assert (
-        visutils.make_roc_curves(probs, labels, class_names, cmap_dict, filename=fn)
+        visutils.make_roc_curves(
+            probs, labels, class_names, cmap_dict, filename=fn, show=True
+        )
         is None
     )
 
