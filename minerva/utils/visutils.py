@@ -494,68 +494,6 @@ def make_gif(
         imageio.mimwrite(gif_name, frames, format=".gif", fps=fps)
 
 
-def make_all_the_gifs(
-    names: Dict[str, str],
-    classes: Union[List[str], Tuple[str, ...]],
-    frame_length: float = 1.0,
-    cmap_style: Optional[Union[str, ListedColormap]] = None,
-    data_band: int = 1,
-    new_cs: Optional[CRS] = None,
-    alpha: float = 0.5,
-    figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32),
-) -> None:
-    """Wrapper to make_gifs() to iterate through all patches in dataset.
-
-    Args:
-        names (dict): Dictionary holding the band IDs. Patch ID and date added per iteration.
-        frame_length (float): Optional; Length of each GIF frame in seconds.
-        data_band (int): Optional; Band number of data .tif file.
-        classes (list[str]): Optional; List of all possible class labels.
-        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
-        new_cs (CRS): Optional; Co-ordinate system to convert image to and use for labelling.
-        alpha (float): Optional; Fraction determining alpha blending of label mask.
-        figdim (tuple): Optional; Figure (height, width) in inches.
-
-    Returns:
-        None
-    """
-    # Gets all the patch IDs from the dataset directory.
-    patches = []
-
-    # Iterator for progress counter.
-    i = 0
-
-    # Iterate through all patches.
-    for patch in patches:
-        # Count this iteration for the progress counter.
-        i += 1
-
-        # Print status update.
-        print("\r\nNOW SERVING PATCH %s (%s/%s): " % (patch, i, len(patches)))
-
-        # Update dictionary for this patch.
-        names["patch_ID"] = patch
-
-        # Define name of GIF for this patch.
-        gif_name = f"{DATA_DIR}/{patch}.gif"
-
-        # Call make_gif() for this patch.
-        make_gif(
-            names,
-            classes,
-            gif_name,
-            frame_length=frame_length,
-            data_band=data_band,
-            cmap_style=cmap_style,
-            new_cs=new_cs,
-            alpha=alpha,
-            save=True,
-            figdim=figdim,
-        )
-
-    print("\r\nOPERATION COMPLETE")
-
-
 def prediction_plot(
     sample: Dict[str, Any],
     sample_id: str,
@@ -755,7 +693,7 @@ def seg_plot(
 
     print("\nPRODUCING PREDICTED MASKS")
 
-    # Limits number of masks to produce to a fractional number of total and no more than _max_samples.
+    # Limits number of masks to produce to a fractional number of total and no more than `_MAX_SAMPLES`.
     n_samples = int(frac * len(flat_ids))
     if n_samples > _MAX_SAMPLES:
         n_samples = _MAX_SAMPLES
@@ -836,7 +774,7 @@ def plot_subpopulations(
     plt.figure(figsize=(6, 5))
 
     # Plot a pie chart of the data distribution amongst the classes.
-    patches, text = plt.pie(
+    patches, _ = plt.pie(
         counts, colors=colours, explode=[i * 0.05 for i in range(len(class_data))]
     )
 
