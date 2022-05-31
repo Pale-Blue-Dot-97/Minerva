@@ -4,6 +4,7 @@ import pytest
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
+from matplotlib.colors import ListedColormap
 
 
 def test_de_interlace() -> None:
@@ -59,6 +60,14 @@ def test_dec_extent_to_deg() -> None:
     assert corners == (0, 224, 0, 224)
     assert lat == pytest.approx(list(correct_lat))
     assert lon == pytest.approx(list(correct_lon))
+
+
+def test_discrete_heatmap() -> None:
+    data = np.random.randint(0, 7, size=(224, 224))
+    cmap = ListedColormap(utils.CMAP_DICT.values())
+    assert (
+        visutils.discrete_heatmap(data, utils.CLASSES.values(), cmap_style=cmap) is None
+    )
 
 
 def test_format_names() -> None:
