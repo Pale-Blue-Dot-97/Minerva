@@ -222,6 +222,21 @@ def test_seg_plot() -> None:
 """
 
 
+def test_plot_subpopulations() -> None:
+    class_dist = [(1, 25), (0, 13), (2, 10), (3, 4)]
+
+    fn = "plot.png"
+
+    assert (
+        visutils.plot_subpopulations(
+            class_dist, utils.CLASSES, cmap_dict=utils.CMAP_DICT, filename=fn, save=True
+        )
+        is None
+    )
+
+    os.remove(fn)
+
+
 def test_plot_history() -> None:
     train_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
     train_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
