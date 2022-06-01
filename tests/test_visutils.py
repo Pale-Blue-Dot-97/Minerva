@@ -244,17 +244,21 @@ def test_plot_history() -> None:
 
 
 def test_make_confusion_matrix() -> None:
-    pred = np.random.randint(0, 8, size=16 * 224 * 224)
-    labels = np.random.randint(0, 8, size=16 * 224 * 224)
+    pred_1 = np.random.randint(0, 8, size=16 * 224 * 224)
+    labels_1 = np.random.randint(0, 8, size=16 * 224 * 224)
+
+    pred_2 = np.random.randint(0, 6, size=16 * 224 * 224)
 
     fn = "cm.png"
 
     assert (
         visutils.make_confusion_matrix(
-            pred, labels, utils.CLASSES, filename=fn, save=True
+            pred_1, labels_1, utils.CLASSES, filename=fn, save=True
         )
         is None
     )
+
+    assert visutils.make_confusion_matrix(pred_2, labels_1, utils.CLASSES) is None
 
     os.remove(fn)
 
@@ -275,3 +279,46 @@ def test_format_names() -> None:
     }
 
     assert filenames == names
+
+
+def test_plot_results() -> None:
+    plots = {
+        "History": True,
+        "Pred": True,
+        "CM": True,
+        "ROC": True,
+        "micro": True,
+        "macro": True,
+        "Mask": False,
+    }
+    z = np.random.randint(0, 8, size=16 * 224 * 224)
+    y = np.random.randint(0, 8, size=16 * 224 * 224)
+
+    train_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
+    train_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
+
+    val_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
+    val_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
+
+    metrics = {
+        "train_loss": train_loss,
+        "train_acc": train_acc,
+        "val_loss": val_loss,
+        "val_acc": val_acc,
+    }
+
+    probs = np.random.rand(16, 224, 224, len(utils.CLASSES))
+
+    assert (
+        visutils.plot_results(
+            plots,
+            z,
+            y,
+            metrics,
+            probs=probs,
+            class_names=utils.CLASSES,
+            colours=utils.CMAP_DICT,
+            save=False,
+        )
+        is None
+    )
