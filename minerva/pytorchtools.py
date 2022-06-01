@@ -29,6 +29,7 @@ Source: https://github.com/Bjarten/early-stopping-pytorch
 # =====================================================================================================================
 import numpy as np
 import torch
+from torch.nn import Module
 
 
 # =====================================================================================================================
@@ -68,7 +69,7 @@ class EarlyStopping:
         self.path = path
         self.trace_func = trace_func
 
-    def __call__(self, val_loss, model):
+    def __call__(self, val_loss, model: Module):
 
         score = -val_loss
 
@@ -87,7 +88,7 @@ class EarlyStopping:
             self.save_checkpoint(val_loss, model)
             self.counter = 0
 
-    def save_checkpoint(self, val_loss, model):
+    def save_checkpoint(self, val_loss, model: Module):
         """Saves model when validation loss decrease."""
         if self.verbose:
             self.trace_func(

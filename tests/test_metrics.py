@@ -6,9 +6,7 @@ import pytest
 def test_minervametrics() -> None:
     n_batches = {"train": 12, "val": 4, "test": 2}
     with pytest.raises(TypeError):
-        metric_logger = MinervaMetrics(
-            n_batches, 16, (4, 224, 224), model_type="scene_classifier"
-        )
+        _ = MinervaMetrics(n_batches, 16, (4, 224, 224), model_type="scene_classifier")
 
 
 def test_sp_metrics() -> None:
