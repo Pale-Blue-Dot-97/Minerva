@@ -1,4 +1,3 @@
-from datetime import date
 from minerva.utils import visutils, utils
 import os
 import tempfile

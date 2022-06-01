@@ -692,7 +692,7 @@ def test_run_tensorboard() -> None:
         utils.run_tensorboard(
             exp_name, env_name=env_name, path=tempfile.gettempdir(), _testing=True
         )
-        is 0
+        == 0
     )
 
     results_dir = config["dir"]["results"]

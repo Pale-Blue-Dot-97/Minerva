@@ -514,10 +514,10 @@ class ResNet(MinervaModel, ABC):
         bn1 (Module): Batch normalisation layer of the Conv1 input block to the network.
         relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
         maxpool (torch.nn.MaxPool2d): 3x3 Max-pooling layer with stride 2 of the Conv1 input block to the network.
-        layer1 (torch.nn.Sequential): `Layer` 1 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer2 (torch.nn.Sequential): `Layer` 2 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer3 (torch.nn.Sequential): `Layer` 3 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer4 (torch.nn.Sequential): `Layer` 4 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer1 (torch.nn.Sequential): Layer 1 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer2 (torch.nn.Sequential): Layer 2 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer3 (torch.nn.Sequential): Layer 3 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer4 (torch.nn.Sequential): Layer 4 of the ResNet comprising number and type of blocks defined by ``layers``.
         avgpool (torch.nn.AdaptiveAvgPool2d): Global average pooling layer taking the output from the last block.
             Only initialised if ``encoder_on=False``.
         fc (torch.nn.Linear): Fully connected layer that takes the flattened output from average pooling

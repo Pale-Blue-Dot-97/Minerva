@@ -733,13 +733,13 @@ def load_data_specs(
 
     Args:
         class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
-            from :func:`Counter.most_common()`.
+            from :func:`Counter.most_common`.
         elim (bool): Whether to eliminate classes with no samples in.
 
     Returns:
-        Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]: The ``classes``, ``forwards`` and ``cmap_dict`` dictionaries
-        transformed to new classes if ``elim`` is true. Else, the ``forwards`` dict is empty and ``classes``
-        and ``cmap_dict`` are unaltered.
+        Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]: The ``classes``, ``forwards`` and ``cmap_dict``
+        dictionaries transformed to new classes if ``elim`` is true. Else, the ``forwards`` dict is empty
+        and ``classes`` and ``cmap_dict`` are unaltered.
     """
     if not elim:
         return CLASSES, {}, CMAP_DICT
@@ -1161,7 +1161,8 @@ def make_classification_report(
         pred (list[int] or np.ndarray[int]): List of predicted labels.
         labels (list[int] or np.ndarray[int]): List of corresponding ground truth labels.
         class_labels (dict): Dictionary mapping class labels to class names.
-        print_cr (bool): Optional; Whether to print a copy of the classification report :class:`DataFrame` put through tabulate.
+        print_cr (bool): Optional; Whether to print a copy of the classification report :class:`DataFrame`
+            put through tabulate.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
