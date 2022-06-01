@@ -296,7 +296,10 @@ class Trainer:
 
         # Initialises the metric logger with arguments.
         self.metric_logger: MinervaMetrics = metric_logger(
-            self.n_batches, batch_size=self.batch_size, data_size=data_size
+            self.n_batches,
+            batch_size=self.batch_size,
+            data_size=data_size,
+            model_type=self.params["model_type"],
         )
 
     def get_logger(self) -> MinervaLogger:
@@ -365,7 +368,7 @@ class Trainer:
                 bar()
 
         # Updates metrics with epoch results.
-        self.metric_logger.calc_metrics(mode, epoch_logger.get_logs, **self.params)
+        self.metric_logger(mode, epoch_logger.get_logs)
 
         # If configured to do so, calculates the grad norms.
         if self.params["calc_norm"]:

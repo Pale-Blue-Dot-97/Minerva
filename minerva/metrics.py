@@ -42,7 +42,9 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 class MinervaMetrics(ABC):
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, n_batches: Dict[str, int], batch_size: int, data_size) -> None:
+    def __init__(
+        self, n_batches: Dict[str, int], batch_size: int, data_size, **params
+    ) -> None:
         super(MinervaMetrics, self).__init__()
 
         self.n_batches = n_batches
@@ -52,8 +54,13 @@ class MinervaMetrics(ABC):
         # To be overwritten.
         self.metrics = None
 
+        self.model_type = params["model_type"]
+
+    def __call__(self, mode: str, logs: Dict[str, Any]) -> None:
+        self.calc_metrics(mode, logs)
+
     @abc.abstractmethod
-    def calc_metrics(self, mode: str, logs: Dict[str, Any], **params) -> None:
+    def calc_metrics(self, mode: str, logs: Dict[str, Any]) -> None:
         # Updates metrics with epoch results.
         pass
 
@@ -80,8 +87,16 @@ class MinervaMetrics(ABC):
 
 
 class SP_Metrics(MinervaMetrics):
-    def __init__(self, n_batches: Dict[str, int], batch_size: int, data_size) -> None:
-        super(SP_Metrics, self).__init__(n_batches, batch_size, data_size)
+    def __init__(
+        self,
+        n_batches: Dict[str, int],
+        batch_size: int,
+        data_size,
+        model_type="segmentation",
+    ) -> None:
+        super(SP_Metrics, self).__init__(
+            n_batches, batch_size, data_size, model_type=model_type
+        )
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
@@ -93,13 +108,13 @@ class SP_Metrics(MinervaMetrics):
             "test_acc": {"x": [], "y": []},
         }
 
-    def calc_metrics(self, mode: str, logs: Dict[str, Any], **params) -> None:
+    def calc_metrics(self, mode: str, logs: Dict[str, Any]) -> None:
         # Updates metrics with epoch results.
         self.metrics[f"{mode}_loss"]["y"].append(
             logs["total_loss"] / self.n_batches[mode]
         )
 
-        if params["model_type"] == "segmentation":
+        if self.model_type == "segmentation":
             self.metrics[f"{mode}_acc"]["y"].append(
                 logs["total_correct"]
                 / (
@@ -129,8 +144,16 @@ class SP_Metrics(MinervaMetrics):
 
 
 class SSL_Metrics(MinervaMetrics):
-    def __init__(self, n_batches: Dict[str, int], batch_size: int, data_size) -> None:
-        super(SSL_Metrics, self).__init__(n_batches, batch_size, data_size)
+    def __init__(
+        self,
+        n_batches: Dict[str, int],
+        batch_size: int,
+        data_size,
+        model_type="segmentation",
+    ) -> None:
+        super(SSL_Metrics, self).__init__(
+            n_batches, batch_size, data_size, model_type=model_type
+        )
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics = {
@@ -142,13 +165,13 @@ class SSL_Metrics(MinervaMetrics):
             "val_top5_acc": {"x": [], "y": []},
         }
 
-    def calc_metrics(self, mode: str, logs, **params) -> None:
+    def calc_metrics(self, mode: str, logs) -> None:
         # Updates metrics with epoch results.
         self.metrics[f"{mode}_loss"]["y"].append(
             logs["total_loss"] / self.n_batches[mode]
         )
 
-        if params["model_type"] == "segmentation":
+        if self.model_type == "segmentation":
             self.metrics[f"{mode}_acc"]["y"].append(
                 logs["total_correct"]
                 / (
