@@ -301,10 +301,9 @@ class MLP(MinervaModel):
         hidden_sizes: Union[Tuple[int, ...], List[int], int] = (256, 144),
     ) -> None:
 
-        super(MLP, self).__init__(criterion=criterion)
-
-        self.input_size = input_size
-        self.output_size = n_classes
+        super(MLP, self).__init__(
+            criterion=criterion, input_shape=(input_size), n_classes=n_classes
+        )
 
         if hidden_sizes is int:
             hidden_sizes = hidden_sizes
@@ -2186,9 +2185,21 @@ def get_output_shape(
     Returns:
         The shape of the output data from the model.
     """
-    random_input = torch.rand([4, *image_dim])
-    if sample_pairs:
+    try:
+        if len(image_dim) == 1:
+            image_dim = image_dim[0]
+    except TypeError:
+        if not hasattr(image_dim, "__len__"):
+            pass
+        else:
+            raise TypeError
+
+    if not hasattr(image_dim, "__len__"):
+        random_input = torch.rand([4, image_dim])
+    elif sample_pairs:
         random_input = torch.rand([2, 4, *image_dim])
+    else:
+        random_input = torch.rand([4, *image_dim])
 
     output: Tensor = model(random_input)
 
