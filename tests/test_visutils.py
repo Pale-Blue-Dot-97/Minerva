@@ -243,6 +243,22 @@ def test_plot_history() -> None:
     os.remove(filename)
 
 
+def test_make_confusion_matrix() -> None:
+    pred = np.random.randint(0, 8, size=16 * 224 * 224)
+    labels = np.random.randint(0, 8, size=16 * 224 * 224)
+
+    fn = "cm.png"
+
+    assert (
+        visutils.make_confusion_matrix(
+            pred, labels, utils.CLASSES, filename=fn, save=True
+        )
+        is None
+    )
+
+    os.remove(fn)
+
+
 def test_format_names() -> None:
     timestamp = "01-01-1970"
     model_name = "tester"
