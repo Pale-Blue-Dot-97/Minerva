@@ -33,10 +33,11 @@ from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
 from minerva.utils import config, aux_configs, utils
 from minerva.transforms import MinervaCompose
 import os
-import torch
-from torch.utils.data import DataLoader
 import numpy as np
 import pandas as pd
+import torch
+from torch.utils.data import DataLoader
+from torchvision.transforms import RandomApply
 from catalyst.data.sampler import DistributedSamplerWrapper
 from alive_progress import alive_it
 
@@ -339,7 +340,7 @@ def make_bounding_box(
         return BoundingBox(*roi)
 
 
-def get_transform(name: str, params: Dict[str, Any], key: str = None) -> Any:
+def get_transform(name: str, params: Dict[str, Any]) -> Any:
     """Creates a TensorBoard transform object based on config parameters.
 
     Returns:
@@ -348,7 +349,7 @@ def get_transform(name: str, params: Dict[str, Any], key: str = None) -> Any:
     module = params.pop("module", "torchvision.transforms")
 
     # Gets the transform requested by config parameters.
-    transform = utils.func_by_str(module, name)  # , keys=[key])
+    transform = utils.func_by_str(module, name)
 
     return transform(**params)
 
@@ -362,7 +363,12 @@ def make_transformations(
         transform_params (dict): Parameters defining transforms desired. The name of each transform should be the key,
             while the kwargs for the transform should be the value of that key as a dict.
 
-            e.g. {CenterCrop: {size: 128}}
+    Example:
+        >>> transform_params = {
+        >>>    "CenterCrop": {"module": "torchvision.torch", "size": 128},
+        >>>     "RandomHorizontalFlip": {"module": "torchvision.torch", "p": 0.7}
+        >>> }
+        >>> transforms = make_transforms(transform_params)
 
     Returns:
         If no parameters are parsed, None is returned.
@@ -377,13 +383,20 @@ def make_transformations(
 
     # Get each transform.
     for name in transform_params:
-        transform = get_transform(name, transform_params[name], key=key)
+        if name == "RandomApply":
+            random_transforms = []
+            random_params = transform_params[name].copy()
+            p = random_params.pop("p", 0.5)
 
-        # If only one transform found, return.
-        # if len(transform_params) == 1:
-        #    return transform
+            for ran_name in random_params:
+                random_transforms.append(
+                    get_transform(ran_name, random_params[ran_name])
+                )
 
-        transformations.append(transform)
+            transformations.append(RandomApply(random_transforms, p=p))
+
+        else:
+            transformations.append(get_transform(name, transform_params[name]))
 
     # Compose transforms together and return.
     return MinervaCompose(transformations, key)
