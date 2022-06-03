@@ -58,8 +58,6 @@ IMAGERY_CONFIG = aux_configs["imagery_config"]
 # Path to cache directory.
 CACHE_DIR = os.sep.join(config["dir"]["cache"])
 
-_INTERSECTION_CHANGED = False
-
 __all__ = [
     "PairedDataset",
     "construct_dataloader",
@@ -76,6 +74,7 @@ __all__ = [
     "intersect_datasets",
     "get_manifest_path",
 ]
+
 
 # =====================================================================================================================
 #                                                     CLASSES

@@ -28,7 +28,7 @@ try:
 except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
 
-from minerva.models import MinervaModel, MinervaBackbone, MinervaDataParallel
+from minerva.models import MinervaModel, MinervaDataParallel
 from minerva.utils import visutils, utils
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
@@ -62,6 +62,7 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 _timeout = 30
 
 __all__ = ["Trainer"]
+
 
 # =====================================================================================================================
 #                                                     CLASSES

@@ -1,31 +1,29 @@
-from minerva.models import (
-    MLP,
-    CNN,
-    ResNet,
-    ResNet18,
-    ResNet34,
-    ResNet50,
-    ResNet101,
-    ResNet152,
-    FCNResNet18,
-    FCNResNet34,
-    FCNResNet50,
-    FCN32ResNet18,
-    FCN32ResNet34,
-    FCN32ResNet50,
-    FCN16ResNet18,
-    FCN16ResNet34,
-    FCN16ResNet50,
-    FCN8ResNet18,
-    FCN8ResNet34,
-    FCN8ResNet50,
-    FCN8ResNet101,
-    FCN8ResNet152,
-    SimCLR18,
-    SimCLR34,
-    SimCLR50,
-)
+import minerva.models as mm
+import torch
+import numpy as np
 
 
 def test_mlp() -> None:
-    pass
+    criterion = torch.nn.CrossEntropyLoss()
+    model = mm.MLP(criterion)
+
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+
+    model.set_optimiser(optimiser)
+
+    model.determine_output_dim()
+    assert model.output_shape is model.n_classes
+
+    x = torch.rand(16, (288))
+    y = torch.LongTensor(np.random.randint(0, 8, size=16))
+
+    for mode in ("train", "val", "test"):
+        if mode == "train":
+            loss, z = model.training_step(x, y)
+        if mode == "val":
+            loss, z = model.validation_step(x, y)
+        if mode == "test":
+            loss, z = model.testing_step(x, y)
+
+        assert type(loss.item()) is float
+        assert z.size() == (16, 8)

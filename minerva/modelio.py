@@ -95,19 +95,20 @@ def ssl_pair_tg(
     mode: Literal["train", "val"],
     **kwargs
 ) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
-    """Provides IO functionality for a self-supervised Siamese model using `torchgeo` datasets.
+    """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
     Args:
-        batch (Tuple[Dict[str, Any], Dict[str, Any]]): Pair of batches of data in dicts. Must have 'image' and 'bbox' keys.
+        batch (Tuple[Dict[str, Any], Dict[str, Any]]): Pair of batches of data in :class:`dicts`.
+            Must have ``"image"`` and ``"bbox"`` keys.
         model (MinervaModel): Model being fitted.
-        device (torch.device): `torch` device object to send data to (e.g. CUDA device).
+        device (torch.device): :mod:`torch` device object to send data to (e.g. ``CUDA`` device).
         mode (Literal['train', 'val']): Mode of model fitting to use.
         dataset (GeoDataset): The same dataset object the `batch` was sampled from,
             to be used to sample the geo-similar batch.
 
     Returns:
-        Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
-            and the bounding boxes of the original input images supplied.
+        Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]: The ``loss``, the model output ``z``,
+        the ``y`` supplied and the bounding boxes of the original input images supplied.
     """
     # Extracts the x_i batch from the dict.
     x_i_batch: Tensor = batch[0]["image"]
