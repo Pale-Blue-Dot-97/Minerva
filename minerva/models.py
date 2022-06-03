@@ -301,10 +301,9 @@ class MLP(MinervaModel):
         hidden_sizes: Union[Tuple[int, ...], List[int], int] = (256, 144),
     ) -> None:
 
-        super(MLP, self).__init__(criterion=criterion)
-
-        self.input_size = input_size
-        self.output_size = n_classes
+        super(MLP, self).__init__(
+            criterion=criterion, input_shape=(input_size), n_classes=n_classes
+        )
 
         if hidden_sizes is int:
             hidden_sizes = hidden_sizes
@@ -514,10 +513,10 @@ class ResNet(MinervaModel, ABC):
         bn1 (Module): Batch normalisation layer of the Conv1 input block to the network.
         relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
         maxpool (torch.nn.MaxPool2d): 3x3 Max-pooling layer with stride 2 of the Conv1 input block to the network.
-        layer1 (torch.nn.Sequential): `Layer` 1 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer2 (torch.nn.Sequential): `Layer` 2 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer3 (torch.nn.Sequential): `Layer` 3 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer4 (torch.nn.Sequential): `Layer` 4 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer1 (torch.nn.Sequential): Layer 1 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer2 (torch.nn.Sequential): Layer 2 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer3 (torch.nn.Sequential): Layer 3 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer4 (torch.nn.Sequential): Layer 4 of the ResNet comprising number and type of blocks defined by ``layers``.
         avgpool (torch.nn.AdaptiveAvgPool2d): Global average pooling layer taking the output from the last block.
             Only initialised if ``encoder_on=False``.
         fc (torch.nn.Linear): Fully connected layer that takes the flattened output from average pooling
@@ -2186,9 +2185,21 @@ def get_output_shape(
     Returns:
         The shape of the output data from the model.
     """
-    random_input = torch.rand([4, *image_dim])
-    if sample_pairs:
+    try:
+        if len(image_dim) == 1:
+            image_dim = image_dim[0]
+    except TypeError:
+        if not hasattr(image_dim, "__len__"):
+            pass
+        else:
+            raise TypeError
+
+    if not hasattr(image_dim, "__len__"):
+        random_input = torch.rand([4, image_dim])
+    elif sample_pairs:
         random_input = torch.rand([2, 4, *image_dim])
+    else:
+        random_input = torch.rand([4, *image_dim])
 
     output: Tensor = model(random_input)
 

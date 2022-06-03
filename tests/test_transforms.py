@@ -59,8 +59,8 @@ def test_normalise() -> None:
     assert assert_array_equal(transform_2(input_1), input_1 / 65535) is None
     assert assert_array_equal(transform_2(input_2), input_2 / 65535) is None
 
-    assert repr(transform_1) == f"Normalise(norm_value=255)"
-    assert repr(transform_2) == f"Normalise(norm_value=65535)"
+    assert repr(transform_1) == "Normalise(norm_value=255)"
+    assert repr(transform_2) == "Normalise(norm_value=65535)"
 
 
 def test_compose() -> None:
