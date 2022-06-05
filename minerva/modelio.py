@@ -21,7 +21,8 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Sequence, Tuple, Dict, Any, Literal
+from typing import Sequence, Tuple, Dict, Any
+from typing_extensions import Literal
 from torch import Tensor
 from torch.nn.modules.loss import _Loss
 from minerva.models import MinervaModel
