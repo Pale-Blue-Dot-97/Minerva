@@ -83,6 +83,7 @@ def run(gpu: int, args) -> None:
 
     if config["pre_train"] and gpu == 0:
         trainer.save_backbone()
+        trainer.close()
 
     if not config["pre_train"]:
         trainer.test()
