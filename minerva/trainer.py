@@ -113,6 +113,13 @@ class Trainer:
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose = verbose if gpu == 0 else False
 
+        if self.gpu == 0:
+            # Prints config to stdout.
+            print(
+                "\n==+ Experiment Parameters +====================================================="
+            )
+            utils.print_config(new_params)
+
         self.params = new_params
         self.class_dist = class_dist
         self.loaders = loaders
