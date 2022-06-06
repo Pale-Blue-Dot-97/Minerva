@@ -727,5 +727,10 @@ def test_calc_constrastive_acc() -> None:
     assert results == correct
 
 
+def test_print_config() -> None:
+    assert utils.print_config() is None
+    assert utils.print_config(utils.CLASSES) is None
+
+
 def test_calc_grad() -> None:
     pass
