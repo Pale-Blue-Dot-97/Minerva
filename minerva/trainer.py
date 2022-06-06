@@ -410,7 +410,8 @@ class Trainer:
                 self.metric_logger.log_epoch_number(mode, epoch)
 
                 # Print epoch results.
-                self.metric_logger.print_epoch_results(mode, epoch)
+                if self.gpu == 0:
+                    self.metric_logger.print_epoch_results(mode, epoch)
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if mode == "val" and self.stopper is not None:
@@ -577,7 +578,9 @@ class Trainer:
             self.print("\nSAVING METRICS TO FILE")
             try:
                 sub_metrics = self.metric_logger.get_sub_metrics()
-                metrics_df = pd.DataFrame(sub_metrics)
+                metrics_df = pd.DataFrame(
+                    {key: sub_metrics[key]["y"] for key in sub_metrics.keys()}
+                )
                 metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
                 metrics_df.set_index("Epoch", inplace=True, drop=True)
                 metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
