@@ -675,7 +675,10 @@ def test_get_dataset_name() -> None:
 
 
 def test_run_tensorboard() -> None:
-    env_name = ntpath.basename(os.environ["CONDA_DEFAULT_ENV"])
+    try:
+        env_name = ntpath.basename(os.environ["CONDA_DEFAULT_ENV"])
+    except KeyError:
+        env_name = "base"
 
     assert utils.run_tensorboard("non_exp", env_name=env_name) is None
 
