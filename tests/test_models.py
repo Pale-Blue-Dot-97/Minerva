@@ -90,6 +90,12 @@ def test_resnets() -> None:
     for model in (
         mm.ResNet34(criterion, input_size=input_size),
         mm.ResNet50(criterion, input_size=input_size),
+        mm.ResNet50(
+            criterion,
+            input_size=input_size,
+            replace_stride_with_dilation=(True, True, False),
+            zero_init_residual=True,
+        ),
         mm.ResNet101(criterion, input_size=input_size),
         mm.ResNet152(criterion, input_size=input_size),
     ):
