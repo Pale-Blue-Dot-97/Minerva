@@ -305,8 +305,8 @@ class MLP(MinervaModel):
             criterion=criterion, input_shape=(input_size), n_classes=n_classes
         )
 
-        if hidden_sizes is int:
-            hidden_sizes = hidden_sizes
+        if isinstance(hidden_sizes, int):
+            hidden_sizes = (hidden_sizes,)
         self.hidden_sizes = hidden_sizes
 
         self._layers = OrderedDict()
@@ -315,12 +315,10 @@ class MLP(MinervaModel):
         for i in range(len(hidden_sizes)):
             if i == 0:
                 self._layers["Linear-0"] = torch.nn.Linear(input_size, hidden_sizes[i])
-            elif i > 0:
+            else:
                 self._layers[f"Linear-{i}"] = torch.nn.Linear(
                     hidden_sizes[i - 1], hidden_sizes[i]
                 )
-            else:
-                print(f"EXCEPTION on Layer {i}")
 
             # Adds ReLu activation after every linear layer.
             self._layers[f"ReLu-{i}"] = torch.nn.ReLU()
@@ -375,7 +373,7 @@ class CNN(MinervaModel, ABC):
     def __init__(
         self,
         criterion,
-        input_size: Union[Tuple[int, int, int], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, int, int], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         features: Union[Tuple[int, ...], List[int]] = (2, 1, 1),
         fc_sizes: Union[Tuple[int, ...], List[int]] = (128, 64),
@@ -409,44 +407,29 @@ class CNN(MinervaModel, ABC):
                     conv_kernel_size[0],
                     stride=conv_stride[0],
                 )
-            elif i > 0:
-                self._conv_layers["Conv-{}".format(i)] = torch.nn.Conv2d(
+            else:
+                self._conv_layers[f"Conv-{i}"] = torch.nn.Conv2d(
                     features[i - 1],
                     features[i],
                     conv_kernel_size[i],
                     stride=conv_stride[i],
                 )
-            else:
-                print("EXCEPTION on Layer {}".format(i))
 
             # Each convolutional layer is followed by max-pooling layer and ReLu activation.
-            self._conv_layers["MaxPool-{}".format(i)] = torch.nn.MaxPool2d(
+            self._conv_layers[f"MaxPool-{i}"] = torch.nn.MaxPool2d(
                 kernel_size=max_kernel_size, stride=max_stride
             )
-            self._conv_layers["ReLu-{}".format(i)] = torch.nn.ReLU()
+            self._conv_layers[f"ReLu-{i}"] = torch.nn.ReLU()
 
             if conv_do:
-                self._conv_layers["DropOut-{}".format(i)] = torch.nn.Dropout(p_conv_do)
+                self._conv_layers[f"DropOut-{i}"] = torch.nn.Dropout(p_conv_do)
 
         # Construct the convolutional network from the dict of layers.
         self.conv_net = torch.nn.Sequential(self._conv_layers)
 
         # Calculate the input of the Linear layer by sending some fake data through the network
         # and getting the shape of the output.
-        out_shape = []
-        for i in range(len(features)):
-            if i == 0:
-                out_shape = get_output_shape(
-                    self._conv_layers["MaxPool-{}".format(i)],
-                    get_output_shape(
-                        self._conv_layers["Conv-{}".format(i)], self.input_shape
-                    ),
-                )
-            if i > 0:
-                out_shape = get_output_shape(
-                    self._conv_layers["MaxPool-{}".format(i)],
-                    get_output_shape(self._conv_layers["Conv-{}".format(i)], out_shape),
-                )
+        out_shape = get_output_shape(self.conv_net, self.input_shape)
 
         # Calculate the flattened size of the output from the convolutional network.
         self.flattened_size = int(np.prod(list(out_shape)))
@@ -457,18 +440,16 @@ class CNN(MinervaModel, ABC):
                 self._fc_layers["Linear-0"] = torch.nn.Linear(
                     self.flattened_size, fc_sizes[i]
                 )
-            elif i > 0:
-                self._fc_layers["Linear-{}".format(i)] = torch.nn.Linear(
+            else:
+                self._fc_layers[f"Linear-{i}"] = torch.nn.Linear(
                     fc_sizes[i - 1], fc_sizes[i]
                 )
-            else:
-                print("EXCEPTION on Layer {}".format(i))
 
             # Each fully connected layer is followed by a ReLu activation.
-            self._fc_layers["ReLu-{}".format(i)] = torch.nn.ReLU()
+            self._fc_layers[f"ReLu-{i}"] = torch.nn.ReLU()
 
             if fc_do:
-                self._fc_layers["DropOut-{}".format(i)] = torch.nn.Dropout(p_fc_do)
+                self._fc_layers[f"DropOut-{i}"] = torch.nn.Dropout(p_fc_do)
 
         # Add classification layer.
         self._fc_layers["Classification"] = torch.nn.Linear(
