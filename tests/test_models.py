@@ -52,50 +52,51 @@ def test_cnn() -> None:
     assert z.size() == (16, 8)
 
 
-def test_resnet18() -> None:
-    with pytest.raises(ValueError):
-        _ = mm.ResNet18(replace_stride_with_dilation=(True, False))
+def test_resnets() -> None:
+    def resnet_test(
+        test_model: mm.MinervaModel, x: torch.FloatTensor, y: torch.LongTensor
+    ) -> None:
+        optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
 
-    criterion = torch.nn.CrossEntropyLoss()
+        test_model.set_optimiser(optimiser)
 
-    for zero_init_residual in (True, False):
+        test_model.determine_output_dim()
+        assert test_model.output_shape is test_model.n_classes
 
-        model = mm.ResNet18(
-            criterion, input_size=(4, 224, 224), zero_init_residual=zero_init_residual
-        )
-
-        optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
-
-        model.set_optimiser(optimiser)
-
-        model.determine_output_dim()
-        assert model.output_shape is model.n_classes
-
-        x = torch.rand(16, *(4, 224, 224))
-        y = torch.LongTensor(np.random.randint(0, 8, size=16))
-
-        loss, z = model.training_step(x, y)
+        loss, z = test_model.training_step(x, y)
 
         assert type(loss.item()) is float
         assert z.size() == (16, 8)
 
+    with pytest.raises(ValueError):
+        _ = mm.ResNet18(replace_stride_with_dilation=(True, False))
 
-def test_resnet34() -> None:
     criterion = torch.nn.CrossEntropyLoss()
-
-    model = mm.ResNet34(criterion, input_size=(4, 224, 224))
-
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
-
-    model.set_optimiser(optimiser)
-
-    model.determine_output_dim()
-    assert model.output_shape is model.n_classes
-
-    x = torch.rand(16, *(4, 224, 224))
+    x = torch.rand(16, *(4, 256, 256))
     y = torch.LongTensor(np.random.randint(0, 8, size=16))
 
-    loss, z = model.training_step(x, y)
+    for zero_init_residual in (True, False):
 
-    assert type(loss.item()) is float
-    assert z.size() == (16, 8)
+        model = mm.ResNet18(criterion, zero_init_residual=zero_init_residual)
+
+        resnet_test(model, x, y)
+
+    for model in (
+        mm.ResNet34(criterion),
+        mm.ResNet50(criterion),
+        mm.ResNet101(criterion),
+        mm.ResNet152(criterion),
+    ):
+        resnet_test(model, x, y)
+
+    encoder = mm.ResNet18(criterion, encoder=True)
+    optimiser = torch.optim.SGD(encoder.parameters(), lr=1.0e-3)
+
+    encoder.set_optimiser(optimiser)
+
+    encoder.determine_output_dim()
+    print(encoder.output_shape)
+    assert encoder.output_shape == (512, 8, 8)
+
+    x = torch.rand(16, *(4, 256, 256))
+    assert len(encoder(x)) is 5
