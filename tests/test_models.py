@@ -4,8 +4,10 @@ import numpy as np
 import pytest
 
 
+criterion = torch.nn.CrossEntropyLoss()
+
+
 def test_mlp() -> None:
-    criterion = torch.nn.CrossEntropyLoss()
     model_1 = mm.MLP(criterion)
     model_2 = mm.MLP(criterion, hidden_sizes=128)
 
@@ -33,7 +35,6 @@ def test_mlp() -> None:
 
 
 def test_cnn() -> None:
-    criterion = torch.nn.CrossEntropyLoss()
     model = mm.CNN(criterion)
 
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
@@ -71,7 +72,6 @@ def test_resnets() -> None:
     with pytest.raises(ValueError):
         _ = mm.ResNet18(replace_stride_with_dilation=(True, False))
 
-    criterion = torch.nn.CrossEntropyLoss()
     x = torch.rand(16, *(4, 256, 256))
     y = torch.LongTensor(np.random.randint(0, 8, size=16))
 
@@ -100,3 +100,43 @@ def test_resnets() -> None:
 
     x = torch.rand(16, *(4, 256, 256))
     assert len(encoder(x)) is 5
+
+
+def test_fcnresnets() -> None:
+    def resnet_test(
+        test_model: mm.MinervaModel, x: torch.FloatTensor, y: torch.LongTensor
+    ) -> None:
+        optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
+
+        test_model.set_optimiser(optimiser)
+
+        test_model.determine_output_dim()
+        assert test_model.output_shape == (256, 256)
+
+        loss, z = test_model.training_step(x, y)
+
+        assert type(loss.item()) is float
+        assert z.size() == (16, 8, 256, 256)
+
+    x = torch.rand((16, 4, 256, 256))
+    y = torch.randint(0, 8, (16, 256, 256))
+
+    for model in (
+        mm.FCN32ResNet18(criterion),
+        mm.FCN32ResNet34(criterion),
+        mm.FCN32ResNet50(criterion),
+        mm.FCN16ResNet18(criterion),
+        mm.FCN16ResNet34(criterion),
+        mm.FCN16ResNet50(criterion),
+        mm.FCN8ResNet18(criterion),
+        mm.FCN8ResNet18(criterion),
+        mm.FCN8ResNet34(criterion),
+        mm.FCN8ResNet50(criterion),
+        mm.FCN8ResNet101(criterion),
+        mm.FCN8ResNet152(criterion),
+    ):
+        resnet_test(model, x, y)
+
+
+def test_simclr() -> None:
+    pass
