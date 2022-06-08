@@ -1063,7 +1063,7 @@ class ResNet18(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         norm_layer: Optional[Callable[..., Module]] = None,
@@ -1133,7 +1133,7 @@ class ResNet34(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
@@ -1205,7 +1205,7 @@ class ResNet50(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1279,7 +1279,7 @@ class ResNet101(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1353,7 +1353,7 @@ class ResNet152(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1430,7 +1430,7 @@ class _FCN(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_name: str = "ResNet18",
         decoder_name: str = "DCN",
@@ -1512,7 +1512,7 @@ class FCNResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
@@ -1551,7 +1551,7 @@ class FCNResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
@@ -1590,7 +1590,7 @@ class FCNResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
@@ -1628,7 +1628,7 @@ class FCN32ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1664,7 +1664,7 @@ class FCN32ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1700,7 +1700,7 @@ class FCN32ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1736,7 +1736,7 @@ class FCN16ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1772,7 +1772,7 @@ class FCN16ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1808,7 +1808,7 @@ class FCN16ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1844,7 +1844,7 @@ class FCN8ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1880,7 +1880,7 @@ class FCN8ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1916,7 +1916,7 @@ class FCN8ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1952,7 +1952,7 @@ class FCN8ResNet101(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1988,7 +1988,7 @@ class FCN8ResNet152(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -2028,7 +2028,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int], List[int]] = (4, 256, 256),
         feature_dim: int = 128,
         backbone_name: str = "ResNet18",
         backbone_kwargs: Optional[Dict[str, Any]] = None,
@@ -2081,7 +2081,7 @@ class SimCLR18(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
@@ -2108,7 +2108,7 @@ class SimCLR34(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
@@ -2135,7 +2135,7 @@ class SimCLR50(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
