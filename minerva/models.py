@@ -746,132 +746,6 @@ class ResNet(MinervaModel, ABC):
         return self._forward_impl(x)
 
 
-class Decoder(MinervaModel, ABC):
-    """Decoder network taken from an autoencoder example:
-
-    https://github.com/arnaghosh/Auto-Encoder/blob/master/resnet.py
-
-    Attributes:
-        batch_size (int): Number of samples in each batch supplied to the network.
-        n_classes (int): Number of classes in the data to be classified by the network.
-        image_size (tuple[int, int, int] or list[int, int, int]): Defines the shape of the input data in order of
-            number of channels, image width, image height.
-        relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
-        fc3 (torch.nn.Linear): First fully connected layer of the network that should take the input from the encoder.
-        bn3 (torch.nn.BatchNorm1d): First batch norm layer.
-        fc2 (torch.nn.Linear): Second fully connected layer of the network.
-        bn2 (torch.nn.BatchNorm1d): Second batch norm layer.
-        fc1 (torch.nn.Linear): Third fully connected layer of the network.
-        bn1 (torch.nn.BatchNorm1d): Third batch norm layer.
-        upsample1 (torch.nn.Upsample): 2x factor up-sampling layer used throughout network.
-        dconv5 (torch.nn.ConvTranspose2d): First de-convolutional layer with 3x3 kernel and no padding.
-        dconv4 (torch.nn.ConvTranspose2d): Second de-convolutional layer with 3x3 kernel and padding=1.
-        dconv3 (torch.nn.ConvTranspose2d): Third de-convolutional layer with 3x3 kernel and padding=1.
-        dconv2 (torch.nn.ConvTranspose2d): Fourth de-convolutional layer with 5x5 kernel and padding=2.
-        dconv1 (torch.nn.ConvTranspose2d): Fifth de-convolutional layer with 12x12 kernel, stride=4 and padding=4.
-        upsample2 (torch.nn.Upsample): Final up-sampling layer to ensure the output of the network matches
-            the original image size.
-
-    Args:
-        batch_size (int): Number of samples in each batch supplied to the network.
-        n_classes (int): Number of classes in the data to be classified by the network.
-        image_size (tuple[int, int, int] or list[int, int, int]): Defines the shape of the input data in order of
-            number of channels, image width, image height.
-    """
-
-    def __init__(
-        self,
-        batch_size: int,
-        n_classes: int,
-        image_size: Union[Tuple[int, int, int], List[int]],
-    ) -> None:
-
-        super(Decoder, self).__init__(n_classes=n_classes)
-
-        self.batch_size = batch_size
-        self.image_size = image_size
-
-        # Init ReLU for use throughout network.
-        self.relu = torch.nn.ReLU(inplace=True)
-
-        # First fully connected layer that should take input from an encoder. Followed by batch norm.
-        self.fc3 = torch.nn.Linear(1024, 4096)
-        self.bn3 = torch.nn.BatchNorm1d(4096)
-
-        # Second fully connected layer and batch norm layer.
-        self.fc2 = torch.nn.Linear(4096, 4096)
-        self.bn2 = torch.nn.BatchNorm1d(4096)
-
-        # Third and final fully connected layer and batch norm layer.
-        self.fc1 = torch.nn.Linear(4096, 256 * 6 * 6)
-        self.bn1 = torch.nn.BatchNorm1d(256 * 6 * 6)
-
-        # 2x factor up-sampling operation to use throughout network.
-        self.upsample1 = torch.nn.Upsample(scale_factor=2)
-
-        # De-convolutional layers.
-        self.dconv5 = torch.nn.ConvTranspose2d(256, 256, (3, 3), padding=(0, 0))
-        self.dconv4 = torch.nn.ConvTranspose2d(256, 384, (3, 3), padding=(1, 1))
-        self.dconv3 = torch.nn.ConvTranspose2d(384, 192, (3, 3), padding=(1, 1))
-        self.dconv2 = torch.nn.ConvTranspose2d(192, 64, (5, 5), padding=(2, 2))
-        self.dconv1 = torch.nn.ConvTranspose2d(
-            64, self.n_classes, (12, 12), stride=(4, 4), padding=(4, 4)
-        )
-
-        # Up-sampling operation to take output from de-convolutions and match to input size of image.
-        self.upsample2 = torch.nn.Upsample(size=self.image_size)
-
-    def _forward_impl(self, x: Tensor) -> Tensor:
-        # First block of fully connected layer batch norm and ReLU.
-        x = self.relu(x)
-        x = self.fc3(x)
-        x = self.relu(self.bn3(x))
-
-        # Second block of fully connected layer batch norm and ReLU.
-        x = self.fc2(x)
-        x = self.relu(self.bn2(x))
-
-        # Third and final block of fully connected layer batch norm and ReLU.
-        x = self.fc1(x)
-        x = self.relu(self.bn1(x))
-
-        # Expands 2D tensor of data (batch, vector) into 4D (batch, feature maps, height, width) tensor.
-        x = x.view(self.batch_size, 256, 6, 6)
-
-        # Up-samples by 2x.
-        x = self.upsample1(x)
-
-        # De-convolutional layers, up-sampling and ReLUs.
-        x = self.relu(self.dconv5(x))
-        x = self.relu(self.dconv4(x))
-        x = self.relu(self.dconv3(x))
-        x = self.upsample1(x)
-        x = self.relu(self.dconv2(x))
-        x = self.upsample1(x)
-        x = self.relu(self.dconv1(x))
-
-        # Final up-sampling layer to ensure output matches the dimensions of the input to the encoder.
-        x = self.upsample2(x)
-
-        return x
-
-    def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
-        """Performs a forward pass of the decoder.
-
-        Overwrites MinervaModel abstract method.
-
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
-
-        Args:
-            x (Tensor): Input data to network. Should be from a backbone.
-
-        Returns:
-            Tensor segmentation mask with a channel for each class of the likelihoods the network places on
-                each pixel input 'x' being of that class.
-        """
-        return self._forward_impl(x[0])
-
-
 class DCN(MinervaModel, ABC):
     """Generic DCN defined by the FCN paper. Can construct the DCN32, DCN16 or DCN8 variants defined in the paper.
 
@@ -1433,9 +1307,7 @@ class _FCN(MinervaModel, ABC):
         input_size: Union[Tuple[int], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_name: str = "ResNet18",
-        decoder_name: str = "DCN",
         decoder_variant: str = "32",
-        batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         backbone_kwargs: Optional[Dict[str, Any]] = None,
@@ -1462,16 +1334,11 @@ class _FCN(MinervaModel, ABC):
         # for the proceeding layers of the network.
         self.backbone.determine_output_dim()
 
-        if decoder_name == "DCN":
-            self.decoder = DCN(
-                in_channel=self.backbone.output_shape[0],
-                n_classes=n_classes,
-                variant=decoder_variant,
-            )
-        if decoder_name == "Decoder":
-            self.decoder = Decoder(
-                batch_size=batch_size, image_size=input_size[1:], n_classes=n_classes
-            )
+        self.decoder = DCN(
+            in_channel=self.backbone.output_shape[0],
+            n_classes=n_classes,
+            variant=decoder_variant,
+        )
 
     def forward(self, x: FloatTensor) -> Tensor:
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
@@ -1492,123 +1359,6 @@ class _FCN(MinervaModel, ABC):
         z = self.decoder(z)
 
         return z
-
-
-class FCNResNet18(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet18 backbone but a decoder NOT defined in the original FCN paper.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        batch_size (int): Optional; Number of samples in each batch supplied to the network.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
-        n_classes: int = 8,
-        batch_size: int = 16,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(FCNResNet18, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            batch_size=batch_size,
-            backbone_name="ResNet18",
-            decoder_name="Decoder",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
-
-
-class FCNResNet34(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet34 backbone but a decoder NOT defined in the original FCN paper.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        batch_size (int): Optional; Number of samples in each batch supplied to the network.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
-        n_classes: int = 8,
-        batch_size: int = 16,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(FCNResNet34, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            batch_size=batch_size,
-            backbone_name="ResNet34",
-            decoder_name="Decoder",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
-
-
-class FCNResNet50(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet50 backbone but a decoder NOT defined in the original FCN paper.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        batch_size (int): Optional; Number of samples in each batch supplied to the network.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
-        n_classes: int = 8,
-        batch_size: int = 16,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(FCNResNet50, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            batch_size=batch_size,
-            backbone_name="ResNet50",
-            decoder_name="Decoder",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
 
 
 class FCN32ResNet18(_FCN):
