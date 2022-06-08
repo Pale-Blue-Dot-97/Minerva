@@ -21,10 +21,9 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Dict, Any
+from typing import Dict, Any, Tuple
 from abc import ABC
 import abc
-import re as regex
 
 
 # =====================================================================================================================
@@ -52,7 +51,7 @@ class MinervaMetrics(ABC):
         self.data_size = data_size
 
         # To be overwritten.
-        self.metrics = None
+        self.metrics = {}
 
         self.model_type = params["model_type"]
 
@@ -72,11 +71,12 @@ class MinervaMetrics(ABC):
     def get_metrics(self) -> Dict[str, Any]:
         return self.metrics
 
-    def get_sub_metrics(self, pattern: str = r"[train|val]") -> Dict[str, Any]:
-        reg_pattern = regex.compile(pattern)
+    def get_sub_metrics(
+        self, pattern: Tuple[str, ...] = ("train", "val")
+    ) -> Dict[str, Any]:
         sub_metrics = {}
         for key in self.metrics.keys():
-            if reg_pattern.search(key):
+            if key.split("_")[0] in pattern:
                 sub_metrics[key] = self.metrics[key]
 
         return sub_metrics
