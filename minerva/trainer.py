@@ -38,12 +38,14 @@ import os
 import yaml
 import torch
 from torch.nn import Module
-from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
+from conditional import conditional
 
 
 # =====================================================================================================================
@@ -208,9 +210,8 @@ class Trainer:
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = MinervaDataParallel(
-                self.model, DistributedDataParallel, device_ids=[gpu]
-            )
+            self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
+            self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
 
         else:
             # Adds a graphical layout of the model to the TensorBoard logger.
@@ -356,7 +357,9 @@ class Trainer:
         )
 
         # Initialises a progress bar for the epoch.
-        with alive_bar(self.n_batches[mode], bar="blocks") as bar:
+        with conditional(
+            self.gpu == 0, alive_bar(self.n_batches[mode], bar="blocks")
+        ) as bar:
             # Sets the model up for training or evaluation modes
             if mode == "train":
                 self.model.train()
@@ -368,6 +371,12 @@ class Trainer:
                 results = self.modelio_func(
                     batch, self.model, self.device, mode, **self.params
                 )
+
+                if dist.is_available() and dist.is_initialized():
+                    loss = results[0].data.clone()
+                    dist.all_reduce(loss.div_(dist.get_world_size()))
+                    results = (loss, *results[1:])
+
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
                 self.step_num[mode] += 1
