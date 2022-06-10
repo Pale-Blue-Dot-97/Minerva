@@ -1746,7 +1746,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
     def forward(
         self, x: FloatTensor
-    ) -> Tuple[FloatTensor, FloatTensor, FloatTensor, FloatTensor]:
+    ) -> Tuple[FloatTensor, FloatTensor, FloatTensor, FloatTensor, FloatTensor]:
         """Performs a forward pass of SimCLR by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -1757,10 +1757,12 @@ class _SimCLR(MinervaModel, MinervaBackbone):
         f_a = torch.flatten(self.backbone(x[0])[0], start_dim=1)
         f_b = torch.flatten(self.backbone(x[1])[0], start_dim=1)
 
-        g_a = self.proj_head(f_a)
-        g_b = self.proj_head(f_b)
+        g_a: Tensor = self.proj_head(f_a)
+        g_b: Tensor = self.proj_head(f_b)
 
-        return f_a, f_b, g_a, g_b
+        z = torch.cat([g_a, g_b], dim=0)
+
+        return z, g_a, g_b, f_a, f_b
 
     def step(self, x: FloatTensor, train: bool) -> Tuple[_Loss, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
@@ -1780,7 +1782,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
             self.optimiser.zero_grad()
 
         # Forward pass.
-        _, _, z_a, z_b = self.forward(x)
+        z, z_a, z_b, _, _ = self.forward(x)
 
         # Compute Loss.
         loss: _Loss = self.criterion(z_a, z_b)
@@ -1790,7 +1792,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
             loss.backward()
             self.optimiser.step()
 
-        return loss, torch.cat([z_a, z_b], dim=0)
+        return loss, z
 
 
 class SimCLR18(_SimCLR):
