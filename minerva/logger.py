@@ -305,7 +305,6 @@ class SSL_Logger(MinervaLogger):
         writer: SummaryWriter,
         loss: _Loss,
         z: Optional[Tensor] = None,
-        y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
@@ -336,12 +335,12 @@ class SSL_Logger(MinervaLogger):
         writer.add_scalar(tag=f"{mode}_loss", scalar_value=ls, global_step=step_num)
         writer.add_scalar(
             tag=f"{mode}_acc",
-            scalar_value=correct / len(torch.flatten(y)),
+            scalar_value=correct / 2 * len(z[0]),
             global_step=step_num,
         )
         writer.add_scalar(
             tag=f"{mode}_top5_acc",
-            scalar_value=top5 / len(torch.flatten(y)),
+            scalar_value=top5 / 2 * len(z[0]),
             global_step=step_num,
         )
 
