@@ -119,7 +119,7 @@ def ssl_pair_tg(
     x_batch = torch.stack([x_i_batch, x_j_batch])
 
     # Transfer to GPU.
-    x = x_batch.to(device)
+    x = x_batch.cuda(non_blocking=True)
 
     # Runs a training epoch.
     if mode == "train":
