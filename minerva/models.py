@@ -111,7 +111,7 @@ class MinervaModel(Module, ABC):
         )
 
     @abc.abstractmethod
-    def forward(self, x: FloatTensor) -> Tensor:
+    def forward(self, x: FloatTensor) -> Union[Tensor, Tuple[Tensor, ...]]:
         """Abstract method for performing a forward pass.
 
         Note:
@@ -121,7 +121,8 @@ class MinervaModel(Module, ABC):
             x (FloatTensor): Input data to network.
 
         Returns:
-            Tensor of the likelihoods the network places on the input 'x' being of each class.
+            Union[Tensor, Tuple[Tensor, ...]]: Either a :class:`Tensor` or ``tuple`` of :class:`Tensor`s
+            representing various outputs from the model.
         """
         return x
 
@@ -157,62 +158,6 @@ class MinervaModel(Module, ABC):
             self.optimiser.step()
 
         return loss, z
-
-    def training_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with ``train=True`` to perform a training step.
-
-        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate` of this method and :func:`validation_step` and :func:`testing_step`.
-
-        See also:
-            :func:`step`
-        Args:
-            x (FloatTensor): Batch of input data to network.
-            y (LongTensor): Batch of ground truth labels for the input data.
-
-        Returns:
-            loss: Loss computed by the loss function.
-            z: Predicted label for the input data by the network.
-        """
-        return self.step(x, y, True)
-
-    def validation_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with ``train=False`` to perform a validation step.
-
-        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate` of this method and :func:`training_step` and :func:`testing_step`.
-
-        See also:
-            :func:`step`
-
-        Args:
-            x (FloatTensor): Batch of input data to network.
-            y (LongTensor): Batch of ground truth labels for the input data.
-
-        Returns:
-            loss: Loss computed by the loss function.
-            z: Predicted label for the input data by the network.
-        """
-        return self.step(x, y, False)
-
-    def testing_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with ``train=False`` to perform a testing step.
-
-        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate` of this method and :func:`validation_step` and :func:`training_step`.
-
-        See also:
-            :func:`step`
-
-        Args:
-            x (FloatTensor): Batch of input data to network.
-            y (LongTensor): Batch of ground truth labels for the input data.
-
-        Returns:
-            loss: Loss computed by the loss function.
-            z: Predicted label for the input data by the network.
-        """
-        return self.step(x, y, False)
 
 
 class MinervaBackbone(ABC):
@@ -1794,12 +1739,14 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         self.proj_head = torch.nn.Sequential(
             torch.nn.Linear(np.prod(self.backbone.output_shape), 512, bias=False),
-            torch.nn.BatchNorm1d(512),
+            # torch.nn.BatchNorm1d(512),
             torch.nn.ReLU(inplace=True),
-            torch.nn.Linear(512, feature_dim, bias=True),
+            torch.nn.Linear(512, feature_dim, bias=False),
         )
 
-    def forward(self, x: FloatTensor) -> FloatTensor:
+    def forward(
+        self, x: FloatTensor
+    ) -> Tuple[FloatTensor, FloatTensor, FloatTensor, FloatTensor]:
         """Performs a forward pass of SimCLR by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -1807,15 +1754,43 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        f_a = torch.nn.Parameter(torch.flatten(self.backbone(x[0])[0], start_dim=1))
-        f_b = torch.nn.Parameter(torch.flatten(self.backbone(x[1])[0], start_dim=1))
+        f_a = torch.flatten(self.backbone(x[0])[0], start_dim=1)
+        f_b = torch.flatten(self.backbone(x[1])[0], start_dim=1)
 
         g_a = self.proj_head(f_a)
         g_b = self.proj_head(f_b)
 
-        z = torch.nn.Parameter(torch.cat([g_a, g_b], dim=0))
+        return f_a, f_b, g_a, g_b
 
-        return z
+    def step(self, x: FloatTensor, train: bool) -> Tuple[_Loss, Tensor]:
+        """Overwrites :class:`MinervaModel` to account for paired logits.
+
+        Args:
+            x (FloatTensor): Batch of input data to network.
+            train (bool): Sets whether this shall be a training step or not. True for training step which will then
+                clear the optimiser, and perform a backward pass of the network then update the optimiser.
+                If False for a validation or testing step, these actions are not taken.
+
+        Returns:
+            Tuple[_Loss, Tensor]: Loss computed by the loss function and a :class:`Tensor`
+            with both projection's logits.
+        """
+        # Resets the optimiser's gradients if this is a training step.
+        if train:
+            self.optimiser.zero_grad()
+
+        # Forward pass.
+        _, _, z_a, z_b = self.forward(x)
+
+        # Compute Loss.
+        loss: _Loss = self.criterion(z_a, z_b)
+
+        # Performs a backward pass if this is a training step.
+        if train:
+            loss.backward()
+            self.optimiser.step()
+
+        return loss, torch.cat([z_a, z_b], dim=0)
 
 
 class SimCLR18(_SimCLR):
