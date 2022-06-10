@@ -2,7 +2,7 @@ import minerva.models as mm
 import torch
 import numpy as np
 import pytest
-from pytorch_metric_learning.losses import NTXentLoss
+from simclr.modules import NT_Xent
 
 
 criterion = torch.nn.CrossEntropyLoss()
@@ -25,11 +25,9 @@ def test_mlp() -> None:
 
         for mode in ("train", "val", "test"):
             if mode == "train":
-                loss, z = model.training_step(x, y)
-            if mode == "val":
-                loss, z = model.validation_step(x, y)
-            if mode == "test":
-                loss, z = model.testing_step(x, y)
+                loss, z = model.step(x, y, True)
+            else:
+                loss, z = model.step(x, y, False)
 
             assert type(loss.item()) is float
             assert z.size() == (16, 8)
@@ -49,7 +47,7 @@ def test_cnn() -> None:
     x = torch.rand(6, *input_size)
     y = torch.LongTensor(np.random.randint(0, 8, size=6))
 
-    loss, z = model.training_step(x, y)
+    loss, z = model.step(x, y, True)
 
     assert type(loss.item()) is float
     assert z.size() == (6, 8)
@@ -66,7 +64,7 @@ def test_resnets() -> None:
         test_model.determine_output_dim()
         assert test_model.output_shape is test_model.n_classes
 
-        loss, z = test_model.training_step(x, y)
+        loss, z = test_model.step(x, y, True)
 
         assert type(loss.item()) is float
         assert z.size() == (6, 8)
@@ -125,7 +123,7 @@ def test_fcnresnets() -> None:
         test_model.determine_output_dim()
         assert test_model.output_shape == (64, 64)
 
-        loss, z = test_model.training_step(x, y)
+        loss, z = test_model.step(x, y, True)
 
         assert type(loss.item()) is float
         assert z.size() == (6, 8, 64, 64)
@@ -153,13 +151,11 @@ def test_fcnresnets() -> None:
 
 
 def test_simclr() -> None:
-    loss_func = NTXentLoss()
+    loss_func = NT_Xent(6, 0.3, 1)
 
     input_size = (4, 64, 64)
 
     x = torch.rand((6, *input_size))
-    y = torch.arange(len(x))
-    y = torch.cat([y, y], dim=0)
 
     x = torch.stack([x, x])
 
@@ -173,9 +169,9 @@ def test_simclr() -> None:
         model.set_optimiser(optimiser)
 
         model.determine_output_dim(sample_pairs=True)
-        assert model.output_shape is 128
+        assert model.output_shape == (128,)
 
-        loss, z = model.training_step(x, y)
+        loss, z = model.step(x, True)
 
         assert type(loss.item()) is float
         assert z.size() == (12, 128)
