@@ -37,6 +37,7 @@ from minerva.pytorchtools import EarlyStopping
 import os
 import yaml
 import torch
+from contextlib import nullcontext
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.distributed as dist
@@ -45,7 +46,6 @@ from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
-from conditional import conditional
 
 
 # =====================================================================================================================
@@ -357,10 +357,10 @@ class Trainer:
         )
 
         # Initialises a progress bar for the epoch.
-        with conditional(
-            self.gpu == 0, alive_bar(self.n_batches[mode], bar="blocks")
-        ) as bar:
-            # Sets the model up for training or evaluation modes
+        with alive_bar(
+            self.n_batches[mode], bar="blocks"
+        ) if self.gpu == 0 else nullcontext() as bar:
+            # Sets the model up for training or evaluation modes.
             if mode == "train":
                 self.model.train()
             else:
@@ -382,7 +382,8 @@ class Trainer:
                 self.step_num[mode] += 1
 
                 # Updates progress bar that batch has been processed.
-                bar()
+                if self.gpu == 0:
+                    bar()
 
         # Updates metrics with epoch results.
         self.metric_logger(mode, epoch_logger.get_logs)
