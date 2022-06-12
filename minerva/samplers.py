@@ -125,7 +125,8 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         batch_size: int,
         length: int,
         roi: Optional[BoundingBox] = None,
-        max_r: Optional[float] = 256,
+        max_r: Optional[float] = 256.0,
+        tiles_per_batch: Optional[int] = 4,
     ) -> None:
         """Initialize a new Sampler instance.
 
@@ -151,6 +152,13 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         self.max_r = max_r
         self.hits = list(self.index.intersection(tuple(self.roi), objects=True))
 
+        if self.batch_size % tiles_per_batch == 0:
+            self.sam_per_tile = int(self.batch_size / tiles_per_batch)
+        else:
+            raise ValueError(
+                "Value given for `tiles_per_batch` is not a multiple of batch_size"
+            )
+
         # Define the distance to add to an existing bounding box to get
         # the box to sample the other side of the pair from.
         self.r = (self.max_r - self.size[0], self.max_r - self.size[1])
@@ -162,15 +170,18 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
             batch of (minx, maxx, miny, maxy, mint, maxt) coordinates to index a dataset
         """
         for _ in range(len(self)):
-            # Choose a random tile
-            hit = random.choice(self.hits)
-            bounds = BoundingBox(*hit.bounds)
-
-            # Choose random indices within that tile
             batch = []
-            for _ in range(self.batch_size):
-                bbox_a, bbox_b = get_pair_bboxes(bounds, self.size, self.res, self.r)
-                batch.append((bbox_a, bbox_b))
+            for _ in range(self.sam_per_tile):
+                # Choose a random tile
+                hit = random.choice(self.hits)
+                bounds = BoundingBox(*hit.bounds)
+
+                # Choose random indices within that tile
+                for _ in range(self.batch_size):
+                    bbox_a, bbox_b = get_pair_bboxes(
+                        bounds, self.size, self.res, self.r
+                    )
+                    batch.append((bbox_a, bbox_b))
 
             yield batch
 
