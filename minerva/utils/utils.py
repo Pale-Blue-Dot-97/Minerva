@@ -73,6 +73,7 @@ import importlib
 import functools
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
+import yaml
 import psutil
 import webbrowser
 import re as regex
@@ -1446,3 +1447,10 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
         mint=bbox.mint,
         maxt=bbox.maxt,
     )
+
+
+def print_config(conf: Optional[Dict[str, Any]] = None) -> None:
+    if conf is None:
+        conf = config
+
+    print(yaml.dump(conf))
