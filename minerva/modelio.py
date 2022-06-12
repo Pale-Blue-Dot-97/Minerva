@@ -21,7 +21,8 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Sequence, Tuple, Dict, Any, Literal
+from typing import Sequence, Tuple, Dict, Any
+from typing_extensions import Literal
 from torch import Tensor
 from torch.nn.modules.loss import _Loss
 from minerva.models import MinervaModel
@@ -75,15 +76,11 @@ def sup_tg(
 
     # Runs a training epoch.
     if mode == "train":
-        loss, z = model.training_step(x, y)
+        loss, z = model.step(x, y, True)
 
-    # Runs a validation epoch.
-    elif mode == "val":
-        loss, z = model.validation_step(x, y)
-
-    # Runs a testing epoch.
-    elif mode == "test":
-        loss, z = model.testing_step(x, y)
+    # Runs a validation or test epoch.
+    else:
+        loss, z = model.step(x, y, False)
 
     return loss, z, y, batch["bbox"]
 
@@ -114,10 +111,6 @@ def ssl_pair_tg(
     x_i_batch: Tensor = batch[0]["image"]
     x_j_batch: Tensor = batch[1]["image"]
 
-    # Creates an identity matrix to act as the y labels.
-    y_batch = torch.arange(len(x_i_batch))
-    y_batch = torch.cat([y_batch, y_batch], dim=0)
-
     # Ensures images are floats.
     x_i_batch = x_i_batch.to(torch.float)
     x_j_batch = x_j_batch.to(torch.float)
@@ -126,14 +119,14 @@ def ssl_pair_tg(
     x_batch = torch.stack([x_i_batch, x_j_batch])
 
     # Transfer to GPU.
-    x, y = x_batch.to(device), y_batch.to(device)
+    x = x_batch.cuda(non_blocking=True)
 
     # Runs a training epoch.
     if mode == "train":
-        loss, z = model.training_step(x, y)
+        loss, z = model.step(x, True)
 
     # Runs a validation epoch.
-    elif mode == "val":
-        loss, z = model.validation_step(x, y)
+    else:
+        loss, z = model.step(x, False)
 
-    return loss, z, y, batch[0]["bbox"] + batch[1]["bbox"]
+    return loss, z, batch[0]["bbox"] + batch[1]["bbox"]

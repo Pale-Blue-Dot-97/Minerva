@@ -111,7 +111,7 @@ class MinervaModel(Module, ABC):
         )
 
     @abc.abstractmethod
-    def forward(self, x: FloatTensor) -> Tensor:
+    def forward(self, x: FloatTensor) -> Union[Tensor, Tuple[Tensor, ...]]:
         """Abstract method for performing a forward pass.
 
         Note:
@@ -121,7 +121,8 @@ class MinervaModel(Module, ABC):
             x (FloatTensor): Input data to network.
 
         Returns:
-            Tensor of the likelihoods the network places on the input 'x' being of each class.
+            Union[Tensor, Tuple[Tensor, ...]]: Either a :class:`Tensor` or ``tuple`` of :class:`Tensor`s
+            representing various outputs from the model.
         """
         return x
 
@@ -157,62 +158,6 @@ class MinervaModel(Module, ABC):
             self.optimiser.step()
 
         return loss, z
-
-    def training_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with ``train=True`` to perform a training step.
-
-        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate` of this method and :func:`validation_step` and :func:`testing_step`.
-
-        See also:
-            :func:`step`
-        Args:
-            x (FloatTensor): Batch of input data to network.
-            y (LongTensor): Batch of ground truth labels for the input data.
-
-        Returns:
-            loss: Loss computed by the loss function.
-            z: Predicted label for the input data by the network.
-        """
-        return self.step(x, y, True)
-
-    def validation_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with ``train=False`` to perform a validation step.
-
-        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate` of this method and :func:`training_step` and :func:`testing_step`.
-
-        See also:
-            :func:`step`
-
-        Args:
-            x (FloatTensor): Batch of input data to network.
-            y (LongTensor): Batch of ground truth labels for the input data.
-
-        Returns:
-            loss: Loss computed by the loss function.
-            z: Predicted label for the input data by the network.
-        """
-        return self.step(x, y, False)
-
-    def testing_step(self, x: FloatTensor, y: LongTensor) -> Tuple[_Loss, Tensor]:
-        """Calls step with ``train=False`` to perform a testing step.
-
-        Designed to be compatible with :class:`Trainer` and future compatibility with PyTorchLightning.
-        Hence the resulting `boilerplate` of this method and :func:`validation_step` and :func:`training_step`.
-
-        See also:
-            :func:`step`
-
-        Args:
-            x (FloatTensor): Batch of input data to network.
-            y (LongTensor): Batch of ground truth labels for the input data.
-
-        Returns:
-            loss: Loss computed by the loss function.
-            z: Predicted label for the input data by the network.
-        """
-        return self.step(x, y, False)
 
 
 class MinervaBackbone(ABC):
@@ -305,8 +250,8 @@ class MLP(MinervaModel):
             criterion=criterion, input_shape=(input_size), n_classes=n_classes
         )
 
-        if hidden_sizes is int:
-            hidden_sizes = hidden_sizes
+        if isinstance(hidden_sizes, int):
+            hidden_sizes = (hidden_sizes,)
         self.hidden_sizes = hidden_sizes
 
         self._layers = OrderedDict()
@@ -315,12 +260,10 @@ class MLP(MinervaModel):
         for i in range(len(hidden_sizes)):
             if i == 0:
                 self._layers["Linear-0"] = torch.nn.Linear(input_size, hidden_sizes[i])
-            elif i > 0:
+            else:
                 self._layers[f"Linear-{i}"] = torch.nn.Linear(
                     hidden_sizes[i - 1], hidden_sizes[i]
                 )
-            else:
-                print(f"EXCEPTION on Layer {i}")
 
             # Adds ReLu activation after every linear layer.
             self._layers[f"ReLu-{i}"] = torch.nn.ReLU()
@@ -375,7 +318,7 @@ class CNN(MinervaModel, ABC):
     def __init__(
         self,
         criterion,
-        input_size: Union[Tuple[int, int, int], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, int, int], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         features: Union[Tuple[int, ...], List[int]] = (2, 1, 1),
         fc_sizes: Union[Tuple[int, ...], List[int]] = (128, 64),
@@ -409,44 +352,29 @@ class CNN(MinervaModel, ABC):
                     conv_kernel_size[0],
                     stride=conv_stride[0],
                 )
-            elif i > 0:
-                self._conv_layers["Conv-{}".format(i)] = torch.nn.Conv2d(
+            else:
+                self._conv_layers[f"Conv-{i}"] = torch.nn.Conv2d(
                     features[i - 1],
                     features[i],
                     conv_kernel_size[i],
                     stride=conv_stride[i],
                 )
-            else:
-                print("EXCEPTION on Layer {}".format(i))
 
             # Each convolutional layer is followed by max-pooling layer and ReLu activation.
-            self._conv_layers["MaxPool-{}".format(i)] = torch.nn.MaxPool2d(
+            self._conv_layers[f"MaxPool-{i}"] = torch.nn.MaxPool2d(
                 kernel_size=max_kernel_size, stride=max_stride
             )
-            self._conv_layers["ReLu-{}".format(i)] = torch.nn.ReLU()
+            self._conv_layers[f"ReLu-{i}"] = torch.nn.ReLU()
 
             if conv_do:
-                self._conv_layers["DropOut-{}".format(i)] = torch.nn.Dropout(p_conv_do)
+                self._conv_layers[f"DropOut-{i}"] = torch.nn.Dropout(p_conv_do)
 
         # Construct the convolutional network from the dict of layers.
         self.conv_net = torch.nn.Sequential(self._conv_layers)
 
         # Calculate the input of the Linear layer by sending some fake data through the network
         # and getting the shape of the output.
-        out_shape = []
-        for i in range(len(features)):
-            if i == 0:
-                out_shape = get_output_shape(
-                    self._conv_layers["MaxPool-{}".format(i)],
-                    get_output_shape(
-                        self._conv_layers["Conv-{}".format(i)], self.input_shape
-                    ),
-                )
-            if i > 0:
-                out_shape = get_output_shape(
-                    self._conv_layers["MaxPool-{}".format(i)],
-                    get_output_shape(self._conv_layers["Conv-{}".format(i)], out_shape),
-                )
+        out_shape = get_output_shape(self.conv_net, self.input_shape)
 
         # Calculate the flattened size of the output from the convolutional network.
         self.flattened_size = int(np.prod(list(out_shape)))
@@ -457,18 +385,16 @@ class CNN(MinervaModel, ABC):
                 self._fc_layers["Linear-0"] = torch.nn.Linear(
                     self.flattened_size, fc_sizes[i]
                 )
-            elif i > 0:
-                self._fc_layers["Linear-{}".format(i)] = torch.nn.Linear(
+            else:
+                self._fc_layers[f"Linear-{i}"] = torch.nn.Linear(
                     fc_sizes[i - 1], fc_sizes[i]
                 )
-            else:
-                print("EXCEPTION on Layer {}".format(i))
 
             # Each fully connected layer is followed by a ReLu activation.
-            self._fc_layers["ReLu-{}".format(i)] = torch.nn.ReLU()
+            self._fc_layers[f"ReLu-{i}"] = torch.nn.ReLU()
 
             if fc_do:
-                self._fc_layers["DropOut-{}".format(i)] = torch.nn.Dropout(p_fc_do)
+                self._fc_layers[f"DropOut-{i}"] = torch.nn.Dropout(p_fc_do)
 
         # Add classification layer.
         self._fc_layers["Classification"] = torch.nn.Linear(
@@ -765,132 +691,6 @@ class ResNet(MinervaModel, ABC):
         return self._forward_impl(x)
 
 
-class Decoder(MinervaModel, ABC):
-    """Decoder network taken from an autoencoder example:
-
-    https://github.com/arnaghosh/Auto-Encoder/blob/master/resnet.py
-
-    Attributes:
-        batch_size (int): Number of samples in each batch supplied to the network.
-        n_classes (int): Number of classes in the data to be classified by the network.
-        image_size (tuple[int, int, int] or list[int, int, int]): Defines the shape of the input data in order of
-            number of channels, image width, image height.
-        relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
-        fc3 (torch.nn.Linear): First fully connected layer of the network that should take the input from the encoder.
-        bn3 (torch.nn.BatchNorm1d): First batch norm layer.
-        fc2 (torch.nn.Linear): Second fully connected layer of the network.
-        bn2 (torch.nn.BatchNorm1d): Second batch norm layer.
-        fc1 (torch.nn.Linear): Third fully connected layer of the network.
-        bn1 (torch.nn.BatchNorm1d): Third batch norm layer.
-        upsample1 (torch.nn.Upsample): 2x factor up-sampling layer used throughout network.
-        dconv5 (torch.nn.ConvTranspose2d): First de-convolutional layer with 3x3 kernel and no padding.
-        dconv4 (torch.nn.ConvTranspose2d): Second de-convolutional layer with 3x3 kernel and padding=1.
-        dconv3 (torch.nn.ConvTranspose2d): Third de-convolutional layer with 3x3 kernel and padding=1.
-        dconv2 (torch.nn.ConvTranspose2d): Fourth de-convolutional layer with 5x5 kernel and padding=2.
-        dconv1 (torch.nn.ConvTranspose2d): Fifth de-convolutional layer with 12x12 kernel, stride=4 and padding=4.
-        upsample2 (torch.nn.Upsample): Final up-sampling layer to ensure the output of the network matches
-            the original image size.
-
-    Args:
-        batch_size (int): Number of samples in each batch supplied to the network.
-        n_classes (int): Number of classes in the data to be classified by the network.
-        image_size (tuple[int, int, int] or list[int, int, int]): Defines the shape of the input data in order of
-            number of channels, image width, image height.
-    """
-
-    def __init__(
-        self,
-        batch_size: int,
-        n_classes: int,
-        image_size: Union[Tuple[int, int, int], List[int]],
-    ) -> None:
-
-        super(Decoder, self).__init__(n_classes=n_classes)
-
-        self.batch_size = batch_size
-        self.image_size = image_size
-
-        # Init ReLU for use throughout network.
-        self.relu = torch.nn.ReLU(inplace=True)
-
-        # First fully connected layer that should take input from an encoder. Followed by batch norm.
-        self.fc3 = torch.nn.Linear(1024, 4096)
-        self.bn3 = torch.nn.BatchNorm1d(4096)
-
-        # Second fully connected layer and batch norm layer.
-        self.fc2 = torch.nn.Linear(4096, 4096)
-        self.bn2 = torch.nn.BatchNorm1d(4096)
-
-        # Third and final fully connected layer and batch norm layer.
-        self.fc1 = torch.nn.Linear(4096, 256 * 6 * 6)
-        self.bn1 = torch.nn.BatchNorm1d(256 * 6 * 6)
-
-        # 2x factor up-sampling operation to use throughout network.
-        self.upsample1 = torch.nn.Upsample(scale_factor=2)
-
-        # De-convolutional layers.
-        self.dconv5 = torch.nn.ConvTranspose2d(256, 256, (3, 3), padding=(0, 0))
-        self.dconv4 = torch.nn.ConvTranspose2d(256, 384, (3, 3), padding=(1, 1))
-        self.dconv3 = torch.nn.ConvTranspose2d(384, 192, (3, 3), padding=(1, 1))
-        self.dconv2 = torch.nn.ConvTranspose2d(192, 64, (5, 5), padding=(2, 2))
-        self.dconv1 = torch.nn.ConvTranspose2d(
-            64, self.n_classes, (12, 12), stride=(4, 4), padding=(4, 4)
-        )
-
-        # Up-sampling operation to take output from de-convolutions and match to input size of image.
-        self.upsample2 = torch.nn.Upsample(size=self.image_size)
-
-    def _forward_impl(self, x: Tensor) -> Tensor:
-        # First block of fully connected layer batch norm and ReLU.
-        x = self.relu(x)
-        x = self.fc3(x)
-        x = self.relu(self.bn3(x))
-
-        # Second block of fully connected layer batch norm and ReLU.
-        x = self.fc2(x)
-        x = self.relu(self.bn2(x))
-
-        # Third and final block of fully connected layer batch norm and ReLU.
-        x = self.fc1(x)
-        x = self.relu(self.bn1(x))
-
-        # Expands 2D tensor of data (batch, vector) into 4D (batch, feature maps, height, width) tensor.
-        x = x.view(self.batch_size, 256, 6, 6)
-
-        # Up-samples by 2x.
-        x = self.upsample1(x)
-
-        # De-convolutional layers, up-sampling and ReLUs.
-        x = self.relu(self.dconv5(x))
-        x = self.relu(self.dconv4(x))
-        x = self.relu(self.dconv3(x))
-        x = self.upsample1(x)
-        x = self.relu(self.dconv2(x))
-        x = self.upsample1(x)
-        x = self.relu(self.dconv1(x))
-
-        # Final up-sampling layer to ensure output matches the dimensions of the input to the encoder.
-        x = self.upsample2(x)
-
-        return x
-
-    def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
-        """Performs a forward pass of the decoder.
-
-        Overwrites MinervaModel abstract method.
-
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
-
-        Args:
-            x (Tensor): Input data to network. Should be from a backbone.
-
-        Returns:
-            Tensor segmentation mask with a channel for each class of the likelihoods the network places on
-                each pixel input 'x' being of that class.
-        """
-        return self._forward_impl(x[0])
-
-
 class DCN(MinervaModel, ABC):
     """Generic DCN defined by the FCN paper. Can construct the DCN32, DCN16 or DCN8 variants defined in the paper.
 
@@ -1082,7 +882,7 @@ class ResNet18(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         norm_layer: Optional[Callable[..., Module]] = None,
@@ -1152,7 +952,7 @@ class ResNet34(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
@@ -1224,7 +1024,7 @@ class ResNet50(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1298,7 +1098,7 @@ class ResNet101(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1372,7 +1172,7 @@ class ResNet152(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1449,12 +1249,10 @@ class _FCN(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_name: str = "ResNet18",
-        decoder_name: str = "DCN",
         decoder_variant: str = "32",
-        batch_size: int = 16,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         backbone_kwargs: Optional[Dict[str, Any]] = None,
@@ -1481,16 +1279,11 @@ class _FCN(MinervaModel, ABC):
         # for the proceeding layers of the network.
         self.backbone.determine_output_dim()
 
-        if decoder_name == "DCN":
-            self.decoder = DCN(
-                in_channel=self.backbone.output_shape[0],
-                n_classes=n_classes,
-                variant=decoder_variant,
-            )
-        if decoder_name == "Decoder":
-            self.decoder = Decoder(
-                batch_size=batch_size, image_size=input_size[1:], n_classes=n_classes
-            )
+        self.decoder = DCN(
+            in_channel=self.backbone.output_shape[0],
+            n_classes=n_classes,
+            variant=decoder_variant,
+        )
 
     def forward(self, x: FloatTensor) -> Tensor:
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
@@ -1513,123 +1306,6 @@ class _FCN(MinervaModel, ABC):
         return z
 
 
-class FCNResNet18(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet18 backbone but a decoder NOT defined in the original FCN paper.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        batch_size (int): Optional; Number of samples in each batch supplied to the network.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
-        n_classes: int = 8,
-        batch_size: int = 16,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(FCNResNet18, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            batch_size=batch_size,
-            backbone_name="ResNet18",
-            decoder_name="Decoder",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
-
-
-class FCNResNet34(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet34 backbone but a decoder NOT defined in the original FCN paper.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        batch_size (int): Optional; Number of samples in each batch supplied to the network.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
-        n_classes: int = 8,
-        batch_size: int = 16,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(FCNResNet34, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            batch_size=batch_size,
-            backbone_name="ResNet34",
-            decoder_name="Decoder",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
-
-
-class FCNResNet50(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet50 backbone but a decoder NOT defined in the original FCN paper.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        batch_size (int): Optional; Number of samples in each batch supplied to the network.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
-        n_classes: int = 8,
-        batch_size: int = 16,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(FCNResNet50, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            batch_size=batch_size,
-            backbone_name="ResNet50",
-            decoder_name="Decoder",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
-
-
 class FCN32ResNet18(_FCN):
     """Fully Convolutional Network (FCN) using a ResNet18 backbone with a DCN32 decoder.
 
@@ -1647,7 +1323,7 @@ class FCN32ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1683,7 +1359,7 @@ class FCN32ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1719,7 +1395,7 @@ class FCN32ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1755,7 +1431,7 @@ class FCN16ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1791,7 +1467,7 @@ class FCN16ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1827,7 +1503,7 @@ class FCN16ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1863,7 +1539,7 @@ class FCN8ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1899,7 +1575,7 @@ class FCN8ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1935,7 +1611,7 @@ class FCN8ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1971,7 +1647,7 @@ class FCN8ResNet101(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -2007,7 +1683,7 @@ class FCN8ResNet152(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -2047,7 +1723,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int], List[int]] = (4, 256, 256),
         feature_dim: int = 128,
         backbone_name: str = "ResNet18",
         backbone_kwargs: Optional[Dict[str, Any]] = None,
@@ -2063,12 +1739,14 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         self.proj_head = torch.nn.Sequential(
             torch.nn.Linear(np.prod(self.backbone.output_shape), 512, bias=False),
-            torch.nn.BatchNorm1d(512),
+            # torch.nn.BatchNorm1d(512),
             torch.nn.ReLU(inplace=True),
-            torch.nn.Linear(512, feature_dim, bias=True),
+            torch.nn.Linear(512, feature_dim, bias=False),
         )
 
-    def forward(self, x: FloatTensor) -> FloatTensor:
+    def forward(
+        self, x: FloatTensor
+    ) -> Tuple[FloatTensor, FloatTensor, FloatTensor, FloatTensor, FloatTensor]:
         """Performs a forward pass of SimCLR by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -2076,15 +1754,45 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        f_a = torch.nn.Parameter(torch.flatten(self.backbone(x[0])[0], start_dim=1))
-        f_b = torch.nn.Parameter(torch.flatten(self.backbone(x[1])[0], start_dim=1))
+        f_a = torch.flatten(self.backbone(x[0])[0], start_dim=1)
+        f_b = torch.flatten(self.backbone(x[1])[0], start_dim=1)
 
-        g_a = self.proj_head(f_a)
-        g_b = self.proj_head(f_b)
+        g_a: Tensor = self.proj_head(f_a)
+        g_b: Tensor = self.proj_head(f_b)
 
-        z = torch.nn.Parameter(torch.cat([g_a, g_b], dim=0))
+        z = torch.cat([g_a, g_b], dim=0)
 
-        return z
+        return z, g_a, g_b, f_a, f_b
+
+    def step(self, x: FloatTensor, train: bool) -> Tuple[_Loss, Tensor]:
+        """Overwrites :class:`MinervaModel` to account for paired logits.
+
+        Args:
+            x (FloatTensor): Batch of input data to network.
+            train (bool): Sets whether this shall be a training step or not. True for training step which will then
+                clear the optimiser, and perform a backward pass of the network then update the optimiser.
+                If False for a validation or testing step, these actions are not taken.
+
+        Returns:
+            Tuple[_Loss, Tensor]: Loss computed by the loss function and a :class:`Tensor`
+            with both projection's logits.
+        """
+        # Resets the optimiser's gradients if this is a training step.
+        if train:
+            self.optimiser.zero_grad()
+
+        # Forward pass.
+        z, z_a, z_b, _, _ = self.forward(x)
+
+        # Compute Loss.
+        loss: _Loss = self.criterion(z_a, z_b)
+
+        # Performs a backward pass if this is a training step.
+        if train:
+            loss.backward()
+            self.optimiser.step()
+
+        return loss, z
 
 
 class SimCLR18(_SimCLR):
@@ -2100,7 +1808,7 @@ class SimCLR18(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
@@ -2127,7 +1835,7 @@ class SimCLR34(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
@@ -2154,7 +1862,7 @@ class SimCLR50(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (12, 256, 256),
+        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:

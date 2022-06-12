@@ -49,6 +49,7 @@ def main():
 
     if config["pre_train"]:
         trainer.save_backbone()
+        trainer.close()
 
     else:
         trainer.test()

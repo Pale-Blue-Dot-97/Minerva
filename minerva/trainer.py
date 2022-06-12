@@ -37,8 +37,10 @@ from minerva.pytorchtools import EarlyStopping
 import os
 import yaml
 import torch
+from contextlib import nullcontext
 from torch.nn import Module
-from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
 from torchinfo import summary
 from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
@@ -112,6 +114,13 @@ class Trainer:
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose = verbose if gpu == 0 else False
+
+        if self.gpu == 0:
+            # Prints config to stdout.
+            print(
+                "\n==+ Experiment Parameters +====================================================="
+            )
+            utils.print_config(new_params)
 
         self.params = new_params
         self.class_dist = class_dist
@@ -201,9 +210,8 @@ class Trainer:
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = MinervaDataParallel(
-                self.model, DistributedDataParallel, device_ids=[gpu]
-            )
+            self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
+            self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
 
         else:
             # Adds a graphical layout of the model to the TensorBoard logger.
@@ -349,8 +357,10 @@ class Trainer:
         )
 
         # Initialises a progress bar for the epoch.
-        with alive_bar(self.n_batches[mode], bar="blocks") as bar:
-            # Sets the model up for training or evaluation modes
+        with alive_bar(
+            self.n_batches[mode], bar="blocks"
+        ) if self.gpu == 0 else nullcontext() as bar:
+            # Sets the model up for training or evaluation modes.
             if mode == "train":
                 self.model.train()
             else:
@@ -361,12 +371,19 @@ class Trainer:
                 results = self.modelio_func(
                     batch, self.model, self.device, mode, **self.params
                 )
+
+                if dist.is_available() and dist.is_initialized():
+                    loss = results[0].data.clone()
+                    dist.all_reduce(loss.div_(dist.get_world_size()))
+                    results = (loss, *results[1:])
+
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
                 self.step_num[mode] += 1
 
                 # Updates progress bar that batch has been processed.
-                bar()
+                if self.gpu == 0:
+                    bar()
 
         # Updates metrics with epoch results.
         self.metric_logger(mode, epoch_logger.get_logs)
@@ -403,7 +420,8 @@ class Trainer:
                 self.metric_logger.log_epoch_number(mode, epoch)
 
                 # Print epoch results.
-                self.metric_logger.print_epoch_results(mode, epoch)
+                if self.gpu == 0:
+                    self.metric_logger.print_epoch_results(mode, epoch)
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if mode == "val" and self.stopper is not None:
@@ -570,7 +588,9 @@ class Trainer:
             self.print("\nSAVING METRICS TO FILE")
             try:
                 sub_metrics = self.metric_logger.get_sub_metrics()
-                metrics_df = pd.DataFrame(sub_metrics)
+                metrics_df = pd.DataFrame(
+                    {key: sub_metrics[key]["y"] for key in sub_metrics.keys()}
+                )
                 metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
                 metrics_df.set_index("Epoch", inplace=True, drop=True)
                 metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
