@@ -152,6 +152,8 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         self.max_r = max_r
         self.hits = list(self.index.intersection(tuple(self.roi), objects=True))
 
+        self.tiles_per_batch = tiles_per_batch
+
         if self.batch_size % tiles_per_batch == 0:
             self.sam_per_tile = int(self.batch_size / tiles_per_batch)
         else:
@@ -171,13 +173,13 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         """
         for _ in range(len(self)):
             batch = []
-            for _ in range(self.sam_per_tile):
+            for _ in range(self.tiles_per_batch):
                 # Choose a random tile
                 hit = random.choice(self.hits)
                 bounds = BoundingBox(*hit.bounds)
 
                 # Choose random indices within that tile
-                for _ in range(self.batch_size):
+                for _ in range(self.sam_per_tile):
                     bbox_a, bbox_b = get_pair_bboxes(
                         bounds, self.size, self.res, self.r
                     )
