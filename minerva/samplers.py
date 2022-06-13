@@ -17,7 +17,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module containing custom samplers for `torch` datasets."""
+"""Module containing custom samplers for ``torchgeo`` datasets."""
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -43,7 +43,10 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 #                                                     CLASSES
 # =====================================================================================================================
 class RandomPairGeoSampler(GeoSampler):
-    """Samples geo-close pairs of elements from a region of interest randomly."""
+    """Samples geo-close pairs of elements from a region of interest randomly.
+
+    An extension to :class:`RandomGeoSampler` that supports paired sampling (i.e for GeoCLR).
+    """
 
     def __init__(
         self,
@@ -64,11 +67,11 @@ class RandomPairGeoSampler(GeoSampler):
 
         Args:
             dataset (GeoDataset): Dataset to index from.
-            size (Tuple[float, float] | float): dimensions of each :term:`patch` in units of CRS.
+            size (Tuple[float, float] | float): Dimensions of each :term:`patch` in units of CRS.
             length (int): number of random samples to draw per epoch.
-            roi (BoundingBox): Optional; region of interest to sample from (minx, maxx, miny, maxy, mint, maxt).
-                (defaults to the bounds of ``dataset.index``).
-            max_r (float):
+            roi (BoundingBox): Optional; Region of interest to sample from (``minx``, ``maxx``, ``miny``, ``maxy``,
+                ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``).
+            max_r (float): Optional; Maximum geo-spatial distance (from centre to centre) to sample matching sample from.
         """
         super().__init__(dataset, roi)
         self.size = _to_tuple(size)
@@ -106,16 +109,19 @@ class RandomPairGeoSampler(GeoSampler):
         """Return the number of samples in a single epoch.
 
         Returns:
-            length of the epoch
+            int: Length of the epoch.
         """
         return self.length
 
 
 class RandomPairBatchGeoSampler(BatchGeoSampler):
-    """Samples batches of elements from a region of interest randomly.
+    """Samples batches of pairs of elements from a region of interest randomly.
 
     This is particularly useful during training when you want to maximize the size of
-    the dataset and return as many random `patches` as possible.
+    the dataset and return as many random :term:`patches` as possible.
+
+    An extension to :class:`RandomBatchGeoSampler` that supports paired sampling (i.e. for GeoCLR)
+    and ability to samples from multiple tiles per batch to increase variance of batch.
     """
 
     def __init__(
@@ -138,12 +144,18 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
           height dimension, and the second *float* for the width dimension
 
         Args:
-            dataset: dataset to index from
-            size: dimensions of each :term:`patch` in units of CRS
-            batch_size: number of samples per batch
-            length: number of samples per epoch
-            roi: region of interest to sample from (minx, maxx, miny, maxy, mint, maxt)
-                (defaults to the bounds of ``dataset.index``)
+            dataset (GeoDataset): Dataset to index from.
+            size (Union[Tuple[float, float], float]): Dimensions of each :term:`patch` in units of CRS.
+            batch_size (int): Number of samples per batch.
+            length (int): Number of samples per epoch.
+            roi (BoundingBox): Optional; Region of interest to sample from (``minx``, ``maxx``, ``miny``, ``maxy``,
+                ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``)
+            max_r (float): Optional; Maximum geo-spatial distance (from centre to centre) to sample matching sample from.
+            tiles_per_batch (int): Optional; Number of tiles to sample from per batch.
+                Must be a multiple of ``batch_size``.
+
+        Raises:
+            ValueError: If ``tiles_per_batch`` is not a multiple of ``batch_size``.
         """
         super().__init__(dataset, roi)
         self.size = _to_tuple(size)
@@ -155,7 +167,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         self.tiles_per_batch = tiles_per_batch
 
         if self.batch_size % tiles_per_batch == 0:
-            self.sam_per_tile = int(self.batch_size / tiles_per_batch)
+            self.sam_per_tile = self.batch_size // tiles_per_batch
         else:
             raise ValueError(
                 "Value given for `tiles_per_batch` is not a multiple of batch_size"
@@ -191,13 +203,22 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         """Return the number of batches in a single epoch.
 
         Returns:
-            number of batches in an epoch
+            int: Number of batches in an epoch
         """
         return self.length // self.batch_size
 
 
 def get_greater_bbox(bbox: BoundingBox, r: Tuple[float, float]) -> BoundingBox:
-    """Return a bounding box at max_r distance around the first box."""
+    """Return a bounding box at ``max_r`` distance around the first box.
+
+    Args:
+        bbox (BoundingBox): Bounding box of the original sample.
+        r (Tuple[float, float]): Tuple of x, y distances to extend the original bounding box by
+            to get a new greater bounds to sample from.
+
+    Returns:
+        BoundingBox: Greater bounds around original bounding box to sample from.
+    """
     return BoundingBox(
         bbox.minx - r[0],
         bbox.maxx + r[0],
@@ -214,6 +235,18 @@ def get_pair_bboxes(
     res: float,
     r: Tuple[float, float],
 ) -> Tuple[BoundingBox, BoundingBox]:
+    """Samples a pair of bounding boxes geo-spatially close to each other.
+
+    Args:
+        bounds (BoundingBox): Maximum bounds of the :term:`tile` to sample pair from.
+        size (Union[Tuple[float, float], float]): Size of each :term:`patch`.
+        res (float): Resolution to sample :term:`patch` at.
+        r (Tuple[float, float]): ``x`` and ``y`` padding around original :term:`patch`
+            to sample new :term:`patch` from.
+
+    Returns:
+        Tuple[BoundingBox, BoundingBox]: Pair of bounding boxes to sample pair of patches from dataset.
+    """
     # Choose a random index within that tile.
     bbox_a = get_random_bounding_box(bounds, size, res)
 
