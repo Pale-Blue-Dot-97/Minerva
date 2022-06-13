@@ -46,6 +46,7 @@ from torch.utils.tensorboard import SummaryWriter
 import pandas as pd
 from alive_progress import alive_bar
 from inputimeout import inputimeout, TimeoutOccurred
+from simclr.modules import NT_Xent
 
 
 # =====================================================================================================================
@@ -259,6 +260,15 @@ class Trainer:
         loss_params: Dict[str, Any] = self.params["hyperparams"]["loss_params"].copy()
         module = loss_params.pop("module", "torch.nn")
         criterion = utils.func_by_str(module, loss_params["name"])
+
+        if criterion is NT_Xent:
+            if dist.is_available() and dist.is_initialized():
+                world_size = dist.get_world_size()
+            else:
+                world_size = 1
+
+            loss_params["params"]["batch_size"] = int(self.batch_size / world_size)
+            loss_params["params"]["world_size"] = world_size
 
         criterion_params_exist = utils.check_dict_key(loss_params, "params")
 
