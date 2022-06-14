@@ -1,12 +1,13 @@
 from minerva.logger import STG_Logger, SSL_Logger
 from torch.utils.tensorboard import SummaryWriter
-from minerva.models import FCN16ResNet18
+from minerva.models import FCN16ResNet18, SimCLR18
 from minerva.modelio import sup_tg, ssl_pair_tg
 import os
 import tempfile
 import numpy as np
 import torch
 from torchgeo.datasets.utils import BoundingBox
+from simclr.modules import NT_Xent
 from numpy.testing import assert_array_equal
 
 device = torch.device("cpu")
@@ -14,8 +15,10 @@ device = torch.device("cpu")
 
 def test_STG_Logger():
     criterion = torch.nn.CrossEntropyLoss()
+
     exp_name = "exp1"
     path = tempfile.gettempdir()
+
     if not isinstance(path, str):
         path = os.path.join(*path)
 
@@ -75,4 +78,57 @@ def test_STG_Logger():
 
 
 def test_SSL_Logger():
-    pass
+    criterion = NT_Xent(6, 0.5, 1)
+
+    exp_name = "exp2"
+    path = tempfile.gettempdir()
+
+    if not isinstance(path, str):
+        path = os.path.join(*path)
+
+    if not os.path.exists(os.path.join(path, exp_name)):
+        os.mkdir(os.path.join(path, exp_name))
+
+    writer = SummaryWriter(log_dir=path)
+
+    model = SimCLR18(criterion)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+    model.set_optimiser(optimiser)
+
+    n_batches = 8
+
+    for mode in ("train", "val", "test"):
+        logger = SSL_Logger(
+            n_batches=n_batches,
+            batch_size=6,
+            n_samples=8 * 6,
+            record_int=True,
+            record_float=True,
+        )
+        data = []
+        for i in range(n_batches):
+            images = torch.rand(size=(6, 4, 256, 256))
+            bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
+            batch = {
+                "image": images,
+                "bbox": bboxes,
+            }
+            data.append((batch, batch))
+
+            logger(
+                mode,
+                i,
+                writer,
+                *ssl_pair_tg((batch, batch), model, device=device, mode=mode)
+            )
+
+        logs = logger.get_logs
+        assert logs["batch_num"] == 8
+        assert type(logs["total_loss"]) is float
+        assert type(logs["total_correct"]) is float
+        assert type(logs["total_top5"]) is float
+
+        results = logger.get_results
+        assert results == {}
+
+    os.rmdir(os.path.join(path, exp_name))
