@@ -1,8 +1,77 @@
 from minerva.logger import STG_Logger, SSL_Logger
+from torch.utils.tensorboard import SummaryWriter
+from minerva.models import FCN16ResNet18
+from minerva.modelio import sup_tg, ssl_pair_tg
+import os
+import tempfile
+import numpy as np
+import torch
+from torchgeo.datasets.utils import BoundingBox
+from numpy.testing import assert_array_equal
+
+device = torch.device("cpu")
 
 
 def test_STG_Logger():
-    pass
+    criterion = torch.nn.CrossEntropyLoss()
+    exp_name = "exp1"
+    path = tempfile.gettempdir()
+    if not isinstance(path, str):
+        path = os.path.join(*path)
+
+    if not os.path.exists(os.path.join(path, exp_name)):
+        os.mkdir(os.path.join(path, exp_name))
+
+    writer = SummaryWriter(log_dir=path)
+
+    model = FCN16ResNet18(criterion)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+    model.set_optimiser(optimiser)
+    model.determine_output_dim()
+
+    n_batches = 8
+
+    for mode in ("train", "val", "test"):
+        logger = STG_Logger(
+            n_batches=n_batches,
+            batch_size=6,
+            n_samples=8 * 6 * 256 * 256,
+            out_shape=model.output_shape,
+            n_classes=8,
+            record_int=True,
+            record_float=True,
+        )
+        data = []
+        for i in range(n_batches):
+            images = torch.rand(size=(6, 4, 256, 256))
+            masks = torch.randint(0, 8, (6, 256, 256))
+            bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
+            batch = {
+                "image": images,
+                "mask": masks,
+                "bbox": bboxes,
+            }
+            data.append(batch)
+
+            logger(mode, i, writer, *sup_tg(batch, model, device=device, mode=mode))
+
+        logs = logger.get_logs
+        assert logs["batch_num"] == 8
+        assert type(logs["total_loss"]) is float
+        assert type(logs["total_correct"]) is float
+
+        results = logger.get_results
+        assert results["z"].shape == (8, 6, 256, 256)
+        assert results["y"].shape == (8, 6, 256, 256)
+        assert np.array(results["ids"]).shape == (8, 6)
+
+        y = np.empty((n_batches, 6, *model.output_shape), dtype=np.uint8)
+        for i in range(n_batches):
+            y[i] = data[i]["mask"].cpu().numpy()
+
+        assert assert_array_equal(results["y"], y) is None
+
+    os.rmdir(os.path.join(path, exp_name))
 
 
 def test_SSL_Logger():
