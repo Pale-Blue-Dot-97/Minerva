@@ -121,7 +121,7 @@ class MinervaModel(Module, ABC):
             x (FloatTensor): Input data to network.
 
         Returns:
-            Union[Tensor, Tuple[Tensor, ...]]: Either a :class:`Tensor` or ``tuple`` of :class:`Tensor`s
+            Union[Tensor, Tuple[Tensor, ...]]: Either a :class:`Tensor` or ``tuple`` of :class:`Tensor`
             representing various outputs from the model.
         """
         return x
@@ -427,33 +427,41 @@ class ResNet(MinervaModel, ABC):
     """Modified version of the ResNet network to handle multi-spectral inputs and cross-entropy.
 
     Attributes:
-        encoder_on (bool): Whether to initialise the ResNet as an encoder or end-to-end classifier.
-            If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
-            If False, adds a global average pooling layer after the last block, flattens the output
+        encoder_on (bool): Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
+            If ``True``, forward method returns the output of each layer block. avgpool and fc are not initialised.
+            If ``False``, adds a global average pooling layer after the last block, flattens the output
             and passes through a fully connected layer for classification output.
-        inplanes (int): Number of input feature maps. Initially set to 64.
-        dilation (int): Dilation factor of convolutions. Initially set to 1.
+        inplanes (int): Number of input feature maps. Initially set to ``64``.
+        dilation (int): Dilation factor of convolutions. Initially set to ``1``.
         groups (int): Number of convolutions in grouped convolutions of Bottleneck Blocks.
         base_width (int): Modifies the number of feature maps in convolutional layers of Bottleneck Blocks.
         conv1 (torch.nn.Conv2d): Input convolutional layer of Conv1 input block to the network.
         bn1 (Module): Batch normalisation layer of the Conv1 input block to the network.
         relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
         maxpool (torch.nn.MaxPool2d): 3x3 Max-pooling layer with stride 2 of the Conv1 input block to the network.
-        layer1 (torch.nn.Sequential): Layer 1 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer2 (torch.nn.Sequential): Layer 2 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer3 (torch.nn.Sequential): Layer 3 of the ResNet comprising number and type of blocks defined by ``layers``.
-        layer4 (torch.nn.Sequential): Layer 4 of the ResNet comprising number and type of blocks defined by ``layers``.
+        layer1 (torch.nn.Sequential): Layer 1 of the :class:`ResNet` comprising number and type of blocks defined
+            by ``layers``.
+        layer2 (torch.nn.Sequential): Layer 2 of the :class:`ResNet` comprising number and type of blocks defined
+            by ``layers``.
+        layer3 (torch.nn.Sequential): Layer 3 of the :class:`ResNet` comprising number and type of blocks defined
+            by ``layers``.
+        layer4 (torch.nn.Sequential): Layer 4 of the :class:`ResNet` comprising number and type of blocks defined
+            by ``layers``.
         avgpool (torch.nn.AdaptiveAvgPool2d): Global average pooling layer taking the output from the last block.
             Only initialised if ``encoder_on=False``.
         fc (torch.nn.Linear): Fully connected layer that takes the flattened output from average pooling
             to a classification output. Only initialised if ``encoder_on=False``.
 
+    .. warning::
+        Layers using :class:`BasicBlock` are not compatible with anything other than the default values for
+        ``groups`` and ``width_per_group``.
+
     Args:
-        block (BasicBlock or Bottleneck): Type of `block operations' to use throughout network.
-        layers (list): Number of blocks in each of the 4 `layers'.
+        block (BasicBlock or Bottleneck): Type of block operations to use throughout network.
+        layers (list): Number of blocks in each of the 4 `layers`.
         in_channels (int): Optional; Number of channels (or bands) in the input imagery.
         n_classes (int): Optional; Number of classes in data to be classified.
-        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
+        zero_init_residual (bool): Optional; If ``True``, zero-initialise the last BN in each residual branch,
             so that the residual branch starts with zeros, and each residual block behaves like an identity.
         groups (int): Optional; Number of convolutions in grouped convolutions of Bottleneck Blocks.
             Not compatible with Basic Block!
@@ -461,8 +469,9 @@ class ResNet(MinervaModel, ABC):
             of Bottleneck Blocks. Not compatible with Basic Block!
         replace_stride_with_dilation (tuple): Optional; Each element in the tuple indicates whether to replace the
             2x2 stride with a dilated convolution instead. Must be a three element tuple of bools.
-        norm_layer (function): Optional; Normalisation layer to use in each block. Typically, torch.nn.BatchNorm2d.
-        encoder (bool): Optional; Whether to initialise the ResNet as an encoder or end-to-end classifier.
+        norm_layer (function): Optional; Normalisation layer to use in each block.
+            Typically, :class:`torch.nn.BatchNorm2d`.
+        encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
             If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
             If False, adds a global average pooling layer after the last block, flattens the output
             and passes through a fully connected layer for classification output.
@@ -678,15 +687,16 @@ class ResNet(MinervaModel, ABC):
 
         Overwrites :class:`MinervaModel` abstract method.
 
-        Can be called directly as a method (e.g. ``model.forward()``)
-        or when data is parsed to model (e.g. ``model()``).
+        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
+        to model (e.g. ``model()``).
 
         Args:
             x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone, returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor`
-                of the likelihoods the network places on the input ``x`` being of each class.
+            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
+            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
+            network places on the input `x` being of each class.
         """
         return self._forward_impl(x)
 
@@ -810,7 +820,7 @@ class DCN(MinervaModel, ABC):
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
 
-        Overwrites MinervaModel abstract method.
+        Overwrites :class:`MinervaModel` abstract method.
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
@@ -910,18 +920,20 @@ class ResNet18(MinervaModel, ABC):
     def forward(
         self, x: FloatTensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the ResNet.
+        """Performs a forward pass of the :class:`ResNet`.
 
-        Overwrites MinervaModel abstract method.
+        Overwrites :class:`MinervaModel` abstract method.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
+        to model (e.g. ``model()``).
 
         Args:
-            x (FloatTensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
-                of the likelihoods the network places on the input 'x' being of each class.
+            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
+            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
+            network places on the input `x` being of each class.
         """
         return self.network(x)
 
@@ -980,18 +992,20 @@ class ResNet34(MinervaModel, ABC):
     def forward(
         self, x: FloatTensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the ResNet.
+        """Performs a forward pass of the :class:`ResNet`.
 
-        Overwrites MinervaModel abstract method.
+        Overwrites :class:`MinervaModel` abstract method.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
+        to model (e.g. ``model()``).
 
         Args:
             x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
-                of the likelihoods the network places on the input 'x' being of each class.
+            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
+            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
+            network places on the input `x` being of each class.
         """
         return self.network(x)
 
@@ -1054,18 +1068,20 @@ class ResNet50(MinervaModel, ABC):
     def forward(
         self, x: FloatTensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the ResNet.
+        """Performs a forward pass of the :class:`ResNet`.
 
-        Overwrites MinervaModel abstract method.
+        Overwrites :class:`MinervaModel` abstract method.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
+        to model (e.g. ``model()``).
 
         Args:
             x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
-                of the likelihoods the network places on the input 'x' being of each class.
+            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
+            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
+            network places on the input `x` being of each class.
         """
         return self.network(x)
 
@@ -1128,18 +1144,20 @@ class ResNet101(MinervaModel, ABC):
     def forward(
         self, x: FloatTensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the ResNet.
+        """Performs a forward pass of the :class:`ResNet`.
 
-        Overwrites MinervaModel abstract method.
+        Overwrites :class:`MinervaModel` abstract method.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
+        to model (e.g. ``model()``).
 
         Args:
             x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
-                of the likelihoods the network places on the input 'x' being of each class.
+            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
+            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
+            network places on the input `x` being of each class.
         """
         return self.network(x)
 
@@ -1202,18 +1220,20 @@ class ResNet152(MinervaModel, ABC):
     def forward(
         self, x: FloatTensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the ResNet.
+        """Performs a forward pass of the :class:`ResNet`.
 
-        Overwrites MinervaModel abstract method.
+        Overwrites :class:`MinervaModel` abstract method.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
+        to model (e.g. ``model()``).
 
         Args:
             x (Tensor): Input data to network.
 
         Returns:
-            If inited as an backbone_name, returns a tuple of outputs from each `layer' 1-4. Else, returns Tensor
-                of the likelihoods the network places on the input 'x' being of each class.
+            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
+            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
+            network places on the input `x` being of each class.
         """
         return self.network(x)
 
