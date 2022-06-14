@@ -154,6 +154,10 @@ class STG_Logger(MinervaLogger):
             Defaults to True.
         record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
             Defaults to False.
+
+    Raises:
+        MemoryError: If trying to allocate memory to hold the probabilites of predictions from the model exceeds capacity.
+        MemoryError: If trying to allocate memory to hold the bounding boxes of samples would exceed capacity.
     """
 
     def __init__(
@@ -202,14 +206,18 @@ class STG_Logger(MinervaLogger):
                     dtype=np.float16,
                 )
             except MemoryError:
-                print("Dataset too large to record probabilities of predicted classes!")
+                raise MemoryError(
+                    "Dataset too large to record probabilities of predicted classes!"
+                )
 
             try:
                 self.results["bounds"] = np.empty(
                     (self.n_batches, self.batch_size), dtype=object
                 )
             except MemoryError:
-                print("Dataset too large to record bounding boxes of samples!")
+                raise MemoryError(
+                    "Dataset too large to record bounding boxes of samples!"
+                )
 
     def log(
         self,
@@ -301,7 +309,7 @@ class SSL_Logger(MinervaLogger):
     ) -> None:
 
         super(SSL_Logger, self).__init__(
-            n_batches, batch_size, n_samples, record_int, record_float
+            n_batches, batch_size, n_samples, record_int, record_float=False
         )
 
         self.logs: Dict[str, Any] = {
@@ -337,8 +345,8 @@ class SSL_Logger(MinervaLogger):
 
         # Compute the TOP1 and TOP5 accuracies.
         sim_argsort = utils.calc_contrastive_acc(z)
-        correct = (sim_argsort == 0).float().mean().cpu().numpy()
-        top5 = (sim_argsort < 5).float().mean().cpu().numpy()
+        correct = float((sim_argsort == 0).float().mean().cpu().numpy())
+        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
 
         # Add accuracies to log.
         self.logs["total_correct"] += correct
