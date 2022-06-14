@@ -89,8 +89,21 @@ class MinervaLogger(ABC):
         self.logs = {}
         self.results = {}
 
-    def __call__(self, *args: Any, **kwds: Any) -> None:
-        self.logs(*args, **kwds)
+    def __call__(
+        self, mode: str, step_num: int, writer: SummaryWriter, loss: _Loss, *args
+    ) -> None:
+        """Call :func:`log`.
+
+        Args:
+            mode (str): Mode of model fitting.
+            step_num (int): The global step number of for the mode of model fitting.
+            writer (SummaryWriter): Writer object from `tensorboard`.
+            loss (_Loss): Loss from this step of model fitting.
+
+        Returns:
+            None
+        """
+        self.log(mode, step_num, writer, loss, *args)
 
     @abc.abstractmethod
     def log(
