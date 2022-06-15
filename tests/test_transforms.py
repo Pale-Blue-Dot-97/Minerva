@@ -1,15 +1,16 @@
+import pytest
+import torch
+from numpy.testing import assert_array_equal
+from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
+
 from minerva.transforms import (
     ClassTransform,
-    PairCreate,
-    Normalise,
-    MinervaCompose,
     DetachedColorJitter,
+    MinervaCompose,
+    Normalise,
+    PairCreate,
 )
 from minerva.utils import utils
-from numpy.testing import assert_array_equal
-import torch
-from torchvision.transforms import RandomVerticalFlip, RandomHorizontalFlip, ColorJitter
-import pytest
 
 
 def test_class_transform() -> None:

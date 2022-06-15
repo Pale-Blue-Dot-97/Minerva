@@ -35,32 +35,33 @@ Attributes:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, Dict, List, Any, Iterable, Sequence
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 try:
     from numpy.typing import NDArray
 except ModuleNotFoundError:
     NDArray = Sequence
-from torchgeo.datasets.utils import BoundingBox
-from minerva.utils import utils, config, aux_configs
 import os
-import imageio
 import random
+
+import imageio
+import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
-import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
-from matplotlib.transforms import Bbox
+from alive_progress import alive_bar
 from matplotlib.colors import ListedColormap
+from matplotlib.gridspec import GridSpec
 
 # from matplotlib.ticker import MaxNLocator
 from matplotlib.image import AxesImage
+from matplotlib.transforms import Bbox
 from rasterio.crs import CRS
-from alive_progress import alive_bar
+from torchgeo.datasets.utils import BoundingBox
 
+from minerva.utils import aux_configs, config, utils
 
 # =====================================================================================================================
 #                                                    METADATA
