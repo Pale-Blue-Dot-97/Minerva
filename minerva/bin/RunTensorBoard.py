@@ -19,13 +19,14 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Script to run the TensorBoard logs from experiments."""
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional
-from minerva.utils import utils
 import argparse
+from typing import Optional, Union
 
+from minerva.utils import utils
 
 # =====================================================================================================================
 #                                                    METADATA

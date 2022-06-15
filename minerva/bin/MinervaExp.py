@@ -24,12 +24,12 @@ TODO:
     * Add arg parsing from CLI
     * Add ability to conduct hyper-parameter iterative variation experimentation
 """
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from minerva.utils import config
 from minerva.trainer import Trainer
-
+from minerva.utils import config
 
 # =====================================================================================================================
 #                                                    METADATA
