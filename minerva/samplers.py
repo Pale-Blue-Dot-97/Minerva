@@ -73,7 +73,8 @@ class RandomPairGeoSampler(GeoSampler):
             length (int): number of random samples to draw per epoch.
             roi (BoundingBox): Optional; Region of interest to sample from (``minx``, ``maxx``, ``miny``, ``maxy``,
                 ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``).
-            max_r (float): Optional; Maximum geo-spatial distance (from centre to centre) to sample matching sample from.
+            max_r (float): Optional; Maximum geo-spatial distance (from centre to centre)
+                to sample matching sample from.
         """
         super().__init__(dataset, roi)
         self.size = _to_tuple(size)
@@ -152,7 +153,8 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
             length (int): Number of samples per epoch.
             roi (BoundingBox): Optional; Region of interest to sample from (``minx``, ``maxx``, ``miny``, ``maxy``,
                 ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``)
-            max_r (float): Optional; Maximum geo-spatial distance (from centre to centre) to sample matching sample from.
+            max_r (float): Optional; Maximum geo-spatial distance (from centre to centre)
+                to sample matching sample from.
             tiles_per_batch (int): Optional; Number of tiles to sample from per batch.
                 Must be a multiple of ``batch_size``.
 
