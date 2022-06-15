@@ -17,7 +17,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module containing the class Trainer to handle the fitting of neural networks."""
+"""Module containing the class :class:`Trainer` to handle the fitting of neural networks."""
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
