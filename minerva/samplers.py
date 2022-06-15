@@ -17,7 +17,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module containing custom samplers for ``torchgeo`` datasets."""
+"""Module containing custom samplers for :mod:`torchgeo` datasets."""
 
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -134,8 +134,8 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         batch_size: int,
         length: int,
         roi: Optional[BoundingBox] = None,
-        max_r: Optional[float] = 256.0,
-        tiles_per_batch: Optional[int] = 4,
+        max_r: float = 256.0,
+        tiles_per_batch: int = 4,
     ) -> None:
         """Initialize a new Sampler instance.
 
