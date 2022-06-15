@@ -1,57 +1,53 @@
+---
 # Paths to directories containing the data and the results
 dir:
-  data:
-   - 'G:'
-   - 'GitHub'
-   - 'Minerva'
-   - 'Minerva'
-   - 'data'
-   - 'landcovernet'
-  data_config: '../../config/ESRI.yml'
-  imagery_config: '../../config/landcovernet.yml'
-  results:
-    - 'F:'
-    - 'Harry'
-    - 'University'
-    - 'Postgraduate'
-    - 'Output Plots'
-    - 'MinervaPercep'
-    - 'FCNResNet'
+    data:
+        - 'G:'
+        - GitHub
+        - Minerva
+        - Minerva
+        - data
+        - landcovernet
+    data_config: ../../config/ESRI.yml
+    imagery_config: ../../config/landcovernet.yml
+    results:
+        - 'F:'
+        - Harry
+        - University
+        - Postgraduate
+        - Output Plots
+        - MinervaPercep
+        - FCNResNet
 
 # Model Name
-model_name: 'FCNResNet18-MkVII'
-model_type: 'segmentation'
+model_name: FCNResNet18-MkVII
+model_type: segmentation
 
-elim: True
-scene_selector: 'threshold'
-centre_only: False
-balance: True
+elim: true
+scene_selector: threshold
+centre_only: false
+balance: true
 
 # Model hyper-parameters
 hyperparams:
-  params:
-    batch_size: 16
-    num_workers: 10
-    pin_memory: True
-  model_params:
-    input_size: [12, 256, 256]
-    n_classes: 11
-    #groups: 32
-    #width_per_group: 4
-  optim_name: SGD
-  optim_params:
-    lr: 1.0E-4
-    #momentum: 0.9
-  loss_name: CrossEntropyLoss
-  loss_params:
-  transforms:
-    #CenterCrop:
-      #size: 128
-  max_epochs: 25
+    params:
+        batch_size: 16
+        num_workers: 10
+        pin_memory: true
+    model_params:
+        input_size: [12, 256, 256]
+        n_classes: 11
+    optim_name: SGD
+    optim_params:
+        lr: 1.0E-4
+    loss_name: CrossEntropyLoss
+    loss_params:
+    transforms:
+    max_epochs: 25
 
 # Settings for RGB image creation
 rgb_params:
-  band_ID: 'SCL'           # 3 char alpha-numeric Band ID
-  R_band: 'B02'            # Red, Green, Blue band IDs for RGB images
-  G_band: 'B03'
-  B_band: 'B04'
+    band_ID: SCL           # 3 char alpha-numeric Band ID
+    R_band: B02            # Red, Green, Blue band IDs for RGB images
+    G_band: B03
+    B_band: B04

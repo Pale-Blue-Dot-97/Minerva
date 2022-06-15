@@ -1,55 +1,56 @@
+---
 # EXAMPLE MANIFEST CONFIG FILE
 
-# === PATHS ===========================================================================================================
+# === PATHS ===================================================================
 dir:
-  data:
-    - 'G:'
-    - 'GitHub'
-    - 'Minerva'
-    - 'Minerva'
-    - 'data'
-    - 'ChesapeakeCVPR'
-  configs:
-    data_config: '../../config/ChesapeakeCVPR.yml'
-  output:
-    - 'G:'
-    - 'GitHub'
-    - 'Minerva'
-    - 'Minerva'
-    - 'cache'
+    data:
+        - 'G:'
+        - GitHub
+        - Minerva
+        - Minerva
+        - data
+        - ChesapeakeCVPR
+    configs:
+        data_config: ../../config/ChesapeakeCVPR.yml
+    output:
+        - 'G:'
+        - GitHub
+        - Minerva
+        - Minerva
+        - cache
 
-# === DATASET PARAMETERS ==============================================================================================
+# === DATASET PARAMETERS ======================================================
 dataset_params:
-  imagery:
-    module: 'torchgeo.datasets'
-    name: 'NAIP'
-    root: 'NAIP 2013'
-    params:
-      res: 1.0
-  labels:
-    module: 'torchgeo.datasets'
-    name: 'Chesapeake13'
-    root: 'Chesapeake'
-    params:
-      res: 1.0
-      download: False
-      checksum: False
+    imagery:
+        module: torchgeo.datasets
+        name: NAIP
+        root: NAIP 2013
+        params:
+            res: 1.0
+    labels:
+        module: torchgeo.datasets
+        name: Chesapeake13
+        root: Chesapeake
+        params:
+            res: 1.0
+            download: false
+            checksum: false
 
 
-# === SAMPLER PARAMETERS ==============================================================================================
+# === SAMPLER PARAMETERS ======================================================
 sampler_params:
-  module: 'torchgeo.samplers'
-  name: 'GridGeoSampler'
-  params:
-    size: [1000, 1000]
-    stride: [1000, 1000]
+    module: torchgeo.samplers
+    name: GridGeoSampler
+    params:
+        size: [1000, 1000]
+        stride: [1000, 1000]
 
 collator:
-  module: 'torchgeo.datasets'
-  name: 'stack_samples'
+    module: torchgeo.datasets
+    name: stack_samples
 
 # Dataloader
 dataloader_params:
-  batch_size: 8
-  num_workers: 4
-  pin_memory: False
+    batch_size: 8
+    num_workers: 4
+    pin_memory: false

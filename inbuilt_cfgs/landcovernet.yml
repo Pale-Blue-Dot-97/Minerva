@@ -1,21 +1,11 @@
+---
 # Prefix to every patch ID in every patch directory name
-patch_dir_prefix: 'ref_landcovernet_v1_labels_'
+patch_dir_prefix: ref_landcovernet_v1_labels_
 
 co_sys:
-  id: 4326
-  name: 'WGS84_4326'
+    id: 4326
+    name: WGS84_4326
 
 data_specs:
-  band_ids: [ #'B01',
-             'B02',
-             'B03',
-             'B04',
-             #'B05',
-             #'B06',
-             #'B07',
-             'B08',
-             #'B8A',
-             #'B09',
-             'B11',
-             'B12']
-  image_size: [256, 256]
+    band_ids: [B02, B03, B04, B08, B11, B12]
+    image_size: [256, 256]

@@ -1,47 +1,49 @@
-# Chesapeake Bay Watershed land cover classes reformatted to split across two lines for neater plots
+---
+# Chesapeake Bay Watershed land cover classes reformatted
+# to split across two lines for neater plots
 classes:
-  0: "No Data"
-  1: "Water"
-  2: "Trees"
-  3: "Low Vegetation\nField"
-  4: "Barren Land"
-  5: "Impervious Surfaces"
-  6: "Impervious Roads"
-  7: ""
-  8: ""
-  9: ""
-  10: ""
-  11: ""
-  12: ""
-  13: ""
-  14: "No Data"
-  15: "No Data"
+    0: No Data
+    1: Water
+    2: Trees
+    3: "Low Vegetation\nField"
+    4: Barren Land
+    5: Impervious Surfaces
+    6: Impervious Roads
+    7: ''
+    8: ''
+    9: ''
+    10: ''
+    11: ''
+    12: ''
+    13: ''
+    14: No Data
+    15: No Data
 
 # Custom colour mapping specified by ESRI
 colours:
-  0: '#000000'  # Transparent
-  1: '#00c5ff'  # Light Blue
-  2: '#267300'  # Dark green
-  3: '#a3ff73'  # Light green
-  4: '#ffaa00'  # Yellow
-  5: '#9c9c9c'  # Grey
-  6: '#000000'  # Black
-  7: '#000000'  # Transparent
-  8: '#000000'  # Transparent
-  9: '#000000'  # Transparent
-  10: '#000000'  # Transparent
-  11: '#000000'  # Transparent
-  12: '#000000'  # Transparent
-  13: '#000000'  # Transparent
-  14: '#000000'  # Transparent
-  15: '#000000'  # Transparent
+    0: '#000000'  # Transparent
+    1: '#00c5ff'  # Light Blue
+    2: '#267300'  # Dark green
+    3: '#a3ff73'  # Light green
+    4: '#ffaa00'  # Yellow
+    5: '#9c9c9c'  # Grey
+    6: '#000000'  # Black
+    7: '#000000'  # Transparent
+    8: '#000000'  # Transparent
+    9: '#000000'  # Transparent
+    10: '#000000'  # Transparent
+    11: '#000000'  # Transparent
+    12: '#000000'  # Transparent
+    13: '#000000'  # Transparent
+    14: '#000000'  # Transparent
+    15: '#000000'  # Transparent
 
-label_suffix: '_2020_LC_10m'
+label_suffix: _2020_LC_10m
 
 co_sys:
-  id: 26918
-  name: 'WGS84_26918'
+    id: 26918
+    name: WGS84_26918
 
 fig_sizes:
-  CM: [9, 8]
-  Mask: [12, 10]
+    CM: [9, 8]
+    Mask: [12, 10]
