@@ -21,7 +21,18 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 try:
     from numpy.typing import NDArray
@@ -38,6 +49,7 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from torch.utils.data import DataLoader
 from torchgeo.datasets import GeoDataset, IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
+from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchvision.transforms import RandomApply
 
 from minerva.transforms import MinervaCompose
@@ -115,14 +127,16 @@ class PairedDataset(RasterDataset):
         else:
             raise AttributeError
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> Any:
         return self.dataset.__repr__()
 
 
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_collator(collator_params: Dict[str, str] = config["collator"]) -> Callable:
+def get_collator(
+    collator_params: Optional[Dict[str, str]] = config["collator"]
+) -> Callable[..., Any]:
     """Gets the function defined in parameters to collate samples together to form a batch.
 
     Args:
@@ -130,16 +144,20 @@ def get_collator(collator_params: Dict[str, str] = config["collator"]) -> Callab
             'module' and 'name' of the collation function. Defaults to config['collator'].
 
     Returns:
-        Callable: Collation function found from parameters given.
+        Callable[..., Any]: Collation function found from parameters given.
     """
-    collator = None
+    collator: Callable[..., Any]
     if collator_params is not None:
         module = collator_params.pop("module", "")
         if module == "":
             collator = globals()[collator_params["name"]]
         else:
             collator = utils.func_by_str(module, collator_params["name"])
-    return collator
+
+    if type(collator) == Callable[..., Any]:
+        return collator
+    else:
+        raise TypeError(f"collator is of type {type(collator)}, not callable!")
 
 
 # TODO: Document :func:`stack_sample_pairs`.
@@ -171,9 +189,6 @@ def intersect_datasets(
             return a & b
 
     master_dataset = datasets[0]
-
-    # if sample_pairs and not _INTERSECTION_CHANGED:
-    #    IntersectionDataset = utils.pair_return(IntersectionDataset)
 
     for i in range(len(datasets) - 1):
         master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
@@ -210,7 +225,7 @@ def make_dataset(
         sub_dataset_params = dataset_params[key]
 
         # Get the constructor for the class of dataset defined in params.
-        _sub_dataset = utils.func_by_str(
+        _sub_dataset: GeoDataset = utils.func_by_str(
             module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
         )
 
@@ -218,11 +233,16 @@ def make_dataset(
         sub_dataset_root = os.sep.join((*data_directory, sub_dataset_params["root"]))
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
-        transformations = None
-        try:
-            if transform_params[key]:
-                transformations = make_transformations(transform_params[key], key=key)
-        except (KeyError, TypeError):
+        transformations: Optional[Any] = None
+        if type(transform_params) == dict:
+            try:
+                if transform_params[key]:
+                    transformations = make_transformations(
+                        transform_params[key], key=key
+                    )
+            except (KeyError, TypeError):
+                pass
+        else:
             pass
 
         if sample_pairs:
@@ -281,7 +301,7 @@ def construct_dataloader(
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
-    sampler = utils.func_by_str(
+    sampler: Union[BatchGeoSampler, GeoSampler] = utils.func_by_str(
         module_path=sampler_params["module"], func=sampler_params["name"]
     )
 
@@ -341,22 +361,47 @@ def make_bounding_box(
         return BoundingBox(*roi)
 
 
-def get_transform(name: str, params: Dict[str, Any]) -> Any:
-    """Creates a TensorBoard transform object based on config parameters.
+def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
+    """Creates a transform object based on config parameters.
+
+    Args:
+        name (str): Name of transform object to import e.g ``RandomResizedCrop``.
+        params (Dict[str, Any]): Arguements to construct transform with.
+            Should also include ``"module"`` key defining the import path to the transform object.
 
     Returns:
-        Initialised TensorBoard transform object specified by config parameters.
+        Initialised transform object specified by config parameters.
+
+    .. note::
+        If ``params`` contains no ``"module"`` key, it defaults to ``"torchvision.transforms"``.
+
+    Example:
+        >>> name = "RandomResizedCrop"
+        >>> params = {"module": "torchvision.transforms", "size": 128}
+        >>> transform = get_transform(name, params)
+
+    Raises:
+        TypeError: If params given point to a variable which is not an :class:`object`
+        TypeError: If created transform :class:`object` is itself not :class:`callable`.
     """
     module = params.pop("module", "torchvision.transforms")
 
     # Gets the transform requested by config parameters.
-    transform = utils.func_by_str(module, name)
+    _transform: Callable[..., Any] = utils.func_by_str(module, name)
 
-    return transform(**params)
+    if type(_transform) == Callable[..., Any]:
+        transform: Callable[..., Any] = _transform(**params)
+        if type(transform) == Callable[..., Any]:
+            return transform
+        else:
+            raise TypeError(f"Transform has type {type(transform)}, not a callable!")
+
+    else:
+        raise TypeError(f"Transform has type {type(_transform)}, not a callable!")
 
 
 def make_transformations(
-    transform_params: Union[Dict[str, Any], bool], key: str = None
+    transform_params: Union[Dict[str, Any], Literal[False]], key: Optional[str] = None
 ) -> Optional[Any]:
     """Constructs a transform or series of transforms based on parameters provided.
 
@@ -572,7 +617,7 @@ def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
     """
     sample_modes: List[List[Tuple[int, int]]] = []
     for sample in alive_it(dataloader):
-        modes = utils.find_patch_modes(sample["mask"])
+        modes = utils.find_modes(sample["mask"])
         sample_modes.append(modes)
 
     return np.array(sample_modes)
