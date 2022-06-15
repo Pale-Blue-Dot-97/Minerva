@@ -1,7 +1,9 @@
-from minerva.pytorchtools import EarlyStopping
 import os
 import tempfile
+
 from torchvision.models import alexnet
+
+from minerva.pytorchtools import EarlyStopping
 
 
 def test_earlystopping() -> None:

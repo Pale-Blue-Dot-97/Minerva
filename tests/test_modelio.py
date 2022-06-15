@@ -1,10 +1,10 @@
+import torch
+from numpy.testing import assert_array_equal
+from simclr.modules import NT_Xent
+from torchgeo.datasets.utils import BoundingBox
+
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN32ResNet18, SimCLR34
-import torch
-from torchgeo.datasets.utils import BoundingBox
-from simclr.modules import NT_Xent
-from numpy.testing import assert_array_equal
-
 
 input_size = (4, 224, 224)
 device = torch.device("cpu")

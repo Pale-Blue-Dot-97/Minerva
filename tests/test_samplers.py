@@ -1,10 +1,12 @@
-from minerva.samplers import RandomPairGeoSampler, RandomPairBatchGeoSampler
-from minerva.utils.utils import pair_collate
+import os
+import tempfile
+
 from torch.utils.data import DataLoader
 from torch.utils.data._utils.collate import default_collate
 from torchgeo.datasets import ChesapeakeMD
-import os
-import tempfile
+
+from minerva.samplers import RandomPairBatchGeoSampler, RandomPairGeoSampler
+from minerva.utils.utils import pair_collate
 
 
 def test_randompairgeosampler() -> None:
