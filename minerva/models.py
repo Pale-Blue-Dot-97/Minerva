@@ -21,22 +21,24 @@
 # TODO: Consider removing redundant models.
 #
 """Module containing neural network model classes."""
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Union, Optional, Tuple, List, Callable, Type, Any, Dict
-from torch import Tensor, FloatTensor, LongTensor
-from torch.optim import Optimizer
+import abc
+from abc import ABC
+from collections import OrderedDict
+from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+
+import numpy as np
+import torch
+from torch import FloatTensor, LongTensor, Tensor
 from torch.nn import Module
 from torch.nn.modules.loss import _Loss
-import abc
-from minerva.utils import utils
-import torch
+from torch.optim import Optimizer
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
-from abc import ABC
-import numpy as np
-from collections import OrderedDict
 
+from minerva.utils import utils
 
 # =====================================================================================================================
 #                                                    METADATA

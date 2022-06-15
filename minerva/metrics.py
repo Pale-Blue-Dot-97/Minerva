@@ -18,13 +18,13 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module to calculate the metrics of a model's fitting."""
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Dict, Any, Tuple
-from abc import ABC
 import abc
-
+from abc import ABC
+from typing import Any, Dict, Tuple
 
 # =====================================================================================================================
 #                                                    METADATA

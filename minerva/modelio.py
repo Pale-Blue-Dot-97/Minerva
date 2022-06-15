@@ -21,15 +21,16 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Sequence, Tuple, Dict, Any
-from typing_extensions import Literal
-from torch import Tensor
-from torch.nn.modules.loss import _Loss
-from minerva.models import MinervaModel
-from torchgeo.datasets.utils import BoundingBox
+from typing import Any, Dict, Sequence, Tuple
+
 import numpy as np
 import torch
+from torch import Tensor
+from torch.nn.modules.loss import _Loss
+from torchgeo.datasets.utils import BoundingBox
+from typing_extensions import Literal
 
+from minerva.models import MinervaModel
 
 # =====================================================================================================================
 #                                                    METADATA

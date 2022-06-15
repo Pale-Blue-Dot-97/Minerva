@@ -21,33 +21,34 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Callable, Optional, List, Dict, Iterable, Any
+from typing import Any, Callable, Dict, Iterable, List, Optional
 
 try:
     from numpy.typing import ArrayLike
 except (ModuleNotFoundError, ImportError):
     ArrayLike = Iterable
 
-from minerva.models import MinervaModel, MinervaDataParallel
-from minerva.utils import visutils, utils
+import os
+from contextlib import nullcontext
+
+import pandas as pd
+import torch
+import torch.distributed as dist
+import yaml
+from alive_progress import alive_bar
+from inputimeout import TimeoutOccurred, inputimeout
+from simclr.modules import NT_Xent
+from torch.nn import Module
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.utils.tensorboard import SummaryWriter
+from torchinfo import summary
+
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
+from minerva.models import MinervaDataParallel, MinervaModel
 from minerva.pytorchtools import EarlyStopping
-import os
-import yaml
-import torch
-from contextlib import nullcontext
-from torch.nn import Module
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torch.distributed as dist
-from torchinfo import summary
-from torch.utils.tensorboard import SummaryWriter
-import pandas as pd
-from alive_progress import alive_bar
-from inputimeout import inputimeout, TimeoutOccurred
-from simclr.modules import NT_Xent
-
+from minerva.utils import utils, visutils
 
 # =====================================================================================================================
 #                                                    METADATA
