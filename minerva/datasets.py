@@ -34,14 +34,10 @@ from typing import (
     Union,
 )
 
-try:
-    from numpy.typing import NDArray
-except (ModuleNotFoundError, ImportError):
-    NDArray = Sequence
-
 import os
 
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 import torch
 from alive_progress import alive_it
