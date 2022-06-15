@@ -1,9 +1,9 @@
-import yaml
-import os
-import ntpath
 import argparse
-from typing import Tuple, Dict, Any
+import ntpath
+import os
+from typing import Any, Dict, Tuple
 
+import yaml
 
 # Default values for the path to the config directory and config name.
 config_dir_path = "../../inbuilt_cfgs/"
