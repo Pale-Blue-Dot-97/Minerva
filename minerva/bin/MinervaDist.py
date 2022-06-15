@@ -33,16 +33,17 @@ TODO:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from minerva.utils import config, master_parser
-from minerva.trainer import Trainer
-import os
 import argparse
+import os
 import signal
 import subprocess
-import torch
-import torch.multiprocessing as mp
-import torch.distributed as dist
 
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+
+from minerva.trainer import Trainer
+from minerva.utils import config, master_parser
 
 # =====================================================================================================================
 #                                                    METADATA

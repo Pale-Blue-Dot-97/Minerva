@@ -19,16 +19,17 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Script to handle the pre-training of model and its subsequent downstream task fine-tuning."""
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Dict, Any
+import argparse
 import os
 import sys
-import yaml
-import argparse
-import torch
+from typing import Any, Dict
 
+import torch
+import yaml
 
 # =====================================================================================================================
 #                                                    METADATA
