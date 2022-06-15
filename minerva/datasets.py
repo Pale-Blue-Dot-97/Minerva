@@ -280,7 +280,7 @@ def construct_dataloader(
     rank: int = 0,
     world_size: int = 1,
     sample_pairs: bool = False,
-) -> DataLoader:
+) -> DataLoader[Iterable[Any]]:
     """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
 
     Args:
@@ -455,11 +455,16 @@ def make_loaders(
     p_dist: bool = False,
     **params,
 ) -> Tuple[
-    Dict[str, DataLoader], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]
+    Dict[str, DataLoader[Iterable[Any]]],
+    Dict[str, int],
+    List[Tuple[int, int]],
+    Dict[Any, Any],
 ]:
-    """Constructs train, validation and test datasets and places in DataLoaders for use in model fitting and testing.
+    """Constructs train, validation and test datasets and places into :class:`DataLoader` objects.
 
     Args:
+        rank (int): Rank number of the process. For use with :class:`DistributedDataParallel`.
+        world_size (int): Total number of processes across all nodes. For use with :class:`DistributedDataParallel`.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Keyword Args:
@@ -468,10 +473,11 @@ def make_loaders(
         elim (bool): Whether to eliminate classes with no samples in.
 
     Returns:
-        loaders (dict): Dictionary of the DataLoader for training, validation and testing.
-        n_batches (dict): Dictionary of the number of batches to return/ yield in each train, validation and test epoch.
-        class_dist (list): The class distribution of the entire dataset, sorted from largest to smallest class.
-        params (dict):
+        Tuple[Dict[str, DataLoader[Iterable[Any]]], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]]: Tuple of;
+            * Dictionary of the :class:`DataLoader`s for training, validation and testing.
+            * Dictionary of the number of batches to return/ yield in each train, validation and test epoch.
+            * The class distribution of the entire dataset, sorted from largest to smallest class.
+            * Unused and updated kwargs.
     """
     # Gets out the parameters for the DataLoaders from params.
     dataloader_params: Dict[Any, Any] = params["hyperparams"]["params"]
@@ -605,15 +611,15 @@ def make_manifest(mf_config: Dict[Any, Any] = config) -> pd.DataFrame:
     return df
 
 
-def load_all_samples(dataloader: DataLoader) -> NDArray[Any]:
-    """Loads all sample masks from parsed DataLoader and computes the modes of their classes.
+def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any]:
+    """Loads all sample masks from parsed :class:`DataLoader` and computes the modes of their classes.
 
     Args:
-        dataloader (DataLoader): DataLoader containing samples. Must be using a dataset with __len__ attribute
-            and a sampler that returns a dict with a 'mask' key.
+        dataloader (DataLoader): DataLoader containing samples. Must be using a dataset with ``__len__`` attribute
+            and a sampler that returns a dict with a ``"mask"`` key.
 
     Returns:
-        sample_modes (np.ndarray): 2D array of the class modes within every sample defined by the parsed DataLoader.
+        np.ndarray: 2D array of the class modes within every sample defined by the parsed :class:`DataLoader`.
     """
     sample_modes: List[List[Tuple[int, int]]] = []
     for sample in alive_it(dataloader):
