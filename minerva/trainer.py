@@ -521,7 +521,7 @@ class Trainer:
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        results = self.epoch("test", record_int=True, record_float=True)
+        results: Dict[str, Any] = self.epoch("test", record_int=True, record_float=True)
 
         # Prints test loss and accuracy to stdout.
         self.metric_logger.print_epoch_results("test", 0)
@@ -702,6 +702,6 @@ class Trainer:
             host_num=6006,
         )
 
-    def print(self, msg: str) -> None:
+    def print(self, msg: object) -> None:
         if self.verbose and self.gpu == 0:
             print(msg)

@@ -24,10 +24,10 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Union
 
 import torch
-from torch.optim.optimizer import Optimizer, required
+from torch.optim.optimizer import Optimizer
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -68,13 +68,13 @@ class LARS(Optimizer):
     def __init__(
         self,
         params: Union[Iterable[Any], Dict[Any, Any]],
-        lr=required,
+        lr: float,
         momentum: float = 0.9,
         weight_decay: float = 0.0005,
         eta: float = 0.001,
         max_epoch: int = 200,
     ):
-        if lr is not required and lr < 0.0:
+        if lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
@@ -93,7 +93,7 @@ class LARS(Optimizer):
         )
         super(LARS, self).__init__(params, defaults)
 
-    def step(self, epoch: Optional[int] = None, closure: Optional[callable] = None):
+    def step(self, epoch: Optional[int] = None, closure: Optional[Callable[..., Any]] = None):
         """Performs a single optimization step.
 
         Arguments:
@@ -124,8 +124,8 @@ class LARS(Optimizer):
                 param_state = self.state[p]
                 d_p = p.grad.data
 
-                weight_norm = torch.norm(p.data)
-                grad_norm = torch.norm(d_p)
+                weight_norm = torch.linalg.norm(p.data)
+                grad_norm = torch.linalg.norm(d_p)
 
                 # Global LR computed on polynomial decay schedule
                 decay = (1 - float(epoch) / max_epoch) ** 2
