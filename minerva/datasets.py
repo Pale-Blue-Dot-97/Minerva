@@ -21,25 +21,27 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Tuple, Optional, Callable, Dict, Any, Iterable, List, Union, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 try:
     from numpy.typing import NDArray
 except (ModuleNotFoundError, ImportError):
     NDArray = Sequence
 
-from torchgeo.datasets import RasterDataset, GeoDataset, IntersectionDataset
-from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
-from minerva.utils import config, aux_configs, utils
-from minerva.transforms import MinervaCompose
 import os
+
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
-from torchvision.transforms import RandomApply
-from catalyst.data.sampler import DistributedSamplerWrapper
 from alive_progress import alive_it
+from catalyst.data.sampler import DistributedSamplerWrapper
+from torch.utils.data import DataLoader
+from torchgeo.datasets import GeoDataset, IntersectionDataset, RasterDataset
+from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
+from torchvision.transforms import RandomApply
+
+from minerva.transforms import MinervaCompose
+from minerva.utils import aux_configs, config, utils
 
 # =====================================================================================================================
 #                                                    METADATA
