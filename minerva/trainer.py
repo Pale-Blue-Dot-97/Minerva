@@ -21,16 +21,12 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, List, Optional
-
-try:
-    from numpy.typing import ArrayLike
-except (ModuleNotFoundError, ImportError):
-    ArrayLike = Iterable
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import os
 from contextlib import nullcontext
 
+from numpy.typing import NDArray
 import pandas as pd
 import torch
 import torch.distributed as dist
@@ -108,7 +104,7 @@ class Trainer:
     ) -> None:
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
         loaders, n_batches, class_dist, new_params = make_loaders(
-            rank=rank, world_size=world_size, **params
+            rank, world_size, **params
         )
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
@@ -157,7 +153,10 @@ class Trainer:
         self.model = self.make_model()
 
         # Determines the output shape of the model.
-        self.model.determine_output_dim(sample_pairs=params["sample_pairs"])
+        sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
+        if type(sample_pairs) != bool:
+            sample_pairs = False
+        self.model.determine_output_dim(sample_pairs=sample_pairs)
 
         # Transfer to GPU
         self.model.to(self.device)
@@ -193,8 +192,9 @@ class Trainer:
 
         if self.gpu == 0:
             # Determines the input size of the model.
+            input_size: Tuple[int, ...]
             if self.params["model_type"] in ["MLP", "mlp"]:
-                input_size = (self.batch_size, self.model.input_size)
+                input_size = (self.batch_size, self.model.input_shape)
             else:
                 input_size = (self.batch_size, *self.model.input_shape)
 
@@ -235,7 +235,7 @@ class Trainer:
         model_params = self.params["hyperparams"]["model_params"]
 
         # Gets the model requested by config parameters.
-        model = utils.func_by_str(
+        _model = utils.func_by_str(
             "minerva.models", self.params["model_name"].split("-")[0]
         )
 
@@ -249,7 +249,8 @@ class Trainer:
             model_params["backbone_weight_path"] = f"{weights_path}.pt"
 
         # Initialise model.
-        return model(self.make_criterion(), **model_params)
+        model: MinervaModel = _model(self.make_criterion(), **model_params)
+        return model
 
     def make_criterion(self) -> Any:
         """Creates a PyTorch loss function based on config parameters.
@@ -260,7 +261,7 @@ class Trainer:
         # Gets the loss function requested by config parameters.
         loss_params: Dict[str, Any] = self.params["hyperparams"]["loss_params"].copy()
         module = loss_params.pop("module", "torch.nn")
-        criterion = utils.func_by_str(module, loss_params["name"])
+        criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
 
         if criterion is NT_Xent:
             if dist.is_available() and dist.is_initialized():
@@ -312,7 +313,9 @@ class Trainer:
         data_size = self.params["hyperparams"]["model_params"]["input_size"]
 
         # Gets constructor of the metric logger from name in the config.
-        metric_logger = utils.func_by_str("minerva.metrics", self.params["metrics"])
+        metric_logger: Callable[..., Any] = utils.func_by_str(
+            "minerva.metrics", self.params["metrics"]
+        )
 
         # Initialises the metric logger with arguments.
         self.metric_logger: MinervaMetrics = metric_logger(
@@ -322,15 +325,18 @@ class Trainer:
             model_type=self.params["model_type"],
         )
 
-    def get_logger(self) -> MinervaLogger:
+    def get_logger(self) -> Callable[..., Any]:
         """Creates an object to log the results from each step of model fitting during an epoch.
 
         Returns:
-            MinervaLogger: The constructor of logger to be intialised within the epoch.
+            Callable[..., Any]: The constructor of logger to be intialised within the epoch.
         """
-        return utils.func_by_str("minerva.logger", self.params["logger"])
+        logger: Callable[..., Any] = utils.func_by_str(
+            "minerva.logger", self.params["logger"]
+        )
+        return logger
 
-    def get_io_func(self) -> Callable:
+    def get_io_func(self) -> Callable[..., Any]:
         """Fetches a func to handle IO for the type of model used in the experiment.
 
         Returns:
@@ -360,8 +366,8 @@ class Trainer:
         n_samples = self.n_batches[mode] * batch_size
 
         # Creates object to log the results from each step of this epoch.
-        epoch_logger: MinervaLogger = self.get_logger()
-        epoch_logger = epoch_logger(
+        _epoch_logger: Callable[..., Any] = self.get_logger()
+        epoch_logger: MinervaLogger = _epoch_logger(
             self.n_batches[mode],
             batch_size,
             n_samples,
@@ -411,7 +417,7 @@ class Trainer:
         if record_int or record_float:
             return epoch_logger.get_results
         else:
-            return
+            return None
 
     def fit(self) -> None:
         """Fits the model by running `max_epochs` number of training and validation epochs."""
@@ -423,11 +429,15 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in ("train", "val"):
 
-                results = {}
+                results: Dict[str, Any] = {}
 
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
                 if epoch == (self.max_epochs - 1) and self.params["plot_last_epoch"]:
-                    results = self.epoch(mode, record_int=True)
+                    result: Dict[str, Any] = self.epoch(mode, record_int=True)
+                    if type(results) == Dict[str, Any]:
+                        results = result
+                    else:
+                        raise TypeError("Epoch did not return results. ABORT")
                 else:
                     self.epoch(mode)
 
@@ -638,7 +648,7 @@ class Trainer:
                 self.save_model_weights()
 
     def compute_classification_report(
-        self, predictions: ArrayLike, labels: ArrayLike
+        self, predictions: Sequence[int], labels: Sequence[int]
     ) -> None:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
 
@@ -650,13 +660,11 @@ class Trainer:
             None
         """
         # Ensures predictions and labels are flattened.
-        predictions = utils.batch_flatten(predictions)
-        labels = utils.batch_flatten(labels)
+        preds: NDArray[Any] = utils.batch_flatten(predictions)
+        targets: NDArray[Any] = utils.batch_flatten(labels)
 
         # Uses utils to create a classification report in a DataFrame.
-        cr_df = utils.make_classification_report(
-            predictions, labels, self.params["classes"]
-        )
+        cr_df = utils.make_classification_report(preds, targets, self.params["classes"])
 
         # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f"{self.exp_fn}_classification-report.csv")
