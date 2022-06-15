@@ -109,7 +109,7 @@ def test_resnets() -> None:
     assert encoder.output_shape == (512, 2, 2)
 
     x = torch.rand(6, *input_size)
-    assert len(encoder(x)) is 5
+    assert len(encoder(x)) == 5
 
 
 def test_fcnresnets() -> None:

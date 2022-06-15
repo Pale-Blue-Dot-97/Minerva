@@ -158,7 +158,8 @@ class STG_Logger(MinervaLogger):
             Defaults to False.
 
     Raises:
-        MemoryError: If trying to allocate memory to hold the probabilites of predictions from the model exceeds capacity.
+        MemoryError: If trying to allocate memory to hold the probabilites of predictions
+            from the model exceeds capacity.
         MemoryError: If trying to allocate memory to hold the bounding boxes of samples would exceed capacity.
     """
 

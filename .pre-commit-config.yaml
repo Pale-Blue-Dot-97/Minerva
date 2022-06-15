@@ -44,6 +44,12 @@ repos:
           - id: yamlfmt
             args: [--width, '120']
 
+    - repo: https://github.com/pycqa/flake8
+      rev: 4.0.1    # pick a git hash / tag to point to
+      hooks:
+          - id: flake8
+            exclude: tests/(test_samplers.py|test_trainer.py)
+
 # -   repo: https://github.com/PyCQA/isort
 #     rev: 5.10.1  # Use the ref you want to point at
 #     hooks:
