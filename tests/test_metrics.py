@@ -1,6 +1,8 @@
-from minerva.metrics import MinervaMetrics, SP_Metrics, SSL_Metrics
 import random
+
 import pytest
+
+from minerva.metrics import MinervaMetrics, SP_Metrics, SSL_Metrics
 
 
 def test_minervametrics() -> None:

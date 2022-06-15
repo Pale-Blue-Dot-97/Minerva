@@ -1,7 +1,8 @@
-from minerva.optimisers import LARS
-from minerva.models import CNN
-import torch
 import pytest
+import torch
+
+from minerva.models import CNN
+from minerva.optimisers import LARS
 
 
 def test_lars() -> None:

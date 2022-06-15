@@ -1,9 +1,9 @@
-import minerva.models as mm
-import torch
 import numpy as np
 import pytest
+import torch
 from simclr.modules import NT_Xent
 
+import minerva.models as mm
 
 criterion = torch.nn.CrossEntropyLoss()
 

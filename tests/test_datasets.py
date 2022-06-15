@@ -1,5 +1,6 @@
-from minerva.datasets import make_bounding_box
 from torchgeo.datasets.utils import BoundingBox
+
+from minerva.datasets import make_bounding_box
 
 
 def test_make_bounding_box() -> None:

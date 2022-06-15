@@ -1,14 +1,16 @@
-from minerva.logger import STG_Logger, SSL_Logger
-from torch.utils.tensorboard import SummaryWriter
-from minerva.models import FCN16ResNet18, SimCLR18
-from minerva.modelio import sup_tg, ssl_pair_tg
 import os
 import tempfile
+
 import numpy as np
 import torch
-from torchgeo.datasets.utils import BoundingBox
-from simclr.modules import NT_Xent
 from numpy.testing import assert_array_equal
+from simclr.modules import NT_Xent
+from torch.utils.tensorboard import SummaryWriter
+from torchgeo.datasets.utils import BoundingBox
+
+from minerva.logger import SSL_Logger, STG_Logger
+from minerva.modelio import ssl_pair_tg, sup_tg
+from minerva.models import FCN16ResNet18, SimCLR18
 
 device = torch.device("cpu")
 

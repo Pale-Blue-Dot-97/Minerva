@@ -1,14 +1,16 @@
-from minerva.utils import visutils, utils
 import os
-import tempfile
 import shutil
+import tempfile
+
 import numpy as np
 import pytest
+from matplotlib.colors import ListedColormap
+from matplotlib.image import AxesImage
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
-from matplotlib.colors import ListedColormap
-from matplotlib.image import AxesImage
+
+from minerva.utils import utils, visutils
 
 
 def test_de_interlace() -> None:
