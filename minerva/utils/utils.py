@@ -54,11 +54,6 @@ from typing import (
     Union,
 )
 
-try:
-    from numpy.typing import NDArray
-except (ModuleNotFoundError, ImportError):
-    NDArray = Sequence
-
 import cmath
 import functools
 import importlib
@@ -73,6 +68,7 @@ from datetime import datetime
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import numpy as np
+from numpy.typing import NDArray, ArrayLike
 import pandas as pd
 import psutil
 import rasterio as rt
@@ -1125,7 +1121,7 @@ def print_class_dist(
     print(tabulate(df, headers="keys", tablefmt="psql"))
 
 
-def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> NDArray[Any]:
+def batch_flatten(x: Union[NDArray[Any], ArrayLike]) -> NDArray[Any]:
     """Flattens the supplied array with :func:`numpy`.
 
     Args:
@@ -1134,19 +1130,19 @@ def batch_flatten(x: Union[List[Any], NDArray[Any]]) -> NDArray[Any]:
     Returns:
         NDArray[Any]: Flattened :class:`NDArray`.
     """
-    try:
+    if type(x) == NDArray[Any]:
         x = x.flatten()
 
-    except AttributeError:
+    else:
         x = np.array(x).flatten()
 
     return x
 
 
 def make_classification_report(
-    pred: Sequence[int],
-    labels: Sequence[int],
-    class_labels: Dict[int, str],
+    pred: NDArray[Any],
+    labels: NDArray[Any],
+    class_labels: Dict[str, str],
     print_cr: bool = True,
     p_dist: bool = False,
 ) -> DataFrame:
