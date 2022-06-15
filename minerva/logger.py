@@ -18,20 +18,22 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module to handle the logging of results from various model types."""
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Dict, Any, Tuple, Optional
-from torch import Tensor
-from torch.nn.modules.loss import _Loss
-from torchgeo.datasets.utils import BoundingBox
-from torch.utils.tensorboard import SummaryWriter
-from minerva.utils import utils
-import numpy as np
-import torch
 import abc
 from abc import ABC
+from typing import Any, Dict, Optional, Tuple
 
+import numpy as np
+import torch
+from torch import Tensor
+from torch.nn.modules.loss import _Loss
+from torch.utils.tensorboard import SummaryWriter
+from torchgeo.datasets.utils import BoundingBox
+
+from minerva.utils import utils
 
 # =====================================================================================================================
 #                                                    METADATA

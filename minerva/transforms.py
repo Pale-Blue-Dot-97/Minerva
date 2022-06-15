@@ -21,13 +21,15 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, Tuple, Union, Optional
-from torch import Tensor
-import torch
-from torchvision.transforms import ColorJitter, functional_tensor as ft
-from minerva.utils.utils import mask_transform
-from overload import overload
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
 
+import torch
+from overload import overload
+from torch import Tensor
+from torchvision.transforms import ColorJitter
+from torchvision.transforms import functional_tensor as ft
+
+from minerva.utils.utils import mask_transform
 
 # =====================================================================================================================
 #                                                    METADATA

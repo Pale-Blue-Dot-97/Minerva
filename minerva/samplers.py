@@ -18,17 +18,19 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module containing custom samplers for ``torchgeo`` datasets."""
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Tuple, Optional, Union, Iterator, List
+import random
+from typing import Iterator, List, Optional, Tuple, Union
+
 from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
-from torchgeo.samplers import GeoSampler, BatchGeoSampler
+from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple, get_random_bounding_box
-from minerva.utils import utils
-import random
 
+from minerva.utils import utils
 
 # =====================================================================================================================
 #                                                    METADATA
