@@ -23,3 +23,8 @@ repos:
     -   id: rst-backticks
     -   id: rst-directive-colons
     -   id: rst-inline-touching-normal
+
+-   repo: https://github.com/PyCQA/isort
+    rev: 5.10.1  # Use the ref you want to point at
+    hooks:
+    -   id: isort
