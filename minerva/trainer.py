@@ -352,14 +352,18 @@ class Trainer:
         Returns:
             If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
         """
+        batch_size = self.batch_size
+        if dist.is_available() and dist.is_initialized():
+            batch_size = self.batch_size // dist.get_world_size()
+
         # Calculates the number of samples
-        n_samples = self.n_batches[mode] * self.batch_size
+        n_samples = self.n_batches[mode] * batch_size
 
         # Creates object to log the results from each step of this epoch.
         epoch_logger: MinervaLogger = self.get_logger()
         epoch_logger = epoch_logger(
             self.n_batches[mode],
-            self.batch_size,
+            batch_size,
             n_samples,
             self.model.output_shape,
             self.model.n_classes,
