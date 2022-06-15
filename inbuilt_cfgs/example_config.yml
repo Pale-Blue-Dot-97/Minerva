@@ -1,181 +1,181 @@
+---
 # EXAMPLE MASTER CONFIG FILE
 
-# === PATHS ===========================================================================================================
+# === PATHS ===================================================================
 dir:
-  data:
-    - 'G:'
-    - 'GitHub'
-    - 'Minerva'
-    - 'Minerva'
-    - 'data'
-    - 'landcovernet'
-  configs:
-    data_config: 'ChesapeakeCVPR.yml'
-    imagery_config: 'NAIP.yml'
-  results:
-    - 'tests'
-    - 'results'
-  cache:
-    - 'G:'
-    - 'GitHub'
-    - 'Minerva'
-    - 'Minerva'
-    - 'cache'
+    data:
+        - 'G:'
+        - GitHub
+        - Minerva
+        - Minerva
+        - data
+        - landcovernet
+    configs:
+        data_config: ChesapeakeCVPR.yml
+        imagery_config: NAIP.yml
+    results:
+        - tests
+        - results
+    cache:
+        - 'G:'
+        - GitHub
+        - Minerva
+        - Minerva
+        - cache
 
-# Kwargs for make_datasets
-model_name: 'FCN32ResNet50-MkI' # Name of model. Substring before hyphen is used to find and initialise model object.
-model_type: 'segmentation'      # Type of model. Can be mlp, scene_classifier, segmentation.
-sample_pairs: False
-elim: True
-balance: True
+# ---+ Kwargs for make_datasets +----------------------------------------------
+# Name of model. Substring before hyphen is model class.
+model_name: FCN32ResNet50-MkI
+
+# Type of model. Can be mlp, scene_classifier, segmentation.
+model_type: segmentation
+
+sample_pairs: false
+elim: true
+balance: true
 patch_size: [256, 256]
 
-# === DATASET PARAMETERS ==============================================================================================
+# === DATASET PARAMETERS ======================================================
 dataset_params:
-  # Training Dataset
-  train:
-    imagery:
-      module: 'torchgeo.datasets'
-      name: 'NAIP'
-      root: 'NAIP 2013/Train'
-      params:
-        res: 1.0
+    # Training Dataset
+    train:
+        imagery:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP 2013/Train
+            params:
+                res: 1.0
 
-    labels:
-      module: 'torchgeo.datasets'
-      name: 'Chesapeake13'
-      root: 'Chesapeake'
-      params:
-        res: 1.0
-        download: False
-        checksum: False
+        labels:
+            module: torchgeo.datasets
+            name: Chesapeake13
+            root: Chesapeake
+            params:
+                res: 1.0
+                download: false
+                checksum: false
 
-  # Validation Dataset
-  val:
-    imagery:
-      module: 'torchgeo.datasets'
-      name: 'NAIP'
-      root: 'NAIP 2013/Validation'
-      params:
-        res: 1.0
+    # Validation Dataset
+    val:
+        imagery:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP 2013/Validation
+            params:
+                res: 1.0
 
-    labels:
-      module: 'torchgeo.datasets'
-      name: 'Chesapeake13'
-      root: 'Chesapeake'
-      params:
-        res: 1.0
-        download: False
-        checksum: False
+        labels:
+            module: torchgeo.datasets
+            name: Chesapeake13
+            root: Chesapeake
+            params:
+                res: 1.0
+                download: false
+                checksum: false
 
-  # Test Dataset
-  test:
-    imagery:
-      module: 'torchgeo.datasets'
-      name: 'NAIP'
-      root: 'NAIP 2013/Test'
-      params:
-        res: 1.0
+    # Test Dataset
+    test:
+        imagery:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP 2013/Test
+            params:
+                res: 1.0
 
-    labels:
-      module: 'torchgeo.datasets'
-      name: 'Chesapeake13'
-      root: 'Chesapeake'
-      params:
-        res: 1.0
-        download: False
-        checksum: False
+        labels:
+            module: torchgeo.datasets
+            name: Chesapeake13
+            root: Chesapeake
+            params:
+                res: 1.0
+                download: false
+                checksum: false
 
-# === SAMPLER PARAMETERS ==============================================================================================
+# === SAMPLER PARAMETERS ======================================================
 sampler_params:
-  # Training Dataset Sampler
-  train:
-    module: 'torchgeo.samplers'
-    name: 'RandomGeoSampler'
-    roi: False #[23945, 529579, 4180520, 4413808, 2012, 2014]
-    params:
-      size: 256
-      #batch_size: 16
-      length: 80
+    # Training Dataset Sampler
+    train:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: 256
+            length: 80
 
-  # Validation Dataset Sampler
-  val:
-    module: 'torchgeo.samplers'
-    name: 'RandomGeoSampler'
-    roi: False #[112615, 618249, 4404308, 4891997, 2012, 2014]
-    params:
-      size: 256
-      #batch_size: 16
-      length: 32
+    # Validation Dataset Sampler
+    val:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: 256
+            length: 32
 
-  # Test Dataset Sampler
-  test:
-    module: 'torchgeo.samplers'
-    name: 'RandomGeoSampler'
-    roi: False #[-103783, 483132, 4033791, 4259690, 2012, 2014]
-    params:
-      size: 256
-      #batch_size: 16
-      length: 32
+    # Test Dataset Sampler
+    test:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: 256
+            length: 32
 
 
-# === TRANSFORM PARAMETERS ============================================================================================
+# === TRANSFORM PARAMETERS ====================================================
 transform_params:
-  # Training Dataset Transforms
-  train:
-    imagery: False
-    labels: False
+    # Training Dataset Transforms
+    train:
+        imagery: false
+        labels: false
 
-  # Validation Dataset Transforms
-  val:
-    imagery: False
-    labels: False
+    # Validation Dataset Transforms
+    val:
+        imagery: false
+        labels: false
 
-  # Test Dataset Transforms
-  test:
-    imagery: False
-    labels: False
+    # Test Dataset Transforms
+    test:
+        imagery: false
+        labels: false
 
 # Collation
 collator:
-  module: 'torchgeo.datasets'
-  name: 'stack_samples'
+    module: torchgeo.datasets
+    name: stack_samples
 
 # Model hyper-parameters
 hyperparams:
-  params:
-    batch_size: 16
-    num_workers: 6
-    pin_memory: True
-  model_params:
-    input_size: [4, 256, 256]
-    n_classes: 16
-    #groups: 32
-    #width_per_group: 4
-    #batch_size: 16
-  optim_name: SGD
-  optim_params:
-    lr: 1.0E-2
-    #momentum: 0.9
-  loss_name: CrossEntropyLoss
-  loss_params:
-  max_epochs: 2
+    params:
+        batch_size: 16
+        num_workers: 6
+        pin_memory: true
+    model_params:
+        input_size: [4, 256, 256]
+        n_classes: 16
+    optim_name: SGD
+    optim_params:
+        lr: 1.0E-2
+    loss_name: CrossEntropyLoss
+    loss_params:
+    max_epochs: 2
 
 # Which plots to make
 plots:
-  History: True
-  CM: True
-  Pred: True
-  ROC: True
-  micro: False
-  macro: True
-  Mask: True
+    History: true
+    CM: true
+    Pred: true
+    ROC: true
+    micro: false
+    macro: true
+    Mask: true
 
-# opt to ask at runtime; auto or True to automatically do so; or False, None etc to not
-save_model: False
-run_tensorboard: False
-save: True
-show: False
-p_dist: False
-calc_norm: False
-plot_last_epoch: False
+# opt to ask at runtime;
+# auto or True to automatically do so;
+# or False, None etc to not
+save_model: false
+run_tensorboard: false
+save: true
+show: false
+p_dist: false
+calc_norm: false
+plot_last_epoch: false

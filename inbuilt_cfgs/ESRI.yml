@@ -1,33 +1,34 @@
+---
 # ESRI land cover classes reformatted to split across two lines for neater plots
 classes:
-  0: "No Data"
-  1: "Water"
-  2: "Trees"
-  3: "Grass"
-  4: "Flooded\nVegetation"
-  5: "Crops"
-  6: "Scrub/Shrub"
-  7: "Built Area"
-  8: "Bare Ground"
-  9: "Snow/Ice"
-  10: "Clouds"
+    0: No Data
+    1: Water
+    2: Trees
+    3: Grass
+    4: "Flooded\nVegetation"
+    5: Crops
+    6: Scrub/Shrub
+    7: Built Area
+    8: Bare Ground
+    9: Snow/Ice
+    10: Clouds
 
 # Custom colour mapping specified by ESRI
 colours:
-  0: '#000000'  # Transparent
-  1: '#419bdf'  # Blue
-  2: '#397d49'  # Dark green
-  3: '#88b053'  # Light green
-  4: '#7a87c6'  # Purple
-  5: '#e49635'  # Orange
-  6: '#dfc35a'  # Yellow
-  7: '#c4281b'  # Red
-  8: '#a59b8f'  # Grey
-  9: '#a8ebff'  # Light blue
-  10: '#616161' # Dark grey
+    0: '#000000'  # Transparent
+    1: '#419bdf'  # Blue
+    2: '#397d49'  # Dark green
+    3: '#88b053'  # Light green
+    4: '#7a87c6'  # Purple
+    5: '#e49635'  # Orange
+    6: '#dfc35a'  # Yellow
+    7: '#c4281b'  # Red
+    8: '#a59b8f'  # Grey
+    9: '#a8ebff'  # Light blue
+    10: '#616161'  # Dark grey
 
-label_suffix: '_2020_LC_10m'
+label_suffix: _2020_LC_10m
 
 co_sys:
-  id: 4326
-  name: 'WGS84_4326'
+    id: 4326
+    name: WGS84_4326

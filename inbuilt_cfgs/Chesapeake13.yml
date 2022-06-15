@@ -1,47 +1,49 @@
-# Chesapeake Bay Watershed land cover classes reformatted to split across two lines for neater plots
+---
+# Chesapeake Bay Watershed land cover classes reformatted
+# to split across two lines for neater plots
 classes:
-  0: "No Data"
-  1: "Water"
-  2: "Wetlands"
-  3: "Trees"
-  4: "Shrubland"
-  5: "Low Vegetation\nField"
-  6: "Barren"
-  7: "Structures"
-  8: "Surfaces"
-  9: "Roads"
-  10: "Trees\n(over Str.)"
-  11: "Trees\n(over Sur.)"
-  12: "Trees\n(over Roads)"
-  13: "Military\nBase"
-  14: "No Data"
-  15: "No Data"
+    0: No Data
+    1: Water
+    2: Wetlands
+    3: Trees
+    4: Shrubland
+    5: "Low Vegetation\nField"
+    6: Barren
+    7: Structures
+    8: Surfaces
+    9: Roads
+    10: "Trees\n(over Str.)"
+    11: "Trees\n(over Sur.)"
+    12: "Trees\n(over Roads)"
+    13: "Military\nBase"
+    14: No Data
+    15: No Data
 
 # Custom colour mapping specified by ESRI
 colours:
-  0: '#000000'  # Transparent
-  1: '#00c5ff'  # Light Blue
-  2: '#00a884'  # Teal
-  3: '#267300'  # Dark green
-  4: '#4ce600'  # Light green
-  5: '#a3ff73'  # v. Light green
-  6: '#ffaa00'  # Orange
-  7: '#ff0000'  # Red
-  8: '#9c9c9c'  # Light grey
-  9: '#000000'  # Black
-  10: '#737300'  # Yellow-Green
-  11: '#e6e600'  # Yellow
-  12: '#ffff73'  # Light yellow
-  13: '#c500ff'  # Purple
-  14: '#000000'  # Transparent
-  15: '#000000'  # Transparent
+    0: '#000000'  # Transparent
+    1: '#00c5ff'  # Light Blue
+    2: '#00a884'  # Teal
+    3: '#267300'  # Dark green
+    4: '#4ce600'  # Light green
+    5: '#a3ff73'  # v. Light green
+    6: '#ffaa00'  # Orange
+    7: '#ff0000'  # Red
+    8: '#9c9c9c'  # Light grey
+    9: '#000000'  # Black
+    10: '#737300'  # Yellow-Green
+    11: '#e6e600'  # Yellow
+    12: '#ffff73'  # Light yellow
+    13: '#c500ff'  # Purple
+    14: '#000000'  # Transparent
+    15: '#000000'  # Transparent
 
-label_suffix: '_2020_LC_10m'
+label_suffix: _2020_LC_10m
 
 co_sys:
-  id: 26918
-  name: 'WGS84_26918'
+    id: 26918
+    name: WGS84_26918
 
 fig_sizes:
-  CM: [9, 8]
-  Mask: [12, 10]
+    CM: [9, 8]
+    Mask: [12, 10]

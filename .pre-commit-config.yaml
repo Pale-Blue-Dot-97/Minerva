@@ -1,36 +1,49 @@
+---
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
-    hooks:
-    -   id: check-ast
-    -   id: check-yaml
-    -   id: check-toml
-    -   id: end-of-file-fixer
-    -   id: trailing-whitespace
-    -   id: check-added-large-files
+    - repo: https://github.com/pre-commit/pre-commit-hooks
+      rev: v2.3.0
+      hooks:
+          - id: check-ast
+          - id: check-yaml
+          - id: check-toml
+          - id: end-of-file-fixer
+          - id: trailing-whitespace
+          - id: check-added-large-files
 
--   repo: https://github.com/psf/black
-    rev: 22.3.0
-    hooks:
-    -   id: black
+    - repo: https://github.com/psf/black
+      rev: 22.3.0
+      hooks:
+          - id: black
 
--   repo: https://github.com/asottile/blacken-docs
-    rev: v1.12.1
-    hooks:
-    -   id: blacken-docs
-        additional_dependencies: [black==22.3.0]
+    - repo: https://github.com/asottile/blacken-docs
+      rev: v1.12.1
+      hooks:
+          - id: blacken-docs
+            additional_dependencies: [black==22.3.0]
 
--   repo: https://github.com/pre-commit/pygrep-hooks
-    rev: v1.9.0  # Use the ref you want to point at
-    hooks:
-    -   id: python-use-type-annotations
-    -   id: python-no-log-warn
-    -   id: python-use-type-annotations
-    -   id: rst-backticks
-    -   id: rst-directive-colons
-    -   id: rst-inline-touching-normal
+    - repo: https://github.com/pre-commit/pygrep-hooks
+      rev: v1.9.0  # Use the ref you want to point at
+      hooks:
+          - id: python-use-type-annotations
+          - id: python-no-log-warn
+          - id: python-use-type-annotations
+          - id: rst-backticks
+          - id: rst-directive-colons
+          - id: rst-inline-touching-normal
 
-#-   repo: https://github.com/PyCQA/isort
-#    rev: 5.10.1  # Use the ref you want to point at
-#    hooks:
-#    -   id: isort
+    - repo: https://github.com/adrienverge/yamllint.git
+      rev: v1.21.0  # or higher tag
+      hooks:
+          - id: yamllint
+            args: [--format, parsable, --strict]
+
+    - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
+      rev: 0.2.1  # or other specific tag
+      hooks:
+          - id: yamlfmt
+            args: [--width, '120']
+
+# -   repo: https://github.com/PyCQA/isort
+#     rev: 5.10.1  # Use the ref you want to point at
+#     hooks:
+#     -   id: isort
