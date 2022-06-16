@@ -21,11 +21,12 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Sequence, Union
+from grpc import Call
 
 import torch
 from overload import overload
-from torch import Tensor
+from torch import Tensor, LongTensor
 from torchvision.transforms import ColorJitter
 from torchvision.transforms import functional_tensor as ft
 
@@ -56,14 +57,14 @@ class ClassTransform:
     def __init__(self, transform: Dict[int, int]) -> None:
         self.transform = transform
 
-    def __call__(self, mask: Tensor) -> Tensor:
+    def __call__(self, mask: LongTensor) -> LongTensor:
         """Transforms the given mask from the original label schema to the new.
 
         Args:
-            mask (Tensor): Mask in the original label schema.
+            mask (LongTensor): Mask in the original label schema.
 
         Returns:
-            Tensor: Mask transformed into new label schema.
+            LongTensor: Mask transformed into new label schema.
         """
         return mask_transform(mask, self.transform)
 
@@ -142,6 +143,7 @@ class DetachedColorJitter(ColorJitter):
         """
         channels = ft.get_image_num_channels(img)
 
+        jitter_img : Tensor
         if channels > 3:
             rgb_jitter = super().forward(img[:3])
             jitter_img = torch.cat((rgb_jitter, img[3:]), 0)
@@ -157,7 +159,7 @@ class DetachedColorJitter(ColorJitter):
     def __call__(self, img: Tensor) -> Tensor:
         return self.forward(img)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> Any:
         return super().__repr__()
 
 
@@ -190,7 +192,7 @@ class MinervaCompose:
     """
 
     def __init__(
-        self, transforms: Union[Iterable[Callable], Callable], key: Optional[str] = None
+        self, transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]], key: Optional[str] = None
     ) -> None:
         self.transforms = transforms
         self.key = key
@@ -205,25 +207,31 @@ class MinervaCompose:
         return sample
 
     def _transform_input(self, img: Tensor) -> Tensor:
-        if hasattr(self.transforms, "__len__"):
+        if type(self.transforms) == Sequence[Callable[..., Any]]:
             for t in self.transforms:
                 img = t(img)
-        else:
+        elif type(self.transforms) == Callable[..., Any]:
             img = self.transforms(img)
+
+        else:
+            raise TypeError(f"{type(self.transforms)=}, not callable")
 
         return img
 
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
 
-        if hasattr(self.transforms, "__len__"):
+        if type(self.transforms) == Sequence[Callable[..., Any]]:
             for t in self.transforms:
                 format_string += "\n"
                 format_string += "    {0}".format(t)
 
-        else:
+        elif type(self.transforms) == Callable[..., Any]:
             format_string += "{0})".format(self.transforms)
             return format_string
+
+        else:
+            raise TypeError(f"{type(self.transforms)=}, not callable")
 
         format_string += "\n)"
 
