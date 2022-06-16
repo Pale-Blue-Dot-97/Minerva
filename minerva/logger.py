@@ -88,8 +88,8 @@ class MinervaLogger(ABC):
         self.batch_size = batch_size
         self.n_samples = n_samples
 
-        self.logs = {}
-        self.results = {}
+        self.logs: Dict[str, Any] = {}
+        self.results: Dict[str, Any] = {}
 
     def __call__(
         self, mode: str, step_num: int, writer: SummaryWriter, loss: _Loss, *args
@@ -342,6 +342,8 @@ class SSL_Logger(MinervaLogger):
             y (Tensor): Optional; Labels to assess model output against.
             bbox (BoundingBox): Optional; Bounding boxes of the input samples.
         """
+        assert z is not None
+        
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
