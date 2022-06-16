@@ -213,7 +213,7 @@ class MinervaCompose:
             img = self.transforms(img)
 
         else:
-            raise TypeError(f"{type(self.transforms)=}, not callable")
+            raise TypeError(f"`transforms` has type {type(self.transforms)}, not callable")
 
         return img
 
@@ -230,7 +230,7 @@ class MinervaCompose:
             return format_string
 
         else:
-            raise TypeError(f"{type(self.transforms)=}, not callable")
+            raise TypeError(f"`transforms` has type {type(self.transforms)}, not callable")
 
         format_string += "\n)"
 
