@@ -83,6 +83,7 @@ from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import auc, classification_report, roc_curve
 from sklearn.preprocessing import label_binarize
 from tabulate import tabulate
+from torch import Tensor, LongTensor
 from torch.nn import Module
 from torch.nn import functional as F
 from torchgeo.datasets.utils import BoundingBox
@@ -210,7 +211,7 @@ def dublicator(cls):
 
 
 def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
-    """Ensures wrapped transform can handle both :class:`torch.Tensor` and :mod:`torchgeo` style ``dict`` inputs.
+    """Ensures wrapped transform can handle both :class:`Tensor` and :mod:`torchgeo` style ``dict`` inputs.
 
     .. warning::
         *NOT* compatible with :class:`DistributedDataParallel` due to it's use of :mod:`pickle`.
@@ -221,7 +222,7 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
             Defaults to None.
 
     Raises:
-        TypeError: If input is not a :class:`dict` or :class:`torch.Tensor`.
+        TypeError: If input is not a :class:`dict` or :class:`Tensor`.
     """
 
     @functools.wraps(cls, updated=())
@@ -231,9 +232,9 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
             self.keys = keys
 
         def __call__(
-            self, batch: Union[Dict[str, Any], torch.Tensor]
+            self, batch: Union[Dict[str, Any], Tensor]
         ) -> Dict[str, Any]:
-            if isinstance(batch, torch.Tensor):
+            if isinstance(batch, Tensor):
                 return self.wrap.__call__(batch)
 
             elif isinstance(batch, dict):
@@ -755,7 +756,10 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
     return matrix[label]
 
 
-def mask_transform(array: NDArray[np.int_], matrix: Dict[int, int]) -> NDArray[np.int_]:
+def mask_transform(
+    array: Union[NDArray[np.int_], LongTensor], 
+    matrix: Dict[int, int],
+) -> Union[NDArray[np.int_], LongTensor]:
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
@@ -1208,7 +1212,7 @@ def make_classification_report(
     return cr_df
 
 
-def calc_contrastive_acc(z: torch.Tensor) -> torch.Tensor:
+def calc_contrastive_acc(z: Tensor) -> Tensor:
     """Calculates the accuracies of predicted samples in a constrastitive learning framework.
 
     Note:
@@ -1219,10 +1223,10 @@ def calc_contrastive_acc(z: torch.Tensor) -> torch.Tensor:
         needed to get the rankings.
 
     Args:
-        z (torch.Tensor): Feature embeddings to calculate constrastive loss (and thereby accuracy) on.
+        z (Tensor): Feature embeddings to calculate constrastive loss (and thereby accuracy) on.
 
     Returns:
-        torch.Tensor: Rankings of positive samples across the batch.
+        Tensor: Rankings of positive samples across the batch.
     """
     # Calculates the cosine similarity between samples.
     cos_sim = F.cosine_similarity(z[:, None, :], z[None, :, :], dim=-1)
