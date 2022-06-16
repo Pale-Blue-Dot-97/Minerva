@@ -24,7 +24,7 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from minerva.utils import utils
 
@@ -41,17 +41,19 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 #                                                      MAIN
 # =====================================================================================================================
 def main(
-    path: Optional[Union[str, list]] = None,
+    path: Optional[Union[str, List[str]]] = None,
     env_name: str = "env2",
     exp_name: Optional[str] = None,
     host_num: int = 6006,
 ) -> None:
+    assert exp_name is not None
+    
     if isinstance(path, list):
         if len(path) == 1:
             path = path[0]
 
     utils.run_tensorboard(
-        path=path, env_name=env_name, exp_name=exp_name, host_num=host_num
+        exp_name, path=path, env_name=env_name, host_num=host_num
     )
 
 
