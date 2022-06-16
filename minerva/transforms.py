@@ -21,8 +21,7 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple, Sequence, Union
-from grpc import Call
+from typing import Any, Callable, Dict, Optional, Tuple, Sequence, Union
 
 import torch
 from overload import overload
@@ -207,10 +206,10 @@ class MinervaCompose:
         return sample
 
     def _transform_input(self, img: Tensor) -> Tensor:
-        if type(self.transforms) == Sequence[Callable[..., Any]]:
+        if isinstance(self.transforms, Sequence):
             for t in self.transforms:
                 img = t(img)
-        elif type(self.transforms) == Callable[..., Any]:
+        elif callable(self.transforms):
             img = self.transforms(img)
 
         else:
@@ -221,12 +220,12 @@ class MinervaCompose:
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
 
-        if type(self.transforms) == Sequence[Callable[..., Any]]:
+        if isinstance(self.transforms, Sequence):
             for t in self.transforms:
                 format_string += "\n"
                 format_string += "    {0}".format(t)
 
-        elif type(self.transforms) == Callable[..., Any]:
+        elif callable(self.transforms):
             format_string += "{0})".format(self.transforms)
             return format_string
 
