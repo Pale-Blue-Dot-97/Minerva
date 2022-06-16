@@ -131,9 +131,9 @@ IMAGE_SIZE: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"
     "image_size"
 ]
 
-CLASSES: Dict[str, Any] = DATA_CONFIG["classes"]
+CLASSES: Dict[int, str] = DATA_CONFIG["classes"]
 
-CMAP_DICT: Dict[str, Any] = DATA_CONFIG["colours"]
+CMAP_DICT: Dict[int, str] = DATA_CONFIG["colours"]
 
 # WGS84 co-ordinate reference system acting as a default CRS for transformations.
 WGS84: CRS = CRS.from_epsg(4326)
@@ -229,19 +229,25 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
-            self.wrap = cls(*args, **kwargs)
+            self.wrap: Callable[[Union[Dict[str, Any], Tensor], ], Dict[str, Any]] = cls(*args, **kwargs)
             self.keys = keys
+
+        @overload
+        def __call__(self, batch: Dict[str, Any]) -> Dict[str, Any]: ...
+
+        @overload
+        def __call__(self, batch: Tensor) -> Dict[str, Any]: ...
 
         def __call__(
             self, batch: Union[Dict[str, Any], Tensor]
         ) -> Dict[str, Any]:
             if isinstance(batch, Tensor):
-                return self.wrap.__call__(batch)
+                return self.wrap(batch)
 
-            elif isinstance(batch, dict):
+            elif isinstance(batch, dict) and isinstance(self.keys, Sequence):
                 aug_batch: Dict[str, Any] = {}
                 for key in self.keys:
-                    aug_batch[key] = self.wrap.__call__(batch.pop(key))
+                    aug_batch[key] = self.wrap(batch.pop(key))
 
                 return {**batch, **aug_batch}
 
@@ -284,7 +290,7 @@ def pair_return(cls):
             else:
                 raise AttributeError
 
-        def __repr__(self) -> str:
+        def __repr__(self) -> Any:
             return self.wrap.__repr__()
 
     return Wrapper
@@ -388,7 +394,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
         return match.group(1)
     except AttributeError:
         print("\nDataset not found!")
-        return
+        return None
 
 
 def transform_coordinates(
@@ -586,7 +592,9 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
         NDArray[Any]: Labels in OHE form.
     """
     targets: NDArray[Any] = np.array(labels).reshape(-1)
-    return np.eye(n_classes)[targets]
+    ohe_labels = np.eye(n_classes)[targets]
+    assert isinstance(ohe_labels, np.ndarray) 
+    return ohe_labels
 
 
 def class_weighting(
@@ -898,7 +906,9 @@ def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
     Returns:
         List[str]: List of strings representing dates of the selected scenes in ``YY_MM_DD`` format.
     """
-    return df.loc[df["COVER"] < thres]["DATE"].tolist()
+    dates = df.loc[df["COVER"] < thres]["DATE"].tolist()
+    assert type(dates) == list
+    return dates
 
 
 def find_best_of(
@@ -1011,7 +1021,7 @@ def modes_from_manifest(
     return class_dist
 
 
-def func_by_str(module_path: str, func: str) -> Callable[[Any], Any]:
+def func_by_str(module_path: str, func: str) -> Callable[..., Any]:
     """Gets the constructor or callable within a module defined by the names supplied.
 
     Args:
@@ -1025,7 +1035,9 @@ def func_by_str(module_path: str, func: str) -> Callable[[Any], Any]:
     module = importlib.import_module(module_path)
 
     # Returns the constructor/ callable within the module.
-    return getattr(module, func)
+    func = getattr(module, func)
+    assert callable(func)
+    return func
 
 
 def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
@@ -1155,7 +1167,7 @@ def batch_flatten(x: Union[NDArray[Any], ArrayLike]) -> NDArray[Any]:
 def make_classification_report(
     pred: NDArray[Any],
     labels: NDArray[Any],
-    class_labels: Dict[str, str],
+    class_labels: Dict[int, str],
     print_cr: bool = True,
     p_dist: bool = False,
 ) -> DataFrame:
@@ -1255,7 +1267,9 @@ def calc_contrastive_acc(z: Tensor) -> Tensor:
         ],
         dim=-1,
     )
-    return comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
+    rankings = comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
+    assert isinstance(rankings, Tensor) 
+    return rankings
 
 
 def run_tensorboard(
@@ -1286,7 +1300,7 @@ def run_tensorboard(
         except KeyError:
             print("KeyError: Path not specified and default cannot be found.")
             print("ABORT OPERATION")
-            return
+            return None
 
     # Get current working directory.
     cwd = os.getcwd()
@@ -1299,9 +1313,10 @@ def run_tensorboard(
         print(os.path.join(path, exp_name))
         print("Expermiment directory does not exist!")
         print("ABORT OPERATION")
-        return
+        return None
 
     # Changes working directory to that containing the TensorBoard log.
+    assert path is not None
     os.chdir(path)
 
     # Activates the correct Conda environment.
@@ -1320,7 +1335,7 @@ def run_tensorboard(
     # Changes back to the original CWD.
     os.chdir(cwd)
 
-    return
+    return None
 
 
 def compute_roc_curves(
