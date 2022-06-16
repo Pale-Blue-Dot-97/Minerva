@@ -52,6 +52,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    overload,
 )
 
 import cmath
@@ -754,6 +755,14 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
         int: Label transformed by matrix.
     """
     return matrix[label]
+
+
+@overload
+def mask_transform(array: NDArray[np.int_], matrix: Dict[int, int]) -> NDArray[np.int_]: ...
+
+
+@overload
+def mask_transform(array: LongTensor, matrix: Dict[int, int]) -> LongTensor: ...
 
 
 def mask_transform(
