@@ -51,7 +51,7 @@ class MinervaMetrics(ABC):
         self.data_size = data_size
 
         # To be overwritten.
-        self.metrics = {}
+        self.metrics: Dict[str, Any] = {}
 
         self.model_type = params["model_type"]
 
