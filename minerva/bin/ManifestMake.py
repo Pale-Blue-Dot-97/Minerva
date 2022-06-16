@@ -34,6 +34,7 @@ TODO:
 import os
 
 from minerva.utils import config, utils
+from minerva.datasets import make_manifest
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -48,7 +49,7 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    manifest = utils.make_manifest()
+    manifest = make_manifest()
 
     print(manifest)
 
