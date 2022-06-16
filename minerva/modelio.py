@@ -25,7 +25,7 @@ from typing import Any, Dict, Sequence, Tuple
 
 import numpy as np
 import torch
-from torch import Tensor, FloatTensor, LongTensor
+from torch import Tensor, LongTensor
 from torch.nn.modules.loss import _Loss
 from torchgeo.datasets.utils import BoundingBox
 from typing_extensions import Literal
@@ -64,17 +64,16 @@ def sup_tg(
             and the bounding boxes of the input images supplied.
     """
     # Extracts the x and y batches from the dict.
-    x_batch: FloatTensor = batch["image"]
-    y_batch: LongTensor = batch["mask"]
+    images: Tensor = batch["image"]
+    masks: Tensor = batch["mask"]
 
     # Re-arranges the x and y batches.
-    x_batch = x_batch.to(torch.float)
-    y_batch = np.squeeze(y_batch, axis=1)
-    y_batch = y_batch.type(torch.long)
+    x_batch: Tensor = images.to(torch.float)
+    y_batch: LongTensor = torch.tensor(np.squeeze(masks, axis=1)).type(torch.long)
 
     # Transfer to GPU.
-    x: FloatTensor = x_batch.to(device)
-    y: LongTensor = y_batch.to(device)
+    x: Tensor = x_batch.to(device)
+    y: Tensor = y_batch.to(device)
 
     # Runs a training epoch.
     if mode == "train":

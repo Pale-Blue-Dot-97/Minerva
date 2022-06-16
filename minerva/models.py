@@ -129,7 +129,7 @@ class MinervaModel(Module, ABC):
         return x
 
     def step(
-        self, x: FloatTensor, y: Union[LongTensor, FloatTensor], train: bool
+        self, x: Tensor, y: Tensor, train: bool
     ) -> Tuple[_Loss, Tensor]:
         """Generic step of model fitting using a batch of data.
 
