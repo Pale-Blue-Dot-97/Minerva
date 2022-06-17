@@ -37,6 +37,7 @@ import argparse
 import os
 import signal
 import subprocess
+from typing import Optional
 
 import torch
 import torch.distributed as dist
@@ -52,12 +53,6 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2022 Harry Baker"
-
-
-# =====================================================================================================================
-#                                                     GLOBALS
-# =====================================================================================================================
-torch.manual_seed(0)
 
 
 # =====================================================================================================================
@@ -112,19 +107,32 @@ if __name__ == "__main__":
 
     args.ngpus_per_node = torch.cuda.device_count()
 
+    # Set the torch seed for reproducibility.
+    torch.manual_seed(config.get("seed", 42))
+
     if "SLURM_JOB_ID" in os.environ:
         # Single-node and multi-node distributed training on SLURM cluster.
         # Requeue job on SLURM preemption.
         signal.signal(signal.SIGUSR1, handle_sigusr1)
         signal.signal(signal.SIGTERM, handle_sigterm)
 
+        # Get SLURM variables.
+        slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
+        slurm_nodeid: Optional[str] = os.getenv("SLURM_NODEID")
+        slurm_nnodes: Optional[str] = os.getenv("SLURM_NNODES")
+
+        # Check that SLURM variables have been found.
+        assert slurm_job_nodelist is not None
+        assert slurm_nodeid is not None
+        assert slurm_nnodes is not None
+
         # Find a common host name on all nodes.
         # Assume scontrol returns hosts in the same order on all nodes.
-        cmd = "scontrol show hostnames " + os.getenv("SLURM_JOB_NODELIST")
+        cmd = "scontrol show hostnames " + slurm_job_nodelist
         stdout = subprocess.check_output(cmd.split())
         host_name = stdout.decode().splitlines()[0]
-        args.rank = int(os.getenv("SLURM_NODEID")) * args.ngpus_per_node
-        args.world_size = int(os.getenv("SLURM_NNODES")) * args.ngpus_per_node
+        args.rank = int(slurm_nodeid) * args.ngpus_per_node
+        args.world_size = int(slurm_nnodes) * args.ngpus_per_node
         args.dist_url = f"tcp://{host_name}:58472"
 
     else:
