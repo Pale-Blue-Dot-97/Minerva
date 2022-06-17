@@ -651,7 +651,7 @@ def seg_plot(
     z: Union[List[int], NDArray[Any, Any]],
     y: Union[List[int], NDArray[Any, Any]],
     ids: List[str],
-    bounds: Sequence[Any],
+    bounds: Union[Sequence[Any], NDArray[Any, Any]],
     mode: str,
     classes: Dict[int, str],
     colours: Dict[int, str],
@@ -1111,8 +1111,11 @@ def plot_results(
         except ImportError:
             pass
 
-    flat_z = utils.batch_flatten(z)
-    flat_y = utils.batch_flatten(y)
+    if z is not None:
+        flat_z = utils.batch_flatten(z)
+
+    if y is not None:
+        flat_y = utils.batch_flatten(y)
 
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
