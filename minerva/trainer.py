@@ -26,7 +26,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 import os
 from contextlib import nullcontext
 
-from numpy.typing import NDArray
+from nptyping import NDArray, Int
 import pandas as pd
 import torch
 import torch.distributed as dist
@@ -144,7 +144,7 @@ class Trainer:
             self.params["dir"]["results"] + [self.params["exp_name"]]
         )
 
-        self.batch_size = params["hyperparams"]["params"]["batch_size"]
+        self.batch_size: int = params["hyperparams"]["params"]["batch_size"]
 
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
@@ -429,15 +429,14 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in ("train", "val"):
 
-                results: Dict[str, Any] = {}
+                results: Dict[str, Any]
 
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
                 if epoch == (self.max_epochs - 1) and self.params["plot_last_epoch"]:
-                    result: Dict[str, Any] = self.epoch(mode, record_int=True)
-                    if type(results) == Dict[str, Any]:
-                        results = result
-                    else:
-                        raise TypeError("Epoch did not return results. ABORT")
+                    result: Optional[Dict[str, Any]] = self.epoch(mode, record_int=True)
+                    assert result is not None
+                    results = result
+
                 else:
                     self.epoch(mode)
 
@@ -521,7 +520,10 @@ class Trainer:
 
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
-        results: Dict[str, Any] = self.epoch("test", record_int=True, record_float=True)
+        results: Optional[Dict[str, Any]] = self.epoch(
+            "test", record_int=True, record_float=True
+        )
+        assert results is not None
 
         # Prints test loss and accuracy to stdout.
         self.metric_logger.print_epoch_results("test", 0)
@@ -660,8 +662,8 @@ class Trainer:
             None
         """
         # Ensures predictions and labels are flattened.
-        preds: NDArray[Any] = utils.batch_flatten(predictions)
-        targets: NDArray[Any] = utils.batch_flatten(labels)
+        preds: NDArray[Any, Int] = utils.batch_flatten(predictions)
+        targets: NDArray[Any, Int] = utils.batch_flatten(labels)
 
         # Uses utils to create a classification report in a DataFrame.
         cr_df = utils.make_classification_report(preds, targets, self.params["classes"])

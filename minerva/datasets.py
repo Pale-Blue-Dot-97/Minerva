@@ -36,7 +36,7 @@ from typing_extensions import Literal
 import os
 
 import numpy as np
-from numpy.typing import NDArray
+from nptyping import NDArray
 import pandas as pd
 import torch
 from alive_progress import alive_it
@@ -606,7 +606,7 @@ def make_manifest(mf_config: Dict[Any, Any] = config) -> pd.DataFrame:
     return df
 
 
-def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any]:
+def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]:
     """Loads all sample masks from parsed :class:`DataLoader` and computes the modes of their classes.
 
     Args:
