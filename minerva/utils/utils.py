@@ -69,7 +69,8 @@ from datetime import datetime
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import numpy as np
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import ArrayLike
+from nptyping import NDArray, Shape, Int, Float
 import pandas as pd
 import psutil
 import rasterio as rt
@@ -85,6 +86,7 @@ from sklearn.metrics import auc, classification_report, roc_curve
 from sklearn.preprocessing import label_binarize
 from tabulate import tabulate
 from torch import Tensor, LongTensor
+from torch.types import _device
 from torch.nn import Module
 from torch.nn import functional as F
 from torchgeo.datasets.utils import BoundingBox
@@ -107,7 +109,15 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = config["dir"]["configs"][
     "imagery_config"
 ]
-DATA_CONFIG_PATH: Union[str, Sequence[str]] = config["dir"]["configs"]["data_config"]
+
+DATA_CONFIG_PATH: str
+_data_config_path: Union[List[str], Tuple[str, ...], str] = config["dir"]["configs"][
+    "data_config"
+]
+if type(_data_config_path) in (list, tuple):
+    DATA_CONFIG_PATH = os.sep.join(_data_config_path)
+elif type(_data_config_path) == str:
+    DATA_CONFIG_PATH = _data_config_path
 
 DATA_CONFIG: Dict[str, Any] = aux_configs["data_config"]
 IMAGERY_CONFIG: Dict[str, Any] = aux_configs["imagery_config"]
@@ -229,18 +239,23 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
     @functools.wraps(cls, updated=())
     class Wrapper:
         def __init__(self, *args, **kwargs) -> None:
-            self.wrap: Callable[[Union[Dict[str, Any], Tensor], ], Dict[str, Any]] = cls(*args, **kwargs)
+            self.wrap: Callable[
+                [
+                    Union[Dict[str, Any], Tensor],
+                ],
+                Dict[str, Any],
+            ] = cls(*args, **kwargs)
             self.keys = keys
 
         @overload
-        def __call__(self, batch: Dict[str, Any]) -> Dict[str, Any]: ...
+        def __call__(self, batch: Dict[str, Any]) -> Dict[str, Any]:
+            ...
 
         @overload
-        def __call__(self, batch: Tensor) -> Dict[str, Any]: ...
+        def __call__(self, batch: Tensor) -> Dict[str, Any]:
+            ...
 
-        def __call__(
-            self, batch: Union[Dict[str, Any], Tensor]
-        ) -> Dict[str, Any]:
+        def __call__(self, batch: Union[Dict[str, Any], Tensor]) -> Dict[str, Any]:
             if isinstance(batch, Tensor):
                 return self.wrap(batch)
 
@@ -299,7 +314,7 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> torch.device:
+def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
     """Finds and returns the CUDA device, if one is available. Else, returns CPU as device.
     Assumes there is at most only one CUDA device.
 
@@ -310,7 +325,7 @@ def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> torch.device:
         torch.device: CUDA device, if found. Else, CPU device.
     """
     use_cuda = torch.cuda.is_available()
-    device = torch.device(device_sig if use_cuda else "cpu")
+    device: _device = torch.device(device_sig if use_cuda else "cpu")
 
     return device
 
@@ -389,12 +404,31 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
         Optional[Union[str, Any]]: Name of dataset as string.
     """
     data_config_fn = ntpath.basename(DATA_CONFIG_PATH)
-    try:
-        match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
-        return match.group(1)
-    except AttributeError:
+    print(DATA_CONFIG_PATH)
+    match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
+
+    if match is None:
         print("\nDataset not found!")
         return None
+    else:
+        return match.group(1)
+
+
+@overload
+def transform_coordinates(
+    x: Sequence[float],
+    y: Sequence[float],
+    src_crs: CRS,
+    new_crs: CRS = WGS84,
+) -> Tuple[Sequence[float], Sequence[float]]:
+    ...
+
+
+@overload
+def transform_coordinates(
+    x: float, y: float, src_crs: CRS, new_crs: CRS = WGS84
+) -> Tuple[float, float]:
+    ...
 
 
 def transform_coordinates(
@@ -426,14 +460,20 @@ def transform_coordinates(
     y = check_len(y, x)
 
     # Transform co-ordinates from source to new CRS and returns a tuple of (x, y)
-    co_ordinates = rt.warp.transform(src_crs=src_crs, dst_crs=new_crs, xs=x, ys=y)
+    co_ordinates: Tuple[Sequence[float], Sequence[float]] = rt.warp.transform(
+        src_crs=src_crs, dst_crs=new_crs, xs=x, ys=y
+    )
+
+    assert isinstance(co_ordinates, tuple)
+    assert isinstance(co_ordinates[0], Sequence)
+    assert isinstance(co_ordinates[1], Sequence)
 
     if not single:
         return co_ordinates
 
     if single:
-        x_2 = co_ordinates[0][0]
-        y_2 = co_ordinates[1][0]
+        x_2: float = co_ordinates[0][0]
+        y_2: float = co_ordinates[1][0]
 
         return x_2, y_2
 
@@ -493,7 +533,9 @@ def deg_to_dms(deg: float, axis: str = "lat") -> str:
     return "{}º{}'{:.0f}\"{}".format(abs(d), abs(m), abs(s), compass_str)
 
 
-def dec2deg(dec_co: Sequence[float], axis: str = "lat") -> List[str]:
+def dec2deg(
+    dec_co: Union[Sequence[float], NDArray[Shape["*"], Float]], axis: str = "lat"
+) -> List[str]:
     """Wrapper for :func:`deg_to_dms`.
 
     Args:
@@ -581,7 +623,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         return ""
 
 
-def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
+def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
     """Convert an iterable of indices to one-hot encoded labels.
 
     Args:
@@ -591,9 +633,9 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
     Returns:
         NDArray[Any]: Labels in OHE form.
     """
-    targets: NDArray[Any] = np.array(labels).reshape(-1)
+    targets: NDArray[Any, Any] = np.array(labels).reshape(-1)
     ohe_labels = np.eye(n_classes)[targets]
-    assert isinstance(ohe_labels, np.ndarray) 
+    assert isinstance(ohe_labels, np.ndarray)
     return ohe_labels
 
 
@@ -658,7 +700,7 @@ def find_empty_classes(
 
 
 def eliminate_classes(
-    empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any]],
+    empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any, Int]],
     old_classes: Optional[Dict[int, str]] = None,
     old_cmap: Optional[Dict[int, str]] = None,
 ) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
@@ -766,25 +808,29 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
 
 
 @overload
-def mask_transform(array: NDArray[np.int_], matrix: Dict[int, int]) -> NDArray[np.int_]: ...
+def mask_transform(
+    array: NDArray[Any, Int], matrix: Dict[int, int]
+) -> NDArray[Any, Int]:
+    ...
 
 
 @overload
-def mask_transform(array: LongTensor, matrix: Dict[int, int]) -> LongTensor: ...
+def mask_transform(array: LongTensor, matrix: Dict[int, int]) -> LongTensor:
+    ...
 
 
 def mask_transform(
-    array: Union[NDArray[np.int_], LongTensor], 
+    array: Union[NDArray[Any, Int], LongTensor],
     matrix: Dict[int, int],
-) -> Union[NDArray[np.int_], LongTensor]:
+) -> Union[NDArray[Any, Int], LongTensor]:
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
-        array (NDArray[np.int_]): N-dimensional array containing labels to be transformed.
+        array (NDArray[Any, Int]): N-dimensional array containing labels to be transformed.
         matrix (Dict[int, int]): Dictionary mapping old labels to new.
 
     Returns:
-        NDArray[np.int_]: Array of transformed labels.
+        NDArray[Any, Int]: Array of transformed labels.
     """
     for key in matrix.keys():
         array[array == key] = matrix[key]
@@ -793,11 +839,11 @@ def mask_transform(
 
 
 def check_test_empty(
-    pred: Sequence[int],
-    labels: Sequence[int],
+    pred: Union[Sequence[int], NDArray[Any, Int]],
+    labels: Union[Sequence[int], NDArray[Any, Int]],
     class_labels: Dict[int, str],
     p_dist: bool = True,
-) -> Tuple[NDArray[np.int_], NDArray[np.int_], Dict[int, str]]:
+) -> Tuple[NDArray[Any, Int], NDArray[Any, Int], Dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class_labels.
 
@@ -884,7 +930,7 @@ def class_frac(patch: pd.Series) -> Dict[int, Any]:
     return new_columns
 
 
-def cloud_cover(scene: NDArray[Any]) -> Any:
+def cloud_cover(scene: NDArray[Any, Any]) -> Any:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
     Args:
@@ -954,7 +1000,7 @@ def timestamp_now(fmt: str = "%d-%m-%Y_%H%M") -> str:
     return datetime.now().strftime(fmt)
 
 
-def find_modes(labels: Sequence[int], plot: bool = False) -> List[Tuple[int, int]]:
+def find_modes(labels: Iterable[int], plot: bool = False) -> List[Tuple[int, int]]:
     """Finds the modal distribution of the classes within the labels provided.
 
     Can plot the results as a pie chart if ``plot=True``.
@@ -1146,16 +1192,16 @@ def print_class_dist(
     print(tabulate(df, headers="keys", tablefmt="psql"))
 
 
-def batch_flatten(x: Union[NDArray[Any], ArrayLike]) -> NDArray[Any]:
+def batch_flatten(x: Union[NDArray[Any, Any], ArrayLike]) -> NDArray[Shape["*"], Any]:
     """Flattens the supplied array with :func:`numpy`.
 
     Args:
-        x: Array to be flattened.
+        x (Union[NDArray[Any, Any], ArrayLike]): Array to be flattened.
 
     Returns:
-        NDArray[Any]: Flattened :class:`NDArray`.
+        NDArray[Shape["*"], Any]: Flattened :class:`NDArray`.
     """
-    if type(x) == NDArray[Any]:
+    if isinstance(x, np.ndarray):
         x = x.flatten()
 
     else:
@@ -1165,8 +1211,8 @@ def batch_flatten(x: Union[NDArray[Any], ArrayLike]) -> NDArray[Any]:
 
 
 def make_classification_report(
-    pred: NDArray[Any],
-    labels: NDArray[Any],
+    pred: NDArray[Any, Int],
+    labels: NDArray[Any, Int],
     class_labels: Dict[int, str],
     print_cr: bool = True,
     p_dist: bool = False,
@@ -1268,7 +1314,7 @@ def calc_contrastive_acc(z: Tensor) -> Tensor:
         dim=-1,
     )
     rankings = comb_sim.argsort(dim=-1, descending=True).argmin(dim=-1)
-    assert isinstance(rankings, Tensor) 
+    assert isinstance(rankings, Tensor)
     return rankings
 
 
@@ -1305,6 +1351,8 @@ def run_tensorboard(
     # Get current working directory.
     cwd = os.getcwd()
 
+    assert path is not None
+
     # Joins path together if a list or tuple.
     if isinstance(path, (list, tuple)):
         path = os.path.join(*path)
@@ -1339,8 +1387,8 @@ def run_tensorboard(
 
 
 def compute_roc_curves(
-    probs: NDArray[Any],
-    labels: Sequence[int],
+    probs: NDArray[Any, Float],
+    labels: Union[Sequence[int], NDArray[Any, Int]],
     class_labels: List[int],
     micro: bool = True,
     macro: bool = True,

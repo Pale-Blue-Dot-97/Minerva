@@ -35,12 +35,8 @@ Attributes:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-try:
-    from numpy.typing import NDArray
-except ModuleNotFoundError:
-    NDArray = Sequence
 import os
 import random
 
@@ -48,6 +44,7 @@ import imageio
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from nptyping import NDArray, Int, Float, Shape
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
@@ -108,7 +105,7 @@ _MAX_SAMPLES = 25
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any]:
+def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any, Any]:
     """Separates interlaced arrays, ``x`` at a frequency of ``f`` from each other.
 
     Args:
@@ -118,7 +115,7 @@ def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any]:
     Returns:
         NDArray: De-interlaced array. Each source array is now sequentially connected.
     """
-    new_x: List[NDArray[Any]] = []
+    new_x: List[NDArray[Any, Any]] = []
     for i in range(f):
         x_i = []
         for j in np.arange(start=i, stop=len(x), step=f):
@@ -134,7 +131,7 @@ def dec_extent_to_deg(
     src_crs: CRS,
     new_crs: CRS = WGS84,
     spacing: int = 32,
-) -> Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
+) -> Tuple[Tuple[int, int, int, int], NDArray[Any, Float], NDArray[Any, Float]]:
     """Gets the extent of the image with ``shape`` and with ``bounds`` in latitude, longitude of system ``new_cs``.
 
     Args:
@@ -144,7 +141,7 @@ def dec_extent_to_deg(
         spacing (int): Spacing of the lat - lon ticks.
 
     Returns:
-        Tuple[Tuple[int, int, int, int], NDArray[Any], NDArray[Any]]:
+        Tuple[Tuple[int, int, int, int], NDArray[Any, Float], NDArray[Any, Float]]:
             * The corners of the image in pixel co-ordinates e.g. ``(0, 256, 0, 256)``.
             * The latitude extent of the image with ticks at intervals defined by ``spacing``.
             * The longitude extent of the image with ticks at intervals defined by ``spacing``.
@@ -166,19 +163,21 @@ def dec_extent_to_deg(
         stop=corners[1][1],
         num=int(shape[0] / spacing) + 1,
         endpoint=True,
+        dtype=np.int32,
     )
     lon_extent = np.linspace(
         start=corners[0][0],
         stop=corners[0][1],
         num=int(shape[0] / spacing) + 1,
         endpoint=True,
+        dtype=np.int32,
     )
 
     return extent, lat_extent, lon_extent
 
 
 def discrete_heatmap(
-    data,
+    data: NDArray[Shape["*, *"], Int],
     classes: Union[List[str], Tuple[str, ...]],
     cmap_style: Optional[Union[str, ListedColormap]] = None,
     block_size: int = 32,
@@ -186,7 +185,7 @@ def discrete_heatmap(
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
     Args:
-        data (list or np.ndarray): 2D Array of data to be plotted as a heat map.
+        data (NDArray[Shape["*, *"], Int]): 2D Array of data to be plotted as a heat map.
         classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
         block_size (int): Optional; Size of block image subdivision in pixels.
@@ -224,19 +223,20 @@ def discrete_heatmap(
 
 
 def stack_rgb(
-    image: NDArray[Any],
-    rgb: Optional[Dict[str, int]] = BAND_IDS,
+    image: NDArray[Shape["3, *, *"], Float],
+    rgb: Dict[str, int] = BAND_IDS,
     max_value: int = MAX_PIXEL_VALUE,
-) -> Any:
+) -> NDArray[Shape["*, *, 3"], Float]:
     """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
-        image (np.ndarray): Image of separate channels to be normalised and reshaped into stacked RGB image.
+        image (NDArray[Shape["3, *, *"], Float]): Image of separate channels to be normalised
+            and reshaped into stacked RGB image.
         rgb (Dict[str, int]): Optional; Dictionary of which channels in image are the R, G & B bands.
         max_value (int): Optional; The maximum pixel value in ``image``. e.g. for 8 bit this will be 255.
 
     Returns:
-        Normalised and stacked red, green, blue arrays into RGB array
+        NDArray[Shape["*, *, 3"], Float]: Normalised and stacked red, green, blue arrays into RGB array
     """
 
     # Extract R, G, B bands from image and normalise.
@@ -247,11 +247,13 @@ def stack_rgb(
 
     # Stack together RGB bands.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
-    return np.dstack((channels[2], channels[1], channels[0]))
+    rgb_image = np.dstack((channels[2], channels[1], channels[0]))
+    assert isinstance(rgb_image, np.ndarray)
+    return rgb_image
 
 
 def make_rgb_image(
-    image: NDArray[Any], rgb: Dict[str, Any], block_size: int = 32
+    image: NDArray[Shape["3, *, *"], Float], rgb: Dict[str, int], block_size: int = 32
 ) -> AxesImage:
     """Creates an RGB image from a composition of red, green and blue bands.
 
@@ -282,8 +284,8 @@ def make_rgb_image(
 
 
 def labelled_rgb_image(
-    image: NDArray[Any],
-    mask: NDArray[Any],
+    image: NDArray[Shape["*, *, 3"], Float],
+    mask: NDArray[Shape["*, *"], Int],
     bounds: BoundingBox,
     src_crs: CRS,
     path: str,
@@ -423,8 +425,8 @@ def labelled_rgb_image(
 
 def make_gif(
     dates: List[str],
-    images: NDArray[Any],
-    masks: NDArray[Any],
+    images: NDArray[Shape["*, *, *, 3"], Any],
+    masks: NDArray[Shape["*, *, *"], Any],
     bounds: BoundingBox,
     src_crs: CRS,
     classes: Union[List[str], Tuple[str, ...]],
@@ -551,7 +553,7 @@ def prediction_plot(
 
     gs = GridSpec(nrows=2, ncols=2, figure=fig)
 
-    axes: NDArray[Any] = np.array(
+    axes: NDArray[Shape["3"], Any] = np.array(
         [
             fig.add_subplot(gs[0, 0]),
             fig.add_subplot(gs[0, 1]),
@@ -646,8 +648,8 @@ def prediction_plot(
 
 
 def seg_plot(
-    z: Union[List[int], NDArray[Any]],
-    y: Union[List[int], NDArray[Any]],
+    z: Union[List[int], NDArray[Any, Any]],
+    y: Union[List[int], NDArray[Any, Any]],
     ids: List[str],
     bounds: Sequence[Any],
     mode: str,
@@ -680,12 +682,15 @@ def seg_plot(
     # Need to reorganise package to avoid need for this.
     from minerva.datasets import make_dataset
 
-    z = np.array(z)
-    y = np.array(y)
+    if not isinstance(z, np.ndarray):
+        z = np.array(z)
+
+    if not isinstance(y, np.ndarray):
+        y = np.array(y)
 
     z = np.reshape(z, (z.shape[0] * z.shape[1], z.shape[2], z.shape[3]))
     y = np.reshape(y, (y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
-    flat_ids: NDArray[Any] = np.array(ids).flatten()
+    flat_ids: NDArray[Any, Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
     dataset, _ = make_dataset(config["dir"]["data"], config["dataset_params"][mode])
@@ -725,8 +730,8 @@ def seg_plot(
 
 def plot_subpopulations(
     class_dist: List[Tuple[int, int]],
-    class_names: Optional[Dict[int, str]] = None,
-    cmap_dict: Optional[Dict[int, str]] = None,
+    class_names: Dict[int, str],
+    cmap_dict: Dict[int, str],
     filename: Optional[str] = None,
     save: bool = True,
     show: bool = False,
@@ -846,8 +851,8 @@ def plot_history(
 
 
 def make_confusion_matrix(
-    pred: Union[List[int], NDArray[Any]],
-    labels: Union[List[int], NDArray[Any]],
+    pred: Union[List[int], NDArray[Any, Int]],
+    labels: Union[List[int], NDArray[Any, Int]],
     classes: Dict[int, str],
     filename: Optional[str] = None,
     show: bool = True,
@@ -914,8 +919,8 @@ def make_confusion_matrix(
 
 
 def make_roc_curves(
-    probs: Union[List[float], NDArray[Any]],
-    labels: Union[List[int], NDArray[Any]],
+    probs: Union[List[float], NDArray[Any, Float]],
+    labels: Union[List[int], NDArray[Any, Int]],
     class_names: Dict[int, str],
     colours: Dict[int, str],
     micro: bool = True,
@@ -1012,7 +1017,9 @@ def make_roc_curves(
 
 
 def format_plot_names(
-    model_name: str, timestamp: str, path: Union[List[str], Tuple[str, ...]]
+    model_name: str,
+    timestamp: str,
+    path: Sequence[str],
 ) -> Dict[str, str]:
     """Creates unique filenames of plots in a standardised format.
 
@@ -1036,7 +1043,7 @@ def format_plot_names(
             String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
         """
         filename = f"{model_name}_{timestamp}_{plot_type}"
-        return os.sep.join(path + [*sub_dir, filename])
+        return os.sep.join(list(path) + [*sub_dir, filename])
 
     filenames = {
         "History": standard_format("MH") + ".png",
@@ -1052,20 +1059,20 @@ def format_plot_names(
 
 def plot_results(
     plots: Dict[str, bool],
-    z: Optional[Union[List[int], NDArray[Any]]] = None,
-    y: Optional[Union[List[int], NDArray[Any]]] = None,
+    z: Optional[Union[List[int], NDArray[Any, Int]]] = None,
+    y: Optional[Union[List[int], NDArray[Any, Int]]] = None,
     metrics: Optional[Dict[str, Any]] = None,
     ids: Optional[List[str]] = None,
     mode: str = "test",
-    bounds: Optional[NDArray[object]] = None,
-    probs: Optional[Union[List[float], NDArray[Any]]] = None,
+    bounds: Optional[NDArray[Any, Any]] = None,
+    probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
     class_names: Optional[Dict[int, str]] = None,
     colours: Optional[Dict[int, str]] = None,
     save: bool = True,
     show: bool = False,
     model_name: Optional[str] = None,
     timestamp: Optional[str] = None,
-    results_dir: Optional[Iterable[str]] = None,
+    results_dir: Optional[Sequence[str]] = None,
 ) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
@@ -1115,6 +1122,7 @@ def plot_results(
 
     if results_dir is None:
         results_dir = config["dir"]["results"]
+        assert isinstance(results_dir, Sequence)
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
@@ -1129,16 +1137,7 @@ def plot_results(
         print("\nPLOTTING MODEL HISTORY")
         plot_history(metrics, filename=filenames["History"], save=save, show=show)
 
-    if plots["Pred"]:
-        print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
-        plot_subpopulations(
-            utils.find_modes(flat_z),
-            class_names=class_names,
-            cmap_dict=colours,
-            filename=filenames["Pred"],
-            save=save,
-            show=show,
-        )
+    assert class_names is not None
 
     if plots["CM"]:
         print("\nPLOTTING CONFUSION MATRIX")
@@ -1151,7 +1150,22 @@ def plot_results(
             show=show,
         )
 
+    assert colours is not None
+
+    if plots["Pred"]:
+        print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
+        plot_subpopulations(
+            utils.find_modes(flat_z),
+            class_names=class_names,
+            cmap_dict=colours,
+            filename=filenames["Pred"],
+            save=save,
+            show=show,
+        )
+
     if plots["ROC"]:
+        assert probs is not None
+
         print("\nPLOTTING ROC CURVES")
         make_roc_curves(
             probs,
@@ -1166,6 +1180,8 @@ def plot_results(
         )
 
     if plots["Mask"]:
+        assert z is not None
+        assert y is not None
         assert ids is not None
         assert bounds is not None
         assert mode is not None
