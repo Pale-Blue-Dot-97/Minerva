@@ -125,6 +125,13 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+    "--model-type",
+    dest="model_type",
+    type=str,
+    help="Type of model. Should be 'segmentation', 'scene_classifier', 'siamese' or 'mlp'",
+    )
+
+    parser.add_argument(
     "--pre-train",
     type=bool,
     action="store_false",
@@ -138,6 +145,85 @@ if __name__ == "__main__":
     help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
     )
     
+    parser.add_argument(
+    "--balance",
+    type=bool,
+    action="store_false",
+    help="Activates class balancing." 
+        + " Depending on `model_type`, this will either be via sampling or weighting of the loss function.",
+    )
+
+    parser.add_argument(
+    "--class-elim",
+    dest="elim",
+    type=bool,
+    action="store_false",
+    help="Eliminates classes that are specified in config but not present in the data.",
+    )
+
+    parser.add_argument(
+    "--sample-pairs",
+    dest="sample_pairs",
+    type=bool,
+    action="store_false",
+    help="Used paired sampling. E.g. For Siamese models.",
+    )
+
+    parser.add_argument(
+    "--save-model",
+    dest="save_model",
+    type=str,
+    action="store_false",
+    help="Whether to save the model at end of testing. Must be 'true', 'false' or 'auto'."
+        + " Setting 'auto' will automatically save the model to file." 
+        + " 'true' will ask the user whether to or not at runtime."
+        + " 'false' will not save the model and will not ask the user at runtime.",
+    )
+
+    parser.add_argument(
+    "--run-tensorboard",
+    dest="run_tensorboard",
+    type=str,
+    action="store_false",
+    help="Whether to run the Tensorboard logs at end of testing. Must be 'true', 'false' or 'auto'."
+        + " Setting 'auto' will automatically locate and run the logs on a local browser." 
+        + " 'true' will ask the user whether to or not at runtime."
+        + " 'false' will not save the model and will not ask the user at runtime.",
+    )  
+ 
+    parser.add_argument(
+    "--save-plots",
+    dest="save",
+    type=bool,
+    action="store_false",
+    help="Whether to save plots created to file or not."
+    )   
+
+    parser.add_argument(
+    "--show-plots",
+    dest="show",
+    type=bool,
+    action="store_false",
+    help="Whether to show plots created in a window or not." 
+        + " Warning: Do not use with a terminal-less operation, e.g. SLURM."
+    )  
+    
+    parser.add_argument(
+    "--print-dist",
+    dest="p_dist",
+    type=bool,
+    action="store_false",
+    help="Whether to print the distribution of classes within the data to `stdout`."
+    )
+    
+    parser.add_argument(
+    "--plot-last-epoch",
+    dest="plot_last_epoch",
+    type=bool,
+    action="store_false",
+    help="Whether to plot the results from the final validation epoch."
+    )
+
     args = parser.parse_args()
 
     args.ngpus_per_node = torch.cuda.device_count()
