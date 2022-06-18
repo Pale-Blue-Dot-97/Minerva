@@ -24,12 +24,10 @@ Designed for use in SLURM clusters.
 
 Some code derived from Barlow Twins implementation of distributed computing:
 https://github.com/facebookresearch/barlowtwins
-
-
-TODO:
-    * Add arg parsing from CLI
-    * Add ability to conduct hyper-parameter iterative variation experimentation
 """
+
+# TODO: Add arg parsing from CLI.
+# TODO: Add ability to conduct hyper-parameter iterative variation experimentation.
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -102,11 +100,51 @@ def main(args):
 
 
 if __name__ == "__main__":
+    # ---+ CLI +--------------------------------------------------------------+
     parser = argparse.ArgumentParser(parents=[master_parser])
+    
+    parser.add_argument(
+    "--seed",
+    type=int,
+    help="Set seed number",
+    )
+
+    # parser.add_argument(
+    # "--max-epochs",
+    # type=int,
+    # help="Maximum number of epochs of training",
+    # )
+
+    parser.add_argument(
+    "--model-name",
+    dest="model_name",
+    type=str,
+    help="Name of model." 
+    + " Sub-string before hyphen is taken as model class name." 
+    + " Sub-string past hyphen can be used to differeniate between versions.",
+    )
+
+    parser.add_argument(
+    "--pre-train",
+    type=bool,
+    action="store_false",
+    help="Sets experiment type to pre-train. Will save model to cache at end of training.",
+    )
+
+    parser.add_argument(
+    "--fine-tune",
+    type=bool,
+    action="store_false",
+    help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
+    )
+    
     args = parser.parse_args()
 
     args.ngpus_per_node = torch.cuda.device_count()
 
+    # Updates the config with arguments from the CLI.
+    config.update(vars(args))
+    
     # Set the torch seed for reproducibility.
     torch.manual_seed(config.get("seed", 42))
 
