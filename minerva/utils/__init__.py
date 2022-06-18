@@ -1,28 +1,29 @@
 import argparse
 import ntpath
 import os
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Optional
 
 import yaml
 
 # Default values for the path to the config directory and config name.
-config_dir_path = "../../inbuilt_cfgs/"
-default_config_name = "example_config.yml"
+config_dir_path: str = "../../inbuilt_cfgs/"
+default_config_name: str = "example_config.yml"
 
 # Objects to hold the config name and path.
-config_name = None
-config_path = None
+config_name: Optional[str] = None
+config_path: Optional[str] = None
 
 
-def chdir_to_default(config_name: str = config_name) -> str:
+def chdir_to_default(conf_name: Optional[str] = None) -> str:
     this_abs_path = os.path.abspath(os.path.dirname(__file__))
     os.chdir(os.sep.join((this_abs_path, config_dir_path)))
 
-    try:
-        if not os.path.exists(config_name):
-            return default_config_name
-    except TypeError:
+    if conf_name is None:
         return default_config_name
+    elif not os.path.exists(conf_name):
+        return default_config_name
+    else:
+        return conf_name
 
 
 def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
@@ -113,11 +114,12 @@ if config_path is None:
 
 # Check the config specified exists at the path given. If not, assume its in the default directory.
 else:
-    try:
-        if not os.path.exists(os.sep.join((config_path, config_name))):
-            config_name = chdir_to_default(config_name)
-    except TypeError:
+    if config_name is None:
         config_name = chdir_to_default(config_name)
+    elif not os.path.exists(os.sep.join((config_path, config_name))):
+        config_name = chdir_to_default(config_name)
+    else:
+        pass
 
 path = config_name
 if config_path is not None:
