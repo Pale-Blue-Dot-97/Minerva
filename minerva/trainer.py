@@ -429,7 +429,7 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in ("train", "val"):
 
-                results: Dict[str, Any]
+                results: Dict[str, Any] = {}
 
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
                 if epoch == (self.max_epochs - 1) and self.params["plot_last_epoch"]:
