@@ -36,7 +36,9 @@ import os
 import signal
 import subprocess
 from typing import Optional
+import random
 
+import numpy as np
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -231,8 +233,14 @@ if __name__ == "__main__":
     # Updates the config with new arguments from the CLI.
     config.update(new_args)
 
-    # Set the torch seed for reproducibility.
-    torch.manual_seed(config.get("seed", 42))
+    # Get seed from config.
+    seed = config.get("seed", 42)
+
+    # Set torch, numpy and inbuilt seeds for reproducibility.
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
     if "SLURM_JOB_ID" in os.environ:
         # Single-node and multi-node distributed training on SLURM cluster.
