@@ -42,6 +42,7 @@ import torch
 from alive_progress import alive_it
 from catalyst.data.sampler import DistributedSamplerWrapper
 from torch.utils.data import DataLoader
+import torch.distributed as dist
 from torchgeo.datasets import GeoDataset, IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
@@ -149,7 +150,7 @@ def get_collator(
         else:
             collator = utils.func_by_str(module, collator_params["name"])
 
-    if type(collator) == Callable[..., Any]:
+    if isinstance(collator, Callable):
         return collator
     else:
         raise TypeError(f"collator is of type {type(collator)}, not callable!")
@@ -302,7 +303,7 @@ def construct_dataloader(
 
     batch_sampler = True if "batch_size" in sampler_params["params"] else False
 
-    if batch_sampler:
+    if batch_sampler and dist.is_available() and dist.is_initialized():
         assert sampler_params["params"]["batch_size"] % world_size == 0
         per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
         sampler_params["params"]["batch_size"] = per_device_batch_size
