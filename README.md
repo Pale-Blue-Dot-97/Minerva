@@ -83,7 +83,7 @@ Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/li
 
 ## Authors
 
-Created by Harry Baker as part of a project towards the award of a PhD Computer Science from the
+Created by Harry Baker as part of a project towards for a PhD in Computer Science from the
 University of Southampton. Funded by the Ordnance Survey Ltd.
 
 I'd like to acknowledge the invaluable supervision and contributions of Dr Jonathon Hare and
