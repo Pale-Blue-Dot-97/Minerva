@@ -32,7 +32,7 @@ pip install tensorflow pandas imageio opencv-python seaborn tabulate torchinfo p
 The `torchgeo` docs also recommend installing `radiant_mlhub` and `zipfile-deflate64`:
 
 ```shell
-pip install zipfile-deflate64  radiant_mlhub
+pip install zipfile-deflate64 radiant_mlhub
 ```
 
 ## Requirements

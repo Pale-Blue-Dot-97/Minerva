@@ -54,10 +54,7 @@ def main(config_path: str):
         )
 
         try:
-            if "SLURM_JOB_ID" in os.environ and torch.cuda.device_count() > 1:
-                exit_code = os.system(f"python MinervaDist.py -c {config[key]}")
-            else:
-                exit_code = os.system(f"python MinervaExp.py -c {config[key]}")
+            exit_code = os.system(f"python MinervaExp.py -c {config[key]}")
 
             if exit_code != 0:
                 raise SystemExit()
