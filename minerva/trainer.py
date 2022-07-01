@@ -313,6 +313,7 @@ class Trainer:
 
     def make_metric_logger(self) -> None:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
+
         # Gets the size of the input data to the network (without batch dimension).
         data_size = self.params["hyperparams"]["model_params"]["input_size"]
 
@@ -360,7 +361,8 @@ class Trainer:
             record_float (bool): Optional; Whether to record the floating point results i.e. class probabilities.
 
         Returns:
-            If a test epoch, returns the predicted and ground truth labels and the patch IDs supplied to the model.
+            Dict[str, Any] | None: If ``record_int=True`` or ``record_float=True``, returns the predicted
+            and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
         """
         batch_size = self.batch_size
         if dist.is_available() and dist.is_initialized():
@@ -424,7 +426,7 @@ class Trainer:
             return None
 
     def fit(self) -> None:
-        """Fits the model by running `max_epochs` number of training and validation epochs."""
+        """Fits the model by running ``max_epochs`` number of training and validation epochs."""
         for epoch in range(self.max_epochs):
             self.print(
                 f"\nEpoch: {epoch + 1}/{self.max_epochs} =========================================================="
@@ -519,10 +521,8 @@ class Trainer:
             show (bool): Optional; Determines whether to show the plots created.
 
         Notes:
-            save = True, show = False regardless of input for plots made for each sample such as PvT or Mask plots.
+            ``save=True``, ``show=False`` regardless of input for plots made for each sample such as PvT or Mask plots.
 
-        Returns:
-            None
         """
         self.print("\r\nTESTING")
 
@@ -675,9 +675,6 @@ class Trainer:
         Args:
             predictions (ArrayLike): List of predicted labels.
             labels (ArrayLike): List of corresponding ground truth label masks.
-
-        Returns:
-            None
         """
         # Ensures predictions and labels are flattened.
         preds: NDArray[Any, Int] = utils.batch_flatten(predictions)
@@ -690,13 +687,21 @@ class Trainer:
         cr_df.to_csv(f"{self.exp_fn}_classification-report.csv")
 
     def save_model_weights(self, fn: Optional[str] = None) -> None:
-        """Saves model state dict to PyTorch file."""
+        """Saves model state dict to PyTorch file.
+
+        Args:
+            fn (str): Optional; Filename and path (excluding extension) to save weights to.
+        """
         if fn is None:
             fn = self.exp_fn
         torch.save(self.model.state_dict(), f"{fn}.pt")
 
     def save_model(self, fn: Optional[str] = None) -> None:
-        """Saves the model object itself to PyTorch file."""
+        """Saves the model object itself to PyTorch file.
+
+        Args:
+            fn (str): Optional; Filename and path (excluding extension) to save model to.
+        """
         if fn is None:
             fn = self.exp_fn
         torch.save(self.model, f"{fn}.pt")
@@ -723,5 +728,10 @@ class Trainer:
         )
 
     def print(self, msg: object) -> None:
+        """Print function that will only print the object if this is run on the main device.
+
+        Args:
+            msg (object): Object or message to print.
+        """
         if self.verbose and self.gpu == 0:
             print(msg)
