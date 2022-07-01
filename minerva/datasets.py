@@ -489,7 +489,7 @@ def make_loaders(
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
     # and new colours.
     new_classes, forwards, new_colours = utils.load_data_specs(
-        class_dist=class_dist, elim=params["elim"]
+        class_dist=class_dist, elim=params.get("elim", False)
     )
 
     # Inits dicts to hold the variables and lists for train, validation and test.
@@ -498,7 +498,7 @@ def make_loaders(
 
     for mode in dataset_params.keys():
         this_transform_params = transform_params[mode]
-        if params["elim"]:
+        if params.get("elim", False):
             if this_transform_params["mask"] is not Dict:
                 this_transform_params["mask"] = {
                     "ClassTransform": {
@@ -526,12 +526,12 @@ def make_loaders(
             transform_params=this_transform_params,
             rank=rank,
             world_size=world_size,
-            sample_pairs=params["sample_pairs"],
+            sample_pairs=params.get("sample_pairs", False),
         )
         print("DONE")
 
     # Transform class dist if elimination of classes has occurred.
-    if params["elim"]:
+    if params.get("elim", False):
         class_dist = utils.class_dist_transform(class_dist, forwards)
 
     # Prints class distribution in a pretty text format using tabulate to stdout.
