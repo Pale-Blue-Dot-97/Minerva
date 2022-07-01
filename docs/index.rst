@@ -5,6 +5,9 @@
 
 Welcome to Minerva's documentation!
 ===================================
+.. image:: images/Minerva_logo.png
+   :width: 600
+
 
 .. toctree::
    :maxdepth: 2
