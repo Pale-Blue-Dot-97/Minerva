@@ -28,7 +28,19 @@
 import abc
 from abc import ABC
 from collections import OrderedDict
-from typing import Any, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Sequence,
+    Union,
+    overload,
+)
 
 import numpy as np
 import torch
@@ -76,7 +88,7 @@ class MinervaModel(Module, ABC):
 
     def __init__(
         self,
-        criterion: Module = None,
+        criterion: Optional[Module] = None,
         input_shape: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
     ) -> None:
@@ -84,30 +96,35 @@ class MinervaModel(Module, ABC):
         super(MinervaModel, self).__init__()
 
         # Sets loss function
-        self.criterion = criterion
+        self.criterion: Optional[Module] = criterion
 
         self.input_shape = input_shape
         self.n_classes = n_classes
 
         # Output shape initialised as None. Should be set by calling determine_output_dim.
-        self.output_shape = None
+        self.output_shape: Optional[Union[int, Iterable[int]]] = None
 
         # Optimiser initialised as None as the model parameters created by its init is required to init a
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
-        self.optimiser: Optimizer = None
+        self.optimiser: Optional[Optimizer] = None
 
     def set_optimiser(self, optimiser: Optimizer) -> None:
         """Sets the optimiser used by the model.
 
-        Must be called after initialising a model and supplied with a PyTorch optimiser using this model's parameters.
+        .. warning::
+            *MUST* be called after initialising a model and supplied with a PyTorch optimiser
+            using this model's parameters.
 
         Args:
-            optimiser: PyTorch optimiser model will use, initialised with this model's parameters.
+            optimiser (Optimizer): PyTorch optimiser model will use, initialised with this model's parameters.
         """
         self.optimiser = optimiser
 
     def determine_output_dim(self, sample_pairs: bool = False) -> None:
         """Uses get_output_shape to find the dimensions of the output of this model and sets to attribute."""
+
+        assert self.input_shape is not None
+
         self.output_shape = get_output_shape(
             self, self.input_shape, sample_pairs=sample_pairs
         )
@@ -128,10 +145,29 @@ class MinervaModel(Module, ABC):
         """
         return x
 
+    @overload
     def step(
-        self, x: Tensor, y: Tensor, train: bool
-    ) -> Tuple[_Loss, Tensor]:
+        self, x: FloatTensor, y: LongTensor, train: bool = False
+    ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
+        ...
+
+    @overload
+    def step(
+        self, x: FloatTensor, *, train: bool = False
+    ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
+        ...
+
+    def step(
+        self,
+        x: FloatTensor,
+        y: Optional[LongTensor] = None,
+        train: bool = False,
+    ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
         """Generic step of model fitting using a batch of data.
+
+        Raises:
+            NotImplementedError: If ``self.optimiser`` is None.
+            NotImplementedError: If ``self.criterion`` is None.
 
         Args:
             x (FloatTensor): Batch of input data to network.
@@ -144,12 +180,19 @@ class MinervaModel(Module, ABC):
             loss: Loss computed by the loss function.
             z: Predicted label for the input data by the network.
         """
+
+        if self.optimiser is None:
+            raise NotImplementedError("Optimiser has not been set!")
+
+        if self.criterion is None:
+            raise NotImplementedError("Criterion has not been set!")
+
         # Resets the optimiser's gradients if this is a training step.
         if train:
             self.optimiser.zero_grad()
 
         # Forward pass.
-        z: Tensor = self.forward(x)
+        z: Union[Tensor, Tuple[Tensor, ...]] = self.forward(x)
 
         # Compute Loss.
         loss: _Loss = self.criterion(z, y)
@@ -202,7 +245,9 @@ class MinervaDataParallel(Module):
         Returns:
             Tuple[Tensor, ...]: Output of model.
         """
-        return self.model(*input)
+        z = self.model(*input)
+        assert isinstance(z, tuple) and list(map(type, z)) == [Tensor] * len(z)
+        return z
 
     def __call__(self, *input):
         return self.model(*input)
@@ -213,7 +258,7 @@ class MinervaDataParallel(Module):
         except AttributeError:
             return getattr(self.model.module, name)
 
-    def __repr__(self) -> str:
+    def __repr__(self) -> Any:
         return self.model.__repr__()
 
 
@@ -249,7 +294,7 @@ class MLP(MinervaModel):
     ) -> None:
 
         super(MLP, self).__init__(
-            criterion=criterion, input_shape=(input_size), n_classes=n_classes
+            criterion=criterion, input_shape=(input_size,), n_classes=n_classes
         )
 
         if isinstance(hidden_sizes, int):
@@ -288,7 +333,9 @@ class MLP(MinervaModel):
         Returns:
             Tensor of the likelihoods the network places on the input ``x`` being of each class.
         """
-        return self.network(x)
+        z = self.network(x)
+        assert isinstance(z, Tensor)
+        return z
 
 
 class CNN(MinervaModel, ABC):
@@ -320,7 +367,7 @@ class CNN(MinervaModel, ABC):
     def __init__(
         self,
         criterion,
-        input_size: Union[Tuple[int, int, int], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, int, int] = (4, 256, 256),
         n_classes: int = 8,
         features: Union[Tuple[int, ...], List[int]] = (2, 1, 1),
         fc_sizes: Union[Tuple[int, ...], List[int]] = (128, 64),
@@ -342,24 +389,25 @@ class CNN(MinervaModel, ABC):
         self._fc_layers = OrderedDict()
 
         # Checks that the kernel sizes and strides match the number of layers defined by features.
-        conv_kernel_size = utils.check_len(conv_kernel_size, features)
-        conv_stride = utils.check_len(conv_stride, features)
+        _conv_kernel_size: Sequence[int] = utils.check_len(conv_kernel_size, features)
+        _conv_stride: Sequence[int] = utils.check_len(conv_stride, features)
 
         # Constructs the convolutional layers determined by the number of input channels and the features of these.
+        assert self.input_shape is not None
         for i in range(len(features)):
             if i == 0:
                 self._conv_layers["Conv-0"] = torch.nn.Conv2d(
                     self.input_shape[0],
                     features[i],
-                    conv_kernel_size[0],
-                    stride=conv_stride[0],
+                    _conv_kernel_size[0],
+                    stride=_conv_stride[0],
                 )
             else:
                 self._conv_layers[f"Conv-{i}"] = torch.nn.Conv2d(
                     features[i - 1],
                     features[i],
-                    conv_kernel_size[i],
-                    stride=conv_stride[i],
+                    _conv_kernel_size[i],
+                    stride=_conv_stride[i],
                 )
 
             # Each convolutional layer is followed by max-pooling layer and ReLu activation.
@@ -378,8 +426,11 @@ class CNN(MinervaModel, ABC):
         # and getting the shape of the output.
         out_shape = get_output_shape(self.conv_net, self.input_shape)
 
-        # Calculate the flattened size of the output from the convolutional network.
-        self.flattened_size = int(np.prod(list(out_shape)))
+        if type(out_shape) is int:
+            self.flattened_size = out_shape
+        elif isinstance(out_shape, Iterable):
+            # Calculate the flattened size of the output from the convolutional network.
+            self.flattened_size = int(np.prod(list(out_shape)))
 
         # Constructs the fully connected layers determined by the number of input channels and the features of these.
         for i in range(len(fc_sizes)):
@@ -422,7 +473,9 @@ class CNN(MinervaModel, ABC):
         conv_out = self.conv_net(x)
 
         # Output from convolutional network is flattened and input to the fully connected network for classification.
-        return self.fc_net(conv_out.view(-1, self.flattened_size))
+        z = self.fc_net(conv_out.view(-1, self.flattened_size))
+        assert isinstance(z, Tensor)
+        return z
 
 
 class ResNet(MinervaModel, ABC):
@@ -515,7 +568,7 @@ class ResNet(MinervaModel, ABC):
         if replace_stride_with_dilation is None:
             # each element in the tuple indicates if we should replace
             # the 2x2 stride with a dilated convolution instead
-            replace_stride_with_dilation = [False, False, False]
+            replace_stride_with_dilation = (False, False, False)
 
         # Raises ValueError if replace_stride_with_dilation is not a 3-element tuple of bools.
         if len(replace_stride_with_dilation) != 3:
@@ -680,6 +733,7 @@ class ResNet(MinervaModel, ABC):
             x5 = torch.flatten(x5, 1)
             x5 = self.fc(x5)
 
+            assert isinstance(x5, Tensor)
             return x5
 
     def forward(
@@ -746,6 +800,8 @@ class DCN(MinervaModel, ABC):
 
         super(DCN, self).__init__(n_classes=n_classes)
         self.variant = variant
+
+        assert type(self.n_classes) is int
 
         # Common to all variants.
         self.relu = torch.nn.ReLU(inplace=True)
@@ -843,6 +899,7 @@ class DCN(MinervaModel, ABC):
         # If DCN32, forward pass through DC32 and DBN32 and return output.
         if self.variant == "32":
             z = self.dbn32(self.relu(self.DC32(z)))
+            assert isinstance(z, Tensor)
             return z
 
         # Common Conv1x1 layer to DCN16 & DCN8.
@@ -854,6 +911,7 @@ class DCN(MinervaModel, ABC):
         # If DCN16, forward pass through DCN16 and DBN16 and return output.
         if self.variant == "16":
             z = self.dbn16(self.relu(self.DC16(z)))
+            assert isinstance(z, Tensor)
             return z
 
         # If DCN8, continue through remaining layers to output.
@@ -865,6 +923,7 @@ class DCN(MinervaModel, ABC):
 
             z = self.dbn8(self.relu(self.DC8(z)))
 
+            assert isinstance(z, Tensor)
             return z
 
 
@@ -894,7 +953,7 @@ class ResNet18(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         norm_layer: Optional[Callable[..., Module]] = None,
@@ -937,7 +996,14 @@ class ResNet18(MinervaModel, ABC):
             returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
             network places on the input `x` being of each class.
         """
-        return self.network(x)
+        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
+            x
+        )
+        if isinstance(z, Tensor):
+            return z
+        elif isinstance(z, tuple):
+            assert all(isinstance(n, Tensor) for n in z)
+            return z
 
 
 class ResNet34(MinervaModel, ABC):
@@ -966,7 +1032,7 @@ class ResNet34(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
@@ -1009,7 +1075,14 @@ class ResNet34(MinervaModel, ABC):
             returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
             network places on the input `x` being of each class.
         """
-        return self.network(x)
+        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
+            x
+        )
+        if isinstance(z, Tensor):
+            return z
+        elif isinstance(z, tuple):
+            assert all(isinstance(n, Tensor) for n in z)
+            return z
 
 
 class ResNet50(MinervaModel, ABC):
@@ -1040,7 +1113,7 @@ class ResNet50(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1085,7 +1158,14 @@ class ResNet50(MinervaModel, ABC):
             returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
             network places on the input `x` being of each class.
         """
-        return self.network(x)
+        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
+            x
+        )
+        if isinstance(z, Tensor):
+            return z
+        elif isinstance(z, tuple):
+            assert all(isinstance(n, Tensor) for n in z)
+            return z
 
 
 class ResNet101(MinervaModel, ABC):
@@ -1116,7 +1196,7 @@ class ResNet101(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1161,7 +1241,14 @@ class ResNet101(MinervaModel, ABC):
             returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
             network places on the input `x` being of each class.
         """
-        return self.network(x)
+        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
+            x
+        )
+        if isinstance(z, Tensor):
+            return z
+        elif isinstance(z, tuple):
+            assert all(isinstance(n, Tensor) for n in z)
+            return z
 
 
 class ResNet152(MinervaModel, ABC):
@@ -1192,7 +1279,7 @@ class ResNet152(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
@@ -1237,7 +1324,14 @@ class ResNet152(MinervaModel, ABC):
             returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
             network places on the input `x` being of each class.
         """
-        return self.network(x)
+        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
+            x
+        )
+        if isinstance(z, Tensor):
+            return z
+        elif isinstance(z, tuple):
+            assert all(isinstance(n, Tensor) for n in z)
+            return z
 
 
 class _FCN(MinervaModel, ABC):
@@ -1271,7 +1365,7 @@ class _FCN(MinervaModel, ABC):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_name: str = "ResNet18",
         decoder_variant: str = "32",
@@ -1301,8 +1395,10 @@ class _FCN(MinervaModel, ABC):
         # for the proceeding layers of the network.
         self.backbone.determine_output_dim()
 
+        backbone_out_shape = self.backbone.output_shape
+        assert isinstance(backbone_out_shape, Sequence)
         self.decoder = DCN(
-            in_channel=self.backbone.output_shape[0],
+            in_channel=backbone_out_shape[0],
             n_classes=n_classes,
             variant=decoder_variant,
         )
@@ -1325,6 +1421,7 @@ class _FCN(MinervaModel, ABC):
         z = self.backbone(x)
         z = self.decoder(z)
 
+        assert isinstance(z, Tensor)
         return z
 
 
@@ -1345,7 +1442,7 @@ class FCN32ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1381,7 +1478,7 @@ class FCN32ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1417,7 +1514,7 @@ class FCN32ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1453,7 +1550,7 @@ class FCN16ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1489,7 +1586,7 @@ class FCN16ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1525,7 +1622,7 @@ class FCN16ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1561,7 +1658,7 @@ class FCN8ResNet18(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1597,7 +1694,7 @@ class FCN8ResNet34(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1633,7 +1730,7 @@ class FCN8ResNet50(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1669,7 +1766,7 @@ class FCN8ResNet101(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1705,7 +1802,7 @@ class FCN8ResNet152(_FCN):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -1745,7 +1842,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         backbone_name: str = "ResNet18",
         backbone_kwargs: Optional[Dict[str, Any]] = None,
@@ -1759,8 +1856,11 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         self.backbone.determine_output_dim()
 
+        backbone_out_shape = self.backbone.output_shape
+        assert isinstance(backbone_out_shape, Sequence)
+
         self.proj_head = torch.nn.Sequential(
-            torch.nn.Linear(np.prod(self.backbone.output_shape), 512, bias=False),
+            torch.nn.Linear(np.prod(backbone_out_shape), 512, bias=False),
             # torch.nn.BatchNorm1d(512),
             torch.nn.ReLU(inplace=True),
             torch.nn.Linear(512, feature_dim, bias=False),
@@ -1776,18 +1876,24 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        f_a = torch.flatten(self.backbone(x[0])[0], start_dim=1)
-        f_b = torch.flatten(self.backbone(x[1])[0], start_dim=1)
+        f_a: FloatTensor = torch.flatten(self.backbone(x[0])[0], start_dim=1)
+        f_b: FloatTensor = torch.flatten(self.backbone(x[1])[0], start_dim=1)
 
-        g_a: Tensor = self.proj_head(f_a)
-        g_b: Tensor = self.proj_head(f_b)
+        g_a: FloatTensor = self.proj_head(f_a)
+        g_b: FloatTensor = self.proj_head(f_b)
 
         z = torch.cat([g_a, g_b], dim=0)
 
+        assert isinstance(z, FloatTensor)
+
         return z, g_a, g_b, f_a, f_b
 
-    def step(self, x: FloatTensor, train: bool) -> Tuple[_Loss, Tensor]:
+    def step(self, x: FloatTensor, *, train: bool = False) -> Tuple[_Loss, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
+
+        Raises:
+            NotImplementedError: If ``self.optimiser`` is None.
+            NotImplementedError: If ``self.criterion`` is None.
 
         Args:
             x (FloatTensor): Batch of input data to network.
@@ -1799,6 +1905,13 @@ class _SimCLR(MinervaModel, MinervaBackbone):
             Tuple[_Loss, Tensor]: Loss computed by the loss function and a :class:`Tensor`
             with both projection's logits.
         """
+
+        if self.optimiser is None:
+            raise NotImplementedError("Optimiser has not been set!")
+
+        if self.criterion is None:
+            raise NotImplementedError("Criterion has not been set!")
+
         # Resets the optimiser's gradients if this is a training step.
         if train:
             self.optimiser.zero_grad()
@@ -1830,7 +1943,7 @@ class SimCLR18(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
@@ -1857,7 +1970,7 @@ class SimCLR34(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
@@ -1884,7 +1997,7 @@ class SimCLR50(_SimCLR):
     def __init__(
         self,
         criterion: Any,
-        input_size: Union[Tuple[int, ...], List[int]] = (4, 256, 256),
+        input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
@@ -1905,7 +2018,7 @@ def get_output_shape(
     model: Module,
     image_dim: Union[List[int], Tuple[int, ...]],
     sample_pairs: bool = False,
-) -> Union[int, Any]:
+) -> Union[int, Iterable[int]]:
     """Gets the output shape of a model.
 
     Args:
@@ -1958,7 +2071,7 @@ def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tens
     if kernel_size % 2 == 1:
         center = factor - 1
     else:
-        center = factor - 0.5
+        center = int(factor - 0.5)
 
     og = np.ogrid[:kernel_size, :kernel_size]
     filt = (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
@@ -1967,4 +2080,6 @@ def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tens
     )
     weight[range(in_channels), range(out_channels), :, :] = filt
 
-    return torch.from_numpy(weight)
+    weights = torch.from_numpy(weight)
+    assert isinstance(weights, Tensor)
+    return weights

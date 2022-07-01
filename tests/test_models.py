@@ -25,9 +25,9 @@ def test_mlp() -> None:
 
         for mode in ("train", "val", "test"):
             if mode == "train":
-                loss, z = model.step(x, y, True)
+                loss, z = model.step(x, y, train=True)
             else:
-                loss, z = model.step(x, y, False)
+                loss, z = model.step(x, y, train=False)
 
             assert type(loss.item()) is float
             assert z.size() == (16, 8)
@@ -47,7 +47,7 @@ def test_cnn() -> None:
     x = torch.rand(6, *input_size)
     y = torch.LongTensor(np.random.randint(0, 8, size=6))
 
-    loss, z = model.step(x, y, True)
+    loss, z = model.step(x, y, train=True)
 
     assert type(loss.item()) is float
     assert z.size() == (6, 8)
@@ -171,7 +171,7 @@ def test_simclr() -> None:
         model.determine_output_dim(sample_pairs=True)
         assert model.output_shape == (128,)
 
-        loss, z = model.step(x, True)
+        loss, z = model.step(x, train=True)
 
         assert type(loss.item()) is float
         assert z.size() == (12, 128)
