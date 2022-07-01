@@ -2,13 +2,40 @@
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva) ![Ubuntu-Py39](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_39.yml/badge.svg) ![Ubuntu-Py38](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_38.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
+
+
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <a href="https://github.com/othneildrew/Best-README-Template">
+    <img src="images/Minerva_logo.png" alt="Logo" width="250" height="80">
+  </a>
+
+  <h3 align="center">Minerva</h3>
+
+  <p align="center">
+    Framework for machine learning in remote sensing
+    <br />
+    <a href="https://github.com/Pale-Blue-Dot-97/Minerva/gh-pages"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="https://github.com/Pale-Blue-Dot-97/Minerva/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/Pale-Blue-Dot-97/Minerva/issues">Request Feature</a>
+  </p>
+</div>
+
+## About
 Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial
 rasterised land cover data.
 
-## Installation
+
+## Getting Started
 
 If one wishes to use [torchgeo](https://pypi.org/project/torchgeo/), installation on Linux is recommended to handle the
 compilation of the required C-based libraries.
+
+### Installation
 
 The recommended installation order is to start with a fresh `conda` environment, specifying the `python`
 version and installing `pytorch` upon environment creation:
@@ -35,7 +62,9 @@ The `torchgeo` docs also recommend installing `radiant_mlhub` and `zipfile-defla
 pip install zipfile-deflate64 radiant_mlhub
 ```
 
-## Requirements
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+### Requirements
 
 `minerva` now supports the use of [torchgeo](https://torchgeo.readthedocs.io/en/latest/)
 datasets with upcoming support for [torchvision](https://pytorch.org/vision/stable/index.html) datasets.
@@ -43,6 +72,8 @@ datasets with upcoming support for [torchvision](https://pytorch.org/vision/stab
 Required Python modules for `minerva` are stated in `requirements.txt`.
 
 `minerva` currently only supports `python` 3.8 & 3.9.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Usage
 
@@ -77,18 +108,44 @@ See `inbuilt_cfgs\example_config.yml` as an example config file.
 
 Use `minerva\bin\ManifestMake.py` to construct a manifest to act as a look-up table for a dataset.
 
+<p align="right">(<a href="#top">back to top</a>)</p>
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+Don't forget to give the project a star! Thanks again!
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+<p align="right">(<a href="#top">back to top</a>)</p>
+
 ## License
 
 Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/licenses/gpl-3.0/).
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Authors
 
 Created by Harry Baker as part of a project towards for a PhD in Computer Science from the
 University of Southampton. Funded by the Ordnance Survey Ltd.
 
+
+## Acknowledgments
 I'd like to acknowledge the invaluable supervision and contributions of Dr Jonathon Hare and
 Dr Isabel Sargent towards this work.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Project Status
 
 This project is still very much a WIP alpha state.
+
+<p align="right">(<a href="#top">back to top</a>)</p>
