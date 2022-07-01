@@ -85,7 +85,8 @@ class Trainer:
     Args:
         gpu (int, optional): CUDA GPU device number. For use in distributed computing. Defaults to 0.
         verbose (bool): Turns messages to stdout off/on.
-        params (Dict[str, Any]):
+        params (Dict[str, Any]): Dictionary describing all the parameters that define how the model will be
+            constructed, trained and evaluated. These should be defined via config YAML files.
 
     Keyword Args:
         results (list[str]): Path to the results' directory to save plots to.
@@ -128,7 +129,7 @@ class Trainer:
         self.modes = params["dataset_params"].keys()
 
         # Flag for a fine-tuning experiment.
-        self.fine_tune = self.params["fine_tune"]
+        self.fine_tune = self.params.get("fine_tune", False)
 
         # Sets the timestamp of the experiment.
         self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
@@ -170,7 +171,7 @@ class Trainer:
             )
 
         # Sets the max number of epochs of fitting.
-        self.max_epochs = params["hyperparams"]["max_epochs"]
+        self.max_epochs = params["hyperparams"].get("max_epochs", 25)
 
         # Calculates number of samples in each mode of fitting.
         self.n_samples = {
@@ -198,7 +199,7 @@ class Trainer:
             else:
                 input_size = (self.batch_size, *self.model.input_shape)
 
-            if self.params["sample_pairs"]:
+            if sample_pairs:
                 input_size = (2, *input_size)
 
             # Print model summary.
@@ -274,7 +275,10 @@ class Trainer:
 
         criterion_params_exist = utils.check_dict_key(loss_params, "params")
 
-        if self.params["balance"] and self.params["model_type"] == "segmentation":
+        if (
+            self.params.get("balance", False)
+            and self.params["model_type"] == "segmentation"
+        ):
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
@@ -410,7 +414,7 @@ class Trainer:
         self.metric_logger(mode, epoch_logger.get_logs)
 
         # If configured to do so, calculates the grad norms.
-        if self.params["calc_norm"]:
+        if self.params.get("calc_norm", False):
             _ = utils.calc_grad(self.model)
 
         # Returns the results of the epoch if configured to do so. Else, returns None.
@@ -432,7 +436,9 @@ class Trainer:
                 results: Dict[str, Any] = {}
 
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
-                if epoch == (self.max_epochs - 1) and self.params["plot_last_epoch"]:
+                if epoch == (self.max_epochs - 1) and self.params.get(
+                    "plot_last_epoch", False
+                ):
                     result: Optional[Dict[str, Any]] = self.epoch(mode, record_int=True)
                     assert result is not None
                     results = result
@@ -444,7 +450,7 @@ class Trainer:
                 self.metric_logger.log_epoch_number(mode, epoch)
 
                 print(self.metric_logger.get_metrics)
-                
+
                 # Print epoch results.
                 if self.gpu == 0:
                     self.metric_logger.print_epoch_results(mode, epoch)
@@ -461,11 +467,11 @@ class Trainer:
                     self.print("\nEarly stopping triggered")
 
                 # Ensures that plots likely to cause memory issues are not attempted.
-                plots: Dict[str, bool] = self.params["plots"].copy()
+                plots: Dict[str, bool] = self.params.get("plots", {}).copy()
                 plots["CM"] = False
                 plots["ROC"] = False
 
-                if not self.params["plot_last_epoch"]:
+                if not self.params("plot_last_epoch", False):
                     # If not plotting results, ensure that only history plotting will remain
                     # if originally set to do so.
                     plots["Mask"] = False
@@ -571,7 +577,12 @@ class Trainer:
 
             # Checks whether to run TensorBoard on the log from the experiment. If defined as optional in the config,
             # a user confirmation is required to run TensorBoard with a 60s timeout.
-            if self.params["run_tensorboard"] in ("opt", "optional", "OPT", "Optional"):
+            if self.params.get("run_tensorboard", False) in (
+                "opt",
+                "optional",
+                "OPT",
+                "Optional",
+            ):
                 try:
                     res = inputimeout(
                         prompt="Run TensorBoard Logs? (Y/N): ", timeout=_timeout
@@ -589,7 +600,7 @@ class Trainer:
                     )
 
             # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
-            elif self.params["run_tensorboard"] in (True, "auto", "Auto"):
+            elif self.params.get("run_tensorboard", False) in (True, "auto", "Auto"):
                 self.run_tensorboard()
                 return
 
@@ -629,7 +640,12 @@ class Trainer:
                 self.print("\n*ERROR* in saving metrics to file.")
 
             # Checks whether to save the model parameters to file.
-            if self.params["save_model"] in ("opt", "optional", "OPT", "Optional"):
+            if self.params.get("save_model", False) in (
+                "opt",
+                "optional",
+                "OPT",
+                "Optional",
+            ):
                 try:
                     res = inputimeout(
                         prompt="\nSave model to file? (Y/N): ", timeout=_timeout
@@ -646,7 +662,7 @@ class Trainer:
                 except TimeoutOccurred:
                     self.print("Input timeout elapsed. Model will not be saved")
 
-            elif self.params["save_model"] in (True, "auto", "Auto"):
+            elif self.params.get("save_model", False) in (True, "auto", "Auto"):
                 self.print("\nSAVING MODEL PARAMETERS TO FILE")
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
