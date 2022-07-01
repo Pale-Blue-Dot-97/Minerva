@@ -130,6 +130,7 @@ dmypy.json
 *.xml
 *.iml
 
+!images/*.png
 lightning_logs/
 data/*
 cache/*
