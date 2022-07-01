@@ -77,11 +77,11 @@ def sup_tg(
 
     # Runs a training epoch.
     if mode == "train":
-        loss, z = model.step(x, y, True)
+        loss, z = model.step(x, y, train=True)
 
     # Runs a validation or test epoch.
     else:
-        loss, z = model.step(x, y, False)
+        loss, z = model.step(x, y, train=False)
 
     return loss, z, y, batch["bbox"]
 
@@ -92,7 +92,7 @@ def ssl_pair_tg(
     device: torch.device,
     mode: Literal["train", "val"],
     **kwargs
-) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
+) -> Tuple[_Loss, Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
     Args:
@@ -124,10 +124,10 @@ def ssl_pair_tg(
 
     # Runs a training epoch.
     if mode == "train":
-        loss, z = model.step(x, True)
+        loss, z = model.step(x, train=True)
 
     # Runs a validation epoch.
     else:
-        loss, z = model.step(x, False)
+        loss, z = model.step(x, train=False)
 
     return loss, z, batch[0]["bbox"] + batch[1]["bbox"]
