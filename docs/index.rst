@@ -12,6 +12,7 @@ Welcome to Minerva's documentation!
 
    source/minerva/index
    source/utils/index
+   source/guides/index
 
 Indices and tables
 ==================
