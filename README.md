@@ -8,7 +8,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="images/Minerva_logo.png" alt="Logo" width="500" height="180">
+    <img src="docs/images/Minerva_logo.png" alt="Logo" width="500" height="180">
   </a>
   <p align="center">
     Framework for machine learning in remote sensing
