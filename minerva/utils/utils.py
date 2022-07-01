@@ -19,7 +19,6 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 # TODO: Add exception handling where appropriate.
-# TODO: Fix all type-hinting issues.
 """Module to handle all utility functions for training, testing and evaluation of a model.
 
 Attributes:
@@ -440,10 +439,10 @@ def transform_coordinates(
     """Transforms co-ordinates from one CRS to another.
 
     Args:
-        x (Union[Sequence[float], float]): The x co-ordinate(s)
-        y (Union[Sequence[float], float]): The y co-ordinate(s)
-        src_crs (CRS): The source co-orinates reference system (CRS)
-        new_crs (CRS, optional): The new CRS to transform co-ordinates to. Defaults to wgs_84.
+        x (Union[Sequence[float], float]): The x co-ordinate(s).
+        y (Union[Sequence[float], float]): The y co-ordinate(s).
+        src_crs (CRS): The source co-orinates reference system (CRS).
+        new_crs (CRS, optional): The new CRS to transform co-ordinates to. Defaults to ``wgs_84``.
 
     Returns:
         Union[Tuple[Sequence[float], Sequence[float]], Tuple[float, float]]: The transformed co-ordinates.
@@ -763,7 +762,7 @@ def eliminate_classes(
             # fill this gap with one of the over-key classes.
             if i not in new_classes:
                 class_key, class_value = over_classes.popitem()
-                colour_key, colour_value = over_colours.popitem()
+                _, colour_value = over_colours.popitem()
 
                 reordered_classes[i] = class_value
                 reordered_colours[i] = colour_value
@@ -845,7 +844,7 @@ def check_test_empty(
     p_dist: bool = True,
 ) -> Tuple[NDArray[Any, Int], NDArray[Any, Int], Dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
-    Returns corrected and re-ordered predictions, labels and class_labels.
+    Returns corrected and re-ordered predictions, labels and class labels.
 
     Args:
         pred (Sequence[int]): List of predicted labels.
@@ -1520,6 +1519,11 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
 
 
 def print_config(conf: Optional[Dict[str, Any]] = None) -> None:
+    """Print function for the configuration file using YAML dump.
+
+    Args:
+        conf (Optional[Dict[str, Any]], optional): Config file to print. If ``None``, uses the ``global`` config.
+    """
     if conf is None:
         conf = config
 
