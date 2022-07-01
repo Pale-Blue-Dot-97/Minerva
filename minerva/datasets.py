@@ -470,7 +470,7 @@ def make_loaders(
 
     Returns:
         Tuple[Dict[str, DataLoader[Iterable[Any]]], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]]: Tuple of;
-            * Dictionary of the :class:`DataLoader`s for training, validation and testing.
+            * Dictionary of the :class:`DataLoader` s for training, validation and testing.
             * Dictionary of the number of batches to return/ yield in each train, validation and test epoch.
             * The class distribution of the entire dataset, sorted from largest to smallest class.
             * Unused and updated kwargs.

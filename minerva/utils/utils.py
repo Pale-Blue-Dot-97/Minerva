@@ -847,13 +847,13 @@ def check_test_empty(
     Returns corrected and re-ordered predictions, labels and class labels.
 
     Args:
-        pred (Sequence[int]): List of predicted labels.
-        labels (Sequence[int]): List of corresponding ground truth labels.
+        pred (Union[Sequence[int], NDArray[Any, Int]]): List of predicted labels.
+        labels (Union[Sequence[int], NDArray[Any, Int]]): List of corresponding ground truth labels.
         class_labels (Dict[int, str]): Dictionary mapping class labels to class names.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
-        Tuple[NDArray[np.int_], NDArray[np.int_], Dict[int, str]]: Tuple of:
+        Tuple[NDArray[Any, Int], NDArray[Any, Int], Dict[int, str]]: Tuple of:
             * List of predicted labels transformed to new classes.
             * List of corresponding ground truth labels transformed to new classes.
             * Dictionary mapping new class labels to class names.
