@@ -48,60 +48,110 @@ using the provided ``MinervaExp.py`` script.
 
 
 .. py:data:: sample_pairs
+
+    Defines this as a experiment using paired sampling e.g. for Siamese architectures.
+
     :type: bool
     :value: False
 
 
 .. py:data:: elim
+
+    Will eliminate classes that have no samples in and reorder the class labels so they
+    still run from ``0`` to ``n-1`` classes where ``n`` is the reduced number of classes.
+    ``minerva`` ensures that labels are converted between the old and new schemes seamlessly.
+
     :type: bool
     :value: False
 
 
 .. py:data:: balance
+
+    Activates class balancing. For ``model_type="scene_classifer"`` or ``model_type="mlp"``,
+    over and under sampling will be used. For ``model_type="segmentation"``, class weighting will be
+    used on the loss function.
+
     :type: bool
     :value: False
 
 
 .. py:data:: patch_size
-    :type: tuple
+
+    Define the shape of the patches in the dataset.
+
+    :type: Tuple[int, int]
 
 
 .. py:data:: max_r
+
+    Only used with *GeoCLR*. Maximum geospatial distance (in pixels) to sample
+    the other side of the pair from.
+
     :type: int
     :value: 256
 
 
 .. py:data:: save_model
+
+    Whether to save the model at end of testing. Must be ``True``, ``False`` or ``"auto"``.
+    Setting ``"auto"`` will automatically save the model to file.
+    ``True`` will ask the user whether to or not at runtime.
+    ``False`` will not save the model and will not ask the user at runtime.
+
     :type: str | bool
     :value: False
 
 
 .. py:data:: run_tensorboard
+
+    Whether to run the Tensorboard logs at end of testing. Must be ``True``, ``False`` or ``"auto"``.
+    Setting ``"auto"`` will automatically locate and run the logs on a local browser.
+    ``True`` will ask the user whether to or not at runtime.
+    ``False`` will not save the model and will not ask the user at runtime.
+
     :type: str | bool
     :value: False
 
 
 .. py:data:: save
+
+    Whether to save plots created to file or not.
+
     :type: bool
     :value: True
 
 
 .. py:data:: show
+
+    Whether to show plots created in a window or not.
+
+    .. warning::
+        Do not use with a terminal-less operation, e.g. SLURM.
+
     :type: bool
     :value: False
 
 
 .. py:data:: p_dist
+
+    Whether to print the distribution of classes within the data to ``stdout``.
+
     :type: bool
     :value: False
 
 
 .. py:data:: calc_norm
+
+    *Depreciated*: Calculates the gradient norms.
+
     :type: bool
     :value: False
 
 
 .. py:data:: plot_last_epoch
+
+    Whether to plot the results from the final validation epoch.
+
     :type: bool
     :value: False
 
@@ -112,16 +162,26 @@ In addition, there are also options for defining the logging, metric calculator
 and IO function at the global level:
 
 .. py:data:: logger
+
+    Specify the logger to use. Must be the name of a :class:`MinervaLogger` class
+    within :mod:`logger`.
+
     :type: str
-    :noindex:
 
 
 .. py:data:: metrics
+
+    Specify the metric logger to use. Must be the name of a :class:`MinervaMetrics` class
+    within :mod:`metrics`.
+
     :type: str
-    :noindex:
 
 
 .. py:data:: model_io
+
+    Specify the IO function to use to handle IO for the model during fitting. Must be the name
+    of a function within :mod:`modelio`.
+
     :type: str
 
 
@@ -170,28 +230,55 @@ Plots Dictionary
 To define which plots to make from the results of testing, use the ``plots`` sub-dictionary with these keys:
 
 .. py:data:: History
+
+    Plot a graph of the model history. By default, this will plot a graph of any metrics with
+    keys containing ``"train"`` or ``"val"``.
+
     :type: bool
 
 
 .. py:data:: CM
+
+    Plots a confusion matrix.
+
     :type: bool
 
 
 .. py:data:: Pred
+
+    Plots a pie chart of the relative sizes of the classes within the predictions from the model.
+
     :type: bool
 
 
 .. py:data:: ROC
+
+    Plots a *Receiver over Operator Curve* (ROC) including *Area Under Curve* (AUC) scores.
+
     :type: bool
 
 
 .. py:data:: micro
+
+    Only used with ``ROC=True``. ROC plot includes micro-average ROC.
+
+    .. warning::
+        Adding this plot can be very computationally and memory intensive.
+        Avoid use with large datasets!
+
     :type: bool
 
 
 .. py:data:: macro
+
+    Only used with ``ROC=True``. ROC plot includes macro-average ROC.
+
     :type: bool
 
 
 .. py:data:: Mask
+
+    Plots a comparison of predicted segmentation masks, the ground truth
+    and original RGB imagery from a random selection of samples put to the model.
+
     :type: bool
