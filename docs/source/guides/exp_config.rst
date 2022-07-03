@@ -157,7 +157,8 @@ using the provided ``MinervaExp.py`` script.
 
 
 Metrics and Loggers
-'''''''''''''''''''
+^^^^^^^^^^^^^^^^^^^
+
 In addition, there are also options for defining the logging, metric calculator
 and IO function at the global level:
 
@@ -189,6 +190,26 @@ Paths
 -----
 
 Paths to required directories are contained in the ``dir`` sub-dictionary with these keys:
+
+.. code-block:: yaml
+    :caption: Example ``dir`` dictionary describing the paths to directories needed in experiment.
+
+    dir:
+        data:
+            - path
+            - to
+            - data
+            - directory
+        configs:
+            data_config: ../../inbuilt_cfgs/Chesapeake13.yml
+            imagery_config: ../../inbuilt_cfgs/NAIP.yml
+        results:
+            - path
+            - to
+            - results
+            - directory
+        cache: can/also/be/a/string/path/to/cache/directory
+
 
 .. py:data:: data
 
@@ -228,6 +249,18 @@ Plots Dictionary
 ----------------
 
 To define which plots to make from the results of testing, use the ``plots`` sub-dictionary with these keys:
+
+.. code-block:: yaml
+    :caption: Example ``plots`` dictionary.
+
+    plots:
+        History: True
+        CM: False
+        Pred: False
+        ROC: False
+        micro: False
+        macro: True
+        Mask: False
 
 .. py:data:: History
 
@@ -282,3 +315,101 @@ To define which plots to make from the results of testing, use the ``plots`` sub
     and original RGB imagery from a random selection of samples put to the model.
 
     :type: bool
+
+
+Dataset Parameters
+------------------
+
+To define what datasets to use in the experiment, use the ``dataset_params`` dictionary in the following structure.
+
+.. code-block:: yaml
+    :caption: Example ``dataset_params`` defining train, validation and test datasets with image and mask sub-datasets.
+
+    dataset_params:
+    # Training Dataset
+    train:
+        image:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP/NAIP 2013/Train
+            params:
+                res: 1.0
+        mask:
+            module: torchgeo.datasets
+            name: Chesapeake13
+            root: Chesapeake13
+            params:
+                res: 1.0
+                download: False
+                checksum: False
+
+    # Validation Dataset
+    val:
+        image:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP/NAIP 2013/Validation
+            params:
+                res: 1.0
+        mask:
+            module: torchgeo.datasets
+            name: Chesapeake13
+            root: Chesapeake13
+            params:
+                res: 1.0
+                download: False
+
+    # Test Dataset
+    test:
+        image:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP/NAIP 2013/Test
+            params:
+                res: 1.0
+        mask:
+            module: torchgeo.datasets
+            name: Chesapeake13
+            root: Chesapeake13
+            params:
+                res: 1.0
+                download: False
+
+
+The first level of keys defines the modes of model fitting: ``"train"``, ``"val"`` and ``"test"``.
+The presence (or not) of these keys in ``dataset_params`` defines which modes of fitting will be conducted.
+Currently, ``"train"`` and ``"val"`` must be present with ``"test"`` being optional.
+
+The keys within each mode define the sub-datasets that will be intersected together to form
+the dataset for that mode. Currently, only ``"image"`` and ``"mask"`` keys are allowed, in line with
+:mod:`torchgeo` use of the same keys.
+
+Within each sub-dataset params, there are four possible keys:
+
+.. py:data:: module
+
+    Defines the module the dataset class is in.
+
+    :type: str
+    :value: "torchgeo.datasets"
+
+
+.. py:data:: name
+
+    Name of the dataset class that is within ``module``.
+
+    :type: str
+
+
+.. py:data:: root
+
+    Path from the data directory (given in ``dir["data"]``) to the directory containing the sub-dataset data.
+
+    :type: str
+
+
+.. py:data:: params
+
+    Arguments to the dataset class (excluding ``root``).
+
+    :type: Dict[str, Any]
