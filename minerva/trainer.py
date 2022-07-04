@@ -473,7 +473,7 @@ class Trainer:
                 plots["CM"] = False
                 plots["ROC"] = False
 
-                if not self.params("plot_last_epoch", False):
+                if not self.params.get("plot_last_epoch", False):
                     # If not plotting results, ensure that only history plotting will remain
                     # if originally set to do so.
                     plots["Mask"] = False
