@@ -1,6 +1,6 @@
 import torch
 from numpy.testing import assert_array_equal
-from simclr.modules import NT_Xent
+from lightly.loss import NTXentLoss
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.modelio import ssl_pair_tg, sup_tg
@@ -35,7 +35,7 @@ def test_sup_tg() -> None:
 
 
 def test_ssl_pair_tg() -> None:
-    criterion = NT_Xent(6, 0.5, 1)
+    criterion = NTXentLoss(0.5)
     model = SimCLR34(criterion, input_size=input_size)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)

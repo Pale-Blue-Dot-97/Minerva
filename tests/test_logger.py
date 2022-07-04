@@ -4,7 +4,7 @@ import tempfile
 import numpy as np
 import torch
 from numpy.testing import assert_array_equal
-from simclr.modules import NT_Xent
+from lightly.loss import NTXentLoss
 from torch.utils.tensorboard import SummaryWriter
 from torchgeo.datasets.utils import BoundingBox
 
@@ -21,9 +21,6 @@ def test_STG_Logger():
     exp_name = "exp1"
     path = tempfile.gettempdir()
 
-    if not isinstance(path, str):
-        path = os.path.join(*path)
-
     if not os.path.exists(os.path.join(path, exp_name)):
         os.mkdir(os.path.join(path, exp_name))
 
@@ -36,12 +33,14 @@ def test_STG_Logger():
 
     n_batches = 8
 
+    output_shape = model.output_shape
+
     for mode in ("train", "val", "test"):
         logger = STG_Logger(
             n_batches=n_batches,
             batch_size=6,
             n_samples=8 * 6 * 256 * 256,
-            out_shape=model.output_shape,
+            out_shape=output_shape,
             n_classes=8,
             record_int=True,
             record_float=True,
@@ -80,13 +79,10 @@ def test_STG_Logger():
 
 
 def test_SSL_Logger():
-    criterion = NT_Xent(6, 0.5, 1)
+    criterion = NTXentLoss(0.5)
 
     exp_name = "exp2"
     path = tempfile.gettempdir()
-
-    if not isinstance(path, str):
-        path = os.path.join(*path)
 
     if not os.path.exists(os.path.join(path, exp_name)):
         os.mkdir(os.path.join(path, exp_name))
