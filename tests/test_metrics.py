@@ -1,4 +1,5 @@
 import random
+from typing import Dict, Literal
 
 import pytest
 
@@ -6,13 +7,21 @@ from minerva.metrics import MinervaMetrics, SP_Metrics, SSL_Metrics
 
 
 def test_minervametrics() -> None:
-    n_batches = {"train": 12, "val": 4, "test": 2}
+    n_batches: Dict[Literal["train", "val", "test"], int] = {
+        "train": 12,
+        "val": 4,
+        "test": 2,
+    }
     with pytest.raises(TypeError):
         _ = MinervaMetrics(n_batches, 16, (4, 224, 224), model_type="scene_classifier")
 
 
 def test_sp_metrics() -> None:
-    n_batches = {"train": 12, "val": 4, "test": 2}
+    n_batches: Dict[Literal["train", "val", "test"], int] = {
+        "train": 12,
+        "val": 4,
+        "test": 2,
+    }
     metric_logger_1 = SP_Metrics(
         n_batches, 16, (4, 224, 224), model_type="segmentation"
     )
@@ -91,7 +100,7 @@ def test_sp_metrics() -> None:
 
 
 def test_ssl_metrics() -> None:
-    n_batches = {"train": 12, "val": 4}
+    n_batches: Dict[Literal["train", "val", "test"], int] = {"train": 12, "val": 4}
     metric_logger_1 = SSL_Metrics(
         n_batches, 16, (4, 224, 224), model_type="segmentation"
     )
