@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import torch
-from simclr.modules import NT_Xent
+from lightly.loss import NTXentLoss
 
 import minerva.models as mm
 
@@ -151,7 +151,7 @@ def test_fcnresnets() -> None:
 
 
 def test_simclr() -> None:
-    loss_func = NT_Xent(6, 0.3, 1)
+    loss_func = NTXentLoss(0.3)
 
     input_size = (4, 64, 64)
 
