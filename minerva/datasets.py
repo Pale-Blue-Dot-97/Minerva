@@ -214,8 +214,8 @@ def make_dataset(
             when sampling from the dataset.
 
     Returns:
-        dataset: Dataset object formed by the parameters given.
-        sub_datasets (list): List of the sub-datasets created that constitute `dataset`.
+        Tuple[Any, List[Any]]: Tuple of Dataset object formed by the parameters given and list of
+        the sub-datasets created that constitute ``dataset``.
     """
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
