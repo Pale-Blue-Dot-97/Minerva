@@ -157,7 +157,7 @@ def get_collator(
 
 
 def stack_sample_pairs(
-    samples: Iterable[Tuple[Dict[Any, Any]]]
+    samples: Iterable[Tuple[Dict[Any, Any], Dict[Any, Any]]]
 ) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
     """Takes a list of paired sample dicts and stacks them into a tuple of batches of sample dicts.
 
