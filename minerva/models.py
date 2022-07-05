@@ -1882,7 +1882,6 @@ class _SimSiam(MinervaModel, MinervaBackbone):
 
         z = torch.cat([g_a, g_b], dim=0)
 
-        print(type(z))
         assert isinstance(z, Tensor)
 
         return z, g_a, g_b, f_a, f_b
