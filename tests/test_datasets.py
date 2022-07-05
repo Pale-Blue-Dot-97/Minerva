@@ -1,6 +1,9 @@
 import os
+from collections import defaultdict
 
+from numpy.testing import assert_array_equal
 import pytest
+import torch
 from torchgeo.datasets import RasterDataset, IntersectionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
@@ -67,3 +70,40 @@ def test_get_collator() -> None:
 
     assert callable(mdt.get_collator(collator_params_1))
     assert callable(mdt.get_collator(collator_params_2))
+
+
+def test_stack_sample_pairs() -> None:
+    image_1 = torch.rand(size=(3, 52, 52))
+    mask_1 = torch.randint(0, 8, (52, 52))
+    bbox_1 = [BoundingBox(0, 1, 0, 1, 0, 1)]
+
+    image_2 = torch.rand(size=(3, 52, 52))
+    mask_2 = torch.randint(0, 8, (52, 52))
+    bbox_2 = [BoundingBox(0, 1, 0, 1, 0, 1)]
+
+    sample_1 = {
+        "image": image_1,
+        "mask": mask_1,
+        "bbox": bbox_1,
+    }
+
+    sample_2 = {
+        "image": image_2,
+        "mask": mask_2,
+        "bbox": bbox_2,
+    }
+
+    samples = []
+
+    for _ in range(6):
+        samples.append((sample_1, sample_2))
+
+    stacked_samples_1, stacked_samples_2 = mdt.stack_sample_pairs(samples)
+
+    assert type(stacked_samples_1) == defaultdict
+    assert type(stacked_samples_2) == defaultdict
+
+    for key in ("image", "mask", "bbox"):
+        for i in range(6):
+            assert assert_array_equal(stacked_samples_1[key][i], sample_1[key]) is None
+            assert assert_array_equal(stacked_samples_2[key][i], sample_2[key]) is None
