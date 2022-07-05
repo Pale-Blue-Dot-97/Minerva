@@ -10,7 +10,7 @@ from torchgeo.datasets.utils import BoundingBox
 
 from minerva.logger import SSL_Logger, STG_Logger
 from minerva.modelio import ssl_pair_tg, sup_tg
-from minerva.models import FCN16ResNet18, SimCLR18
+from minerva.models import FCN16ResNet18, SimSiam18
 
 device = torch.device("cpu")
 
@@ -89,7 +89,7 @@ def test_SSL_Logger():
 
     writer = SummaryWriter(log_dir=path)
 
-    model = SimCLR18(criterion)
+    model = SimSiam18(criterion)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
