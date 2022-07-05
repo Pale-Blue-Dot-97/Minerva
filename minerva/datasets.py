@@ -150,7 +150,7 @@ def get_collator(
         else:
             collator = utils.func_by_str(module, collator_params["name"])
 
-    if isinstance(collator, Callable):
+    if callable(collator):
         return collator
     else:
         raise TypeError(f"collator is of type {type(collator)}, not callable!")
