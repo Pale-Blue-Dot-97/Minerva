@@ -1861,7 +1861,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
 
         self.proj_head = torch.nn.Sequential(
             torch.nn.Linear(np.prod(backbone_out_shape), 512, bias=False),
-            # torch.nn.BatchNorm1d(512),
+            torch.nn.BatchNorm1d(512),
             torch.nn.ReLU(inplace=True),
             torch.nn.Linear(512, feature_dim, bias=False),
         )
@@ -1884,6 +1884,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
 
         z = torch.cat([g_a, g_b], dim=0)
 
+        print(type(z))
         assert isinstance(z, FloatTensor)
 
         return z, g_a, g_b, f_a, f_b

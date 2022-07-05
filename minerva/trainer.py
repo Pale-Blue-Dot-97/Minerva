@@ -441,8 +441,6 @@ class Trainer:
                 # Add epoch number to metrics.
                 self.metric_logger.log_epoch_number(mode, epoch)
 
-                print(self.metric_logger.get_metrics)
-
                 # Print epoch results.
                 if self.gpu == 0:
                     self.metric_logger.print_epoch_results(mode, epoch)
