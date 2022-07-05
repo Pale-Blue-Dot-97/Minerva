@@ -1866,9 +1866,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
             torch.nn.Linear(512, feature_dim, bias=False),
         )
 
-    def forward(
-        self, x: FloatTensor
-    ) -> Tuple[FloatTensor, FloatTensor, FloatTensor, FloatTensor, FloatTensor]:
+    def forward(self, x: FloatTensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of SimSiam by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -1876,16 +1874,16 @@ class _SimSiam(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        f_a: FloatTensor = torch.flatten(self.backbone(x[0])[0], start_dim=1)
-        f_b: FloatTensor = torch.flatten(self.backbone(x[1])[0], start_dim=1)
+        f_a: Tensor = torch.flatten(self.backbone(x[0])[0], start_dim=1)
+        f_b: Tensor = torch.flatten(self.backbone(x[1])[0], start_dim=1)
 
-        g_a: FloatTensor = self.proj_head(f_a)
-        g_b: FloatTensor = self.proj_head(f_b)
+        g_a: Tensor = self.proj_head(f_a)
+        g_b: Tensor = self.proj_head(f_b)
 
         z = torch.cat([g_a, g_b], dim=0)
 
         print(type(z))
-        assert isinstance(z, FloatTensor)
+        assert isinstance(z, Tensor)
 
         return z, g_a, g_b, f_a, f_b
 
