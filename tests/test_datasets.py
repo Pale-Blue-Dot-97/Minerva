@@ -59,3 +59,11 @@ def test_paired_datasets() -> None:
         dataset.roi
 
     assert type(dataset.__repr__()) == str
+
+
+def test_get_collator() -> None:
+    collator_params_1 = {"module": "torchgeo.datasets.utils", "name": "stack_samples"}
+    collator_params_2 = {"name": "stack_sample_pairs"}
+
+    assert callable(mdt.get_collator(collator_params_1))
+    assert callable(mdt.get_collator(collator_params_2))
