@@ -107,3 +107,36 @@ def test_stack_sample_pairs() -> None:
         for i in range(6):
             assert assert_array_equal(stacked_samples_1[key][i], sample_1[key]) is None
             assert assert_array_equal(stacked_samples_2[key][i], sample_2[key]) is None
+
+
+def test_intersect_datasets() -> None:
+    pass
+
+
+def test_make_dataset() -> None:
+    data_dir = ["tests", "tmp", "data"]
+
+    dataset_params = {
+        "image": {
+            "module": "tests.test_datasets",
+            "name": "TestImgDataset",
+            "root": "test_images",
+            "params": {"res": 10.0},
+        }
+    }
+
+    transform_params = {
+        "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
+    }
+
+    dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
+
+    assert type(dataset_1) == type(subdatasets_1[0])
+    assert isinstance(dataset_1, TestImgDataset)
+
+    dataset_2, subdatasets_2 = mdt.make_dataset(
+        data_dir, dataset_params, transform_params, sample_pairs=True
+    )
+
+    assert type(dataset_2) == type(subdatasets_2[0])
+    assert isinstance(dataset_2, mdt.PairedDataset)
