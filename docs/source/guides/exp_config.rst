@@ -413,3 +413,225 @@ Within each sub-dataset params, there are four possible keys:
     Arguments to the dataset class (excluding ``root``).
 
     :type: Dict[str, Any]
+
+
+Sampler Parameters
+------------------
+
+Defining the samplers used to provide indices from the dataset to samples is done in a
+similar structure to ``dataset_params``. The first level is again the modes of model fitting.
+These keys *MUST* match those in ``dataset_params``.
+
+.. code-block:: yaml
+    :caption: Exampler ``sampler_params``.
+
+    sampler_params:
+        # Training Dataset Sampler
+        train:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: False
+            params:
+                size: 224
+                length: 96000
+
+        # Validation Dataset Sampler
+        val:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: False
+            params:
+                size: 224
+                length: 3200
+
+        # Test Dataset Sampler
+        test:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: False
+            params:
+                size: 224
+                length: 9600
+
+
+There is only a sampler for the overall intersected dataset, not for each sub-dataset.
+Within each mode, there are 4 recognised keys again:
+
+
+.. py:data:: module
+
+    Module name that the sampler class resides in.
+
+    :type: str
+
+
+.. py:data:: name
+
+    Name of sampler class within ``module``.
+
+    :type: str
+
+
+.. py:data:: roi
+
+    Region-of-interest. Providing ``False`` uses dataset ROI. Else, one can provide a 6-element :class:`tuple`
+    in the order ``minx``, ``maxx``, ``miny``, ``maxy``, ``mint`` and ``maxt`` that defines a reduced area
+    to sample from that are within the dataset ROI.
+
+    :type: Literal[False] | Tuple[float, float, float, float, float, float]
+
+
+.. py:data:: params
+
+    Arguments to sampler constructor (excluding ROI).
+
+    :type: dict
+
+
+Transform Parameters
+--------------------
+
+The ``transform_params`` follows a similar structure as ``dataset_params`` and ``sampler_params`` but with
+some extra functionality in order and types of transforms that can be specified.
+
+Again, the first level of keys is the modes of model fitting and these *MUST* match those in ``dataset_params``.
+
+.. code-block:: yaml
+    :caption: Example ``transform_params``.
+
+    transform_params:
+        # Training Dataset Transforms
+        train:
+            image:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
+                RandomHorizontalFlip:
+                    module: torchvision.transforms
+                RandomVerticalFlip:
+                    module: torchvision.transforms
+                RandomResizedCrop:
+                    module: torchvision.transforms
+                    size: 224
+                GaussianBlur:
+                    module: torchvision.transforms
+                    kernel_size: 25
+
+        # Validation Dataset Transforms
+        val:
+            image:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
+                RandomHorizontalFlip:
+                    module: torchvision.transforms
+                RandomVerticalFlip:
+                    module: torchvision.transforms
+                RandomResizedCrop:
+                    module: torchvision.transforms
+                    size: 224
+                GaussianBlur:
+                    module: torchvision.transforms
+                    kernel_size: 25
+
+
+The transforms are added to each sub-datasets, not the overall intersected dataset of the mode.
+So the next level down is the sub-dataset keys which again must match the same ones provided for that
+mode in ``dataset_params``.
+
+Within each sub-dataset, the transforms are defined. Each key is the name of the transform class.
+The order the transforms are given is respected.
+
+Within each transform :class:`dict`, the ``module`` key again gives the module name.
+The default is ``"torchvison.transforms"``. All other keys given are parsed to the transform constructor.
+
+There is one exception to this structure and that is the use of ``torchvision.transforms.RandomApply``.
+If the transform key is ``RandomApply`` then transforms can be provided within that :class:`dict` in the same
+structure with the addition of a ``p`` key that gives the propability that the transforms within are applied.
+
+
+Collator params
+---------------
+
+The collator is the function that collates the samples from the datset to make a mini-batch. It can be
+defined using the simple ``collator`` :class:`dict`.
+
+.. code-block:: yaml
+    :caption: Example of ``collator_params``.
+
+    collator:
+        module: torchgeo.datasets
+        name: stack_samples
+
+
+.. py:data:: module
+
+    Name of module that collator function can be imported from.
+
+    :type: str
+
+
+.. py:data:: name
+
+    Name of collator function.
+
+    :type: str
+
+
+Hyperparams
+-----------
+
+
+.. code-block:: yaml
+    :caption: Example ``hyperparams``.
+
+    hyperparams:
+        params:
+            batch_size: 256
+            num_workers: 10
+            pin_memory: True
+        model_params:
+            input_size: [4, 224, 224]
+        optim_params:
+            name: LARS
+            module: minerva.optimisers
+            lr: 3.0E-4
+            weight_decay: 1.0E-4
+            max_epochs: 100
+        loss_params:
+            name: NT_Xent
+            module: simclr.modules
+            params:
+                temperature: 0.07
+                batch_size: 16
+                world_size: 1
+        max_epochs: 5
+        stopping:
+            patience: 3
+            verbose: True
+
+
+
+.. py:data:: max_epochs
+
+    Maximum number of epochs of training and validation.
+
+    :type: int
+    :value: 25
+
+
+Dataloader Paramaters
+^^^^^^^^^^^^^^^^^^^^^
+
+
+Model Paramaters
+^^^^^^^^^^^^^^^^
+
+Optimiser Parameters
+^^^^^^^^^^^^^^^^^^^^
+
+Loss Paramaters
+^^^^^^^^^^^^^^^
+
+Early Stopping
+^^^^^^^^^^^^^^
