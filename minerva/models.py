@@ -1821,13 +1821,13 @@ class FCN8ResNet152(_FCN):
         )
 
 
-class _SimCLR(MinervaModel, MinervaBackbone):
-    """Base SimCLR class to be subclassed by SimCLR variants.
+class _SimSiam(MinervaModel, MinervaBackbone):
+    """Base SimSiam class to be subclassed by SimSiam variants.
 
     Subclasses MinervaModel.
 
     Attributes:
-        backbone (Module): Backbone of SimCLR that takes the imagery input and
+        backbone (Module): Backbone of SimSiam that takes the imagery input and
             extracts learned representations.
         proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
 
@@ -1848,7 +1848,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
 
-        super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
+        super(_SimSiam, self).__init__(criterion=criterion, input_shape=input_size)
 
         self.backbone: MinervaModel = globals()[backbone_name](
             input_size=input_size, encoder=True, **backbone_kwargs
@@ -1869,7 +1869,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
     def forward(
         self, x: FloatTensor
     ) -> Tuple[FloatTensor, FloatTensor, FloatTensor, FloatTensor, FloatTensor]:
-        """Performs a forward pass of SimCLR by using the forward methods of the backbone and
+        """Performs a forward pass of SimSiam by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
         Overwrites MinervaModel abstract method.
@@ -1930,8 +1930,8 @@ class _SimCLR(MinervaModel, MinervaBackbone):
         return loss, z
 
 
-class SimCLR18(_SimCLR):
-    """SimCLR network using a ResNet18 backbone.
+class SimSiam18(_SimSiam):
+    """SimSiam network using a ResNet18 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1948,7 +1948,7 @@ class SimCLR18(_SimCLR):
         **resnet_kwargs,
     ) -> None:
 
-        super(SimCLR18, self).__init__(
+        super(SimSiam18, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
@@ -1957,8 +1957,8 @@ class SimCLR18(_SimCLR):
         )
 
 
-class SimCLR34(_SimCLR):
-    """SimCLR network using a ResNet32 backbone.
+class SimSiam34(_SimSiam):
+    """SimSiam network using a ResNet32 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1975,7 +1975,7 @@ class SimCLR34(_SimCLR):
         **resnet_kwargs,
     ) -> None:
 
-        super(SimCLR34, self).__init__(
+        super(SimSiam34, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
@@ -1984,8 +1984,8 @@ class SimCLR34(_SimCLR):
         )
 
 
-class SimCLR50(_SimCLR):
-    """SimCLR network using a ResNet50 backbone.
+class SimSiam50(_SimSiam):
+    """SimSiam network using a ResNet50 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -2002,7 +2002,7 @@ class SimCLR50(_SimCLR):
         **resnet_kwargs,
     ) -> None:
 
-        super(SimCLR50, self).__init__(
+        super(SimSiam50, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,

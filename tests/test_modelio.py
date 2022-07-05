@@ -4,7 +4,7 @@ from lightly.loss import NTXentLoss
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.modelio import ssl_pair_tg, sup_tg
-from minerva.models import FCN32ResNet18, SimCLR34
+from minerva.models import FCN32ResNet18, SimSiam34
 
 input_size = (4, 224, 224)
 device = torch.device("cpu")
@@ -36,7 +36,7 @@ def test_sup_tg() -> None:
 
 def test_ssl_pair_tg() -> None:
     criterion = NTXentLoss(0.5)
-    model = SimCLR34(criterion, input_size=input_size)
+    model = SimSiam34(criterion, input_size=input_size)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
