@@ -4,6 +4,7 @@ from collections import defaultdict
 from numpy.testing import assert_array_equal
 import pytest
 import torch
+from torch.utils.data import DataLoader
 from torchgeo.datasets import RasterDataset, IntersectionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
@@ -140,3 +141,62 @@ def test_make_dataset() -> None:
 
     assert type(dataset_2) == type(subdatasets_2[0])
     assert isinstance(dataset_2, mdt.PairedDataset)
+
+
+def test_construct_dataloader() -> None:
+    data_dir = ["tests", "tmp", "data"]
+
+    dataset_params = {
+        "image": {
+            "module": "tests.test_datasets",
+            "name": "TestImgDataset",
+            "root": "test_images",
+            "params": {"res": 10.0},
+        }
+    }
+
+    sampler_params_1 = {
+        "module": "torchgeo.samplers",
+        "name": "RandomBatchGeoSampler",
+        "roi": False,
+        "params": {
+            "size": 224,
+            "length": 4096,
+            "batch_size": 16,
+        },
+    }
+
+    sampler_params_2 = {
+        "module": "minerva.samplers",
+        "name": "RandomPairGeoSampler",
+        "roi": False,
+        "params": {
+            "size": 224,
+            "length": 4096,
+        },
+    }
+
+    transform_params = {
+        "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
+    }
+
+    dataloader_params = {"batch_size": 256, "num_workers": 10, "pin_memory": True}
+
+    dataloader_1 = mdt.construct_dataloader(
+        data_dir, dataset_params, sampler_params_1, dataloader_params
+    )
+    dataloader_2 = mdt.construct_dataloader(
+        data_dir,
+        dataset_params,
+        sampler_params_2,
+        dataloader_params,
+        transform_params=transform_params,
+        sample_pairs=True,
+    )
+    dataloader_3 = mdt.construct_dataloader(
+        data_dir, dataset_params, sampler_params_1, dataloader_params, world_size=2
+    )
+
+    assert isinstance(dataloader_1, DataLoader)
+    assert isinstance(dataloader_2, DataLoader)
+    assert isinstance(dataloader_3, DataLoader)
