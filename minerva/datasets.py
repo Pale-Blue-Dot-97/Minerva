@@ -386,7 +386,6 @@ def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
         >>> transform = get_transform(name, params)
 
     Raises:
-        TypeError: If params given point to a variable which is not an :class:`object`
         TypeError: If created transform :class:`object` is itself not :class:`callable`.
     """
     module = params.pop("module", "torchvision.transforms")
@@ -394,15 +393,11 @@ def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
     # Gets the transform requested by config parameters.
     _transform: Callable[..., Any] = utils.func_by_str(module, name)
 
-    if type(_transform) == Callable[..., Any]:
-        transform: Callable[..., Any] = _transform(**params)
-        if type(transform) == Callable[..., Any]:
-            return transform
-        else:
-            raise TypeError(f"Transform has type {type(transform)}, not a callable!")
-
+    transform: Callable[..., Any] = _transform(**params)
+    if callable(transform):
+        return transform
     else:
-        raise TypeError(f"Transform has type {type(_transform)}, not a callable!")
+        raise TypeError(f"Transform has type {type(transform)}, not a callable!")
 
 
 def make_transformations(
