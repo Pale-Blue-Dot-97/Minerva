@@ -403,7 +403,6 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
         Optional[Union[str, Any]]: Name of dataset as string.
     """
     data_config_fn = ntpath.basename(DATA_CONFIG_PATH)
-    print(DATA_CONFIG_PATH)
     match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
 
     if match is None:
