@@ -97,8 +97,6 @@ def handle_sigterm(signum, frame):
 
 
 def main(args):
-    print(args.world_size)
-
     if args.world_size <= 1:
         run(gpu=0, args=args)
 

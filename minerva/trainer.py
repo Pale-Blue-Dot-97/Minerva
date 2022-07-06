@@ -166,7 +166,9 @@ class Trainer:
         self.early_stop = False
         if "stopping" in self.params["hyperparams"]:
             self.stopper = EarlyStopping(
-                path=f"{self.exp_fn}.pt", **self.params["hyperparams"]["stopping"]
+                path=f"{self.exp_fn}.pt",
+                trace_func=self.print,
+                **self.params["hyperparams"]["stopping"],
             )
 
         # Sets the max number of epochs of fitting.
