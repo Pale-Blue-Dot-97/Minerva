@@ -259,11 +259,13 @@ def test_make_loaders() -> None:
         assert type(params) == dict
 
 
-"""
 def test_get_manifest_path() -> None:
-    pass
+    assert mdt.get_manifest_path() == os.path.join(
+        "tests", "tmp", "cache", "Chesapeake7_Manifest.csv"
+    )
 
 
+"""
 def test_get_manifest() -> None:
     pass
 
