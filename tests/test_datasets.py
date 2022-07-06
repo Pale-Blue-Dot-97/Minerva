@@ -20,14 +20,6 @@ lc_root = os.path.join(data_root, "data", "test_lc")
 bounds = BoundingBox(590520.0, 600530.0, 5780620.0, 5790630.0, 0, 1e12)
 
 
-class TestImgDataset(RasterDataset):
-    filename_glob = "*_img.tif"
-
-
-class TestMaskDataset(RasterDataset):
-    filename_glob = "*_lc.tif"
-
-
 def test_make_bounding_box() -> None:
     assert mdt.make_bounding_box() is None
     assert mdt.make_bounding_box(False) is None
@@ -39,15 +31,15 @@ def test_make_bounding_box() -> None:
 def test_tinydataset() -> None:
     """Source of TIFF: https://github.com/mommermi/geotiff_sample"""
 
-    imagery = TestImgDataset(img_root)
-    labels = TestMaskDataset(lc_root)
+    imagery = mdt.TestImgDataset(img_root)
+    labels = mdt.TestMaskDataset(lc_root)
 
     dataset = imagery & labels
     assert isinstance(dataset, IntersectionDataset)
 
 
 def test_paired_datasets() -> None:
-    dataset = mdt.PairedDataset(TestImgDataset, img_root)
+    dataset = mdt.PairedDataset(mdt.TestImgDataset, img_root)
 
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -58,7 +50,7 @@ def test_paired_datasets() -> None:
     assert type(sample_2) == dict
 
     assert type(dataset.crs) == CRS
-    assert type(dataset.dataset) == TestImgDataset
+    assert type(dataset.dataset) == mdt.TestImgDataset
 
     with pytest.raises(AttributeError):
         dataset.roi
@@ -120,7 +112,7 @@ def test_make_dataset() -> None:
 
     dataset_params = {
         "image": {
-            "module": "tests.test_datasets",
+            "module": "minerva.datasets",
             "name": "TestImgDataset",
             "root": "test_images",
             "params": {"res": 10.0},
@@ -134,7 +126,7 @@ def test_make_dataset() -> None:
     dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
 
     assert type(dataset_1) == type(subdatasets_1[0])
-    assert isinstance(dataset_1, TestImgDataset)
+    assert isinstance(dataset_1, mdt.TestImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
         data_dir, dataset_params, transform_params, sample_pairs=True
@@ -149,7 +141,7 @@ def test_construct_dataloader() -> None:
 
     dataset_params = {
         "image": {
-            "module": "tests.test_datasets",
+            "module": "minerva.datasets",
             "name": "TestImgDataset",
             "root": "test_images",
             "params": {"res": 10.0},
@@ -237,11 +229,84 @@ def test_make_transformations() -> None:
     assert mdt.make_transformations(False) is None
 
 
-"""
 def test_make_loaders() -> None:
-    pass
+    dataset_params = {
+        "train": {
+            "image": {
+                "module": "minerva.datasets",
+                "name": "TestImgDataset",
+                "root": "test_images",
+                "params": {"res": 10.0},
+            }
+        },
+        "val": {
+            "image": {
+                "module": "minerva.datasets",
+                "name": "TestImgDataset",
+                "root": "test_images",
+                "params": {"res": 10.0},
+            }
+        },
+    }
+
+    sampler_params = {
+        "train": {
+            "module": "torchgeo.samplers",
+            "name": "RandomBatchGeoSampler",
+            "roi": False,
+            "params": {
+                "size": 224,
+                "length": 4096,
+                "batch_size": 16,
+            },
+        },
+        "val": {
+            "module": "torchgeo.samplers",
+            "name": "RandomBatchGeoSampler",
+            "roi": False,
+            "params": {
+                "size": 224,
+                "length": 4096,
+                "batch_size": 16,
+            },
+        },
+    }
+
+    transform_params = {
+        "train": {
+            "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
+        },
+        "val": {
+            "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
+        },
+    }
+
+    collator_params = {"module": "torchgeo.datasets.utils", "name": "stack_samples"}
+
+    data_dir = ["tests", "tmp", "data"]
+
+    dataloader_params = {"batch_size": 16, "num_workers": 10, "pin_memory": True}
+
+    params = {
+        "hyperparams": {"params": dataloader_params, "model_params": {"n_classes": 8}},
+        "dataset_params": dataset_params,
+        "sampler_params": sampler_params,
+        "transform_params": transform_params,
+        "dir": {"data": data_dir},
+        "collator": collator_params,
+    }
+
+    loaders_1, n_batches_1, class_dist_1, params_1 = mdt.make_loaders(
+        p_dist=True, **params
+    )
+    for mode in ("train", "val"):
+        assert isinstance(loaders_1[mode], DataLoader)
+        assert n_batches_1[mode] is 256
+        assert type(class_dist_1) == list
+        assert type(params_1) == dict
 
 
+"""
 def test_get_manifest_path() -> None:
     pass
 
