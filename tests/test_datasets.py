@@ -1,17 +1,17 @@
 import os
 from collections import defaultdict
-from typing import Type
 
 from numpy.testing import assert_array_equal
 import pytest
 import torch
 from torch.utils.data import DataLoader
-from torchgeo.datasets import RasterDataset, IntersectionDataset
+from torchgeo.datasets import IntersectionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 from rasterio.crs import CRS
 
 from minerva import datasets as mdt
+from minerva.utils.utils import config
 
 data_root = os.path.join("tests", "tmp")
 img_root = os.path.join(data_root, "data", "test_images")
@@ -230,80 +230,33 @@ def test_make_transformations() -> None:
 
 
 def test_make_loaders() -> None:
-    dataset_params = {
-        "train": {
-            "image": {
-                "module": "minerva.datasets",
-                "name": "TestImgDataset",
-                "root": "test_images",
-                "params": {"res": 10.0},
-            }
-        },
-        "val": {
-            "image": {
-                "module": "minerva.datasets",
-                "name": "TestImgDataset",
-                "root": "test_images",
-                "params": {"res": 10.0},
-            }
-        },
-    }
+    old_params = config.copy()
 
-    sampler_params = {
-        "train": {
-            "module": "torchgeo.samplers",
-            "name": "RandomBatchGeoSampler",
-            "roi": False,
-            "params": {
-                "size": 224,
-                "length": 4096,
-                "batch_size": 16,
-            },
-        },
-        "val": {
-            "module": "torchgeo.samplers",
-            "name": "RandomBatchGeoSampler",
-            "roi": False,
-            "params": {
-                "size": 224,
-                "length": 4096,
-                "batch_size": 16,
-            },
-        },
-    }
-
+    mask_transforms = {"RandomHorizontalFlip": {"module": "torchvision.transforms"}}
     transform_params = {
         "train": {
-            "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
+            "image": False,
+            "mask": mask_transforms,
         },
         "val": {
-            "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
+            "image": False,
+            "mask": mask_transforms,
+        },
+        "test": {
+            "image": False,
+            "mask": False,
         },
     }
 
-    collator_params = {"module": "torchgeo.datasets.utils", "name": "stack_samples"}
+    old_params["transform_params"] = transform_params
 
-    data_dir = ["tests", "tmp", "data"]
+    loaders, n_batches, class_dist, params = mdt.make_loaders(**old_params)
 
-    dataloader_params = {"batch_size": 16, "num_workers": 10, "pin_memory": True}
-
-    params = {
-        "hyperparams": {"params": dataloader_params, "model_params": {"n_classes": 8}},
-        "dataset_params": dataset_params,
-        "sampler_params": sampler_params,
-        "transform_params": transform_params,
-        "dir": {"data": data_dir},
-        "collator": collator_params,
-    }
-
-    loaders_1, n_batches_1, class_dist_1, params_1 = mdt.make_loaders(
-        p_dist=True, **params
-    )
-    for mode in ("train", "val"):
-        assert isinstance(loaders_1[mode], DataLoader)
-        assert n_batches_1[mode] is 256
-        assert type(class_dist_1) == list
-        assert type(params_1) == dict
+    for mode in ("train", "val", "test"):
+        assert isinstance(loaders[mode], DataLoader)
+        assert type(n_batches[mode]) is int
+        assert type(class_dist) is list
+        assert type(params) == dict
 
 
 """
