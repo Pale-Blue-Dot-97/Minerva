@@ -4,23 +4,19 @@
 # === PATHS ===================================================================
 dir:
     data:
-        - 'G:'
-        - GitHub
-        - Minerva
-        - Minerva
+        - tests
+        - tmp
         - data
-        - landcovernet
     configs:
-        data_config: ChesapeakeCVPR.yml
+        data_config: Chesapeake7.yml
         imagery_config: NAIP.yml
     results:
         - tests
+        - tmp
         - results
     cache:
-        - 'G:'
-        - GitHub
-        - Minerva
-        - Minerva
+        - tests
+        - tmp
         - cache
 
 # ---+ Kwargs for make_datasets +----------------------------------------------
@@ -48,7 +44,7 @@ dataset_params:
 
         labels:
             module: torchgeo.datasets
-            name: Chesapeake13
+            name: Chesapeake7
             root: Chesapeake
             params:
                 res: 1.0
@@ -66,7 +62,7 @@ dataset_params:
 
         labels:
             module: torchgeo.datasets
-            name: Chesapeake13
+            name: Chesapeake7
             root: Chesapeake
             params:
                 res: 1.0
