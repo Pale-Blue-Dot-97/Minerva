@@ -411,10 +411,10 @@ def make_transformations(
 
     Example:
         >>> transform_params = {
-        >>>    "CenterCrop": {"module": "torchvision.torch", "size": 128},
-        >>>     "RandomHorizontalFlip": {"module": "torchvision.torch", "p": 0.7}
+        >>>    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+        >>>     "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7}
         >>> }
-        >>> transforms = make_transforms(transform_params)
+        >>> transforms = make_transformations(transform_params)
 
     Returns:
         If no parameters are parsed, None is returned.
