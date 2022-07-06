@@ -4,37 +4,30 @@
 # === PATHS ===================================================================
 dir:
     data:
-        - 'G:'
-        - GitHub
-        - Minerva
-        - Minerva
+        - tests
+        - tmp
         - data
-        - ChesapeakeCVPR
     configs:
-        data_config: ../../config/ChesapeakeCVPR.yml
+        data_config: ../../config/Chesapeake7.yml
     output:
-        - 'G:'
-        - GitHub
-        - Minerva
-        - Minerva
+        - tests
+        - tmp
         - cache
 
 # === DATASET PARAMETERS ======================================================
 dataset_params:
     imagery:
-        module: torchgeo.datasets
-        name: NAIP
-        root: NAIP 2013
+        module: minerva.datasets
+        name: TestImgDataset
+        root: test_images
         params:
-            res: 1.0
+            res: 10.0
     labels:
-        module: torchgeo.datasets
-        name: Chesapeake13
-        root: Chesapeake
+        module: minerva.datasets
+        name: TestMaskDataset
+        root: test_lc
         params:
-            res: 1.0
-            download: false
-            checksum: false
+            res: 10.0
 
 
 # === SAMPLER PARAMETERS ======================================================
