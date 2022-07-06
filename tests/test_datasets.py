@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+from typing import Type
 
 from numpy.testing import assert_array_equal
 import pytest
@@ -200,3 +201,40 @@ def test_construct_dataloader() -> None:
     assert isinstance(dataloader_1, DataLoader)
     assert isinstance(dataloader_2, DataLoader)
     assert isinstance(dataloader_3, DataLoader)
+
+
+def test_get_transform() -> None:
+    name = "RandomResizedCrop"
+    params = {"module": "torchvision.transforms", "size": 128}
+    transform = mdt.get_transform(name, params)
+
+    assert callable(transform)
+
+    with pytest.raises(TypeError):
+        _ = mdt.get_transform("DataFrame", {"module": "pandas"})
+
+
+"""
+def test_make_transformations() -> None:
+    pass
+
+
+def test_make_loaders() -> None:
+    pass
+
+
+def test_get_manifest_path() -> None:
+    pass
+
+
+def test_get_manifest() -> None:
+    pass
+
+
+def test_make_manifest() -> None:
+    pass
+
+
+def test_load_all_samples() -> None:
+    pass
+"""
