@@ -131,7 +131,7 @@ class PairedDataset(RasterDataset):
 #                                                     METHODS
 # =====================================================================================================================
 def get_collator(
-    collator_params: Optional[Dict[str, str]] = config["collator"]
+    collator_params: Optional[Dict[str, str]] = None
 ) -> Callable[..., Any]:
     """Gets the function defined in parameters to collate samples together to form a batch.
 
@@ -149,6 +149,8 @@ def get_collator(
             collator = globals()[collator_params["name"]]
         else:
             collator = utils.func_by_str(module, collator_params["name"])
+    else:
+        return stack_samples
 
     if callable(collator):
         return collator
