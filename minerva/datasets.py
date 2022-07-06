@@ -511,7 +511,7 @@ def make_loaders(
     for mode in dataset_params.keys():
         this_transform_params = transform_params[mode]
         if params.get("elim", False):
-            if this_transform_params["mask"] is not Dict:
+            if type(this_transform_params["mask"]) != dict:
                 this_transform_params["mask"] = {
                     "ClassTransform": {
                         "module": "minerva.transforms",
