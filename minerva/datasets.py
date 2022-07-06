@@ -89,6 +89,14 @@ __all__ = [
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
+class TestImgDataset(RasterDataset):
+    filename_glob = "*_img.tif"
+
+
+class TestMaskDataset(RasterDataset):
+    filename_glob = "*_lc.tif"
+
+
 class PairedDataset(RasterDataset):
     """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
 
