@@ -636,10 +636,10 @@ def test_load_data_specs() -> None:
     class_dist = [(3, 321), (4, 112), (1, 671), (5, 456)]
 
     new_classes = {
-        0: "Impervious Surfaces",
+        0: "Surfaces",
         1: "Water",
-        2: "Barren Land",
-        3: "Low Vegetation\nField",
+        2: "Barren",
+        3: "Low Vegetation",
     }
     new_cmap = {0: "#9c9c9c", 1: "#00c5ff", 2: "#ffaa00", 3: "#a3ff73"}
     conversion = {1: 1, 3: 3, 4: 2, 5: 0}
@@ -673,7 +673,7 @@ def test_mkexpdir() -> None:
 
 
 def test_get_dataset_name() -> None:
-    assert utils.get_dataset_name() == "ChesapeakeCVPR"
+    assert utils.get_dataset_name() == "Chesapeake7"
 
 
 def test_run_tensorboard() -> None:
