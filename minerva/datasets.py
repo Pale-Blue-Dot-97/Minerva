@@ -38,6 +38,7 @@ import os
 import numpy as np
 from nptyping import NDArray
 import pandas as pd
+from pandas import DataFrame
 import torch
 from alive_progress import alive_it
 from catalyst.data.sampler import DistributedSamplerWrapper
@@ -95,6 +96,7 @@ class TestImgDataset(RasterDataset):
 
 class TestMaskDataset(RasterDataset):
     filename_glob = "*_lc.tif"
+    is_image = False
 
 
 class PairedDataset(RasterDataset):
@@ -562,19 +564,23 @@ def get_manifest_path() -> str:
     """Gets the path to the manifest for the dataset to be used.
 
     Returns:
-        Path to manifest as string.
+        str: Path to manifest as string.
     """
     return os.sep.join([CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"])
 
 
-def get_manifest(manifest_path: str) -> pd.DataFrame:
+def get_manifest(manifest_path: str) -> DataFrame:
     try:
         return pd.read_csv(manifest_path)
     except FileNotFoundError as err:
         print(err)
 
         print("CONSTRUCTING MISSING MANIFEST")
-        manifest = make_manifest()
+        mf_config = config.copy()
+
+        mf_config["dataloader_params"] = config["hyperparams"]["params"]
+
+        manifest = make_manifest(mf_config)
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
         manifest.to_csv(manifest_path)
@@ -582,35 +588,42 @@ def get_manifest(manifest_path: str) -> pd.DataFrame:
         return manifest
 
 
-def make_manifest(mf_config: Dict[Any, Any] = config) -> pd.DataFrame:
+def make_manifest(mf_config: Dict[Any, Any] = config) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
-    The dataset to construct a manifest of is defined by the 'data_config' value in the config.
+    The dataset to construct a manifest of is defined by the ``data_config`` value in the config.
 
     Returns:
-        df (pd.DataFrame): The completed manifest as a DataFrame.
+        DataFrame: The completed manifest as a :class:`DataFrame`.
     """
     dataloader_params = mf_config["dataloader_params"]
     dataset_params = mf_config["dataset_params"]
     sampler_params = mf_config["sampler_params"]
     collator_params = mf_config["collator"]
 
+    keys = list(dataset_params.keys())
     print("CONSTRUCTING DATASET")
     loader = construct_dataloader(
         mf_config["dir"]["data"],
-        dataset_params,
-        sampler_params,
+        dataset_params[keys[0]],
+        sampler_params[keys[0]],
         dataloader_params,
         collator_params=collator_params,
     )
 
     print("FETCHING SAMPLES")
-    df = pd.DataFrame()
-    df["MODES"] = load_all_samples(loader)
+    df = DataFrame()
+
+    modes = load_all_samples(loader)
+
+    df["MODES"] = [np.array([]) for _ in range(len(modes))]
+
+    for i in range(len(modes)):
+        df["MODES"][i] = modes[i]
 
     print("CALCULATING CLASS FRACTIONS")
     # Calculates the fractional size of each class in each patch.
-    df = pd.DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
+    df = DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
     df.fillna(0, inplace=True)
 
     # Delete redundant MODES column.
