@@ -8,7 +8,7 @@ dir:
         - tmp
         - data
     configs:
-        data_config: ../../config/Chesapeake7.yml
+        data_config: inbuilt_cfgs/Chesapeake7.yml
     output:
         - tests
         - tmp
@@ -16,27 +16,29 @@ dir:
 
 # === DATASET PARAMETERS ======================================================
 dataset_params:
-    imagery:
-        module: minerva.datasets
-        name: TestImgDataset
-        root: test_images
-        params:
-            res: 10.0
-    labels:
-        module: minerva.datasets
-        name: TestMaskDataset
-        root: test_lc
-        params:
-            res: 10.0
+    make:
+        image:
+            module: minerva.datasets
+            name: TestImgDataset
+            root: test_images
+            params:
+                res: 10.0
+        mask:
+            module: minerva.datasets
+            name: TestMaskDataset
+            root: test_lc
+            params:
+                res: 10.0
 
 
 # === SAMPLER PARAMETERS ======================================================
 sampler_params:
-    module: torchgeo.samplers
-    name: GridGeoSampler
-    params:
-        size: [1000, 1000]
-        stride: [1000, 1000]
+    make:
+        module: torchgeo.samplers
+        name: GridGeoSampler
+        params:
+            size: [1000, 1000]
+            stride: [1000, 1000]
 
 collator:
     module: torchgeo.datasets
