@@ -583,6 +583,10 @@ def get_manifest(manifest_path: str) -> DataFrame:
         manifest = make_manifest(mf_config)
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
+        path, _ = os.path.split(manifest_path)
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         manifest.to_csv(manifest_path)
 
         return manifest
