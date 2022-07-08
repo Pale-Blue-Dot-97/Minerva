@@ -4,23 +4,19 @@
 # === PATHS ===================================================================
 dir:
     data:
-        - 'G:'
-        - GitHub
-        - Minerva
-        - Minerva
+        - tests
+        - tmp
         - data
-        - landcovernet
     configs:
-        data_config: ChesapeakeCVPR.yml
+        data_config: Chesapeake7.yml
         imagery_config: NAIP.yml
     results:
         - tests
+        - tmp
         - results
     cache:
-        - 'G:'
-        - GitHub
-        - Minerva
-        - Minerva
+        - tests
+        - tmp
         - cache
 
 # ---+ Kwargs for make_datasets +----------------------------------------------
@@ -39,57 +35,51 @@ patch_size: [256, 256]
 dataset_params:
     # Training Dataset
     train:
-        imagery:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Train
+        image:
+            module: minerva.datasets
+            name: TestImgDataset
+            root: test_images
             params:
-                res: 1.0
+                res: 10.0
 
-        labels:
-            module: torchgeo.datasets
-            name: Chesapeake13
-            root: Chesapeake
+        mask:
+            module: minerva.datasets
+            name: TestMaskDataset
+            root: test_lc
             params:
-                res: 1.0
-                download: false
-                checksum: false
+                res: 10.0
 
     # Validation Dataset
     val:
-        imagery:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Validation
+        image:
+            module: minerva.datasets
+            name: TestImgDataset
+            root: test_images
             params:
-                res: 1.0
+                res: 10.0
 
-        labels:
-            module: torchgeo.datasets
-            name: Chesapeake13
-            root: Chesapeake
+        mask:
+            module: minerva.datasets
+            name: TestMaskDataset
+            root: test_lc
             params:
-                res: 1.0
-                download: false
-                checksum: false
+                res: 10.0
 
     # Test Dataset
     test:
-        imagery:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Test
+        image:
+            module: minerva.datasets
+            name: TestImgDataset
+            root: test_images
             params:
-                res: 1.0
+                res: 10.0
 
-        labels:
-            module: torchgeo.datasets
-            name: Chesapeake13
-            root: Chesapeake
+        mask:
+            module: minerva.datasets
+            name: TestMaskDataset
+            root: test_lc
             params:
-                res: 1.0
-                download: false
-                checksum: false
+                res: 10.0
 
 # === SAMPLER PARAMETERS ======================================================
 sampler_params:
@@ -125,18 +115,18 @@ sampler_params:
 transform_params:
     # Training Dataset Transforms
     train:
-        imagery: false
-        labels: false
+        image: false
+        mask: false
 
     # Validation Dataset Transforms
     val:
-        imagery: false
-        labels: false
+        image: false
+        mask: false
 
     # Test Dataset Transforms
     test:
-        imagery: false
-        labels: false
+        image: false
+        mask: false
 
 # Collation
 collator:
@@ -176,6 +166,6 @@ save_model: false
 run_tensorboard: false
 save: true
 show: false
-p_dist: false
+p_dist: true
 calc_norm: false
 plot_last_epoch: false
