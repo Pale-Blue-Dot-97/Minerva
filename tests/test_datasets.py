@@ -2,6 +2,7 @@ import os
 from collections import defaultdict
 
 from numpy.testing import assert_array_equal
+import pandas as pd
 import pytest
 import torch
 from torch.utils.data import DataLoader
@@ -17,7 +18,7 @@ data_root = os.path.join("tests", "tmp")
 img_root = os.path.join(data_root, "data", "test_images")
 lc_root = os.path.join(data_root, "data", "test_lc")
 
-bounds = BoundingBox(590520.0, 600530.0, 5780620.0, 5790630.0, 0, 1e12)
+bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
 
 
 def test_make_bounding_box() -> None:
@@ -265,13 +266,22 @@ def test_get_manifest_path() -> None:
     )
 
 
-"""
 def test_get_manifest() -> None:
-    pass
+    manifest_path = os.path.join("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
+
+    if os.path.exists(manifest_path):
+        os.remove(os.path.join("tests", "tmp", "cache", "Chesapeake7_Manifest.csv"))
+
+    assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
+    assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
+
+    if os.path.exists(manifest_path):
+        os.remove(os.path.join("tests", "tmp", "cache", "Chesapeake7_Manifest.csv"))
 
 
+"""
 def test_make_manifest() -> None:
-    pass
+    assert isinstance(mdt.make_manifest(), pd.DataFrame)
 
 
 def test_load_all_samples() -> None:
