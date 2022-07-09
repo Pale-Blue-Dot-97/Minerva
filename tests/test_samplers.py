@@ -15,7 +15,7 @@ lc_root = os.path.join(data_root, "data", "test_lc")
 def test_randompairgeosampler() -> None:
     dataset = PairedDataset(TestImgDataset, img_root, res=1.0)
 
-    sampler = RandomPairGeoSampler(dataset, size=32, length=32)
+    sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
     loader = DataLoader(
         dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs
     )
@@ -32,7 +32,7 @@ def test_randompairgeosampler() -> None:
 def test_randompairbatchgeosampler() -> None:
     dataset = PairedDataset(TestImgDataset, img_root, res=1.0)
 
-    sampler = RandomPairBatchGeoSampler(dataset, size=32, length=32, batch_size=8)
+    sampler = RandomPairBatchGeoSampler(dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1)
     loader = DataLoader(dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs)
 
     batch = next(iter(loader))
