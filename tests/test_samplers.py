@@ -24,8 +24,8 @@ def test_randompairgeosampler() -> None:
 
     assert isinstance(batch[0], defaultdict)
     assert isinstance(batch[1], defaultdict)
-    assert len(batch[0]["image"]) == 8
-    assert len(batch[1]["image"]) == 8
+    assert batch[0]["image"].shape == (8, 4, 32, 32)
+    assert batch[1]["image"].shape == (8, 4, 32, 32)
 
 
 """
