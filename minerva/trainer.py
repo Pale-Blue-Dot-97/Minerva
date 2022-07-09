@@ -156,6 +156,8 @@ class Trainer:
         sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
         if type(sample_pairs) != bool:
             sample_pairs = False
+            self.params["sample_pairs"] = False
+
         self.model.determine_output_dim(sample_pairs=sample_pairs)
 
         # Transfer to GPU
@@ -433,7 +435,11 @@ class Trainer:
                 if epoch == (self.max_epochs - 1) and self.params.get(
                     "plot_last_epoch", False
                 ):
-                    result: Optional[Dict[str, Any]] = self.epoch(mode, record_int=True)
+                    result: Optional[Dict[str, Any]] = self.epoch(
+                        mode,
+                        record_int=True,
+                        record_float=self.params.get("record_float", False),
+                    )
                     assert result is not None
                     results = result
 
