@@ -30,6 +30,14 @@ sample_pairs: false
 elim: true
 balance: true
 patch_size: [256, 256]
+pre_train: true
+fine_tune: false
+max_r: 256
+
+# === MODEL IO & LOGGING ======================================================
+logger: STG_Logger
+metrics: SP_Metrics
+model_io: sup_tg
 
 # === DATASET PARAMETERS ======================================================
 dataset_params:
@@ -142,11 +150,13 @@ hyperparams:
     model_params:
         input_size: [4, 256, 256]
         n_classes: 16
-    optim_name: SGD
     optim_params:
-        lr: 1.0E-2
-    loss_name: CrossEntropyLoss
+        name: SGD
+        params:
+            lr: 1.0E-2
     loss_params:
+        name: CrossEntropyLoss
+        params:
     max_epochs: 2
 
 # Which plots to make

@@ -137,8 +137,10 @@ dmypy.json
 
 lightning_logs/
 data/*
+results/*
 cache/*
 tests/tmp/cache/*
+tests/tmp/results/*
 user_cfgs/*
 
 inbuilt_cfgs/config.yml
