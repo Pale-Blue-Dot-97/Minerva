@@ -130,10 +130,17 @@ dmypy.json
 *.xml
 *.iml
 
+# Exclusions
 !docs/images/*.png
+!tests/tmp/data/test_images/*.tif
+!tests/tmp/data/test_lc/*.tif
+
 lightning_logs/
 data/*
+results/*
 cache/*
+tests/tmp/cache/*
+tests/tmp/results/*
 user_cfgs/*
 
 inbuilt_cfgs/config.yml

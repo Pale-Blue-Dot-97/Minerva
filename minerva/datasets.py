@@ -38,6 +38,7 @@ import os
 import numpy as np
 from nptyping import NDArray
 import pandas as pd
+from pandas import DataFrame
 import torch
 from alive_progress import alive_it
 from catalyst.data.sampler import DistributedSamplerWrapper
@@ -89,6 +90,15 @@ __all__ = [
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
+class TestImgDataset(RasterDataset):
+    filename_glob = "*_img.tif"
+
+
+class TestMaskDataset(RasterDataset):
+    filename_glob = "*_lc.tif"
+    is_image = False
+
+
 class PairedDataset(RasterDataset):
     """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
 
@@ -131,7 +141,7 @@ class PairedDataset(RasterDataset):
 #                                                     METHODS
 # =====================================================================================================================
 def get_collator(
-    collator_params: Optional[Dict[str, str]] = config["collator"]
+    collator_params: Optional[Dict[str, str]] = None
 ) -> Callable[..., Any]:
     """Gets the function defined in parameters to collate samples together to form a batch.
 
@@ -149,17 +159,26 @@ def get_collator(
             collator = globals()[collator_params["name"]]
         else:
             collator = utils.func_by_str(module, collator_params["name"])
+    else:
+        return stack_samples
 
-    if isinstance(collator, Callable):
+    if callable(collator):
         return collator
     else:
         raise TypeError(f"collator is of type {type(collator)}, not callable!")
 
 
-# TODO: Document :func:`stack_sample_pairs`.
 def stack_sample_pairs(
-    samples: Iterable[Tuple[Dict[Any, Any]]]
+    samples: Iterable[Tuple[Dict[Any, Any], Dict[Any, Any]]]
 ) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+    """Takes a list of paired sample dicts and stacks them into a tuple of batches of sample dicts.
+
+    Args:
+        samples (Iterable[Tuple[Dict[Any, Any]]]): List of paired sample dicts to be stacked.
+
+    Returns:
+        Tuple[Dict[Any, Any], Dict[Any, Any]]: Tuple of batches within dicts.
+    """
     a, b = tuple(zip(*samples))
     return stack_samples(a), stack_samples(b)
 
@@ -207,8 +226,8 @@ def make_dataset(
             when sampling from the dataset.
 
     Returns:
-        dataset: Dataset object formed by the parameters given.
-        sub_datasets (list): List of the sub-datasets created that constitute `dataset`.
+        Tuple[Any, List[Any]]: Tuple of Dataset object formed by the parameters given and list of
+        the sub-datasets created that constitute ``dataset``.
     """
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
@@ -377,7 +396,6 @@ def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
         >>> transform = get_transform(name, params)
 
     Raises:
-        TypeError: If params given point to a variable which is not an :class:`object`
         TypeError: If created transform :class:`object` is itself not :class:`callable`.
     """
     module = params.pop("module", "torchvision.transforms")
@@ -385,15 +403,11 @@ def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
     # Gets the transform requested by config parameters.
     _transform: Callable[..., Any] = utils.func_by_str(module, name)
 
-    if type(_transform) == Callable[..., Any]:
-        transform: Callable[..., Any] = _transform(**params)
-        if type(transform) == Callable[..., Any]:
-            return transform
-        else:
-            raise TypeError(f"Transform has type {type(transform)}, not a callable!")
-
+    transform: Callable[..., Any] = _transform(**params)
+    if callable(transform):
+        return transform
     else:
-        raise TypeError(f"Transform has type {type(_transform)}, not a callable!")
+        raise TypeError(f"Transform has type {type(transform)}, not a callable!")
 
 
 def make_transformations(
@@ -407,10 +421,10 @@ def make_transformations(
 
     Example:
         >>> transform_params = {
-        >>>    "CenterCrop": {"module": "torchvision.torch", "size": 128},
-        >>>     "RandomHorizontalFlip": {"module": "torchvision.torch", "p": 0.7}
+        >>>    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+        >>>     "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7}
         >>> }
-        >>> transforms = make_transforms(transform_params)
+        >>> transforms = make_transformations(transform_params)
 
     Returns:
         If no parameters are parsed, None is returned.
@@ -499,7 +513,7 @@ def make_loaders(
     for mode in dataset_params.keys():
         this_transform_params = transform_params[mode]
         if params.get("elim", False):
-            if this_transform_params["mask"] is not Dict:
+            if type(this_transform_params["mask"]) != dict:
                 this_transform_params["mask"] = {
                     "ClassTransform": {
                         "module": "minerva.transforms",
@@ -550,55 +564,70 @@ def get_manifest_path() -> str:
     """Gets the path to the manifest for the dataset to be used.
 
     Returns:
-        Path to manifest as string.
+        str: Path to manifest as string.
     """
     return os.sep.join([CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"])
 
 
-def get_manifest(manifest_path: str) -> pd.DataFrame:
+def get_manifest(manifest_path: str) -> DataFrame:
     try:
         return pd.read_csv(manifest_path)
     except FileNotFoundError as err:
         print(err)
 
         print("CONSTRUCTING MISSING MANIFEST")
-        manifest = make_manifest()
+        mf_config = config.copy()
+
+        mf_config["dataloader_params"] = config["hyperparams"]["params"]
+
+        manifest = make_manifest(mf_config)
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
+        path, _ = os.path.split(manifest_path)
+        if not os.path.exists(path):
+            os.makedirs(path)
+
         manifest.to_csv(manifest_path)
 
         return manifest
 
 
-def make_manifest(mf_config: Dict[Any, Any] = config) -> pd.DataFrame:
+def make_manifest(mf_config: Dict[Any, Any] = config) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
-    The dataset to construct a manifest of is defined by the 'data_config' value in the config.
+    The dataset to construct a manifest of is defined by the ``data_config`` value in the config.
 
     Returns:
-        df (pd.DataFrame): The completed manifest as a DataFrame.
+        DataFrame: The completed manifest as a :class:`DataFrame`.
     """
     dataloader_params = mf_config["dataloader_params"]
     dataset_params = mf_config["dataset_params"]
     sampler_params = mf_config["sampler_params"]
     collator_params = mf_config["collator"]
 
+    keys = list(dataset_params.keys())
     print("CONSTRUCTING DATASET")
     loader = construct_dataloader(
         mf_config["dir"]["data"],
-        dataset_params,
-        sampler_params,
+        dataset_params[keys[0]],
+        sampler_params[keys[0]],
         dataloader_params,
         collator_params=collator_params,
     )
 
     print("FETCHING SAMPLES")
-    df = pd.DataFrame()
-    df["MODES"] = load_all_samples(loader)
+    df = DataFrame()
+
+    modes = load_all_samples(loader)
+
+    df["MODES"] = [np.array([]) for _ in range(len(modes))]
+
+    for i in range(len(modes)):
+        df["MODES"][i] = modes[i]
 
     print("CALCULATING CLASS FRACTIONS")
     # Calculates the fractional size of each class in each patch.
-    df = pd.DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
+    df = DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
     df.fillna(0, inplace=True)
 
     # Delete redundant MODES column.
