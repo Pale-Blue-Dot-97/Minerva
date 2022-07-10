@@ -89,10 +89,6 @@ class RandomPairGeoSampler(GeoSampler):
             ):
                 self.hits.append(hit)
 
-        # Define the distance to add to an existing bounding box to get
-        # the box to sample the other side of the pair from.
-        self.r = (self.max_r - self.size[0], self.max_r - self.size[1])
-
     def __iter__(self) -> Iterator[Tuple[BoundingBox, BoundingBox]]:
         """Return a pair of BoundingBox indices of a dataset that are geospatially close.
 
@@ -104,7 +100,7 @@ class RandomPairGeoSampler(GeoSampler):
             hit = random.choice(self.hits)
             bounds = BoundingBox(*hit.bounds)
 
-            bbox_a, bbox_b = get_pair_bboxes(bounds, self.size, self.res, self.r)
+            bbox_a, bbox_b = get_pair_bboxes(bounds, self.size, self.res, self.max_r)
 
             yield bbox_a, bbox_b
 
@@ -177,10 +173,6 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
                 "Value given for `tiles_per_batch` is not a multiple of batch_size"
             )
 
-        # Define the distance to add to an existing bounding box to get
-        # the box to sample the other side of the pair from.
-        self.r = (self.max_r - self.size[0], self.max_r - self.size[1])
-
     def __iter__(self) -> Iterator[List[Tuple[BoundingBox, BoundingBox]]]:
         """Return the indices of a dataset.
 
@@ -197,7 +189,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
                 # Choose random indices within that tile
                 for _ in range(self.sam_per_tile):
                     bbox_a, bbox_b = get_pair_bboxes(
-                        bounds, self.size, self.res, self.r
+                        bounds, self.size, self.res, self.max_r
                     )
                     batch.append((bbox_a, bbox_b))
 
@@ -212,22 +204,36 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         return self.length // self.batch_size
 
 
-def get_greater_bbox(bbox: BoundingBox, r: Tuple[float, float]) -> BoundingBox:
+def get_greater_bbox(
+    bbox: BoundingBox, r: int, size: Union[int, Tuple[int, int]]
+) -> BoundingBox:
     """Return a bounding box at ``max_r`` distance around the first box.
 
     Args:
         bbox (BoundingBox): Bounding box of the original sample.
-        r (Tuple[float, float]): Tuple of x, y distances to extend the original bounding box by
+        r (int): Distance in pixels to extend the original bounding box by
             to get a new greater bounds to sample from.
+        size (float | Tuple[float, float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
+            represents in pixels.
 
     Returns:
         BoundingBox: Greater bounds around original bounding box to sample from.
     """
+    x: int
+    if type(size) == tuple:
+        x = size[0]
+    else:
+        x = size
+
+    # Calculates the geospatial distance to add to the existing bounding box to get
+    # the box to sample the other side of the pair from.
+    r_in_crs = r * abs(bbox.maxx - bbox.minx) / float(x)
+
     return BoundingBox(
-        bbox.minx - r[0],
-        bbox.maxx + r[0],
-        bbox.miny - r[1],
-        bbox.maxy + r[1],
+        bbox.minx - r_in_crs,
+        bbox.maxx + r_in_crs,
+        bbox.miny - r_in_crs,
+        bbox.maxy + r_in_crs,
         bbox.mint,
         bbox.maxt,
     )
@@ -235,9 +241,9 @@ def get_greater_bbox(bbox: BoundingBox, r: Tuple[float, float]) -> BoundingBox:
 
 def get_pair_bboxes(
     bounds: BoundingBox,
-    size: Union[Tuple[float, float], float],
+    size: Union[Tuple[int, int], int],
     res: float,
-    r: Tuple[float, float],
+    max_r: int,
 ) -> Tuple[BoundingBox, BoundingBox]:
     """Samples a pair of bounding boxes geo-spatially close to each other.
 
@@ -254,7 +260,7 @@ def get_pair_bboxes(
     # Choose a random index within that tile.
     bbox_a = get_random_bounding_box(bounds, size, res)
 
-    max_bounds = get_greater_bbox(bbox_a, r)
+    max_bounds = get_greater_bbox(bbox_a, max_r, size)
 
     # Check that the new bbox cannot exceed the bounds of the tile.
     max_bounds = utils.check_within_bounds(max_bounds, bounds)
