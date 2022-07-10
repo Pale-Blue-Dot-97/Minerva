@@ -98,7 +98,7 @@ sampler_params:
         roi: false
         params:
             size: 32
-            length: 40
+            length: 120
 
     # Validation Dataset Sampler
     val:
@@ -176,7 +176,7 @@ plots:
 # opt to ask at runtime;
 # auto or True to automatically do so;
 # or False, None etc to not
-save_model: false
+save_model: true
 run_tensorboard: false
 save: true
 show: false
