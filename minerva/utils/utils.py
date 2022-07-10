@@ -361,6 +361,18 @@ def mkexpdir(name: str) -> None:
         pass
 
 
+def set_seeds(seed: int) -> None:
+    """Set torch, numpy and inbuilt seeds for reproducibility.
+
+    Args:
+        seed (int): Seed number to set all seeds to.
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+
+
 def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
     """Checks if a key exists in a dictionary and if it is ``None`` or ``False``.
 
