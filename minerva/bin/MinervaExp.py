@@ -44,7 +44,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from minerva.trainer import Trainer
-from minerva.utils import config, master_parser
+from minerva.utils import config, master_parser, utils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -235,10 +235,7 @@ if __name__ == "__main__":
     seed = config.get("seed", 42)
 
     # Set torch, numpy and inbuilt seeds for reproducibility.
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    utils.set_seeds(seed)
 
     if "SLURM_JOB_ID" in os.environ:
         # Single-node and multi-node distributed training on SLURM cluster.
