@@ -1,5 +1,7 @@
 from minerva.trainer import Trainer
-from minerva.utils import config
+from minerva.utils.utils import config, set_seeds
+
+set_seeds(42)
 
 
 def test_trainer() -> None:
@@ -8,3 +10,5 @@ def test_trainer() -> None:
     assert isinstance(trainer, Trainer)
 
     trainer.fit()
+
+    trainer.test()
