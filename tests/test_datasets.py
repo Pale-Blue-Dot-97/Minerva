@@ -12,13 +12,15 @@ from torchgeo.samplers.utils import get_random_bounding_box
 from rasterio.crs import CRS
 
 from minerva import datasets as mdt
-from minerva.utils.utils import config
+from minerva.utils.utils import config, set_seeds
 
 data_root = os.path.join("tests", "tmp")
 img_root = os.path.join(data_root, "data", "test_images")
 lc_root = os.path.join(data_root, "data", "test_lc")
 
 bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
+
+set_seeds(42)
 
 
 def test_make_bounding_box() -> None:

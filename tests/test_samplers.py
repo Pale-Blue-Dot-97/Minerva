@@ -5,11 +5,14 @@ from torch.utils.data import DataLoader
 
 from minerva.samplers import RandomPairBatchGeoSampler, RandomPairGeoSampler
 from minerva.datasets import TestImgDataset, PairedDataset, stack_sample_pairs
+from minerva.utils.utils import set_seeds
 
 
 data_root = os.path.join("tests", "tmp")
 img_root = os.path.join(data_root, "data", "test_images")
 lc_root = os.path.join(data_root, "data", "test_lc")
+
+set_seeds(42)
 
 
 def test_randompairgeosampler() -> None:

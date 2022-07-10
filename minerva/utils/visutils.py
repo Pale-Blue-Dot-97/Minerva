@@ -19,8 +19,6 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 # TODO: Reduce boilerplate.
-# TODO: Fix all type-hinting issues.
-# TODO: Fix methods broken by pivot to torchgeo.
 #
 """Module to visualise .tiff images, label masks and results from the fitting of neural networks for remote sensing.
 
