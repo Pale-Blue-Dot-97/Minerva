@@ -160,9 +160,9 @@ def test_simclr() -> None:
     x = torch.stack([x, x])
 
     for model in (
-        mm.SimSiam18(loss_func, input_size=input_size),
-        mm.SimSiam34(loss_func, input_size=input_size),
-        mm.SimSiam50(loss_func, input_size=input_size),
+        mm.Siam18(loss_func, input_size=input_size),
+        mm.Siam34(loss_func, input_size=input_size),
+        mm.Siam50(loss_func, input_size=input_size),
     ):
         optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
 

@@ -365,7 +365,7 @@ def test_lat_lon_to_loc() -> None:
     assert utils.lat_lon_to_loc(lat_3, lon_3) == "Cimarron County, Oklahoma"
 
     assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
-    assert utils.lat_lon_to_loc(lat_5, lon_5) == "Civitas Vaticana"
+    assert utils.lat_lon_to_loc(lat_5, lon_5) == "Civitas Vaticana - Città del Vaticano"
     with no_connection():
         assert utils.lat_lon_to_loc(lat_1, lon_1) == ""
 
