@@ -1821,13 +1821,13 @@ class FCN8ResNet152(_FCN):
         )
 
 
-class _SimSiam(MinervaModel, MinervaBackbone):
-    """Base SimSiam class to be subclassed by SimSiam variants.
+class _Siam(MinervaModel, MinervaBackbone):
+    """Base Siam class to be subclassed by Siam variants.
 
     Subclasses MinervaModel.
 
     Attributes:
-        backbone (Module): Backbone of SimSiam that takes the imagery input and
+        backbone (Module): Backbone of Siam that takes the imagery input and
             extracts learned representations.
         proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
 
@@ -1848,7 +1848,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
 
-        super(_SimSiam, self).__init__(criterion=criterion, input_shape=input_size)
+        super(_Siam, self).__init__(criterion=criterion, input_shape=input_size)
 
         self.backbone: MinervaModel = globals()[backbone_name](
             input_size=input_size, encoder=True, **backbone_kwargs
@@ -1867,7 +1867,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
         )
 
     def forward(self, x: FloatTensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-        """Performs a forward pass of SimSiam by using the forward methods of the backbone and
+        """Performs a forward pass of Siam by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
         Overwrites MinervaModel abstract method.
@@ -1928,8 +1928,8 @@ class _SimSiam(MinervaModel, MinervaBackbone):
         return loss, z
 
 
-class SimSiam18(_SimSiam):
-    """SimSiam network using a ResNet18 backbone.
+class Siam18(_Siam):
+    """Siam network using a ResNet18 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1946,7 +1946,7 @@ class SimSiam18(_SimSiam):
         **resnet_kwargs,
     ) -> None:
 
-        super(SimSiam18, self).__init__(
+        super(Siam18, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
@@ -1955,8 +1955,8 @@ class SimSiam18(_SimSiam):
         )
 
 
-class SimSiam34(_SimSiam):
-    """SimSiam network using a ResNet32 backbone.
+class Siam34(_Siam):
+    """Siam network using a ResNet32 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1973,7 +1973,7 @@ class SimSiam34(_SimSiam):
         **resnet_kwargs,
     ) -> None:
 
-        super(SimSiam34, self).__init__(
+        super(Siam34, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
@@ -1982,8 +1982,8 @@ class SimSiam34(_SimSiam):
         )
 
 
-class SimSiam50(_SimSiam):
-    """SimSiam network using a ResNet50 backbone.
+class Siam50(_Siam):
+    """Siam network using a ResNet50 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -2000,7 +2000,7 @@ class SimSiam50(_SimSiam):
         **resnet_kwargs,
     ) -> None:
 
-        super(SimSiam50, self).__init__(
+        super(Siam50, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
