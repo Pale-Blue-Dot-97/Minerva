@@ -109,7 +109,16 @@ class MinervaLogger(ABC):
 
     @abc.abstractmethod
     def log(
-        self, mode: str, step_num: int, writer: SummaryWriter, loss: _Loss, *args
+        self,
+        mode: str,
+        step_num: int,
+        writer: SummaryWriter,
+        loss: _Loss,
+        z: Optional[Tensor] = None,
+        y: Optional[Tensor] = None,
+        bbox: Optional[BoundingBox] = None,
+        *args,
+        **kwargs,
     ) -> None:
         """Abstract logging method, the core functionality of a logger. Must be overwritten.
 
@@ -118,6 +127,9 @@ class MinervaLogger(ABC):
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
             loss (_Loss): Loss from this step of model fitting.
+            z (Tensor): Optional; Output tensor from the model.
+            y (Tensor): Optional; Labels to assess model output against.
+            bbox (BoundingBox): Optional; Bounding boxes of the input samples.
 
         Returns:
             None
@@ -228,9 +240,11 @@ class STG_Logger(MinervaLogger):
         step_num: int,
         writer: SummaryWriter,
         loss: _Loss,
-        z: Tensor,
-        y: Tensor,
-        bbox: BoundingBox,
+        z: Optional[Tensor] = None,
+        y: Optional[Tensor] = None,
+        bbox: Optional[BoundingBox] = None,
+        *args,
+        **kwargs,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
@@ -246,7 +260,10 @@ class STG_Logger(MinervaLogger):
         Returns:
             None
         """
+        assert z is not None
+
         if self.record_int:
+            assert y is not None
             # Arg max the estimated probabilities and add to predictions.
             self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()
 
@@ -261,6 +278,7 @@ class STG_Logger(MinervaLogger):
             self.results["ids"].append(batch_ids)
 
         if self.record_float:
+            assert bbox is not None
             # Add the estimated probabilities to probs.
             self.results["probs"][self.logs["batch_num"]] = z.detach().cpu().numpy()
             self.results["bounds"][self.logs["batch_num"]] = bbox
@@ -329,7 +347,10 @@ class SSL_Logger(MinervaLogger):
         writer: SummaryWriter,
         loss: _Loss,
         z: Optional[Tensor] = None,
+        y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
+        *args,
+        **kwargs,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
@@ -343,7 +364,7 @@ class SSL_Logger(MinervaLogger):
             bbox (BoundingBox): Optional; Bounding boxes of the input samples.
         """
         assert z is not None
-        
+
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
