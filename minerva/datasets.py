@@ -91,10 +91,23 @@ __all__ = [
 #                                                     CLASSES
 # =====================================================================================================================
 class TestImgDataset(RasterDataset):
+    """Test dataset for imagery.
+
+    Attributes:
+        filename_glob (str): Pattern for image tiff files within dataset root to construct dataset from.
+    """
+
     filename_glob = "*_img.tif"
 
 
 class TestMaskDataset(RasterDataset):
+    """Test dataset for land cover data.
+
+    Attributes:
+        filename_glob (str): Pattern for mask tiff files within dataset root to construct dataset from.
+        is_image (bool): Sets flag to false to mark this as not a imagery dataset.
+    """
+
     filename_glob = "*_lc.tif"
     is_image = False
 
