@@ -160,7 +160,7 @@ def get_collator(
         else:
             collator = utils.func_by_str(module, collator_params["name"])
     else:
-        return stack_samples
+        collator = stack_samples
 
     if callable(collator):
         return collator
