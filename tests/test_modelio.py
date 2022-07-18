@@ -40,7 +40,7 @@ def test_ssl_pair_tg() -> None:
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
-    for mode in ("train", "val", "test"):
+    for mode in ("train", "val"):
         images_1 = torch.rand(size=(6, *input_size))
         bboxes_1 = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
 
@@ -61,4 +61,5 @@ def test_ssl_pair_tg() -> None:
 
         assert type(results[0]) is torch.Tensor
         assert results[1].size() == (12, 128)
-        assert results[2] == batch_1["bbox"] + batch_2["bbox"]
+        assert results[2] is None
+        assert results[3] == batch_1["bbox"] + batch_2["bbox"]
