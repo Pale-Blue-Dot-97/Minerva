@@ -21,7 +21,7 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Sequence, Tuple
+from typing import Any, Dict, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -50,7 +50,7 @@ def sup_tg(
     device: torch.device,
     mode: Literal["train", "val", "test"],
     **kwargs
-) -> Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]:
+) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a supervised model using `torchgeo` datasets.
 
     Args:
@@ -83,7 +83,9 @@ def sup_tg(
     else:
         loss, z = model.step(x, y, train=False)
 
-    return loss, z, y, batch["bbox"]
+    bbox: Sequence[BoundingBox] = batch["bbox"]
+    assert isinstance(bbox, Sequence)
+    return loss, z, y, bbox
 
 
 def ssl_pair_tg(
@@ -92,7 +94,7 @@ def ssl_pair_tg(
     device: torch.device,
     mode: Literal["train", "val"],
     **kwargs
-) -> Tuple[_Loss, Tensor, Sequence[BoundingBox]]:
+) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]], None, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
     Args:
@@ -130,4 +132,4 @@ def ssl_pair_tg(
     else:
         loss, z = model.step(x, train=False)
 
-    return loss, z, batch[0]["bbox"] + batch[1]["bbox"]
+    return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]
