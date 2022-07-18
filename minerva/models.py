@@ -1994,9 +1994,9 @@ class Siam50(_Siam):
 # =====================================================================================================================
 def get_output_shape(
     model: Module,
-    image_dim: Union[List[int], Tuple[int, ...]],
+    image_dim: Sequence[int],
     sample_pairs: bool = False,
-) -> Union[int, Iterable[int]]:
+) -> Union[int, Sequence[int]]:
     """Gets the output shape of a model.
 
     Args:
@@ -2006,21 +2006,22 @@ def get_output_shape(
     Returns:
         The shape of the output data from the model.
     """
+    _image_dim: Union[Sequence[int], int] = image_dim
     try:
         if len(image_dim) == 1:
-            image_dim = image_dim[0]
+            _image_dim = image_dim[0]
     except TypeError:
         if not hasattr(image_dim, "__len__"):
             pass
         else:
             raise TypeError
 
-    if not hasattr(image_dim, "__len__"):
-        random_input = torch.rand([4, image_dim])
+    if not hasattr(_image_dim, "__len__"):
+        random_input = torch.rand([4, _image_dim])
     elif sample_pairs:
-        random_input = torch.rand([2, 4, *image_dim])
+        random_input = torch.rand([2, 4, *_image_dim])
     else:
-        random_input = torch.rand([4, *image_dim])
+        random_input = torch.rand([4, *_image_dim])
 
     output: Tensor = model(random_input)
 
