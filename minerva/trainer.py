@@ -21,7 +21,7 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union
 
 import os
 from contextlib import nullcontext
@@ -344,12 +344,16 @@ class Trainer:
         return utils.func_by_str("minerva.modelio", self.params["model_io"])
 
     def epoch(
-        self, mode: str, record_int: bool = False, record_float: bool = False
+        self,
+        mode: Literal["train", "val", "test"],
+        record_int: bool = False,
+        record_float: bool = False,
     ) -> Optional[Dict[str, Any]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
-            mode (str): Either train, val or test. Defines the type of epoch to run on the model.
+            mode (Literal["train", "val", "test"]): Either train, val or test.
+                Defines the type of epoch to run on the model.
             record_int (bool): Optional; Whether to record the integer results
                 (i.e. ground truth and predicted labels).
             record_float (bool): Optional; Whether to record the floating point results i.e. class probabilities.
@@ -427,6 +431,7 @@ class Trainer:
             )
 
             # Conduct training or validation epoch.
+            mode: Literal["train", "val"]
             for mode in ("train", "val"):
 
                 results: Dict[str, Any] = {}
