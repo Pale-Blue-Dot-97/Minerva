@@ -13,7 +13,7 @@
   <p align="center">
     Framework for machine learning in remote sensing
     <br />
-    <a href="https://github.com/Pale-Blue-Dot-97/Minerva/gh-pages"><strong>Explore the docs »</strong></a>
+    <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
     <br />
     <a href="https://github.com/Pale-Blue-Dot-97/Minerva/issues">Report Bug</a>
