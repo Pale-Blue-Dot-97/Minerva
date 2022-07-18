@@ -34,6 +34,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Literal,
     Optional,
     Tuple,
     Type,
@@ -44,7 +45,7 @@ from typing import (
 
 import numpy as np
 import torch
-from torch import FloatTensor, LongTensor, Tensor
+from torch import Tensor
 from torch.nn import Module
 from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
@@ -129,38 +130,22 @@ class MinervaModel(Module, ABC):
             self, self.input_shape, sample_pairs=sample_pairs
         )
 
-    @abc.abstractmethod
-    def forward(self, x: FloatTensor) -> Union[Tensor, Tuple[Tensor, ...]]:
-        """Abstract method for performing a forward pass.
-
-        Note:
-            Needs implementing!
-
-        Args:
-            x (FloatTensor): Input data to network.
-
-        Returns:
-            Union[Tensor, Tuple[Tensor, ...]]: Either a :class:`Tensor` or ``tuple`` of :class:`Tensor`
-            representing various outputs from the model.
-        """
-        return x
-
     @overload
     def step(
-        self, x: FloatTensor, y: LongTensor, train: bool = False
+        self, x: Tensor, y: Tensor, train: bool = False
     ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
         ...
 
     @overload
     def step(
-        self, x: FloatTensor, *, train: bool = False
+        self, x: Tensor, *, train: bool = False
     ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
         ...
 
     def step(
         self,
-        x: FloatTensor,
-        y: Optional[LongTensor] = None,
+        x: Tensor,
+        y: Optional[Tensor] = None,
         train: bool = False,
     ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
         """Generic step of model fitting using a batch of data.
@@ -170,8 +155,8 @@ class MinervaModel(Module, ABC):
             NotImplementedError: If ``self.criterion`` is None.
 
         Args:
-            x (FloatTensor): Batch of input data to network.
-            y (LongTensor or FloatTensor): Either a batch of ground truth labels or generated labels/ pairs.
+            x (Tensor): Batch of input data to network.
+            y (Tensor): Either a batch of ground truth labels or generated labels/ pairs.
             train (bool): Sets whether this shall be a training step or not. True for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
                 If False for a validation or testing step, these actions are not taken.
@@ -213,7 +198,7 @@ class MinervaBackbone(ABC):
     def __init__(self) -> None:
         super().__init__()
 
-        self.backbone = None
+        self.backbone: MinervaModel
 
     def get_backbone(self) -> Module:
         """Gets the backbone network of the model.
@@ -741,8 +726,6 @@ class ResNet(MinervaModel, ABC):
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the :class:`ResNet`.
 
-        Overwrites :class:`MinervaModel` abstract method.
-
         Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
         to model (e.g. ``model()``).
 
@@ -795,11 +778,14 @@ class DCN(MinervaModel, ABC):
     """
 
     def __init__(
-        self, in_channel: int = 512, n_classes: int = 21, variant: str = "32"
+        self,
+        in_channel: int = 512,
+        n_classes: int = 21,
+        variant: Literal["32", "16", "8"] = "32",
     ) -> None:
 
         super(DCN, self).__init__(n_classes=n_classes)
-        self.variant = variant
+        self.variant: Literal["32", "16", "8"] = variant
 
         assert type(self.n_classes) is int
 
@@ -877,8 +863,6 @@ class DCN(MinervaModel, ABC):
     def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
-
-        Overwrites :class:`MinervaModel` abstract method.
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
@@ -979,11 +963,9 @@ class ResNet18(MinervaModel, ABC):
         )
 
     def forward(
-        self, x: FloatTensor
+        self, x: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the :class:`ResNet`.
-
-        Overwrites :class:`MinervaModel` abstract method.
 
         Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
         to model (e.g. ``model()``).
@@ -1058,11 +1040,9 @@ class ResNet34(MinervaModel, ABC):
         )
 
     def forward(
-        self, x: FloatTensor
+        self, x: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the :class:`ResNet`.
-
-        Overwrites :class:`MinervaModel` abstract method.
 
         Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
         to model (e.g. ``model()``).
@@ -1141,7 +1121,7 @@ class ResNet50(MinervaModel, ABC):
         )
 
     def forward(
-        self, x: FloatTensor
+        self, x: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the :class:`ResNet`.
 
@@ -1224,7 +1204,7 @@ class ResNet101(MinervaModel, ABC):
         )
 
     def forward(
-        self, x: FloatTensor
+        self, x: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the :class:`ResNet`.
 
@@ -1307,7 +1287,7 @@ class ResNet152(MinervaModel, ABC):
         )
 
     def forward(
-        self, x: FloatTensor
+        self, x: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the :class:`ResNet`.
 
@@ -1368,7 +1348,7 @@ class _FCN(MinervaModel, ABC):
         input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         backbone_name: str = "ResNet18",
-        decoder_variant: str = "32",
+        decoder_variant: Literal["32", "16", "8"] = "32",
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         backbone_kwargs: Optional[Dict[str, Any]] = None,
@@ -1403,7 +1383,7 @@ class _FCN(MinervaModel, ABC):
             variant=decoder_variant,
         )
 
-    def forward(self, x: FloatTensor) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
         feeding its output into the forward for the decoder.
 
@@ -1866,7 +1846,7 @@ class _Siam(MinervaModel, MinervaBackbone):
             torch.nn.Linear(512, feature_dim, bias=False),
         )
 
-    def forward(self, x: FloatTensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of Siam by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -1886,7 +1866,7 @@ class _Siam(MinervaModel, MinervaBackbone):
 
         return z, g_a, g_b, f_a, f_b
 
-    def step(self, x: FloatTensor, *, train: bool = False) -> Tuple[_Loss, Tensor]:
+    def step(self, x: Tensor, *, train: bool = False) -> Tuple[_Loss, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
 
         Raises:
