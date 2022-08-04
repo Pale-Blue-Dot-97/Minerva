@@ -12,8 +12,8 @@ imageio==2.14.1
 torchinfo==1.6.3
 torchvision>=0.11.2
 setuptools==59.5.0
-rasterio==1.2.10
-fiona==1.8.20
+rasterio>=1.2.10
+fiona>=1.8.20
 tabulate==0.8.9
 inputimeout==1.0.4
 psutil==5.9.0
