@@ -1,6 +1,6 @@
 # Minerva
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva) ![Ubuntu-Py39](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_39.yml/badge.svg) ![Ubuntu-Py38](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_38.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva) ![Ubuntu-Py310](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_310.yml/badge.svg) ![Ubuntu-Py39](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_39.yml/badge.svg) ![Ubuntu-Py38](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_38.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 
 
