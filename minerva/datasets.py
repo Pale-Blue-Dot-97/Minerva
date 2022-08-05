@@ -21,6 +21,7 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import inspect
 from typing import (
     Any,
     Callable,
@@ -128,7 +129,12 @@ class PairedDataset(RasterDataset):
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(*args, **kwargs)
+        super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
+        super_kwargs = {
+            key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
+        }
+
+        super().__init__(*args, **super_kwargs)
         self.dataset = dataset_cls(*args, **kwargs)
 
     def __getitem__(
