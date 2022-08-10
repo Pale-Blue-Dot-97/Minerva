@@ -24,6 +24,7 @@
 # =====================================================================================================================
 import abc
 from abc import ABC
+import math
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -338,6 +339,8 @@ class SSL_Logger(MinervaLogger):
             "total_loss": 0.0,
             "total_correct": 0.0,
             "total_top5": 0.0,
+            "avg_loss": 0.0,
+            "avg_output_std": 0.0,
         }
 
     def log(
@@ -373,6 +376,30 @@ class SSL_Logger(MinervaLogger):
         sim_argsort = utils.calc_contrastive_acc(z)
         correct = float((sim_argsort == 0).float().mean().cpu().numpy())
         top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
+
+        if kwargs["collapse_level"]:
+            # calculate the per-dimension standard deviation of the outputs
+            # we can use this later to check whether the embeddings are collapsing
+            output = torch.split(z, 0.5 * len(z), 0)[0].detach()
+            output = torch.nn.functional.normalize(output, dim=1)
+
+            output_std = torch.std(output, 0)
+            output_std = output_std.mean()
+
+            # use moving averages to track the loss and standard deviation
+            w = 0.9
+            self.logs["avg_loss"] = w * self.logs["avg_loss"] + (1 - w) * ls
+            self.logs["avg_output_std"] = (
+                w * self.logs["avg_output_std"] + (1 - w) * output_std.item()
+            )
+
+            # the level of collapse is large if the standard deviation of the l2
+            # normalized output is much smaller than 1 / sqrt(dim)
+            collapse_level = max(
+                0.0, 1 - math.sqrt(len(output)) * self.logs["avg_output_std"]
+            )
+
+            self.logs["collapse_level"] = collapse_level
 
         # Add accuracies to log.
         self.logs["total_correct"] += correct
