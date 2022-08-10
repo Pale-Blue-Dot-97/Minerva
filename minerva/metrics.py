@@ -277,6 +277,10 @@ class SSL_Metrics(MinervaMetrics):
             "val_top5_acc": {"x": [], "y": []},
         }
 
+        if model_type == "siamese":
+            self.metrics["train_collapse_level"] = {"x": [], "y": []}
+            self.metrics["val_collapse_level"] = {"x": [], "y": []}
+
     def calc_metrics(self, mode: Literal["train", "val", "test"], logs) -> None:
         """Updates metrics with epoch results.
 
@@ -307,6 +311,7 @@ class SSL_Metrics(MinervaMetrics):
                     * self.data_size[2]
                 )
             )
+
         else:
             self.metrics[f"{mode}_acc"]["y"].append(
                 logs["total_correct"] / (self.n_batches[mode] * self.batch_size)
@@ -314,6 +319,9 @@ class SSL_Metrics(MinervaMetrics):
             self.metrics[f"{mode}_top5_acc"]["y"].append(
                 logs["total_top5"] / (self.n_batches[mode] * self.batch_size)
             )
+
+        if self.model_type == "siamese":
+            self.metrics[f"{mode}_collapse_level"]["y"].append(logs["collapse_level"])
 
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
@@ -326,6 +334,9 @@ class SSL_Metrics(MinervaMetrics):
         self.metrics[f"{mode}_acc"]["x"].append(epoch_no + 1)
         self.metrics[f"{mode}_top5_acc"]["x"].append(epoch_no + 1)
 
+        if self.model_type == "siamese":
+            self.metrics[f"{mode}_collapse_level"]["x"].append(epoch_no + 1)
+
     def print_epoch_results(self, mode: str, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
 
@@ -333,11 +344,17 @@ class SSL_Metrics(MinervaMetrics):
             mode (Literal["train", "val", "test"]): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
-        print(
-            "{} | Loss: {} | Accuracy: {}% | Top5 Accuracy: {}% \n".format(
-                mode,
-                self.metrics[f"{mode}_loss"]["y"][epoch_no],
-                self.metrics[f"{mode}_acc"]["y"][epoch_no] * 100.0,
-                self.metrics[f"{mode}_top5_acc"]["y"][epoch_no] * 100.0,
-            )
+        msg = "{} | Loss: {} | Accuracy: {}% | Top5 Accuracy: {}% ".format(
+            mode,
+            self.metrics[f"{mode}_loss"]["y"][epoch_no],
+            self.metrics[f"{mode}_acc"]["y"][epoch_no] * 100.0,
+            self.metrics[f"{mode}_top5_acc"]["y"][epoch_no] * 100.0,
         )
+
+        if self.model_type == "siamese":
+            msg += "| Collapse Level: {}%".format(
+                self.metrics[f"{mode}_collapse_level"]["y"][epoch_no] * 100.0
+            )
+
+        msg += "\n"
+        print(msg)
