@@ -1801,13 +1801,13 @@ class FCN8ResNet152(_FCN):
         )
 
 
-class _Siam(MinervaModel, MinervaBackbone):
-    """Base Siam class to be subclassed by Siam variants.
+class _SimCLR(MinervaModel, MinervaBackbone):
+    """Base SimCLR class to be subclassed by SimCLR variants.
 
     Subclasses MinervaModel.
 
     Attributes:
-        backbone (Module): Backbone of Siam that takes the imagery input and
+        backbone (Module): Backbone of SimCLR that takes the imagery input and
             extracts learned representations.
         proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
 
@@ -1828,7 +1828,7 @@ class _Siam(MinervaModel, MinervaBackbone):
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
 
-        super(_Siam, self).__init__(criterion=criterion, input_shape=input_size)
+        super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
 
         self.backbone: MinervaModel = globals()[backbone_name](
             input_size=input_size, encoder=True, **backbone_kwargs
@@ -1847,7 +1847,7 @@ class _Siam(MinervaModel, MinervaBackbone):
         )
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-        """Performs a forward pass of Siam by using the forward methods of the backbone and
+        """Performs a forward pass of SimCLR by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
         Overwrites MinervaModel abstract method.
@@ -1908,8 +1908,8 @@ class _Siam(MinervaModel, MinervaBackbone):
         return loss, z
 
 
-class Siam18(_Siam):
-    """Siam network using a ResNet18 backbone.
+class SimCLR18(_SimCLR):
+    """SimCLR network using a ResNet18 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1926,7 +1926,7 @@ class Siam18(_Siam):
         **resnet_kwargs,
     ) -> None:
 
-        super(Siam18, self).__init__(
+        super(SimCLR18, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
@@ -1935,8 +1935,8 @@ class Siam18(_Siam):
         )
 
 
-class Siam34(_Siam):
-    """Siam network using a ResNet32 backbone.
+class SimCLR34(_SimCLR):
+    """SimCLR network using a ResNet32 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1953,7 +1953,7 @@ class Siam34(_Siam):
         **resnet_kwargs,
     ) -> None:
 
-        super(Siam34, self).__init__(
+        super(SimCLR34, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
@@ -1962,8 +1962,8 @@ class Siam34(_Siam):
         )
 
 
-class Siam50(_Siam):
-    """Siam network using a ResNet50 backbone.
+class SimCLR50(_SimCLR):
+    """SimCLR network using a ResNet50 backbone.
 
     Args:
         criterion: PyTorch loss function model will use.
@@ -1980,7 +1980,7 @@ class Siam50(_Siam):
         **resnet_kwargs,
     ) -> None:
 
-        super(Siam50, self).__init__(
+        super(SimCLR50, self).__init__(
             criterion=criterion,
             input_size=input_size,
             feature_dim=feature_dim,
@@ -1988,6 +1988,207 @@ class Siam50(_Siam):
             backbone_kwargs=resnet_kwargs,
         )
 
+
+class _SimSiam(MinervaModel, MinervaBackbone):
+    """Base SimSiam class to be subclassed by SimSiam variants.
+
+    Subclasses MinervaModel.
+
+    Attributes:
+        backbone (Module): Backbone of SimSiam that takes the imagery input and
+            extracts learned representations.
+        proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        backbone_name (str): Optional; Name of the backbone within this module to use.
+        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: Tuple[int, int, int] = (4, 256, 256),
+        feature_dim: int = 2048,
+        pred_dim: int = 512,
+        backbone_name: str = "ResNet18",
+        backbone_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+
+        super(_SimSiam, self).__init__(criterion=criterion, input_shape=input_size)
+
+        self.backbone: MinervaModel = globals()[backbone_name](
+            input_size=input_size, encoder=True, **backbone_kwargs
+        )
+        
+        self.backbone.determine_output_dim()
+
+        backbone_out_shape = self.backbone.output_shape
+        assert isinstance(backbone_out_shape, Sequence)
+        
+        prev_dim = np.prod(backbone_out_shape)
+        
+        self.proj_head = torch.nn.Sequential(torch.nn.Linear(prev_dim, prev_dim, bias=False),
+            torch.nn.BatchNorm1d(prev_dim),
+            torch.nn.ReLU(inplace=True), # first layer
+            torch.nn.Linear(prev_dim, prev_dim, bias=False),
+            torch.nn.BatchNorm1d(prev_dim),
+            torch.nn.ReLU(inplace=True), # second layer
+            self.proj_head,
+            torch.nn.BatchNorm1d(feature_dim, affine=False)) # output layer
+        self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
+
+        # build a 2-layer predictor
+        self.predictor = torch.nn.Sequential(
+            torch.nn.Linear(feature_dim, pred_dim, bias=False),
+            torch.nn.BatchNorm1d(pred_dim),
+            torch.nn.ReLU(inplace=True), # hidden layer
+            torch.nn.Linear(pred_dim, feature_dim)) # output layer
+
+
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        """Performs a forward pass of SimCLR by using the forward methods of the backbone and
+        feeding its output into the projection heads.
+
+        Overwrites MinervaModel abstract method.
+
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        """
+        f_a: Tensor = self.proj_head(torch.flatten(self.backbone(x[0])[0], start_dim=1))
+        f_b: Tensor = self.proj_head(torch.flatten(self.backbone(x[1])[0], start_dim=1))
+
+        g_a: Tensor = self.predictor(f_a)
+        g_b: Tensor = self.predictor(f_b)
+
+        z = torch.cat([g_a, g_b], dim=0)
+
+        assert isinstance(z, Tensor)
+
+        return z, g_a, g_b, f_a, f_b
+
+    def step(self, x: Tensor, *, train: bool = False) -> Tuple[_Loss, Tensor]:
+        """Overwrites :class:`MinervaModel` to account for paired logits.
+
+        Raises:
+            NotImplementedError: If ``self.optimiser`` is None.
+            NotImplementedError: If ``self.criterion`` is None.
+
+        Args:
+            x (FloatTensor): Batch of input data to network.
+            train (bool): Sets whether this shall be a training step or not. True for training step which will then
+                clear the optimiser, and perform a backward pass of the network then update the optimiser.
+                If False for a validation or testing step, these actions are not taken.
+
+        Returns:
+            Tuple[_Loss, Tensor]: Loss computed by the loss function and a :class:`Tensor`
+            with both projection's logits.
+        """
+
+        if self.optimiser is None:
+            raise NotImplementedError("Optimiser has not been set!")
+
+        if self.criterion is None:
+            raise NotImplementedError("Criterion has not been set!")
+
+        # Resets the optimiser's gradients if this is a training step.
+        if train:
+            self.optimiser.zero_grad()
+
+        # Forward pass.
+        z, z_a, z_b, _, _ = self.forward(x)
+
+        # Compute Loss.
+        loss: _Loss = self.criterion(z_a, z_b)
+
+        # Performs a backward pass if this is a training step.
+        if train:
+            loss.backward()
+            self.optimiser.step()
+
+        return loss, z
+
+
+class SimSiam18(_SimSiam):
+    """SimSiam network using a ResNet18 backbone.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: Tuple[int, int, int] = (4, 256, 256),
+        feature_dim: int = 128,
+        **resnet_kwargs,
+    ) -> None:
+
+        super(SimSiam18, self).__init__(
+            criterion=criterion,
+            input_size=input_size,
+            feature_dim=feature_dim,
+            backbone_name="ResNet18",
+            backbone_kwargs=resnet_kwargs,
+        )
+
+
+class SimSiam34(_SimSiam):
+    """SimSiam network using a ResNet32 backbone.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: Tuple[int, int, int] = (4, 256, 256),
+        feature_dim: int = 128,
+        **resnet_kwargs,
+    ) -> None:
+
+        super(SimSiam34, self).__init__(
+            criterion=criterion,
+            input_size=input_size,
+            feature_dim=feature_dim,
+            backbone_name="ResNet34",
+            backbone_kwargs=resnet_kwargs,
+        )
+
+
+class SimSiam50(_SimSiam):
+    """SimSiam network using a ResNet50 backbone.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: Tuple[int, int, int] = (4, 256, 256),
+        feature_dim: int = 128,
+        **resnet_kwargs,
+    ) -> None:
+
+        super(SimSiam50, self).__init__(
+            criterion=criterion,
+            input_size=input_size,
+            feature_dim=feature_dim,
+            backbone_name="ResNet50",
+            backbone_kwargs=resnet_kwargs,
+        )
 
 # =====================================================================================================================
 #                                                     METHODS
