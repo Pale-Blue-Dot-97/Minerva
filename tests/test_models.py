@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import torch
-from lightly.loss import NTXentLoss
+from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
 import minerva.models as mm
 
@@ -160,9 +160,36 @@ def test_simclr() -> None:
     x = torch.stack([x, x])
 
     for model in (
-        mm.Siam18(loss_func, input_size=input_size),
-        mm.Siam34(loss_func, input_size=input_size),
-        mm.Siam50(loss_func, input_size=input_size),
+        mm.SimCLR18(loss_func, input_size=input_size),
+        mm.SimCLR34(loss_func, input_size=input_size),
+        mm.SimCLR50(loss_func, input_size=input_size),
+    ):
+        optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+
+        model.set_optimiser(optimiser)
+
+        model.determine_output_dim(sample_pairs=True)
+        assert model.output_shape == (128,)
+
+        loss, z = model.step(x, train=True)
+
+        assert type(loss.item()) is float
+        assert z.size() == (12, 128)
+
+
+def test_simsiam() -> None:
+    loss_func = NegativeCosineSimilarity()
+
+    input_size = (4, 64, 64)
+
+    x = torch.rand((6, *input_size))
+
+    x = torch.stack([x, x])
+
+    for model in (
+        mm.SimSiam18(loss_func, input_size=input_size),
+        mm.SimSiam34(loss_func, input_size=input_size),
+        mm.SimSiam50(loss_func, input_size=input_size),
     ):
         optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
 
