@@ -2022,31 +2022,32 @@ class _SimSiam(MinervaModel, MinervaBackbone):
         self.backbone: MinervaModel = globals()[backbone_name](
             input_size=input_size, encoder=True, **backbone_kwargs
         )
-        
+
         self.backbone.determine_output_dim()
 
         backbone_out_shape = self.backbone.output_shape
         assert isinstance(backbone_out_shape, Sequence)
-        
+
         prev_dim = np.prod(backbone_out_shape)
-        
-        self.proj_head = torch.nn.Sequential(torch.nn.Linear(prev_dim, prev_dim, bias=False),
-            torch.nn.BatchNorm1d(prev_dim),
-            torch.nn.ReLU(inplace=True), # first layer
+
+        self.proj_head = torch.nn.Sequential(
             torch.nn.Linear(prev_dim, prev_dim, bias=False),
             torch.nn.BatchNorm1d(prev_dim),
-            torch.nn.ReLU(inplace=True), # second layer
-            self.proj_head,
-            torch.nn.BatchNorm1d(feature_dim, affine=False)) # output layer
-        self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
+            torch.nn.ReLU(inplace=True),  # first layer
+            torch.nn.Linear(prev_dim, prev_dim, bias=False),
+            torch.nn.BatchNorm1d(prev_dim),
+            torch.nn.ReLU(inplace=True),  # second layer
+            torch.nn.BatchNorm1d(feature_dim, affine=False),
+        )  # output layer
+        # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
 
         # build a 2-layer predictor
         self.predictor = torch.nn.Sequential(
             torch.nn.Linear(feature_dim, pred_dim, bias=False),
             torch.nn.BatchNorm1d(pred_dim),
-            torch.nn.ReLU(inplace=True), # hidden layer
-            torch.nn.Linear(pred_dim, feature_dim)) # output layer
-
+            torch.nn.ReLU(inplace=True),  # hidden layer
+            torch.nn.Linear(pred_dim, feature_dim),
+        )  # output layer
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of SimCLR by using the forward methods of the backbone and
@@ -2056,17 +2057,17 @@ class _SimSiam(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        f_a: Tensor = self.proj_head(torch.flatten(self.backbone(x[0])[0], start_dim=1))
-        f_b: Tensor = self.proj_head(torch.flatten(self.backbone(x[1])[0], start_dim=1))
+        z_a: Tensor = self.proj_head(torch.flatten(self.backbone(x[0])[0], start_dim=1))
+        z_b: Tensor = self.proj_head(torch.flatten(self.backbone(x[1])[0], start_dim=1))
 
-        g_a: Tensor = self.predictor(f_a)
-        g_b: Tensor = self.predictor(f_b)
+        p_a: Tensor = self.predictor(z_a)
+        p_b: Tensor = self.predictor(z_b)
 
-        z = torch.cat([g_a, g_b], dim=0)
+        p = torch.cat([p_a, p_b], dim=0)
 
-        assert isinstance(z, Tensor)
+        assert isinstance(p, Tensor)
 
-        return z, g_a, g_b, f_a, f_b
+        return p, p_a, p_b, z_a.detach(), z_b.detach()
 
     def step(self, x: Tensor, *, train: bool = False) -> Tuple[_Loss, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
@@ -2097,17 +2098,17 @@ class _SimSiam(MinervaModel, MinervaBackbone):
             self.optimiser.zero_grad()
 
         # Forward pass.
-        z, z_a, z_b, _, _ = self.forward(x)
+        p, p_a, p_b, z_a, z_b = self.forward(x)
 
         # Compute Loss.
-        loss: _Loss = self.criterion(z_a, z_b)
+        loss: _Loss = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))
 
         # Performs a backward pass if this is a training step.
         if train:
             loss.backward()
             self.optimiser.step()
 
-        return loss, z
+        return loss, p
 
 
 class SimSiam18(_SimSiam):
@@ -2189,6 +2190,7 @@ class SimSiam50(_SimSiam):
             backbone_name="ResNet50",
             backbone_kwargs=resnet_kwargs,
         )
+
 
 # =====================================================================================================================
 #                                                     METHODS
