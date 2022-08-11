@@ -2037,6 +2037,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
             torch.nn.Linear(prev_dim, prev_dim, bias=False),
             torch.nn.BatchNorm1d(prev_dim),
             torch.nn.ReLU(inplace=True),  # second layer
+            torch.nn.Linear(prev_dim, feature_dim, bias=False),
             torch.nn.BatchNorm1d(feature_dim, affine=False),
         )  # output layer
         # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
