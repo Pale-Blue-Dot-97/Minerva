@@ -377,7 +377,7 @@ class SSL_Logger(MinervaLogger):
         correct = float((sim_argsort == 0).float().mean().cpu().numpy())
         top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
 
-        if kwargs["collapse_level"]:
+        if kwargs.get("collapse_level", False):
             # calculate the per-dimension standard deviation of the outputs
             # we can use this later to check whether the embeddings are collapsing
             output = torch.split(z, 0.5 * len(z), 0)[0].detach()
