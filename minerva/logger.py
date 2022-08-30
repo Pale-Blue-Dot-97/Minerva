@@ -80,6 +80,7 @@ class MinervaLogger(ABC):
         n_samples: int,
         record_int: bool = True,
         record_float: bool = False,
+        **kwargs,
     ) -> None:
 
         super(MinervaLogger, self).__init__()
@@ -185,6 +186,7 @@ class STG_Logger(MinervaLogger):
         n_classes: int,
         record_int: bool = True,
         record_float: bool = False,
+        **kwargs,
     ) -> None:
 
         super(STG_Logger, self).__init__(
@@ -328,6 +330,7 @@ class SSL_Logger(MinervaLogger):
         n_classes: Optional[int] = None,
         record_int: bool = True,
         record_float: bool = False,
+        **kwargs,
     ) -> None:
 
         super(SSL_Logger, self).__init__(
@@ -342,6 +345,8 @@ class SSL_Logger(MinervaLogger):
             "avg_loss": 0.0,
             "avg_output_std": 0.0,
         }
+
+        self.collapse_level = kwargs.get("collapse_level", False)
 
     def log(
         self,
@@ -377,10 +382,10 @@ class SSL_Logger(MinervaLogger):
         correct = float((sim_argsort == 0).float().mean().cpu().numpy())
         top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
 
-        if kwargs.get("collapse_level", False):
+        if self.collapse_level:
             # calculate the per-dimension standard deviation of the outputs
             # we can use this later to check whether the embeddings are collapsing
-            output = torch.split(z, 0.5 * len(z), 0)[0].detach()
+            output = torch.split(z, int(0.5 * len(z)), 0)[0].detach()
             output = torch.nn.functional.normalize(output, dim=1)
 
             output_std = torch.std(output, 0)

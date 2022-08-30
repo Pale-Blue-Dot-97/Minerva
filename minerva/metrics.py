@@ -74,6 +74,7 @@ class MinervaMetrics(ABC):
         self.metrics: Dict[str, Any] = {}
 
         self.model_type = params.get("model_type", "scene_classifier")
+        self.sample_pairs = params.get("sample_pairs", False)
 
     def __call__(
         self, mode: Literal["train", "val", "test"], logs: Dict[str, Any]
@@ -170,6 +171,7 @@ class SP_Metrics(MinervaMetrics):
         batch_size: int,
         data_size: Tuple[int, int, int],
         model_type: str = "segmentation",
+        **params,
     ) -> None:
         super(SP_Metrics, self).__init__(
             n_batches, batch_size, data_size, model_type=model_type
@@ -262,9 +264,15 @@ class SSL_Metrics(MinervaMetrics):
         batch_size: int,
         data_size: Tuple[int, int, int],
         model_type: str = "segmentation",
+        sample_pairs: bool = False,
+        **params,
     ) -> None:
         super(SSL_Metrics, self).__init__(
-            n_batches, batch_size, data_size, model_type=model_type
+            n_batches,
+            batch_size,
+            data_size,
+            model_type=model_type,
+            sample_pairs=sample_pairs,
         )
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
@@ -277,7 +285,7 @@ class SSL_Metrics(MinervaMetrics):
             "val_top5_acc": {"x": [], "y": []},
         }
 
-        if model_type == "siamese":
+        if self.sample_pairs:
             self.metrics["train_collapse_level"] = {"x": [], "y": []}
             self.metrics["val_collapse_level"] = {"x": [], "y": []}
 
@@ -320,7 +328,7 @@ class SSL_Metrics(MinervaMetrics):
                 logs["total_top5"] / (self.n_batches[mode] * self.batch_size)
             )
 
-        if self.model_type == "siamese":
+        if self.sample_pairs:
             self.metrics[f"{mode}_collapse_level"]["y"].append(logs["collapse_level"])
 
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
@@ -334,7 +342,7 @@ class SSL_Metrics(MinervaMetrics):
         self.metrics[f"{mode}_acc"]["x"].append(epoch_no + 1)
         self.metrics[f"{mode}_top5_acc"]["x"].append(epoch_no + 1)
 
-        if self.model_type == "siamese":
+        if self.sample_pairs:
             self.metrics[f"{mode}_collapse_level"]["x"].append(epoch_no + 1)
 
     def print_epoch_results(self, mode: str, epoch_no: int) -> None:
@@ -351,7 +359,7 @@ class SSL_Metrics(MinervaMetrics):
             self.metrics[f"{mode}_top5_acc"]["y"][epoch_no] * 100.0,
         )
 
-        if self.model_type == "siamese":
+        if self.sample_pairs:
             msg += "| Collapse Level: {}%".format(
                 self.metrics[f"{mode}_collapse_level"]["y"][epoch_no] * 100.0
             )
