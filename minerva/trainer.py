@@ -322,6 +322,7 @@ class Trainer:
             batch_size=self.batch_size,
             data_size=data_size,
             model_type=self.params["model_type"],
+            sample_pairs=self.params["sample_pairs"],
         )
 
     def get_logger(self) -> Callable[..., Any]:
@@ -379,6 +380,7 @@ class Trainer:
             self.model.n_classes,
             record_int=record_int,
             record_float=record_float,
+            collapse_level=self.params["sample_pairs"],
         )
 
         # Initialises a progress bar for the epoch.
