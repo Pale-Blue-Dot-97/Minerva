@@ -31,7 +31,7 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 import yaml
-from alive_progress import alive_bar
+from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -383,34 +383,38 @@ class Trainer:
             collapse_level=self.params["sample_pairs"],
         )
 
-        # Initialises a progress bar for the epoch.
-        with alive_bar(
-            self.n_batches[mode], bar="blocks"
-        ) if self.gpu == 0 else nullcontext() as bar:
-            # Sets the model up for training or evaluation modes.
-            if mode == "train":
-                self.model.train()
-            else:
-                self.model.eval()
+        if mode == "val" and self.params["model_type"] == "ssl":
+            results = self.weighted_knn_test()
 
-            # Core of the epoch.
-            for batch in self.loaders[mode]:
-                results = self.modelio_func(
-                    batch, self.model, self.device, mode, **self.params
-                )
+        else:
+            # Initialises a progress bar for the epoch.
+            with alive_bar(
+                self.n_batches[mode], bar="blocks"
+            ) if self.gpu == 0 else nullcontext() as bar:
+                # Sets the model up for training or evaluation modes.
+                if mode == "train":
+                    self.model.train()
+                else:
+                    self.model.eval()
 
-                if dist.is_available() and dist.is_initialized():
-                    loss = results[0].data.clone()
-                    dist.all_reduce(loss.div_(dist.get_world_size()))
-                    results = (loss, *results[1:])
+                # Core of the epoch.
+                for batch in self.loaders[mode]:
+                    results = self.modelio_func(
+                        batch, self.model, self.device, mode, **self.params
+                    )
 
-                epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
+                    if dist.is_available() and dist.is_initialized():
+                        loss = results[0].data.clone()
+                        dist.all_reduce(loss.div_(dist.get_world_size()))
+                        results = (loss, *results[1:])
 
-                self.step_num[mode] += 1
+                    epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
-                # Updates progress bar that batch has been processed.
-                if self.gpu == 0:
-                    bar()
+                    self.step_num[mode] += 1
+
+                    # Updates progress bar that batch has been processed.
+                    if self.gpu == 0:
+                        bar()
 
         # Updates metrics with epoch results.
         self.metric_logger(mode, epoch_logger.get_logs)
@@ -613,6 +617,108 @@ class Trainer:
             self.print(
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
+
+    def weighted_knn_test(
+        self,
+        epoch_logger: MinervaLogger,
+        temp: float = 0.5,
+        k: int = 200,
+    ) -> Tuple[float, float]:
+
+        self.model.eval()
+        n_classes = self.model.n_classes
+
+        total_top1, total_top5, total_num, feature_bank, target_bank = (
+            0.0,
+            0.0,
+            0,
+            [],
+            [],
+        )
+
+        with torch.no_grad():
+            # generate feature bank and target bank
+            feat_bar = alive_it(self.loaders["val"], desc="Feature extracting")
+            for batch in feat_bar:
+                (data, _), target = batch["image"], batch["mask"]
+                target_bank.append(target)
+                feature, _ = self.model(data.cuda(non_blocking=True))
+                feature_bank.append(feature)
+
+                if self.gpu == 0:
+                    feat_bar()
+
+            # [D, N]
+            feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
+
+            # [N]
+            feature_labels = (
+                torch.cat(target_bank, dim=0).contiguous().to(feature_bank.device)
+            )
+
+            # loop test data to predict the label by weighted knn search
+            test_bar = alive_it(self.loaders["test"])
+            for batch in test_bar:
+                (data, _), target = batch["image"], batch["mask"]
+                data, target = data.cuda(non_blocking=True), target.cuda(
+                    non_blocking=True
+                )
+                feature, _ = self.model(data)
+
+                total_num += data.size(0)
+
+                # compute cos similarity between each feature vector and feature bank ---> [B, N]
+                sim_matrix = torch.mm(feature, feature_bank)
+
+                # [B, K]
+                sim_weight, sim_indices = sim_matrix.topk(k=k, dim=-1)
+
+                # [B, K]
+                sim_labels = torch.gather(
+                    feature_labels.expand(data.size(0), -1), dim=-1, index=sim_indices
+                )
+
+                sim_weight = (sim_weight / temp).exp()
+
+                # counts for each class
+                one_hot_label = torch.zeros(
+                    data.size(0) * k, n_classes, device=sim_labels.device
+                )
+
+                # [B*K, C]
+                one_hot_label = one_hot_label.scatter(
+                    dim=-1, index=sim_labels.view(-1, 1), value=1.0
+                )
+
+                # weighted score ---> [B, C]
+                pred_scores = torch.sum(
+                    one_hot_label.view(data.size(0), -1, n_classes)
+                    * sim_weight.unsqueeze(dim=-1),
+                    dim=1,
+                )
+
+                pred_labels = pred_scores.argsort(dim=-1, descending=True)
+                total_top1 += torch.sum(
+                    (pred_labels[:, :1] == target.unsqueeze(dim=-1)).any(dim=-1).float()
+                ).item()
+
+                total_top5 += torch.sum(
+                    (pred_labels[:, :5] == target.unsqueeze(dim=-1)).any(dim=-1).float()
+                ).item()
+
+                if dist.is_available() and dist.is_initialized():
+                    loss = results[0].data.clone()
+                    dist.all_reduce(loss.div_(dist.get_world_size()))
+                    results = (loss, *results[1:])
+
+                epoch_logger.log("val", self.step_num["val"], self.writer, *results)
+
+                self.step_num["val"] += 1
+
+                if self.gpu == 0:
+                    test_bar()
+
+        return total_top1 / total_num * 100, total_top5 / total_num * 100
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
