@@ -383,38 +383,38 @@ class Trainer:
             collapse_level=self.params["sample_pairs"],
         )
 
-        if mode == "val" and self.params["model_type"] == "ssl":
-            results = self.weighted_knn_test()
+        # if mode == "val" and self.params["model_type"] == "ssl":
+        #    results = self.weighted_knn_test()
 
-        else:
-            # Initialises a progress bar for the epoch.
-            with alive_bar(
-                self.n_batches[mode], bar="blocks"
-            ) if self.gpu == 0 else nullcontext() as bar:
-                # Sets the model up for training or evaluation modes.
-                if mode == "train":
-                    self.model.train()
-                else:
-                    self.model.eval()
+        # else:
+        # Initialises a progress bar for the epoch.
+        with alive_bar(
+            self.n_batches[mode], bar="blocks"
+        ) if self.gpu == 0 else nullcontext() as bar:
+            # Sets the model up for training or evaluation modes.
+            if mode == "train":
+                self.model.train()
+            else:
+                self.model.eval()
 
-                # Core of the epoch.
-                for batch in self.loaders[mode]:
-                    results = self.modelio_func(
-                        batch, self.model, self.device, mode, **self.params
-                    )
+            # Core of the epoch.
+            for batch in self.loaders[mode]:
+                results = self.modelio_func(
+                    batch, self.model, self.device, mode, **self.params
+                )
 
-                    if dist.is_available() and dist.is_initialized():
-                        loss = results[0].data.clone()
-                        dist.all_reduce(loss.div_(dist.get_world_size()))
-                        results = (loss, *results[1:])
+                if dist.is_available() and dist.is_initialized():
+                    loss = results[0].data.clone()
+                    dist.all_reduce(loss.div_(dist.get_world_size()))
+                    results = (loss, *results[1:])
 
-                    epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
+                epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
 
-                    self.step_num[mode] += 1
+                self.step_num[mode] += 1
 
-                    # Updates progress bar that batch has been processed.
-                    if self.gpu == 0:
-                        bar()
+                # Updates progress bar that batch has been processed.
+                if self.gpu == 0:
+                    bar()
 
         # Updates metrics with epoch results.
         self.metric_logger(mode, epoch_logger.get_logs)
