@@ -69,7 +69,7 @@ def sup_tg(
 
     # Re-arranges the x and y batches.
     x_batch: Tensor = images.to(torch.float)
-    y_batch: LongTensor = torch.tensor(np.squeeze(masks, axis=1)).type(torch.long)
+    y_batch: LongTensor = torch.tensor(np.squeeze(masks, axis=1), dtype=torch.long)
 
     # Transfer to GPU.
     x: Tensor = x_batch.to(device)
