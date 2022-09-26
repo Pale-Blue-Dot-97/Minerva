@@ -47,10 +47,12 @@ import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 from alive_progress import alive_bar
+from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from matplotlib.gridspec import GridSpec
 
 # from matplotlib.ticker import MaxNLocator
+from sklearn.manifold import TSNE
 from matplotlib.image import AxesImage
 from matplotlib.transforms import Bbox
 from rasterio.crs import CRS
@@ -1014,6 +1016,45 @@ def make_roc_curves(
         plt.close()
 
 
+def t_sne_cluster(
+    embeddings: NDArray[Any, Any],
+    predictions: Union[List[int], NDArray[Any, Int]],
+    show: bool = False,
+    save: bool = True,
+    filename: Optional[str] = None,
+) -> None:
+
+    tsne = TSNE(2, verbose=1)
+
+    tsne_proj = tsne.fit_transform(embeddings)
+
+    cmap = cm.get_cmap("tab20")
+    num_categories = 10
+
+    # Plot those points as a scatter plot and label them based on the pred labels.
+    cmap = cm.get_cmap("tab20")
+    fig, ax = plt.subplots(figsize=(8, 8))
+    num_categories = 10
+    for lab in range(num_categories):
+        indices = predictions == lab
+        ax.scatter(
+            tsne_proj[indices, 0],
+            tsne_proj[indices, 1],
+            c=np.array(cmap(lab)).reshape(1, 4),
+            label=lab,
+            alpha=0.5,
+        )
+    ax.legend(fontsize="large", markerscale=2)
+
+    # Shows and/or saves plot.
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(filename)
+        print("TSNE cluster visualisation SAVED")
+        plt.close()
+
+
 def format_plot_names(
     model_name: str,
     timestamp: str,
@@ -1050,6 +1091,7 @@ def format_plot_names(
         "ROC": standard_format("ROC" + ".png"),
         "Mask": standard_format("Mask", "Masks"),
         "PvT": standard_format("PvT", "PvTs"),
+        "TSNE": standard_format("TSNE") + ".png",
     }
 
     return filenames
@@ -1064,6 +1106,7 @@ def plot_results(
     mode: str = "test",
     bounds: Optional[NDArray[Any, Any]] = None,
     probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
+    embeddings: Optional[NDArray[Any, Any]] = None,
     class_names: Optional[Dict[int, str]] = None,
     colours: Optional[Dict[int, str]] = None,
     save: bool = True,
@@ -1132,7 +1175,7 @@ def plot_results(
     except FileExistsError as err:
         print(err)
 
-    if plots["History"]:
+    if plots.get("History", False):
         assert metrics is not None
 
         print("\nPLOTTING MODEL HISTORY")
@@ -1140,7 +1183,7 @@ def plot_results(
 
     assert class_names is not None
 
-    if plots["CM"]:
+    if plots.get("CM", False):
         print("\nPLOTTING CONFUSION MATRIX")
         make_confusion_matrix(
             labels=flat_y,
@@ -1153,7 +1196,7 @@ def plot_results(
 
     assert colours is not None
 
-    if plots["Pred"]:
+    if plots.get("Pred", False):
         print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
         plot_subpopulations(
             utils.find_modes(flat_z),
@@ -1164,7 +1207,7 @@ def plot_results(
             show=show,
         )
 
-    if plots["ROC"]:
+    if plots.get("ROC", False):
         assert probs is not None
 
         print("\nPLOTTING ROC CURVES")
@@ -1180,7 +1223,7 @@ def plot_results(
             show=show,
         )
 
-    if plots["Mask"]:
+    if plots.get("Mask", False):
         assert z is not None
         assert y is not None
         assert ids is not None
@@ -1199,4 +1242,14 @@ def plot_results(
             classes=class_names,
             colours=colours,
             fig_dim=DATA_CONFIG["fig_sizes"]["Mask"],
+        )
+
+    if plots.get("TSNE", False):
+        print("\nPERFORMING TSNE CLUSTERING")
+        t_sne_cluster(
+            embeddings,
+            z,
+            show=show,
+            save=save,
+            filename=filenames["TSNE"],
         )

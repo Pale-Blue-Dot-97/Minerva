@@ -27,9 +27,6 @@ import os
 from contextlib import nullcontext
 
 from nptyping import NDArray, Int
-import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib import cm
 import pandas as pd
 import torch
 import torch.distributed as dist
@@ -40,7 +37,6 @@ from torch.nn import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 from torchinfo import summary
-from sklearn.manifold import TSNE
 
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
@@ -200,7 +196,7 @@ class Trainer:
 
         if self.gpu == 0:
             # Determines the input size of the model.
-            input_size: Tuple[int, ...]
+            input_size: Tuple[int, None] | Tuple[int, ...]
             if self.params["model_type"] in ["MLP", "mlp"]:
                 input_size = (self.batch_size, self.model.input_shape)
             else:
@@ -621,32 +617,6 @@ class Trainer:
             self.print(
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
-
-    def t_sne_cluster(self, embeddings, predictions):
-        tsne = TSNE(2, verbose=1)
-
-        tsne_proj = tsne.fit_transform(embeddings)
-
-        cmap = cm.get_cmap("tab20")
-        num_categories = 10
-
-        # Plot those points as a scatter plot and label them based on the pred labels.
-        cmap = cm.get_cmap("tab20")
-        fig, ax = plt.subplots(figsize=(8, 8))
-        num_categories = 10
-        for lab in range(num_categories):
-            indices = predictions == lab
-            ax.scatter(
-                tsne_proj[indices, 0],
-                tsne_proj[indices, 1],
-                c=np.array(cmap(lab)).reshape(1, 4),
-                label=lab,
-                alpha=0.5,
-            )
-        ax.legend(fontsize="large", markerscale=2)
-
-        # TODO: Need to replace this with a ``.savefig()``.
-        plt.show()
 
     def weighted_knn_test(
         self,
