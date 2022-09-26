@@ -292,6 +292,7 @@ def test_format_names() -> None:
         "ROC": f"test/path/{model_name}_{timestamp}_ROC.png",
         "Mask": f"test/path/Masks/{model_name}_{timestamp}_Mask",
         "PvT": f"test/path/PvTs/{model_name}_{timestamp}_PvT",
+        "PvT": f"test/path/{model_name}_{timestamp}_TSNE.png",
     }
 
     assert filenames == names
