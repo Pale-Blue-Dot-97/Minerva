@@ -36,9 +36,7 @@ import os
 import signal
 import subprocess
 from typing import Optional
-import random
 
-import numpy as np
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
