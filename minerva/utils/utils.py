@@ -80,6 +80,7 @@ from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Nominatim
 from pandas import DataFrame
 from rasterio.crs import CRS
+from sklearn.manifold import TSNE
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import auc, classification_report, roc_curve
 from sklearn.preprocessing import label_binarize
@@ -1539,3 +1540,16 @@ def print_config(conf: Optional[Dict[str, Any]] = None) -> None:
         conf = config
 
     print(yaml.dump(conf))
+
+
+def tsne_cluster(
+    embeddings: NDArray[Any, Any],
+    n_dim: int = 2,
+    lr: str = "warn",
+    n_iter: int = 1000,
+    verbose: int = 1,
+) -> Any:
+
+    tsne = TSNE(n_dim, learning_rate=lr, n_iter=n_iter, verbose=verbose)
+
+    return tsne.fit_transform(embeddings)
