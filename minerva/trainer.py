@@ -618,6 +618,16 @@ class Trainer:
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
 
+    def tsne_cluster(self):
+        data = next(self.loaders["test"])
+
+        self.model.eval()
+        embeddings = self.model(data["image"])
+
+        visutils.plot_embedding(
+            embeddings, data["bbox"], "test", show=True, filename="tsne_cluster_vis.png"
+        )
+
     def weighted_knn_test(
         self,
         epoch_logger: MinervaLogger,
