@@ -47,12 +47,13 @@ import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 from alive_progress import alive_bar
-from matplotlib import cm
+from matplotlib import cm, offsetbox
 from matplotlib.colors import ListedColormap
 from matplotlib.gridspec import GridSpec
 
 # from matplotlib.ticker import MaxNLocator
 from sklearn.manifold import TSNE
+from scipy import stats
 from matplotlib.image import AxesImage
 from matplotlib.transforms import Bbox
 from rasterio.crs import CRS
@@ -1016,6 +1017,7 @@ def make_roc_curves(
         plt.close()
 
 
+"""
 def t_sne_cluster(
     embeddings: NDArray[Any, Any],
     predictions: Union[List[int], NDArray[Any, Int]],
@@ -1045,6 +1047,91 @@ def t_sne_cluster(
             alpha=0.5,
         )
     ax.legend(fontsize="large", markerscale=2)
+
+    # Shows and/or saves plot.
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(filename)
+        print("TSNE cluster visualisation SAVED")
+        plt.close()
+"""
+
+
+def plot_embedding(
+    embeddings,
+    bounds: Union[Sequence[Any], NDArray[Any, Any]],
+    mode: str,
+    title: Optional[str] = None,
+    show: bool = False,
+    save: bool = True,
+    filename: Optional[str] = None,
+) -> None:
+
+    x = utils.tsne_cluster(embeddings)
+
+    # TODO: This is a very naughty way of avoiding a circular import.
+    # Need to reorganise package to avoid need for this.
+    from minerva.datasets import make_dataset
+
+    print("\nRE-CONSTRUCTING DATASET")
+    dataset, _ = make_dataset(config["dir"]["data"], config["dataset_params"][mode])
+
+    images = []
+    targets = []
+
+    # Initialises a progress bar for the epoch.
+    with alive_bar(len(x), bar="blocks") as bar:
+
+        # Plots the predicted versus ground truth labels for all test patches supplied.
+        for i in range(len(x)):
+            sample = dataset[bounds[i]]
+            images.append(stack_rgb(sample["image"].numpy()))
+            targets.append(
+                [
+                    int(stats.mode(mask, axis=None, keepdims=False).mode)
+                    for mask in sample["mask"].numpy()
+                ]
+            )
+
+            bar()
+
+    x_min, x_max = np.min(x, 0), np.max(x, 0)
+    x = (x - x_min) / (x_max - x_min)
+
+    plt.figure()
+    ax = plt.subplot(111)
+
+    for i in range(len(x)):
+        plt.text(
+            x[i, 0],
+            x[i, 1],
+            str(targets[i]),
+            color=plt.cm.Set1(targets[i] / 10.0),
+            fontdict={"weight": "bold", "size": 9},
+        )
+
+    if hasattr(offsetbox, "AnnotationBbox"):
+        # only print thumbnails with matplotlib > 1.0
+        shown_images: NDArray[Any, Any] = np.array([[1.0, 1.0]])  # just something big
+
+        for i in range(len(images)):
+            dist = np.sum((x[i] - shown_images) ** 2, 1)
+            if np.min(dist) < 4e-3:
+                # don’t show points that are too close
+                continue
+
+            shown_images = np.r_[shown_images, [x[i]]]
+            imagebox = offsetbox.AnnotationBbox(
+                offsetbox.OffsetImage(images[i], cmap=plt.cm.gray_r), x[i]
+            )
+
+            ax.add_artist(imagebox)
+
+    plt.xticks([]), plt.yticks([])
+
+    if title is not None:
+        plt.title(title)
 
     # Shows and/or saves plot.
     if show:
@@ -1245,10 +1332,15 @@ def plot_results(
         )
 
     if plots.get("TSNE", False):
+        assert embeddings is not None
+        assert bounds is not None
+        assert mode is not None
+
         print("\nPERFORMING TSNE CLUSTERING")
-        t_sne_cluster(
+        plot_embedding(
             embeddings,
-            z,
+            bounds,
+            mode,
             show=show,
             save=save,
             filename=filenames["TSNE"],
