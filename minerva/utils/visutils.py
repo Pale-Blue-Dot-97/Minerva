@@ -1099,7 +1099,7 @@ def plot_embedding(
     x_min, x_max = np.min(x, 0), np.max(x, 0)
     x = (x - x_min) / (x_max - x_min)
 
-    plt.figure()
+    plt.figure(figsize=(10, 10))
     ax = plt.subplot(111)
 
     for i in range(len(x)):
@@ -1107,7 +1107,7 @@ def plot_embedding(
             x[i, 0],
             x[i, 1],
             str(targets[i]),
-            color=plt.cm.Set1(targets[i] / 10.0),
+            color=plt.cm.Set1(targets[i][0] / 10.0),
             fontdict={"weight": "bold", "size": 9},
         )
 
