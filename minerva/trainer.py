@@ -196,7 +196,7 @@ class Trainer:
 
         if self.gpu == 0:
             # Determines the input size of the model.
-            input_size: Tuple[int, None] | Tuple[int, ...]
+            input_size: Union[Tuple[int, None], Tuple[int, ...]]
             if self.params["model_type"] in ["MLP", "mlp"]:
                 input_size = (self.batch_size, self.model.input_shape)
             else:
@@ -254,6 +254,15 @@ class Trainer:
 
         # Initialise model.
         model: MinervaModel = _model(self.make_criterion(), **model_params)
+
+        if self.params.get("reload", False):
+            # Define path to the cached version of the desired pre-trained model.
+            weights_path = os.sep.join(
+                self.params["dir"]["cache"] + [self.params["pre_train_name"]]
+            )
+
+            model.load_state_dict(torch.load(f"{weights_path}.pt"))
+
         return model
 
     def make_criterion(self) -> Any:
@@ -619,13 +628,20 @@ class Trainer:
             )
 
     def tsne_cluster(self):
-        data = next(self.loaders["test"])
+        data = next(iter(self.loaders["test"]))
 
         self.model.eval()
-        embeddings = self.model(data["image"])
+        embeddings: torch.Tensor = self.model(data["image"].to(self.device))[0]
+
+        embeddings = embeddings.flatten(start_dim=1)
+        print(embeddings.shape)
 
         visutils.plot_embedding(
-            embeddings, data["bbox"], "test", show=True, filename="tsne_cluster_vis.png"
+            embeddings.detach().cpu(),
+            data["bbox"],
+            "test",
+            show=True,
+            filename="tsne_cluster_vis.png",
         )
 
     def weighted_knn_test(
