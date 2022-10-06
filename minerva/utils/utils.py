@@ -1545,11 +1545,11 @@ def print_config(conf: Optional[Dict[str, Any]] = None) -> None:
 def tsne_cluster(
     embeddings: NDArray[Any, Any],
     n_dim: int = 2,
-    lr: str = "warn",
+    lr: str = "auto",
     n_iter: int = 1000,
     verbose: int = 1,
 ) -> Any:
 
-    tsne = TSNE(n_dim, learning_rate=lr, n_iter=n_iter, verbose=verbose)
+    tsne = TSNE(n_dim, learning_rate=lr, n_iter=n_iter, verbose=verbose, init="random")
 
     return tsne.fit_transform(embeddings)
