@@ -24,7 +24,7 @@
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import Any, Dict, Literal, Tuple
+from typing import Any, Dict, Literal, List, Tuple
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -57,6 +57,9 @@ class MinervaMetrics(ABC):
 
     __metaclass__ = abc.ABCMeta
 
+    metric_types: List[str] = []
+    special_metric_types: List[str] = []
+
     def __init__(
         self,
         n_batches: Dict[Literal["train", "val", "test"], int],
@@ -75,6 +78,17 @@ class MinervaMetrics(ABC):
 
         self.model_type = params.get("model_type", "scene_classifier")
         self.sample_pairs = params.get("sample_pairs", False)
+
+        self.modes = params.get("modes", ["train", "val", "test"])
+
+        if self.sample_pairs:
+            self.metric_types += self.special_metric_types
+
+        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
+        self.metrics = {}
+        for mode in self.modes:
+            for metric in self.metric_types:
+                self.metrics[f"{mode}_{metric}"] = {"x": [], "y": []}
 
     def __call__(
         self, mode: Literal["train", "val", "test"], logs: Dict[str, Any]
@@ -165,6 +179,8 @@ class SP_Metrics(MinervaMetrics):
         model_type (str): Optional; Type of the model.
     """
 
+    metric_types: List[str] = ["loss", "acc"]
+
     def __init__(
         self,
         n_batches: Dict[Literal["train", "val", "test"], int],
@@ -176,16 +192,6 @@ class SP_Metrics(MinervaMetrics):
         super(SP_Metrics, self).__init__(
             n_batches, batch_size, data_size, model_type=model_type
         )
-
-        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics = {
-            "train_loss": {"x": [], "y": []},
-            "val_loss": {"x": [], "y": []},
-            "test_loss": {"x": [], "y": []},
-            "train_acc": {"x": [], "y": []},
-            "val_acc": {"x": [], "y": []},
-            "test_acc": {"x": [], "y": []},
-        }
 
     def calc_metrics(
         self, mode: Literal["train", "val", "test"], logs: Dict[str, Any]
@@ -258,6 +264,9 @@ class SSL_Metrics(MinervaMetrics):
         model_type (str): Optional; Type of the model.
     """
 
+    metric_types = ["loss", "acc", "top5_acc"]
+    special_metric_types = ["collapse_level", "euc_dist"]
+
     def __init__(
         self,
         n_batches: Dict[Literal["train", "val", "test"], int],
@@ -274,20 +283,6 @@ class SSL_Metrics(MinervaMetrics):
             model_type=model_type,
             sample_pairs=sample_pairs,
         )
-
-        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics = {
-            "train_loss": {"x": [], "y": []},
-            "val_loss": {"x": [], "y": []},
-            "train_acc": {"x": [], "y": []},
-            "val_acc": {"x": [], "y": []},
-            "train_top5_acc": {"x": [], "y": []},
-            "val_top5_acc": {"x": [], "y": []},
-        }
-
-        if self.sample_pairs:
-            self.metrics["train_collapse_level"] = {"x": [], "y": []}
-            self.metrics["val_collapse_level"] = {"x": [], "y": []}
 
     def calc_metrics(self, mode: Literal["train", "val", "test"], logs) -> None:
         """Updates metrics with epoch results.
@@ -330,6 +325,9 @@ class SSL_Metrics(MinervaMetrics):
 
         if self.sample_pairs:
             self.metrics[f"{mode}_collapse_level"]["y"].append(logs["collapse_level"])
+            self.metrics[f"{mode}_euc_dist"]["y"].append(
+                logs["euc_dist"] / self.n_batches[mode]
+            )
 
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
@@ -360,8 +358,13 @@ class SSL_Metrics(MinervaMetrics):
         )
 
         if self.sample_pairs:
+            msg += "\n"
+
             msg += "| Collapse Level: {}%".format(
                 self.metrics[f"{mode}_collapse_level"]["y"][epoch_no] * 100.0
+            )
+            msg += "| Avg. Euclidean Distance: {}".format(
+                self.metrics[f"{mode}_euc_dist"]["y"][epoch_no]
             )
 
         msg += "\n"
