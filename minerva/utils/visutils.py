@@ -1059,7 +1059,7 @@ def t_sne_cluster(
 
 
 def plot_embedding(
-    embeddings,
+    embeddings: Any,
     bounds: Union[Sequence[Any], NDArray[Any, Any]],
     mode: str,
     title: Optional[str] = None,
@@ -1067,6 +1067,21 @@ def plot_embedding(
     save: bool = True,
     filename: Optional[str] = None,
 ) -> None:
+    """Using TSNE Clustering, visualises the embeddings from a model.
+
+    Args:
+        embeddings (Any): Embeddings from a model.
+        bounds (Union[Sequence[Any], NDArray[Any, Any]]): Array of objects describing a geospatial bounding box.
+            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
+        mode (str): Mode samples are from. Must be 'train', 'val' or 'test'.
+        title (Optional[str], optional): Title of plot.
+        show (bool): Optional; Whether to show plot.
+        save (bool): Optional; Whether to save plot to file.
+        filename (str): Optional; Name of file to save plot to.
+
+    Returns:
+        None
+    """
 
     x = utils.tsne_cluster(embeddings)
 

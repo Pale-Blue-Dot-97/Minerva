@@ -1549,6 +1549,18 @@ def tsne_cluster(
     n_iter: int = 1000,
     verbose: int = 1,
 ) -> Any:
+    """Trains a TSNE algorithm on the embeddings passed.
+
+    Args:
+        embeddings (NDArray[Any, Any]): Embeddings outputted from the model.
+        n_dim (int, optional): Number of dimensions to reduce embeddings to. Defaults to 2.
+        lr (str, optional): Learning rate. Defaults to "auto".
+        n_iter (int, optional): Number of iterations. Defaults to 1000.
+        verbose (int, optional): Verbosity. Defaults to 1.
+
+    Returns:
+        Any: Embeddings transformed to ``n_dim`` dimensions using TSNE.
+    """
 
     tsne = TSNE(n_dim, learning_rate=lr, n_iter=n_iter, verbose=verbose, init="random")
 
