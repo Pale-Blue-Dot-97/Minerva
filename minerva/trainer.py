@@ -261,7 +261,9 @@ class Trainer:
                 self.params["dir"]["cache"] + [self.params["pre_train_name"]]
             )
 
-            model.load_state_dict(torch.load(f"{weights_path}.pt"))
+            model.load_state_dict(
+                torch.load(f"{weights_path}.pt", map_location=self.device)
+            )
 
         return model
 
