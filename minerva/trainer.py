@@ -627,14 +627,18 @@ class Trainer:
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
 
-    def tsne_cluster(self):
+    def tsne_cluster(self) -> None:
+        """Perform TSNE clustering on the embeddings from the model and visualise.
+
+        Passes a batch from the test dataset through the model in eval mode to get the embeddings.
+        Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
+        """
         data = next(iter(self.loaders["test"]))
 
         self.model.eval()
         embeddings: torch.Tensor = self.model(data["image"].to(self.device))[0]
 
         embeddings = embeddings.flatten(start_dim=1)
-        print(embeddings.shape)
 
         visutils.plot_embedding(
             embeddings.detach().cpu(),
