@@ -75,7 +75,8 @@ def run(gpu: int, args) -> None:
 
     trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **config)
 
-    trainer.fit()
+    if not config["eval"]:
+        trainer.fit()
 
     if config["pre_train"] and gpu == 0:
         trainer.save_backbone()
@@ -142,6 +143,12 @@ if __name__ == "__main__":
         "--fine-tune",
         action="store_false",
         help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
+    )
+
+    parser.add_argument(
+        "--eval",
+        action="store_false",
+        help="Sets experiment type to pre-train. Will save model to cache at end of training.",
     )
 
     parser.add_argument(
