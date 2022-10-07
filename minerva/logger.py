@@ -31,7 +31,7 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn.modules.loss import _Loss
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.utils import utils
