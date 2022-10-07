@@ -347,6 +347,7 @@ class SSL_Logger(MinervaLogger):
         }
 
         self.collapse_level = kwargs.get("collapse_level", False)
+        self.euclidean = kwargs.get("euclidean", False)
 
     def log(
         self,
@@ -381,6 +382,19 @@ class SSL_Logger(MinervaLogger):
         sim_argsort = utils.calc_contrastive_acc(z)
         correct = float((sim_argsort == 0).float().mean().cpu().numpy())
         top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
+
+        if self.euclidean:
+            z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
+
+            euc_dists = []
+            for i in range(len(z_a)):
+                euc_dists.append(
+                    utils.calc_norm_euc_dist(
+                        z_a[i].detach().numpy(), z_b[i].detach().numpy()
+                    )
+                )
+
+            self.logs["euc_dist"] += sum(euc_dists) / len(euc_dists)
 
         if self.collapse_level:
             # calculate the per-dimension standard deviation of the outputs
