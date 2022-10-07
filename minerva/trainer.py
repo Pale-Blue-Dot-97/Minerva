@@ -390,6 +390,7 @@ class Trainer:
             record_int=record_int,
             record_float=record_float,
             collapse_level=self.params["sample_pairs"],
+            euclidean=self.params["sample_pairs"],
         )
 
         # if mode == "val" and self.params["model_type"] == "ssl":
