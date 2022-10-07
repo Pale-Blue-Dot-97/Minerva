@@ -80,6 +80,7 @@ from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Nominatim
 from pandas import DataFrame
 from rasterio.crs import CRS
+from scipy.spatial import distance
 from sklearn.manifold import TSNE
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import auc, classification_report, roc_curve
@@ -1565,3 +1566,11 @@ def tsne_cluster(
     tsne = TSNE(n_dim, learning_rate=lr, n_iter=n_iter, verbose=verbose, init="random")
 
     return tsne.fit_transform(embeddings)
+
+
+def calc_norm_euc_dist(a: Sequence[int], b: Sequence[int]) -> float:
+    assert len(a) == len(b)
+    euc_dist: float = distance.euclidean(a, b) / len(a)
+
+    assert type(euc_dist) is float
+    return euc_dist
