@@ -248,7 +248,9 @@ def stack_rgb(
 
     # Stack together RGB bands.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
-    rgb_image = np.dstack((channels[2], channels[1], channels[0]))
+    rgb_image: NDArray[Shape["3, *, *"], Any] = np.dstack(
+        (channels[2], channels[1], channels[0])
+    )
     assert isinstance(rgb_image, np.ndarray)
     return rgb_image
 
