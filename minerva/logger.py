@@ -268,7 +268,7 @@ class STG_Logger(MinervaLogger):
         if self.record_int:
             assert y is not None
             # Arg max the estimated probabilities and add to predictions.
-            self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()
+            self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()  # type: ignore[attr-defined]
 
             # Add the labels and sample IDs to lists.
             self.results["y"][self.logs["batch_num"]] = y.cpu().numpy()
@@ -288,7 +288,7 @@ class STG_Logger(MinervaLogger):
 
         # Computes the loss and the correct predictions from this step.
         ls = loss.item()
-        correct = (torch.argmax(z, 1) == y).sum().item()
+        correct = (torch.argmax(z, 1) == y).sum().item()  # type: ignore[attr-defined]
 
         # Adds loss and correct predictions to logs.
         self.logs["total_loss"] += ls
@@ -298,7 +298,7 @@ class STG_Logger(MinervaLogger):
         writer.add_scalar(tag=f"{mode}_loss", scalar_value=ls, global_step=step_num)
         writer.add_scalar(
             tag=f"{mode}_acc",
-            scalar_value=correct / len(torch.flatten(y)),
+            scalar_value=correct / len(torch.flatten(y)),  # type: ignore[attr-defined]
             global_step=step_num,
         )
 
@@ -407,7 +407,7 @@ class SSL_Logger(MinervaLogger):
             output = torch.split(z, int(0.5 * len(z)), 0)[0].detach()
             output = torch.nn.functional.normalize(output, dim=1)
 
-            output_std = torch.std(output, 0)
+            output_std = torch.std(output, 0)  # type: ignore[attr-defined]
             output_std = output_std.mean()
 
             # use moving averages to track the loss and standard deviation
