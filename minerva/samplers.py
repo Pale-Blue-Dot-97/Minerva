@@ -56,7 +56,7 @@ class RandomPairGeoSampler(GeoSampler):
         size: Union[Tuple[float, float], float],
         length: int,
         roi: Optional[BoundingBox] = None,
-        max_r: Optional[float] = 256,
+        max_r: float = 256.0,
     ) -> None:
         """Initialize a new Sampler instance.
 
@@ -82,7 +82,7 @@ class RandomPairGeoSampler(GeoSampler):
         self.max_r = max_r
         self.hits = []
         for hit in self.index.intersection(tuple(self.roi), objects=True):
-            bounds = BoundingBox(*hit.bounds)
+            bounds = BoundingBox(*hit.bounds)  # type: ignore
             if (
                 bounds.maxx - bounds.minx > self.size[1]
                 and bounds.maxy - bounds.miny > self.size[0]
@@ -184,7 +184,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
             for _ in range(self.tiles_per_batch):
                 # Choose a random tile
                 hit = random.choice(self.hits)
-                bounds = BoundingBox(*hit.bounds)
+                bounds = BoundingBox(*hit.bounds)  # type: ignore
 
                 # Choose random indices within that tile
                 for _ in range(self.sam_per_tile):
@@ -205,7 +205,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
 
 
 def get_greater_bbox(
-    bbox: BoundingBox, r: int, size: Union[int, Tuple[int, int]]
+    bbox: BoundingBox, r: float, size: Union[float, Tuple[float, float]]
 ) -> BoundingBox:
     """Return a bounding box at ``max_r`` distance around the first box.
 
@@ -219,10 +219,12 @@ def get_greater_bbox(
     Returns:
         BoundingBox: Greater bounds around original bounding box to sample from.
     """
-    x: int
+    x: float
     if type(size) == tuple:
+        assert isinstance(size, tuple)
         x = size[0]
     else:
+        assert isinstance(size, float)
         x = size
 
     # Calculates the geospatial distance to add to the existing bounding box to get
@@ -241,9 +243,9 @@ def get_greater_bbox(
 
 def get_pair_bboxes(
     bounds: BoundingBox,
-    size: Union[Tuple[int, int], int],
+    size: Union[Tuple[float, float], float],
     res: float,
-    max_r: int,
+    max_r: float,
 ) -> Tuple[BoundingBox, BoundingBox]:
     """Samples a pair of bounding boxes geo-spatially close to each other.
 
