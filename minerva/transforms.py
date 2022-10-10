@@ -142,10 +142,10 @@ class DetachedColorJitter(ColorJitter):
         """
         channels = ft.get_image_num_channels(img)
 
-        jitter_img : Tensor
+        jitter_img: Tensor
         if channels > 3:
             rgb_jitter = super().forward(img[:3])
-            jitter_img = torch.cat((rgb_jitter, img[3:]), 0)
+            jitter_img = torch.cat((rgb_jitter, img[3:]), 0)  # type: ignore[attr-defined]
 
         elif channels in (1, 3):
             jitter_img = super().forward(img)
@@ -191,7 +191,9 @@ class MinervaCompose:
     """
 
     def __init__(
-        self, transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]], key: Optional[str] = None
+        self,
+        transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
+        key: Optional[str] = None,
     ) -> None:
         self.transforms = transforms
         self.key = key
@@ -213,7 +215,9 @@ class MinervaCompose:
             img = self.transforms(img)
 
         else:
-            raise TypeError(f"`transforms` has type {type(self.transforms)}, not callable")
+            raise TypeError(
+                f"`transforms` has type {type(self.transforms)}, not callable"
+            )
 
         return img
 
@@ -230,7 +234,9 @@ class MinervaCompose:
             return format_string
 
         else:
-            raise TypeError(f"`transforms` has type {type(self.transforms)}, not callable")
+            raise TypeError(
+                f"`transforms` has type {type(self.transforms)}, not callable"
+            )
 
         format_string += "\n)"
 

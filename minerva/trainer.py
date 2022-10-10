@@ -391,8 +391,8 @@ class Trainer:
             and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
         """
         batch_size = self.batch_size
-        if dist.is_available() and dist.is_initialized():
-            batch_size = self.batch_size // dist.get_world_size()
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         # Calculates the number of samples
         n_samples = self.n_batches[mode] * batch_size
@@ -431,9 +431,9 @@ class Trainer:
                     batch, self.model, self.device, mode, **self.params
                 )
 
-                if dist.is_available() and dist.is_initialized():
+                if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
                     loss = results[0].data.clone()
-                    dist.all_reduce(loss.div_(dist.get_world_size()))
+                    dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                     results = (loss, *results[1:])
 
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)

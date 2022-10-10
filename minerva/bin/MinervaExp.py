@@ -61,7 +61,7 @@ def run(gpu: int, args) -> None:
     args.rank += gpu
 
     if args.world_size > 1:
-        dist.init_process_group(
+        dist.init_process_group(  # type: ignore[attr-defined]
             backend="gloo",
             init_method=args.dist_url,
             world_size=args.world_size,
@@ -101,9 +101,9 @@ def main(args):
 
     else:
         try:
-            mp.spawn(run, (args,), args.ngpus_per_node)
+            mp.spawn(run, (args,), args.ngpus_per_node)  # type: ignore[attr-defined]
         except KeyboardInterrupt:
-            dist.destroy_process_group()
+            dist.destroy_process_group()  # type: ignore[attr-defined]
 
 
 if __name__ == "__main__":
