@@ -42,7 +42,7 @@ from typing import (
     Union,
     overload,
 )
-
+from nptyping import NDArray
 import numpy as np
 import torch
 from torch import Tensor
@@ -287,7 +287,7 @@ class MLP(MinervaModel):
             hidden_sizes = (hidden_sizes,)
         self.hidden_sizes = hidden_sizes
 
-        self._layers = OrderedDict()
+        self._layers: OrderedDict[str, Module] = OrderedDict()
 
         # Constructs layers of the network based on the input size, the hidden sizes and the number of classes.
         for i in range(len(hidden_sizes)):
@@ -371,8 +371,8 @@ class CNN(MinervaModel, ABC):
             criterion=criterion, input_shape=input_size, n_classes=n_classes
         )
 
-        self._conv_layers = OrderedDict()
-        self._fc_layers = OrderedDict()
+        self._conv_layers: OrderedDict[str, Module] = OrderedDict()
+        self._fc_layers: OrderedDict[str, Module] = OrderedDict()
 
         # Checks that the kernel sizes and strides match the number of layers defined by features.
         _conv_kernel_size: Sequence[int] = utils.check_len(conv_kernel_size, features)
@@ -421,27 +421,24 @@ class CNN(MinervaModel, ABC):
         # Constructs the fully connected layers determined by the number of input channels and the features of these.
         for i in range(len(fc_sizes)):
             if i == 0:
-                self._fc_layers["Linear-0"] = torch.nn.Linear(
+                self._fc_layers["Linear-0"] = nn.Linear(
                     self.flattened_size, fc_sizes[i]
                 )
             else:
-                self._fc_layers[f"Linear-{i}"] = torch.nn.Linear(
-                    fc_sizes[i - 1], fc_sizes[i]
-                )
+                self._fc_layers[f"Linear-{i}"] = nn.Linear(fc_sizes[i - 1], fc_sizes[i])
 
             # Each fully connected layer is followed by a ReLu activation.
-            self._fc_layers[f"ReLu-{i}"] = torch.nn.ReLU()
+            self._fc_layers[f"ReLu-{i}"] = nn.ReLU()
 
             if fc_do:
-                self._fc_layers[f"DropOut-{i}"] = torch.nn.Dropout(p_fc_do)
+                self._fc_layers[f"DropOut-{i}"] = nn.Dropout(p_fc_do)
 
         # Add classification layer.
-        self._fc_layers["Classification"] = torch.nn.Linear(
-            fc_sizes[-1], self.n_classes
-        )
+        assert self.n_classes is not None
+        self._fc_layers["Classification"] = nn.Linear(fc_sizes[-1], self.n_classes)
 
         # Create fully connected network.
-        self.fc_net = torch.nn.Sequential(self._fc_layers)
+        self.fc_net = nn.Sequential(self._fc_layers)
 
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the convolutional network and then the fully connected network.
@@ -631,7 +628,7 @@ class ResNet(MinervaModel, ABC):
         blocks: int,
         stride: int = 1,
         dilate: bool = False,
-    ) -> torch.nn.Sequential:
+    ) -> nn.Sequential:
 
         norm_layer = self._norm_layer
         downsample = None
@@ -716,7 +713,7 @@ class ResNet(MinervaModel, ABC):
 
         if not self.encoder_on:
             x5 = self.avgpool(x4)
-            x5 = torch.flatten(x5, 1)
+            x5 = torch.flatten(x5, 1)  # type: ignore[attr-defined]
             x5 = self.fc(x5)
 
             assert isinstance(x5, Tensor)
@@ -1855,13 +1852,13 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        f_a: Tensor = torch.flatten(self.backbone(x[0])[0], start_dim=1)
-        f_b: Tensor = torch.flatten(self.backbone(x[1])[0], start_dim=1)
+        f_a: Tensor = torch.flatten(self.backbone(x[0])[0], start_dim=1)  # type: ignore[attr-defined]
+        f_b: Tensor = torch.flatten(self.backbone(x[1])[0], start_dim=1)  # type: ignore[attr-defined]
 
         g_a: Tensor = self.proj_head(f_a)
         g_b: Tensor = self.proj_head(f_b)
 
-        z = torch.cat([g_a, g_b], dim=0)
+        z = torch.cat([g_a, g_b], dim=0)  # type: ignore[attr-defined]
 
         assert isinstance(z, Tensor)
 
@@ -2059,13 +2056,13 @@ class _SimSiam(MinervaModel, MinervaBackbone):
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
         """
-        z_a: Tensor = self.proj_head(torch.flatten(self.backbone(x[0])[0], start_dim=1))
-        z_b: Tensor = self.proj_head(torch.flatten(self.backbone(x[1])[0], start_dim=1))
+        z_a: Tensor = self.proj_head(torch.flatten(self.backbone(x[0])[0], start_dim=1))  # type: ignore[attr-defined]
+        z_b: Tensor = self.proj_head(torch.flatten(self.backbone(x[1])[0], start_dim=1))  # type: ignore[attr-defined]
 
         p_a: Tensor = self.predictor(z_a)
         p_b: Tensor = self.predictor(z_b)
 
-        p = torch.cat([p_a, p_b], dim=0)
+        p = torch.cat([p_a, p_b], dim=0)  # type: ignore[attr-defined]
 
         assert isinstance(p, Tensor)
 
@@ -2259,11 +2256,11 @@ def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tens
 
     og = np.ogrid[:kernel_size, :kernel_size]
     filt = (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
-    weight = np.zeros(
+    weight: NDArray[Any, Any] = np.zeros(
         (in_channels, out_channels, kernel_size, kernel_size), dtype="float32"
     )
     weight[range(in_channels), range(out_channels), :, :] = filt
 
-    weights = torch.from_numpy(weight)
+    weights = torch.from_numpy(weight)  # type: ignore[attr-defined]
     assert isinstance(weights, Tensor)
     return weights
