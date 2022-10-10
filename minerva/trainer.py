@@ -230,7 +230,9 @@ class Trainer:
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
+            self.model = torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(
+                self.model
+            )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
 
         else:
@@ -665,6 +667,7 @@ class Trainer:
             filename="tsne_cluster_vis.png",
         )
 
+    """
     def weighted_knn_test(
         self,
         epoch_logger: MinervaLogger,
@@ -766,6 +769,7 @@ class Trainer:
                     test_bar()
 
         return total_top1 / total_num * 100, total_top5 / total_num * 100
+    """
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
