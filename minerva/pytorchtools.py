@@ -29,7 +29,7 @@ Source: https://github.com/Bjarten/early-stopping-pytorch
 # =====================================================================================================================
 import numpy as np
 import torch
-from torch.nn import Module
+from torch.nn.modules import Module
 
 # =====================================================================================================================
 #                                                    METADATA
