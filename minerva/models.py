@@ -46,7 +46,8 @@ from typing import (
 import numpy as np
 import torch
 from torch import Tensor
-from torch.nn import Module
+import torch.nn.modules as nn
+from torch.nn.modules import Module
 from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
@@ -291,20 +292,20 @@ class MLP(MinervaModel):
         # Constructs layers of the network based on the input size, the hidden sizes and the number of classes.
         for i in range(len(hidden_sizes)):
             if i == 0:
-                self._layers["Linear-0"] = torch.nn.Linear(input_size, hidden_sizes[i])
+                self._layers["Linear-0"] = nn.Linear(input_size, hidden_sizes[i])
             else:
-                self._layers[f"Linear-{i}"] = torch.nn.Linear(
+                self._layers[f"Linear-{i}"] = nn.Linear(
                     hidden_sizes[i - 1], hidden_sizes[i]
                 )
 
             # Adds ReLu activation after every linear layer.
-            self._layers[f"ReLu-{i}"] = torch.nn.ReLU()
+            self._layers[f"ReLu-{i}"] = nn.ReLU()
 
         # Adds the final classification layer.
-        self._layers["Classification"] = torch.nn.Linear(hidden_sizes[-1], n_classes)
+        self._layers["Classification"] = nn.Linear(hidden_sizes[-1], n_classes)
 
         # Constructs network from the OrderedDict of layers
-        self.network = torch.nn.Sequential(self._layers)
+        self.network = nn.Sequential(self._layers)
 
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the network.
@@ -381,14 +382,14 @@ class CNN(MinervaModel, ABC):
         assert self.input_shape is not None
         for i in range(len(features)):
             if i == 0:
-                self._conv_layers["Conv-0"] = torch.nn.Conv2d(
+                self._conv_layers["Conv-0"] = nn.Conv2d(
                     self.input_shape[0],
                     features[i],
                     _conv_kernel_size[0],
                     stride=_conv_stride[0],
                 )
             else:
-                self._conv_layers[f"Conv-{i}"] = torch.nn.Conv2d(
+                self._conv_layers[f"Conv-{i}"] = nn.Conv2d(
                     features[i - 1],
                     features[i],
                     _conv_kernel_size[i],
@@ -396,16 +397,16 @@ class CNN(MinervaModel, ABC):
                 )
 
             # Each convolutional layer is followed by max-pooling layer and ReLu activation.
-            self._conv_layers[f"MaxPool-{i}"] = torch.nn.MaxPool2d(
+            self._conv_layers[f"MaxPool-{i}"] = nn.MaxPool2d(
                 kernel_size=max_kernel_size, stride=max_stride
             )
-            self._conv_layers[f"ReLu-{i}"] = torch.nn.ReLU()
+            self._conv_layers[f"ReLu-{i}"] = nn.ReLU()
 
             if conv_do:
-                self._conv_layers[f"DropOut-{i}"] = torch.nn.Dropout(p_conv_do)
+                self._conv_layers[f"DropOut-{i}"] = nn.Dropout(p_conv_do)
 
         # Construct the convolutional network from the dict of layers.
-        self.conv_net = torch.nn.Sequential(self._conv_layers)
+        self.conv_net = nn.Sequential(self._conv_layers)
 
         # Calculate the input of the Linear layer by sending some fake data through the network
         # and getting the shape of the output.
@@ -538,7 +539,7 @@ class ResNet(MinervaModel, ABC):
 
         # Inits normalisation layer for use in each block.
         if norm_layer is None:
-            norm_layer = torch.nn.BatchNorm2d
+            norm_layer = nn.BatchNorm2d
         self._norm_layer = norm_layer
 
         # Specifies if this network is to be configured as an encoder backbone or an end-to-end classifier.
@@ -568,7 +569,7 @@ class ResNet(MinervaModel, ABC):
 
         # --- CONV1 LAYER =============================================================================================
         # Adds the input convolutional layer to the network.
-        self.conv1 = torch.nn.Conv2d(
+        self.conv1 = nn.Conv2d(
             in_channels,
             self.inplanes,
             kernel_size=(7, 7),
@@ -580,10 +581,10 @@ class ResNet(MinervaModel, ABC):
         self.bn1 = norm_layer(self.inplanes)
 
         # Inits the ReLU to be use in Conv1 and throughout the network.
-        self.relu = torch.nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=True)
 
         # Adds the max pooling layer to complete the Conv1 layer.
-        self.maxpool = torch.nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+        self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
 
         # --- LAYERS 1-4 ==============================================================================================
         self.layer1 = self._make_layer(block, 64, layers[0])
@@ -600,16 +601,16 @@ class ResNet(MinervaModel, ABC):
 
         # Adds average pooling and classification layer to network if this is an end-to-end classifier.
         if not self.encoder_on:
-            self.avgpool = torch.nn.AdaptiveAvgPool2d((1, 1))
-            self.fc = torch.nn.Linear(512 * block.expansion, n_classes)
+            self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+            self.fc = nn.Linear(512 * block.expansion, n_classes)
 
         # Performs weight initialisation across network.
         for m in self.modules():
-            if isinstance(m, torch.nn.Conv2d):
+            if isinstance(m, nn.Conv2d):
                 torch.nn.init.kaiming_normal_(
                     m.weight, mode="fan_out", nonlinearity="relu"
                 )
-            elif isinstance(m, (torch.nn.BatchNorm2d, torch.nn.GroupNorm)):
+            elif isinstance(m, (nn.BatchNorm2d, nn.GroupNorm)):
                 torch.nn.init.constant_(m.weight, 1)
                 torch.nn.init.constant_(m.bias, 0)
 
@@ -639,7 +640,7 @@ class ResNet(MinervaModel, ABC):
             self.dilation *= stride
             stride = 1
         if stride != 1 or self.inplanes != planes * block.expansion:
-            downsample = torch.nn.Sequential(
+            downsample = nn.Sequential(
                 conv1x1(self.inplanes, planes * block.expansion, stride),
                 norm_layer(planes * block.expansion),
             )
@@ -694,7 +695,7 @@ class ResNet(MinervaModel, ABC):
                 )
             )
 
-        return torch.nn.Sequential(*layers)
+        return nn.Sequential(*layers)
 
     def _forward_impl(
         self, x: Tensor
@@ -790,12 +791,12 @@ class DCN(MinervaModel, ABC):
         assert type(self.n_classes) is int
 
         # Common to all variants.
-        self.relu = torch.nn.ReLU(inplace=True)
-        self.Conv1x1 = torch.nn.Conv2d(in_channel, self.n_classes, kernel_size=(1, 1))
-        self.bn1 = torch.nn.BatchNorm2d(self.n_classes)
+        self.relu = nn.ReLU(inplace=True)
+        self.Conv1x1 = nn.Conv2d(in_channel, self.n_classes, kernel_size=(1, 1))
+        self.bn1 = nn.BatchNorm2d(self.n_classes)
 
         if variant == "32":
-            self.DC32 = torch.nn.ConvTranspose2d(
+            self.DC32 = nn.ConvTranspose2d(
                 self.n_classes,
                 self.n_classes,
                 kernel_size=(64, 64),
@@ -804,13 +805,13 @@ class DCN(MinervaModel, ABC):
                 padding=(16, 16),
             )
             self.DC32.weight.data = bilinear_init(self.n_classes, self.n_classes, 64)
-            self.dbn32 = torch.nn.BatchNorm2d(self.n_classes)
+            self.dbn32 = nn.BatchNorm2d(self.n_classes)
 
         if variant in ("16", "8"):
-            self.Conv1x1_x3 = torch.nn.Conv2d(
+            self.Conv1x1_x3 = nn.Conv2d(
                 int(in_channel / 2), self.n_classes, kernel_size=(1, 1)
             )
-            self.DC2 = torch.nn.ConvTranspose2d(
+            self.DC2 = nn.ConvTranspose2d(
                 self.n_classes,
                 self.n_classes,
                 kernel_size=(4, 4),
@@ -819,10 +820,10 @@ class DCN(MinervaModel, ABC):
                 padding=(1, 1),
             )
             self.DC2.weight.data = bilinear_init(self.n_classes, self.n_classes, 4)
-            self.dbn2 = torch.nn.BatchNorm2d(self.n_classes)
+            self.dbn2 = nn.BatchNorm2d(self.n_classes)
 
         if variant == "16":
-            self.DC16 = torch.nn.ConvTranspose2d(
+            self.DC16 = nn.ConvTranspose2d(
                 self.n_classes,
                 self.n_classes,
                 kernel_size=(32, 32),
@@ -831,14 +832,14 @@ class DCN(MinervaModel, ABC):
                 padding=(8, 8),
             )
             self.DC16.weight.data = bilinear_init(self.n_classes, self.n_classes, 32)
-            self.dbn16 = torch.nn.BatchNorm2d(self.n_classes)
+            self.dbn16 = nn.BatchNorm2d(self.n_classes)
 
         if variant == "8":
-            self.Conv1x1_x2 = torch.nn.Conv2d(
+            self.Conv1x1_x2 = nn.Conv2d(
                 int(in_channel / 4), self.n_classes, kernel_size=(1, 1)
             )
 
-            self.DC4 = torch.nn.ConvTranspose2d(
+            self.DC4 = nn.ConvTranspose2d(
                 self.n_classes,
                 self.n_classes,
                 kernel_size=(4, 4),
@@ -847,9 +848,9 @@ class DCN(MinervaModel, ABC):
                 padding=(1, 1),
             )
             self.DC4.weight.data = bilinear_init(self.n_classes, self.n_classes, 4)
-            self.dbn4 = torch.nn.BatchNorm2d(self.n_classes)
+            self.dbn4 = nn.BatchNorm2d(self.n_classes)
 
-            self.DC8 = torch.nn.ConvTranspose2d(
+            self.DC8 = nn.ConvTranspose2d(
                 self.n_classes,
                 self.n_classes,
                 kernel_size=(16, 16),
@@ -858,7 +859,7 @@ class DCN(MinervaModel, ABC):
                 padding=(4, 4),
             )
             self.DC8.weight.data = bilinear_init(self.n_classes, self.n_classes, 16)
-            self.dbn8 = torch.nn.BatchNorm2d(self.n_classes)
+            self.dbn8 = nn.BatchNorm2d(self.n_classes)
 
     def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
@@ -1839,11 +1840,11 @@ class _SimCLR(MinervaModel, MinervaBackbone):
         backbone_out_shape = self.backbone.output_shape
         assert isinstance(backbone_out_shape, Sequence)
 
-        self.proj_head = torch.nn.Sequential(
-            torch.nn.Linear(np.prod(backbone_out_shape), 512, bias=False),
-            torch.nn.BatchNorm1d(512),
-            torch.nn.ReLU(inplace=True),
-            torch.nn.Linear(512, feature_dim, bias=False),
+        self.proj_head = nn.Sequential(
+            nn.Linear(np.prod(backbone_out_shape), 512, bias=False),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Linear(512, feature_dim, bias=False),
         )
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
@@ -2030,24 +2031,24 @@ class _SimSiam(MinervaModel, MinervaBackbone):
 
         prev_dim = np.prod(backbone_out_shape)
 
-        self.proj_head = torch.nn.Sequential(
-            torch.nn.Linear(prev_dim, prev_dim, bias=False),
-            torch.nn.BatchNorm1d(prev_dim),
-            torch.nn.ReLU(inplace=True),  # first layer
-            torch.nn.Linear(prev_dim, prev_dim, bias=False),
-            torch.nn.BatchNorm1d(prev_dim),
-            torch.nn.ReLU(inplace=True),  # second layer
-            torch.nn.Linear(prev_dim, feature_dim, bias=False),
-            torch.nn.BatchNorm1d(feature_dim, affine=False),
+        self.proj_head = nn.Sequential(
+            nn.Linear(prev_dim, prev_dim, bias=False),
+            nn.BatchNorm1d(prev_dim),
+            nn.ReLU(inplace=True),  # first layer
+            nn.Linear(prev_dim, prev_dim, bias=False),
+            nn.BatchNorm1d(prev_dim),
+            nn.ReLU(inplace=True),  # second layer
+            nn.Linear(prev_dim, feature_dim, bias=False),
+            nn.BatchNorm1d(feature_dim, affine=False),
         )  # output layer
         # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
 
         # build a 2-layer predictor
-        self.predictor = torch.nn.Sequential(
-            torch.nn.Linear(feature_dim, pred_dim, bias=False),
-            torch.nn.BatchNorm1d(pred_dim),
-            torch.nn.ReLU(inplace=True),  # hidden layer
-            torch.nn.Linear(pred_dim, feature_dim),
+        self.predictor = nn.Sequential(
+            nn.Linear(feature_dim, pred_dim, bias=False),
+            nn.BatchNorm1d(pred_dim),
+            nn.ReLU(inplace=True),  # hidden layer
+            nn.Linear(pred_dim, feature_dim),
         )  # output layer
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
