@@ -47,7 +47,7 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 def sup_tg(
     batch: Dict[Any, Any],
     model: MinervaModel,
-    device: torch.device,
+    device: torch.device,  # type: ignore[name-defined]
     mode: Literal["train", "val", "test"],
     **kwargs
 ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
@@ -68,8 +68,8 @@ def sup_tg(
     masks: Tensor = batch["mask"]
 
     # Re-arranges the x and y batches.
-    x_batch: Tensor = images.to(torch.float)
-    y_batch: LongTensor = torch.tensor(np.squeeze(masks, axis=1), dtype=torch.long)
+    x_batch: Tensor = images.to(torch.float)  # type: ignore[attr-defined]
+    y_batch: LongTensor = torch.tensor(np.squeeze(masks, axis=1), dtype=torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
     x: Tensor = x_batch.to(device)
@@ -91,7 +91,7 @@ def sup_tg(
 def ssl_pair_tg(
     batch: Tuple[Dict[str, Any], Dict[str, Any]],
     model: MinervaModel,
-    device: torch.device,
+    device: torch.device,  # type: ignore[name-defined]
     mode: Literal["train", "val"],
     **kwargs
 ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]], None, Sequence[BoundingBox]]:
@@ -115,8 +115,8 @@ def ssl_pair_tg(
     x_j_batch: Tensor = batch[1]["image"]
 
     # Ensures images are floats.
-    x_i_batch = x_i_batch.to(torch.float)
-    x_j_batch = x_j_batch.to(torch.float)
+    x_i_batch = x_i_batch.to(torch.float)  # type: ignore[attr-defined]
+    x_j_batch = x_j_batch.to(torch.float)  # type: ignore[attr-defined]
 
     # Stacks each side of the pair batches together.
     x_batch = torch.stack([x_i_batch, x_j_batch])

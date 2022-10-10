@@ -341,7 +341,7 @@ def construct_dataloader(
 
     batch_sampler = True if "batch_size" in sampler_params["params"] else False
 
-    if batch_sampler and dist.is_available() and dist.is_initialized():
+    if batch_sampler and dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
         assert sampler_params["params"]["batch_size"] % world_size == 0
         per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
         sampler_params["params"]["batch_size"] = per_device_batch_size
@@ -391,6 +391,10 @@ def make_bounding_box(
     """
     if roi is False:
         return None
+    elif roi is True:
+        raise ValueError(
+            "``roi`` must be a sequence of floats or ``False``, not ``True``"
+        )
     else:
         return BoundingBox(*roi)
 
