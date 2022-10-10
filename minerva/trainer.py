@@ -21,7 +21,18 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Iterable,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import os
 from contextlib import nullcontext
@@ -33,9 +44,10 @@ import torch.distributed as dist
 import yaml
 from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
-from torch.nn import Module
+from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard.writer import SummaryWriter
 from torchinfo import summary
 
 from minerva.datasets import make_loaders
@@ -108,10 +120,10 @@ class Trainer:
         )
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
-        self.gpu = gpu
+        self.gpu: int = gpu
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
-        self.verbose = verbose if gpu == 0 else False
+        self.verbose: bool = verbose if gpu == 0 else False
 
         if self.gpu == 0:
             # Prints config to stdout.
@@ -120,9 +132,11 @@ class Trainer:
             )
             utils.print_config(new_params)
 
-        self.params = new_params
+        self.params: Dict[str, Any] = new_params
         self.class_dist = class_dist
-        self.loaders = loaders
+        self.loaders: Dict[
+            Literal["train", "val", "test"], DataLoader[Iterable[Any]]
+        ] = loaders
         self.n_batches = n_batches
 
         self.modes = params["dataset_params"].keys()
@@ -566,7 +580,7 @@ class Trainer:
                 self.compute_classification_report(results["z"], results["y"])
 
             # Gets the dict from params that defines which plots to make from the results.
-            plots = self.params["plots"]
+            plots = self.params.get("plots", {}).copy()
 
             # Ensure history is not plotted again.
             plots["History"] = False
