@@ -349,6 +349,11 @@ class SSL_Logger(MinervaLogger):
         self.collapse_level = kwargs.get("collapse_level", False)
         self.euclidean = kwargs.get("euclidean", False)
 
+        if self.collapse_level:
+            self.logs["collapse_level"] = 0
+        if self.euclidean:
+            self.logs["euc_dist"] = 0
+
     def log(
         self,
         mode: str,
