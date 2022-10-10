@@ -88,7 +88,7 @@ from sklearn.preprocessing import label_binarize
 from tabulate import tabulate
 from torch import Tensor, LongTensor
 from torch.types import _device
-from torch.nn import Module
+from torch.nn.modules import Module
 from torch.nn import functional as F
 from torchgeo.datasets.utils import BoundingBox
 
@@ -372,7 +372,7 @@ def set_seeds(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    torch.cuda.random.manual_seed_all(seed)
 
 
 def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
@@ -1477,7 +1477,9 @@ def compute_roc_curves(
 
     if macro:
         # Aggregate all false positive rates.
-        all_fpr = np.unique(np.concatenate([fpr[key] for key in class_labels]))
+        all_fpr: NDArray[Any, Any] = np.unique(
+            np.concatenate([fpr[key] for key in class_labels])
+        )
 
         # Then interpolate all ROC curves at these points.
         print("Interpolating macro average ROC curve")
