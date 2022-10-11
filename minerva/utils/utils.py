@@ -1277,8 +1277,8 @@ def batch_flatten(x: Union[NDArray[Any, Any], ArrayLike]) -> NDArray[Shape["*"],
 
 
 def make_classification_report(
-    pred: NDArray[Any, Int],
-    labels: NDArray[Any, Int],
+    pred: Union[Sequence[int], NDArray[Any, Int]],
+    labels: Union[Sequence[int], NDArray[Any, Int]],
     class_labels: Dict[int, str],
     print_cr: bool = True,
     p_dist: bool = False,
@@ -1587,7 +1587,7 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     )
 
 
-def print_config(conf: Optional[Dict[str, Any]] = None) -> None:
+def print_config(conf: Optional[Dict[Any, Any]] = None) -> None:
     """Print function for the configuration file using YAML dump.
 
     Args:
