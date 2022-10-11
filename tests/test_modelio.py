@@ -1,4 +1,5 @@
 import torch
+from torch import Tensor
 import torch.nn.modules as nn
 from numpy.testing import assert_array_equal
 from lightly.loss import NTXentLoss
@@ -29,7 +30,8 @@ def test_sup_tg() -> None:
 
         results = sup_tg(batch, model, device, mode)
 
-        assert type(results[0]) is torch.Tensor
+        assert isinstance(results[0], Tensor)
+        assert isinstance(results[1], Tensor)
         assert results[1].size() == (6, 8, *input_size[1:])
         assert_array_equal(results[2], batch["mask"])
         assert results[3] == batch["bbox"]
@@ -60,7 +62,10 @@ def test_ssl_pair_tg() -> None:
 
         results = ssl_pair_tg((batch_1, batch_2), model, device, mode)
 
-        assert type(results[0]) is torch.Tensor
+        assert isinstance(results[0], Tensor)
+        assert isinstance(results[1], Tensor)
         assert results[1].size() == (12, 128)
         assert results[2] is None
+        assert isinstance(batch_1["bbox"], list)
+        assert isinstance(batch_2["bbox"], list)
         assert results[3] == batch_1["bbox"] + batch_2["bbox"]

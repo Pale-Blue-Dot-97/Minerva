@@ -30,7 +30,6 @@ from typing import Any, Dict, Optional, Tuple
 import numpy as np
 import torch
 from torch import Tensor
-from torch.nn.modules.loss import _Loss
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchgeo.datasets.utils import BoundingBox
 
@@ -94,7 +93,7 @@ class MinervaLogger(ABC):
         self.results: Dict[str, Any] = {}
 
     def __call__(
-        self, mode: str, step_num: int, writer: SummaryWriter, loss: _Loss, *args
+        self, mode: str, step_num: int, writer: SummaryWriter, loss: Tensor, *args
     ) -> None:
         """Call :func:`log`.
 
@@ -102,7 +101,7 @@ class MinervaLogger(ABC):
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
-            loss (_Loss): Loss from this step of model fitting.
+            loss (Tensor): Loss from this step of model fitting.
 
         Returns:
             None
@@ -115,7 +114,7 @@ class MinervaLogger(ABC):
         mode: str,
         step_num: int,
         writer: SummaryWriter,
-        loss: _Loss,
+        loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
@@ -128,7 +127,7 @@ class MinervaLogger(ABC):
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
-            loss (_Loss): Loss from this step of model fitting.
+            loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Optional; Output tensor from the model.
             y (Tensor): Optional; Labels to assess model output against.
             bbox (BoundingBox): Optional; Bounding boxes of the input samples.
@@ -242,7 +241,7 @@ class STG_Logger(MinervaLogger):
         mode: str,
         step_num: int,
         writer: SummaryWriter,
-        loss: _Loss,
+        loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
@@ -255,7 +254,7 @@ class STG_Logger(MinervaLogger):
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
-            loss (_Loss): Loss from this step of model fitting.
+            loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Output tensor from the model.
             y (Tensor): Labels to assess model output against.
             bbox (BoundingBox): Bounding boxes of the input samples.
@@ -359,7 +358,7 @@ class SSL_Logger(MinervaLogger):
         mode: str,
         step_num: int,
         writer: SummaryWriter,
-        loss: _Loss,
+        loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
@@ -372,7 +371,7 @@ class SSL_Logger(MinervaLogger):
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
-            loss (_Loss): Loss from this step of model fitting.
+            loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Optional; Output tensor from the model.
             y (Tensor): Optional; Labels to assess model output against.
             bbox (BoundingBox): Optional; Bounding boxes of the input samples.
