@@ -7,13 +7,7 @@ from minerva.metrics import MinervaMetrics, SP_Metrics, SSL_Metrics
 
 
 def test_minervametrics() -> None:
-    n_batches: Dict[Literal["train", "val", "test"], int] = {
-        "train": 12,
-        "val": 4,
-        "test": 2,
-    }
-    with pytest.raises(TypeError):
-        _ = MinervaMetrics(n_batches, 16, (4, 224, 224), model_type="scene_classifier")
+    assert issubclass(SP_Metrics, MinervaMetrics)
 
 
 def test_sp_metrics() -> None:
