@@ -71,11 +71,11 @@ def test_get_collator() -> None:
 
 def test_stack_sample_pairs() -> None:
     image_1 = torch.rand(size=(3, 52, 52))
-    mask_1 = torch.randint(0, 8, (52, 52))
+    mask_1 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
     bbox_1 = [BoundingBox(0, 1, 0, 1, 0, 1)]
 
     image_2 = torch.rand(size=(3, 52, 52))
-    mask_2 = torch.randint(0, 8, (52, 52))
+    mask_2 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
     bbox_2 = [BoundingBox(0, 1, 0, 1, 0, 1)]
 
     sample_1 = {
@@ -102,8 +102,8 @@ def test_stack_sample_pairs() -> None:
 
     for key in ("image", "mask", "bbox"):
         for i in range(6):
-            assert assert_array_equal(stacked_samples_1[key][i], sample_1[key]) is None
-            assert assert_array_equal(stacked_samples_2[key][i], sample_2[key]) is None
+            assert_array_equal(stacked_samples_1[key][i], sample_1[key])
+            assert_array_equal(stacked_samples_2[key][i], sample_2[key])
 
 
 def test_intersect_datasets() -> None:

@@ -1,11 +1,12 @@
 import numpy as np
 import pytest
 import torch
+import torch.nn.modules as nn
 from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
 import minerva.models as mm
 
-criterion = torch.nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss()
 
 
 def test_mlp() -> None:
@@ -131,7 +132,7 @@ def test_fcnresnets() -> None:
     input_size = (4, 64, 64)
 
     x = torch.rand((6, *input_size))
-    y = torch.randint(0, 8, (6, 64, 64))
+    y = torch.randint(0, 8, (6, 64, 64))  # type: ignore[attr-defined]
 
     for model in (
         mm.FCN32ResNet18(criterion, input_size=input_size),

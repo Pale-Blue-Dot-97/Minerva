@@ -3,20 +3,21 @@ import tempfile
 
 import numpy as np
 import torch
+import torch.nn.modules as nn
 from numpy.testing import assert_array_equal
 from lightly.loss import NTXentLoss
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.logger import SSL_Logger, STG_Logger
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN16ResNet18, SimCLR18
 
-device = torch.device("cpu")
+device = torch.device("cpu")  # type: ignore[attr-defined]
 
 
 def test_STG_Logger():
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss()
 
     exp_name = "exp1"
     path = tempfile.gettempdir()
@@ -48,7 +49,7 @@ def test_STG_Logger():
         data = []
         for i in range(n_batches):
             images = torch.rand(size=(6, 4, 256, 256))
-            masks = torch.randint(0, 8, (6, 256, 256))
+            masks = torch.randint(0, 8, (6, 256, 256))  # type: ignore[attr-defined]
             bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
             batch = {
                 "image": images,
@@ -73,7 +74,7 @@ def test_STG_Logger():
         for i in range(n_batches):
             y[i] = data[i]["mask"].cpu().numpy()
 
-        assert assert_array_equal(results["y"], y) is None
+        assert_array_equal(results["y"], y)
 
     os.rmdir(os.path.join(path, exp_name))
 

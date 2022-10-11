@@ -22,7 +22,7 @@ def test_de_interlace() -> None:
 
     x2 = np.array([x_1, x_1, x_2, x_2, x_3, x_3]).flatten()
 
-    assert assert_array_equal(visutils.de_interlace(x, 3), x2) is None
+    assert_array_equal(visutils.de_interlace(x, 3), x2)
 
 
 def test_dec_extent_to_deg() -> None:
@@ -93,8 +93,8 @@ def test_stack_rgb() -> None:
     result_1 = visutils.stack_rgb(image_1, rgb_1, max_value=255)
     result_2 = visutils.stack_rgb(image_2, rgb_2, max_value=255)
 
-    assert assert_array_equal(result_1, correct) is None
-    assert assert_array_equal(result_2, correct) is None
+    assert_array_equal(result_1, correct)
+    assert_array_equal(result_2, correct)
 
 
 def test_make_rgb_image() -> None:
