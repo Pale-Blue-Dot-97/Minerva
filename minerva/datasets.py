@@ -120,12 +120,12 @@ class PairedDataset(RasterDataset):
         dataset (RasterDataset): Wrapped dataset to sampled from.
 
     Args:
-        dataset_cls (RasterDataset): Constructor for a :class:`RasterDataset` to be wrapped for paired sampling.
+        dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`RasterDataset` to be wrapped for paired sampling.
     """
 
     def __init__(
         self,
-        dataset_cls: RasterDataset,
+        dataset_cls: Callable[..., GeoDataset],
         *args,
         **kwargs,
     ) -> None:
@@ -222,11 +222,12 @@ def intersect_datasets(
         else:
             return a & b
 
-    master_dataset = datasets[0]
+    master_dataset: Union[GeoDataset, IntersectionDataset] = datasets[0]
 
     for i in range(len(datasets) - 1):
         master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
 
+    assert isinstance(master_dataset, IntersectionDataset)
     return master_dataset
 
 
@@ -259,7 +260,7 @@ def make_dataset(
         sub_dataset_params = dataset_params[key]
 
         # Get the constructor for the class of dataset defined in params.
-        _sub_dataset: GeoDataset = utils.func_by_str(
+        _sub_dataset: Callable[..., GeoDataset] = utils.func_by_str(
             module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
         )
 
@@ -279,6 +280,7 @@ def make_dataset(
         else:
             pass
 
+        sub_dataset: GeoDataset
         if sample_pairs:
             sub_dataset = PairedDataset(
                 _sub_dataset,
@@ -335,7 +337,7 @@ def construct_dataloader(
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
-    sampler: Union[BatchGeoSampler, GeoSampler] = utils.func_by_str(
+    _sampler: Callable[..., Union[BatchGeoSampler, GeoSampler]] = utils.func_by_str(
         module_path=sampler_params["module"], func=sampler_params["name"]
     )
 
@@ -346,7 +348,7 @@ def construct_dataloader(
         per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
         sampler_params["params"]["batch_size"] = per_device_batch_size
 
-    sampler = sampler(
+    sampler: Union[BatchGeoSampler, GeoSampler] = _sampler(
         dataset=subdatasets[0],
         roi=make_bounding_box(sampler_params["roi"]),
         **sampler_params["params"],

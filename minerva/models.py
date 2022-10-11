@@ -2196,7 +2196,7 @@ class SimSiam50(_SimSiam):
 # =====================================================================================================================
 def get_output_shape(
     model: Module,
-    image_dim: Sequence[int],
+    image_dim: Union[Tuple[int, ...], List[int]],
     sample_pairs: bool = False,
 ) -> Union[int, Sequence[int]]:
     """Gets the output shape of a model.
@@ -2208,7 +2208,7 @@ def get_output_shape(
     Returns:
         The shape of the output data from the model.
     """
-    _image_dim: Union[Sequence[int], int] = image_dim
+    _image_dim: Union[Tuple[int, ...], List[int], int] = image_dim
     try:
         if len(image_dim) == 1:
             _image_dim = image_dim[0]
@@ -2221,8 +2221,10 @@ def get_output_shape(
     if not hasattr(_image_dim, "__len__"):
         random_input = torch.rand([4, _image_dim])
     elif sample_pairs:
+        assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([2, 4, *_image_dim])
     else:
+        assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([4, *_image_dim])
 
     output: Tensor = model(random_input)
