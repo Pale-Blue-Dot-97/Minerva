@@ -1389,7 +1389,7 @@ class _FCN(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (FloatTensor): Input data to network.
+            x (Tensor): Input data to network.
 
         Returns:
             z (Tensor): segmentation mask with a channel for each class of the likelihoods the network places on
@@ -1871,7 +1871,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
             NotImplementedError: If ``self.criterion`` is None.
 
         Args:
-            x (FloatTensor): Batch of input data to network.
+            x (Tensor): Batch of input data to network.
             train (bool): Sets whether this shall be a training step or not. True for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
                 If False for a validation or testing step, these actions are not taken.
@@ -2075,7 +2075,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
             NotImplementedError: If ``self.criterion`` is None.
 
         Args:
-            x (FloatTensor): Batch of input data to network.
+            x (Tensor): Batch of input data to network.
             train (bool): Sets whether this shall be a training step or not. True for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
                 If False for a validation or testing step, these actions are not taken.
