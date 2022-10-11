@@ -1,5 +1,7 @@
 import os
 import tempfile
+from typing import Any
+from nptyping import NDArray, Shape
 
 import numpy as np
 import torch
@@ -35,6 +37,7 @@ def test_STG_Logger():
     n_batches = 8
 
     output_shape = model.output_shape
+    assert isinstance(output_shape, tuple)
 
     for mode in ("train", "val", "test"):
         logger = STG_Logger(
@@ -70,7 +73,9 @@ def test_STG_Logger():
         assert results["y"].shape == (8, 6, 256, 256)
         assert np.array(results["ids"]).shape == (8, 6)
 
-        y = np.empty((n_batches, 6, *model.output_shape), dtype=np.uint8)
+        y: NDArray[Shape["8, 6, 256, 256"], Any] = np.empty(
+            (n_batches, 6, *output_shape), dtype=np.uint8
+        )
         for i in range(n_batches):
             y[i] = data[i]["mask"].cpu().numpy()
 

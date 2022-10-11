@@ -93,7 +93,7 @@ from torch.nn import functional as F
 from torchgeo.datasets.utils import BoundingBox
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
-from minerva.utils import aux_configs, config, visutils
+from minerva.utils import AUX_CONFIGS, CONFIG, visutils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -107,12 +107,12 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = config["dir"]["configs"][
+IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
     "imagery_config"
 ]
 
 DATA_CONFIG_PATH: str
-_data_config_path: Union[List[str], Tuple[str, ...], str] = config["dir"]["configs"][
+_data_config_path: Union[List[str], Tuple[str, ...], str] = CONFIG["dir"]["configs"][
     "data_config"
 ]
 if type(_data_config_path) in (list, tuple):
@@ -120,17 +120,17 @@ if type(_data_config_path) in (list, tuple):
 elif type(_data_config_path) == str:
     DATA_CONFIG_PATH = _data_config_path
 
-DATA_CONFIG: Dict[str, Any] = aux_configs["data_config"]
-IMAGERY_CONFIG: Dict[str, Any] = aux_configs["imagery_config"]
+DATA_CONFIG: Dict[str, Any] = AUX_CONFIGS["data_config"]
+IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
-DATA_DIR: str = os.sep.join(config["dir"]["data"])
+DATA_DIR: str = os.sep.join(CONFIG["dir"]["data"])
 
 # Path to cache directory.
-CACHE_DIR: str = os.sep.join(config["dir"]["cache"])
+CACHE_DIR: str = os.sep.join(CONFIG["dir"]["cache"])
 
 # Path to directory to output plots to.
-RESULTS_DIR: str = os.path.join(*config["dir"]["results"])
+RESULTS_DIR: str = os.path.join(*CONFIG["dir"]["results"])
 
 # Band IDs and position in sample image.
 BAND_IDS: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
@@ -152,6 +152,60 @@ WGS84: CRS = CRS.from_epsg(4326)
 # Filters out all TensorFlow messages other than errors.
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
+
+__all__ = [
+    "IMAGERY_CONFIG_PATH",
+    "DATA_CONFIG_PATH",
+    "DATA_CONFIG",
+    "IMAGERY_CONFIG",
+    "CLASSES",
+    "CONFIG",
+    "CMAP_DICT",
+    "return_updated_kwargs",
+    "pair_collate",
+    "dublicator",
+    "tg_to_torch",
+    "pair_return",
+    "get_cuda_device",
+    "exist_delete_check",
+    "mkexpdir",
+    "check_dict_key",
+    "datetime_reformat",
+    "get_dataset_name",
+    "transform_coordinates",
+    "check_within_bounds",
+    "deg_to_dms",
+    "dec2deg",
+    "get_centre_loc",
+    "lat_lon_to_loc",
+    "labels_to_ohe",
+    "class_weighting",
+    "find_empty_classes",
+    "eliminate_classes",
+    "load_data_specs",
+    "class_transform",
+    "mask_transform",
+    "check_test_empty",
+    "class_dist_transform",
+    "class_frac",
+    "threshold_scene_select",
+    "find_best_of",
+    "timestamp_now",
+    "find_modes",
+    "modes_from_manifest",
+    "func_by_str",
+    "check_len",
+    "print_class_dist",
+    "batch_flatten",
+    "make_classification_report",
+    "calc_constrastive_acc",
+    "run_tensorboard",
+    "compute_roc_curves",
+    "find_geo_similar",
+    "print_config",
+    "tsne_cluster",
+    "calc_norm_euc_dist",
+]
 
 # =====================================================================================================================
 #                                                   DECORATORS
@@ -1354,7 +1408,7 @@ def run_tensorboard(
     """
     if not path:
         try:
-            path = config["dir"]["results"][:-1]
+            path = CONFIG["dir"]["results"][:-1]
         except KeyError:
             print("KeyError: Path not specified and default cannot be found.")
             print("ABORT OPERATION")
@@ -1540,7 +1594,7 @@ def print_config(conf: Optional[Dict[str, Any]] = None) -> None:
         conf (Optional[Dict[str, Any]], optional): Config file to print. If ``None``, uses the ``global`` config.
     """
     if conf is None:
-        conf = config
+        conf = CONFIG
 
     print(yaml.dump(conf))
 

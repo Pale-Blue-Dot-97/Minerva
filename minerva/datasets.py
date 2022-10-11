@@ -51,7 +51,7 @@ from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchvision.transforms import RandomApply
 
 from minerva.transforms import MinervaCompose
-from minerva.utils import aux_configs, config, utils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -65,10 +65,10 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-IMAGERY_CONFIG = aux_configs["imagery_config"]
+IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 
 # Path to cache directory.
-CACHE_DIR = os.sep.join(config["dir"]["cache"])
+CACHE_DIR = os.sep.join(CONFIG["dir"]["cache"])
 
 __all__ = [
     "PairedDataset",
@@ -601,9 +601,9 @@ def get_manifest(manifest_path: str) -> DataFrame:
         print(err)
 
         print("CONSTRUCTING MISSING MANIFEST")
-        mf_config = config.copy()
+        mf_config = CONFIG.copy()
 
-        mf_config["dataloader_params"] = config["hyperparams"]["params"]
+        mf_config["dataloader_params"] = CONFIG["hyperparams"]["params"]
 
         manifest = make_manifest(mf_config)
 
@@ -617,7 +617,7 @@ def get_manifest(manifest_path: str) -> DataFrame:
         return manifest
 
 
-def make_manifest(mf_config: Dict[Any, Any] = config) -> DataFrame:
+def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
     The dataset to construct a manifest of is defined by the ``data_config`` value in the config.

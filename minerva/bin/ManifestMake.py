@@ -33,7 +33,7 @@ TODO:
 # =====================================================================================================================
 import os
 
-from minerva.utils import config, utils
+from minerva.utils import CONFIG, utils
 from minerva.datasets import make_manifest
 
 # =====================================================================================================================
@@ -53,7 +53,7 @@ def main():
 
     print(manifest)
 
-    output_dir = os.sep.join(config["dir"]["cache"])
+    output_dir = os.sep.join(CONFIG["dir"]["cache"])
 
     fn = os.sep.join([output_dir, f"{utils.get_dataset_name()}_Manifest.csv"])
 
