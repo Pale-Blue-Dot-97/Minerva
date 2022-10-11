@@ -1571,6 +1571,15 @@ def tsne_cluster(
 
 
 def calc_norm_euc_dist(a: Sequence[int], b: Sequence[int]) -> float:
+    """Calculates the normalised Euclidean distance between two vectors.
+
+    Args:
+        a (Sequence[int]): Vector `A`.
+        b (Sequence[int]): Vector `B`.
+
+    Returns:
+        float: Normalised Euclidean distance between vectors `A` and `B`.
+    """
     assert len(a) == len(b)
     euc_dist: float = distance.euclidean(a, b) / len(a)
 
