@@ -7,7 +7,8 @@ import shutil
 import tempfile
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Tuple
+from nptyping import NDArray, Shape, Int, Float
 
 import numpy as np
 import pandas as pd
@@ -111,7 +112,7 @@ def test_datetime_reformat() -> None:
 
 def test_ohe_labels() -> None:
     labels = [3, 2, 4, 1, 0]
-    correct_targets = np.array(
+    correct_targets: NDArray[Shape["5, 6"], Float] = np.array(
         [
             [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -170,8 +171,8 @@ def test_check_test_empty() -> None:
     assert_array_equal(results_2[1], old_labels_2)
     assert results_2[2] == old_classes
 
-    old_labels_3 = np.array(old_labels_2)
-    old_pred_3 = np.array(old_pred_2)
+    old_labels_3: NDArray[Shape["11"], Int] = np.array(old_labels_2)
+    old_pred_3: NDArray[Shape["11"], Int] = np.array(old_pred_2)
 
     results_3 = utils.check_test_empty(old_pred_3, old_labels_3, old_classes)
 
@@ -188,7 +189,7 @@ def test_find_modes() -> None:
 
     assert class_dist == [(1, 4), (3, 3), (5, 2), (4, 1)]
 
-    assert utils.print_class_dist(class_dist, classes) is None
+    utils.print_class_dist(class_dist, classes)
 
 
 def test_file_check() -> None:
@@ -218,9 +219,9 @@ def test_check_len() -> None:
 
 
 def test_func_by_str() -> None:
-    assert utils.func_by_str("typing", "Union") is Union
-    assert utils.func_by_str("datetime", "datetime") is datetime
-    assert utils.func_by_str("torch.utils.data", "DataLoader") is DataLoader
+    assert callable(utils.func_by_str("typing", "Union"))
+    assert callable(utils.func_by_str("datetime", "datetime"))
+    assert callable(utils.func_by_str("torch.utils.data", "DataLoader"))
 
 
 def test_timestamp_now() -> None:
@@ -520,7 +521,7 @@ def test_compute_roc_curves() -> None:
     labels = [0, 3, 2, 1, 3, 2, 1, 0]
     class_labels = [0, 1, 2, 3]
 
-    fpr = {
+    fpr: Dict[Any, NDArray[Any, Any]] = {
         0: np.array([0.0, 0.0, 0.0, 0.5, 5.0 / 6.0, 1.0]),
         1: np.array([0.0, 0.0, 1.0 / 6.0, 1.0 / 6.0, 1.0]),
         2: np.array([0.0, 0.0, 1.0 / 6.0, 0.5, 0.5, 1.0]),
@@ -549,7 +550,7 @@ def test_compute_roc_curves() -> None:
         "macro": np.array([0.0, 1.0 / 6.0, 0.5, 5.0 / 6.0, 1.0]),
     }
 
-    tpr = {
+    tpr: Dict[Any, NDArray[Any, Any]] = {
         0: np.array([0.0, 0.5, 1.0, 1.0, 1.0, 1.0]),
         1: np.array([0.0, 0.5, 0.5, 1.0, 1.0]),
         2: np.array([0.0, 0.5, 0.5, 0.5, 1.0, 1.0]),
@@ -600,20 +601,13 @@ def test_compute_roc_curves() -> None:
     class_names = {0: "Class 0", 1: "Class 1", 2: "Class 2", 3: "Class 3"}
     cmap_dict = {0: "#000000", 1: "#00c5ff", 2: "#267300", 3: "#a3ff73"}
 
-    path = os.getcwd()
-    if isinstance(path, str):
-        path = os.path.join(path, "tmp")
-    else:
-        path = os.path.join(*path, "tmp")
+    path = os.path.join(os.getcwd(), "tmp")
 
     os.makedirs(path, exist_ok=True)
     fn = f"{path}/roc_curve.png"
 
-    assert (
-        visutils.make_roc_curves(
-            probs, labels, class_names, cmap_dict, filename=fn, show=True
-        )
-        is None
+    visutils.make_roc_curves(
+        probs, labels, class_names, cmap_dict, filename=fn, show=True
     )
 
     # CLean up.
@@ -670,7 +664,7 @@ def test_mkexpdir() -> None:
 
     assert os.path.isdir(os.path.join(utils.RESULTS_DIR, name))
 
-    assert utils.mkexpdir(name) is None
+    utils.mkexpdir(name)
 
     os.rmdir(os.path.join(utils.RESULTS_DIR, name))
 
@@ -690,8 +684,6 @@ def test_run_tensorboard() -> None:
     exp_name = "exp1"
 
     path = tempfile.gettempdir()
-    if not isinstance(path, str):
-        path = os.path.join(*path)
 
     if not os.path.exists(os.path.join(path, exp_name)):
         os.mkdir(os.path.join(path, exp_name))
@@ -733,8 +725,8 @@ def test_calc_constrastive_acc() -> None:
 
 
 def test_print_config() -> None:
-    assert utils.print_config() is None
-    assert utils.print_config(utils.CLASSES) is None
+    utils.print_config()
+    utils.print_config(utils.CLASSES)
 
 
 def test_calc_grad() -> None:
