@@ -326,7 +326,7 @@ def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
         torch.device: CUDA device, if found. Else, CPU device.
     """
     use_cuda = torch.cuda.is_available()
-    device: _device = torch.device(device_sig if use_cuda else "cpu")
+    device: _device = torch.device(device_sig if use_cuda else "cpu")  # type: ignore[attr-defined]
 
     return device
 
@@ -1311,14 +1311,14 @@ def calc_contrastive_acc(z: Tensor) -> Tensor:
     cos_sim = F.cosine_similarity(z[:, None, :], z[None, :, :], dim=-1)
 
     # Mask out cosine similarity to itself.
-    self_mask = torch.eye(cos_sim.shape[0], dtype=torch.bool, device=cos_sim.device)
+    self_mask = torch.eye(cos_sim.shape[0], dtype=torch.bool, device=cos_sim.device)  # type: ignore[attr-defined]
     cos_sim.masked_fill_(self_mask, -9e15)
 
     # Find positive example -> batch_size//2 away from the original example.
     pos_mask = self_mask.roll(shifts=cos_sim.shape[0] // 2, dims=0)
 
     # Get ranking position of positive example.
-    comb_sim = torch.cat(
+    comb_sim = torch.cat(  # type: ignore[attr-defined]
         [
             cos_sim[pos_mask][:, None],  # First position positive example
             cos_sim.masked_fill(pos_mask, -9e15),
