@@ -12,7 +12,7 @@ from torchgeo.samplers.utils import get_random_bounding_box
 from rasterio.crs import CRS
 
 from minerva import datasets as mdt
-from minerva.utils.utils import config, set_seeds
+from minerva.utils.utils import CONFIG, set_seeds
 
 data_root = os.path.join("tests", "tmp")
 img_root = os.path.join(data_root, "data", "test_images")
@@ -233,7 +233,7 @@ def test_make_transformations() -> None:
 
 
 def test_make_loaders() -> None:
-    old_params = config.copy()
+    old_params = CONFIG.copy()
 
     mask_transforms = {"RandomHorizontalFlip": {"module": "torchvision.transforms"}}
     transform_params = {

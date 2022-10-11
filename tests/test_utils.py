@@ -20,7 +20,7 @@ from torch.utils.data import DataLoader
 from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
 
-from minerva.utils import aux_configs, config, utils, visutils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
 
 
 def test_return_updated_kwargs() -> None:
@@ -100,8 +100,8 @@ def test_cuda_device() -> None:
 
 
 def test_config_loading() -> None:
-    assert type(config) is dict
-    assert type(aux_configs) is dict
+    assert type(CONFIG) is dict
+    assert type(AUX_CONFIGS) is dict
 
 
 def test_datetime_reformat() -> None:
@@ -703,14 +703,14 @@ def test_run_tensorboard() -> None:
         == 0
     )
 
-    results_dir = config["dir"]["results"]
-    del config["dir"]["results"]
+    results_dir = CONFIG["dir"]["results"]
+    del CONFIG["dir"]["results"]
 
-    print(config["dir"])
+    print(CONFIG["dir"])
 
     assert utils.run_tensorboard(exp_name, env_name=env_name) is None
 
-    utils.config["dir"]["results"] = results_dir
+    utils.CONFIG["dir"]["results"] = results_dir
 
     os.rmdir(os.path.join(path, exp_name))
 

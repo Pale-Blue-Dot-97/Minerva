@@ -42,7 +42,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from minerva.trainer import Trainer
-from minerva.utils import config, master_parser, utils
+from minerva.utils import CONFIG, master_parser, utils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -73,16 +73,16 @@ def run(gpu: int, args) -> None:
         torch.cuda.set_device(gpu)
         torch.backends.cudnn.benchmark = True
 
-    trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **config)
+    trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **CONFIG)
 
-    if not config["eval"]:
+    if not CONFIG["eval"]:
         trainer.fit()
 
-    if config["pre_train"] and gpu == 0:
+    if CONFIG["pre_train"] and gpu == 0:
         trainer.save_backbone()
         trainer.close()
 
-    if not config["pre_train"]:
+    if not CONFIG["pre_train"]:
         trainer.test()
 
 
@@ -231,13 +231,13 @@ if __name__ == "__main__":
     args_dict = vars(args)
 
     # Find which CLI arguments are not in the config.
-    new_args = {key: args_dict[key] for key in args_dict if key not in config}
+    new_args = {key: args_dict[key] for key in args_dict if key not in CONFIG}
 
     # Updates the config with new arguments from the CLI.
-    config.update(new_args)
+    CONFIG.update(new_args)
 
     # Get seed from config.
-    seed = config.get("seed", 42)
+    seed = CONFIG.get("seed", 42)
 
     # Set torch, numpy and inbuilt seeds for reproducibility.
     utils.set_seeds(seed)

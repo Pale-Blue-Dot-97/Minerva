@@ -59,7 +59,7 @@ from matplotlib.transforms import Bbox
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.utils import aux_configs, config, utils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -73,11 +73,11 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-DATA_CONFIG = aux_configs["data_config"]
-IMAGERY_CONFIG = aux_configs["imagery_config"]
+DATA_CONFIG = AUX_CONFIGS["data_config"]
+IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
-DATA_DIR = config["dir"]["data"]
+DATA_DIR = CONFIG["dir"]["data"]
 
 # Band IDs and position in sample image.
 BAND_IDS = IMAGERY_CONFIG["data_specs"]["band_ids"]
@@ -632,7 +632,7 @@ def prediction_plot(
         plt.show()
 
     if fn_prefix is None:
-        path = os.path.join(*config["dir"]["results"])
+        path = os.path.join(*CONFIG["dir"]["results"])
         fn_prefix = os.sep.join([path, f"{exp_id}_{utils.timestamp_now()}_Mask"])
 
     # Path and file name of figure.
@@ -696,7 +696,7 @@ def seg_plot(
     flat_ids: NDArray[Any, Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = make_dataset(config["dir"]["data"], config["dataset_params"][mode])
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"][mode])
 
     # Create a new projection system in lat-lon.
     crs = dataset.crs
@@ -721,7 +721,7 @@ def seg_plot(
                 flat_ids[i],
                 classes=classes,
                 src_crs=crs,
-                exp_id=config["model_name"],
+                exp_id=CONFIG["model_name"],
                 show=False,
                 fn_prefix=fn_prefix,
                 fig_dim=fig_dim,
@@ -1092,7 +1092,7 @@ def plot_embedding(
     from minerva.datasets import make_dataset
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = make_dataset(config["dir"]["data"], config["dataset_params"][mode])
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"][mode])
 
     images = []
     targets = []
@@ -1266,10 +1266,10 @@ def plot_results(
         timestamp = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
 
     if model_name is None:
-        model_name = config["model_name"]
+        model_name = CONFIG["model_name"]
 
     if results_dir is None:
-        results_dir = config["dir"]["results"]
+        results_dir = CONFIG["dir"]["results"]
         assert isinstance(results_dir, Sequence)
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
