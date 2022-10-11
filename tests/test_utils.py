@@ -96,7 +96,7 @@ def test_pair_return() -> None:
 
 
 def test_cuda_device() -> None:
-    assert type(utils.get_cuda_device()) is torch.device
+    assert type(utils.get_cuda_device()) is torch.device  # type: ignore[attr-defined]
 
 
 def test_config_loading() -> None:
@@ -121,7 +121,7 @@ def test_ohe_labels() -> None:
         ]
     )
     targets = utils.labels_to_ohe(labels=labels, n_classes=6)
-    assert assert_array_equal(correct_targets, targets) is None
+    assert_array_equal(correct_targets, targets)
 
 
 def test_empty_classes() -> None:
@@ -157,8 +157,8 @@ def test_check_test_empty() -> None:
 
     results_1 = utils.check_test_empty(old_pred_1, old_labels_1, old_classes)
 
-    assert assert_array_equal(results_1[0], new_pred) is None
-    assert assert_array_equal(results_1[1], new_labels) is None
+    assert_array_equal(results_1[0], new_pred)
+    assert_array_equal(results_1[1], new_labels)
     assert results_1[2] == new_classes
 
     old_labels_2 = [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1]
@@ -166,8 +166,8 @@ def test_check_test_empty() -> None:
 
     results_2 = utils.check_test_empty(old_pred_2, old_labels_2, old_classes)
 
-    assert assert_array_equal(results_2[0], old_pred_2) is None
-    assert assert_array_equal(results_2[1], old_labels_2) is None
+    assert_array_equal(results_2[0], old_pred_2)
+    assert_array_equal(results_2[1], old_labels_2)
     assert results_2[2] == old_classes
 
     old_labels_3 = np.array(old_labels_2)
@@ -175,8 +175,8 @@ def test_check_test_empty() -> None:
 
     results_3 = utils.check_test_empty(old_pred_3, old_labels_3, old_classes)
 
-    assert assert_array_equal(results_3[0], old_pred_3) is None
-    assert assert_array_equal(results_3[1], old_labels_3) is None
+    assert_array_equal(results_3[0], old_pred_3)
+    assert_array_equal(results_3[1], old_labels_3)
     assert results_3[2] == old_classes
 
 
@@ -592,8 +592,8 @@ def test_compute_roc_curves() -> None:
     )
 
     for key in fpr:
-        assert assert_array_equal(results[0][key], fpr[key]) is None
-        assert assert_array_equal(results[1][key], tpr[key]) is None
+        assert_array_equal(results[0][key], fpr[key])
+        assert_array_equal(results[1][key], tpr[key])
 
     assert results[2] == pytest.approx(auc)
 

@@ -1,4 +1,5 @@
 import torch
+import torch.nn.modules as nn
 from numpy.testing import assert_array_equal
 from lightly.loss import NTXentLoss
 from torchgeo.datasets.utils import BoundingBox
@@ -7,18 +8,18 @@ from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN32ResNet18, SimCLR34
 
 input_size = (4, 224, 224)
-device = torch.device("cpu")
+device = torch.device("cpu")  # type: ignore[attr-defined]
 
 
 def test_sup_tg() -> None:
-    criterion = torch.nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss()
     model = FCN32ResNet18(criterion, input_size=input_size)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
     for mode in ("train", "val", "test"):
         images = torch.rand(size=(6, *input_size))
-        masks = torch.randint(0, 8, (6, *input_size[1:]))
+        masks = torch.randint(0, 8, (6, *input_size[1:]))  # type: ignore[attr-defined]
         bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
         batch = {
             "image": images,
@@ -30,7 +31,7 @@ def test_sup_tg() -> None:
 
         assert type(results[0]) is torch.Tensor
         assert results[1].size() == (6, 8, *input_size[1:])
-        assert assert_array_equal(results[2], batch["mask"]) is None
+        assert_array_equal(results[2], batch["mask"])
         assert results[3] == batch["bbox"]
 
 
