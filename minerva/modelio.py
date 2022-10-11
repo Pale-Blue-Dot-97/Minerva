@@ -26,7 +26,6 @@ from typing import Any, Dict, Sequence, Tuple, Union
 import numpy as np
 import torch
 from torch import Tensor, LongTensor
-from torch.nn.modules.loss import _Loss
 from torchgeo.datasets.utils import BoundingBox
 from typing_extensions import Literal
 
@@ -48,19 +47,19 @@ def sup_tg(
     batch: Dict[Any, Any],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
-    mode: Literal["train", "val", "test"],
+    mode: str,
     **kwargs
-) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
+) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a supervised model using `torchgeo` datasets.
 
     Args:
         batch (Dict[Any, Any]): Batch of data in a dict. Must have 'image', 'mask' and 'bbox' keys.
         model (MinervaModel): Model being fitted.
         device (torch.device): `torch` device object to send data to (e.g. CUDA device).
-        mode (Literal['train', 'val', 'test']): Mode of model fitting to use.
+        mode (str): Mode of model fitting to use.
 
     Returns:
-        Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
+        Tuple[Tensor, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
             and the bounding boxes of the input images supplied.
     """
     # Extracts the x and y batches from the dict.
@@ -92,9 +91,9 @@ def ssl_pair_tg(
     batch: Tuple[Dict[str, Any], Dict[str, Any]],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
-    mode: Literal["train", "val"],
+    mode: str,
     **kwargs
-) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]], None, Sequence[BoundingBox]]:
+) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], None, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
     Args:
@@ -102,12 +101,12 @@ def ssl_pair_tg(
             Must have ``"image"`` and ``"bbox"`` keys.
         model (MinervaModel): Model being fitted.
         device (torch.device): :mod:`torch` device object to send data to (e.g. ``CUDA`` device).
-        mode (Literal['train', 'val']): Mode of model fitting to use.
+        mode (str): Mode of model fitting to use.
         dataset (GeoDataset): The same dataset object the `batch` was sampled from,
             to be used to sample the geo-similar batch.
 
     Returns:
-        Tuple[_Loss, Tensor, Tensor, Sequence[BoundingBox]]: The ``loss``, the model output ``z``,
+        Tuple[Tensor, Tensor, Tensor, Sequence[BoundingBox]]: The ``loss``, the model output ``z``,
         the ``y`` supplied and the bounding boxes of the original input images supplied.
     """
     # Extracts the x_i batch from the dict.

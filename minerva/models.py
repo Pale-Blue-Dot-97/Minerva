@@ -48,7 +48,6 @@ import torch
 from torch import Tensor
 import torch.nn.modules as nn
 from torch.nn.modules import Module
-from torch.nn.modules.loss import _Loss
 from torch.optim import Optimizer
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
 
@@ -134,13 +133,13 @@ class MinervaModel(Module, ABC):
     @overload
     def step(
         self, x: Tensor, y: Tensor, train: bool = False
-    ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
+    ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]:
         ...
 
     @overload
     def step(
         self, x: Tensor, *, train: bool = False
-    ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
+    ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]:
         ...
 
     def step(
@@ -148,7 +147,7 @@ class MinervaModel(Module, ABC):
         x: Tensor,
         y: Optional[Tensor] = None,
         train: bool = False,
-    ) -> Tuple[_Loss, Union[Tensor, Tuple[Tensor, ...]]]:
+    ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]:
         """Generic step of model fitting using a batch of data.
 
         Raises:
@@ -163,8 +162,8 @@ class MinervaModel(Module, ABC):
                 If False for a validation or testing step, these actions are not taken.
 
         Returns:
-            loss: Loss computed by the loss function.
-            z: Predicted label for the input data by the network.
+            Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]: Tuple of the loss computed by the loss function
+            and the model outputs.
         """
 
         if self.optimiser is None:
@@ -181,7 +180,7 @@ class MinervaModel(Module, ABC):
         z: Union[Tensor, Tuple[Tensor, ...]] = self.forward(x)
 
         # Compute Loss.
-        loss: _Loss = self.criterion(z, y)
+        loss: Tensor = self.criterion(z, y)
 
         # Performs a backward pass if this is a training step.
         if train:
@@ -1864,7 +1863,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
 
         return z, g_a, g_b, f_a, f_b
 
-    def step(self, x: Tensor, *, train: bool = False) -> Tuple[_Loss, Tensor]:
+    def step(self, x: Tensor, *, train: bool = False) -> Tuple[Tensor, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
 
         Raises:
@@ -1878,7 +1877,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
                 If False for a validation or testing step, these actions are not taken.
 
         Returns:
-            Tuple[_Loss, Tensor]: Loss computed by the loss function and a :class:`Tensor`
+            Tuple[Tensor, Tensor]: Loss computed by the loss function and a :class:`Tensor`
             with both projection's logits.
         """
 
@@ -1896,7 +1895,7 @@ class _SimCLR(MinervaModel, MinervaBackbone):
         z, z_a, z_b, _, _ = self.forward(x)
 
         # Compute Loss.
-        loss: _Loss = self.criterion(z_a, z_b)
+        loss: Tensor = self.criterion(z_a, z_b)
 
         # Performs a backward pass if this is a training step.
         if train:
@@ -2068,7 +2067,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
 
         return p, p_a, p_b, z_a.detach(), z_b.detach()
 
-    def step(self, x: Tensor, *, train: bool = False) -> Tuple[_Loss, Tensor]:
+    def step(self, x: Tensor, *, train: bool = False) -> Tuple[Tensor, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
 
         Raises:
@@ -2082,7 +2081,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
                 If False for a validation or testing step, these actions are not taken.
 
         Returns:
-            Tuple[_Loss, Tensor]: Loss computed by the loss function and a :class:`Tensor`
+            Tuple[Tensor, Tensor]: Loss computed by the loss function and a :class:`Tensor`
             with both projection's logits.
         """
 
@@ -2100,7 +2099,7 @@ class _SimSiam(MinervaModel, MinervaBackbone):
         p, p_a, p_b, z_a, z_b = self.forward(x)
 
         # Compute Loss.
-        loss: _Loss = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))
+        loss: Tensor = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))
 
         # Performs a backward pass if this is a training step.
         if train:
