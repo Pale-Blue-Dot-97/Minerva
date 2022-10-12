@@ -211,19 +211,19 @@ __all__ = [
 #                                                   DECORATORS
 # =====================================================================================================================
 def return_updated_kwargs(
-    func: Callable[[Any], Tuple[Any, ...]]
-) -> Callable[[Any], Tuple[Any, ...]]:
+    func: Callable[..., Tuple[Any, ...]]
+) -> Callable[..., Tuple[Any, ...]]:
     """Decorator that allows the `kwargs` supplied to the wrapped function to be returned with updated values.
 
     Assumes that the wrapped function returns a :class:`dict` in the last position of the
     :class:`tuple` of returns with keys in `kwargs` that have new values.
 
     Args:
-        func (Callable[[Any], Tuple[Any, ...]): Function to be wrapped. Must take `kwargs` and return a :class:`dict`
+        func (Callable[..., Tuple[Any, ...]): Function to be wrapped. Must take `kwargs` and return a :class:`dict`
             with updated `kwargs` in the last position of the :class:`tuple`.
 
     Returns:
-        Callable[[Any], Tuple[Any, ...]: Wrapped function.
+        Callable[..., Tuple[Any, ...]: Wrapped function.
     """
 
     @functools.wraps(func)
