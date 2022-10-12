@@ -93,7 +93,7 @@ class LARS(Optimizer):
         )
         super(LARS, self).__init__(params, defaults)
 
-    def step(
+    def step(  # type: ignore[override]
         self, epoch: Optional[int] = None, closure: Optional[Callable[..., Any]] = None
     ):
         """Performs a single optimization step.

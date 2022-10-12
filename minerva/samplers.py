@@ -89,7 +89,7 @@ class RandomPairGeoSampler(GeoSampler):
             ):
                 self.hits.append(hit)
 
-    def __iter__(self) -> Iterator[Tuple[BoundingBox, BoundingBox]]:
+    def __iter__(self) -> Iterator[Tuple[BoundingBox, BoundingBox]]:  # type: ignore[override]
         """Return a pair of BoundingBox indices of a dataset that are geospatially close.
 
         Returns:
@@ -173,7 +173,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
                 "Value given for `tiles_per_batch` is not a multiple of batch_size"
             )
 
-    def __iter__(self) -> Iterator[List[Tuple[BoundingBox, BoundingBox]]]:
+    def __iter__(self) -> Iterator[List[Tuple[BoundingBox, BoundingBox]]]:  # type: ignore[override]
         """Return the indices of a dataset.
 
         Returns:

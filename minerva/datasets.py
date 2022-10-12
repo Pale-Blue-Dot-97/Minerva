@@ -137,7 +137,7 @@ class PairedDataset(RasterDataset):
         super().__init__(*args, **super_kwargs)
         self.dataset = dataset_cls(*args, **kwargs)
 
-    def __getitem__(
+    def __getitem__(  # type: ignore[override]
         self, queries: Tuple[BoundingBox, BoundingBox]
     ) -> Tuple[Dict[str, Any], ...]:
         return self.dataset.__getitem__(queries[0]), self.dataset.__getitem__(
