@@ -53,7 +53,7 @@ from torchinfo import summary
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
-from minerva.models import MinervaDataParallel, MinervaModel
+from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
 from minerva.pytorchtools import EarlyStopping
 from minerva.utils import utils, visutils
 
@@ -134,9 +134,7 @@ class Trainer:
 
         self.params: Dict[str, Any] = new_params
         self.class_dist = class_dist
-        self.loaders: Dict[
-            Literal["train", "val", "test"], DataLoader[Iterable[Any]]
-        ] = loaders
+        self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
         self.n_batches = n_batches
 
         self.modes = params["dataset_params"].keys()
@@ -164,7 +162,9 @@ class Trainer:
         self.device = utils.get_cuda_device(gpu)
 
         # Creates model (and loss function) from specified parameters in params.
-        self.model = self.make_model()
+        self.model: Union[
+            MinervaModel, MinervaDataParallel, MinervaBackbone
+        ] = self.make_model()
 
         # Determines the output shape of the model.
         sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
@@ -210,11 +210,8 @@ class Trainer:
 
         if self.gpu == 0:
             # Determines the input size of the model.
-            input_size: Union[Tuple[int, None], Tuple[int, ...]]
-            if self.params["model_type"] in ["MLP", "mlp"]:
-                input_size = (self.batch_size, self.model.input_shape)
-            else:
-                input_size = (self.batch_size, *self.model.input_shape)
+            assert self.model.input_shape is not None
+            input_size: Tuple[int, ...] = (self.batch_size, *self.model.input_shape)
 
             if sample_pairs:
                 input_size = (2, *input_size)
@@ -373,14 +370,14 @@ class Trainer:
 
     def epoch(
         self,
-        mode: Literal["train", "val", "test"],
+        mode: str,
         record_int: bool = False,
         record_float: bool = False,
     ) -> Optional[Dict[str, Any]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
-            mode (Literal["train", "val", "test"]): Either train, val or test.
+            mode (str): Either train, val or test.
                 Defines the type of epoch to run on the model.
             record_int (bool): Optional; Whether to record the integer results
                 (i.e. ground truth and predicted labels).
@@ -465,7 +462,6 @@ class Trainer:
             )
 
             # Conduct training or validation epoch.
-            mode: Literal["train", "val"]
             for mode in ("train", "val"):
 
                 results: Dict[str, Any] = {}
@@ -867,7 +863,8 @@ class Trainer:
     def save_backbone(self) -> None:
         """Readies the model for use in downstream tasks and saves to file."""
         # Checks that model has the required method to ready it for use on downstream tasks.
-        assert hasattr(self.model, "get_backbone")
+        # assert hasattr(self.model, "get_backbone")
+        assert isinstance(self.model, MinervaBackbone)
         pre_trained_backbone: Module = self.model.get_backbone()
 
         # Saves the pre-trained backbone to the cache.

@@ -1,5 +1,5 @@
 import random
-from typing import Dict, Literal
+from typing import Dict
 
 import pytest
 
@@ -11,7 +11,7 @@ def test_minervametrics() -> None:
 
 
 def test_sp_metrics() -> None:
-    n_batches: Dict[Literal["train", "val", "test"], int] = {
+    n_batches: Dict[str, int] = {
         "train": 12,
         "val": 4,
         "test": 2,
@@ -94,7 +94,7 @@ def test_sp_metrics() -> None:
 
 
 def test_ssl_metrics() -> None:
-    n_batches: Dict[Literal["train", "val", "test"], int] = {"train": 12, "val": 4}
+    n_batches: Dict[str, int] = {"train": 12, "val": 4}
     metric_logger_1 = SSL_Metrics(
         n_batches, 16, (4, 224, 224), model_type="segmentation"
     )
