@@ -492,6 +492,26 @@ def transform_coordinates(
 
 @overload
 def transform_coordinates(
+    x: Sequence[float],
+    y: float,
+    src_crs: CRS,
+    new_crs: CRS = WGS84,
+) -> Tuple[Sequence[float], Sequence[float]]:
+    ...
+
+
+@overload
+def transform_coordinates(
+    x: float,
+    y: Sequence[float],
+    src_crs: CRS,
+    new_crs: CRS = WGS84,
+) -> Tuple[Sequence[float], Sequence[float]]:
+    ...
+
+
+@overload
+def transform_coordinates(
     x: float, y: float, src_crs: CRS, new_crs: CRS = WGS84
 ) -> Tuple[float, float]:
     ...
