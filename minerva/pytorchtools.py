@@ -27,6 +27,7 @@ Source: https://github.com/Bjarten/early-stopping-pytorch
 # =====================================================================================================================
 #                                                    IMPORTS
 # =====================================================================================================================
+from typing import Callable, Optional
 import numpy as np
 import torch
 from torch.nn.modules import Module
@@ -63,17 +64,17 @@ class EarlyStopping:
             trace_func (function): trace print function.
                             Default: print
         """
-        self.patience = patience
-        self.verbose = verbose
-        self.counter = 0
-        self.best_score = None
-        self.early_stop = False
-        self.val_loss_min = np.Inf
-        self.delta = delta
-        self.path = path
-        self.trace_func = trace_func
+        self.patience: int = patience
+        self.verbose: bool = verbose
+        self.counter: int = 0
+        self.best_score: Optional[float] = None
+        self.early_stop: bool = False
+        self.val_loss_min: float = np.Inf
+        self.delta: float = delta
+        self.path: str = path
+        self.trace_func: Callable[..., None] = trace_func
 
-    def __call__(self, val_loss, model: Module) -> None:
+    def __call__(self, val_loss: float, model: Module) -> None:
 
         score = -val_loss
 
