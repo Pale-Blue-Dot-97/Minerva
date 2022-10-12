@@ -21,10 +21,9 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Optional, Tuple, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Sequence, Union, overload
 
 import torch
-from overload import overload
 from torch import Tensor, LongTensor
 from torchvision.transforms import ColorJitter
 from torchvision.transforms import functional_tensor as ft
@@ -199,13 +198,24 @@ class MinervaCompose:
         self.key = key
 
     @overload
-    def __call__(self, img: Tensor) -> Tensor:
-        return self._transform_input(img)
+    def __call__(self, sample: Tensor) -> Tensor:
+        ...
 
-    @__call__.add
+    @overload
     def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-        sample[self.key] = self._transform_input(sample[self.key])
-        return sample
+        ...
+
+    def __call__(
+        self, sample: Union[Tensor, Dict[str, Any]]
+    ) -> Union[Tensor, Dict[str, Any]]:
+        if isinstance(sample, Tensor):
+            return self._transform_input(sample)
+        elif isinstance(sample, dict):
+            assert self.key is not None
+            sample[self.key] = self._transform_input(sample[self.key])
+            return sample
+        else:
+            raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
 
     def _transform_input(self, img: Tensor) -> Tensor:
         if isinstance(self.transforms, Sequence):
