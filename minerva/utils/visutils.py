@@ -42,6 +42,7 @@ import imageio
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import ArrayLike
 from nptyping import NDArray, Int, Float, Shape
 import pandas as pd
 import seaborn as sns
@@ -52,7 +53,7 @@ from matplotlib.colors import ListedColormap
 from matplotlib.gridspec import GridSpec
 
 # from matplotlib.ticker import MaxNLocator
-from sklearn.manifold import TSNE
+# from sklearn.manifold import TSNE
 from scipy import stats
 from matplotlib.image import AxesImage
 from matplotlib.transforms import Bbox
@@ -922,8 +923,8 @@ def make_confusion_matrix(
 
 
 def make_roc_curves(
-    probs: Union[List[float], NDArray[Any, Float]],
-    labels: Union[List[int], NDArray[Any, Int]],
+    probs: ArrayLike,
+    labels: Union[Sequence[int], NDArray[Any, Int]],
     class_names: Dict[int, str],
     colours: Dict[int, str],
     micro: bool = True,
