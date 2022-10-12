@@ -1870,7 +1870,7 @@ class _SimCLR(MinervaBackbone):
 
         return z, g_a, g_b, f_a, f_b
 
-    def step(self, x: Tensor, *, train: bool = False) -> Tuple[Tensor, Tensor]:
+    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
 
         Raises:
@@ -2074,7 +2074,7 @@ class _SimSiam(MinervaBackbone):
 
         return p, p_a, p_b, z_a.detach(), z_b.detach()
 
-    def step(self, x: Tensor, *, train: bool = False) -> Tuple[Tensor, Tensor]:
+    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
 
         Raises:
