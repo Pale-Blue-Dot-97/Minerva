@@ -409,16 +409,6 @@ def test_class_frac() -> None:
     row_dict = {"MODES": class_dist, "AnotherColumn": "stuff"}
     row = pd.Series(row_dict)
 
-    new_row = {
-        "MODES": class_dist,
-        "AnotherColumn": "stuff",
-        5: 750 / 1000,
-        3: 150 / 1000,
-        2: 60 / 1000,
-        4: 20 / 1000,
-        1: 12 / 1000,
-        0: 8 / 1000,
-    }
     new_row = utils.class_frac(row)
 
     for mode in class_dist:
