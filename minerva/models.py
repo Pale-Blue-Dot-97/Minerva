@@ -48,6 +48,7 @@ import torch
 from torch import Tensor
 import torch.nn.modules as nn
 from torch.nn.modules import Module
+from torch.nn.parallel import DataParallel, DistributedDataParallel
 from torch.optim import Optimizer
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
 
@@ -190,13 +191,13 @@ class MinervaModel(Module, ABC):
         return loss, z
 
 
-class MinervaBackbone(ABC):
+class MinervaBackbone(MinervaModel):
     """Abstract class to mark a model for use as a backbone."""
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
         self.backbone: MinervaModel
 
@@ -218,7 +219,13 @@ class MinervaDataParallel(Module):
         model (Module): PyTorch Model to be wrapped by :class:`DataParallel`.
     """
 
-    def __init__(self, model: Module, Paralleliser: Module, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        model: Module,
+        Paralleliser: Union[Type[DataParallel], Type[DistributedDataParallel]],
+        *args,
+        **kwargs,
+    ) -> None:
         super(MinervaDataParallel, self).__init__()
         self.model = Paralleliser(model, *args, **kwargs).cuda()
 
@@ -1798,7 +1805,7 @@ class FCN8ResNet152(_FCN):
         )
 
 
-class _SimCLR(MinervaModel, MinervaBackbone):
+class _SimCLR(MinervaBackbone):
     """Base SimCLR class to be subclassed by SimCLR variants.
 
     Subclasses MinervaModel.
@@ -1986,7 +1993,7 @@ class SimCLR50(_SimCLR):
         )
 
 
-class _SimSiam(MinervaModel, MinervaBackbone):
+class _SimSiam(MinervaBackbone):
     """Base SimSiam class to be subclassed by SimSiam variants.
 
     Subclasses MinervaModel.
