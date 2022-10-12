@@ -17,7 +17,6 @@ import torch
 from internet_sabotage import no_connection
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
-from torch.utils.data import DataLoader
 from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
 
