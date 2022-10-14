@@ -21,7 +21,18 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, List, Literal, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Iterable,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import os
 from contextlib import nullcontext
@@ -33,15 +44,16 @@ import torch.distributed as dist
 import yaml
 from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
-from torch.nn import Module
+from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.data import DataLoader
+from torch.utils.tensorboard.writer import SummaryWriter
 from torchinfo import summary
 
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
-from minerva.models import MinervaDataParallel, MinervaModel
+from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
 from minerva.pytorchtools import EarlyStopping
 from minerva.utils import utils, visutils
 
@@ -108,10 +120,10 @@ class Trainer:
         )
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
-        self.gpu = gpu
+        self.gpu: int = gpu
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
-        self.verbose = verbose if gpu == 0 else False
+        self.verbose: bool = verbose if gpu == 0 else False
 
         if self.gpu == 0:
             # Prints config to stdout.
@@ -120,9 +132,9 @@ class Trainer:
             )
             utils.print_config(new_params)
 
-        self.params = new_params
+        self.params: Dict[str, Any] = new_params
         self.class_dist = class_dist
-        self.loaders = loaders
+        self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
         self.n_batches = n_batches
 
         self.modes = params["dataset_params"].keys()
@@ -150,7 +162,9 @@ class Trainer:
         self.device = utils.get_cuda_device(gpu)
 
         # Creates model (and loss function) from specified parameters in params.
-        self.model = self.make_model()
+        self.model: Union[
+            MinervaModel, MinervaDataParallel, MinervaBackbone
+        ] = self.make_model()
 
         # Determines the output shape of the model.
         sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
@@ -196,11 +210,8 @@ class Trainer:
 
         if self.gpu == 0:
             # Determines the input size of the model.
-            input_size: Tuple[int, ...]
-            if self.params["model_type"] in ["MLP", "mlp"]:
-                input_size = (self.batch_size, self.model.input_shape)
-            else:
-                input_size = (self.batch_size, *self.model.input_shape)
+            assert self.model.input_shape is not None
+            input_size: Tuple[int, ...] = (self.batch_size, *self.model.input_shape)
 
             if sample_pairs:
                 input_size = (2, *input_size)
@@ -216,7 +227,9 @@ class Trainer:
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.model)
+            self.model = torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(
+                self.model
+            )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
 
         else:
@@ -254,6 +267,17 @@ class Trainer:
 
         # Initialise model.
         model: MinervaModel = _model(self.make_criterion(), **model_params)
+
+        if self.params.get("reload", False):
+            # Define path to the cached version of the desired pre-trained model.
+            weights_path = os.sep.join(
+                self.params["dir"]["cache"] + [self.params["pre_train_name"]]
+            )
+
+            model.load_state_dict(
+                torch.load(f"{weights_path}.pt", map_location=self.device)
+            )
+
         return model
 
     def make_criterion(self) -> Any:
@@ -346,14 +370,14 @@ class Trainer:
 
     def epoch(
         self,
-        mode: Literal["train", "val", "test"],
+        mode: str,
         record_int: bool = False,
         record_float: bool = False,
     ) -> Optional[Dict[str, Any]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
         Args:
-            mode (Literal["train", "val", "test"]): Either train, val or test.
+            mode (str): Either train, val or test.
                 Defines the type of epoch to run on the model.
             record_int (bool): Optional; Whether to record the integer results
                 (i.e. ground truth and predicted labels).
@@ -364,8 +388,8 @@ class Trainer:
             and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
         """
         batch_size = self.batch_size
-        if dist.is_available() and dist.is_initialized():
-            batch_size = self.batch_size // dist.get_world_size()
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         # Calculates the number of samples
         n_samples = self.n_batches[mode] * batch_size
@@ -381,6 +405,7 @@ class Trainer:
             record_int=record_int,
             record_float=record_float,
             collapse_level=self.params["sample_pairs"],
+            euclidean=self.params["sample_pairs"],
         )
 
         # if mode == "val" and self.params["model_type"] == "ssl":
@@ -403,9 +428,9 @@ class Trainer:
                     batch, self.model, self.device, mode, **self.params
                 )
 
-                if dist.is_available() and dist.is_initialized():
+                if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
                     loss = results[0].data.clone()
-                    dist.all_reduce(loss.div_(dist.get_world_size()))
+                    dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                     results = (loss, *results[1:])
 
                 epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
@@ -437,7 +462,6 @@ class Trainer:
             )
 
             # Conduct training or validation epoch.
-            mode: Literal["train", "val"]
             for mode in ("train", "val"):
 
                 results: Dict[str, Any] = {}
@@ -554,7 +578,7 @@ class Trainer:
                 self.compute_classification_report(results["z"], results["y"])
 
             # Gets the dict from params that defines which plots to make from the results.
-            plots = self.params["plots"]
+            plots = self.params.get("plots", {}).copy()
 
             # Ensure history is not plotted again.
             plots["History"] = False
@@ -618,6 +642,28 @@ class Trainer:
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
 
+    def tsne_cluster(self) -> None:
+        """Perform TSNE clustering on the embeddings from the model and visualise.
+
+        Passes a batch from the test dataset through the model in eval mode to get the embeddings.
+        Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
+        """
+        data = next(iter(self.loaders["test"]))
+
+        self.model.eval()
+        embeddings: torch.Tensor = self.model(data["image"].to(self.device))[0]
+
+        embeddings = embeddings.flatten(start_dim=1)
+
+        visutils.plot_embedding(
+            embeddings.detach().cpu(),
+            data["bbox"],
+            "test",
+            show=True,
+            filename="tsne_cluster_vis.png",
+        )
+
+    """
     def weighted_knn_test(
         self,
         epoch_logger: MinervaLogger,
@@ -719,6 +765,7 @@ class Trainer:
                     test_bar()
 
         return total_top1 / total_num * 100, total_top5 / total_num * 100
+    """
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
@@ -816,7 +863,8 @@ class Trainer:
     def save_backbone(self) -> None:
         """Readies the model for use in downstream tasks and saves to file."""
         # Checks that model has the required method to ready it for use on downstream tasks.
-        assert hasattr(self.model, "get_backbone")
+        # assert hasattr(self.model, "get_backbone")
+        assert isinstance(self.model, MinervaBackbone)
         pre_trained_backbone: Module = self.model.get_backbone()
 
         # Saves the pre-trained backbone to the cache.

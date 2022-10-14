@@ -18,7 +18,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Script to execute the creation, fitting and testing of a computer vision neural network model.
+"""Adaptation of ``MinervaExp.py`` for cluster visualisation of a model.
 
 Designed for use in SLURM clusters and with distributed computing support.
 
@@ -26,8 +26,6 @@ Some code derived from Barlow Twins implementation of distributed computing:
 https://github.com/facebookresearch/barlowtwins
 """
 
-# TODO: Add arg parsing from CLI.
-# TODO: Add ability to conduct hyper-parameter iterative variation experimentation.
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -75,15 +73,10 @@ def run(gpu: int, args) -> None:
 
     trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **CONFIG)
 
-    if not CONFIG["eval"]:
-        trainer.fit()
+    trainer.tsne_cluster()
 
-    if CONFIG["pre_train"] and gpu == 0:
-        trainer.save_backbone()
+    if gpu == 0:
         trainer.close()
-
-    if not CONFIG["pre_train"]:
-        trainer.test()
 
 
 def handle_sigusr1(signum, frame):
@@ -143,12 +136,6 @@ if __name__ == "__main__":
         "--fine-tune",
         action="store_false",
         help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
-    )
-
-    parser.add_argument(
-        "--eval",
-        action="store_false",
-        help="Sets experiment type to pre-train. Will save model to cache at end of training.",
     )
 
     parser.add_argument(

@@ -30,8 +30,7 @@ from typing import Any, Dict, Optional, Tuple
 import numpy as np
 import torch
 from torch import Tensor
-from torch.nn.modules.loss import _Loss
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.utils import utils
@@ -94,7 +93,7 @@ class MinervaLogger(ABC):
         self.results: Dict[str, Any] = {}
 
     def __call__(
-        self, mode: str, step_num: int, writer: SummaryWriter, loss: _Loss, *args
+        self, mode: str, step_num: int, writer: SummaryWriter, loss: Tensor, *args
     ) -> None:
         """Call :func:`log`.
 
@@ -102,7 +101,7 @@ class MinervaLogger(ABC):
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
-            loss (_Loss): Loss from this step of model fitting.
+            loss (Tensor): Loss from this step of model fitting.
 
         Returns:
             None
@@ -115,7 +114,7 @@ class MinervaLogger(ABC):
         mode: str,
         step_num: int,
         writer: SummaryWriter,
-        loss: _Loss,
+        loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
@@ -128,7 +127,7 @@ class MinervaLogger(ABC):
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
-            loss (_Loss): Loss from this step of model fitting.
+            loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Optional; Output tensor from the model.
             y (Tensor): Optional; Labels to assess model output against.
             bbox (BoundingBox): Optional; Bounding boxes of the input samples.
@@ -242,7 +241,7 @@ class STG_Logger(MinervaLogger):
         mode: str,
         step_num: int,
         writer: SummaryWriter,
-        loss: _Loss,
+        loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
@@ -255,7 +254,7 @@ class STG_Logger(MinervaLogger):
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
-            loss (_Loss): Loss from this step of model fitting.
+            loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Output tensor from the model.
             y (Tensor): Labels to assess model output against.
             bbox (BoundingBox): Bounding boxes of the input samples.
@@ -268,7 +267,7 @@ class STG_Logger(MinervaLogger):
         if self.record_int:
             assert y is not None
             # Arg max the estimated probabilities and add to predictions.
-            self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()
+            self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()  # type: ignore[attr-defined]
 
             # Add the labels and sample IDs to lists.
             self.results["y"][self.logs["batch_num"]] = y.cpu().numpy()
@@ -288,7 +287,7 @@ class STG_Logger(MinervaLogger):
 
         # Computes the loss and the correct predictions from this step.
         ls = loss.item()
-        correct = (torch.argmax(z, 1) == y).sum().item()
+        correct = (torch.argmax(z, 1) == y).sum().item()  # type: ignore[attr-defined]
 
         # Adds loss and correct predictions to logs.
         self.logs["total_loss"] += ls
@@ -298,7 +297,7 @@ class STG_Logger(MinervaLogger):
         writer.add_scalar(tag=f"{mode}_loss", scalar_value=ls, global_step=step_num)
         writer.add_scalar(
             tag=f"{mode}_acc",
-            scalar_value=correct / len(torch.flatten(y)),
+            scalar_value=correct / len(torch.flatten(y)),  # type: ignore[attr-defined]
             global_step=step_num,
         )
 
@@ -347,13 +346,19 @@ class SSL_Logger(MinervaLogger):
         }
 
         self.collapse_level = kwargs.get("collapse_level", False)
+        self.euclidean = kwargs.get("euclidean", False)
+
+        if self.collapse_level:
+            self.logs["collapse_level"] = 0
+        if self.euclidean:
+            self.logs["euc_dist"] = 0
 
     def log(
         self,
         mode: str,
         step_num: int,
         writer: SummaryWriter,
-        loss: _Loss,
+        loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
@@ -366,7 +371,7 @@ class SSL_Logger(MinervaLogger):
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             writer (SummaryWriter): Writer object from `tensorboard`.
-            loss (_Loss): Loss from this step of model fitting.
+            loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Optional; Output tensor from the model.
             y (Tensor): Optional; Labels to assess model output against.
             bbox (BoundingBox): Optional; Bounding boxes of the input samples.
@@ -382,13 +387,26 @@ class SSL_Logger(MinervaLogger):
         correct = float((sim_argsort == 0).float().mean().cpu().numpy())
         top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
 
+        if self.euclidean:
+            z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
+
+            euc_dists = []
+            for i in range(len(z_a)):
+                euc_dists.append(
+                    utils.calc_norm_euc_dist(
+                        z_a[i].detach().numpy(), z_b[i].detach().numpy()
+                    )
+                )
+
+            self.logs["euc_dist"] += sum(euc_dists) / len(euc_dists)
+
         if self.collapse_level:
             # calculate the per-dimension standard deviation of the outputs
             # we can use this later to check whether the embeddings are collapsing
             output = torch.split(z, int(0.5 * len(z)), 0)[0].detach()
             output = torch.nn.functional.normalize(output, dim=1)
 
-            output_std = torch.std(output, 0)
+            output_std = torch.std(output, 0)  # type: ignore[attr-defined]
             output_std = output_std.mean()
 
             # use moving averages to track the loss and standard deviation

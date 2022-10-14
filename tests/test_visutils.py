@@ -1,6 +1,8 @@
 import os
 import shutil
 import tempfile
+from typing import Any
+from nptyping import NDArray, Shape
 
 import numpy as np
 import pytest
@@ -20,13 +22,13 @@ def test_de_interlace() -> None:
 
     x = [x_1, x_2, x_3, x_1, x_2, x_3]
 
-    x2 = np.array([x_1, x_1, x_2, x_2, x_3, x_3]).flatten()
+    x2: NDArray[Shape["30"], Any] = np.array([x_1, x_1, x_2, x_2, x_3, x_3]).flatten()
 
-    assert assert_array_equal(visutils.de_interlace(x, 3), x2) is None
+    assert_array_equal(visutils.de_interlace(x, 3), x2)
 
 
 def test_dec_extent_to_deg() -> None:
-    shape = [224, 224]
+    shape = (224, 224)
     new_crs = CRS.from_epsg(26918)
     bounds = BoundingBox(
         -1.4153283567520825,
@@ -71,30 +73,34 @@ def test_dec_extent_to_deg() -> None:
 def test_discrete_heatmap() -> None:
     data = np.random.randint(0, 7, size=(224, 224))
     cmap = ListedColormap(utils.CMAP_DICT.values())
-    assert (
-        visutils.discrete_heatmap(data, utils.CLASSES.values(), cmap_style=cmap) is None
-    )
+    visutils.discrete_heatmap(data, list(utils.CLASSES.values()), cmap_style=cmap)
 
 
 def test_stack_rgb() -> None:
-    red = np.array([[25.0, 12.0, 11.0], [34.0, 55.0, 89.0], [23.0, 18.0, 76.0]])
+    red: NDArray[Shape["3, 3"], Any] = np.array(
+        [[25.0, 12.0, 11.0], [34.0, 55.0, 89.0], [23.0, 18.0, 76.0]]
+    )
 
-    blue = np.array([[16.0, 17.0, 18.0], [19.0, 23.0, 24.0], [78.0, 67.0, 54.0]])
+    blue: NDArray[Shape["3, 3"], Any] = np.array(
+        [[16.0, 17.0, 18.0], [19.0, 23.0, 24.0], [78.0, 67.0, 54.0]]
+    )
 
-    green = np.array([[3.0, 2.0, 1.0], [9.0, 11.0, 34.0], [23.0, 15.0, 128.0]])
+    green: NDArray[Shape["3, 3"], Any] = np.array(
+        [[3.0, 2.0, 1.0], [9.0, 11.0, 34.0], [23.0, 15.0, 128.0]]
+    )
 
-    image_1 = np.array([red, green, blue])
+    image_1: NDArray[Shape["3, 3, 3"], Any] = np.array([red, green, blue])
     rgb_1 = {"R": 0, "G": 1, "B": 2}
 
-    image_2 = np.array([blue, red, green])
+    image_2: NDArray[Shape["3, 3, 3"], Any] = np.array([blue, red, green])
     rgb_2 = {"G": 2, "B": 0, "R": 1}
 
     correct = np.dstack((blue, green, red)) / 255.0
     result_1 = visutils.stack_rgb(image_1, rgb_1, max_value=255)
     result_2 = visutils.stack_rgb(image_2, rgb_2, max_value=255)
 
-    assert assert_array_equal(result_1, correct) is None
-    assert assert_array_equal(result_2, correct) is None
+    assert_array_equal(result_1, correct)
+    assert_array_equal(result_2, correct)
 
 
 def test_make_rgb_image() -> None:
@@ -117,9 +123,6 @@ def test_labelled_rgb_image() -> None:
     )
 
     path = tempfile.gettempdir()
-    if not isinstance(path, str):
-        path = os.path.join(*path)
-
     name = "pretty_pic"
     cmap = ListedColormap(utils.CMAP_DICT.values())
 
@@ -130,7 +133,7 @@ def test_labelled_rgb_image() -> None:
         visutils.WGS84,
         path,
         name,
-        utils.CLASSES.values(),
+        list(utils.CLASSES.values()),
         cmap_style=cmap,
     )
 
@@ -155,8 +158,6 @@ def test_make_gif() -> None:
     path = os.getcwd()
     if isinstance(path, str):
         path = os.path.join(path, "tmp")
-    else:
-        path = os.path.join(*path, "tmp")
 
     os.makedirs(path, exist_ok=True)
 
@@ -165,19 +166,16 @@ def test_make_gif() -> None:
 
     cmap = ListedColormap(utils.CMAP_DICT.values())
 
-    assert (
-        visutils.make_gif(
-            dates,
-            images,
-            masks,
-            bounds,
-            visutils.WGS84,
-            utils.CLASSES.values(),
-            gif_fn,
-            path,
-            cmap,
-        )
-        is None
+    visutils.make_gif(
+        dates,
+        images,
+        masks,
+        bounds,
+        visutils.WGS84,
+        list(utils.CLASSES.values()),
+        gif_fn,
+        path,
+        cmap,
     )
 
     # CLean up.
@@ -200,7 +198,7 @@ def test_prediction_plot() -> None:
     src_crs = utils.WGS84
 
     sample = {"image": image, "mask": mask, "pred": pred, "bounds": bounds}
-    assert visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs) is None
+    visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
 
 
 """
@@ -228,11 +226,8 @@ def test_plot_subpopulations() -> None:
 
     fn = "plot.png"
 
-    assert (
-        visutils.plot_subpopulations(
-            class_dist, utils.CLASSES, cmap_dict=utils.CMAP_DICT, filename=fn, save=True
-        )
-        is None
+    visutils.plot_subpopulations(
+        class_dist, utils.CLASSES, cmap_dict=utils.CMAP_DICT, filename=fn, save=True
     )
 
     os.remove(fn)
@@ -254,7 +249,7 @@ def test_plot_history() -> None:
 
     filename = "plot.png"
 
-    assert visutils.plot_history(metrics, filename, show=True) is None
+    visutils.plot_history(metrics, filename, show=True)
 
     os.remove(filename)
 
@@ -267,14 +262,11 @@ def test_make_confusion_matrix() -> None:
 
     fn = "cm.png"
 
-    assert (
-        visutils.make_confusion_matrix(
-            pred_1, labels_1, utils.CLASSES, filename=fn, save=True
-        )
-        is None
+    visutils.make_confusion_matrix(
+        pred_1, labels_1, utils.CLASSES, filename=fn, save=True
     )
 
-    assert visutils.make_confusion_matrix(pred_2, labels_1, utils.CLASSES) is None
+    visutils.make_confusion_matrix(pred_2, labels_1, utils.CLASSES)
 
     os.remove(fn)
 
@@ -292,6 +284,7 @@ def test_format_names() -> None:
         "ROC": f"test/path/{model_name}_{timestamp}_ROC.png",
         "Mask": f"test/path/Masks/{model_name}_{timestamp}_Mask",
         "PvT": f"test/path/PvTs/{model_name}_{timestamp}_PvT",
+        "TSNE": f"test/path/{model_name}_{timestamp}_TSNE.png",
     }
 
     assert filenames == names
@@ -325,16 +318,13 @@ def test_plot_results() -> None:
 
     probs = np.random.rand(16, 224, 224, len(utils.CLASSES))
 
-    assert (
-        visutils.plot_results(
-            plots,
-            z,
-            y,
-            metrics,
-            probs=probs,
-            class_names=utils.CLASSES,
-            colours=utils.CMAP_DICT,
-            save=False,
-        )
-        is None
+    visutils.plot_results(
+        plots,
+        z,
+        y,
+        metrics,
+        probs=probs,
+        class_names=utils.CLASSES,
+        colours=utils.CMAP_DICT,
+        save=False,
     )

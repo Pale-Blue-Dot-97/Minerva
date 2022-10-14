@@ -1,11 +1,13 @@
 import numpy as np
 import pytest
 import torch
+from torch import Tensor, LongTensor
+import torch.nn.modules as nn
 from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
 import minerva.models as mm
 
-criterion = torch.nn.CrossEntropyLoss()
+criterion = nn.CrossEntropyLoss()
 
 
 def test_mlp() -> None:
@@ -30,6 +32,7 @@ def test_mlp() -> None:
                 loss, z = model.step(x, y, train=False)
 
             assert type(loss.item()) is float
+            assert isinstance(z, Tensor)
             assert z.size() == (16, 8)
 
 
@@ -50,13 +53,12 @@ def test_cnn() -> None:
     loss, z = model.step(x, y, train=True)
 
     assert type(loss.item()) is float
+    assert isinstance(z, Tensor)
     assert z.size() == (6, 8)
 
 
 def test_resnets() -> None:
-    def resnet_test(
-        test_model: mm.MinervaModel, x: torch.FloatTensor, y: torch.LongTensor
-    ) -> None:
+    def resnet_test(test_model: mm.MinervaModel, x: Tensor, y: Tensor) -> None:
         optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
 
         test_model.set_optimiser(optimiser)
@@ -67,23 +69,24 @@ def test_resnets() -> None:
         loss, z = test_model.step(x, y, True)
 
         assert type(loss.item()) is float
+        assert isinstance(z, Tensor)
         assert z.size() == (6, 8)
 
     with pytest.raises(ValueError):
-        _ = mm.ResNet18(replace_stride_with_dilation=(True, False))
+        _ = mm.ResNet18(replace_stride_with_dilation=(True, False))  # type: ignore[arg-type]
 
     input_size = (4, 64, 64)
 
     x = torch.rand(6, *input_size)
-    y = torch.LongTensor(np.random.randint(0, 8, size=6))
+    y = LongTensor(np.random.randint(0, 8, size=6))
 
     for zero_init_residual in (True, False):
 
-        model = mm.ResNet18(
+        resnet18 = mm.ResNet18(
             criterion, input_size=input_size, zero_init_residual=zero_init_residual
         )
 
-        resnet_test(model, x, y)
+        resnet_test(resnet18, x, y)
 
     for model in (
         mm.ResNet34(criterion, input_size=input_size),
@@ -113,9 +116,7 @@ def test_resnets() -> None:
 
 
 def test_fcnresnets() -> None:
-    def resnet_test(
-        test_model: mm.MinervaModel, x: torch.FloatTensor, y: torch.LongTensor
-    ) -> None:
+    def resnet_test(test_model: mm.MinervaModel, x: Tensor, y: Tensor) -> None:
         optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
 
         test_model.set_optimiser(optimiser)
@@ -126,12 +127,13 @@ def test_fcnresnets() -> None:
         loss, z = test_model.step(x, y, True)
 
         assert type(loss.item()) is float
+        assert isinstance(z, Tensor)
         assert z.size() == (6, 8, 64, 64)
 
     input_size = (4, 64, 64)
 
     x = torch.rand((6, *input_size))
-    y = torch.randint(0, 8, (6, 64, 64))
+    y = torch.randint(0, 8, (6, 64, 64))  # type: ignore[attr-defined]
 
     for model in (
         mm.FCN32ResNet18(criterion, input_size=input_size),

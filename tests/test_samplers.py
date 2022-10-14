@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Any, Dict
 import os
 
 from torch.utils.data import DataLoader
@@ -19,7 +20,7 @@ def test_randompairgeosampler() -> None:
     dataset = PairedDataset(TestImgDataset, img_root, res=1.0)
 
     sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
-    loader = DataLoader(
+    loader: DataLoader[Dict[str, Any]] = DataLoader(
         dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs
     )
 
@@ -37,7 +38,7 @@ def test_randompairbatchgeosampler() -> None:
     sampler = RandomPairBatchGeoSampler(
         dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1
     )
-    loader = DataLoader(
+    loader: DataLoader[Dict[str, Any]] = DataLoader(
         dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs
     )
 

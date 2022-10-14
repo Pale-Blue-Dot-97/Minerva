@@ -80,18 +80,20 @@ from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Nominatim
 from pandas import DataFrame
 from rasterio.crs import CRS
+from scipy.spatial import distance
+from sklearn.manifold import TSNE
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.metrics import auc, classification_report, roc_curve
 from sklearn.preprocessing import label_binarize
 from tabulate import tabulate
 from torch import Tensor, LongTensor
 from torch.types import _device
-from torch.nn import Module
+from torch.nn.modules import Module
 from torch.nn import functional as F
 from torchgeo.datasets.utils import BoundingBox
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
-from minerva.utils import aux_configs, config, visutils
+from minerva.utils import AUX_CONFIGS, CONFIG, visutils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -105,12 +107,12 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = config["dir"]["configs"][
+IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
     "imagery_config"
 ]
 
 DATA_CONFIG_PATH: str
-_data_config_path: Union[List[str], Tuple[str, ...], str] = config["dir"]["configs"][
+_data_config_path: Union[List[str], Tuple[str, ...], str] = CONFIG["dir"]["configs"][
     "data_config"
 ]
 if type(_data_config_path) in (list, tuple):
@@ -118,17 +120,17 @@ if type(_data_config_path) in (list, tuple):
 elif type(_data_config_path) == str:
     DATA_CONFIG_PATH = _data_config_path
 
-DATA_CONFIG: Dict[str, Any] = aux_configs["data_config"]
-IMAGERY_CONFIG: Dict[str, Any] = aux_configs["imagery_config"]
+DATA_CONFIG: Dict[str, Any] = AUX_CONFIGS["data_config"]
+IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
-DATA_DIR: str = os.sep.join(config["dir"]["data"])
+DATA_DIR: str = os.sep.join(CONFIG["dir"]["data"])
 
 # Path to cache directory.
-CACHE_DIR: str = os.sep.join(config["dir"]["cache"])
+CACHE_DIR: str = os.sep.join(CONFIG["dir"]["cache"])
 
 # Path to directory to output plots to.
-RESULTS_DIR: str = os.path.join(*config["dir"]["results"])
+RESULTS_DIR: str = os.path.join(*CONFIG["dir"]["results"])
 
 # Band IDs and position in sample image.
 BAND_IDS: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
@@ -151,23 +153,77 @@ WGS84: CRS = CRS.from_epsg(4326)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 
+__all__ = [
+    "IMAGERY_CONFIG_PATH",
+    "DATA_CONFIG_PATH",
+    "DATA_CONFIG",
+    "IMAGERY_CONFIG",
+    "CLASSES",
+    "CONFIG",
+    "CMAP_DICT",
+    "return_updated_kwargs",
+    "pair_collate",
+    "dublicator",
+    "tg_to_torch",
+    "pair_return",
+    "get_cuda_device",
+    "exist_delete_check",
+    "mkexpdir",
+    "check_dict_key",
+    "datetime_reformat",
+    "get_dataset_name",
+    "transform_coordinates",
+    "check_within_bounds",
+    "deg_to_dms",
+    "dec2deg",
+    "get_centre_loc",
+    "lat_lon_to_loc",
+    "labels_to_ohe",
+    "class_weighting",
+    "find_empty_classes",
+    "eliminate_classes",
+    "load_data_specs",
+    "class_transform",
+    "mask_transform",
+    "check_test_empty",
+    "class_dist_transform",
+    "class_frac",
+    "threshold_scene_select",
+    "find_best_of",
+    "timestamp_now",
+    "find_modes",
+    "modes_from_manifest",
+    "func_by_str",
+    "check_len",
+    "print_class_dist",
+    "batch_flatten",
+    "make_classification_report",
+    "calc_constrastive_acc",
+    "run_tensorboard",
+    "compute_roc_curves",
+    "find_geo_similar",
+    "print_config",
+    "tsne_cluster",
+    "calc_norm_euc_dist",
+]
+
 # =====================================================================================================================
 #                                                   DECORATORS
 # =====================================================================================================================
 def return_updated_kwargs(
-    func: Callable[[Any], Tuple[Any, ...]]
-) -> Callable[[Any], Tuple[Any, ...]]:
+    func: Callable[..., Tuple[Any, ...]]
+) -> Callable[..., Tuple[Any, ...]]:
     """Decorator that allows the `kwargs` supplied to the wrapped function to be returned with updated values.
 
     Assumes that the wrapped function returns a :class:`dict` in the last position of the
     :class:`tuple` of returns with keys in `kwargs` that have new values.
 
     Args:
-        func (Callable[[Any], Tuple[Any, ...]): Function to be wrapped. Must take `kwargs` and return a :class:`dict`
+        func (Callable[..., Tuple[Any, ...]): Function to be wrapped. Must take `kwargs` and return a :class:`dict`
             with updated `kwargs` in the last position of the :class:`tuple`.
 
     Returns:
-        Callable[[Any], Tuple[Any, ...]: Wrapped function.
+        Callable[..., Tuple[Any, ...]: Wrapped function.
     """
 
     @functools.wraps(func)
@@ -324,7 +380,7 @@ def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
         torch.device: CUDA device, if found. Else, CPU device.
     """
     use_cuda = torch.cuda.is_available()
-    device: _device = torch.device(device_sig if use_cuda else "cpu")
+    device: _device = torch.device(device_sig if use_cuda else "cpu")  # type: ignore[attr-defined]
 
     return device
 
@@ -370,7 +426,7 @@ def set_seeds(seed: int) -> None:
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
+    torch.cuda.random.manual_seed_all(seed)
 
 
 def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
@@ -427,6 +483,26 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
 @overload
 def transform_coordinates(
     x: Sequence[float],
+    y: Sequence[float],
+    src_crs: CRS,
+    new_crs: CRS = WGS84,
+) -> Tuple[Sequence[float], Sequence[float]]:
+    ...
+
+
+@overload
+def transform_coordinates(
+    x: Sequence[float],
+    y: float,
+    src_crs: CRS,
+    new_crs: CRS = WGS84,
+) -> Tuple[Sequence[float], Sequence[float]]:
+    ...
+
+
+@overload
+def transform_coordinates(
+    x: float,
     y: Sequence[float],
     src_crs: CRS,
     new_crs: CRS = WGS84,
@@ -919,7 +995,7 @@ def class_dist_transform(
     return new_class_dist
 
 
-def class_frac(patch: pd.Series) -> Dict[int, Any]:
+def class_frac(patch: pd.Series) -> Dict[Any, Any]:
     """Computes the fractional sizes of the classes of the given patch and returns a dict of the results.
 
     Args:
@@ -929,7 +1005,7 @@ def class_frac(patch: pd.Series) -> Dict[int, Any]:
         Mapping: Dictionary-like object with keys as class numbers and associated values
         of fractional size of class plus a key-value pair for the patch ID.
     """
-    new_columns: Dict[int, Any] = dict(patch.to_dict())
+    new_columns: Dict[Any, Any] = dict(patch.to_dict())
     counts = 0
     for mode in patch["MODES"]:
         counts += mode[1]
@@ -1221,8 +1297,8 @@ def batch_flatten(x: Union[NDArray[Any, Any], ArrayLike]) -> NDArray[Shape["*"],
 
 
 def make_classification_report(
-    pred: NDArray[Any, Int],
-    labels: NDArray[Any, Int],
+    pred: Union[Sequence[int], NDArray[Any, Int]],
+    labels: Union[Sequence[int], NDArray[Any, Int]],
     class_labels: Dict[int, str],
     print_cr: bool = True,
     p_dist: bool = False,
@@ -1309,14 +1385,14 @@ def calc_contrastive_acc(z: Tensor) -> Tensor:
     cos_sim = F.cosine_similarity(z[:, None, :], z[None, :, :], dim=-1)
 
     # Mask out cosine similarity to itself.
-    self_mask = torch.eye(cos_sim.shape[0], dtype=torch.bool, device=cos_sim.device)
+    self_mask = torch.eye(cos_sim.shape[0], dtype=torch.bool, device=cos_sim.device)  # type: ignore[attr-defined]
     cos_sim.masked_fill_(self_mask, -9e15)
 
     # Find positive example -> batch_size//2 away from the original example.
     pos_mask = self_mask.roll(shifts=cos_sim.shape[0] // 2, dims=0)
 
     # Get ranking position of positive example.
-    comb_sim = torch.cat(
+    comb_sim = torch.cat(  # type: ignore[attr-defined]
         [
             cos_sim[pos_mask][:, None],  # First position positive example
             cos_sim.masked_fill(pos_mask, -9e15),
@@ -1352,7 +1428,7 @@ def run_tensorboard(
     """
     if not path:
         try:
-            path = config["dir"]["results"][:-1]
+            path = CONFIG["dir"]["results"][:-1]
         except KeyError:
             print("KeyError: Path not specified and default cannot be found.")
             print("ABORT OPERATION")
@@ -1475,7 +1551,9 @@ def compute_roc_curves(
 
     if macro:
         # Aggregate all false positive rates.
-        all_fpr = np.unique(np.concatenate([fpr[key] for key in class_labels]))
+        all_fpr: NDArray[Any, Any] = np.unique(
+            np.concatenate([fpr[key] for key in class_labels])
+        )
 
         # Then interpolate all ROC curves at these points.
         print("Interpolating macro average ROC curve")
@@ -1529,13 +1607,55 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     )
 
 
-def print_config(conf: Optional[Dict[str, Any]] = None) -> None:
+def print_config(conf: Optional[Dict[Any, Any]] = None) -> None:
     """Print function for the configuration file using YAML dump.
 
     Args:
         conf (Optional[Dict[str, Any]], optional): Config file to print. If ``None``, uses the ``global`` config.
     """
     if conf is None:
-        conf = config
+        conf = CONFIG
 
     print(yaml.dump(conf))
+
+
+def tsne_cluster(
+    embeddings: NDArray[Any, Any],
+    n_dim: int = 2,
+    lr: str = "auto",
+    n_iter: int = 1000,
+    verbose: int = 1,
+) -> Any:
+    """Trains a TSNE algorithm on the embeddings passed.
+
+    Args:
+        embeddings (NDArray[Any, Any]): Embeddings outputted from the model.
+        n_dim (int, optional): Number of dimensions to reduce embeddings to. Defaults to 2.
+        lr (str, optional): Learning rate. Defaults to "auto".
+        n_iter (int, optional): Number of iterations. Defaults to 1000.
+        verbose (int, optional): Verbosity. Defaults to 1.
+
+    Returns:
+        Any: Embeddings transformed to ``n_dim`` dimensions using TSNE.
+    """
+
+    tsne = TSNE(n_dim, learning_rate=lr, n_iter=n_iter, verbose=verbose, init="random")
+
+    return tsne.fit_transform(embeddings)
+
+
+def calc_norm_euc_dist(a: Sequence[int], b: Sequence[int]) -> float:
+    """Calculates the normalised Euclidean distance between two vectors.
+
+    Args:
+        a (Sequence[int]): Vector `A`.
+        b (Sequence[int]): Vector `B`.
+
+    Returns:
+        float: Normalised Euclidean distance between vectors `A` and `B`.
+    """
+    assert len(a) == len(b)
+    euc_dist: float = distance.euclidean(a, b) / len(a)
+
+    assert type(euc_dist) is float
+    return euc_dist
