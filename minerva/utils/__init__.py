@@ -126,7 +126,7 @@ if config_path is not None:
     path = os.sep.join((config_path, config_name))
 
 # Loads the configs from file using paths found in sys.args.
-config, aux_configs = load_configs(path)
+CONFIG, AUX_CONFIGS = load_configs(path)
 
 # Change the working directory back to script location.
 os.chdir(cwd)

@@ -42,21 +42,25 @@ import imageio
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from numpy.typing import ArrayLike
 from nptyping import NDArray, Int, Float, Shape
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 from alive_progress import alive_bar
+from matplotlib import cm, offsetbox
 from matplotlib.colors import ListedColormap
 from matplotlib.gridspec import GridSpec
 
 # from matplotlib.ticker import MaxNLocator
+# from sklearn.manifold import TSNE
+from scipy import stats
 from matplotlib.image import AxesImage
 from matplotlib.transforms import Bbox
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.utils import aux_configs, config, utils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -70,11 +74,11 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-DATA_CONFIG = aux_configs["data_config"]
-IMAGERY_CONFIG = aux_configs["imagery_config"]
+DATA_CONFIG = AUX_CONFIGS["data_config"]
+IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
-DATA_DIR = config["dir"]["data"]
+DATA_DIR = CONFIG["dir"]["data"]
 
 # Band IDs and position in sample image.
 BAND_IDS = IMAGERY_CONFIG["data_specs"]["band_ids"]
@@ -245,7 +249,9 @@ def stack_rgb(
 
     # Stack together RGB bands.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
-    rgb_image = np.dstack((channels[2], channels[1], channels[0]))
+    rgb_image: NDArray[Shape["3, *, *"], Any] = np.dstack(
+        (channels[2], channels[1], channels[0])
+    )
     assert isinstance(rgb_image, np.ndarray)
     return rgb_image
 
@@ -627,7 +633,7 @@ def prediction_plot(
         plt.show()
 
     if fn_prefix is None:
-        path = os.path.join(*config["dir"]["results"])
+        path = os.path.join(*CONFIG["dir"]["results"])
         fn_prefix = os.sep.join([path, f"{exp_id}_{utils.timestamp_now()}_Mask"])
 
     # Path and file name of figure.
@@ -691,7 +697,7 @@ def seg_plot(
     flat_ids: NDArray[Any, Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = make_dataset(config["dir"]["data"], config["dataset_params"][mode])
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"][mode])
 
     # Create a new projection system in lat-lon.
     crs = dataset.crs
@@ -716,7 +722,7 @@ def seg_plot(
                 flat_ids[i],
                 classes=classes,
                 src_crs=crs,
-                exp_id=config["model_name"],
+                exp_id=CONFIG["model_name"],
                 show=False,
                 fn_prefix=fn_prefix,
                 fig_dim=fig_dim,
@@ -917,8 +923,8 @@ def make_confusion_matrix(
 
 
 def make_roc_curves(
-    probs: Union[List[float], NDArray[Any, Float]],
-    labels: Union[List[int], NDArray[Any, Int]],
+    probs: ArrayLike,
+    labels: Union[Sequence[int], NDArray[Any, Int]],
     class_names: Dict[int, str],
     colours: Dict[int, str],
     micro: bool = True,
@@ -1014,6 +1020,146 @@ def make_roc_curves(
         plt.close()
 
 
+"""
+def t_sne_cluster(
+    embeddings: NDArray[Any, Any],
+    predictions: Union[List[int], NDArray[Any, Int]],
+    show: bool = False,
+    save: bool = True,
+    filename: Optional[str] = None,
+) -> None:
+
+    tsne = TSNE(2, verbose=1)
+
+    tsne_proj = tsne.fit_transform(embeddings)
+
+    cmap = cm.get_cmap("tab20")
+    num_categories = 10
+
+    # Plot those points as a scatter plot and label them based on the pred labels.
+    cmap = cm.get_cmap("tab20")
+    fig, ax = plt.subplots(figsize=(8, 8))
+    num_categories = 10
+    for lab in range(num_categories):
+        indices = predictions == lab
+        ax.scatter(
+            tsne_proj[indices, 0],
+            tsne_proj[indices, 1],
+            c=np.array(cmap(lab)).reshape(1, 4),
+            label=lab,
+            alpha=0.5,
+        )
+    ax.legend(fontsize="large", markerscale=2)
+
+    # Shows and/or saves plot.
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(filename)
+        print("TSNE cluster visualisation SAVED")
+        plt.close()
+"""
+
+
+def plot_embedding(
+    embeddings: Any,
+    bounds: Union[Sequence[Any], NDArray[Any, Any]],
+    mode: str,
+    title: Optional[str] = None,
+    show: bool = False,
+    save: bool = True,
+    filename: Optional[str] = None,
+) -> None:
+    """Using TSNE Clustering, visualises the embeddings from a model.
+
+    Args:
+        embeddings (Any): Embeddings from a model.
+        bounds (Union[Sequence[Any], NDArray[Any, Any]]): Array of objects describing a geospatial bounding box.
+            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
+        mode (str): Mode samples are from. Must be 'train', 'val' or 'test'.
+        title (Optional[str], optional): Title of plot.
+        show (bool): Optional; Whether to show plot.
+        save (bool): Optional; Whether to save plot to file.
+        filename (str): Optional; Name of file to save plot to.
+
+    Returns:
+        None
+    """
+
+    x = utils.tsne_cluster(embeddings)
+
+    # TODO: This is a very naughty way of avoiding a circular import.
+    # Need to reorganise package to avoid need for this.
+    from minerva.datasets import make_dataset
+
+    print("\nRE-CONSTRUCTING DATASET")
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"][mode])
+
+    images = []
+    targets = []
+
+    # Initialises a progress bar for the epoch.
+    with alive_bar(len(x), bar="blocks") as bar:
+
+        # Plots the predicted versus ground truth labels for all test patches supplied.
+        for i in range(len(x)):
+            sample = dataset[bounds[i]]
+            images.append(stack_rgb(sample["image"].numpy()))
+            targets.append(
+                [
+                    int(stats.mode(mask, axis=None, keepdims=False).mode)
+                    for mask in sample["mask"].numpy()
+                ]
+            )
+
+            bar()
+
+    x_min, x_max = np.min(x, 0), np.max(x, 0)
+    x = (x - x_min) / (x_max - x_min)
+
+    plt.figure(figsize=(10, 10))
+    ax = plt.subplot(111)
+
+    for i in range(len(x)):
+        plt.text(
+            x[i, 0],
+            x[i, 1],
+            str(targets[i]),
+            color=plt.cm.Set1(targets[i][0] / 10.0),
+            fontdict={"weight": "bold", "size": 9},
+        )
+
+    if hasattr(offsetbox, "AnnotationBbox"):
+        # only print thumbnails with matplotlib > 1.0
+        shown_images: NDArray[Any, Any] = np.array([[1.0, 1.0]])  # just something big
+
+        for i in range(len(images)):
+            dist = np.sum((x[i] - shown_images) ** 2, 1)
+            if np.min(dist) < 4e-3:
+                # don’t show points that are too close
+                continue
+
+            shown_images = np.r_[shown_images, [x[i]]]
+            imagebox = offsetbox.AnnotationBbox(
+                offsetbox.OffsetImage(images[i], cmap=plt.cm.gray_r), x[i]
+            )
+
+            ax.add_artist(imagebox)
+
+    plt.xticks([]), plt.yticks([])
+
+    if title is not None:
+        plt.title(title)
+
+    # Shows and/or saves plot.
+    if show:
+        plt.show()
+    if save:
+        plt.savefig(filename)
+        print("TSNE cluster visualisation SAVED")
+        plt.close()
+
+
 def format_plot_names(
     model_name: str,
     timestamp: str,
@@ -1050,6 +1196,7 @@ def format_plot_names(
         "ROC": standard_format("ROC" + ".png"),
         "Mask": standard_format("Mask", "Masks"),
         "PvT": standard_format("PvT", "PvTs"),
+        "TSNE": standard_format("TSNE") + ".png",
     }
 
     return filenames
@@ -1064,6 +1211,7 @@ def plot_results(
     mode: str = "test",
     bounds: Optional[NDArray[Any, Any]] = None,
     probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
+    embeddings: Optional[NDArray[Any, Any]] = None,
     class_names: Optional[Dict[int, str]] = None,
     colours: Optional[Dict[int, str]] = None,
     save: bool = True,
@@ -1119,10 +1267,10 @@ def plot_results(
         timestamp = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
 
     if model_name is None:
-        model_name = config["model_name"]
+        model_name = CONFIG["model_name"]
 
     if results_dir is None:
-        results_dir = config["dir"]["results"]
+        results_dir = CONFIG["dir"]["results"]
         assert isinstance(results_dir, Sequence)
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
@@ -1132,7 +1280,7 @@ def plot_results(
     except FileExistsError as err:
         print(err)
 
-    if plots["History"]:
+    if plots.get("History", False):
         assert metrics is not None
 
         print("\nPLOTTING MODEL HISTORY")
@@ -1140,7 +1288,7 @@ def plot_results(
 
     assert class_names is not None
 
-    if plots["CM"]:
+    if plots.get("CM", False):
         print("\nPLOTTING CONFUSION MATRIX")
         make_confusion_matrix(
             labels=flat_y,
@@ -1153,7 +1301,7 @@ def plot_results(
 
     assert colours is not None
 
-    if plots["Pred"]:
+    if plots.get("Pred", False):
         print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
         plot_subpopulations(
             utils.find_modes(flat_z),
@@ -1164,7 +1312,7 @@ def plot_results(
             show=show,
         )
 
-    if plots["ROC"]:
+    if plots.get("ROC", False):
         assert probs is not None
 
         print("\nPLOTTING ROC CURVES")
@@ -1180,7 +1328,7 @@ def plot_results(
             show=show,
         )
 
-    if plots["Mask"]:
+    if plots.get("Mask", False):
         assert z is not None
         assert y is not None
         assert ids is not None
@@ -1199,4 +1347,19 @@ def plot_results(
             classes=class_names,
             colours=colours,
             fig_dim=DATA_CONFIG["fig_sizes"]["Mask"],
+        )
+
+    if plots.get("TSNE", False):
+        assert embeddings is not None
+        assert bounds is not None
+        assert mode is not None
+
+        print("\nPERFORMING TSNE CLUSTERING")
+        plot_embedding(
+            embeddings,
+            bounds,
+            mode,
+            show=show,
+            save=save,
+            filename=filenames["TSNE"],
         )

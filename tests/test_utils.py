@@ -7,7 +7,8 @@ import shutil
 import tempfile
 from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, Tuple, Union
+from typing import Any, Dict, Tuple
+from nptyping import NDArray, Shape, Int, Float
 
 import numpy as np
 import pandas as pd
@@ -16,11 +17,10 @@ import torch
 from internet_sabotage import no_connection
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
-from torch.utils.data import DataLoader
 from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
 
-from minerva.utils import aux_configs, config, utils, visutils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
 
 
 def test_return_updated_kwargs() -> None:
@@ -96,12 +96,12 @@ def test_pair_return() -> None:
 
 
 def test_cuda_device() -> None:
-    assert type(utils.get_cuda_device()) is torch.device
+    assert type(utils.get_cuda_device()) is torch.device  # type: ignore[attr-defined]
 
 
 def test_config_loading() -> None:
-    assert type(config) is dict
-    assert type(aux_configs) is dict
+    assert type(CONFIG) is dict
+    assert type(AUX_CONFIGS) is dict
 
 
 def test_datetime_reformat() -> None:
@@ -111,7 +111,7 @@ def test_datetime_reformat() -> None:
 
 def test_ohe_labels() -> None:
     labels = [3, 2, 4, 1, 0]
-    correct_targets = np.array(
+    correct_targets: NDArray[Shape["5, 6"], Float] = np.array(
         [
             [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -121,7 +121,7 @@ def test_ohe_labels() -> None:
         ]
     )
     targets = utils.labels_to_ohe(labels=labels, n_classes=6)
-    assert assert_array_equal(correct_targets, targets) is None
+    assert_array_equal(correct_targets, targets)
 
 
 def test_empty_classes() -> None:
@@ -157,8 +157,8 @@ def test_check_test_empty() -> None:
 
     results_1 = utils.check_test_empty(old_pred_1, old_labels_1, old_classes)
 
-    assert assert_array_equal(results_1[0], new_pred) is None
-    assert assert_array_equal(results_1[1], new_labels) is None
+    assert_array_equal(results_1[0], new_pred)
+    assert_array_equal(results_1[1], new_labels)
     assert results_1[2] == new_classes
 
     old_labels_2 = [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1]
@@ -166,17 +166,17 @@ def test_check_test_empty() -> None:
 
     results_2 = utils.check_test_empty(old_pred_2, old_labels_2, old_classes)
 
-    assert assert_array_equal(results_2[0], old_pred_2) is None
-    assert assert_array_equal(results_2[1], old_labels_2) is None
+    assert_array_equal(results_2[0], old_pred_2)
+    assert_array_equal(results_2[1], old_labels_2)
     assert results_2[2] == old_classes
 
-    old_labels_3 = np.array(old_labels_2)
-    old_pred_3 = np.array(old_pred_2)
+    old_labels_3: NDArray[Shape["11"], Int] = np.array(old_labels_2)
+    old_pred_3: NDArray[Shape["11"], Int] = np.array(old_pred_2)
 
     results_3 = utils.check_test_empty(old_pred_3, old_labels_3, old_classes)
 
-    assert assert_array_equal(results_3[0], old_pred_3) is None
-    assert assert_array_equal(results_3[1], old_labels_3) is None
+    assert_array_equal(results_3[0], old_pred_3)
+    assert_array_equal(results_3[1], old_labels_3)
     assert results_3[2] == old_classes
 
 
@@ -188,7 +188,7 @@ def test_find_modes() -> None:
 
     assert class_dist == [(1, 4), (3, 3), (5, 2), (4, 1)]
 
-    assert utils.print_class_dist(class_dist, classes) is None
+    utils.print_class_dist(class_dist, classes)
 
 
 def test_file_check() -> None:
@@ -218,9 +218,9 @@ def test_check_len() -> None:
 
 
 def test_func_by_str() -> None:
-    assert utils.func_by_str("typing", "Union") is Union
-    assert utils.func_by_str("datetime", "datetime") is datetime
-    assert utils.func_by_str("torch.utils.data", "DataLoader") is DataLoader
+    assert callable(utils.func_by_str("typing", "Union"))
+    assert callable(utils.func_by_str("datetime", "datetime"))
+    assert callable(utils.func_by_str("torch.utils.data", "DataLoader"))
 
 
 def test_timestamp_now() -> None:
@@ -409,16 +409,6 @@ def test_class_frac() -> None:
     row_dict = {"MODES": class_dist, "AnotherColumn": "stuff"}
     row = pd.Series(row_dict)
 
-    new_row = {
-        "MODES": class_dist,
-        "AnotherColumn": "stuff",
-        5: 750 / 1000,
-        3: 150 / 1000,
-        2: 60 / 1000,
-        4: 20 / 1000,
-        1: 12 / 1000,
-        0: 8 / 1000,
-    }
     new_row = utils.class_frac(row)
 
     for mode in class_dist:
@@ -520,7 +510,7 @@ def test_compute_roc_curves() -> None:
     labels = [0, 3, 2, 1, 3, 2, 1, 0]
     class_labels = [0, 1, 2, 3]
 
-    fpr = {
+    fpr: Dict[Any, NDArray[Any, Any]] = {
         0: np.array([0.0, 0.0, 0.0, 0.5, 5.0 / 6.0, 1.0]),
         1: np.array([0.0, 0.0, 1.0 / 6.0, 1.0 / 6.0, 1.0]),
         2: np.array([0.0, 0.0, 1.0 / 6.0, 0.5, 0.5, 1.0]),
@@ -549,7 +539,7 @@ def test_compute_roc_curves() -> None:
         "macro": np.array([0.0, 1.0 / 6.0, 0.5, 5.0 / 6.0, 1.0]),
     }
 
-    tpr = {
+    tpr: Dict[Any, NDArray[Any, Any]] = {
         0: np.array([0.0, 0.5, 1.0, 1.0, 1.0, 1.0]),
         1: np.array([0.0, 0.5, 0.5, 1.0, 1.0]),
         2: np.array([0.0, 0.5, 0.5, 0.5, 1.0, 1.0]),
@@ -592,28 +582,21 @@ def test_compute_roc_curves() -> None:
     )
 
     for key in fpr:
-        assert assert_array_equal(results[0][key], fpr[key]) is None
-        assert assert_array_equal(results[1][key], tpr[key]) is None
+        assert_array_equal(results[0][key], fpr[key])
+        assert_array_equal(results[1][key], tpr[key])
 
     assert results[2] == pytest.approx(auc)
 
     class_names = {0: "Class 0", 1: "Class 1", 2: "Class 2", 3: "Class 3"}
     cmap_dict = {0: "#000000", 1: "#00c5ff", 2: "#267300", 3: "#a3ff73"}
 
-    path = os.getcwd()
-    if isinstance(path, str):
-        path = os.path.join(path, "tmp")
-    else:
-        path = os.path.join(*path, "tmp")
+    path = os.path.join(os.getcwd(), "tmp")
 
     os.makedirs(path, exist_ok=True)
     fn = f"{path}/roc_curve.png"
 
-    assert (
-        visutils.make_roc_curves(
-            probs, labels, class_names, cmap_dict, filename=fn, show=True
-        )
-        is None
+    visutils.make_roc_curves(
+        probs, labels, class_names, cmap_dict, filename=fn, show=True
     )
 
     # CLean up.
@@ -670,7 +653,7 @@ def test_mkexpdir() -> None:
 
     assert os.path.isdir(os.path.join(utils.RESULTS_DIR, name))
 
-    assert utils.mkexpdir(name) is None
+    utils.mkexpdir(name)
 
     os.rmdir(os.path.join(utils.RESULTS_DIR, name))
 
@@ -690,8 +673,6 @@ def test_run_tensorboard() -> None:
     exp_name = "exp1"
 
     path = tempfile.gettempdir()
-    if not isinstance(path, str):
-        path = os.path.join(*path)
 
     if not os.path.exists(os.path.join(path, exp_name)):
         os.mkdir(os.path.join(path, exp_name))
@@ -703,14 +684,14 @@ def test_run_tensorboard() -> None:
         == 0
     )
 
-    results_dir = config["dir"]["results"]
-    del config["dir"]["results"]
+    results_dir = CONFIG["dir"]["results"]
+    del CONFIG["dir"]["results"]
 
-    print(config["dir"])
+    print(CONFIG["dir"])
 
     assert utils.run_tensorboard(exp_name, env_name=env_name) is None
 
-    utils.config["dir"]["results"] = results_dir
+    utils.CONFIG["dir"]["results"] = results_dir
 
     os.rmdir(os.path.join(path, exp_name))
 
@@ -733,8 +714,8 @@ def test_calc_constrastive_acc() -> None:
 
 
 def test_print_config() -> None:
-    assert utils.print_config() is None
-    assert utils.print_config(utils.CLASSES) is None
+    utils.print_config()
+    utils.print_config(utils.CLASSES)
 
 
 def test_calc_grad() -> None:

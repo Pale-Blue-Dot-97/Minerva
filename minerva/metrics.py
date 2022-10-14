@@ -24,7 +24,7 @@
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import Any, Dict, Literal, Tuple
+from typing import Any, Dict, List, Tuple
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -42,14 +42,14 @@ class MinervaMetrics(ABC):
     """Abstract class for metric logging within the :mod:`minerva` framework.
 
     Attributes:
-        n_batches (Dict[Literal["train", "val", "test"], int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
         data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
         metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
-        n_batches (Dict[Literal["train", "val", "test"], int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
         data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
 
@@ -57,9 +57,12 @@ class MinervaMetrics(ABC):
 
     __metaclass__ = abc.ABCMeta
 
+    metric_types: List[str] = []
+    special_metric_types: List[str] = []
+
     def __init__(
         self,
-        n_batches: Dict[Literal["train", "val", "test"], int],
+        n_batches: Dict[str, int],
         batch_size: int,
         data_size: Tuple[int, int, int],
         **params,
@@ -76,31 +79,36 @@ class MinervaMetrics(ABC):
         self.model_type = params.get("model_type", "scene_classifier")
         self.sample_pairs = params.get("sample_pairs", False)
 
-    def __call__(
-        self, mode: Literal["train", "val", "test"], logs: Dict[str, Any]
-    ) -> None:
+        self.modes = params.get("modes", ["train", "val", "test"])
+
+        if self.sample_pairs:
+            self.metric_types += self.special_metric_types
+
+        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
+        self.metrics = {}
+        for mode in self.modes:
+            for metric in self.metric_types:
+                self.metrics[f"{mode}_{metric}"] = {"x": [], "y": []}
+
+    def __call__(self, mode: str, logs: Dict[str, Any]) -> None:
         self.calc_metrics(mode, logs)
 
     @abc.abstractmethod
-    def calc_metrics(
-        self, mode: Literal["train", "val", "test"], logs: Dict[str, Any]
-    ) -> None:
+    def calc_metrics(self, mode: str, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of model fitting.
+            mode (str): Mode of model fitting.
             logs (Dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
         pass
 
     @abc.abstractmethod
-    def log_epoch_number(
-        self, mode: Literal["train", "val", "test"], epoch_no: int
-    ) -> None:
+    def log_epoch_number(self, mode: str, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of model fitting.
+            mode (str): Mode of model fitting.
             epoch_no (int): Epoch number to log.
         """
         pass
@@ -136,13 +144,11 @@ class MinervaMetrics(ABC):
         return sub_metrics
 
     @abc.abstractmethod
-    def print_epoch_results(
-        self, mode: Literal["train", "val", "test"], epoch_no: int
-    ) -> None:
+    def print_epoch_results(self, mode: str, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of fitting to print results from.
+            mode (str): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
         pass
@@ -152,22 +158,24 @@ class SP_Metrics(MinervaMetrics):
     """Metric logging for supervised models.
 
     Attributes:
-        n_batches (Dict[Literal["train", "val", "test"], int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
         data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
         metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
-        n_batches (Dict[Literal["train", "val", "test"], int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
         data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
         model_type (str): Optional; Type of the model.
     """
 
+    metric_types: List[str] = ["loss", "acc"]
+
     def __init__(
         self,
-        n_batches: Dict[Literal["train", "val", "test"], int],
+        n_batches: Dict[str, int],
         batch_size: int,
         data_size: Tuple[int, int, int],
         model_type: str = "segmentation",
@@ -177,23 +185,11 @@ class SP_Metrics(MinervaMetrics):
             n_batches, batch_size, data_size, model_type=model_type
         )
 
-        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics = {
-            "train_loss": {"x": [], "y": []},
-            "val_loss": {"x": [], "y": []},
-            "test_loss": {"x": [], "y": []},
-            "train_acc": {"x": [], "y": []},
-            "val_acc": {"x": [], "y": []},
-            "test_acc": {"x": [], "y": []},
-        }
-
-    def calc_metrics(
-        self, mode: Literal["train", "val", "test"], logs: Dict[str, Any]
-    ) -> None:
+    def calc_metrics(self, mode: str, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of model fitting.
+            mode (str): Mode of model fitting.
             logs (Dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
         self.metrics[f"{mode}_loss"]["y"].append(
@@ -219,7 +215,7 @@ class SP_Metrics(MinervaMetrics):
         """Logs the epoch number to ``metrics``.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of model fitting.
+            mode (str): Mode of model fitting.
             epoch_no (int): Epoch number to log.
         """
         self.metrics[f"{mode}_loss"]["x"].append(epoch_no + 1)
@@ -229,7 +225,7 @@ class SP_Metrics(MinervaMetrics):
         """Prints the results from an epoch to ``stdout``.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of fitting to print results from.
+            mode (str): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
         print(
@@ -245,22 +241,25 @@ class SSL_Metrics(MinervaMetrics):
     """Metric logging for self-supervised models.
 
     Attributes:
-        n_batches (Dict[Literal["train", "val", "test"], int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
         data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
         metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
-        n_batches (Dict[Literal["train", "val", "test"], int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
         data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
         model_type (str): Optional; Type of the model.
     """
 
+    metric_types = ["loss", "acc", "top5_acc"]
+    special_metric_types = ["collapse_level", "euc_dist"]
+
     def __init__(
         self,
-        n_batches: Dict[Literal["train", "val", "test"], int],
+        n_batches: Dict[str, int],
         batch_size: int,
         data_size: Tuple[int, int, int],
         model_type: str = "segmentation",
@@ -275,25 +274,11 @@ class SSL_Metrics(MinervaMetrics):
             sample_pairs=sample_pairs,
         )
 
-        # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics = {
-            "train_loss": {"x": [], "y": []},
-            "val_loss": {"x": [], "y": []},
-            "train_acc": {"x": [], "y": []},
-            "val_acc": {"x": [], "y": []},
-            "train_top5_acc": {"x": [], "y": []},
-            "val_top5_acc": {"x": [], "y": []},
-        }
-
-        if self.sample_pairs:
-            self.metrics["train_collapse_level"] = {"x": [], "y": []}
-            self.metrics["val_collapse_level"] = {"x": [], "y": []}
-
-    def calc_metrics(self, mode: Literal["train", "val", "test"], logs) -> None:
+    def calc_metrics(self, mode: str, logs) -> None:
         """Updates metrics with epoch results.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of model fitting.
+            mode (str): Mode of model fitting.
             logs (Dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
         self.metrics[f"{mode}_loss"]["y"].append(
@@ -330,12 +315,15 @@ class SSL_Metrics(MinervaMetrics):
 
         if self.sample_pairs:
             self.metrics[f"{mode}_collapse_level"]["y"].append(logs["collapse_level"])
+            self.metrics[f"{mode}_euc_dist"]["y"].append(
+                logs["euc_dist"] / self.n_batches[mode]
+            )
 
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of model fitting.
+            mode (str): Mode of model fitting.
             epoch_no (int): Epoch number to log.
         """
         self.metrics[f"{mode}_loss"]["x"].append(epoch_no + 1)
@@ -349,7 +337,7 @@ class SSL_Metrics(MinervaMetrics):
         """Prints the results from an epoch to ``stdout``.
 
         Args:
-            mode (Literal["train", "val", "test"]): Mode of fitting to print results from.
+            mode (str): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
         msg = "{} | Loss: {} | Accuracy: {}% | Top5 Accuracy: {}% ".format(
@@ -360,8 +348,13 @@ class SSL_Metrics(MinervaMetrics):
         )
 
         if self.sample_pairs:
+            msg += "\n"
+
             msg += "| Collapse Level: {}%".format(
                 self.metrics[f"{mode}_collapse_level"]["y"][epoch_no] * 100.0
+            )
+            msg += "| Avg. Euclidean Distance: {}".format(
+                self.metrics[f"{mode}_euc_dist"]["y"][epoch_no]
             )
 
         msg += "\n"

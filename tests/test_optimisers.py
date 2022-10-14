@@ -1,12 +1,13 @@
 import pytest
 import torch
+import torch.nn.modules as nn
 
 from minerva.models import CNN
 from minerva.optimisers import LARS
 
 
 def test_lars() -> None:
-    model = CNN(torch.nn.CrossEntropyLoss(), input_size=(3, 224, 224))
+    model = CNN(nn.CrossEntropyLoss(), input_size=(3, 224, 224))
 
     with pytest.raises(ValueError, match="Invalid learning rate: -0.1"):
         _ = LARS(model.parameters(), lr=-0.1)
@@ -23,7 +24,7 @@ def test_lars() -> None:
     model.set_optimiser(LARS(model.parameters(), lr=1.0e-3))
 
     x = torch.rand(60, 6, 3, 224, 224)
-    y = torch.randint(0, 8, size=(60, 6))
+    y = torch.randint(0, 8, size=(60, 6))  # type: ignore[attr-defined]
 
     for mode in (True, False):
         for i in range(60):

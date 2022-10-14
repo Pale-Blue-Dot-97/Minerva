@@ -18,16 +18,16 @@ def test_class_transform() -> None:
 
     transform = ClassTransform(matrix)
 
-    input_1 = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])
+    input_1 = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    output_1 = torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])
+    output_1 = torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    input_2 = torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]])
+    input_2 = torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]])  # type: ignore[attr-defined]
 
-    output_2 = torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]])
+    output_2 = torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]])  # type: ignore[attr-defined]
 
-    assert assert_array_equal(output_1.numpy(), transform(input_1).numpy()) is None
-    assert assert_array_equal(output_2.numpy(), transform(input_2).numpy()) is None
+    assert_array_equal(output_1.numpy(), transform(input_1).numpy())
+    assert_array_equal(output_2.numpy(), transform(input_2).numpy())
 
     assert repr(transform) == f"ClassTransform(transform={matrix})"
 
@@ -35,7 +35,7 @@ def test_class_transform() -> None:
 def test_pair_create() -> None:
     transform = PairCreate()
     sample_1 = 42
-    sample_2 = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])
+    sample_2 = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
     sample_3 = {1: 1, 3: 3, 4: 2, 5: 0}
 
     assert transform(sample_1) == (sample_1, sample_1)
@@ -49,16 +49,16 @@ def test_normalise() -> None:
     transform_1 = Normalise(255)
     transform_2 = Normalise(65535)
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])
+    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
 
-    input_2 = torch.tensor(
+    input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[1023.0, 3.890, 557.0], [478.0, 5.788, 10009.0], [1.0, 10240.857, 1458.7]]
     )
 
-    assert assert_array_equal(transform_1(input_1), input_1 / 255) is None
-    assert assert_array_equal(transform_1(input_2), input_2 / 255) is None
-    assert assert_array_equal(transform_2(input_1), input_1 / 65535) is None
-    assert assert_array_equal(transform_2(input_2), input_2 / 65535) is None
+    assert_array_equal(transform_1(input_1), input_1 / 255)
+    assert_array_equal(transform_1(input_2), input_2 / 255)
+    assert_array_equal(transform_2(input_1), input_1 / 65535)
+    assert_array_equal(transform_2(input_2), input_2 / 65535)
 
     assert repr(transform_1) == "Normalise(norm_value=255)"
     assert repr(transform_2) == "Normalise(norm_value=65535)"
@@ -72,14 +72,14 @@ def test_compose() -> None:
         [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]
     )
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])
+    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
 
-    input_2 = torch.tensor(
+    input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
     )
 
     output_1 = input_1 / 255
-    output_2 = torch.tensor([[0.8, 1.0, 0.7], [0.3, 0.5, 0.4], [0.5, 0.0, 1.0]])
+    output_2 = torch.tensor([[0.8, 1.0, 0.7], [0.3, 0.5, 0.4], [0.5, 0.0, 1.0]])  # type: ignore[attr-defined]
 
     input_3 = {"image": input_1}
     input_4 = {"image": input_2}
@@ -92,10 +92,10 @@ def test_compose() -> None:
     output_3 = {"image": output_1}
     output_4 = {"image": output_2}
 
-    assert assert_array_equal(compose_1(input_1), output_1) is None
-    assert assert_array_equal(compose_2(input_2), output_2) is None
-    assert assert_array_equal(compose_3(input_3)["image"], output_3["image"]) is None
-    assert assert_array_equal(compose_4(input_4)["image"], output_4["image"]) is None
+    assert_array_equal(compose_1(input_1), output_1)
+    assert_array_equal(compose_2(input_2), output_2)
+    assert_array_equal(compose_3(input_3)["image"], output_3["image"])
+    assert_array_equal(compose_4(input_4)["image"], output_4["image"])
 
     assert repr(compose_1) == "MinervaCompose(Normalise(norm_value=255))"
     assert (
@@ -118,11 +118,11 @@ def test_detachedcolorjitter() -> None:
 
     err_img = torch.rand(2, 224, 224)
 
-    manual_detach = torch.cat((colorjitter_1(img_rgb), img_nir), 0)
+    manual_detach = torch.cat((colorjitter_1(img_rgb), img_nir), 0)  # type: ignore[attr-defined]
 
-    assert assert_array_equal(transform_1(img).size(), manual_detach.size()) is None
-    assert assert_array_equal(transform_1(img_rgb).size(), img_rgb.size()) is None
-    assert assert_array_equal(transform_1(img_nir).size(), img_nir.size()) is None
+    assert_array_equal(transform_1(img).size(), manual_detach.size())
+    assert_array_equal(transform_1(img_rgb).size(), img_rgb.size())
+    assert_array_equal(transform_1(img_nir).size(), img_nir.size())
 
     with pytest.raises(ValueError, match=r"\d channel images are not supported!"):
         transform_1(err_img)
@@ -133,9 +133,9 @@ def test_detachedcolorjitter() -> None:
 def test_dublicator() -> None:
     transform_1 = (utils.dublicator(Normalise))(255)
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])
+    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
 
-    input_2 = torch.tensor(
+    input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
     )
 
@@ -144,8 +144,8 @@ def test_dublicator() -> None:
 
     result_1, result_2 = transform_1((input_1, input_2))
 
-    assert assert_array_equal(result_1, output_1) is None
-    assert assert_array_equal(result_2, output_2) is None
+    assert_array_equal(result_1, output_1)
+    assert_array_equal(result_2, output_2)
 
     assert repr(transform_1) == f"dublicator({repr(Normalise(255))})"
 
@@ -157,17 +157,17 @@ def test_tg_to_torch() -> None:
 
     transform_3 = (utils.tg_to_torch(RandomHorizontalFlip, keys=["image", "mask"]))(1.0)
 
-    img = torch.tensor(
+    img = torch.tensor(  # type: ignore[attr-defined]
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
     )
 
-    mask = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])
+    mask = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    out_img = torch.tensor(
+    out_img = torch.tensor(  # type: ignore[attr-defined]
         [[127.5, 0.0, 255.0], [76.5, 127.5, 102.0], [204.0, 255.0, 178.5]]
     )
 
-    out_mask = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])
+    out_mask = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])  # type: ignore[attr-defined]
 
     input_3 = {"image": img, "mask": mask}
     output_3 = {"image": out_img, "mask": out_mask}
@@ -175,10 +175,10 @@ def test_tg_to_torch() -> None:
     result_2 = transform_2({"image": img})
     result_3 = transform_3(input_3)
 
-    assert assert_array_equal(transform_1(img), img / 255) is None
-    assert assert_array_equal(result_2["image"], img / 255) is None
-    assert assert_array_equal(result_3["image"], output_3["image"]) is None
-    assert assert_array_equal(result_3["mask"], output_3["mask"]) is None
+    assert_array_equal(transform_1(img), img / 255)
+    assert_array_equal(result_2["image"], img / 255)
+    assert_array_equal(result_3["image"], output_3["image"])
+    assert_array_equal(result_3["mask"], output_3["mask"])
 
     input_4 = ["wrongisimo!"]
 

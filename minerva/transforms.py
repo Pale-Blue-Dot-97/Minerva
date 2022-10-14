@@ -21,10 +21,9 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Optional, Tuple, Sequence, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Sequence, Union, overload
 
 import torch
-from overload import overload
 from torch import Tensor, LongTensor
 from torchvision.transforms import ColorJitter
 from torchvision.transforms import functional_tensor as ft
@@ -142,10 +141,10 @@ class DetachedColorJitter(ColorJitter):
         """
         channels = ft.get_image_num_channels(img)
 
-        jitter_img : Tensor
+        jitter_img: Tensor
         if channels > 3:
             rgb_jitter = super().forward(img[:3])
-            jitter_img = torch.cat((rgb_jitter, img[3:]), 0)
+            jitter_img = torch.cat((rgb_jitter, img[3:]), 0)  # type: ignore[attr-defined]
 
         elif channels in (1, 3):
             jitter_img = super().forward(img)
@@ -191,19 +190,32 @@ class MinervaCompose:
     """
 
     def __init__(
-        self, transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]], key: Optional[str] = None
+        self,
+        transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
+        key: Optional[str] = None,
     ) -> None:
         self.transforms = transforms
         self.key = key
 
     @overload
-    def __call__(self, img: Tensor) -> Tensor:
-        return self._transform_input(img)
+    def __call__(self, sample: Tensor) -> Tensor:
+        ...
 
-    @__call__.add
+    @overload
     def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-        sample[self.key] = self._transform_input(sample[self.key])
-        return sample
+        ...
+
+    def __call__(
+        self, sample: Union[Tensor, Dict[str, Any]]
+    ) -> Union[Tensor, Dict[str, Any]]:
+        if isinstance(sample, Tensor):
+            return self._transform_input(sample)
+        elif isinstance(sample, dict):
+            assert self.key is not None
+            sample[self.key] = self._transform_input(sample[self.key])
+            return sample
+        else:
+            raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
 
     def _transform_input(self, img: Tensor) -> Tensor:
         if isinstance(self.transforms, Sequence):
@@ -213,7 +225,9 @@ class MinervaCompose:
             img = self.transforms(img)
 
         else:
-            raise TypeError(f"`transforms` has type {type(self.transforms)}, not callable")
+            raise TypeError(
+                f"`transforms` has type {type(self.transforms)}, not callable"
+            )
 
         return img
 
@@ -230,7 +244,9 @@ class MinervaCompose:
             return format_string
 
         else:
-            raise TypeError(f"`transforms` has type {type(self.transforms)}, not callable")
+            raise TypeError(
+                f"`transforms` has type {type(self.transforms)}, not callable"
+            )
 
         format_string += "\n)"
 

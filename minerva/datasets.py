@@ -51,7 +51,7 @@ from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchvision.transforms import RandomApply
 
 from minerva.transforms import MinervaCompose
-from minerva.utils import aux_configs, config, utils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -65,10 +65,10 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-IMAGERY_CONFIG = aux_configs["imagery_config"]
+IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 
 # Path to cache directory.
-CACHE_DIR = os.sep.join(config["dir"]["cache"])
+CACHE_DIR = os.sep.join(CONFIG["dir"]["cache"])
 
 __all__ = [
     "PairedDataset",
@@ -120,12 +120,12 @@ class PairedDataset(RasterDataset):
         dataset (RasterDataset): Wrapped dataset to sampled from.
 
     Args:
-        dataset_cls (RasterDataset): Constructor for a :class:`RasterDataset` to be wrapped for paired sampling.
+        dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`RasterDataset` to be wrapped for paired sampling.
     """
 
     def __init__(
         self,
-        dataset_cls: RasterDataset,
+        dataset_cls: Callable[..., GeoDataset],
         *args,
         **kwargs,
     ) -> None:
@@ -137,7 +137,7 @@ class PairedDataset(RasterDataset):
         super().__init__(*args, **super_kwargs)
         self.dataset = dataset_cls(*args, **kwargs)
 
-    def __getitem__(
+    def __getitem__(  # type: ignore[override]
         self, queries: Tuple[BoundingBox, BoundingBox]
     ) -> Tuple[Dict[str, Any], ...]:
         return self.dataset.__getitem__(queries[0]), self.dataset.__getitem__(
@@ -222,11 +222,12 @@ def intersect_datasets(
         else:
             return a & b
 
-    master_dataset = datasets[0]
+    master_dataset: Union[GeoDataset, IntersectionDataset] = datasets[0]
 
     for i in range(len(datasets) - 1):
         master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
 
+    assert isinstance(master_dataset, IntersectionDataset)
     return master_dataset
 
 
@@ -259,7 +260,7 @@ def make_dataset(
         sub_dataset_params = dataset_params[key]
 
         # Get the constructor for the class of dataset defined in params.
-        _sub_dataset: GeoDataset = utils.func_by_str(
+        _sub_dataset: Callable[..., GeoDataset] = utils.func_by_str(
             module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
         )
 
@@ -279,6 +280,7 @@ def make_dataset(
         else:
             pass
 
+        sub_dataset: GeoDataset
         if sample_pairs:
             sub_dataset = PairedDataset(
                 _sub_dataset,
@@ -335,18 +337,18 @@ def construct_dataloader(
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
-    sampler: Union[BatchGeoSampler, GeoSampler] = utils.func_by_str(
+    _sampler: Callable[..., Union[BatchGeoSampler, GeoSampler]] = utils.func_by_str(
         module_path=sampler_params["module"], func=sampler_params["name"]
     )
 
     batch_sampler = True if "batch_size" in sampler_params["params"] else False
 
-    if batch_sampler and dist.is_available() and dist.is_initialized():
+    if batch_sampler and dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
         assert sampler_params["params"]["batch_size"] % world_size == 0
         per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
         sampler_params["params"]["batch_size"] = per_device_batch_size
 
-    sampler = sampler(
+    sampler: Union[BatchGeoSampler, GeoSampler] = _sampler(
         dataset=subdatasets[0],
         roi=make_bounding_box(sampler_params["roi"]),
         **sampler_params["params"],
@@ -391,6 +393,10 @@ def make_bounding_box(
     """
     if roi is False:
         return None
+    elif roi is True:
+        raise ValueError(
+            "``roi`` must be a sequence of floats or ``False``, not ``True``"
+        )
     else:
         return BoundingBox(*roi)
 
@@ -595,9 +601,9 @@ def get_manifest(manifest_path: str) -> DataFrame:
         print(err)
 
         print("CONSTRUCTING MISSING MANIFEST")
-        mf_config = config.copy()
+        mf_config = CONFIG.copy()
 
-        mf_config["dataloader_params"] = config["hyperparams"]["params"]
+        mf_config["dataloader_params"] = CONFIG["hyperparams"]["params"]
 
         manifest = make_manifest(mf_config)
 
@@ -611,7 +617,7 @@ def get_manifest(manifest_path: str) -> DataFrame:
         return manifest
 
 
-def make_manifest(mf_config: Dict[Any, Any] = config) -> DataFrame:
+def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
     The dataset to construct a manifest of is defined by the ``data_config`` value in the config.

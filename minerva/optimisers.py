@@ -93,7 +93,9 @@ class LARS(Optimizer):
         )
         super(LARS, self).__init__(params, defaults)
 
-    def step(self, epoch: Optional[int] = None, closure: Optional[Callable[..., Any]] = None):
+    def step(  # type: ignore[override]
+        self, epoch: Optional[int] = None, closure: Optional[Callable[..., Any]] = None
+    ):
         """Performs a single optimization step.
 
         Arguments:
@@ -138,7 +140,7 @@ class LARS(Optimizer):
                 actual_lr = local_lr * global_lr
 
                 if "momentum_buffer" not in param_state:
-                    buf = param_state["momentum_buffer"] = torch.zeros_like(p.data)
+                    buf = param_state["momentum_buffer"] = torch.zeros_like(p.data)  # type: ignore[attr-defined]
                 else:
                     buf = param_state["momentum_buffer"]
                 buf.mul_(momentum).add_(actual_lr, d_p + weight_decay * p.data)
