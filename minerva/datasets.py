@@ -17,7 +17,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Functionality and custom code for constructing datasets, samplers and :class:`DataLoaders` for ``minerva``."""
+"""Functionality and custom code for constructing datasets, samplers and :class:`DataLoaders` for :mod:`minerva`."""
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -27,13 +27,13 @@ from typing import (
     Callable,
     Dict,
     Iterable,
+    Literal,
     List,
     Optional,
     Sequence,
     Tuple,
     Union,
 )
-from typing_extensions import Literal
 import os
 
 import numpy as np
