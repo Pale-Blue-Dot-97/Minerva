@@ -26,7 +26,6 @@ from typing import (
     Callable,
     Dict,
     List,
-    Literal,
     Iterable,
     Optional,
     Sequence,
