@@ -21,9 +21,7 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict
-
-import torch
+from typing import Any
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -42,3 +40,15 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def replace_keys(weights: dict[str, Any], old: str, new: str) -> dict[str, Any]:
+    for key in weights.keys():
+        if old in key:
+            weights[key.replace(old, new)] = weights.pop(key)
+
+    return weights
+
+
+def bt_hsic_to_minerva(weights: dict[str, Any]) -> dict[str, Any]:
+    weights = replace_keys(weights, "f", "backbone.network")
+
+    return weights
