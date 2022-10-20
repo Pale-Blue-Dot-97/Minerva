@@ -49,6 +49,7 @@ from typing import (
 
 import pandas as pd
 import torch
+from torch import Tensor
 import torch.distributed as dist
 import torch.nn.functional as ptfunc
 import yaml
