@@ -39,6 +39,7 @@ from contextlib import nullcontext
 from nptyping import NDArray, Int
 import pandas as pd
 import torch
+from torch import Tensor
 import torch.distributed as dist
 import yaml
 from alive_progress import alive_bar, alive_it
@@ -173,7 +174,7 @@ class Trainer:
 
         self.model.determine_output_dim(sample_pairs=sample_pairs)
 
-        # Transfer to GPU
+        # Transfer to GPU.
         self.model.to(self.device)
 
         # Sets up the early stopping functionality.
@@ -303,9 +304,9 @@ class Trainer:
                 weights.append(weights_dict[i])
 
             if not criterion_params_exist:
-                loss_params["params"] = {"weight": torch.Tensor(weights)}
+                loss_params["params"] = {"weight": Tensor(weights)}
             else:
-                loss_params["params"]["weight"] = torch.Tensor(weights)
+                loss_params["params"]["weight"] = Tensor(weights)
             return criterion(**loss_params["params"])
         else:
             if not criterion_params_exist:
@@ -650,7 +651,7 @@ class Trainer:
         data = next(iter(self.loaders["test"]))
 
         self.model.eval()
-        embeddings: torch.Tensor = self.model(data["image"].to(self.device))[0]
+        embeddings: Tensor = self.model(data["image"].to(self.device))[0]
 
         embeddings = embeddings.flatten(start_dim=1)
 
