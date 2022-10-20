@@ -1126,7 +1126,8 @@ def plot_embedding(
 
     # Initialises a progress bar for the epoch.
     with alive_bar(len(x), bar="blocks") as bar:
-        # Plots the predicted versus ground truth labels for all test patches supplied.
+
+        # Extracts the images and targets from the dataset using the bboxes supplied.
         for i in range(len(x)):
             sample = dataset[bounds[i]]
             images.append(stack_rgb(sample["image"].numpy()))
@@ -1155,14 +1156,14 @@ def plot_embedding(
         )
 
     if hasattr(offsetbox, "AnnotationBbox"):
-        # only print thumbnails with matplotlib > 1.0
-        shown_images: NDArray[Any, Any] = np.array([[1.0, 1.0]])  # just something big
+        # Only print thumbnails with matplotlib > 1.0.
+        shown_images: NDArray[Any, Any] = np.array([[1.0, 1.0]])  # Just something big.
 
         for i in range(len(images)):
             dist = np.sum((x[i] - shown_images) ** 2, 1)
             if np.min(dist) < 4e-3:
-                # don’t show points that are too close
-                continue  # pragma: no cover
+                # Don’t show points that are too close.
+                continue
 
             shown_images = np.r_[shown_images, [x[i]]]
             imagebox = offsetbox.AnnotationBbox(
