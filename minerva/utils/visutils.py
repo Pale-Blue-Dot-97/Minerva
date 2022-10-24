@@ -1172,7 +1172,8 @@ def plot_embedding(
 
             ax.add_artist(imagebox)
 
-    plt.xticks([]), plt.yticks([])  # type: ignore
+    # Hides the axes.
+    plt.axis("off")
 
     if title is not None:
         plt.title(title)
@@ -1184,7 +1185,7 @@ def plot_embedding(
         if filename is None:  # pragma: no cover
             filename = "tsne_cluster_vis.png"
         os.makedirs(Path(filename).parent, exist_ok=True)
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches="tight")
         print("TSNE cluster visualisation SAVED")
         plt.close()
 
