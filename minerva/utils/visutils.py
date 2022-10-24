@@ -1146,7 +1146,8 @@ def plot_embedding(
 
             ax.add_artist(imagebox)
 
-    plt.xticks([]), plt.yticks([])
+    # Hides the axes.
+    plt.axis("off")
 
     if title is not None:
         plt.title(title)
@@ -1155,7 +1156,7 @@ def plot_embedding(
     if show:
         plt.show()
     if save:
-        plt.savefig(filename)
+        plt.savefig(filename, bbox_inches="tight")
         print("TSNE cluster visualisation SAVED")
         plt.close()
 
