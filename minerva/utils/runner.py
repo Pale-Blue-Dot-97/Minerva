@@ -24,6 +24,10 @@
 # =====================================================================================================================
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import argparse
+from typing import Any, Optional
+import os
+import signal
+import subprocess
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
 from minerva.utils import master_parser
@@ -155,3 +159,47 @@ generic_parser.add_argument(
     action="store_false",
     help="Whether to plot the results from the final validation epoch.",
 )
+
+
+def handle_sigusr1(signum, frame):
+    os.system(f'scontrol requeue {os.getenv("SLURM_JOB_ID")}')
+    exit()
+
+
+def handle_sigterm(signum, frame):
+    pass
+
+
+def config_env_vars(args) -> Any:
+    if "SLURM_JOB_ID" in os.environ:
+        # Single-node and multi-node distributed training on SLURM cluster.
+        # Requeue job on SLURM preemption.
+        signal.signal(signal.SIGUSR1, handle_sigusr1)
+        signal.signal(signal.SIGTERM, handle_sigterm)
+
+        # Get SLURM variables.
+        slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
+        slurm_nodeid: Optional[str] = os.getenv("SLURM_NODEID")
+        slurm_nnodes: Optional[str] = os.getenv("SLURM_NNODES")
+
+        # Check that SLURM variables have been found.
+        assert slurm_job_nodelist is not None
+        assert slurm_nodeid is not None
+        assert slurm_nnodes is not None
+
+        # Find a common host name on all nodes.
+        # Assume scontrol returns hosts in the same order on all nodes.
+        cmd = "scontrol show hostnames " + slurm_job_nodelist
+        stdout = subprocess.check_output(cmd.split())
+        host_name = stdout.decode().splitlines()[0]
+        args.rank = int(slurm_nodeid) * args.ngpus_per_node
+        args.world_size = int(slurm_nnodes) * args.ngpus_per_node
+        args.dist_url = f"tcp://{host_name}:58472"
+
+    else:
+        # Single-node distributed training.
+        args.rank = 0
+        args.dist_url = "tcp://localhost:58472"
+        args.world_size = args.ngpus_per_node
+
+    return args
