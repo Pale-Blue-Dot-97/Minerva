@@ -42,7 +42,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from minerva.trainer import Trainer
-from minerva.utils import CONFIG, master_parser, utils
+from minerva.utils import CONFIG, utils, runner
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -108,121 +108,7 @@ def main(args):
 
 if __name__ == "__main__":
     # ---+ CLI +--------------------------------------------------------------+
-    parser = argparse.ArgumentParser(parents=[master_parser])
-
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="Set seed number",
-    )
-
-    parser.add_argument(
-        "--model-name",
-        dest="model_name",
-        type=str,
-        help="Name of model."
-        + " Sub-string before hyphen is taken as model class name."
-        + " Sub-string past hyphen can be used to differeniate between versions.",
-    )
-
-    parser.add_argument(
-        "--model-type",
-        dest="model_type",
-        type=str,
-        help="Type of model. Should be 'segmentation', 'scene_classifier', 'siamese' or 'mlp'",
-    )
-
-    parser.add_argument(
-        "--pre-train",
-        action="store_false",
-        help="Sets experiment type to pre-train. Will save model to cache at end of training.",
-    )
-
-    parser.add_argument(
-        "--fine-tune",
-        action="store_false",
-        help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
-    )
-
-    parser.add_argument(
-        "--eval",
-        action="store_false",
-        help="Sets experiment type to pre-train. Will save model to cache at end of training.",
-    )
-
-    parser.add_argument(
-        "--balance",
-        action="store_false",
-        help="Activates class balancing."
-        + " Depending on `model_type`, this will either be via sampling or weighting of the loss function.",
-    )
-
-    parser.add_argument(
-        "--class-elim",
-        dest="elim",
-        action="store_false",
-        help="Eliminates classes that are specified in config but not present in the data.",
-    )
-
-    parser.add_argument(
-        "--sample-pairs",
-        dest="sample_pairs",
-        action="store_false",
-        help="Used paired sampling. E.g. For Siamese models.",
-    )
-
-    parser.add_argument(
-        "--save-model",
-        dest="save_model",
-        type=str,
-        default=False,
-        help="Whether to save the model at end of testing. Must be 'true', 'false' or 'auto'."
-        + " Setting 'auto' will automatically save the model to file."
-        + " 'true' will ask the user whether to or not at runtime."
-        + " 'false' will not save the model and will not ask the user at runtime.",
-    )
-
-    parser.add_argument(
-        "--run-tensorboard",
-        dest="run_tensorboard",
-        type=str,
-        default=False,
-        help="Whether to run the Tensorboard logs at end of testing. Must be 'true', 'false' or 'auto'."
-        + " Setting 'auto' will automatically locate and run the logs on a local browser."
-        + " 'true' will ask the user whether to or not at runtime."
-        + " 'false' will not save the model and will not ask the user at runtime.",
-    )
-
-    parser.add_argument(
-        "--save-plots",
-        dest="save",
-        action="store_false",
-        help="Whether to save plots created to file or not.",
-    )
-
-    parser.add_argument(
-        "--show-plots",
-        dest="show",
-        action="store_false",
-        help="Whether to show plots created in a window or not."
-        + " Warning: Do not use with a terminal-less operation, e.g. SLURM.",
-    )
-
-    parser.add_argument(
-        "--print-dist",
-        dest="p_dist",
-        action="store_false",
-        help="Whether to print the distribution of classes within the data to `stdout`.",
-    )
-
-    parser.add_argument(
-        "--plot-last-epoch",
-        dest="plot_last_epoch",
-        action="store_false",
-        help="Whether to plot the results from the final validation epoch.",
-    )
-
+    parser = argparse.ArgumentParser(parents=[runner.generic_parser])
     args = parser.parse_args()
 
     args.ngpus_per_node = torch.cuda.device_count()
