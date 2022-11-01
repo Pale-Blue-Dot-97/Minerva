@@ -26,7 +26,6 @@ Some code derived from Barlow Twins implementation of distributed computing:
 https://github.com/facebookresearch/barlowtwins
 """
 
-# TODO: Add arg parsing from CLI.
 # TODO: Add ability to conduct hyper-parameter iterative variation experimentation.
 # =====================================================================================================================
 #                                                     IMPORTS
