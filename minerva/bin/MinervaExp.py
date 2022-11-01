@@ -32,12 +32,8 @@ https://github.com/facebookresearch/barlowtwins
 # =====================================================================================================================
 import argparse
 
-import torch
-import torch.distributed as dist
-import torch.multiprocessing as mp
-
 from minerva.trainer import Trainer
-from minerva.utils import CONFIG, utils, runner
+from minerva.utils import CONFIG, runner
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -51,23 +47,7 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-def run(gpu: int, args) -> None:
-    # Calculates the global rank of this process.
-    args.rank += gpu
-
-    if args.world_size > 1:
-        dist.init_process_group(  # type: ignore[attr-defined]
-            backend="gloo",
-            init_method=args.dist_url,
-            world_size=args.world_size,
-            rank=args.rank,
-        )
-        print(f"INITIALISED PROCESS ON {args.rank}")
-
-    if torch.cuda.is_available():
-        torch.cuda.set_device(gpu)
-        torch.backends.cudnn.benchmark = True
-
+def main(gpu: int, args) -> None:
     trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **CONFIG)
 
     if not CONFIG["eval"]:
@@ -81,39 +61,17 @@ def run(gpu: int, args) -> None:
         trainer.test()
 
 
-def main(args):
-    if args.world_size <= 1:
-        run(gpu=0, args=args)
-
-    else:
-        try:
-            mp.spawn(run, (args,), args.ngpus_per_node)  # type: ignore[attr-defined]
-        except KeyboardInterrupt:
-            dist.destroy_process_group()  # type: ignore[attr-defined]
-
-
 if __name__ == "__main__":
     # ---+ CLI +--------------------------------------------------------------+
     parser = argparse.ArgumentParser(parents=[runner.generic_parser])
+
+    # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
+
+    # Export args from CLI.
     args = parser.parse_args()
 
-    args.ngpus_per_node = torch.cuda.device_count()
+    # Configure the arguments and environment variables.
+    runner.config_args(args)
 
-    # Convert CLI arguments to dict.
-    args_dict = vars(args)
-
-    # Find which CLI arguments are not in the config.
-    new_args = {key: args_dict[key] for key in args_dict if key not in CONFIG}
-
-    # Updates the config with new arguments from the CLI.
-    CONFIG.update(new_args)
-
-    # Get seed from config.
-    seed = CONFIG.get("seed", 42)
-
-    # Set torch, numpy and inbuilt seeds for reproducibility.
-    utils.set_seeds(seed)
-
-    args = runner.config_env_vars(args)
-
-    main(args)
+    # Run the specified main with distributed computing and the arguments provided.
+    runner.distributed_run(main, args)
