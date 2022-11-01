@@ -161,12 +161,12 @@ generic_parser.add_argument(
 )
 
 
-def handle_sigusr1(signum, frame):
+def handle_sigusr1(signum, frame) -> None:
     os.system(f'scontrol requeue {os.getenv("SLURM_JOB_ID")}')
     exit()
 
 
-def handle_sigterm(signum, frame):
+def handle_sigterm(signum, frame) -> None:
     pass
 
 
