@@ -125,7 +125,7 @@ class Trainer:
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
 
-        if self.gpu == 0:
+        if self.gpu == 0 and verbose:
             # Prints config to stdout.
             print(
                 "\n==+ Experiment Parameters +====================================================="
@@ -213,8 +213,9 @@ class Trainer:
             # Determines the input size of the model.
             input_size = self.get_input_size()
 
-            # Print model summary.
-            summary(self.model, input_size=input_size)
+            if verbose:
+                # Print model summary.
+                summary(self.model, input_size=input_size)
 
             # Adds a graphical layout of the model to the TensorBoard logger.
             self.writer.add_graph(
@@ -874,9 +875,9 @@ class Trainer:
         if fn is None:
             fn = self.exp_fn
 
-        if format is "pt":
+        if format == "pt":
             torch.save(self.model, f"{fn}.pt")
-        elif format is "onnx":
+        elif format == "onnx":
             x = torch.rand(*self.get_input_size(), device=self.device)
             torch.onnx.export(self.model, (x,), f"{fn}.onnx")
         else:
