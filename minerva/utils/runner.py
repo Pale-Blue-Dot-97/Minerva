@@ -22,15 +22,16 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-# ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import argparse
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 import os
 import signal
 import subprocess
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
 
-# ---+ Minerva +-------------------------------------------------------------------------------------------------------
-from minerva.utils import master_parser
+from minerva.utils import utils, master_parser, CONFIG
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -203,3 +204,54 @@ def config_env_vars(args) -> Any:
         args.world_size = args.ngpus_per_node
 
     return args
+
+
+def config_args(args) -> Any:
+    args.ngpus_per_node = torch.cuda.device_count()
+
+    # Convert CLI arguments to dict.
+    args_dict = vars(args)
+
+    # Find which CLI arguments are not in the config.
+    new_args = {key: args_dict[key] for key in args_dict if key not in CONFIG}
+
+    # Updates the config with new arguments from the CLI.
+    CONFIG.update(new_args)
+
+    # Get seed from config.
+    seed = CONFIG.get("seed", 42)
+
+    # Set torch, numpy and inbuilt seeds for reproducibility.
+    utils.set_seeds(seed)
+
+    return config_env_vars(args)
+
+
+def distributed_run(run: Callable[[int, tuple[Any, ...]], Any], args) -> None:
+    def run_preamble(gpu: int, args) -> None:
+        # Calculates the global rank of this process.
+        args.rank += gpu
+
+        if args.world_size > 1:
+            dist.init_process_group(  # type: ignore[attr-defined]
+                backend="gloo",
+                init_method=args.dist_url,
+                world_size=args.world_size,
+                rank=args.rank,
+            )
+            print(f"INITIALISED PROCESS ON {args.rank}")
+
+        if torch.cuda.is_available():
+            torch.cuda.set_device(gpu)
+            torch.backends.cudnn.benchmark = True
+
+        run(gpu, args)
+
+    if args.world_size <= 1:
+        run(0, args)
+
+    else:
+        try:
+            mp.spawn(run_preamble, (args,), args.ngpus_per_node)  # type: ignore[attr-defined]
+        except KeyboardInterrupt:
+            dist.destroy_process_group()  # type: ignore[attr-defined]
