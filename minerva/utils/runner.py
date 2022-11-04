@@ -179,14 +179,16 @@ def config_env_vars(args: Namespace) -> Namespace:
     """Finds SLURM environment variables (if they exist) and configures args accordingly.
 
     If SLURM variables are found in the environment variables, the arguments are configured for a SLURM job:
-        * ``args.rank`` is set to the ``SLURM_NODEID * args.ngpus_per_node``.
-        * ``args.world_size`` is set to ``SLURM_NNODES * args.ngpus_per_node``.
-        * ``args.dist_url`` is set to ``tcp://{host_name}:58472``
+
+    * ``args.rank`` is set to the ``SLURM_NODEID * args.ngpus_per_node``.
+    * ``args.world_size`` is set to ``SLURM_NNODES * args.ngpus_per_node``.
+    * ``args.dist_url`` is set to ``tcp://{host_name}:58472``
 
     If SLURM variables are not detected, the arguments are configured for a single-node job:
-        * ``args.rank=0``.
-        * ``args.world_size=args.ngpus_per_node``.
-        * ``args.dist_url = "tcp://localhost:58472"``.
+
+    * ``args.rank=0``.
+    * ``args.world_size=args.ngpus_per_node``.
+    * ``args.dist_url = "tcp://localhost:58472"``.
 
     Args:
         args (Namespace): Arguments from the CLI ``parser`` from :mod:`argparse`.
