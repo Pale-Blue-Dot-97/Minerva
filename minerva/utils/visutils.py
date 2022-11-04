@@ -187,7 +187,7 @@ def discrete_heatmap(
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
     Args:
-        data (NDArray[Shape["*, *"], Int]): 2D Array of data to be plotted as a heat map.
+        data (NDArray[Shape[*, *], Int]): 2D Array of data to be plotted as a heat map.
         classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
         block_size (int): Optional; Size of block image subdivision in pixels.
@@ -232,13 +232,13 @@ def stack_rgb(
     """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
-        image (NDArray[Shape["3, *, *"], Float]): Image of separate channels to be normalised
+        image (NDArray[Shape[3, *, *], Float]): Image of separate channels to be normalised
             and reshaped into stacked RGB image.
         rgb (Dict[str, int]): Optional; Dictionary of which channels in image are the R, G & B bands.
         max_value (int): Optional; The maximum pixel value in ``image``. e.g. for 8 bit this will be 255.
 
     Returns:
-        NDArray[Shape["*, *, 3"], Float]: Normalised and stacked red, green, blue arrays into RGB array
+        NDArray[Shape[*, *, 3], Float]: Normalised and stacked red, green, blue arrays into RGB array.
     """
 
     # Extract R, G, B bands from image and normalise.
