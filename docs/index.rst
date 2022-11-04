@@ -16,6 +16,7 @@ Welcome to Minerva's documentation!
    source/minerva/index
    source/utils/index
    source/guides/index
+   source/glossary
 
 Indices and tables
 ==================
