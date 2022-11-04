@@ -23,7 +23,8 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
-from typing import Any, Callable, Optional
+from argparse import Namespace
+from typing import Any, Callable, Optional, Iterable
 import os
 import signal
 import subprocess
@@ -162,21 +163,42 @@ generic_parser.add_argument(
 )
 
 
-def handle_sigusr1(signum, frame) -> None:
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
+def _handle_sigusr1(signum, frame) -> None:
     os.system(f'scontrol requeue {os.getenv("SLURM_JOB_ID")}')
     exit()
 
 
-def handle_sigterm(signum, frame) -> None:
+def _handle_sigterm(signum, frame) -> None:
     pass
 
 
-def config_env_vars(args) -> Any:
+def config_env_vars(args: Namespace) -> Namespace:
+    """Finds SLURM environment variables (if they exist) and configures args accordingly.
+
+    If SLURM variables are found in the environment variables, the arguments are configured for a SLURM job:
+        * ``args.rank`` is set to the ``SLURM_NODEID * args.ngpus_per_node``.
+        * ``args.world_size`` is set to ``SLURM_NNODES * args.ngpus_per_node``.
+        * ``args.dist_url`` is set to ``tcp://{host_name}:58472``
+
+    If SLURM variables are not detected, the arguments are configured for a single-node job:
+        * ``args.rank=0``.
+        * ``args.world_size=args.ngpus_per_node``.
+        * ``args.dist_url = "tcp://localhost:58472"``.
+
+    Args:
+        args (Namespace): Arguments from the CLI ``parser`` from :mod:`argparse`.
+
+    Returns:
+        Namespace: Inputted arguments with the addition of ``rank``, ``dist_url`` and ``world_sized`` attributes.
+    """
     if "SLURM_JOB_ID" in os.environ:
         # Single-node and multi-node distributed training on SLURM cluster.
         # Requeue job on SLURM preemption.
-        signal.signal(signal.SIGUSR1, handle_sigusr1)
-        signal.signal(signal.SIGTERM, handle_sigterm)
+        signal.signal(signal.SIGUSR1, _handle_sigusr1)
+        signal.signal(signal.SIGTERM, _handle_sigterm)
 
         # Get SLURM variables.
         slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
@@ -206,7 +228,20 @@ def config_env_vars(args) -> Any:
     return args
 
 
-def config_args(args) -> Any:
+def config_args(args: Namespace) -> Namespace:
+    """Prepare the arguments generated from the :mod:`argparser` CLI for the job run.
+
+    * Finds and sets ``args.ngpus_per_node``;
+    * updates the ``CONFIG`` with new arguments from the CLI;
+    * sets the seeds from the seed found in ``CONFIG`` or from CLI;
+    * uses :func:`config_env_vars` to determine the correct arguments for distributed computing jobs e.g. SLURM.
+
+    Args:
+        args (Namespace): Arguments from the CLI ``parser`` from :mod:`argparse`.
+
+    Returns:
+        Namespace: Inputted arguments with the addition of ``rank``, ``dist_url`` and ``world_sized`` attributes.
+    """
     args.ngpus_per_node = torch.cuda.device_count()
 
     # Convert CLI arguments to dict.
@@ -227,8 +262,22 @@ def config_args(args) -> Any:
     return config_env_vars(args)
 
 
-def distributed_run(run: Callable[[int, tuple[Any, ...]], Any], args) -> None:
-    def run_preamble(gpu: int, args) -> None:
+def distributed_run(run: Callable[[int, Iterable[Any]], Any], args: Namespace) -> None:
+    """Runs the supplied function and arguments with distributed computing according to arguments.
+
+    :func:`run_preamble` adds some additional commands to initialise the process group for each run
+    and allocating the GPU device number to use before running the supplied function.
+
+    Note:
+        ``args`` must contain the attributes ``rank``, ``world_size`` and ``dist_url``. These can be
+        configured using :func:`config_env_vars` or :func:`config_args`.
+
+    Args:
+        run (Callable[[int, Iterable[Any]], Any]): Function to run with distributed computing.
+        args (Namespace): Arguments for the run and to specify the variables for distributed computing.
+    """
+
+    def run_preamble(gpu: int, args: Namespace) -> None:
         # Calculates the global rank of this process.
         args.rank += gpu
 
