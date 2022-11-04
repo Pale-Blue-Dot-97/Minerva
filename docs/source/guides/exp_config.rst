@@ -163,6 +163,7 @@ In addition, there are also options for defining the logging, metric calculator
 and IO function at the global level:
 
 .. py:data:: logger
+    :noindex:
 
     Specify the logger to use. Must be the name of a :class:`MinervaLogger` class
     within :mod:`logger`.
@@ -171,6 +172,7 @@ and IO function at the global level:
 
 
 .. py:data:: metrics
+    :noindex:
 
     Specify the metric logger to use. Must be the name of a :class:`MinervaMetrics` class
     within :mod:`metrics`.
@@ -459,6 +461,7 @@ Within each mode, there are 4 recognised keys again:
 
 
 .. py:data:: module
+    :noindex:
 
     Module name that the sampler class resides in.
 
@@ -466,6 +469,7 @@ Within each mode, there are 4 recognised keys again:
 
 
 .. py:data:: name
+    :noindex:
 
     Name of sampler class within ``module``.
 
@@ -482,6 +486,7 @@ Within each mode, there are 4 recognised keys again:
 
 
 .. py:data:: params
+    :noindex:
 
     Arguments to sampler constructor (excluding ROI).
 
@@ -565,6 +570,7 @@ defined using the simple ``collator`` :class:`dict`.
 
 
 .. py:data:: module
+    :noindex:
 
     Name of module that collator function can be imported from.
 
@@ -572,6 +578,7 @@ defined using the simple ``collator`` :class:`dict`.
 
 
 .. py:data:: name
+    :noindex:
 
     Name of collator function.
 
