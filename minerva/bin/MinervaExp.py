@@ -63,7 +63,7 @@ def main(gpu: int, args) -> None:
 
 if __name__ == "__main__":
     # ---+ CLI +--------------------------------------------------------------+
-    parser = argparse.ArgumentParser(parents=[runner.generic_parser])
+    parser = argparse.ArgumentParser(parents=[runner.generic_parser], add_help=False)
 
     # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
 
