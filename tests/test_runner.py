@@ -40,3 +40,16 @@ def test_config_args():
 
     for key in new_args.keys():
         assert CONFIG[key] == new_args[key]
+
+
+def test_distributed_run():
+    def run(*args):
+        pass
+
+    args, _ = runner.generic_parser.parse_known_args()
+
+    args = runner.config_args(args)
+
+    runner.distributed_run(run, args)
+
+    # TODO: Simulate multiprocessing runs.
