@@ -2271,6 +2271,19 @@ class SimSiam50(_SimSiam):
 #                                                     METHODS
 # =====================================================================================================================
 def get_torch_weights(weights_name: str) -> WeightsEnum:
+    """Loads pre-trained model weights from ``torchvision`` via Torch Hub API.
+
+    Args:
+        weights_name (str): Name of model weights. See ... for a list of possible pre-trained weights.
+
+    Returns:
+        WeightsEnum: API query for the specified weights. See note on use:
+
+    Note:
+        This function only returns a query for the API of the weights. To actually use them, you need to call
+        ``get_state_dict(progress)`` where progress is a ``bool`` on whether to show a progress bar for the
+        downloading of the weights (if not already in cache).
+    """
     weights: WeightsEnum = torch.hub.load(
         "pytorch/vision", "get_weight", name=weights_name
     )
@@ -2309,7 +2322,7 @@ def get_output_shape(
 
     Args:
         model (Module): Model for which the shape of the output needs to be found.
-        image_dim (list[int] or tuple[int]): Expected shape of the input data to the model.
+        image_dim (list[int] or tuple[int, ...]): Expected shape of the input data to the model.
 
     Returns:
         The shape of the output data from the model.
