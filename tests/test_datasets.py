@@ -34,15 +34,15 @@ def test_make_bounding_box() -> None:
 def test_tinydataset() -> None:
     """Source of TIFF: https://github.com/mommermi/geotiff_sample"""
 
-    imagery = mdt.TestImgDataset(img_root)
-    labels = mdt.TestMaskDataset(lc_root)
+    imagery = mdt.TstImgDataset(img_root)
+    labels = mdt.TstMaskDataset(lc_root)
 
     dataset = imagery & labels
     assert isinstance(dataset, IntersectionDataset)
 
 
 def test_paired_datasets() -> None:
-    dataset = mdt.PairedDataset(mdt.TestImgDataset, img_root)
+    dataset = mdt.PairedDataset(mdt.TstImgDataset, img_root)
 
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -53,7 +53,7 @@ def test_paired_datasets() -> None:
     assert type(sample_2) == dict
 
     assert type(dataset.crs) == CRS
-    assert type(dataset.dataset) == mdt.TestImgDataset
+    assert type(dataset.dataset) == mdt.TstImgDataset
 
     with pytest.raises(AttributeError):
         dataset.roi
@@ -116,7 +116,7 @@ def test_make_dataset() -> None:
     dataset_params = {
         "image": {
             "module": "minerva.datasets",
-            "name": "TestImgDataset",
+            "name": "TstImgDataset",
             "root": "test_images",
             "params": {"res": 10.0},
         }
@@ -129,7 +129,7 @@ def test_make_dataset() -> None:
     dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
 
     assert type(dataset_1) == type(subdatasets_1[0])
-    assert isinstance(dataset_1, mdt.TestImgDataset)
+    assert isinstance(dataset_1, mdt.TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
         data_dir, dataset_params, transform_params, sample_pairs=True
@@ -145,7 +145,7 @@ def test_construct_dataloader() -> None:
     dataset_params = {
         "image": {
             "module": "minerva.datasets",
-            "name": "TestImgDataset",
+            "name": "TstImgDataset",
             "root": "test_images",
             "params": {"res": 10.0},
         }

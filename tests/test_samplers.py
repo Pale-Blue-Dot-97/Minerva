@@ -5,7 +5,7 @@ import os
 from torch.utils.data import DataLoader
 
 from minerva.samplers import RandomPairBatchGeoSampler, RandomPairGeoSampler
-from minerva.datasets import TestImgDataset, PairedDataset, stack_sample_pairs
+from minerva.datasets import TstImgDataset, PairedDataset, stack_sample_pairs
 from minerva.utils.utils import set_seeds
 
 
@@ -17,7 +17,7 @@ set_seeds(42)
 
 
 def test_randompairgeosampler() -> None:
-    dataset = PairedDataset(TestImgDataset, img_root, res=1.0)
+    dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
 
     sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
     loader: DataLoader[Dict[str, Any]] = DataLoader(
@@ -33,7 +33,7 @@ def test_randompairgeosampler() -> None:
 
 
 def test_randompairbatchgeosampler() -> None:
-    dataset = PairedDataset(TestImgDataset, img_root, res=1.0)
+    dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
 
     sampler = RandomPairBatchGeoSampler(
         dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1

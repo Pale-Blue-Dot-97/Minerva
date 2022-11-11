@@ -91,7 +91,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class TestImgDataset(RasterDataset):
+class TstImgDataset(RasterDataset):
     """Test dataset for imagery.
 
     Attributes:
@@ -101,7 +101,7 @@ class TestImgDataset(RasterDataset):
     filename_glob = "*_img.tif"
 
 
-class TestMaskDataset(RasterDataset):
+class TstMaskDataset(RasterDataset):
     """Test dataset for land cover data.
 
     Attributes:
