@@ -38,25 +38,18 @@ The recommended installation order is to start with a fresh `conda` environment,
 version and installing `pytorch` upon environment creation:
 
 ```shell
-conda create env --name minerva-39 python=3.9 pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+conda create env --name minerva-310 python=3.10 pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch
 ```
 
-Then install `torchgeo` via `pip`:
-
+Clone `minerva` from the git repo.
 ```shell
-pip install torchgeo
+git clone https://github.com/Pale-Blue-Dot-97/Minerva.git
 ```
 
-Then proceed with installing `minerva`'s remaining requirements:
+Then install `minerva` via `pip` in editable mode from within the root level of the cloned repositry:
 
 ```shell
-pip install tensorflow pandas imageio opencv-python seaborn tabulate torchinfo psutil alive-progress inputimeout
-```
-
-The `torchgeo` docs also recommend installing `radiant_mlhub` and `zipfile-deflate64`:
-
-```shell
-pip install zipfile-deflate64 radiant_mlhub
+pip install -e ./
 ```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -68,7 +61,7 @@ datasets with upcoming support for [torchvision](https://pytorch.org/vision/stab
 
 Required Python modules for `minerva` are stated in `requirements.txt`.
 
-`minerva` currently only supports `python` 3.8 & 3.9.
+`minerva` currently only supports `python` 3.8 -- 3.10.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
