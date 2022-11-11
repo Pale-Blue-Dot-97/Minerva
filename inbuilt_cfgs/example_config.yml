@@ -45,14 +45,14 @@ dataset_params:
     train:
         image:
             module: minerva.datasets
-            name: TestImgDataset
+            name: TstImgDataset
             root: test_images
             params:
                 res: 1.0
 
         mask:
             module: minerva.datasets
-            name: TestMaskDataset
+            name: TstMaskDataset
             root: test_lc
             params:
                 res: 1.0
@@ -61,14 +61,14 @@ dataset_params:
     val:
         image:
             module: minerva.datasets
-            name: TestImgDataset
+            name: TstImgDataset
             root: test_images
             params:
                 res: 1.0
 
         mask:
             module: minerva.datasets
-            name: TestMaskDataset
+            name: TstMaskDataset
             root: test_lc
             params:
                 res: 1.0
@@ -77,14 +77,14 @@ dataset_params:
     test:
         image:
             module: minerva.datasets
-            name: TestImgDataset
+            name: TstImgDataset
             root: test_images
             params:
                 res: 1.0
 
         mask:
             module: minerva.datasets
-            name: TestMaskDataset
+            name: TstMaskDataset
             root: test_lc
             params:
                 res: 1.0
