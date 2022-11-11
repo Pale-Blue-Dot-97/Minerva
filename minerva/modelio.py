@@ -27,7 +27,6 @@ import numpy as np
 import torch
 from torch import Tensor, LongTensor
 from torchgeo.datasets.utils import BoundingBox
-from typing_extensions import Literal
 
 from minerva.models import MinervaModel
 
