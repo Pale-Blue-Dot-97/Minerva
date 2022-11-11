@@ -2,8 +2,6 @@
 
 ![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva) ![Ubuntu-Py310](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_310.yml/badge.svg) ![Ubuntu-Py39](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_39.yml/badge.svg) ![Ubuntu-Py38](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/ubuntu_tests_38.yml/badge.svg) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-
-
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
@@ -23,9 +21,9 @@
 </div>
 
 ## About
+
 Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial
 rasterised land cover data.
-
 
 ## Getting Started
 
@@ -42,6 +40,7 @@ conda create env --name minerva-310 python=3.10 pytorch torchvision torchaudio c
 ```
 
 Clone `minerva` from the git repo.
+
 ```shell
 git clone https://github.com/Pale-Blue-Dot-97/Minerva.git
 ```
@@ -127,8 +126,8 @@ Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/li
 Created by Harry Baker as part of a project towards for a PhD in Computer Science from the
 University of Southampton. Funded by the Ordnance Survey Ltd.
 
-
 ## Acknowledgments
+
 I'd like to acknowledge the invaluable supervision and contributions of Dr Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
