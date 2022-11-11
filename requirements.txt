@@ -10,7 +10,7 @@ seaborn==0.11.2
 tensorflow==2.9.1
 imageio==2.14.1
 torchinfo==1.6.3
-torchvision==0.14.0
+torchvision==0.13.0
 setuptools==59.5.0
 rasterio>=1.2.10
 fiona>=1.8.20
