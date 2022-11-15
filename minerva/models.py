@@ -42,6 +42,7 @@ from typing import (
     Union,
     overload,
 )
+import os
 from nptyping import NDArray
 import numpy as np
 import torch
@@ -2279,14 +2280,22 @@ def get_torch_weights(weights_name: str) -> WeightsEnum:
     Returns:
         WeightsEnum: API query for the specified weights. See note on use:
 
+    Raises:
+        OSError: If no internet connection, ``OSError`` 101 will be raised. Reverts to using local cache.
+
     Note:
         This function only returns a query for the API of the weights. To actually use them, you need to call
         ``get_state_dict(progress)`` where progress is a ``bool`` on whether to show a progress bar for the
         downloading of the weights (if not already in cache).
     """
-    weights: WeightsEnum = torch.hub.load(
-        "pytorch/vision", "get_weight", name=weights_name
-    )
+    weights: WeightsEnum
+    try:
+        weights = torch.hub.load("pytorch/vision", "get_weight", name=weights_name)
+    except OSError:
+        th_dir = os.environ.get("TORCH_HUB")
+        weights = torch.hub.load(
+            f"{th_dir}/pytorch/vision", "get_weight", name=weights_name, source="local"
+        )
 
     return weights
 
