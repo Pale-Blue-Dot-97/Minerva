@@ -2292,9 +2292,12 @@ def get_torch_weights(weights_name: str) -> WeightsEnum:
     try:
         weights = torch.hub.load("pytorch/vision", "get_weight", name=weights_name)
     except OSError:
-        th_dir = os.environ.get("TORCH_HUB")
+        th_dir = os.environ.get("TORCH_HUB", os.path.expanduser("~/.cache/torch/hub"))
         weights = torch.hub.load(
-            f"{th_dir}/pytorch/vision", "get_weight", name=weights_name, source="local"
+            f"{th_dir}/pytorch_vision_main",
+            "get_weight",
+            name=weights_name,
+            source="local",
         )
 
     return weights
