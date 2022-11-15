@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# PYTHON_ARGCOMPLETE_OK
 # -*- coding: utf-8 -*-
 # Copyright (C) 2022 Harry Baker
 #
@@ -31,6 +32,7 @@ https://github.com/facebookresearch/barlowtwins
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
+import argcomplete
 
 from minerva.trainer import Trainer
 from minerva.utils import CONFIG, runner
@@ -64,7 +66,7 @@ def main(gpu: int, args) -> None:
 if __name__ == "__main__":
     # ---+ CLI +--------------------------------------------------------------+
     parser = argparse.ArgumentParser(parents=[runner.generic_parser], add_help=False)
-
+    argcomplete.autocomplete(parser)
     # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
 
     # Export args from CLI.
