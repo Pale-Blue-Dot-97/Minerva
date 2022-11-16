@@ -1915,7 +1915,7 @@ class _SimCLR(MinervaBackbone):
         assert isinstance(backbone_out_shape, Sequence)
 
         self.proj_head = nn.Sequential(
-            nn.Linear(np.prod(backbone_out_shape), 512, bias=False),
+            nn.Linear(np.prod(backbone_out_shape), 512, bias=False),  # type: ignore[arg-type]
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
             nn.Linear(512, feature_dim, bias=False),
@@ -2106,13 +2106,13 @@ class _SimSiam(MinervaBackbone):
         prev_dim = np.prod(backbone_out_shape)
 
         self.proj_head = nn.Sequential(
-            nn.Linear(prev_dim, prev_dim, bias=False),
-            nn.BatchNorm1d(prev_dim),
+            nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(prev_dim),  # type: ignore[arg-type]
             nn.ReLU(inplace=True),  # first layer
-            nn.Linear(prev_dim, prev_dim, bias=False),
-            nn.BatchNorm1d(prev_dim),
+            nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(prev_dim),  # type: ignore[arg-type]
             nn.ReLU(inplace=True),  # second layer
-            nn.Linear(prev_dim, feature_dim, bias=False),
+            nn.Linear(prev_dim, feature_dim, bias=False),  # type: ignore[arg-type]
             nn.BatchNorm1d(feature_dim, affine=False),
         )  # output layer
         # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
