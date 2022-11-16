@@ -1212,11 +1212,12 @@ def calc_grad(model: Module) -> Optional[float]:
         # Iterate through all model parameters.
         for p in model.parameters():
             # Calculate 2D grad norm
-            param_norm = p.grad.data.norm(2)
-            print(param_norm.item())
+            if p.grad is not None:
+                param_norm = p.grad.data.norm(2)
+                print(param_norm.item())
 
-            # Converts norm to float, squares and adds to total_norm.
-            total_norm += param_norm.item() ** 2
+                # Converts norm to float, squares and adds to total_norm.
+                total_norm += param_norm.item() ** 2
 
         # Square-root to give final total_norm.
         total_norm **= 0.5
