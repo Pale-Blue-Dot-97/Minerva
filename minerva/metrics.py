@@ -73,9 +73,6 @@ class MinervaMetrics(ABC):
         self.batch_size = batch_size
         self.data_size = data_size
 
-        # To be overwritten.
-        self.metrics: Dict[str, Any] = {}
-
         self.model_type = params.get("model_type", "scene_classifier")
         self.sample_pairs = params.get("sample_pairs", False)
 
@@ -85,7 +82,7 @@ class MinervaMetrics(ABC):
             self.metric_types += self.special_metric_types
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics = {}
+        self.metrics: Dict[str, Any] = {}
         for mode in self.modes:
             for metric in self.metric_types:
                 self.metrics[f"{mode}_{metric}"] = {"x": [], "y": []}
@@ -171,7 +168,7 @@ class SP_Metrics(MinervaMetrics):
         model_type (str): Optional; Type of the model.
     """
 
-    metric_types: List[str] = ["loss", "acc"]
+    metric_types: List[str] = ["loss", "acc", "miou"]
 
     def __init__(
         self,
@@ -206,6 +203,10 @@ class SP_Metrics(MinervaMetrics):
                     * self.data_size[2]
                 )
             )
+            self.metrics[f"{mode}_miou"]["y"].append(
+                logs["total_miou"] / (self.n_batches[mode] * self.batch_size)
+            )
+
         else:
             self.metrics[f"{mode}_acc"]["y"].append(
                 logs["total_correct"] / (self.n_batches[mode] * self.batch_size)
@@ -228,13 +229,17 @@ class SP_Metrics(MinervaMetrics):
             mode (str): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
-        print(
-            "{} | Loss: {} | Accuracy: {}% \n".format(
-                mode,
-                self.metrics[f"{mode}_loss"]["y"][epoch_no],
-                self.metrics[f"{mode}_acc"]["y"][epoch_no] * 100.0,
-            )
+        msg = "{} | Loss: {} | Accuracy: {}%".format(
+            mode,
+            self.metrics[f"{mode}_loss"]["y"][epoch_no],
+            self.metrics[f"{mode}_acc"]["y"][epoch_no] * 100.0,
         )
+
+        if self.model_type == "segmentation":
+            msg += " | mIoU: {}".format(self.metrics[f"{mode}_miou"]["y"][epoch_no])
+
+        msg += "\n"
+        print(msg)
 
 
 class SSL_Metrics(MinervaMetrics):
