@@ -32,6 +32,7 @@ import torch
 from torch import Tensor
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchgeo.datasets.utils import BoundingBox
+from sklearn.metrics import jaccard_score
 
 from minerva.utils import utils
 
@@ -205,6 +206,10 @@ class STG_Logger(MinervaLogger):
             "ids": [],
             "bounds": None,
         }
+        self.calc_miou = True if kwargs["model_type"] == "segmentation" else False
+
+        if self.calc_miou:
+            self.logs["total_miou"] = 0.0
 
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
@@ -292,6 +297,12 @@ class STG_Logger(MinervaLogger):
         # Adds loss and correct predictions to logs.
         self.logs["total_loss"] += ls
         self.logs["total_correct"] += correct
+
+        if self.calc_miou:
+            y_true = y.detach().cpu().numpy()
+            y_pred = torch.argmax(z, 1).detach().cpu().numpy()
+            for i in range(len(y)):
+                self.logs["total_miou"] += jaccard_score(y_true[i].flatten(), y_pred[i].flatten(), average="macro")  # type: ignore[attr-defined]
 
         # Writes loss and correct predictions to the writer.
         writer.add_scalar(tag=f"{mode}_loss", scalar_value=ls, global_step=step_num)
