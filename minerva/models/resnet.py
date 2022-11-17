@@ -40,7 +40,7 @@ from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
 
-from models import MinervaModel, get_torch_weights
+from .core import MinervaModel, get_torch_weights
 
 # =====================================================================================================================
 #                                                    METADATA

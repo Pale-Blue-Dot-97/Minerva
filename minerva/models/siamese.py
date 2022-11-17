@@ -29,7 +29,8 @@ import torch
 from torch import Tensor
 import torch.nn.modules as nn
 
-from models import MinervaModel, MinervaBackbone
+from .core import MinervaModel, MinervaBackbone
+from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
 
 # =====================================================================================================================
 #                                                    METADATA
