@@ -206,7 +206,7 @@ class STG_Logger(MinervaLogger):
             "ids": [],
             "bounds": None,
         }
-        self.calc_miou = True if kwargs["model_type"] == "segmentation" else False
+        self.calc_miou = True if kwargs.get("model_type") == "segmentation" else False
 
         if self.calc_miou:
             self.logs["total_miou"] = 0.0
@@ -299,8 +299,9 @@ class STG_Logger(MinervaLogger):
         self.logs["total_correct"] += correct
 
         if self.calc_miou:
+            assert y is not None
             y_true = y.detach().cpu().numpy()
-            y_pred = torch.argmax(z, 1).detach().cpu().numpy()
+            y_pred = torch.argmax(z, 1).detach().cpu().numpy()  # type: ignore[attr-defined]
             for i in range(len(y)):
                 self.logs["total_miou"] += jaccard_score(y_true[i].flatten(), y_pred[i].flatten(), average="macro")  # type: ignore[attr-defined]
 
