@@ -37,7 +37,7 @@ import torch
 import torch.nn.modules as nn
 from torch import Tensor
 
-from minerva.models import MinervaModel, bilinear_init
+from models import MinervaModel, bilinear_init
 
 # =====================================================================================================================
 #                                                    METADATA
