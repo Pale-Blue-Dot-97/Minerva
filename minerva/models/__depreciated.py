@@ -41,7 +41,7 @@ from torch import Tensor
 import torch.nn.modules as nn
 from torch.nn.modules import Module
 
-from models import MinervaModel, get_output_shape
+from .core import MinervaModel, get_output_shape
 from minerva.utils.utils import check_len
 
 # =====================================================================================================================
