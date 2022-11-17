@@ -73,8 +73,8 @@ def test_sp_metrics() -> None:
         correct_miou_1 = {
             "x": [1, 2],
             "y": [
-                logs_1["total_miou"] / n_batches[mode],
-                logs_2["total_miou"] / n_batches[mode],
+                logs_1["total_miou"] / (n_batches[mode] * 16),
+                logs_2["total_miou"] / (n_batches[mode] * 16),
             ],
         }
 
