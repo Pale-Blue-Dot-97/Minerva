@@ -281,28 +281,6 @@ def get_torch_weights(weights_name: str) -> WeightsEnum:
     return weights
 
 
-def _preload_weights(
-    resnet: ResNet,
-    weights: Union[WeightsEnum, Any],
-    input_shape: Tuple[int, int, int],
-    encoder_on: bool,
-) -> ResNet:
-
-    if isinstance(weights, WeightsEnum):
-        weights = weights.get_state_dict(True)
-
-    if input_shape[0] != 3 or input_shape[1] <= 224 or input_shape[2] <= 224:
-        weights["conv1.weight"] = resnet.conv1.state_dict()["weight"]
-
-    if encoder_on:
-        del weights["fc.weight"]
-        del weights["fc.bias"]
-
-    resnet.load_state_dict(weights)
-
-    return resnet
-
-
 def get_output_shape(
     model: Module,
     image_dim: Union[Tuple[int, ...], List[int]],
