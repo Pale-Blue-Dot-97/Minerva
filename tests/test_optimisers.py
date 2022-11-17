@@ -2,7 +2,7 @@ import pytest
 import torch
 import torch.nn.modules as nn
 
-from minerva.models import CNN
+from minerva.models.__depreciated import CNN
 from minerva.optimisers import LARS
 
 
