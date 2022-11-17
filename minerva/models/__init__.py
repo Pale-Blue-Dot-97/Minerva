@@ -1,3 +1,12 @@
+from utils import (
+    MinervaModel,
+    MinervaDataParallel,
+    MinervaBackbone,
+    get_torch_weights,
+    get_output_shape,
+    bilinear_init,
+)
+
 from fcn import (
     FCN8ResNet18,
     FCN8ResNet34,
