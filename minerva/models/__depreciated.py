@@ -20,7 +20,7 @@
 #
 # TODO: Consider removing redundant models.
 #
-"""Module containing neural network model classes."""
+"""Module for redundant model classes."""
 
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -41,7 +41,8 @@ from torch import Tensor
 import torch.nn.modules as nn
 from torch.nn.modules import Module
 
-from minerva.utils import utils
+from models import MinervaModel, get_output_shape
+from minerva.utils.utils import check_len
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -182,8 +183,8 @@ class CNN(MinervaModel, ABC):
         self._fc_layers: OrderedDict[str, Module] = OrderedDict()
 
         # Checks that the kernel sizes and strides match the number of layers defined by features.
-        _conv_kernel_size: Sequence[int] = utils.check_len(conv_kernel_size, features)
-        _conv_stride: Sequence[int] = utils.check_len(conv_stride, features)
+        _conv_kernel_size: Sequence[int] = check_len(conv_kernel_size, features)
+        _conv_stride: Sequence[int] = check_len(conv_stride, features)
 
         # Constructs the convolutional layers determined by the number of input channels and the features of these.
         assert self.input_shape is not None
