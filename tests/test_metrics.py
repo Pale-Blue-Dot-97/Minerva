@@ -27,11 +27,13 @@ def test_sp_metrics() -> None:
         logs_1 = {
             "total_loss": random.random(),
             "total_correct": random.random(),
+            "total_miou": random.random(),
         }
 
         logs_2 = {
             "total_loss": random.random(),
             "total_correct": random.random(),
+            "total_miou": random.random(),
         }
 
         metric_logger_1(mode, logs_1)
@@ -68,6 +70,14 @@ def test_sp_metrics() -> None:
             ],
         }
 
+        correct_miou_1 = {
+            "x": [1, 2],
+            "y": [
+                logs_1["total_miou"] / n_batches[mode],
+                logs_2["total_miou"] / n_batches[mode],
+            ],
+        }
+
         correct_acc_2 = {
             "x": [1, 2],
             "y": [
@@ -78,6 +88,7 @@ def test_sp_metrics() -> None:
 
         assert metrics_1[f"{mode}_loss"] == pytest.approx(correct_loss_1)
         assert metrics_1[f"{mode}_acc"] == pytest.approx(correct_acc_1)
+        assert metrics_1[f"{mode}_miou"] == pytest.approx(correct_miou_1)
 
         assert metrics_2[f"{mode}_loss"] == pytest.approx(correct_loss_1)
         assert metrics_2[f"{mode}_acc"] == pytest.approx(correct_acc_2)
@@ -88,6 +99,7 @@ def test_sp_metrics() -> None:
 
             assert sub_metrics_1[f"{mode}_loss"] == pytest.approx(correct_loss_1)
             assert sub_metrics_1[f"{mode}_acc"] == pytest.approx(correct_acc_1)
+            assert sub_metrics_1[f"{mode}_miou"] == pytest.approx(correct_miou_1)
 
             assert sub_metrics_2[f"{mode}_loss"] == pytest.approx(correct_loss_1)
             assert sub_metrics_2[f"{mode}_acc"] == pytest.approx(correct_acc_2)

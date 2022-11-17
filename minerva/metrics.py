@@ -203,9 +203,10 @@ class SP_Metrics(MinervaMetrics):
                     * self.data_size[2]
                 )
             )
-            self.metrics[f"{mode}_miou"]["y"].append(
-                logs["total_miou"] / (self.n_batches[mode] * self.batch_size)
-            )
+            if logs.get("total_miou") is not None:
+                self.metrics[f"{mode}_miou"]["y"].append(
+                    logs["total_miou"] / (self.n_batches[mode] * self.batch_size)
+                )
 
         else:
             self.metrics[f"{mode}_acc"]["y"].append(
