@@ -54,6 +54,14 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2022 Harry Baker"
 
+__all__ = [
+    "MinervaModel",
+    "MinervaDataParallel",
+    "MinervaBackbone",
+    "get_torch_weights",
+    "get_output_shape",
+    "bilinear_init",
+]
 
 # =====================================================================================================================
 #                                                     CLASSES

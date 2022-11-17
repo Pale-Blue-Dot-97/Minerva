@@ -5,14 +5,15 @@ from torch import Tensor, LongTensor
 import torch.nn.modules as nn
 from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
-import minerva.models as mm
+from minerva.models import *
+from minerva.models.__depreciated import MLP, CNN
 
 criterion = nn.CrossEntropyLoss()
 
 
 def test_mlp() -> None:
-    model_1 = mm.MLP(criterion)
-    model_2 = mm.MLP(criterion, hidden_sizes=128)
+    model_1 = MLP(criterion)
+    model_2 = MLP(criterion, hidden_sizes=128)
 
     for model in (model_1, model_2):
         optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
@@ -38,7 +39,7 @@ def test_mlp() -> None:
 
 def test_cnn() -> None:
     input_size = (4, 64, 64)
-    model = mm.CNN(criterion, input_size=input_size)
+    model = CNN(criterion, input_size=input_size)
 
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
 
@@ -58,7 +59,7 @@ def test_cnn() -> None:
 
 
 def test_resnets() -> None:
-    def resnet_test(test_model: mm.MinervaModel, x: Tensor, y: Tensor) -> None:
+    def resnet_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
         optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
 
         test_model.set_optimiser(optimiser)
@@ -73,7 +74,7 @@ def test_resnets() -> None:
         assert z.size() == (6, 8)
 
     with pytest.raises(ValueError):
-        _ = mm.ResNet18(replace_stride_with_dilation=(True, False))  # type: ignore[arg-type]
+        _ = ResNet18(replace_stride_with_dilation=(True, False))  # type: ignore[arg-type]
 
     input_size = (4, 64, 64)
 
@@ -82,27 +83,27 @@ def test_resnets() -> None:
 
     for zero_init_residual in (True, False):
 
-        resnet18 = mm.ResNet18(
+        resnet18 = ResNet18(
             criterion, input_size=input_size, zero_init_residual=zero_init_residual
         )
 
         resnet_test(resnet18, x, y)
 
     for model in (
-        mm.ResNet34(criterion, input_size=input_size),
-        mm.ResNet50(criterion, input_size=input_size),
-        mm.ResNet50(
+        ResNet34(criterion, input_size=input_size),
+        ResNet50(criterion, input_size=input_size),
+        ResNet50(
             criterion,
             input_size=input_size,
             replace_stride_with_dilation=(True, True, False),
             zero_init_residual=True,
         ),
-        mm.ResNet101(criterion, input_size=input_size),
-        mm.ResNet152(criterion, input_size=input_size),
+        ResNet101(criterion, input_size=input_size),
+        ResNet152(criterion, input_size=input_size),
     ):
         resnet_test(model, x, y)
 
-    encoder = mm.ResNet18(criterion, input_size=input_size, encoder=True)
+    encoder = ResNet18(criterion, input_size=input_size, encoder=True)
     optimiser = torch.optim.SGD(encoder.parameters(), lr=1.0e-3)
 
     encoder.set_optimiser(optimiser)
@@ -116,7 +117,7 @@ def test_resnets() -> None:
 
 
 def test_fcnresnets() -> None:
-    def resnet_test(test_model: mm.MinervaModel, x: Tensor, y: Tensor) -> None:
+    def resnet_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
         optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
 
         test_model.set_optimiser(optimiser)
@@ -136,18 +137,18 @@ def test_fcnresnets() -> None:
     y = torch.randint(0, 8, (6, 64, 64))  # type: ignore[attr-defined]
 
     for model in (
-        mm.FCN32ResNet18(criterion, input_size=input_size),
-        mm.FCN32ResNet34(criterion, input_size=input_size),
-        mm.FCN32ResNet50(criterion, input_size=input_size),
-        mm.FCN16ResNet18(criterion, input_size=input_size),
-        mm.FCN16ResNet34(criterion, input_size=input_size),
-        mm.FCN16ResNet50(criterion, input_size=input_size),
-        mm.FCN8ResNet18(criterion, input_size=input_size),
-        mm.FCN8ResNet18(criterion, input_size=input_size),
-        mm.FCN8ResNet34(criterion, input_size=input_size),
-        mm.FCN8ResNet50(criterion, input_size=input_size),
-        mm.FCN8ResNet101(criterion, input_size=input_size),
-        mm.FCN8ResNet152(criterion, input_size=input_size),
+        FCN32ResNet18(criterion, input_size=input_size),
+        FCN32ResNet34(criterion, input_size=input_size),
+        FCN32ResNet50(criterion, input_size=input_size),
+        FCN16ResNet18(criterion, input_size=input_size),
+        FCN16ResNet34(criterion, input_size=input_size),
+        FCN16ResNet50(criterion, input_size=input_size),
+        FCN8ResNet18(criterion, input_size=input_size),
+        FCN8ResNet18(criterion, input_size=input_size),
+        FCN8ResNet34(criterion, input_size=input_size),
+        FCN8ResNet50(criterion, input_size=input_size),
+        FCN8ResNet101(criterion, input_size=input_size),
+        FCN8ResNet152(criterion, input_size=input_size),
     ):
         resnet_test(model, x, y)
 
@@ -162,9 +163,9 @@ def test_simclr() -> None:
     x = torch.stack([x, x])
 
     for model in (
-        mm.SimCLR18(loss_func, input_size=input_size),
-        mm.SimCLR34(loss_func, input_size=input_size),
-        mm.SimCLR50(loss_func, input_size=input_size),
+        SimCLR18(loss_func, input_size=input_size),
+        SimCLR34(loss_func, input_size=input_size),
+        SimCLR50(loss_func, input_size=input_size),
     ):
         optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
 
@@ -189,9 +190,9 @@ def test_simsiam() -> None:
     x = torch.stack([x, x])
 
     for model in (
-        mm.SimSiam18(loss_func, input_size=input_size),
-        mm.SimSiam34(loss_func, input_size=input_size),
-        mm.SimSiam50(loss_func, input_size=input_size),
+        SimSiam18(loss_func, input_size=input_size),
+        SimSiam34(loss_func, input_size=input_size),
+        SimSiam50(loss_func, input_size=input_size),
     ):
         optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
 
