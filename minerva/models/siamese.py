@@ -18,9 +18,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-# TODO: Consider removing redundant models.
-#
-"""Module containing neural network model classes."""
+"""Module containing Siamese models."""
 
 # =====================================================================================================================
 #                                                     IMPORTS
