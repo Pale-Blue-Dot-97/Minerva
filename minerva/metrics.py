@@ -222,6 +222,7 @@ class SP_Metrics(MinervaMetrics):
         """
         self.metrics[f"{mode}_loss"]["x"].append(epoch_no + 1)
         self.metrics[f"{mode}_acc"]["x"].append(epoch_no + 1)
+        self.metrics[f"{mode}_miou"]["x"].append(epoch_no + 1)
 
     def print_epoch_results(self, mode: str, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
