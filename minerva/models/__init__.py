@@ -24,3 +24,5 @@ from .fcn import (
 from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
 
 from .siamese import SimCLR18, SimCLR34, SimCLR50, SimSiam18, SimSiam34, SimSiam50
+
+from .__depreciated import MLP, CNN
