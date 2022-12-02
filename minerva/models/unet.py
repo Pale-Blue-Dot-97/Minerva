@@ -132,27 +132,95 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 
-class UNet(ABC):
-    def __init__(self, encoder, n_classes: int, bilinear: bool = False) -> None:
-        super().__init__()
+class UNet(MinervaModel, ABC):
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: Tuple[int, ...] = (4, 256, 256),
+        n_classes: int = 8,
+        backbone_name: str = "ResNet18",
+        bilinear: bool = False,
+        backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
+        backbone_kwargs: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        super(UNet, self).__init__(
+            criterion=criterion, input_shape=input_size, n_classes=n_classes
+        )
 
         factor = 2 if bilinear else 1
 
-        self.encoder = encoder
+        # Initialises the selected Minerva backbone.
+        self.backbone: MinervaModel = globals()[backbone_name](
+            input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
+        )
 
-        self.up1 = Up(1024, 512 // factor, bilinear)
+        # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
+        if backbone_weight_path is not None:
+            self.backbone.load_state_dict(torch.load(backbone_weight_path))
+
+            # Freezes the weights of backbone to avoid end-to-end training.
+            if freeze_backbone:
+                self.backbone.requires_grad_(False)
+
+        # Determines the output shape of the backbone so the correct input shape is known
+        # for the proceeding layers of the network.
+        self.backbone.determine_output_dim()
+
+        backbone_out_shape = self.backbone.output_shape
+        assert isinstance(backbone_out_shape, Sequence)
+
+        print(backbone_out_shape)
+
+        self.up1 = Up(backbone_out_shape[0], 512 // factor, bilinear)
         self.up2 = Up(512, 256 // factor, bilinear)
         self.up3 = Up(256, 128 // factor, bilinear)
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, n_classes)
 
     def forward(self, x: Tensor) -> Tensor:
-        x1, x2, x3, x4, x5 = self.encoder(x)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
+        x4, x3, x2, x1, x0 = self.backbone(x)
+
+        print(f"{x0.size()=}")
+        print(f"{x1.size()=}")
+        print(f"{x2.size()=}")
+        print(f"{x3.size()=}")
+        print(f"{x4.size()=}")
+
+        x = self.up1(x4, x3)
+        print(f"{x.size()=}")
+
+        x = self.up2(x, x2)
+        print(f"{x.size()=}")
+
+        x = self.up3(x, x1)
+        print(f"{x.size()=}")
+
+        x = self.up4(x, x0)
+        print(f"{x.size()=}")
 
         logits = self.outc(x)
 
         return logits
+
+
+class UNetR18(UNet):
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: Tuple[int, ...] = (4, 256, 256),
+        n_classes: int = 8,
+        backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
+        **resnet_kwargs,
+    ) -> None:
+
+        super(UNetR18, self).__init__(
+            criterion=criterion,
+            input_size=input_size,
+            n_classes=n_classes,
+            backbone_name="ResNet18",
+            backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
+            backbone_kwargs=resnet_kwargs,
+        )
