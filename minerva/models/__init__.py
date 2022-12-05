@@ -38,6 +38,6 @@ from .siamese import (
     SimSiam50 as SimSiam50,
 )
 
-from .unet import UNetR18 as UNetR18
+from .unet import UNetR18 as UNetR18, UNet as UNet
 
 from .__depreciated import MLP, CNN
