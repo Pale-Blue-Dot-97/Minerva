@@ -74,7 +74,7 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-DATA_CONFIG = AUX_CONFIGS["data_config"]
+DATA_CONFIG = AUX_CONFIGS.get("data_config")
 IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
@@ -901,8 +901,13 @@ def make_confusion_matrix(
     # Converts confusion matrix to Pandas.DataFrame.
     cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
 
+    if DATA_CONFIG is not None:
+        figsize = DATA_CONFIG["fig_sizes"]["CM"]
+    else:
+        figsize = None
+
     # Plots figure.
-    plt.figure(figsize=DATA_CONFIG["fig_sizes"]["CM"])
+    plt.figure(figsize=figsize)
     sns.heatmap(
         cm_df,
         annot=True,
@@ -1335,6 +1340,11 @@ def plot_results(
         assert bounds is not None
         assert mode is not None
 
+        if DATA_CONFIG is not None:
+            figsize = DATA_CONFIG["fig_sizes"]["Mask"]
+        else:
+            figsize = None
+        
         flat_bbox = utils.batch_flatten(bounds)
         os.mkdir(os.sep.join([*results_dir, "Masks"]))
         seg_plot(
@@ -1346,7 +1356,7 @@ def plot_results(
             fn_prefix=filenames["Mask"],
             classes=class_names,
             colours=colours,
-            fig_dim=DATA_CONFIG["fig_sizes"]["Mask"],
+            fig_dim=figsize,
         )
 
     if plots.get("TSNE", False):
