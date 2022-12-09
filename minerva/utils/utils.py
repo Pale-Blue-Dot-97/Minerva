@@ -43,6 +43,7 @@ from collections import Counter, OrderedDict
 from typing import (
     Any,
     Callable,
+    Counter,
     Dict,
     Iterable,
     List,
@@ -111,16 +112,17 @@ IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
     "imagery_config"
 ]
 
-DATA_CONFIG_PATH: str
-_data_config_path: Union[List[str], Tuple[str, ...], str] = CONFIG["dir"]["configs"][
+DATA_CONFIG_PATH: Optional[str]
+_data_config_path: Optional[Union[List[str], Tuple[str, ...], str]] = CONFIG["dir"]["configs"].get(
     "data_config"
-]
+)
 if type(_data_config_path) in (list, tuple):
+    assert _data_config_path is not None
     DATA_CONFIG_PATH = os.sep.join(_data_config_path)
-elif type(_data_config_path) == str:
+elif type(_data_config_path) == str or _data_config_path is None:
     DATA_CONFIG_PATH = _data_config_path
 
-DATA_CONFIG: Dict[str, Any] = AUX_CONFIGS["data_config"]
+DATA_CONFIG: Dict[str, Any] = AUX_CONFIGS.get("data_config")
 IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
@@ -470,7 +472,16 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     Returns:
         Optional[Union[str, Any]]: Name of dataset as string.
     """
-    data_config_fn = ntpath.basename(DATA_CONFIG_PATH)
+    try:
+        assert DATA_CONFIG_PATH is not None
+        data_config_fn = ntpath.basename(DATA_CONFIG_PATH)
+    except AssertionError as err:
+        print(err)
+        print(
+            "DATA_CONFIG_PATH is empty! This is needed here to obtain the dataset name." 
+            + "\nSpecify the path to the data config in the experiment config"
+        )
+
     match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
 
     if match is None:
@@ -677,7 +688,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         location = query.raw["address"]
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
-        locs: list[str] = []
+        locs: List[str] = []
         try:
             locs.append(location["city"])
         except KeyError:
