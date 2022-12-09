@@ -43,7 +43,7 @@ from collections import Counter, OrderedDict
 from typing import (
     Any,
     Callable,
-    Counter,
+    Counter as CounterType,
     Dict,
     Iterable,
     List,
@@ -122,7 +122,7 @@ if type(_data_config_path) in (list, tuple):
 elif type(_data_config_path) == str or _data_config_path is None:
     DATA_CONFIG_PATH = _data_config_path
 
-DATA_CONFIG: Dict[str, Any] = AUX_CONFIGS.get("data_config")
+DATA_CONFIG: Optional[Dict[str, Any]] = AUX_CONFIGS.get("data_config")
 IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
@@ -144,9 +144,15 @@ IMAGE_SIZE: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"
     "image_size"
 ]
 
-CLASSES: Dict[int, str] = DATA_CONFIG["classes"]
+CLASSES: Dict[int, str]
+CMAP_DICT: Dict[int, str]
 
-CMAP_DICT: Dict[int, str] = DATA_CONFIG["colours"]
+if DATA_CONFIG:
+    CLASSES = DATA_CONFIG["classes"]
+    CMAP_DICT = DATA_CONFIG["colours"]
+else:
+    CLASSES = {}
+    CMAP_DICT = {}
 
 # WGS84 co-ordinate reference system acting as a default CRS for transformations.
 WGS84: CRS = CRS.from_epsg(4326)
@@ -1143,7 +1149,7 @@ def modes_from_manifest(
         except KeyError:
             return manifest[f"{cls}"].sum() / len(manifest)
 
-    class_counter: Counter[int] = Counter()
+    class_counter: CounterType[int] = Counter()
     for classification in CLASSES.keys():
         try:
             count = count_samples(classification)
