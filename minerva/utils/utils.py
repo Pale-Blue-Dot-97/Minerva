@@ -478,6 +478,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     Returns:
         Optional[Union[str, Any]]: Name of dataset as string.
     """
+    data_config_fn: Any
     try:
         assert DATA_CONFIG_PATH is not None
         data_config_fn = ntpath.basename(DATA_CONFIG_PATH)
