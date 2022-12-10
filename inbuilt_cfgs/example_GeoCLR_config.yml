@@ -4,6 +4,8 @@
 # === PATHS ===================================================================
 dir:
     data:
+        - ..
+        - ..
         - tests
         - tmp
         - data
@@ -11,10 +13,14 @@ dir:
         #data_config: Chesapeake7.yml
         imagery_config: ../../inbuilt_cfgs/NAIP.yml
     results:
+        - ..
+        - ..
         - tests
         - tmp
         - results
     cache:
+        - ..
+        - ..
         - tests
         - tmp
         - cache
@@ -24,12 +30,12 @@ dir:
 model_name: SimCLR18-test
 
 # Type of model. Can be mlp, scene_classifier, segmentation.
-model_type: ssl
+model_type: siamese
 
 sample_pairs: true
 elim: false
 balance: false
-patch_size: [224, 224]
+patch_size: [32, 32]
 pre_train: true
 fine_tune: false
 max_r: 52
@@ -63,31 +69,31 @@ dataset_params:
 sampler_params:
     # Training Dataset Sampler
     train:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
+        module: minerva.samplers
+        name: RandomPairGeoSampler
         roi: false
         params:
-            size: 224
+            size: 32
             length: 120
 
     # Validation Dataset Sampler
     val:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
+        module: minerva.samplers
+        name: RandomPairGeoSampler
         roi: false
         params:
-            size: 224
+            size: 32
             length: 32
 
 # === TRANSFORM PARAMETERS ====================================================
 transform_params:
     # Training Dataset Transforms
     train:
-        image: 
-            RandomResizedCrop:
-                module: torchvision.transforms
-                params:
-                    size: 224
+        image: false
+            #RandomResizedCrop:
+            #    module: torchvision.transforms
+            #    params:
+            #        size: 32
 
     # Validation Dataset Transforms
     val:
@@ -105,7 +111,7 @@ hyperparams:
         num_workers: 1
         pin_memory: true
     model_params:
-        input_size: [4, 224, 224]
+        input_size: [4, 32, 32]
         # n_classes: 8
     optim_params:
         name: SGD
