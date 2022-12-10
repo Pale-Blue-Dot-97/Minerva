@@ -537,8 +537,8 @@ class Trainer:
                     visutils.plot_results(
                         plots,
                         metrics=sub_metrics,
-                        class_names=self.params["classes"],
-                        colours=self.params["colours"],
+                        class_names=self.params.get("classes"),
+                        colours=self.params.get("colours"),
                         save=True,
                         show=False,
                         model_name=self.params["model_name"],
@@ -894,6 +894,11 @@ class Trainer:
         cache_fn = os.sep.join(
             self.params["dir"]["cache"] + [self.params["model_name"]]
         )
+        try:
+            os.mkdir(os.sep.join(self.params["dir"]["cache"]))
+        except FileExistsError:
+            pass
+
         torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}.pt")
 
     def run_tensorboard(self) -> None:
