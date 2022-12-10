@@ -521,15 +521,19 @@ def make_loaders(
     transform_params: Dict[str, Any] = params["transform_params"]
     batch_size: int = dataloader_params["batch_size"]
 
-    # Load manifest from cache for this dataset.
-    manifest = get_manifest(get_manifest_path())
-    class_dist = utils.modes_from_manifest(manifest)
+    model_type = params["model_type"]
+    class_dist: List[Tuple[int, int]] = [(0, 0)]
 
-    # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
-    # and new colours.
-    new_classes, forwards, new_colours = utils.load_data_specs(
-        class_dist=class_dist, elim=params.get("elim", False)
-    )
+    if model_type != "siamese":
+        # Load manifest from cache for this dataset.
+        manifest = get_manifest(get_manifest_path())
+        class_dist = utils.modes_from_manifest(manifest)
+
+        # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
+        # and new colours.
+        new_classes, forwards, new_colours = utils.load_data_specs(
+            class_dist=class_dist, elim=params.get("elim", False)
+        )
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
@@ -569,17 +573,19 @@ def make_loaders(
         )
         print("DONE")
 
-    # Transform class dist if elimination of classes has occurred.
-    if params.get("elim", False):
-        class_dist = utils.class_dist_transform(class_dist, forwards)
+    if model_type != "siamese":
+        # Transform class dist if elimination of classes has occurred.
+        if params.get("elim", False):
+            class_dist = utils.class_dist_transform(class_dist, forwards)
 
-    # Prints class distribution in a pretty text format using tabulate to stdout.
-    if p_dist:
-        utils.print_class_dist(class_dist)
-
-    params["hyperparams"]["model_params"]["n_classes"] = len(new_classes)
-    params["classes"] = new_classes
-    params["colours"] = new_colours
+        # Prints class distribution in a pretty text format using tabulate to stdout.
+        if p_dist:
+            utils.print_class_dist(class_dist)
+    
+        params["hyperparams"]["model_params"]["n_classes"] = len(new_classes)
+        params["classes"] = new_classes
+        params["colours"] = new_colours
+    
     params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
 
     return loaders, n_batches, class_dist, params
