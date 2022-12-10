@@ -1291,9 +1291,9 @@ def plot_results(
         print("\nPLOTTING MODEL HISTORY")
         plot_history(metrics, filename=filenames["History"], save=save, show=show)
 
-    assert class_names is not None
-
+    
     if plots.get("CM", False):
+        assert class_names is not None
         print("\nPLOTTING CONFUSION MATRIX")
         make_confusion_matrix(
             labels=flat_y,
@@ -1304,9 +1304,10 @@ def plot_results(
             show=show,
         )
 
-    assert colours is not None
-
     if plots.get("Pred", False):
+        assert class_names is not None
+        assert colours is not None
+    
         print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
         plot_subpopulations(
             utils.find_modes(flat_z),
@@ -1318,6 +1319,8 @@ def plot_results(
         )
 
     if plots.get("ROC", False):
+        assert class_names is not None
+        assert colours is not None
         assert probs is not None
 
         print("\nPLOTTING ROC CURVES")
@@ -1334,6 +1337,8 @@ def plot_results(
         )
 
     if plots.get("Mask", False):
+        assert class_names is not None
+        assert colours is not None
         assert z is not None
         assert y is not None
         assert ids is not None
