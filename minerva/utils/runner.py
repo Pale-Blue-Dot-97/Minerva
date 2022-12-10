@@ -74,25 +74,25 @@ generic_parser.add_argument(
 
 generic_parser.add_argument(
     "--pre-train",
-    action="store_false",
+    action="store_true",
     help="Sets experiment type to pre-train. Will save model to cache at end of training.",
 )
 
 generic_parser.add_argument(
     "--fine-tune",
-    action="store_false",
+    action="store_true",
     help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
 )
 
 generic_parser.add_argument(
     "--eval",
-    action="store_false",
+    action="store_true",
     help="Sets experiment type to pre-train. Will save model to cache at end of training.",
 )
 
 generic_parser.add_argument(
     "--balance",
-    action="store_false",
+    action="store_true",
     help="Activates class balancing."
     + " Depending on `model_type`, this will either be via sampling or weighting of the loss function.",
 )
@@ -100,15 +100,15 @@ generic_parser.add_argument(
 generic_parser.add_argument(
     "--class-elim",
     dest="elim",
-    action="store_false",
+    action="store_true",
     help="Eliminates classes that are specified in config but not present in the data.",
 )
 
 generic_parser.add_argument(
     "--sample-pairs",
     dest="sample_pairs",
-    action="store_false",
-    help="Used paired sampling. E.g. For Siamese models.",
+    action="store_true",
+    help="Use paired sampling. E.g. For Siamese models.",
 )
 
 generic_parser.add_argument(
@@ -134,32 +134,32 @@ generic_parser.add_argument(
 )
 
 generic_parser.add_argument(
-    "--save-plots",
+    "--save-plots-no",
     dest="save",
     action="store_false",
-    help="Whether to save plots created to file or not.",
+    help="Plots created will not be saved to file.",
 )
 
 generic_parser.add_argument(
     "--show-plots",
     dest="show",
-    action="store_false",
-    help="Whether to show plots created in a window or not."
+    action="store_true",
+    help="Show plots created in a window."
     + " Warning: Do not use with a terminal-less operation, e.g. SLURM.",
 )
 
 generic_parser.add_argument(
     "--print-dist",
     dest="p_dist",
-    action="store_false",
-    help="Whether to print the distribution of classes within the data to `stdout`.",
+    action="store_true",
+    help="Print the distribution of classes within the data to `stdout`.",
 )
 
 generic_parser.add_argument(
     "--plot-last-epoch",
     dest="plot_last_epoch",
-    action="store_false",
-    help="Whether to plot the results from the final validation epoch.",
+    action="store_true",
+    help="Plot the results from the final validation epoch.",
 )
 
 
