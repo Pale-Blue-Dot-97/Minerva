@@ -5,7 +5,31 @@ from torch import Tensor, LongTensor
 import torch.nn.modules as nn
 from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
-from minerva.models import *
+from minerva.models import (
+    MinervaModel,
+    ResNet18, 
+    ResNet34, 
+    ResNet50, 
+    ResNet101, 
+    ResNet152, 
+    SimCLR18, 
+    SimCLR34, 
+    SimCLR50, 
+    SimSiam18, 
+    SimSiam34, 
+    SimSiam50,
+    FCN8ResNet18,
+    FCN8ResNet34,
+    FCN8ResNet50,
+    FCN8ResNet101,
+    FCN8ResNet152,
+    FCN16ResNet18,
+    FCN16ResNet34,
+    FCN16ResNet50,
+    FCN32ResNet18,
+    FCN32ResNet34, 
+    FCN32ResNet50,
+)
 from minerva.models.__depreciated import MLP, CNN
 
 criterion = nn.CrossEntropyLoss()

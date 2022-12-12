@@ -67,7 +67,7 @@ def sup_tg(
 
     # Re-arranges the x and y batches.
     x_batch: Tensor = images.to(torch.float)  # type: ignore[attr-defined]
-    y_batch: LongTensor
+    y_batch: Tensor
 
     # Squeeze out axis 1 if only 1 element wide.
     if masks.shape[1] == 1:
