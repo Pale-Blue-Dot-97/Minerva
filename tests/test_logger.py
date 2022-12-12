@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Union
 import os
 import tempfile
 from typing import Any
@@ -5,6 +6,7 @@ from nptyping import NDArray, Shape
 
 import numpy as np
 import torch
+from torch import Tensor
 import torch.nn.modules as nn
 from numpy.testing import assert_array_equal
 from lightly.loss import NTXentLoss
@@ -49,12 +51,12 @@ def test_STG_Logger():
             record_int=True,
             record_float=True,
         )
-        data = []
+        data: List[Dict[str, Union[Tensor, List[Any]]]] = []
         for i in range(n_batches):
             images = torch.rand(size=(6, 4, 256, 256))
             masks = torch.randint(0, 8, (6, 256, 256))  # type: ignore[attr-defined]
             bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
-            batch = {
+            batch: Dict[str, Union[Tensor, List[Any]]] = {
                 "image": images,
                 "mask": masks,
                 "bbox": bboxes,
@@ -77,7 +79,9 @@ def test_STG_Logger():
             (n_batches, 6, *output_shape), dtype=np.uint8
         )
         for i in range(n_batches):
-            y[i] = data[i]["mask"].cpu().numpy()
+            mask: Union[Tensor, List[Any]] = data[i]["mask"]
+            assert isinstance(mask, Tensor)
+            y[i] = mask.cpu().numpy()
 
         assert_array_equal(results["y"], y)
 
