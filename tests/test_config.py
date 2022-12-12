@@ -1,6 +1,17 @@
-from minerva.utils import runner, AUX_CONFIGS, CONFIG, utils, visutils
+import os
+from minerva.utils import load_configs
 
 
-def test_config_path(config_root):
-    with open(config_root / "exp_mf_config.yml", "r") as config:
-        print(config.read())
+def test_config_path(config_root, config_here):
+    assert "tmp/config" in str(config_root)
+
+    # Still works because we are relative to inbuilt_cfgs here
+    base, aux = load_configs(config_root / "exp_mf_config.yml")
+    assert base
+    assert aux
+
+    base, aux = load_configs(config_here / "exp_mf_config.yml")
+    assert base
+    assert aux
+
+
