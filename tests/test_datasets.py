@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Union
 import os
 from collections import defaultdict
 
@@ -5,6 +6,7 @@ from numpy.testing import assert_array_equal
 import pandas as pd
 import pytest
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset
 from torchgeo.datasets.utils import BoundingBox
@@ -78,13 +80,13 @@ def test_stack_sample_pairs() -> None:
     mask_2 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
     bbox_2 = [BoundingBox(0, 1, 0, 1, 0, 1)]
 
-    sample_1 = {
+    sample_1: Dict[str, Union[Tensor, List[Any]]] = {
         "image": image_1,
         "mask": mask_1,
         "bbox": bbox_1,
     }
 
-    sample_2 = {
+    sample_2: Dict[str, Union[Tensor, List[Any]]] = {
         "image": image_2,
         "mask": mask_2,
         "bbox": bbox_2,

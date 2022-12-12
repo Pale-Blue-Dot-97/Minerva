@@ -268,9 +268,9 @@ class STG_Logger(MinervaLogger):
             None
         """
         assert z is not None
+        assert y is not None
 
         if self.record_int:
-            assert y is not None
             # Arg max the estimated probabilities and add to predictions.
             self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()  # type: ignore[attr-defined]
 
