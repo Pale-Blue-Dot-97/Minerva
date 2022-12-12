@@ -27,3 +27,15 @@ def config_root(data_root):
 
     # Delete it afterwards
     shutil.rmtree(config_path)
+
+
+@pytest.fixture
+def config_here():
+    here = Path(__file__).parent.parent
+
+    # Make a temporary copy where we're running from
+    shutil.copy(here / "inbuilt_cfgs" / "exp_mf_config.yml", here)
+
+    yield here
+
+    os.unlink(here / "exp_mf_config.yml")
