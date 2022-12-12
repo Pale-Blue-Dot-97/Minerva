@@ -498,7 +498,7 @@ def make_gif(
         bar.text("MAKING PATCH GIF")
 
         # Create GIF.
-        imageio.mimwrite(gif_name, frames, format=".gif", fps=fps)
+        imageio.mimwrite(gif_name, frames, format=".gif", fps=fps)  # type: ignore
 
 
 def prediction_plot(
