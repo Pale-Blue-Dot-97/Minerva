@@ -378,7 +378,8 @@ class Trainer:
         Returns:
             Callable: Model IO function requested from parameters.
         """
-        return utils.func_by_str("minerva.modelio", self.params["model_io"])
+        io_func: Callable[..., Any] = utils.func_by_str("minerva.modelio", self.params["model_io"])
+        return io_func
 
     def epoch(
         self,
@@ -463,7 +464,8 @@ class Trainer:
 
         # Returns the results of the epoch if configured to do so. Else, returns None.
         if record_int or record_float:
-            return epoch_logger.get_results
+            epoch_results: Dict[str, Any] = epoch_logger.get_results
+            return epoch_results
         else:
             return None
 
