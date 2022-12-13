@@ -1,26 +1,26 @@
 import argparse
-import ntpath
 import os
+from pathlib import Path
 from typing import Any, Dict, Tuple, Optional
 
 import yaml
 
 # Default values for the path to the config directory and config name.
-config_dir_path: str = "../../inbuilt_cfgs/"
+config_dir_path = Path("../../../inbuilt_cfgs/")
 default_config_name: str = "example_config.yml"
 
 # Objects to hold the config name and path.
 config_name: Optional[str] = None
-config_path: Optional[str] = None
+config_path: Optional[Path] = None
 
 
 def chdir_to_default(conf_name: Optional[str] = None) -> str:
-    this_abs_path = os.path.abspath(os.path.dirname(__file__))
-    os.chdir(os.sep.join((this_abs_path, config_dir_path)))
+    this_abs_path = (Path(__file__) / config_dir_path).resolve()
+    os.chdir(this_abs_path)
 
     if conf_name is None:
         return default_config_name
-    elif not os.path.exists(conf_name):
+    elif not Path(conf_name).exists():
         return default_config_name
     else:
         return conf_name
@@ -89,11 +89,15 @@ args, _ = master_parser.parse_known_args()
 
 # Set the config path from the option found from args.
 if args.config is not None:
-    head, tail = ntpath.split(args.config)
-    if head != "" or head is not None:
+    p = Path(args.config)
+    head = p.parent
+    tail = p.name
+    
+    if str(head) != "" or str(head) is not None:
         config_path = head
     elif head == "" or head is None:
-        config_path = ""
+        config_path = Path("")
+    
     config_name = tail
 
 # Overwrites the config path if option found in args regardless of -c args.
@@ -116,14 +120,14 @@ if config_path is None:
 else:
     if config_name is None:
         config_name = chdir_to_default(config_name)
-    elif not os.path.exists(os.sep.join((config_path, config_name))):
+    elif not (config_path / config_name).exists():
         config_name = chdir_to_default(config_name)
     else:
         pass
 
 path = config_name
-if config_path is not None:
-    path = os.sep.join((config_path, config_name))
+if config_path is not None and config_path != Path(""):
+    path = str(config_path / config_name)
 
 # Loads the configs from file using paths found in sys.args.
 CONFIG, AUX_CONFIGS = load_configs(path)
