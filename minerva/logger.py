@@ -406,7 +406,7 @@ class SSL_Logger(MinervaLogger):
             for i in range(len(z_a)):
                 euc_dists.append(
                     utils.calc_norm_euc_dist(
-                        z_a[i].detach().cpu().numpy(), z_b[i].detach().numpy()
+                        z_a[i].detach().cpu().numpy(), z_b[i].detach().cpu().numpy()
                     )
                 )
 
