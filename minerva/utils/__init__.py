@@ -26,7 +26,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from minerva.utils.config_load import check_paths, chdir_to_default, load_configs
+from minerva.utils.config_load import check_paths, load_configs
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -40,9 +40,9 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-
-config_name: Optional[str] = None
-config_path: Optional[Path] = None
+# Objects to hold the config name and path.
+CONFIG_NAME: Optional[str] = None
+CONFIG_PATH: Optional[Path] = None
 
 master_parser = argparse.ArgumentParser(add_help=False)
 master_parser.add_argument(
@@ -59,49 +59,10 @@ master_parser.add_argument(
 )
 args, _ = master_parser.parse_known_args()
 
-#check_paths(args.config, args.use_default_conf_dir)
-
-# Set the config path from the option found from args.
-if args.config is not None:
-    p = Path(args.config)
-    head = p.parent
-    tail = p.name
-    
-    if str(head) != "" or str(head) is not None:
-        config_path = head
-    elif head == "" or head is None:
-        config_path = Path("")
-    
-    config_name = tail
-
-# Overwrites the config path if option found in args regardless of -c args.
-if args.default_config_dir:
-    if config_path is not None:
-        print(
-            "Warning: Config path specified with `--default_config_dir` option."
-            + "\nDefault config directory path will be used."
-        )
-    config_path = None
-
 # Store the current working directory (i.e where script is being run from).
 cwd = os.getcwd()
 
-# If no config_path, change directory to the default config directory.
-if config_path is None:
-    config_name = chdir_to_default(config_name)
-
-# Check the config specified exists at the path given. If not, assume its in the default directory.
-else:
-    if config_name is None:
-        config_name = chdir_to_default(config_name)
-    elif not (config_path / config_name).exists():
-        config_name = chdir_to_default(config_name)
-    else:
-        pass
-
-path = config_name
-if config_path is not None and config_path != Path(""):
-    path = str(config_path / config_name)
+path, CONFIG_NAME, CONFIG_PATH = check_paths(args.config, args.use_default_conf_dir)
 
 # Loads the configs from file using paths found in sys.args.
 CONFIG, AUX_CONFIGS = load_configs(path)
