@@ -1,4 +1,3 @@
-import os
 from minerva.utils import load_configs
 
 
@@ -13,5 +12,3 @@ def test_config_path(config_root, config_here):
     base, aux = load_configs(config_here / "exp_mf_config.yml")
     assert base
     assert aux
-
-

@@ -1,76 +1,48 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2022 Harry Baker
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+#
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
+"""Utility functionality, visualisation and configuration for :mod:`minerva`."""
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
 import argparse
-import ntpath
 import os
-from typing import Any, Dict, Tuple, Optional
+from pathlib import Path
+from typing import Optional
 
-import yaml
+from minerva.utils.config_load import check_paths, load_configs
 
-# Default values for the path to the config directory and config name.
-config_dir_path: str = "../../inbuilt_cfgs/"
-default_config_name: str = "example_config.yml"
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2022 Harry Baker"
 
+
+# =====================================================================================================================
+#                                                     GLOBALS
+# =====================================================================================================================
 # Objects to hold the config name and path.
-config_name: Optional[str] = None
-config_path: Optional[str] = None
-
-
-def chdir_to_default(conf_name: Optional[str] = None) -> str:
-    this_abs_path = os.path.abspath(os.path.dirname(__file__))
-    os.chdir(os.sep.join((this_abs_path, config_dir_path)))
-
-    if conf_name is None:
-        return default_config_name
-    elif not os.path.exists(conf_name):
-        return default_config_name
-    else:
-        return conf_name
-
-
-def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
-    """Loads the master config from YAML. Finds other config paths within and loads them.
-
-    Args:
-        master_config_path (str): Path to the master config YAML file.
-
-    Returns:
-        Master config and any other configs found from paths in the master config.
-    """
-
-    def yaml_load(path: str) -> Any:
-        """Loads YAML file from path as dict.
-        Args:
-            path(str): Path to YAML file.
-
-        Returns:
-            yml_file (dict): YAML file loaded as dict.
-        """
-        with open(path) as f:
-            return yaml.safe_load(f)
-
-    def aux_config_load(paths: Dict[str, str]) -> Dict[str, Dict[str, Any]]:
-        """Loads and returns config files from YAML as dicts.
-
-        Args:
-            paths (dict): Dictionary mapping config names to paths to their YAML files.
-
-        Returns:
-            Config dictionaries loaded from YAML from paths.
-        """
-        configs = {}
-        for _config_name in paths.keys():
-            # Loads config from YAML as dict.
-            configs[_config_name] = yaml_load(paths[_config_name])
-        return configs
-
-    # First loads the master config.
-    master_config = yaml_load(master_config_path)
-
-    # Gets the paths for the other configs from master config.
-    config_paths = master_config["dir"]["configs"]
-
-    # Loads and returns the other configs along with master config.
-    return master_config, aux_config_load(config_paths)
-
+CONFIG_NAME: Optional[str] = None
+CONFIG_PATH: Optional[Path] = None
 
 master_parser = argparse.ArgumentParser(add_help=False)
 master_parser.add_argument(
@@ -80,50 +52,17 @@ master_parser.add_argument(
     help="Path to the config file defining experiment",
 )
 master_parser.add_argument(
-    "--default-config-dir",
-    dest="default_config_dir",
+    "--use-default-conf-dir",
+    dest="use_default_conf_dir",
     action="store_true",
     help="Set config path to default",
 )
 args, _ = master_parser.parse_known_args()
 
-# Set the config path from the option found from args.
-if args.config is not None:
-    head, tail = ntpath.split(args.config)
-    if head != "" or head is not None:
-        config_path = head
-    elif head == "" or head is None:
-        config_path = ""
-    config_name = tail
-
-# Overwrites the config path if option found in args regardless of -c args.
-if args.default_config_dir:
-    if config_path is not None:
-        print(
-            "Warning: Config path specified with `--default_config_dir` option."
-            + "\nDefault config directory path will be used."
-        )
-    config_path = None
-
 # Store the current working directory (i.e where script is being run from).
 cwd = os.getcwd()
 
-# If no config_path, change directory to the default config directory.
-if config_path is None:
-    config_name = chdir_to_default(config_name)
-
-# Check the config specified exists at the path given. If not, assume its in the default directory.
-else:
-    if config_name is None:
-        config_name = chdir_to_default(config_name)
-    elif not os.path.exists(os.sep.join((config_path, config_name))):
-        config_name = chdir_to_default(config_name)
-    else:
-        pass
-
-path = config_name
-if config_path is not None:
-    path = os.sep.join((config_path, config_name))
+path, CONFIG_NAME, CONFIG_PATH = check_paths(args.config, args.use_default_conf_dir)
 
 # Loads the configs from file using paths found in sys.args.
 CONFIG, AUX_CONFIGS = load_configs(path)
