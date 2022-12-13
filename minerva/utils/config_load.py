@@ -43,34 +43,53 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 DEFAULT_CONF_DIR_PATH = Path("../../inbuilt_cfgs/")
 DEFAULT_CONFIG_NAME: str = "example_config.yml"
 
-# Objects to hold the config name and path.
-CONFIG_NAME: Optional[str] = None
-CONFIG_PATH: Optional[Path] = None
-
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def check_paths(config, use_default_conf_dir: bool):
+def check_paths(config, use_default_conf_dir: bool) -> Tuple[str, Optional[str], Optional[Path]]:
+    
+    config_name: Optional[str] = None
+    config_path: Optional[Path] = None
+    
     if config is not None:
         p = Path(config)
         head = p.parent
         tail = p.name
         
         if str(head) != "" or str(head) is not None:
-            CONFIG_PATH = head
+            config_path = head
         elif head == "" or head is None:
-            CONFIG_PATH = Path("")
+            config_path = Path("")
         
-        CONFIG_NAME = tail
+        config_name = tail
 
     # Overwrites the config path if option found in args regardless of -c args.
     if use_default_conf_dir:
-        if CONFIG_PATH is not None:
+        if config_path is not None:
             print(
                 "Warning: Config path specified with `--default_config_dir` option."
                 + "\nDefault config directory path will be used."
             )
-        CONFIG_PATH = None
+        config_path = None
+
+    # If no config_path, change directory to the default config directory.
+    if config_path is None:
+        config_name = chdir_to_default(config_name)
+
+    # Check the config specified exists at the path given. If not, assume its in the default directory.
+    else:
+        if config_name is None:
+            config_name = chdir_to_default(config_name)
+        elif not (config_path / config_name).exists():
+            config_name = chdir_to_default(config_name)
+        else:
+            pass
+
+    path = config_name
+    if config_path is not None and config_path != Path(""):
+        path = str(config_path / config_name)
+
+    return path, config_name, config_path
 
 
 def chdir_to_default(config_name: Optional[str] = None) -> str:
