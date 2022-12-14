@@ -61,6 +61,7 @@ import importlib
 import math
 import ntpath
 import os
+from pathlib import Path
 import random
 import re as regex
 import sys
@@ -1678,3 +1679,11 @@ def calc_norm_euc_dist(a: Sequence[int], b: Sequence[int]) -> float:
 
     assert type(euc_dist) is float
     return euc_dist
+
+
+def universal_path(path) -> Path:
+    if isinstance(path, Iterable):
+        return Path(*path)
+    else:
+        return Path(path)
+ 
