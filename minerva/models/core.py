@@ -27,6 +27,7 @@ import abc
 from abc import ABC
 from typing import (
     Any,
+    Callable,
     Iterable,
     List,
     Optional,
@@ -45,6 +46,8 @@ from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 from torch.optim import Optimizer
 from torchvision.models._api import WeightsEnum
+
+from minerva.utils.utils import func_by_str
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -257,6 +260,11 @@ class MinervaDataParallel(Module):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def get_model(model_name: str) -> Callable[..., MinervaModel]:
+    model: Callable[..., MinervaModel] = func_by_str("minerva.models", model_name)
+    return model
+
+
 def get_torch_weights(weights_name: str) -> WeightsEnum:
     """Loads pre-trained model weights from ``torchvision`` via Torch Hub API.
 
