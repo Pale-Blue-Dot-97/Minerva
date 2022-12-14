@@ -59,8 +59,8 @@ import cmath
 import functools
 import importlib
 import math
-import ntpath
 import os
+from pathlib import Path
 import random
 import re as regex
 import sys
@@ -94,7 +94,7 @@ from torch.nn import functional as F
 from torchgeo.datasets.utils import BoundingBox
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
-from minerva.utils import AUX_CONFIGS, CONFIG, visutils
+from minerva.utils import AUX_CONFIGS, CONFIG, visutils, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -112,27 +112,26 @@ IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
     "imagery_config"
 ]
 
-DATA_CONFIG_PATH: Optional[str]
+DATA_CONFIG_PATH: Optional[Path]
 _data_config_path: Optional[Union[List[str], Tuple[str, ...], str]] = CONFIG["dir"]["configs"].get(
     "data_config"
 )
-if type(_data_config_path) in (list, tuple):
-    assert _data_config_path is not None
-    DATA_CONFIG_PATH = os.sep.join(_data_config_path)
-elif type(_data_config_path) == str or _data_config_path is None:
+if _data_config_path:
+    DATA_CONFIG_PATH = universal_path(_data_config_path)
+else:
     DATA_CONFIG_PATH = _data_config_path
 
 DATA_CONFIG: Optional[Dict[str, Any]] = AUX_CONFIGS.get("data_config")
 IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
-DATA_DIR: str = os.sep.join(CONFIG["dir"]["data"])
+DATA_DIR: Path = universal_path(CONFIG["dir"]["data"])
 
 # Path to cache directory.
-CACHE_DIR: str = os.sep.join(CONFIG["dir"]["cache"])
+CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
 
 # Path to directory to output plots to.
-RESULTS_DIR: str = os.path.join(*CONFIG["dir"]["results"])
+RESULTS_DIR: Path = universal_path(CONFIG["dir"]["results"])
 
 # Band IDs and position in sample image.
 BAND_IDS: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
@@ -481,7 +480,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     data_config_fn: Any
     try:
         assert DATA_CONFIG_PATH is not None
-        data_config_fn = ntpath.basename(DATA_CONFIG_PATH)
+        data_config_fn = DATA_CONFIG_PATH.name
     except AssertionError as err:
         print(err)
         print(
@@ -1425,7 +1424,7 @@ def calc_contrastive_acc(z: Tensor) -> Tensor:
 
 def run_tensorboard(
     exp_name: str,
-    path: Optional[Union[str, List[str], Tuple[str, ...]]] = None,
+    path: Optional[Union[str, List[str], Tuple[str, ...], Path]] = None,
     env_name: str = "env",
     host_num: Union[str, int] = 6006,
     _testing: bool = False,
@@ -1434,7 +1433,7 @@ def run_tensorboard(
 
     Args:
         exp_name (str): Unique name of the experiment to run the logs of.
-        path (str or list[str] or tuple[str]): Path to the directory holding the log.
+        path (str or list[str] or tuple[str], Path): Path to the directory holding the log.
             Can be a string or a list of strings for each sub-directory.
         env_name (str): Name of the `Conda` environment to run :mod:`TensorBoard` in.
         host_num (Union[str, int]): Local host number :mod:`TensorBoard` will be hosted on.
@@ -1459,18 +1458,16 @@ def run_tensorboard(
     assert path is not None
 
     # Joins path together if a list or tuple.
-    if isinstance(path, (list, tuple)):
-        path = os.path.join(*path)
+    _path: Path = universal_path(path)
 
-    if not os.path.exists(os.path.join(path, exp_name)):
-        print(os.path.join(path, exp_name))
+    if not (_path / exp_name).exists():
+        print(_path / exp_name)
         print("Expermiment directory does not exist!")
         print("ABORT OPERATION")
         return None
 
     # Changes working directory to that containing the TensorBoard log.
-    assert path is not None
-    os.chdir(path)
+    os.chdir(_path)
 
     # Activates the correct Conda environment.
     os.system("conda activate {}".format(env_name))
@@ -1678,3 +1675,4 @@ def calc_norm_euc_dist(a: Sequence[int], b: Sequence[int]) -> float:
 
     assert type(euc_dist) is float
     return euc_dist
+ 
