@@ -37,8 +37,7 @@ import torch
 import torch.nn.modules as nn
 from torch import Tensor
 
-from .core import MinervaModel, bilinear_init
-from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
+from .core import MinervaModel, bilinear_init, get_model
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -110,7 +109,7 @@ class _FCN(MinervaModel, ABC):
         )
 
         # Initialises the selected Minerva backbone.
-        self.backbone: MinervaModel = globals()[backbone_name](
+        self.backbone: MinervaModel = get_model(backbone_name)(
             input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
         )
 
