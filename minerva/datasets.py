@@ -52,7 +52,7 @@ from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchvision.transforms import RandomApply
 
 from minerva.transforms import MinervaCompose
-from minerva.utils import AUX_CONFIGS, CONFIG, utils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -71,7 +71,7 @@ IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 CACHE_DIR = CONFIG["dir"]["cache"]
 
 # Path to cache directory.
-CACHE_DIR = utils.universal_path(CONFIG["dir"]["cache"])
+CACHE_DIR = universal_path(CONFIG["dir"]["cache"])
 
 __all__ = [
     "PairedDataset",
@@ -268,7 +268,7 @@ def make_dataset(
         )
 
         # Construct the root to the sub-dataset's files.
-        sub_dataset_root = str(utils.universal_path(data_directory) / sub_dataset_params["root"])
+        sub_dataset_root = str(universal_path(data_directory) / sub_dataset_params["root"])
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations: Optional[Any] = None

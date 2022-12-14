@@ -56,7 +56,7 @@ from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
 from minerva.pytorchtools import EarlyStopping
-from minerva.utils import utils, visutils
+from minerva.utils import utils, visutils, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -152,7 +152,7 @@ class Trainer:
         )
         self.params["dir"]["results"].append(self.params["exp_name"])
         
-        results_dir = utils.universal_path(self.params["dir"]["results"])
+        results_dir = universal_path(self.params["dir"]["results"])
 
         # Path to experiment directory and experiment name.
         self.exp_fn = results_dir / self.params["exp_name"]
@@ -271,7 +271,7 @@ class Trainer:
 
         if self.fine_tune:
             # Define path to the cached version of the desired pre-trained model.
-            cache_dir = utils.universal_path(self.params["dir"]["cache"])
+            cache_dir = universal_path(self.params["dir"]["cache"])
             weights_path = Path(cache_dir / self.params["pre_train_name"])
 
             # Add the path to the pre-trained weights to the model params.
@@ -282,7 +282,7 @@ class Trainer:
 
         if self.params.get("reload", False):
             # Define path to the cached version of the desired pre-trained model.
-            cache_dir = utils.universal_path(self.params["dir"]["cache"])
+            cache_dir = universal_path(self.params["dir"]["cache"])
             weights_path = Path(cache_dir / self.params["pre_train_name"])
             model.load_state_dict(
                 torch.load(f"{weights_path}.pt", map_location=self.device)
@@ -890,7 +890,7 @@ class Trainer:
         assert isinstance(self.model, MinervaBackbone)
         pre_trained_backbone: Module = self.model.get_backbone()
 
-        cache_dir = utils.universal_path(self.params["dir"]["cache"])
+        cache_dir = universal_path(self.params["dir"]["cache"])
         
         # Saves the pre-trained backbone to the cache.
         cache_fn = cache_dir / self.params["model_name"]
