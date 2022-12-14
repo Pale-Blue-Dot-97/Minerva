@@ -35,6 +35,7 @@ from typing import (
     Union,
 )
 import os
+from pathlib import Path
 
 import numpy as np
 from nptyping import NDArray
@@ -67,8 +68,13 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 
+CACHE_DIR = CONFIG["dir"]["cache"]
+
 # Path to cache directory.
-CACHE_DIR = os.sep.join(CONFIG["dir"]["cache"])
+if type(CONFIG["dir"]["cache"]) == list:
+    CACHE_DIR = Path(*CONFIG["dir"]["cache"])
+else:
+    CACHE_DIR = Path(CONFIG["dir"]["cache"])
 
 __all__ = [
     "PairedDataset",
@@ -265,7 +271,7 @@ def make_dataset(
         )
 
         # Construct the root to the sub-dataset's files.
-        sub_dataset_root = os.sep.join((*data_directory, sub_dataset_params["root"]))
+        sub_dataset_root = str(Path(*data_directory, sub_dataset_params["root"]))
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations: Optional[Any] = None
@@ -597,10 +603,11 @@ def get_manifest_path() -> str:
     Returns:
         str: Path to manifest as string.
     """
-    return os.sep.join([CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"])
+    return str(Path(CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"))
 
 
-def get_manifest(manifest_path: str) -> DataFrame:
+def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
+    manifest_path = Path(manifest_path)
     try:
         return pd.read_csv(manifest_path)
     except FileNotFoundError as err:
@@ -614,8 +621,8 @@ def get_manifest(manifest_path: str) -> DataFrame:
         manifest = make_manifest(mf_config)
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
-        path, _ = os.path.split(manifest_path)
-        if not os.path.exists(path):
+        path = manifest_path.parent
+        if not path.exists():
             os.makedirs(path)
 
         manifest.to_csv(manifest_path)
