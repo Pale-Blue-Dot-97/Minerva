@@ -71,10 +71,7 @@ IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 CACHE_DIR = CONFIG["dir"]["cache"]
 
 # Path to cache directory.
-if type(CONFIG["dir"]["cache"]) == list:
-    CACHE_DIR = Path(*CONFIG["dir"]["cache"])
-else:
-    CACHE_DIR = Path(CONFIG["dir"]["cache"])
+CACHE_DIR = utils.universal_path(CONFIG["dir"]["cache"])
 
 __all__ = [
     "PairedDataset",
@@ -238,7 +235,7 @@ def intersect_datasets(
 
 
 def make_dataset(
-    data_directory: Iterable[str],
+    data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
     transform_params: Optional[Dict[Any, Any]] = None,
     sample_pairs: bool = False,
@@ -271,7 +268,7 @@ def make_dataset(
         )
 
         # Construct the root to the sub-dataset's files.
-        sub_dataset_root = str(Path(*data_directory, sub_dataset_params["root"]))
+        sub_dataset_root = str(utils.universal_path(data_directory) / sub_dataset_params["root"])
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations: Optional[Any] = None
