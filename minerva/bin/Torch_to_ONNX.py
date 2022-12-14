@@ -24,10 +24,9 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
-import os
 
 from minerva.trainer import Trainer
-from minerva.utils import runner, CONFIG
+from minerva.utils import runner, CONFIG, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -47,7 +46,7 @@ def main(gpu: int, args) -> None:
         gpu=gpu, rank=args.rank, world_size=args.world_size, verbose=False, **CONFIG
     )
 
-    weights_path = os.sep.join(CONFIG["dir"]["cache"] + [CONFIG["pre_train_name"]])
+    weights_path = universal_path(CONFIG["dir"]["cache"]) / CONFIG["pre_train_name"]
 
     trainer.save_model(fn=weights_path, format="onnx")
 
