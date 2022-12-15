@@ -26,7 +26,11 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from minerva.utils.config_load import check_paths, load_configs, universal_path as universal_path
+from minerva.utils.config_load import (
+    check_paths,
+    load_configs,
+    universal_path as universal_path,
+)
 
 # =====================================================================================================================
 #                                                    METADATA

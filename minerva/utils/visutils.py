@@ -36,7 +36,6 @@ Attributes:
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import os
-from pathlib import Path
 import random
 
 import imageio
@@ -49,12 +48,11 @@ import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 from alive_progress import alive_bar
-from matplotlib import cm, offsetbox
+from matplotlib import offsetbox
 from matplotlib.colors import ListedColormap
 from matplotlib.gridspec import GridSpec
 
 # from matplotlib.ticker import MaxNLocator
-# from sklearn.manifold import TSNE
 from scipy import stats
 from matplotlib.image import AxesImage
 from matplotlib.transforms import Bbox
@@ -1024,47 +1022,6 @@ def make_roc_curves(
         plt.savefig(filename)
         print("ROC Curves plot SAVED")
         plt.close()
-
-
-"""
-def t_sne_cluster(
-    embeddings: NDArray[Any, Any],
-    predictions: Union[List[int], NDArray[Any, Int]],
-    show: bool = False,
-    save: bool = True,
-    filename: Optional[str] = None,
-) -> None:
-
-    tsne = TSNE(2, verbose=1)
-
-    tsne_proj = tsne.fit_transform(embeddings)
-
-    cmap = cm.get_cmap("tab20")
-    num_categories = 10
-
-    # Plot those points as a scatter plot and label them based on the pred labels.
-    cmap = cm.get_cmap("tab20")
-    fig, ax = plt.subplots(figsize=(8, 8))
-    num_categories = 10
-    for lab in range(num_categories):
-        indices = predictions == lab
-        ax.scatter(
-            tsne_proj[indices, 0],
-            tsne_proj[indices, 1],
-            c=np.array(cmap(lab)).reshape(1, 4),
-            label=lab,
-            alpha=0.5,
-        )
-    ax.legend(fontsize="large", markerscale=2)
-
-    # Shows and/or saves plot.
-    if show:
-        plt.show()
-    if save:
-        plt.savefig(filename)
-        print("TSNE cluster visualisation SAVED")
-        plt.close()
-"""
 
 
 def plot_embedding(
