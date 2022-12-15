@@ -378,7 +378,9 @@ class Trainer:
         Returns:
             Callable: Model IO function requested from parameters.
         """
-        io_func: Callable[..., Any] = utils.func_by_str("minerva.modelio", self.params["model_io"])
+        io_func: Callable[..., Any] = utils.func_by_str(
+            "minerva.modelio", self.params["model_io"]
+        )
         return io_func
 
     def epoch(

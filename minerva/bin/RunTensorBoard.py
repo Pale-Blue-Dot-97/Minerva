@@ -47,14 +47,12 @@ def main(
     host_num: int = 6006,
 ) -> None:
     assert exp_name is not None
-    
+
     if isinstance(path, list):
         if len(path) == 1:
             path = path[0]
 
-    utils.run_tensorboard(
-        exp_name, path=path, env_name=env_name, host_num=host_num
-    )
+    utils.run_tensorboard(exp_name, path=path, env_name=env_name, host_num=host_num)
 
 
 if __name__ == "__main__":

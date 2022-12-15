@@ -581,11 +581,11 @@ def make_loaders(
         # Prints class distribution in a pretty text format using tabulate to stdout.
         if p_dist:
             utils.print_class_dist(class_dist)
-    
+
         params["hyperparams"]["model_params"]["n_classes"] = len(new_classes)
         params["classes"] = new_classes
         params["colours"] = new_colours
-    
+
     params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
 
     return loaders, n_batches, class_dist, params

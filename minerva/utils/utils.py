@@ -113,9 +113,9 @@ IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
 ]
 
 DATA_CONFIG_PATH: Optional[str]
-_data_config_path: Optional[Union[List[str], Tuple[str, ...], str]] = CONFIG["dir"]["configs"].get(
-    "data_config"
-)
+_data_config_path: Optional[Union[List[str], Tuple[str, ...], str]] = CONFIG["dir"][
+    "configs"
+].get("data_config")
 if type(_data_config_path) in (list, tuple):
     assert _data_config_path is not None
     DATA_CONFIG_PATH = os.sep.join(_data_config_path)
@@ -485,7 +485,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     except AssertionError as err:
         print(err)
         print(
-            "DATA_CONFIG_PATH is empty! This is needed here to obtain the dataset name." 
+            "DATA_CONFIG_PATH is empty! This is needed here to obtain the dataset name."
             + "\nSpecify the path to the data config in the experiment config"
         )
 
