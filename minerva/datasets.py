@@ -123,7 +123,8 @@ class PairedDataset(RasterDataset):
         dataset (RasterDataset): Wrapped dataset to sampled from.
 
     Args:
-        dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`RasterDataset` to be wrapped for paired sampling.
+        dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`RasterDataset`
+            to be wrapped for paired sampling.
     """
 
     def __init__(
