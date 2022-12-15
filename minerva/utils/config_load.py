@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, Tuple, Optional, List, Union
 
 import yaml
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -47,7 +48,9 @@ DEFAULT_CONFIG_NAME: str = "example_config.yml"
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def check_paths(config: Optional[Union[str, PathLike[str]]], use_default_conf_dir: bool) -> Tuple[str, Optional[str], Optional[Path]]:
+def check_paths(
+    config: Optional[Union[str, PathLike[str]]], use_default_conf_dir: bool
+) -> Tuple[str, Optional[str], Optional[Path]]:
     """Checks the path given for the config.
 
     Args:
@@ -60,17 +63,17 @@ def check_paths(config: Optional[Union[str, PathLike[str]]], use_default_conf_di
 
     config_name: Optional[str] = None
     config_path: Optional[Path] = None
-    
+
     if config is not None:
         p = Path(config)
         head = p.parent
         tail = p.name
-        
+
         if str(head) != "" or str(head) is not None:
             config_path = head
         elif head == "" or head is None:
             config_path = Path("")
-        
+
         config_name = tail
 
     # Overwrites the config path if option found in args regardless of -c args.

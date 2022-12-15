@@ -1291,7 +1291,6 @@ def plot_results(
         print("\nPLOTTING MODEL HISTORY")
         plot_history(metrics, filename=filenames["History"], save=save, show=show)
 
-    
     if plots.get("CM", False):
         assert class_names is not None
         print("\nPLOTTING CONFUSION MATRIX")
@@ -1307,7 +1306,7 @@ def plot_results(
     if plots.get("Pred", False):
         assert class_names is not None
         assert colours is not None
-    
+
         print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
         plot_subpopulations(
             utils.find_modes(flat_z),
@@ -1349,7 +1348,7 @@ def plot_results(
             figsize = DATA_CONFIG["fig_sizes"]["Mask"]
         else:
             figsize = None
-        
+
         flat_bbox = utils.batch_flatten(bounds)
         os.mkdir(os.sep.join([*results_dir, "Masks"]))
         seg_plot(
