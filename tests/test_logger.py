@@ -1,7 +1,6 @@
 from typing import Any, Dict, List, Union
 import os
 import tempfile
-from typing import Any
 from nptyping import NDArray, Shape
 
 import numpy as np
