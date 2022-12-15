@@ -23,8 +23,9 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Tuple, Optional
+from typing import Any, Dict, Tuple, Optional, List, Union
 
 import yaml
 # =====================================================================================================================
@@ -46,8 +47,17 @@ DEFAULT_CONFIG_NAME: str = "example_config.yml"
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def check_paths(config, use_default_conf_dir: bool) -> Tuple[str, Optional[str], Optional[Path]]:
-    
+def check_paths(config: Optional[Union[str, PathLike[str]]], use_default_conf_dir: bool) -> Tuple[str, Optional[str], Optional[Path]]:
+    """Checks the path given for the config.
+
+    Args:
+        config (Optional[Union[str, PathLike[str]]]): Path to the config given from the CLI.
+        use_default_conf_dir (bool): Assumes that ``config`` is in the default config directory if ``True``.
+
+    Returns:
+        Tuple[str, Optional[str], Optional[Path]]: Tuple of the path for :func:`load_configs` to use, the config name and path to config.
+    """
+
     config_name: Optional[str] = None
     config_path: Optional[Path] = None
     
@@ -93,6 +103,14 @@ def check_paths(config, use_default_conf_dir: bool) -> Tuple[str, Optional[str],
 
 
 def chdir_to_default(config_name: Optional[str] = None) -> str:
+    """Changes the current working directory to the default config directory.
+
+    Args:
+        config_name (Optional[str]): Optional; Name of the config in the default directory. Defaults to None.
+
+    Returns:
+        str: :var:`DEFAULT_CONFIG_NAME` if ``config_name`` not in default directory. ``config_name`` if it does exist.
+    """
 
     this_abs_path = (Path(__file__).parent / DEFAULT_CONF_DIR_PATH).resolve()
     os.chdir(this_abs_path)
