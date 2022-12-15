@@ -36,7 +36,7 @@ The recommended installation order is to start with a fresh `conda` environment,
 version and installing `pytorch` upon environment creation:
 
 ```shell
-conda create env --name minerva-310 python=3.10 pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch
+conda create env --name minerva-310 python=3.10 pytorch torchvision pytorch-cuda=11.6 -c pytorch -c nvidia
 ```
 
 Clone `minerva` from the git repo.
