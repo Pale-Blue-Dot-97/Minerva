@@ -420,6 +420,7 @@ class Trainer:
             collapse_level=self.params["sample_pairs"],
             euclidean=self.params["sample_pairs"],
             model_type=self.params["model_type"],
+            writer=self.writer
         )
 
         # if mode == "val" and self.params["model_type"] == "ssl":
