@@ -25,7 +25,7 @@ from typing import Any, Dict, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from torch import Tensor, LongTensor
+from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
