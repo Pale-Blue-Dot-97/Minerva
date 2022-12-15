@@ -34,6 +34,7 @@ from typing import (
 )
 
 import os
+from pathlib import Path
 from contextlib import nullcontext
 
 from nptyping import NDArray, Int
@@ -55,7 +56,7 @@ from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
 from minerva.pytorchtools import EarlyStopping
-from minerva.utils import utils, visutils
+from minerva.utils import utils, visutils, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -151,10 +152,10 @@ class Trainer:
         )
         self.params["dir"]["results"].append(self.params["exp_name"])
 
+        results_dir = universal_path(self.params["dir"]["results"])
+
         # Path to experiment directory and experiment name.
-        self.exp_fn = os.sep.join(
-            self.params["dir"]["results"] + [self.params["exp_name"]]
-        )
+        self.exp_fn = results_dir / self.params["exp_name"]
 
         self.batch_size: int = params["hyperparams"]["params"]["batch_size"]
 
@@ -204,7 +205,7 @@ class Trainer:
         self.step_num = {mode: 0 for mode in self.modes}
 
         # Initialise TensorBoard logger
-        self.writer = SummaryWriter(os.sep.join(self.params["dir"]["results"]))
+        self.writer = SummaryWriter(results_dir)
 
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
@@ -270,9 +271,8 @@ class Trainer:
 
         if self.fine_tune:
             # Define path to the cached version of the desired pre-trained model.
-            weights_path = os.sep.join(
-                self.params["dir"]["cache"] + [self.params["pre_train_name"]]
-            )
+            cache_dir = universal_path(self.params["dir"]["cache"])
+            weights_path = Path(cache_dir / self.params["pre_train_name"])
 
             # Add the path to the pre-trained weights to the model params.
             model_params["backbone_weight_path"] = f"{weights_path}.pt"
@@ -282,10 +282,8 @@ class Trainer:
 
         if self.params.get("reload", False):
             # Define path to the cached version of the desired pre-trained model.
-            weights_path = os.sep.join(
-                self.params["dir"]["cache"] + [self.params["pre_train_name"]]
-            )
-
+            cache_dir = universal_path(self.params["dir"]["cache"])
+            weights_path = Path(cache_dir / self.params["pre_train_name"])
             model.load_state_dict(
                 torch.load(f"{weights_path}.pt", map_location=self.device)
             )
@@ -894,12 +892,13 @@ class Trainer:
         assert isinstance(self.model, MinervaBackbone)
         pre_trained_backbone: Module = self.model.get_backbone()
 
+        cache_dir = universal_path(self.params["dir"]["cache"])
+
         # Saves the pre-trained backbone to the cache.
-        cache_fn = os.sep.join(
-            self.params["dir"]["cache"] + [self.params["model_name"]]
-        )
+        cache_fn = cache_dir / self.params["model_name"]
+
         try:
-            os.mkdir(os.sep.join(self.params["dir"]["cache"]))
+            os.mkdir(cache_dir)
         except FileExistsError:
             pass
 

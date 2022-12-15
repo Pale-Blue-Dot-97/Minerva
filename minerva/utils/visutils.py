@@ -36,6 +36,7 @@ Attributes:
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import os
+from pathlib import Path
 import random
 
 import imageio
@@ -60,7 +61,7 @@ from matplotlib.transforms import Bbox
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.utils import AUX_CONFIGS, CONFIG, utils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -633,8 +634,8 @@ def prediction_plot(
         plt.show()
 
     if fn_prefix is None:
-        path = os.path.join(*CONFIG["dir"]["results"])
-        fn_prefix = os.sep.join([path, f"{exp_id}_{utils.timestamp_now()}_Mask"])
+        path = universal_path(CONFIG["dir"]["results"])
+        fn_prefix = path / f"{exp_id}_{utils.timestamp_now()}_Mask"
 
     # Path and file name of figure.
     fn = f"{fn_prefix}_{sample_id}.png"
@@ -1192,7 +1193,7 @@ def format_plot_names(
             String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
         """
         filename = f"{model_name}_{timestamp}_{plot_type}"
-        return os.sep.join(list(path) + [*sub_dir, filename])
+        return str(universal_path(path) / universal_path(sub_dir) / filename)
 
     filenames = {
         "History": standard_format("MH") + ".png",
@@ -1281,7 +1282,7 @@ def plot_results(
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
     try:
-        os.mkdir(os.sep.join(results_dir))
+        os.mkdir(universal_path(results_dir))
     except FileExistsError as err:
         print(err)
 
@@ -1350,7 +1351,7 @@ def plot_results(
             figsize = None
 
         flat_bbox = utils.batch_flatten(bounds)
-        os.mkdir(os.sep.join([*results_dir, "Masks"]))
+        os.mkdir(universal_path(results_dir) / "Masks")
         seg_plot(
             z,
             y,

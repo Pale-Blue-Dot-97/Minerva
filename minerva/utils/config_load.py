@@ -48,6 +48,21 @@ DEFAULT_CONFIG_NAME: str = "example_config.yml"
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def universal_path(path: Any) -> Path:
+    """Creates a :class:`Path` object from ``str`` or ``Iterable`` inputs.
+
+    Args:
+        path (Any): Representation of a path to convert to :class:`Path` object.
+
+    Returns:
+        Path: :class:`Path` object of the input ``path``.
+    """
+    if type(path) == str:
+        return Path(path)
+    else:
+        return Path(*path)
+
+
 def check_paths(
     config: Optional[Union[str, PathLike[str]]], use_default_conf_dir: bool
 ) -> Tuple[str, Optional[str], Optional[Path]]:
