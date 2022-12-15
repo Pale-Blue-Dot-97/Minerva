@@ -130,14 +130,14 @@ def test_make_dataset() -> None:
 
     dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
 
-    assert type(dataset_1) == type(subdatasets_1[0])
+    assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, mdt.TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
         data_dir, dataset_params, transform_params, sample_pairs=True
     )
 
-    assert type(dataset_2) == type(subdatasets_2[0])
+    assert isinstance(dataset_2, type(subdatasets_2[0]))
     assert isinstance(dataset_2, mdt.PairedDataset)
 
 
