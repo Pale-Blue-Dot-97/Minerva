@@ -122,6 +122,7 @@ class Trainer:
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
+        print(f"{gpu=}")
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
@@ -161,6 +162,7 @@ class Trainer:
 
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
+        print(f"{self.device=}")
 
         # Creates model (and loss function) from specified parameters in params.
         self.model: Union[
