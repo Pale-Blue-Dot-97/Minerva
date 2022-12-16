@@ -43,7 +43,7 @@ import torch
 from torch import Tensor
 import torch.distributed as dist
 import yaml
-from alive_progress import alive_bar, alive_it
+from alive_progress import alive_bar  # , alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
