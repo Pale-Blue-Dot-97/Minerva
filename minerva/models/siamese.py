@@ -71,7 +71,7 @@ class _SimCLR(MinervaBackbone):
     ) -> None:
 
         super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
-        
+
         self.backbone: MinervaModel = get_model(backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs
         )

@@ -25,7 +25,7 @@
 import os
 from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Tuple, Optional, List, Union
+from typing import Any, Dict, Tuple, Optional, Union
 
 import yaml
 
@@ -44,6 +44,7 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # Default values for the path to the config directory and config name.
 DEFAULT_CONF_DIR_PATH = Path("../../inbuilt_cfgs/")
 DEFAULT_CONFIG_NAME: str = "example_config.yml"
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -73,7 +74,8 @@ def check_paths(
         use_default_conf_dir (bool): Assumes that ``config`` is in the default config directory if ``True``.
 
     Returns:
-        Tuple[str, Optional[str], Optional[Path]]: Tuple of the path for :func:`load_configs` to use, the config name and path to config.
+        Tuple[str, Optional[str], Optional[Path]]: Tuple of the path for :func:`load_configs` to use,
+        the config name and path to config.
     """
 
     config_name: Optional[str] = None
