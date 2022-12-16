@@ -125,8 +125,10 @@ def ssl_pair_tg(
     # Stacks each side of the pair batches together.
     x_batch = torch.stack([x_i_batch, x_j_batch])
 
+    print(f"In modelio {device} is")
     # Transfer to GPU.
     x = x_batch.to(device, non_blocking=True)
+    
 
     # Runs a training epoch.
     if mode == "train":

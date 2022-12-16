@@ -207,7 +207,6 @@ __all__ = [
     "print_class_dist",
     "batch_flatten",
     "make_classification_report",
-    "calc_constrastive_acc",
     "run_tensorboard",
     "compute_roc_curves",
     "find_geo_similar",
@@ -215,6 +214,7 @@ __all__ = [
     "tsne_cluster",
     "calc_norm_euc_dist",
 ]
+
 
 # =====================================================================================================================
 #                                                   DECORATORS

@@ -36,7 +36,7 @@ The recommended installation order is to start with a fresh `conda` environment,
 version and installing `pytorch` upon environment creation:
 
 ```shell
-conda create env --name minerva-310 python=3.10 pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch
+conda create env --name minerva-310 python=3.10 pytorch torchvision pytorch-cuda=11.6 -c pytorch -c nvidia
 ```
 
 Clone `minerva` from the git repo.
@@ -125,6 +125,14 @@ Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/li
 
 Created by Harry Baker as part of a project towards for a PhD in Computer Science from the
 University of Southampton. Funded by the Ordnance Survey Ltd.
+
+Contributions also provided by:
+
+- [Jo Walsh](https://github.com/metazool)
+- [Navid Rahimi](https://github.com/NavidCOMSC)
+- [Isabel Sargent](https://github.com/PenguinJunk)
+- [Steve Coupland](https://github.com/scoupland-os)
+- [Joe Guyatt](https://github.com/joeguyatt97)
 
 ## Acknowledgments
 

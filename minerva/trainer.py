@@ -43,7 +43,7 @@ import torch
 from torch import Tensor
 import torch.distributed as dist
 import yaml
-from alive_progress import alive_bar, alive_it
+from alive_progress import alive_bar  # , alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -122,6 +122,7 @@ class Trainer:
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
+        print(f"{gpu=}")
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
@@ -161,6 +162,7 @@ class Trainer:
 
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
+        print(f"{self.device=}")
 
         # Creates model (and loss function) from specified parameters in params.
         self.model: Union[
