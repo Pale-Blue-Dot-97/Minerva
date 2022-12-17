@@ -479,7 +479,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     Returns:
         Optional[Union[str, Any]]: Name of dataset as string.
     """
-    data_config_fn: Any
+    data_config_fn: str = ""
     try:
         assert DATA_CONFIG_PATH is not None
         data_config_fn = DATA_CONFIG_PATH.name
@@ -573,14 +573,14 @@ def transform_coordinates(
     assert isinstance(co_ordinates[0], Sequence)
     assert isinstance(co_ordinates[1], Sequence)
 
-    if not single:
-        return co_ordinates
-
     if single:
         x_2: float = co_ordinates[0][0]
         y_2: float = co_ordinates[1][0]
 
         return x_2, y_2
+
+    else:
+        return co_ordinates
 
 
 def check_within_bounds(bbox: BoundingBox, bounds: BoundingBox) -> BoundingBox:
@@ -893,10 +893,10 @@ def load_data_specs(
         dictionaries transformed to new classes if ``elim`` is true. Else, the ``forwards`` dict is empty
         and ``classes`` and ``cmap_dict`` are unaltered.
     """
-    if not elim:
-        return CLASSES, {}, CMAP_DICT
     if elim:
         return eliminate_classes(find_empty_classes(class_dist=class_dist))
+    else:
+        return CLASSES, {}, CMAP_DICT
 
 
 def class_transform(label: int, matrix: Dict[int, int]) -> int:
