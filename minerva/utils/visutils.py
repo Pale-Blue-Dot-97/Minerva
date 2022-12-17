@@ -39,7 +39,7 @@ import os
 import random
 
 import imageio
-import matplotlib
+import matplotlib as mlp
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import ArrayLike
@@ -49,7 +49,7 @@ import seaborn as sns
 import tensorflow as tf
 from alive_progress import alive_bar
 from matplotlib import offsetbox
-from matplotlib.colors import ListedColormap
+from matplotlib.colors import ListedColormap, Colormap
 from matplotlib.gridspec import GridSpec
 
 # from matplotlib.ticker import MaxNLocator
@@ -177,6 +177,32 @@ def dec_extent_to_deg(
     return extent, lat_extent, lon_extent
 
 
+def get_mlp_cmap(
+    cmap_style: Optional[Union[Colormap, str]] = None, n_classes: Optional[int] = None
+) -> Optional[Colormap]:
+    """Creates a cmap from query
+
+    Args:
+        cmap_style (Union[Colormap, str]): Optional; :mod:`matplotlib` colourmap style to get.
+        n_classes (int): Optional; Number of classes in data to assign colours to.
+
+    Returns:
+        Union[Colormap, None]:
+        * If ``cmap_style`` and ``n_classes`` provided, returns a :class:`ListedColormap` instance.
+        * If ``cmap_style`` provided but no ``n_classes``, returns a :class:`Colormap` instance.
+        * If neither arguments are provided, ``None`` is returned.
+    """
+    cmap = None
+    if not isinstance(cmap_style, ListedColormap) and cmap_style is not None:
+        cmap = mlp.colormaps[cmap_style]
+
+    if n_classes:
+        assert isinstance(cmap, Colormap)
+        cmap = cmap.resampled(n_classes)
+
+    return cmap
+
+
 def discrete_heatmap(
     data: NDArray[Shape["*, *"], Int],
     classes: Union[List[str], Tuple[str, ...]],
@@ -198,7 +224,7 @@ def discrete_heatmap(
     plt.figure()
 
     # Creates a cmap from query.
-    cmap = plt.get_cmap(cmap_style, len(classes))
+    cmap = get_mlp_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
     heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
@@ -325,6 +351,8 @@ def labelled_rgb_image(
     # Checks that the mask and image shapes will align.
     assert mask.shape == image.shape[:2]
 
+    assert new_crs is not None
+
     # Gets the extent of the image in pixel, lattitude and longitude dimensions.
     extent, lat_extent, lon_extent = dec_extent_to_deg(
         mask.shape,
@@ -341,7 +369,7 @@ def labelled_rgb_image(
     ax1.imshow(image, extent=extent)
 
     # Creates a cmap from query.
-    cmap = plt.get_cmap(cmap_style, len(classes))
+    cmap = get_mlp_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
     heatmap = ax1.imshow(
@@ -564,8 +592,7 @@ def prediction_plot(
         ]
     )
 
-    # Creates a cmap from query.
-    cmap = plt.get_cmap(cmap_style, len(classes))
+    cmap = get_mlp_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
     z_heatmap = axes[0].imshow(z, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
@@ -633,7 +660,7 @@ def prediction_plot(
 
     if fn_prefix is None:
         path = universal_path(CONFIG["dir"]["results"])
-        fn_prefix = path / f"{exp_id}_{utils.timestamp_now()}_Mask"
+        fn_prefix = str(path / f"{exp_id}_{utils.timestamp_now()}_Mask")
 
     # Path and file name of figure.
     fn = f"{fn_prefix}_{sample_id}.png"
@@ -660,7 +687,7 @@ def seg_plot(
     colours: Dict[int, str],
     fn_prefix: str,
     frac: float = 0.05,
-    fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5),
+    fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = (9.3, 10.5),
 ) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -858,6 +885,7 @@ def make_confusion_matrix(
     labels: Union[List[int], NDArray[Any, Int]],
     classes: Dict[int, str],
     filename: Optional[str] = None,
+    cmap_style: str = "Blues",
     show: bool = True,
     save: bool = False,
 ) -> None:
@@ -877,7 +905,7 @@ def make_confusion_matrix(
     _pred, _labels, new_classes = utils.check_test_empty(pred, labels, classes)
 
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
-    cm_norm: Any
+    cm_norm: Any = None
     try:
         cm = tf.math.confusion_matrix(
             labels=_labels, predictions=_pred, dtype=np.uint16
@@ -907,11 +935,13 @@ def make_confusion_matrix(
 
     # Plots figure.
     plt.figure(figsize=figsize)
+
+    cmap = get_mlp_cmap(cmap_style)
     sns.heatmap(
         cm_df,
         annot=True,
         square=True,
-        cmap=plt.cm.get_cmap("Blues"),
+        cmap=cmap,
         vmin=0.0,
         vmax=1.0,
     )
@@ -1216,9 +1246,12 @@ def plot_results(
     if not show:
         # Ensures that there is no attempt to display figures incase no display is present.
         try:
-            matplotlib.use("agg")
+            mlp.use("agg")
         except ImportError:
             pass
+
+    flat_z = None
+    flat_y = None
 
     if z is not None:
         flat_z = utils.batch_flatten(z)
@@ -1231,6 +1264,7 @@ def plot_results(
 
     if model_name is None:
         model_name = CONFIG["model_name"]
+    assert model_name is not None
 
     if results_dir is None:
         results_dir = CONFIG["dir"]["results"]
@@ -1251,6 +1285,9 @@ def plot_results(
 
     if plots.get("CM", False):
         assert class_names is not None
+        assert flat_y is not None
+        assert flat_z is not None
+
         print("\nPLOTTING CONFUSION MATRIX")
         make_confusion_matrix(
             labels=flat_y,
@@ -1264,6 +1301,7 @@ def plot_results(
     if plots.get("Pred", False):
         assert class_names is not None
         assert colours is not None
+        assert flat_z is not None
 
         print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
         plot_subpopulations(
@@ -1279,6 +1317,7 @@ def plot_results(
         assert class_names is not None
         assert colours is not None
         assert probs is not None
+        assert flat_y is not None
 
         print("\nPLOTTING ROC CURVES")
         make_roc_curves(
@@ -1302,10 +1341,9 @@ def plot_results(
         assert bounds is not None
         assert mode is not None
 
+        figsize = None
         if DATA_CONFIG is not None:
             figsize = DATA_CONFIG["fig_sizes"]["Mask"]
-        else:
-            figsize = None
 
         flat_bbox = utils.batch_flatten(bounds)
         os.mkdir(universal_path(results_dir) / "Masks")
