@@ -193,12 +193,15 @@ def get_mlp_cmap(
         * If neither arguments are provided, ``None`` is returned.
     """
     cmap = None
-    if not isinstance(cmap_style, ListedColormap) and cmap_style is not None:
-        cmap = mlp.colormaps[cmap_style]
+    if cmap_style:
+        if not isinstance(cmap_style, ListedColormap):
+            cmap = mlp.colormaps[cmap_style]
+        else:
+            cmap = cmap_style
 
-    if n_classes:
-        assert isinstance(cmap, Colormap)
-        cmap = cmap.resampled(n_classes)
+        if n_classes:
+            assert isinstance(cmap, Colormap)
+            cmap = cmap.resampled(n_classes)
 
     return cmap
 
