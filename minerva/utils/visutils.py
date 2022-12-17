@@ -195,13 +195,13 @@ def get_mlp_cmap(
     cmap = None
     if cmap_style:
         if not isinstance(cmap_style, ListedColormap):
-            cmap = mlp.colormaps[cmap_style]
+            cmap = mlp.colormaps[cmap_style]  # type: ignore
         else:
             cmap = cmap_style
 
         if n_classes:
             assert isinstance(cmap, Colormap)
-            cmap = cmap.resampled(n_classes)
+            cmap = cmap.resampled(n_classes)  # type: ignore
 
     return cmap
 
@@ -755,7 +755,7 @@ def seg_plot(
                 show=False,
                 fn_prefix=fn_prefix,
                 fig_dim=fig_dim,
-                cmap_style=ListedColormap(colours.values(), N=len(colours)),
+                cmap_style=ListedColormap(colours.values(), N=len(colours)),  # type: ignore
             )
 
             bar()
@@ -911,8 +911,8 @@ def make_confusion_matrix(
     cm_norm: Any = None
     try:
         cm = tf.math.confusion_matrix(
-            labels=_labels, predictions=_pred, dtype=np.uint16
-        ).numpy()
+            labels=_labels, predictions=_pred, dtype=np.uint16  # type: ignore
+        ).numpy()  # type: ignore
 
         # Normalises confusion matrix.
         cm_norm = np.around(
@@ -1103,7 +1103,7 @@ def plot_embedding(
             images.append(stack_rgb(sample["image"].numpy()))
             targets.append(
                 [
-                    int(stats.mode(mask, axis=None, keepdims=False).mode)
+                    int(stats.mode(mask, keepdims=False).mode)
                     for mask in sample["mask"].numpy()
                 ]
             )
@@ -1121,7 +1121,7 @@ def plot_embedding(
             x[i, 0],
             x[i, 1],
             str(targets[i]),
-            color=plt.cm.Set1(targets[i][0] / 10.0),
+            color=plt.cm.Set1(targets[i][0] / 10.0),  # type: ignore
             fontdict={"weight": "bold", "size": 9},
         )
 
@@ -1137,7 +1137,7 @@ def plot_embedding(
 
             shown_images = np.r_[shown_images, [x[i]]]
             imagebox = offsetbox.AnnotationBbox(
-                offsetbox.OffsetImage(images[i], cmap=plt.cm.gray_r), x[i]
+                offsetbox.OffsetImage(images[i], cmap=plt.cm.gray_r), x[i]  # type: ignore
             )
 
             ax.add_artist(imagebox)
