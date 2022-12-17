@@ -47,7 +47,7 @@ def sup_tg(
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
     mode: str,
-    **kwargs
+    **kwargs,
 ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a supervised model using `torchgeo` datasets.
 
@@ -73,6 +73,8 @@ def sup_tg(
     if masks.shape[1] == 1:
         masks = np.squeeze(masks.detach().cpu().numpy(), axis=1)
 
+    if isinstance(masks, Tensor):
+        masks = masks.detach().cpu().numpy()
     y_batch = torch.tensor(masks, dtype=torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
@@ -97,7 +99,7 @@ def ssl_pair_tg(
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
     mode: str,
-    **kwargs
+    **kwargs,
 ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], None, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
@@ -128,7 +130,6 @@ def ssl_pair_tg(
     print(f"In modelio {device} is")
     # Transfer to GPU.
     x = x_batch.to(device, non_blocking=True)
-    
 
     # Runs a training epoch.
     if mode == "train":
