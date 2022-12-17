@@ -175,6 +175,7 @@ class Trainer:
             sample_pairs = False
             self.params["sample_pairs"] = False
 
+        assert isinstance(sample_pairs, bool)
         self.sample_pairs = sample_pairs
         self.model.determine_output_dim(sample_pairs=sample_pairs)
 
@@ -225,6 +226,17 @@ class Trainer:
                 self.model, input_to_model=torch.rand(*input_size, device=self.device)
             )
 
+            if torch.cuda.device_count() == 1:
+                # Adds a graphical layout of the model to the TensorBoard logger.
+                try:
+                    self.writer.add_graph(
+                        self.model,
+                        input_to_model=torch.rand(*input_size, device=self.device),
+                    )
+                except RuntimeError as err:
+                    print(err)
+                    print("ABORT adding graph to writer")
+
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
@@ -233,25 +245,15 @@ class Trainer:
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
 
-        else:
-            # Adds a graphical layout of the model to the TensorBoard logger.
-            try:
-                self.writer.add_graph(
-                    self.model,
-                    input_to_model=torch.rand(*input_size, device=self.device),
-                )
-            except RuntimeError as err:
-                print(err)
-                print("ABORT adding graph to writer")
-
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
 
         Returns:
             Tuple[int, ...]: Tuple describing the input shape of the model.
         """
-        assert self.model.input_shape is not None
-        input_size: Tuple[int, ...] = (self.batch_size, *self.model.input_shape)
+        input_shape: Optional[Tuple[int, ...]] = self.model.input_shape
+        assert input_shape is not None
+        input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
 
         if self.sample_pairs:
             input_size = (2, *input_size)
@@ -422,7 +424,7 @@ class Trainer:
             collapse_level=self.params["sample_pairs"],
             euclidean=self.params["sample_pairs"],
             model_type=self.params["model_type"],
-            writer=self.writer
+            writer=self.writer,
         )
 
         # if mode == "val" and self.params["model_type"] == "ssl":
@@ -510,47 +512,47 @@ class Trainer:
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
 
-            # Special case for final train/ val epoch to plot results if configured so.
-            if epoch == (self.max_epochs - 1) or self.early_stop:
-                if self.early_stop:
-                    self.print("\nEarly stopping triggered")
+                # Special case for final train/ val epoch to plot results if configured so.
+                if epoch == (self.max_epochs - 1) or self.early_stop:
+                    if self.early_stop and mode == "val":
+                        self.print("\nEarly stopping triggered")
 
-                # Ensures that plots likely to cause memory issues are not attempted.
-                plots: Dict[str, bool] = self.params.get("plots", {}).copy()
-                plots["CM"] = False
-                plots["ROC"] = False
+                    # Ensures that plots likely to cause memory issues are not attempted.
+                    plots: Dict[str, bool] = self.params.get("plots", {}).copy()
+                    plots["CM"] = False
+                    plots["ROC"] = False
 
-                if not self.params.get("plot_last_epoch", False):
-                    # If not plotting results, ensure that only history plotting will remain
-                    # if originally set to do so.
-                    plots["Mask"] = False
-                    plots["Pred"] = False
+                    if not self.params.get("plot_last_epoch", False):
+                        # If not plotting results, ensure that only history plotting will remain
+                        # if originally set to do so.
+                        plots["Mask"] = False
+                        plots["Pred"] = False
 
-                # Create a subset of metrics which drops the testing results for plotting model history.
-                sub_metrics = self.metric_logger.get_sub_metrics()
+                    # Create a subset of metrics which drops the testing results for plotting model history.
+                    sub_metrics = self.metric_logger.get_sub_metrics()
 
-                # Ensures masks are not plotted for model types that do not yield such outputs.
-                if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
-                    plots["Mask"] = False
+                    # Ensures masks are not plotted for model types that do not yield such outputs.
+                    if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
+                        plots["Mask"] = False
 
-                # Amends the results' directory to add a new level for train or validation.
-                results_dir: List[str] = self.params["dir"]["results"].copy()
-                results_dir.append(mode)
+                    # Amends the results' directory to add a new level for train or validation.
+                    results_dir: List[str] = self.params["dir"]["results"].copy()
+                    results_dir.append(mode)
 
-                if self.gpu == 0:
-                    # Plots the results of this epoch.
-                    visutils.plot_results(
-                        plots,
-                        metrics=sub_metrics,
-                        class_names=self.params.get("classes"),
-                        colours=self.params.get("colours"),
-                        save=True,
-                        show=False,
-                        model_name=self.params["model_name"],
-                        timestamp=self.params["timestamp"],
-                        results_dir=results_dir,
-                        **results,
-                    )
+                    if self.gpu == 0:
+                        # Plots the results of this epoch.
+                        visutils.plot_results(
+                            plots,
+                            metrics=sub_metrics,
+                            class_names=self.params.get("classes"),
+                            colours=self.params.get("colours"),
+                            save=True,
+                            show=False,
+                            model_name=self.params["model_name"],
+                            timestamp=self.params["timestamp"],
+                            results_dir=results_dir,
+                            **results,
+                        )
 
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
@@ -865,7 +867,7 @@ class Trainer:
             fn (str): Optional; Filename and path (excluding extension) to save weights to.
         """
         if fn is None:
-            fn = self.exp_fn
+            fn = str(self.exp_fn)
         torch.save(self.model.state_dict(), f"{fn}.pt")
 
     def save_model(self, fn: Optional[str] = None, format: str = "pt") -> None:
@@ -879,7 +881,7 @@ class Trainer:
             ValueError: If format is not recognised.
         """
         if fn is None:
-            fn = self.exp_fn
+            fn = str(self.exp_fn)
 
         if format == "pt":
             torch.save(self.model, f"{fn}.pt")
