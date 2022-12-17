@@ -565,7 +565,7 @@ def transform_coordinates(
     y = check_len(y, x)
 
     # Transform co-ordinates from source to new CRS and returns a tuple of (x, y)
-    co_ordinates: Tuple[Sequence[float], Sequence[float]] = rt.warp.transform(
+    co_ordinates: Tuple[Sequence[float], Sequence[float]] = rt.warp.transform(  # type: ignore
         src_crs=src_crs, dst_crs=new_crs, xs=x, ys=y
     )
 
@@ -693,7 +693,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
             print("No location found!")
             return ""
 
-        location = query.raw["address"]
+        location = query.raw["address"]  # type: ignore
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
         locs: List[str] = []
@@ -1086,7 +1086,7 @@ def find_best_of(
 
     # Re-indexes the DataFrame to datetime
     patch_df.set_index(
-        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"), drop=True, inplace=True
+        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"), drop=True, inplace=True  # type: ignore
     )
 
     # Sends DataFrame to scene_selection() and returns the selected scenes
@@ -1295,7 +1295,7 @@ def print_class_dist(
     df.sort_values(by="#", inplace=True)
 
     # Use tabulate to print the DataFrame in a pretty plain text format to stdout.
-    print(tabulate(df, headers="keys", tablefmt="psql"))
+    print(tabulate(df, headers="keys", tablefmt="psql"))  # type: ignore
 
 
 def batch_flatten(x: Union[NDArray[Any, Any], ArrayLike]) -> NDArray[Shape["*"], Any]:
@@ -1380,7 +1380,7 @@ def make_classification_report(
 
     # Prints the DataFrame put through tabulate into a pretty text format to stdout.
     if print_cr:
-        print(tabulate(cr_df, headers="keys", tablefmt="psql"))
+        print(tabulate(cr_df, headers="keys", tablefmt="psql"))  # type: ignore
 
     return cr_df
 
