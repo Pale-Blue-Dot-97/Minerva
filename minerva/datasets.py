@@ -694,4 +694,4 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
         modes = utils.find_modes(sample["mask"])
         sample_modes.append(modes)
 
-    return np.array(sample_modes)
+    return np.array(sample_modes, dtype=object)
