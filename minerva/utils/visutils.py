@@ -193,7 +193,11 @@ def get_mlp_cmap(
         * If ``cmap_style`` provided but no ``n_classes``, returns a :class:`Colormap` instance.
         * If neither arguments are provided, ``None`` is returned.
     """
-    cmap = None
+    cmap: Optional[Colormap] = None
+
+    if isinstance(cmap_style, ListedColormap):
+        return cmap_style
+
     if cmap_style:
         if not isinstance(cmap_style, ListedColormap):
             cmap = mlp.colormaps[cmap_style]  # type: ignore
