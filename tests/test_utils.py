@@ -1,7 +1,7 @@
 import cmath
 import math
-import ntpath
 import os
+from pathlib import Path
 import random
 import shutil
 import tempfile
@@ -192,13 +192,13 @@ def test_find_modes() -> None:
 
 
 def test_file_check() -> None:
-    fn = "tests/test.txt"
+    fn = Path("tests", "test.txt")
     with open(fn, "x") as f:
         f.write("")
 
     utils.exist_delete_check(fn)
 
-    assert os.path.exists(fn) is False
+    assert fn.exists() is False
 
 
 def test_class_transform() -> None:
@@ -590,9 +590,9 @@ def test_compute_roc_curves() -> None:
     class_names = {0: "Class 0", 1: "Class 1", 2: "Class 2", 3: "Class 3"}
     cmap_dict = {0: "#000000", 1: "#00c5ff", 2: "#267300", 3: "#a3ff73"}
 
-    path = os.path.join(os.getcwd(), "tmp")
+    path = Path(os.getcwd(), "tmp")
 
-    os.makedirs(path, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
     fn = f"{path}/roc_curve.png"
 
     visutils.make_roc_curves(
@@ -645,17 +645,17 @@ def test_mkexpdir() -> None:
     name = "exp1"
 
     try:
-        os.makedirs(utils.RESULTS_DIR)
+        utils.RESULTS_DIR.mkdir(parents=True)
     except FileExistsError:
         pass
 
     utils.mkexpdir(name)
 
-    assert os.path.isdir(os.path.join(utils.RESULTS_DIR, name))
+    assert (utils.RESULTS_DIR / name).is_dir()
 
     utils.mkexpdir(name)
 
-    os.rmdir(os.path.join(utils.RESULTS_DIR, name))
+    (utils.RESULTS_DIR / name).rmdir()
 
 
 def test_get_dataset_name() -> None:
@@ -664,7 +664,7 @@ def test_get_dataset_name() -> None:
 
 def test_run_tensorboard() -> None:
     try:
-        env_name = ntpath.basename(os.environ["CONDA_DEFAULT_ENV"])
+        env_name = Path(os.environ["CONDA_DEFAULT_ENV"]).name
     except KeyError:
         env_name = "base"
 
@@ -672,10 +672,10 @@ def test_run_tensorboard() -> None:
 
     exp_name = "exp1"
 
-    path = tempfile.gettempdir()
+    path = Path(tempfile.gettempdir(), exp_name)
 
-    if not os.path.exists(os.path.join(path, exp_name)):
-        os.mkdir(os.path.join(path, exp_name))
+    if not path.exists():
+        path.mkdir()
 
     assert (
         utils.run_tensorboard(
@@ -693,7 +693,7 @@ def test_run_tensorboard() -> None:
 
     utils.CONFIG["dir"]["results"] = results_dir
 
-    os.rmdir(os.path.join(path, exp_name))
+    path.rmdir()
 
 
 def test_calc_constrastive_acc() -> None:
