@@ -1355,7 +1355,7 @@ def make_classification_report(
         y_true=labels,
         y_pred=pred,
         labels=[i for i in range(len(class_labels))],
-        zero_division=0,
+        zero_division=0,  # type: ignore
         output_dict=True,
     )
 
