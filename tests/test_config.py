@@ -5,6 +5,7 @@ from minerva.utils.config_load import (
     universal_path,
     check_paths,
     chdir_to_default,
+    DEFAULT_CONFIG_NAME,
 )
 
 
@@ -57,4 +58,19 @@ def test_check_paths(config_root: Path):
 
 
 def test_chdir_to_default():
-    pass
+    def run_chdir(input, output):
+        assert output == chdir_to_default(input)
+        assert Path(os.getcwd()) == this_abs_path
+        os.chdir(cwd)
+
+    cwd = os.getcwd()
+    this_abs_path = (Path(__file__).parent / ".." / "inbuilt_cfgs").resolve()
+
+    config_name1 = "example_GeoCLR_config.yml"
+
+    run_chdir(config_name1, config_name1)
+    run_chdir(None, DEFAULT_CONFIG_NAME)
+
+    config_name2 = "wrong_config.yml"
+
+    run_chdir(config_name2, DEFAULT_CONFIG_NAME)
