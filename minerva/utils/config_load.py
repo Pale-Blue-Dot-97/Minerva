@@ -108,9 +108,7 @@ def check_paths(
 
     # Check the config specified exists at the path given. If not, assume its in the default directory.
     else:
-        if config_name is None:
-            config_name = chdir_to_default(config_name)
-        elif not (config_path / config_name).exists():
+        if config_name is None or not (config_path / config_name).exists():
             config_name = chdir_to_default(config_name)
         else:
             pass
