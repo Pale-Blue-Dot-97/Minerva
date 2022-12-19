@@ -720,3 +720,9 @@ def test_print_config() -> None:
 
 def test_calc_grad() -> None:
     pass
+
+
+def test_tsne_cluster() -> None:
+    clusters = utils.tsne_cluster(np.random.rand(10, 100))
+    assert isinstance(clusters, NDArray)
+    assert clusters.shape == (10, 2)
