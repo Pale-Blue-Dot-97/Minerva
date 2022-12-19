@@ -37,6 +37,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import os
 import random
+from pathlib import Path
 
 import imageio
 import matplotlib as mlp
@@ -325,7 +326,7 @@ def labelled_rgb_image(
     mask: NDArray[Shape["*, *"], Int],
     bounds: BoundingBox,
     src_crs: CRS,
-    path: str,
+    path: Union[str, Path],
     name: str,
     classes: Union[List[str], Tuple[str, ...]],
     cmap_style: Optional[Union[str, ListedColormap]] = None,
@@ -470,7 +471,7 @@ def make_gif(
     src_crs: CRS,
     classes: Union[List[str], Tuple[str, ...]],
     gif_name: str,
-    path: str,
+    path: Union[str, Path],
     cmap_style: Optional[Union[str, ListedColormap]] = None,
     fps: float = 1.0,
     new_crs: Optional[CRS] = WGS84,
@@ -770,7 +771,7 @@ def plot_subpopulations(
     class_dist: List[Tuple[int, int]],
     class_names: Dict[int, str],
     cmap_dict: Dict[int, str],
-    filename: Optional[str] = None,
+    filename: Optional[Union[str, Path]] = None,
     save: bool = True,
     show: bool = False,
 ) -> None:
@@ -838,7 +839,7 @@ def plot_subpopulations(
 
 def plot_history(
     metrics: Dict[str, Any],
-    filename: Optional[str] = None,
+    filename: Optional[Union[str, Path]] = None,
     save: bool = True,
     show: bool = False,
 ) -> None:
@@ -892,7 +893,7 @@ def make_confusion_matrix(
     pred: Union[List[int], NDArray[Any, Int]],
     labels: Union[List[int], NDArray[Any, Int]],
     classes: Dict[int, str],
-    filename: Optional[str] = None,
+    filename: Optional[Union[str, Path]] = None,
     cmap_style: str = "Blues",
     show: bool = True,
     save: bool = False,
