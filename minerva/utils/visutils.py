@@ -1354,7 +1354,7 @@ def plot_results(
             figsize = DATA_CONFIG["fig_sizes"]["Mask"]
 
         flat_bbox = utils.batch_flatten(bounds)
-        os.mkdir(universal_path(results_dir) / "Masks")
+        os.makedirs(universal_path(results_dir) / "Masks", exist_ok=True)
         seg_plot(
             z,
             y,
