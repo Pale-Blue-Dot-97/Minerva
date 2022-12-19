@@ -133,9 +133,7 @@ def chdir_to_default(config_name: Optional[str] = None) -> str:
     this_abs_path = (Path(__file__).parent / DEFAULT_CONF_DIR_PATH).resolve()
     os.chdir(this_abs_path)
 
-    if config_name is None:
-        return DEFAULT_CONFIG_NAME
-    elif not Path(config_name).exists():
+    if config_name is None or not Path(config_name).exists():
         return DEFAULT_CONFIG_NAME
     else:
         return config_name
