@@ -1659,18 +1659,20 @@ def tsne_cluster(
     return tsne.fit_transform(embeddings)
 
 
-def calc_norm_euc_dist(a: Sequence[int], b: Sequence[int]) -> float:
+def calc_norm_euc_dist(
+    a: Union[Sequence[int], NDArray[Shape["*"], Int]],
+    b: Union[Sequence[int], NDArray[Shape["*"], Int]],
+) -> float:
     """Calculates the normalised Euclidean distance between two vectors.
 
     Args:
-        a (Sequence[int]): Vector `A`.
-        b (Sequence[int]): Vector `B`.
+        a (Union[Sequence[int], NDArray[Shape["*"], Int]]): Vector `A`.
+        b (Union[Sequence[int], NDArray[Shape["*"], Int]]): Vector `B`.
 
     Returns:
         float: Normalised Euclidean distance between vectors `A` and `B`.
     """
     assert len(a) == len(b)
-    euc_dist: float = distance.euclidean(a, b) / len(a)
+    euc_dist: float = distance.euclidean(a, b) / float(len(a))
 
-    assert type(euc_dist) is float
     return euc_dist
