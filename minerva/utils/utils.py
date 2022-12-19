@@ -394,7 +394,7 @@ def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
     return device
 
 
-def exist_delete_check(fn: str) -> None:
+def exist_delete_check(fn: Union[str, Path]) -> None:
     """Checks if given file exists then deletes if true.
 
     Args:
@@ -404,10 +404,7 @@ def exist_delete_check(fn: str) -> None:
         None
     """
     # Checks if file exists. Deletes if True. No action taken if False
-    if os.path.exists(fn):
-        os.remove(fn)
-    else:
-        pass
+    Path(fn).unlink(missing_ok=True)
 
 
 def mkexpdir(name: str) -> None:
@@ -421,7 +418,7 @@ def mkexpdir(name: str) -> None:
         None
     """
     try:
-        os.mkdir(os.path.join(RESULTS_DIR, name))
+        (RESULTS_DIR / name).mkdir()
     except FileExistsError:
         pass
 
