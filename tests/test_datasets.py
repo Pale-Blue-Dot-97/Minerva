@@ -178,7 +178,7 @@ def test_construct_dataloader() -> None:
         "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
     }
 
-    dataloader_params = {"batch_size": 256, "num_workers": 10, "pin_memory": True}
+    dataloader_params = {"batch_size": 256, "num_workers": 4, "pin_memory": True}
 
     dataloader_1 = mdt.construct_dataloader(
         data_dir, dataset_params, sampler_params_1, dataloader_params

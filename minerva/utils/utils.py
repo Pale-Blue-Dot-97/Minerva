@@ -479,7 +479,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     Returns:
         Optional[Union[str, Any]]: Name of dataset as string.
     """
-    data_config_fn: Any
+    data_config_fn: str = ""
     try:
         assert DATA_CONFIG_PATH is not None
         data_config_fn = DATA_CONFIG_PATH.name
@@ -565,7 +565,7 @@ def transform_coordinates(
     y = check_len(y, x)
 
     # Transform co-ordinates from source to new CRS and returns a tuple of (x, y)
-    co_ordinates: Tuple[Sequence[float], Sequence[float]] = rt.warp.transform(
+    co_ordinates: Tuple[Sequence[float], Sequence[float]] = rt.warp.transform(  # type: ignore
         src_crs=src_crs, dst_crs=new_crs, xs=x, ys=y
     )
 
@@ -573,14 +573,14 @@ def transform_coordinates(
     assert isinstance(co_ordinates[0], Sequence)
     assert isinstance(co_ordinates[1], Sequence)
 
-    if not single:
-        return co_ordinates
-
     if single:
         x_2: float = co_ordinates[0][0]
         y_2: float = co_ordinates[1][0]
 
         return x_2, y_2
+
+    else:
+        return co_ordinates
 
 
 def check_within_bounds(bbox: BoundingBox, bounds: BoundingBox) -> BoundingBox:
@@ -693,7 +693,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
             print("No location found!")
             return ""
 
-        location = query.raw["address"]
+        location = query.raw["address"]  # type: ignore
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
         locs: List[str] = []
@@ -893,10 +893,10 @@ def load_data_specs(
         dictionaries transformed to new classes if ``elim`` is true. Else, the ``forwards`` dict is empty
         and ``classes`` and ``cmap_dict`` are unaltered.
     """
-    if not elim:
-        return CLASSES, {}, CMAP_DICT
     if elim:
         return eliminate_classes(find_empty_classes(class_dist=class_dist))
+    else:
+        return CLASSES, {}, CMAP_DICT
 
 
 def class_transform(label: int, matrix: Dict[int, int]) -> int:
@@ -1086,7 +1086,7 @@ def find_best_of(
 
     # Re-indexes the DataFrame to datetime
     patch_df.set_index(
-        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"), drop=True, inplace=True
+        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"), drop=True, inplace=True  # type: ignore
     )
 
     # Sends DataFrame to scene_selection() and returns the selected scenes
@@ -1295,7 +1295,7 @@ def print_class_dist(
     df.sort_values(by="#", inplace=True)
 
     # Use tabulate to print the DataFrame in a pretty plain text format to stdout.
-    print(tabulate(df, headers="keys", tablefmt="psql"))
+    print(tabulate(df, headers="keys", tablefmt="psql"))  # type: ignore
 
 
 def batch_flatten(x: Union[NDArray[Any, Any], ArrayLike]) -> NDArray[Shape["*"], Any]:
@@ -1355,7 +1355,7 @@ def make_classification_report(
         y_true=labels,
         y_pred=pred,
         labels=[i for i in range(len(class_labels))],
-        zero_division=0,
+        zero_division=0,  # type: ignore
         output_dict=True,
     )
 
@@ -1380,7 +1380,7 @@ def make_classification_report(
 
     # Prints the DataFrame put through tabulate into a pretty text format to stdout.
     if print_cr:
-        print(tabulate(cr_df, headers="keys", tablefmt="psql"))
+        print(tabulate(cr_df, headers="keys", tablefmt="psql"))  # type: ignore
 
     return cr_df
 

@@ -143,7 +143,7 @@ class LARS(Optimizer):
                     buf = param_state["momentum_buffer"] = torch.zeros_like(p.data)  # type: ignore[attr-defined]
                 else:
                     buf = param_state["momentum_buffer"]
-                buf.mul_(momentum).add_(actual_lr, d_p + weight_decay * p.data)  # type: ignore[misc]
+                buf.mul_(momentum).add_(d_p + weight_decay * p.data, alpha=actual_lr)
                 p.data.add_(-buf)
 
         return loss
