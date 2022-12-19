@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import shutil
 import tempfile
 from typing import Any
@@ -72,7 +73,7 @@ def test_dec_extent_to_deg() -> None:
 
 def test_discrete_heatmap() -> None:
     data = np.random.randint(0, 7, size=(224, 224))
-    cmap = ListedColormap(utils.CMAP_DICT.values())
+    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
     visutils.discrete_heatmap(data, list(utils.CLASSES.values()), cmap_style=cmap)
 
 
@@ -124,7 +125,7 @@ def test_labelled_rgb_image() -> None:
 
     path = tempfile.gettempdir()
     name = "pretty_pic"
-    cmap = ListedColormap(utils.CMAP_DICT.values())
+    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
 
     fn = visutils.labelled_rgb_image(
         image,
@@ -137,7 +138,7 @@ def test_labelled_rgb_image() -> None:
         cmap_style=cmap,
     )
 
-    correct_fn = os.path.join(path, name) + "_RGBHM.png"
+    correct_fn = str(Path(path, f"{name}_RGBHM.png"))
 
     assert fn == correct_fn
 
@@ -155,16 +156,14 @@ def test_make_gif() -> None:
         2.0,
     )
 
-    path = os.getcwd()
-    if isinstance(path, str):
-        path = os.path.join(path, "tmp")
+    path = Path(os.getcwd(), "tmp")
 
-    os.makedirs(path, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
 
     # Creates the GIF filename.
     gif_fn = f"{path}/new_gif.gif"
 
-    cmap = ListedColormap(utils.CMAP_DICT.values())
+    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
 
     visutils.make_gif(
         dates,
@@ -224,13 +223,13 @@ def test_seg_plot() -> None:
 def test_plot_subpopulations() -> None:
     class_dist = [(1, 25), (0, 13), (2, 10), (3, 4)]
 
-    fn = "plot.png"
+    fn = Path("plot.png")
 
     visutils.plot_subpopulations(
         class_dist, utils.CLASSES, cmap_dict=utils.CMAP_DICT, filename=fn, save=True
     )
 
-    os.remove(fn)
+    fn.unlink(missing_ok=True)
 
 
 def test_plot_history() -> None:
@@ -247,11 +246,11 @@ def test_plot_history() -> None:
         "val_acc": val_acc,
     }
 
-    filename = "plot.png"
+    filename = Path("plot.png")
 
     visutils.plot_history(metrics, filename, show=True)
 
-    os.remove(filename)
+    filename.unlink(missing_ok=True)
 
 
 def test_make_confusion_matrix() -> None:
@@ -260,7 +259,7 @@ def test_make_confusion_matrix() -> None:
 
     pred_2 = np.random.randint(0, 6, size=16 * 224 * 224)
 
-    fn = "cm.png"
+    fn = Path("cm.png")
 
     visutils.make_confusion_matrix(
         pred_1, labels_1, utils.CLASSES, filename=fn, save=True
@@ -268,7 +267,7 @@ def test_make_confusion_matrix() -> None:
 
     visutils.make_confusion_matrix(pred_2, labels_1, utils.CLASSES)
 
-    os.remove(fn)
+    fn.unlink(missing_ok=True)
 
 
 def test_format_names() -> None:
