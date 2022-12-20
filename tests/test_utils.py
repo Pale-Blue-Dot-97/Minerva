@@ -726,3 +726,15 @@ def test_tsne_cluster() -> None:
     clusters = utils.tsne_cluster(np.random.rand(10, 100))
     assert isinstance(clusters, NDArray)
     assert clusters.shape == (10, 2)
+
+
+def test_calc_norm_euc_dist() -> None:
+    a1 = np.random.random_integers(0, 8, 10)
+    b1 = np.random.random_integers(0, 8, 10)
+
+    b2 = np.random.random_integers(0, 8, 8)
+
+    assert isinstance(utils.calc_norm_euc_dist(a1, b1), float)
+
+    with pytest.raises(AssertionError):
+        utils.calc_norm_euc_dist(a1, b2)
