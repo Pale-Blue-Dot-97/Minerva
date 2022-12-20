@@ -139,7 +139,7 @@ Contributions also provided by:
 I'd like to acknowledge the invaluable supervision and contributions of Dr Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
-Credit for new `minerva` logo goes to [Dall-e](https://openai.com/dall-e-2/).
+Credit for new `minerva` logo goes to [DALL-E 2](https://openai.com/dall-e-2/).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
