@@ -38,6 +38,7 @@ from typing import (
     overload,
 )
 import os
+from pathlib import Path
 from nptyping import NDArray
 import numpy as np
 import torch
@@ -262,6 +263,14 @@ class MinervaDataParallel(Module):
 #                                                     METHODS
 # =====================================================================================================================
 def get_model(model_name: str) -> Callable[..., MinervaModel]:
+    """Returns the constructor of the ``model_name`` in :mod:`models`.
+
+    Args:
+        model_name (str): Name of the model to get.
+
+    Returns:
+        Callable[..., MinervaModel]: Constructor of the model requested.
+    """
     model: Callable[..., MinervaModel] = func_by_str("minerva.models", model_name)
     return model
 
@@ -287,7 +296,7 @@ def get_torch_weights(weights_name: str) -> WeightsEnum:
     try:
         weights = torch.hub.load("pytorch/vision", "get_weight", name=weights_name)
     except OSError:
-        th_dir = os.environ.get("TORCH_HUB", os.path.expanduser("~/.cache/torch/hub"))
+        th_dir = os.environ.get("TORCH_HUB", Path("~/.cache/torch/hub").expanduser())
         weights = torch.hub.load(
             f"{th_dir}/pytorch_vision_main",
             "get_weight",
