@@ -141,7 +141,7 @@ def test_resnets() -> None:
 
 
 def test_fcnresnets() -> None:
-    def resnet_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
+    def fcn_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
         optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
 
         test_model.set_optimiser(optimiser)
@@ -168,13 +168,13 @@ def test_fcnresnets() -> None:
         FCN16ResNet34(criterion, input_size=input_size),
         FCN16ResNet50(criterion, input_size=input_size),
         FCN8ResNet18(criterion, input_size=input_size),
-        FCN8ResNet18(criterion, input_size=input_size),
+        FCN8ResNet18(criterion, input_size=input_size, torch_weights=True),
         FCN8ResNet34(criterion, input_size=input_size),
         FCN8ResNet50(criterion, input_size=input_size),
         FCN8ResNet101(criterion, input_size=input_size),
         FCN8ResNet152(criterion, input_size=input_size),
     ):
-        resnet_test(model, x, y)
+        fcn_test(model, x, y)
 
 
 def test_simclr() -> None:
