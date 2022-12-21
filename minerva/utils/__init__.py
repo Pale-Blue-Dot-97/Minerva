@@ -26,7 +26,7 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from minerva.utils.config_load import (
+from minerva.utils.config_load import (  # noqa: F401
     check_paths,
     load_configs,
     universal_path as universal_path,
