@@ -51,7 +51,7 @@ def test_check_paths(config_root: Path):
 
     assert path2 == exp_config
     assert config_name2 == exp_config
-    assert config_path2 == None
+    assert config_path2 is None
 
     # Change the working directory back to script location.
     os.chdir(cwd)
