@@ -213,7 +213,7 @@ def get_mlp_cmap(
 
 
 def discrete_heatmap(
-    data: NDArray[Shape["*, *"], Int],
+    data: NDArray[Shape["*, *"], Int],  # noqa: F722
     classes: Union[List[str], Tuple[str, ...]],
     cmap_style: Optional[Union[str, ListedColormap]] = None,
     block_size: int = 32,
@@ -259,10 +259,10 @@ def discrete_heatmap(
 
 
 def stack_rgb(
-    image: NDArray[Shape["3, *, *"], Float],
+    image: NDArray[Shape["3, *, *"], Float],  # noqa: F722
     rgb: Dict[str, int] = BAND_IDS,
     max_value: int = MAX_PIXEL_VALUE,
-) -> NDArray[Shape["*, *, 3"], Float]:
+) -> NDArray[Shape["*, *, 3"], Float]:  # noqa: F722
     """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
@@ -283,7 +283,7 @@ def stack_rgb(
 
     # Stack together RGB bands.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
-    rgb_image: NDArray[Shape["3, *, *"], Any] = np.dstack(
+    rgb_image: NDArray[Shape["3, *, *"], Any] = np.dstack(  # noqa: F722
         (channels[2], channels[1], channels[0])
     )
     assert isinstance(rgb_image, np.ndarray)
@@ -291,7 +291,9 @@ def stack_rgb(
 
 
 def make_rgb_image(
-    image: NDArray[Shape["3, *, *"], Float], rgb: Dict[str, int], block_size: int = 32
+    image: NDArray[Shape["3, *, *"], Float],  # noqa: F722
+    rgb: Dict[str, int],
+    block_size: int = 32,
 ) -> AxesImage:
     """Creates an RGB image from a composition of red, green and blue bands.
 
@@ -322,8 +324,8 @@ def make_rgb_image(
 
 
 def labelled_rgb_image(
-    image: NDArray[Shape["*, *, 3"], Float],
-    mask: NDArray[Shape["*, *"], Int],
+    image: NDArray[Shape["*, *, 3"], Float],  # noqa: F722
+    mask: NDArray[Shape["*, *"], Int],  # noqa: F722
     bounds: BoundingBox,
     src_crs: CRS,
     path: Union[str, Path],
@@ -465,8 +467,8 @@ def labelled_rgb_image(
 
 def make_gif(
     dates: List[str],
-    images: NDArray[Shape["*, *, *, 3"], Any],
-    masks: NDArray[Shape["*, *, *"], Any],
+    images: NDArray[Shape["*, *, *, 3"], Any],  # noqa: F722
+    masks: NDArray[Shape["*, *, *"], Any],  # noqa: F722
     bounds: BoundingBox,
     src_crs: CRS,
     classes: Union[List[str], Tuple[str, ...]],

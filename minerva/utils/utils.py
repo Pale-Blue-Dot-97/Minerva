@@ -636,7 +636,8 @@ def deg_to_dms(deg: float, axis: str = "lat") -> str:
 
 
 def dec2deg(
-    dec_co: Union[Sequence[float], NDArray[Shape["*"], Float]], axis: str = "lat"
+    dec_co: Union[Sequence[float], NDArray[Shape["*"], Float]],
+    axis: str = "lat",  # noqa: F722
 ) -> List[str]:
     """Wrapper for :func:`deg_to_dms`.
 
@@ -1295,7 +1296,9 @@ def print_class_dist(
     print(tabulate(df, headers="keys", tablefmt="psql"))  # type: ignore
 
 
-def batch_flatten(x: Union[NDArray[Any, Any], ArrayLike]) -> NDArray[Shape["*"], Any]:
+def batch_flatten(
+    x: Union[NDArray[Any, Any], ArrayLike]
+) -> NDArray[Shape["*"], Any]:  # noqa: F722
     """Flattens the supplied array with :func:`numpy`.
 
     Args:
@@ -1660,8 +1663,8 @@ def tsne_cluster(
 
 
 def calc_norm_euc_dist(
-    a: Union[Sequence[int], NDArray[Shape["*"], Int]],
-    b: Union[Sequence[int], NDArray[Shape["*"], Int]],
+    a: Union[Sequence[int], NDArray[Shape["*"], Int]],  # noqa: F722
+    b: Union[Sequence[int], NDArray[Shape["*"], Int]],  # noqa: F722
 ) -> float:
     """Calculates the normalised Euclidean distance between two vectors.
 
