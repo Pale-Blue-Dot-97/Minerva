@@ -1,3 +1,4 @@
+# flake8: noqa: F401
 from .core import (
     MinervaModel as MinervaModel,
     MinervaDataParallel as MinervaDataParallel,
