@@ -88,7 +88,7 @@ def check_paths(
 
         if str(head) != "" or str(head) is not None:
             config_path = head
-        elif head == "" or head is None:
+        elif str(head) == "" or head is None:
             config_path = Path("")
 
         config_name = tail
