@@ -309,7 +309,7 @@ def get_torch_weights(weights_name: str) -> WeightsEnum:
 
 def get_output_shape(
     model: Module,
-    image_dim: Union[Tuple[int, ...], List[int]],
+    image_dim: Union[Tuple[int, ...], List[int], int],
     sample_pairs: bool = False,
 ) -> Union[int, Sequence[int]]:
     """Gets the output shape of a model.
@@ -323,15 +323,15 @@ def get_output_shape(
     """
     _image_dim: Union[Tuple[int, ...], List[int], int] = image_dim
     try:
+        assert not isinstance(image_dim, int)
         if len(image_dim) == 1:
             _image_dim = image_dim[0]
-    except TypeError:
+    except (AssertionError, TypeError):
         if not hasattr(image_dim, "__len__"):
             pass
-        else:
-            raise TypeError
 
     if not hasattr(_image_dim, "__len__"):
+        assert isinstance(_image_dim, int)
         random_input = torch.rand([4, _image_dim])
     elif sample_pairs:
         assert isinstance(_image_dim, Iterable)
