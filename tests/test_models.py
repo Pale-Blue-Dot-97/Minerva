@@ -1,17 +1,10 @@
-import numpy as np
-import pytest
 import torch
-from torch import Tensor, LongTensor
+from torch import Tensor
 import torch.nn.modules as nn
 from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
 from minerva.models import (
     MinervaModel,
-    ResNet18,
-    ResNet34,
-    ResNet50,
-    ResNet101,
-    ResNet152,
     SimCLR18,
     SimCLR34,
     SimCLR50,
@@ -32,64 +25,6 @@ from minerva.models import (
 )
 
 criterion = nn.CrossEntropyLoss()
-
-
-def test_resnets() -> None:
-    def resnet_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
-        optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
-
-        test_model.set_optimiser(optimiser)
-
-        test_model.determine_output_dim()
-        assert test_model.output_shape is test_model.n_classes
-
-        loss, z = test_model.step(x, y, True)
-
-        assert type(loss.item()) is float
-        assert isinstance(z, Tensor)
-        assert z.size() == (6, 8)
-
-    with pytest.raises(ValueError):
-        _ = ResNet18(replace_stride_with_dilation=(True, False))  # type: ignore[arg-type]
-
-    input_size = (4, 64, 64)
-
-    x = torch.rand(6, *input_size)
-    y = LongTensor(np.random.randint(0, 8, size=6))
-
-    for zero_init_residual in (True, False):
-
-        resnet18 = ResNet18(
-            criterion, input_size=input_size, zero_init_residual=zero_init_residual
-        )
-
-        resnet_test(resnet18, x, y)
-
-    for model in (
-        ResNet34(criterion, input_size=input_size),
-        ResNet50(criterion, input_size=input_size),
-        ResNet50(
-            criterion,
-            input_size=input_size,
-            replace_stride_with_dilation=(True, True, False),
-            zero_init_residual=True,
-        ),
-        ResNet101(criterion, input_size=input_size),
-        ResNet152(criterion, input_size=input_size),
-    ):
-        resnet_test(model, x, y)
-
-    encoder = ResNet18(criterion, input_size=input_size, encoder=True)
-    optimiser = torch.optim.SGD(encoder.parameters(), lr=1.0e-3)
-
-    encoder.set_optimiser(optimiser)
-
-    encoder.determine_output_dim()
-    print(encoder.output_shape)
-    assert encoder.output_shape == (512, 2, 2)
-
-    x = torch.rand(6, *input_size)
-    assert len(encoder(x)) == 5
 
 
 def test_fcnresnets() -> None:
