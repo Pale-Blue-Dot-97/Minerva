@@ -3,9 +3,11 @@ import numpy as np
 import torch
 from torch import Tensor
 from torch.nn.modules import Module
+from torchvision.models._api import WeightsEnum
 from lightly.loss import NTXentLoss
+import internet_sabotage
 
-from minerva.models import SimCLR18
+from minerva.models import SimCLR18, get_torch_weights
 from minerva.models.__depreciated import MLP
 
 
@@ -54,3 +56,12 @@ def test_minerva_backbone() -> None:
 
 def test_minerva_dataparallel() -> None:
     pass
+
+
+def test_get_torch_weights() -> None:
+    weights = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
+
+    assert isinstance(weights, WeightsEnum)
+
+    with internet_sabotage.no_connection():
+        weights = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
