@@ -7,7 +7,7 @@ from torchvision.models._api import WeightsEnum
 from lightly.loss import NTXentLoss
 import internet_sabotage
 
-from minerva.models import SimCLR18, get_torch_weights
+from minerva.models import SimCLR18, get_torch_weights, get_output_shape
 from minerva.models.__depreciated import MLP
 
 
@@ -65,3 +65,9 @@ def test_get_torch_weights() -> None:
 
     with internet_sabotage.no_connection():
         weights = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
+
+
+def test_get_output_shape(exp_mlp) -> None:
+    output_shape = get_output_shape(exp_mlp, 64)
+
+    assert output_shape == 8
