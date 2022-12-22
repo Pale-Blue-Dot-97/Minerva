@@ -1,8 +1,11 @@
+from typing import Tuple
 import pytest
 from pathlib import Path
 import os
 import shutil
 import torch.nn.modules as nn
+
+from minerva.models import MinervaModel, MLP, CNN
 
 
 @pytest.fixture
@@ -45,3 +48,18 @@ def config_here():
 @pytest.fixture
 def x_entropy_loss():
     return nn.CrossEntropyLoss()
+
+
+@pytest.fixture
+def rgbi_input_size() -> Tuple[int, int, int]:
+    return (4, 64, 64)
+
+
+@pytest.fixture
+def exp_mlp(x_entropy_loss) -> MinervaModel:
+    return MLP(x_entropy_loss, 64)
+
+
+@pytest.fixture
+def exp_cnn(x_entropy_loss, rgbi_input_size) -> MinervaModel:
+    return CNN(x_entropy_loss, rgbi_input_size)
