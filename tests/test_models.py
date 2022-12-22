@@ -1,67 +1,17 @@
 import torch
-from torch import Tensor
 import torch.nn.modules as nn
 from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
 from minerva.models import (
-    MinervaModel,
     SimCLR18,
     SimCLR34,
     SimCLR50,
     SimSiam18,
     SimSiam34,
     SimSiam50,
-    FCN8ResNet18,
-    FCN8ResNet34,
-    FCN8ResNet50,
-    FCN8ResNet101,
-    FCN8ResNet152,
-    FCN16ResNet18,
-    FCN16ResNet34,
-    FCN16ResNet50,
-    FCN32ResNet18,
-    FCN32ResNet34,
-    FCN32ResNet50,
 )
 
 criterion = nn.CrossEntropyLoss()
-
-
-def test_fcnresnets() -> None:
-    def fcn_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
-        optimiser = torch.optim.SGD(test_model.parameters(), lr=1.0e-3)
-
-        test_model.set_optimiser(optimiser)
-
-        test_model.determine_output_dim()
-        assert test_model.output_shape == (64, 64)
-
-        loss, z = test_model.step(x, y, True)
-
-        assert type(loss.item()) is float
-        assert isinstance(z, Tensor)
-        assert z.size() == (6, 8, 64, 64)
-
-    input_size = (4, 64, 64)
-
-    x = torch.rand((6, *input_size))
-    y = torch.randint(0, 8, (6, 64, 64))  # type: ignore[attr-defined]
-
-    for model in (
-        FCN32ResNet18(criterion, input_size=input_size),
-        FCN32ResNet34(criterion, input_size=input_size),
-        FCN32ResNet50(criterion, input_size=input_size),
-        FCN16ResNet18(criterion, input_size=input_size),
-        FCN16ResNet34(criterion, input_size=input_size),
-        FCN16ResNet50(criterion, input_size=input_size),
-        FCN8ResNet18(criterion, input_size=input_size),
-        FCN8ResNet18(criterion, input_size=input_size, torch_weights=True),
-        FCN8ResNet34(criterion, input_size=input_size),
-        FCN8ResNet50(criterion, input_size=input_size),
-        FCN8ResNet101(criterion, input_size=input_size),
-        FCN8ResNet152(criterion, input_size=input_size),
-    ):
-        fcn_test(model, x, y)
 
 
 def test_simclr() -> None:
