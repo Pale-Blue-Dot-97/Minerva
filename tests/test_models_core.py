@@ -2,11 +2,14 @@ import pytest
 import numpy as np
 import torch
 from torch import Tensor
+from torch.nn.modules import Module
+from lightly.loss import NTXentLoss
 
+from minerva.models import SimCLR18
 from minerva.models.__depreciated import MLP
 
 
-def test_minervamodel(x_entropy_loss) -> None:
+def test_minerva_model(x_entropy_loss) -> None:
     x = torch.rand(16, (288))
     y = torch.LongTensor(np.random.randint(0, 8, size=16))
 
@@ -38,3 +41,16 @@ def test_minervamodel(x_entropy_loss) -> None:
         assert type(loss.item()) is float
         assert isinstance(z, Tensor)
         assert z.size() == (16, 8)
+
+
+def test_minerva_backbone() -> None:
+    loss_func = NTXentLoss(0.3)
+    input_size = (4, 64, 64)
+
+    model = SimCLR18(loss_func, input_size=input_size)
+
+    assert isinstance(model.get_backbone(), Module)
+
+
+def test_minerva_dataparallel() -> None:
+    pass
