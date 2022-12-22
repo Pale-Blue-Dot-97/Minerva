@@ -2,6 +2,7 @@ import pytest
 from pathlib import Path
 import os
 import shutil
+import torch.nn.modules as nn
 
 
 @pytest.fixture
@@ -39,3 +40,8 @@ def config_here():
     yield here
 
     os.unlink(here / "exp_mf_config.yml")
+
+
+@pytest.fixture
+def x_entropy_loss():
+    return nn.CrossEntropyLoss()
