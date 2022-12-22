@@ -7,7 +7,7 @@ from torchvision.models._api import WeightsEnum
 from lightly.loss import NTXentLoss
 import internet_sabotage
 
-from minerva.models import SimCLR18, get_torch_weights, get_output_shape
+from minerva.models import SimCLR18, get_torch_weights, get_output_shape, bilinear_init
 from minerva.models.__depreciated import MLP
 
 
@@ -71,3 +71,8 @@ def test_get_output_shape(exp_mlp) -> None:
     output_shape = get_output_shape(exp_mlp, 64)
 
     assert output_shape == 8
+
+
+def test_bilinear_init() -> None:
+    weights = bilinear_init(12, 12, 5)
+    assert isinstance(weights, Tensor)
