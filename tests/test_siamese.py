@@ -1,5 +1,4 @@
 import torch
-import torch.nn.modules as nn
 from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
 from minerva.models import (
@@ -10,8 +9,6 @@ from minerva.models import (
     SimSiam34,
     SimSiam50,
 )
-
-criterion = nn.CrossEntropyLoss()
 
 
 def test_simclr() -> None:
