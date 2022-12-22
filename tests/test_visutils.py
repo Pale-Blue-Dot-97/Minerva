@@ -7,7 +7,8 @@ from nptyping import NDArray, Shape
 
 import numpy as np
 import pytest
-from matplotlib.colors import ListedColormap
+import matplotlib as mlp
+from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.image import AxesImage
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
@@ -69,6 +70,13 @@ def test_dec_extent_to_deg() -> None:
     assert corners == (0, 224, 0, 224)
     assert lat == pytest.approx(list(correct_lat))
     assert lon == pytest.approx(list(correct_lon))
+
+
+def test_get_mlp_cmap() -> None:
+    og_cmap = mlp.colormaps["viridis"]  # type: ignore
+
+    cmap = visutils.get_mlp_cmap(og_cmap, 8)
+    assert isinstance(cmap, Colormap)
 
 
 def test_discrete_heatmap() -> None:
