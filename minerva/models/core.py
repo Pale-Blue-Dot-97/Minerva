@@ -301,7 +301,8 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
                 name=weights_name,
                 source="local",
             )
-        except FileNotFoundError:
+        except FileNotFoundError as err:
+            print(err)
             weights = None
 
     return weights
