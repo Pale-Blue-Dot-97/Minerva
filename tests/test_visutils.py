@@ -12,7 +12,6 @@ from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.image import AxesImage
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
-from torchgeo.datasets.utils import BoundingBox
 
 from minerva.utils import utils, visutils
 
@@ -71,10 +70,11 @@ def test_get_mlp_cmap() -> None:
     assert isinstance(cmap, Colormap)
 
 
-def test_discrete_heatmap() -> None:
-    data = np.random.randint(0, 7, size=(224, 224))
+def test_discrete_heatmap(random_mask) -> None:
     cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
-    visutils.discrete_heatmap(data, list(utils.CLASSES.values()), cmap_style=cmap)
+    visutils.discrete_heatmap(
+        random_mask, list(utils.CLASSES.values()), cmap_style=cmap
+    )
 
 
 def test_stack_rgb() -> None:
@@ -104,11 +104,10 @@ def test_stack_rgb() -> None:
     assert_array_equal(result_2, correct)
 
 
-def test_make_rgb_image() -> None:
-    image = np.random.rand(3, 224, 224)
+def test_make_rgb_image(random_image) -> None:
     rgb = {"R": 0, "G": 1, "B": 2}
 
-    assert type(visutils.make_rgb_image(image, rgb)) is AxesImage
+    assert type(visutils.make_rgb_image(random_image, rgb)) is AxesImage
 
 
 def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> None:
