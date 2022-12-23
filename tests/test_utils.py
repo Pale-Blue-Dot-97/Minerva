@@ -124,22 +124,20 @@ def test_ohe_labels() -> None:
     assert_array_equal(correct_targets, targets)
 
 
-def test_empty_classes() -> None:
+def test_empty_classes(exp_classes) -> None:
     labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
-    classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
-    assert utils.find_empty_classes(labels, classes) == [0, 2]
+    assert utils.find_empty_classes(labels, exp_classes) == [0, 2]
 
 
-def test_eliminate_classes() -> None:
+def test_eliminate_classes(exp_classes) -> None:
     empty = [0, 2]
-    old_classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     old_cmap = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
     new_cmap = {0: "5", 1: "1", 2: "4", 3: "3"}
     conversion = {1: 1, 3: 3, 4: 2, 5: 0}
 
     results = utils.eliminate_classes(
-        empty_classes=empty, old_classes=old_classes, old_cmap=old_cmap
+        empty_classes=empty, old_classes=exp_classes, old_cmap=old_cmap
     )
 
     assert new_classes == results[0]
@@ -147,15 +145,14 @@ def test_eliminate_classes() -> None:
     assert new_cmap == results[2]
 
 
-def test_check_test_empty() -> None:
-    old_classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+def test_check_test_empty(exp_classes) -> None:
     new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
     old_labels_1 = [1, 1, 3, 5, 1, 4, 1, 5, 3]
     new_labels = [1, 1, 3, 0, 1, 2, 1, 0, 3]
     old_pred_1 = [1, 4, 1, 5, 1, 4, 1, 5, 1]
     new_pred = [1, 2, 1, 0, 1, 2, 1, 0, 1]
 
-    results_1 = utils.check_test_empty(old_pred_1, old_labels_1, old_classes)
+    results_1 = utils.check_test_empty(old_pred_1, old_labels_1, exp_classes)
 
     assert_array_equal(results_1[0], new_pred)
     assert_array_equal(results_1[1], new_labels)
@@ -164,31 +161,30 @@ def test_check_test_empty() -> None:
     old_labels_2 = [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1]
     old_pred_2 = [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1]
 
-    results_2 = utils.check_test_empty(old_pred_2, old_labels_2, old_classes)
+    results_2 = utils.check_test_empty(old_pred_2, old_labels_2, exp_classes)
 
     assert_array_equal(results_2[0], old_pred_2)
     assert_array_equal(results_2[1], old_labels_2)
-    assert results_2[2] == old_classes
+    assert results_2[2] == exp_classes
 
     old_labels_3: NDArray[Shape["11"], Int] = np.array(old_labels_2)
     old_pred_3: NDArray[Shape["11"], Int] = np.array(old_pred_2)
 
-    results_3 = utils.check_test_empty(old_pred_3, old_labels_3, old_classes)
+    results_3 = utils.check_test_empty(old_pred_3, old_labels_3, exp_classes)
 
     assert_array_equal(results_3[0], old_pred_3)
     assert_array_equal(results_3[1], old_labels_3)
-    assert results_3[2] == old_classes
+    assert results_3[2] == exp_classes
 
 
-def test_find_modes() -> None:
-    classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+def test_find_modes(exp_classes) -> None:
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
     class_dist = utils.find_modes(labels, plot=True)
 
     assert class_dist == [(1, 4), (3, 3), (5, 2), (4, 1)]
 
-    utils.print_class_dist(class_dist, classes)
+    utils.print_class_dist(class_dist, exp_classes)
 
 
 def test_file_check() -> None:
