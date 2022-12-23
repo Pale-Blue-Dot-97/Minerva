@@ -196,11 +196,8 @@ def get_mlp_cmap(
     """
     cmap: Optional[Colormap] = None
 
-    if isinstance(cmap_style, ListedColormap):
-        return cmap_style
-
     if cmap_style:
-        if not isinstance(cmap_style, ListedColormap):
+        if isinstance(cmap_style, str):
             cmap = mlp.colormaps[cmap_style]  # type: ignore
         else:
             cmap = cmap_style
