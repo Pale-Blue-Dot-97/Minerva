@@ -1,10 +1,11 @@
-import os
+from typing import Any, Dict, List, Union
+from pathlib import Path
 from collections import defaultdict
-
 from numpy.testing import assert_array_equal
 import pandas as pd
 import pytest
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset
 from torchgeo.datasets.utils import BoundingBox
@@ -14,9 +15,9 @@ from rasterio.crs import CRS
 from minerva import datasets as mdt
 from minerva.utils.utils import CONFIG, set_seeds
 
-data_root = os.path.join("tests", "tmp")
-img_root = os.path.join(data_root, "data", "test_images")
-lc_root = os.path.join(data_root, "data", "test_lc")
+data_root = Path("tests", "tmp")
+img_root = str(data_root / "data" / "test_images")
+lc_root = str(data_root / "data" / "test_lc")
 
 bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
 
@@ -78,13 +79,13 @@ def test_stack_sample_pairs() -> None:
     mask_2 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
     bbox_2 = [BoundingBox(0, 1, 0, 1, 0, 1)]
 
-    sample_1 = {
+    sample_1: Dict[str, Union[Tensor, List[Any]]] = {
         "image": image_1,
         "mask": mask_1,
         "bbox": bbox_1,
     }
 
-    sample_2 = {
+    sample_2: Dict[str, Union[Tensor, List[Any]]] = {
         "image": image_2,
         "mask": mask_2,
         "bbox": bbox_2,
@@ -128,14 +129,14 @@ def test_make_dataset() -> None:
 
     dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
 
-    assert type(dataset_1) == type(subdatasets_1[0])
+    assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, mdt.TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
         data_dir, dataset_params, transform_params, sample_pairs=True
     )
 
-    assert type(dataset_2) == type(subdatasets_2[0])
+    assert isinstance(dataset_2, type(subdatasets_2[0]))
     assert isinstance(dataset_2, mdt.PairedDataset)
 
 
@@ -176,7 +177,7 @@ def test_construct_dataloader() -> None:
         "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
     }
 
-    dataloader_params = {"batch_size": 256, "num_workers": 10, "pin_memory": True}
+    dataloader_params = {"batch_size": 256, "num_workers": 4, "pin_memory": True}
 
     dataloader_1 = mdt.construct_dataloader(
         data_dir, dataset_params, sampler_params_1, dataloader_params
@@ -263,22 +264,22 @@ def test_make_loaders() -> None:
 
 
 def test_get_manifest_path() -> None:
-    assert mdt.get_manifest_path() == os.path.join(
-        "tests", "tmp", "cache", "Chesapeake7_Manifest.csv"
+    assert mdt.get_manifest_path() == str(
+        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
     )
 
 
 def test_get_manifest() -> None:
-    manifest_path = os.path.join("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
+    manifest_path = Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
 
-    if os.path.exists(manifest_path):
-        os.remove(os.path.join("tests", "tmp", "cache", "Chesapeake7_Manifest.csv"))
+    if manifest_path.exists():
+        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv").unlink()
 
     assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
     assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
 
-    if os.path.exists(manifest_path):
-        os.remove(os.path.join("tests", "tmp", "cache", "Chesapeake7_Manifest.csv"))
+    if manifest_path.exists():
+        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv").unlink()
 
 
 """

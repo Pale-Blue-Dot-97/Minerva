@@ -25,8 +25,9 @@
 import abc
 from abc import ABC
 import math
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, SupportsFloat
 
+import mlflow
 import numpy as np
 import torch
 from torch import Tensor
@@ -89,6 +90,7 @@ class MinervaLogger(ABC):
         self.n_batches = n_batches
         self.batch_size = batch_size
         self.n_samples = n_samples
+        self.writer = None
 
         self.logs: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}
@@ -137,6 +139,21 @@ class MinervaLogger(ABC):
             None
         """
         pass
+
+    def write_metric(self, key: str, value: SupportsFloat, step_num=None):
+        """Write metric values to logging backends after calculation
+        TODO? Are values being reduced across nodes / logged from rank 0?"""
+        if self.writer:
+            self.writer.add_scalar(
+                tag=key,
+                scalar_value=value,  # type: ignore[attr-defined]
+                global_step=step_num,
+            )
+
+        if mlflow.active_run():
+            # If running in Azure Machine Learning, tracking URI / experiment ID set already
+            # https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-mlflow-cli-runs?tabs=python%2Cmlflow#creating-a-training-routine  # noqa: E501
+            mlflow.log_metric(key, value)
 
     @property
     def get_logs(self) -> Dict[str, Any]:
@@ -267,10 +284,15 @@ class STG_Logger(MinervaLogger):
         Returns:
             None
         """
+
         assert z is not None
+        assert y is not None
+
+        # TODO - consider a deeper change where trainer accesses the writer through the logger
+        # Worth reading through how `timm` handles tf/wandb/other logging
+        self.writer = writer
 
         if self.record_int:
-            assert y is not None
             # Arg max the estimated probabilities and add to predictions.
             self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()  # type: ignore[attr-defined]
 
@@ -303,14 +325,15 @@ class STG_Logger(MinervaLogger):
             y_true = y.detach().cpu().numpy()
             y_pred = torch.argmax(z, 1).detach().cpu().numpy()  # type: ignore[attr-defined]
             for i in range(len(y)):
-                self.logs["total_miou"] += jaccard_score(y_true[i].flatten(), y_pred[i].flatten(), average="macro")  # type: ignore[attr-defined]
+
+                self.logs["total_miou"] += jaccard_score(
+                    y_true[i].flatten(), y_pred[i].flatten(), average="macro"
+                )  # noqa: E501 type: ignore[attr-defined]
 
         # Writes loss and correct predictions to the writer.
-        writer.add_scalar(tag=f"{mode}_loss", scalar_value=ls, global_step=step_num)
-        writer.add_scalar(
-            tag=f"{mode}_acc",
-            scalar_value=correct / len(torch.flatten(y)),  # type: ignore[attr-defined]
-            global_step=step_num,
+        self.write_metric(f"{mode}_loss", ls, step_num=step_num)
+        self.write_metric(
+            f"{mode}_acc", correct / len(torch.flatten(y)), step_num=step_num
         )
 
         # Adds 1 to batch number (step number).
@@ -390,6 +413,8 @@ class SSL_Logger(MinervaLogger):
         """
         assert z is not None
 
+        self.writer = writer
+
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
@@ -406,7 +431,7 @@ class SSL_Logger(MinervaLogger):
             for i in range(len(z_a)):
                 euc_dists.append(
                     utils.calc_norm_euc_dist(
-                        z_a[i].detach().numpy(), z_b[i].detach().numpy()
+                        z_a[i].detach().cpu().numpy(), z_b[i].detach().cpu().numpy()
                     )
                 )
 
@@ -441,17 +466,9 @@ class SSL_Logger(MinervaLogger):
         self.logs["total_top5"] += top5
 
         # Writes the loss to the writer.
-        writer.add_scalar(tag=f"{mode}_loss", scalar_value=ls, global_step=step_num)
-        writer.add_scalar(
-            tag=f"{mode}_acc",
-            scalar_value=correct / 2 * len(z[0]),
-            global_step=step_num,
-        )
-        writer.add_scalar(
-            tag=f"{mode}_top5_acc",
-            scalar_value=top5 / 2 * len(z[0]),
-            global_step=step_num,
-        )
+        self.write_metric(f"{mode}_loss", ls, step_num=step_num)
+        self.write_metric(f"{mode}_acc", correct / 2 * len(z[0]), step_num)
+        self.write_metric(f"{mode}_top5_acc", top5 / 2 * len(z[0]), step_num)
 
         # Adds 1 to the batch number (step number).
         self.logs["batch_num"] += 1

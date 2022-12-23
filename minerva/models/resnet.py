@@ -808,10 +808,14 @@ class ResNet152(MinervaModel, ABC):
 # =====================================================================================================================
 def _preload_weights(
     resnet: ResNet,
-    weights: Union[WeightsEnum, Any],
+    weights: Optional[Union[WeightsEnum, Any]],
     input_shape: Tuple[int, int, int],
     encoder_on: bool,
 ) -> ResNet:
+
+    if not weights:
+        print("Weights are None! The original resnet will be used")
+        return resnet
 
     if isinstance(weights, WeightsEnum):
         weights = weights.get_state_dict(True)

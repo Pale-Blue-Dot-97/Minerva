@@ -23,17 +23,13 @@
 Attributes:
     config_path (str): Path to master config YAML file.
     config (dict): Master config defining how the experiment should be conducted.
-
-TODO:
-    * Re-engineer for use with torchvision style datasets
-    * Consider use of parquet format rather than csv
 """
+# TODO: Re-engineer for use with torchvision style datasets.
+# TODO: Consider use of parquet format rather than csv.
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import os
-
-from minerva.utils import CONFIG, utils
+from minerva.utils import CONFIG, utils, universal_path
 from minerva.datasets import make_manifest
 
 # =====================================================================================================================
@@ -53,9 +49,9 @@ def main():
 
     print(manifest)
 
-    output_dir = os.sep.join(CONFIG["dir"]["cache"])
+    output_dir = universal_path(CONFIG["dir"]["cache"])
 
-    fn = os.sep.join([output_dir, f"{utils.get_dataset_name()}_Manifest.csv"])
+    fn = output_dir / f"{utils.get_dataset_name()}_Manifest.csv"
 
     print(f"MANIFEST TO FILE -----> {fn}")
     manifest.to_csv(fn)

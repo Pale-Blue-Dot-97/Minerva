@@ -64,7 +64,8 @@ class ClassTransform:
         Returns:
             LongTensor: Mask transformed into new label schema.
         """
-        return mask_transform(mask, self.transform)
+        transformed: LongTensor = mask_transform(mask, self.transform)
+        return transformed
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(transform={self.transform})"

@@ -1,9 +1,8 @@
 ---
 name: Ubuntu-Py310
 
-on:
-    - push
-    - pull_request
+# on: [push, pull_request]
+on: [pull_request]
 
 jobs:
     test:

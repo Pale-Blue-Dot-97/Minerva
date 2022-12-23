@@ -27,6 +27,7 @@ import abc
 from abc import ABC
 from typing import (
     Any,
+    Callable,
     Iterable,
     List,
     Optional,
@@ -37,6 +38,7 @@ from typing import (
     overload,
 )
 import os
+from pathlib import Path
 from nptyping import NDArray
 import numpy as np
 import torch
@@ -45,6 +47,8 @@ from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 from torch.optim import Optimizer
 from torchvision.models._api import WeightsEnum
+
+from minerva.utils.utils import func_by_str
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -62,6 +66,7 @@ __all__ = [
     "get_output_shape",
     "bilinear_init",
 ]
+
 
 # =====================================================================================================================
 #                                                     CLASSES
@@ -257,41 +262,55 @@ class MinervaDataParallel(Module):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_torch_weights(weights_name: str) -> WeightsEnum:
+def get_model(model_name: str) -> Callable[..., MinervaModel]:
+    """Returns the constructor of the ``model_name`` in :mod:`models`.
+
+    Args:
+        model_name (str): Name of the model to get.
+
+    Returns:
+        Callable[..., MinervaModel]: Constructor of the model requested.
+    """
+    model: Callable[..., MinervaModel] = func_by_str("minerva.models", model_name)
+    return model
+
+
+def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
     """Loads pre-trained model weights from ``torchvision`` via Torch Hub API.
 
     Args:
         weights_name (str): Name of model weights. See ... for a list of possible pre-trained weights.
 
     Returns:
-        WeightsEnum: API query for the specified weights. See note on use:
-
-    Raises:
-        OSError: If no internet connection, ``OSError`` 101 will be raised. Reverts to using local cache.
+        Optional[WeightsEnum]: API query for the specified weights. None if query cannot be found. See note on use:
 
     Note:
         This function only returns a query for the API of the weights. To actually use them, you need to call
         ``get_state_dict(progress)`` where progress is a ``bool`` on whether to show a progress bar for the
         downloading of the weights (if not already in cache).
     """
-    weights: WeightsEnum
+    weights: Optional[WeightsEnum] = None
     try:
         weights = torch.hub.load("pytorch/vision", "get_weight", name=weights_name)
     except OSError:
-        th_dir = os.environ.get("TORCH_HUB", os.path.expanduser("~/.cache/torch/hub"))
-        weights = torch.hub.load(
-            f"{th_dir}/pytorch_vision_main",
-            "get_weight",
-            name=weights_name,
-            source="local",
-        )
+        th_dir = os.environ.get("TORCH_HUB", Path("~/.cache/torch/hub").expanduser())
+        try:
+            weights = torch.hub.load(
+                f"{th_dir}/pytorch_vision_main",
+                "get_weight",
+                name=weights_name,
+                source="local",
+            )
+        except FileNotFoundError as err:
+            print(err)
+            weights = None
 
     return weights
 
 
 def get_output_shape(
     model: Module,
-    image_dim: Union[Tuple[int, ...], List[int]],
+    image_dim: Union[Tuple[int, ...], List[int], int],
     sample_pairs: bool = False,
 ) -> Union[int, Sequence[int]]:
     """Gets the output shape of a model.
@@ -305,15 +324,15 @@ def get_output_shape(
     """
     _image_dim: Union[Tuple[int, ...], List[int], int] = image_dim
     try:
+        assert not isinstance(image_dim, int)
         if len(image_dim) == 1:
             _image_dim = image_dim[0]
-    except TypeError:
+    except (AssertionError, TypeError):
         if not hasattr(image_dim, "__len__"):
             pass
-        else:
-            raise TypeError
 
     if not hasattr(_image_dim, "__len__"):
+        assert isinstance(_image_dim, int)
         random_input = torch.rand([4, _image_dim])
     elif sample_pairs:
         assert isinstance(_image_dim, Iterable)
