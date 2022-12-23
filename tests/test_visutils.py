@@ -29,20 +29,12 @@ def test_de_interlace() -> None:
     assert_array_equal(visutils.de_interlace(x, 3), x2)
 
 
-def test_dec_extent_to_deg() -> None:
+def test_dec_extent_to_deg(bounds_for_test_img) -> None:
     shape = (224, 224)
     new_crs = CRS.from_epsg(26918)
-    bounds = BoundingBox(
-        -1.4153283567520825,
-        -1.3964510733477618,
-        50.91896360773007,
-        50.93781998522083,
-        1.0,
-        2.0,
-    )
 
     corners, lat, lon = visutils.dec_extent_to_deg(
-        shape, bounds, src_crs=visutils.WGS84, new_crs=new_crs
+        shape, bounds_for_test_img, src_crs=visutils.WGS84, new_crs=new_crs
     )
 
     correct_lat = [
@@ -119,26 +111,15 @@ def test_make_rgb_image() -> None:
     assert type(visutils.make_rgb_image(image, rgb)) is AxesImage
 
 
-def test_labelled_rgb_image() -> None:
-    image = np.random.rand(224, 224, 3)
-    mask = np.random.randint(0, 7, size=(224, 224))
-    bounds = BoundingBox(
-        -1.4153283567520825,
-        -1.3964510733477618,
-        50.91896360773007,
-        50.93781998522083,
-        1.0,
-        2.0,
-    )
-
+def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> None:
     path = tempfile.gettempdir()
     name = "pretty_pic"
     cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
 
     fn = visutils.labelled_rgb_image(
-        image,
-        mask,
-        bounds,
+        random_image,
+        random_mask,
+        bounds_for_test_img,
         visutils.WGS84,
         path,
         name,
@@ -151,18 +132,10 @@ def test_labelled_rgb_image() -> None:
     assert fn == correct_fn
 
 
-def test_make_gif() -> None:
+def test_make_gif(bounds_for_test_img) -> None:
     dates = ["2018-01-15", "2018-07-03", "2018-11-30"]
     images = np.random.rand(3, 32, 32, 3)
     masks = np.random.randint(0, 7, size=(3, 32, 32))
-    bounds = BoundingBox(
-        -1.4153283567520825,
-        -1.3964510733477618,
-        50.91896360773007,
-        50.93781998522083,
-        1.0,
-        2.0,
-    )
 
     path = Path(os.getcwd(), "tmp")
 
@@ -177,7 +150,7 @@ def test_make_gif() -> None:
         dates,
         images,
         masks,
-        bounds,
+        bounds_for_test_img,
         visutils.WGS84,
         list(utils.CLASSES.values()),
         gif_fn,
@@ -189,22 +162,17 @@ def test_make_gif() -> None:
     shutil.rmtree(path)
 
 
-def test_prediction_plot() -> None:
-    image = np.random.rand(224, 224, 3)
-    mask = np.random.randint(0, 7, size=(224, 224))
+def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None:
     pred = np.random.randint(0, 7, size=(224, 224))
-    bounds = BoundingBox(
-        -1.4153283567520825,
-        -1.3964510733477618,
-        50.91896360773007,
-        50.93781998522083,
-        1.0,
-        2.0,
-    )
 
     src_crs = utils.WGS84
 
-    sample = {"image": image, "mask": mask, "pred": pred, "bounds": bounds}
+    sample = {
+        "image": random_image,
+        "mask": random_mask,
+        "pred": pred,
+        "bounds": bounds_for_test_img,
+    }
     visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
 
 
@@ -335,3 +303,13 @@ def test_plot_results() -> None:
         colours=utils.CMAP_DICT,
         save=False,
     )
+
+
+# def test_plot_embeddings() -> None:
+#    visutils.plot_embedding(
+#        embeddings.detach().cpu(),
+#        data["bbox"],
+#        "test",
+#        show=True,
+#        filename="tsne_cluster_vis.png",
+#    )
