@@ -6,6 +6,7 @@ from minerva.utils import runner
 
 set_seeds(42)
 
+
 def test_trainer() -> None:
     args = argparse.Namespace()
 
@@ -25,11 +26,14 @@ def test_trainer() -> None:
 
 def distributed_config(params: dict) -> dict:
     """Overwrite default config options with pickle-safe sampler"""
-    params['sampler_params']['train'] = {'module': 'minerva.samplers', 'name': 'RandomPairGeoSampler'}
+    params["sampler_params"]["train"] = {
+        "module": "minerva.samplers",
+        "name": "RandomPairGeoSampler",
+    }
     return params
 
 
-def run_trainer(args: argparse.Namespace=None):
+def run_trainer(args: argparse.Namespace = None):
     params = CONFIG.copy()
     if args.distributed:
         params = distributed_config(params)
