@@ -10,7 +10,7 @@ set_seeds(42)
 def test_trainer() -> None:
     args = argparse.Namespace()
 
-    if torch.distributed.is_available():
+    if torch.distributed.is_available():  # type: ignore
         # Assumes distributed tests are single node
         args.rank = 0
         args.dist_url = "tcp://localhost:58472"
@@ -21,22 +21,13 @@ def test_trainer() -> None:
 
     else:
         args.gpu = 0
-        run_trainer(args)
+        run_trainer(args.gpu, args)
 
 
-def distributed_config(params: dict) -> dict:
-    """Overwrite default config options with pickle-safe sampler"""
-    params["sampler_params"]["train"] = {
-        "module": "minerva.samplers",
-        "name": "RandomPairGeoSampler",
-    }
-    return params
-
-
-def run_trainer(args: argparse.Namespace = None):
+def run_trainer(gpu: int, args: argparse.Namespace):
+    args.gpu = gpu
     params = CONFIG.copy()
-    if args.distributed:
-        params = distributed_config(params)
+
     trainer = Trainer(gpu=args.gpu, **params)
     assert isinstance(trainer, Trainer)
 
