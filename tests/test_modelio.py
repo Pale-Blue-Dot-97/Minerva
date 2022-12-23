@@ -1,3 +1,4 @@
+from typing import Any, Dict, List, Union
 import torch
 from torch import Tensor
 import torch.nn.modules as nn
@@ -22,7 +23,7 @@ def test_sup_tg() -> None:
         images = torch.rand(size=(6, *input_size))
         masks = torch.randint(0, 8, (6, *input_size[1:]))  # type: ignore[attr-defined]
         bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
-        batch = {
+        batch: Dict[str, Union[Tensor, List[Any]]] = {
             "image": images,
             "mask": masks,
             "bbox": bboxes,

@@ -37,9 +37,10 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import os
 import random
+from pathlib import Path
 
 import imageio
-import matplotlib
+import matplotlib as mlp
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import ArrayLike
@@ -48,19 +49,18 @@ import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 from alive_progress import alive_bar
-from matplotlib import cm, offsetbox
-from matplotlib.colors import ListedColormap
+from matplotlib import offsetbox
+from matplotlib.colors import ListedColormap, Colormap
 from matplotlib.gridspec import GridSpec
 
 # from matplotlib.ticker import MaxNLocator
-# from sklearn.manifold import TSNE
 from scipy import stats
 from matplotlib.image import AxesImage
 from matplotlib.transforms import Bbox
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.utils import AUX_CONFIGS, CONFIG, utils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -74,7 +74,7 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-DATA_CONFIG = AUX_CONFIGS["data_config"]
+DATA_CONFIG = AUX_CONFIGS.get("data_config")
 IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 
 # Path to directory holding dataset.
@@ -159,6 +159,7 @@ def dec_extent_to_deg(
         new_crs=new_crs,
     )
 
+    # TODO: Perhaps this should ensure that arrays of floats not ints are returned to prevent over-rounding.
     # Creates a discrete mapping of the spaced ticks to latitude longitude extent of the image.
     lat_extent = np.linspace(
         start=corners[1][0],
@@ -178,8 +179,38 @@ def dec_extent_to_deg(
     return extent, lat_extent, lon_extent
 
 
+def get_mlp_cmap(
+    cmap_style: Optional[Union[Colormap, str]] = None, n_classes: Optional[int] = None
+) -> Optional[Colormap]:
+    """Creates a cmap from query
+
+    Args:
+        cmap_style (Union[Colormap, str]): Optional; :mod:`matplotlib` colourmap style to get.
+        n_classes (int): Optional; Number of classes in data to assign colours to.
+
+    Returns:
+        Union[Colormap, None]:
+        * If ``cmap_style`` and ``n_classes`` provided, returns a :class:`ListedColormap` instance.
+        * If ``cmap_style`` provided but no ``n_classes``, returns a :class:`Colormap` instance.
+        * If neither arguments are provided, ``None`` is returned.
+    """
+    cmap: Optional[Colormap] = None
+
+    if cmap_style:
+        if isinstance(cmap_style, str):
+            cmap = mlp.colormaps[cmap_style]  # type: ignore
+        else:
+            cmap = cmap_style
+
+        if n_classes:
+            assert isinstance(cmap, Colormap)
+            cmap = cmap.resampled(n_classes)  # type: ignore
+
+    return cmap
+
+
 def discrete_heatmap(
-    data: NDArray[Shape["*, *"], Int],
+    data: NDArray[Shape["*, *"], Int],  # noqa: F722
     classes: Union[List[str], Tuple[str, ...]],
     cmap_style: Optional[Union[str, ListedColormap]] = None,
     block_size: int = 32,
@@ -199,7 +230,7 @@ def discrete_heatmap(
     plt.figure()
 
     # Creates a cmap from query.
-    cmap = plt.get_cmap(cmap_style, len(classes))
+    cmap = get_mlp_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
     heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
@@ -225,10 +256,10 @@ def discrete_heatmap(
 
 
 def stack_rgb(
-    image: NDArray[Shape["3, *, *"], Float],
+    image: NDArray[Shape["3, *, *"], Float],  # noqa: F722
     rgb: Dict[str, int] = BAND_IDS,
     max_value: int = MAX_PIXEL_VALUE,
-) -> NDArray[Shape["*, *, 3"], Float]:
+) -> NDArray[Shape["*, *, 3"], Float]:  # noqa: F722
     """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
@@ -249,7 +280,7 @@ def stack_rgb(
 
     # Stack together RGB bands.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
-    rgb_image: NDArray[Shape["3, *, *"], Any] = np.dstack(
+    rgb_image: NDArray[Shape["3, *, *"], Any] = np.dstack(  # noqa: F722
         (channels[2], channels[1], channels[0])
     )
     assert isinstance(rgb_image, np.ndarray)
@@ -257,7 +288,9 @@ def stack_rgb(
 
 
 def make_rgb_image(
-    image: NDArray[Shape["3, *, *"], Float], rgb: Dict[str, int], block_size: int = 32
+    image: NDArray[Shape["3, *, *"], Float],  # noqa: F722
+    rgb: Dict[str, int],
+    block_size: int = 32,
 ) -> AxesImage:
     """Creates an RGB image from a composition of red, green and blue bands.
 
@@ -288,11 +321,11 @@ def make_rgb_image(
 
 
 def labelled_rgb_image(
-    image: NDArray[Shape["*, *, 3"], Float],
-    mask: NDArray[Shape["*, *"], Int],
+    image: NDArray[Shape["*, *, 3"], Float],  # noqa: F722
+    mask: NDArray[Shape["*, *"], Int],  # noqa: F722
     bounds: BoundingBox,
     src_crs: CRS,
-    path: str,
+    path: Union[str, Path],
     name: str,
     classes: Union[List[str], Tuple[str, ...]],
     cmap_style: Optional[Union[str, ListedColormap]] = None,
@@ -326,6 +359,8 @@ def labelled_rgb_image(
     # Checks that the mask and image shapes will align.
     assert mask.shape == image.shape[:2]
 
+    assert new_crs is not None
+
     # Gets the extent of the image in pixel, lattitude and longitude dimensions.
     extent, lat_extent, lon_extent = dec_extent_to_deg(
         mask.shape,
@@ -342,7 +377,7 @@ def labelled_rgb_image(
     ax1.imshow(image, extent=extent)
 
     # Creates a cmap from query.
-    cmap = plt.get_cmap(cmap_style, len(classes))
+    cmap = get_mlp_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
     heatmap = ax1.imshow(
@@ -429,13 +464,13 @@ def labelled_rgb_image(
 
 def make_gif(
     dates: List[str],
-    images: NDArray[Shape["*, *, *, 3"], Any],
-    masks: NDArray[Shape["*, *, *"], Any],
+    images: NDArray[Shape["*, *, *, 3"], Any],  # noqa: F722
+    masks: NDArray[Shape["*, *, *"], Any],  # noqa: F722
     bounds: BoundingBox,
     src_crs: CRS,
     classes: Union[List[str], Tuple[str, ...]],
     gif_name: str,
-    path: str,
+    path: Union[str, Path],
     cmap_style: Optional[Union[str, ListedColormap]] = None,
     fps: float = 1.0,
     new_crs: Optional[CRS] = WGS84,
@@ -498,7 +533,7 @@ def make_gif(
         bar.text("MAKING PATCH GIF")
 
         # Create GIF.
-        imageio.mimwrite(gif_name, frames, format=".gif", fps=fps)
+        imageio.mimwrite(gif_name, frames, format=".gif", fps=fps)  # type: ignore
 
 
 def prediction_plot(
@@ -565,8 +600,7 @@ def prediction_plot(
         ]
     )
 
-    # Creates a cmap from query.
-    cmap = plt.get_cmap(cmap_style, len(classes))
+    cmap = get_mlp_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
     z_heatmap = axes[0].imshow(z, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
@@ -633,8 +667,8 @@ def prediction_plot(
         plt.show()
 
     if fn_prefix is None:
-        path = os.path.join(*CONFIG["dir"]["results"])
-        fn_prefix = os.sep.join([path, f"{exp_id}_{utils.timestamp_now()}_Mask"])
+        path = universal_path(CONFIG["dir"]["results"])
+        fn_prefix = str(path / f"{exp_id}_{utils.timestamp_now()}_Mask")
 
     # Path and file name of figure.
     fn = f"{fn_prefix}_{sample_id}.png"
@@ -661,7 +695,7 @@ def seg_plot(
     colours: Dict[int, str],
     fn_prefix: str,
     frac: float = 0.05,
-    fig_dim: Tuple[Union[int, float], Union[int, float]] = (9.3, 10.5),
+    fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = (9.3, 10.5),
 ) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -726,7 +760,7 @@ def seg_plot(
                 show=False,
                 fn_prefix=fn_prefix,
                 fig_dim=fig_dim,
-                cmap_style=ListedColormap(colours.values(), N=len(colours)),
+                cmap_style=ListedColormap(colours.values(), N=len(colours)),  # type: ignore
             )
 
             bar()
@@ -736,7 +770,7 @@ def plot_subpopulations(
     class_dist: List[Tuple[int, int]],
     class_names: Dict[int, str],
     cmap_dict: Dict[int, str],
-    filename: Optional[str] = None,
+    filename: Optional[Union[str, Path]] = None,
     save: bool = True,
     show: bool = False,
 ) -> None:
@@ -804,7 +838,7 @@ def plot_subpopulations(
 
 def plot_history(
     metrics: Dict[str, Any],
-    filename: Optional[str] = None,
+    filename: Optional[Union[str, Path]] = None,
     save: bool = True,
     show: bool = False,
 ) -> None:
@@ -858,7 +892,8 @@ def make_confusion_matrix(
     pred: Union[List[int], NDArray[Any, Int]],
     labels: Union[List[int], NDArray[Any, Int]],
     classes: Dict[int, str],
-    filename: Optional[str] = None,
+    filename: Optional[Union[str, Path]] = None,
+    cmap_style: str = "Blues",
     show: bool = True,
     save: bool = False,
 ) -> None:
@@ -878,11 +913,11 @@ def make_confusion_matrix(
     _pred, _labels, new_classes = utils.check_test_empty(pred, labels, classes)
 
     # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
-    cm_norm: Any
+    cm_norm: Any = None
     try:
         cm = tf.math.confusion_matrix(
-            labels=_labels, predictions=_pred, dtype=np.uint16
-        ).numpy()
+            labels=_labels, predictions=_pred, dtype=np.uint16  # type: ignore
+        ).numpy()  # type: ignore
 
         # Normalises confusion matrix.
         cm_norm = np.around(
@@ -901,13 +936,20 @@ def make_confusion_matrix(
     # Converts confusion matrix to Pandas.DataFrame.
     cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
 
+    if DATA_CONFIG is not None:
+        figsize = DATA_CONFIG["fig_sizes"]["CM"]
+    else:
+        figsize = None
+
     # Plots figure.
-    plt.figure(figsize=DATA_CONFIG["fig_sizes"]["CM"])
+    plt.figure(figsize=figsize)
+
+    cmap = get_mlp_cmap(cmap_style)
     sns.heatmap(
         cm_df,
         annot=True,
         square=True,
-        cmap=plt.cm.get_cmap("Blues"),
+        cmap=cmap,
         vmin=0.0,
         vmax=1.0,
     )
@@ -1020,47 +1062,6 @@ def make_roc_curves(
         plt.close()
 
 
-"""
-def t_sne_cluster(
-    embeddings: NDArray[Any, Any],
-    predictions: Union[List[int], NDArray[Any, Int]],
-    show: bool = False,
-    save: bool = True,
-    filename: Optional[str] = None,
-) -> None:
-
-    tsne = TSNE(2, verbose=1)
-
-    tsne_proj = tsne.fit_transform(embeddings)
-
-    cmap = cm.get_cmap("tab20")
-    num_categories = 10
-
-    # Plot those points as a scatter plot and label them based on the pred labels.
-    cmap = cm.get_cmap("tab20")
-    fig, ax = plt.subplots(figsize=(8, 8))
-    num_categories = 10
-    for lab in range(num_categories):
-        indices = predictions == lab
-        ax.scatter(
-            tsne_proj[indices, 0],
-            tsne_proj[indices, 1],
-            c=np.array(cmap(lab)).reshape(1, 4),
-            label=lab,
-            alpha=0.5,
-        )
-    ax.legend(fontsize="large", markerscale=2)
-
-    # Shows and/or saves plot.
-    if show:
-        plt.show()
-    if save:
-        plt.savefig(filename)
-        print("TSNE cluster visualisation SAVED")
-        plt.close()
-"""
-
-
 def plot_embedding(
     embeddings: Any,
     bounds: Union[Sequence[Any], NDArray[Any, Any]],
@@ -1107,7 +1108,7 @@ def plot_embedding(
             images.append(stack_rgb(sample["image"].numpy()))
             targets.append(
                 [
-                    int(stats.mode(mask, axis=None, keepdims=False).mode)
+                    int(stats.mode(mask, keepdims=False).mode)
                     for mask in sample["mask"].numpy()
                 ]
             )
@@ -1125,7 +1126,7 @@ def plot_embedding(
             x[i, 0],
             x[i, 1],
             str(targets[i]),
-            color=plt.cm.Set1(targets[i][0] / 10.0),
+            color=plt.cm.Set1(targets[i][0] / 10.0),  # type: ignore
             fontdict={"weight": "bold", "size": 9},
         )
 
@@ -1141,7 +1142,7 @@ def plot_embedding(
 
             shown_images = np.r_[shown_images, [x[i]]]
             imagebox = offsetbox.AnnotationBbox(
-                offsetbox.OffsetImage(images[i], cmap=plt.cm.gray_r), x[i]
+                offsetbox.OffsetImage(images[i], cmap=plt.cm.gray_r), x[i]  # type: ignore
             )
 
             ax.add_artist(imagebox)
@@ -1187,7 +1188,7 @@ def format_plot_names(
             String of path to filename of the form "{model_name}_{timestamp}_{plot_type}.{file_ext}"
         """
         filename = f"{model_name}_{timestamp}_{plot_type}"
-        return os.sep.join(list(path) + [*sub_dir, filename])
+        return str(universal_path(path) / universal_path(sub_dir) / filename)
 
     filenames = {
         "History": standard_format("MH") + ".png",
@@ -1253,9 +1254,12 @@ def plot_results(
     if not show:
         # Ensures that there is no attempt to display figures incase no display is present.
         try:
-            matplotlib.use("agg")
+            mlp.use("agg")
         except ImportError:
             pass
+
+    flat_z = None
+    flat_y = None
 
     if z is not None:
         flat_z = utils.batch_flatten(z)
@@ -1268,6 +1272,7 @@ def plot_results(
 
     if model_name is None:
         model_name = CONFIG["model_name"]
+    assert model_name is not None
 
     if results_dir is None:
         results_dir = CONFIG["dir"]["results"]
@@ -1276,7 +1281,7 @@ def plot_results(
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
     try:
-        os.mkdir(os.sep.join(results_dir))
+        os.mkdir(universal_path(results_dir))
     except FileExistsError as err:
         print(err)
 
@@ -1286,9 +1291,11 @@ def plot_results(
         print("\nPLOTTING MODEL HISTORY")
         plot_history(metrics, filename=filenames["History"], save=save, show=show)
 
-    assert class_names is not None
-
     if plots.get("CM", False):
+        assert class_names is not None
+        assert flat_y is not None
+        assert flat_z is not None
+
         print("\nPLOTTING CONFUSION MATRIX")
         make_confusion_matrix(
             labels=flat_y,
@@ -1299,9 +1306,11 @@ def plot_results(
             show=show,
         )
 
-    assert colours is not None
-
     if plots.get("Pred", False):
+        assert class_names is not None
+        assert colours is not None
+        assert flat_z is not None
+
         print("\nPLOTTING CLASS DISTRIBUTION OF PREDICTIONS")
         plot_subpopulations(
             utils.find_modes(flat_z),
@@ -1313,7 +1322,10 @@ def plot_results(
         )
 
     if plots.get("ROC", False):
+        assert class_names is not None
+        assert colours is not None
         assert probs is not None
+        assert flat_y is not None
 
         print("\nPLOTTING ROC CURVES")
         make_roc_curves(
@@ -1329,14 +1341,20 @@ def plot_results(
         )
 
     if plots.get("Mask", False):
+        assert class_names is not None
+        assert colours is not None
         assert z is not None
         assert y is not None
         assert ids is not None
         assert bounds is not None
         assert mode is not None
 
+        figsize = None
+        if DATA_CONFIG is not None:
+            figsize = DATA_CONFIG["fig_sizes"]["Mask"]
+
         flat_bbox = utils.batch_flatten(bounds)
-        os.mkdir(os.sep.join([*results_dir, "Masks"]))
+        os.makedirs(universal_path(results_dir) / "Masks", exist_ok=True)
         seg_plot(
             z,
             y,
@@ -1346,7 +1364,7 @@ def plot_results(
             fn_prefix=filenames["Mask"],
             classes=class_names,
             colours=colours,
-            fig_dim=DATA_CONFIG["fig_sizes"]["Mask"],
+            fig_dim=figsize,
         )
 
     if plots.get("TSNE", False):

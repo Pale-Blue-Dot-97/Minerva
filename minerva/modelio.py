@@ -25,7 +25,7 @@ from typing import Any, Dict, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from torch import Tensor, LongTensor
+from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
@@ -47,7 +47,7 @@ def sup_tg(
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
     mode: str,
-    **kwargs
+    **kwargs,
 ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a supervised model using `torchgeo` datasets.
 
@@ -67,12 +67,14 @@ def sup_tg(
 
     # Re-arranges the x and y batches.
     x_batch: Tensor = images.to(torch.float)  # type: ignore[attr-defined]
-    y_batch: LongTensor
+    y_batch: Tensor
 
     # Squeeze out axis 1 if only 1 element wide.
     if masks.shape[1] == 1:
         masks = np.squeeze(masks.detach().cpu().numpy(), axis=1)
 
+    if isinstance(masks, Tensor):
+        masks = masks.detach().cpu().numpy()
     y_batch = torch.tensor(masks, dtype=torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
@@ -97,7 +99,7 @@ def ssl_pair_tg(
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
     mode: str,
-    **kwargs
+    **kwargs,
 ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], None, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
@@ -125,6 +127,7 @@ def ssl_pair_tg(
     # Stacks each side of the pair batches together.
     x_batch = torch.stack([x_i_batch, x_j_batch])
 
+    print(f"In modelio {device} is")
     # Transfer to GPU.
     x = x_batch.to(device, non_blocking=True)
 

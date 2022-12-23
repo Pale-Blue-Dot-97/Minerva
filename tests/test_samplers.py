@@ -1,6 +1,6 @@
 from collections import defaultdict
 from typing import Any, Dict
-import os
+from pathlib import Path
 
 from torch.utils.data import DataLoader
 
@@ -9,9 +9,9 @@ from minerva.datasets import TstImgDataset, PairedDataset, stack_sample_pairs
 from minerva.utils.utils import set_seeds
 
 
-data_root = os.path.join("tests", "tmp")
-img_root = os.path.join(data_root, "data", "test_images")
-lc_root = os.path.join(data_root, "data", "test_lc")
+data_root = Path("tests", "tmp")
+img_root = str(data_root / "data" / "test_images")
+lc_root = str(data_root / "data" / "test_lc")
 
 set_seeds(42)
 

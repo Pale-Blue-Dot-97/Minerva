@@ -34,6 +34,7 @@ from typing import (
 )
 
 import os
+from pathlib import Path
 from contextlib import nullcontext
 
 from nptyping import NDArray, Int
@@ -42,7 +43,7 @@ import torch
 from torch import Tensor
 import torch.distributed as dist
 import yaml
-from alive_progress import alive_bar, alive_it
+from alive_progress import alive_bar  # , alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -55,7 +56,7 @@ from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
 from minerva.pytorchtools import EarlyStopping
-from minerva.utils import utils, visutils
+from minerva.utils import utils, visutils, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -121,6 +122,7 @@ class Trainer:
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
+        print(f"{gpu=}")
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
@@ -151,15 +153,16 @@ class Trainer:
         )
         self.params["dir"]["results"].append(self.params["exp_name"])
 
+        results_dir = universal_path(self.params["dir"]["results"])
+
         # Path to experiment directory and experiment name.
-        self.exp_fn = os.sep.join(
-            self.params["dir"]["results"] + [self.params["exp_name"]]
-        )
+        self.exp_fn = results_dir / self.params["exp_name"]
 
         self.batch_size: int = params["hyperparams"]["params"]["batch_size"]
 
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
+        print(f"{self.device=}")
 
         # Creates model (and loss function) from specified parameters in params.
         self.model: Union[
@@ -172,6 +175,7 @@ class Trainer:
             sample_pairs = False
             self.params["sample_pairs"] = False
 
+        assert isinstance(sample_pairs, bool)
         self.sample_pairs = sample_pairs
         self.model.determine_output_dim(sample_pairs=sample_pairs)
 
@@ -204,7 +208,7 @@ class Trainer:
         self.step_num = {mode: 0 for mode in self.modes}
 
         # Initialise TensorBoard logger
-        self.writer = SummaryWriter(os.sep.join(self.params["dir"]["results"]))
+        self.writer = SummaryWriter(results_dir)
 
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
@@ -222,6 +226,17 @@ class Trainer:
                 self.model, input_to_model=torch.rand(*input_size, device=self.device)
             )
 
+            if torch.cuda.device_count() == 1:
+                # Adds a graphical layout of the model to the TensorBoard logger.
+                try:
+                    self.writer.add_graph(
+                        self.model,
+                        input_to_model=torch.rand(*input_size, device=self.device),
+                    )
+                except RuntimeError as err:
+                    print(err)
+                    print("ABORT adding graph to writer")
+
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
@@ -230,25 +245,15 @@ class Trainer:
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
 
-        else:
-            # Adds a graphical layout of the model to the TensorBoard logger.
-            try:
-                self.writer.add_graph(
-                    self.model,
-                    input_to_model=torch.rand(*input_size, device=self.device),
-                )
-            except RuntimeError as err:
-                print(err)
-                print("ABORT adding graph to writer")
-
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
 
         Returns:
             Tuple[int, ...]: Tuple describing the input shape of the model.
         """
-        assert self.model.input_shape is not None
-        input_size: Tuple[int, ...] = (self.batch_size, *self.model.input_shape)
+        input_shape: Optional[Tuple[int, ...]] = self.model.input_shape
+        assert input_shape is not None
+        input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
 
         if self.sample_pairs:
             input_size = (2, *input_size)
@@ -270,9 +275,8 @@ class Trainer:
 
         if self.fine_tune:
             # Define path to the cached version of the desired pre-trained model.
-            weights_path = os.sep.join(
-                self.params["dir"]["cache"] + [self.params["pre_train_name"]]
-            )
+            cache_dir = universal_path(self.params["dir"]["cache"])
+            weights_path = Path(cache_dir / self.params["pre_train_name"])
 
             # Add the path to the pre-trained weights to the model params.
             model_params["backbone_weight_path"] = f"{weights_path}.pt"
@@ -282,10 +286,8 @@ class Trainer:
 
         if self.params.get("reload", False):
             # Define path to the cached version of the desired pre-trained model.
-            weights_path = os.sep.join(
-                self.params["dir"]["cache"] + [self.params["pre_train_name"]]
-            )
-
+            cache_dir = universal_path(self.params["dir"]["cache"])
+            weights_path = Path(cache_dir / self.params["pre_train_name"])
             model.load_state_dict(
                 torch.load(f"{weights_path}.pt", map_location=self.device)
             )
@@ -378,7 +380,10 @@ class Trainer:
         Returns:
             Callable: Model IO function requested from parameters.
         """
-        return utils.func_by_str("minerva.modelio", self.params["model_io"])
+        io_func: Callable[..., Any] = utils.func_by_str(
+            "minerva.modelio", self.params["model_io"]
+        )
+        return io_func
 
     def epoch(
         self,
@@ -419,6 +424,7 @@ class Trainer:
             collapse_level=self.params["sample_pairs"],
             euclidean=self.params["sample_pairs"],
             model_type=self.params["model_type"],
+            writer=self.writer,
         )
 
         # if mode == "val" and self.params["model_type"] == "ssl":
@@ -463,7 +469,8 @@ class Trainer:
 
         # Returns the results of the epoch if configured to do so. Else, returns None.
         if record_int or record_float:
-            return epoch_logger.get_results
+            epoch_results: Dict[str, Any] = epoch_logger.get_results
+            return epoch_results
         else:
             return None
 
@@ -505,47 +512,47 @@ class Trainer:
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
 
-            # Special case for final train/ val epoch to plot results if configured so.
-            if epoch == (self.max_epochs - 1) or self.early_stop:
-                if self.early_stop:
-                    self.print("\nEarly stopping triggered")
+                # Special case for final train/ val epoch to plot results if configured so.
+                if epoch == (self.max_epochs - 1) or self.early_stop:
+                    if self.early_stop and mode == "val":
+                        self.print("\nEarly stopping triggered")
 
-                # Ensures that plots likely to cause memory issues are not attempted.
-                plots: Dict[str, bool] = self.params.get("plots", {}).copy()
-                plots["CM"] = False
-                plots["ROC"] = False
+                    # Ensures that plots likely to cause memory issues are not attempted.
+                    plots: Dict[str, bool] = self.params.get("plots", {}).copy()
+                    plots["CM"] = False
+                    plots["ROC"] = False
 
-                if not self.params.get("plot_last_epoch", False):
-                    # If not plotting results, ensure that only history plotting will remain
-                    # if originally set to do so.
-                    plots["Mask"] = False
-                    plots["Pred"] = False
+                    if not self.params.get("plot_last_epoch", False):
+                        # If not plotting results, ensure that only history plotting will remain
+                        # if originally set to do so.
+                        plots["Mask"] = False
+                        plots["Pred"] = False
 
-                # Create a subset of metrics which drops the testing results for plotting model history.
-                sub_metrics = self.metric_logger.get_sub_metrics()
+                    # Create a subset of metrics which drops the testing results for plotting model history.
+                    sub_metrics = self.metric_logger.get_sub_metrics()
 
-                # Ensures masks are not plotted for model types that do not yield such outputs.
-                if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
-                    plots["Mask"] = False
+                    # Ensures masks are not plotted for model types that do not yield such outputs.
+                    if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
+                        plots["Mask"] = False
 
-                # Amends the results' directory to add a new level for train or validation.
-                results_dir: List[str] = self.params["dir"]["results"].copy()
-                results_dir.append(mode)
+                    # Amends the results' directory to add a new level for train or validation.
+                    results_dir: List[str] = self.params["dir"]["results"].copy()
+                    results_dir.append(mode)
 
-                if self.gpu == 0:
-                    # Plots the results of this epoch.
-                    visutils.plot_results(
-                        plots,
-                        metrics=sub_metrics,
-                        class_names=self.params["classes"],
-                        colours=self.params["colours"],
-                        save=True,
-                        show=False,
-                        model_name=self.params["model_name"],
-                        timestamp=self.params["timestamp"],
-                        results_dir=results_dir,
-                        **results,
-                    )
+                    if self.gpu == 0:
+                        # Plots the results of this epoch.
+                        visutils.plot_results(
+                            plots,
+                            metrics=sub_metrics,
+                            class_names=self.params.get("classes"),
+                            colours=self.params.get("colours"),
+                            save=True,
+                            show=False,
+                            model_name=self.params["model_name"],
+                            timestamp=self.params["timestamp"],
+                            results_dir=results_dir,
+                            **results,
+                        )
 
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
@@ -860,7 +867,7 @@ class Trainer:
             fn (str): Optional; Filename and path (excluding extension) to save weights to.
         """
         if fn is None:
-            fn = self.exp_fn
+            fn = str(self.exp_fn)
         torch.save(self.model.state_dict(), f"{fn}.pt")
 
     def save_model(self, fn: Optional[str] = None, format: str = "pt") -> None:
@@ -874,7 +881,7 @@ class Trainer:
             ValueError: If format is not recognised.
         """
         if fn is None:
-            fn = self.exp_fn
+            fn = str(self.exp_fn)
 
         if format == "pt":
             torch.save(self.model, f"{fn}.pt")
@@ -890,10 +897,16 @@ class Trainer:
         assert isinstance(self.model, MinervaBackbone)
         pre_trained_backbone: Module = self.model.get_backbone()
 
+        cache_dir = universal_path(self.params["dir"]["cache"])
+
         # Saves the pre-trained backbone to the cache.
-        cache_fn = os.sep.join(
-            self.params["dir"]["cache"] + [self.params["model_name"]]
-        )
+        cache_fn = cache_dir / self.params["model_name"]
+
+        try:
+            os.mkdir(cache_dir)
+        except FileExistsError:
+            pass
+
         torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}.pt")
 
     def run_tensorboard(self) -> None:

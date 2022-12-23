@@ -1,7 +1,7 @@
 import cmath
 import math
-import ntpath
 import os
+from pathlib import Path
 import random
 import shutil
 import tempfile
@@ -124,22 +124,20 @@ def test_ohe_labels() -> None:
     assert_array_equal(correct_targets, targets)
 
 
-def test_empty_classes() -> None:
+def test_empty_classes(exp_classes) -> None:
     labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
-    classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
-    assert utils.find_empty_classes(labels, classes) == [0, 2]
+    assert utils.find_empty_classes(labels, exp_classes) == [0, 2]
 
 
-def test_eliminate_classes() -> None:
+def test_eliminate_classes(exp_classes) -> None:
     empty = [0, 2]
-    old_classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     old_cmap = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
     new_cmap = {0: "5", 1: "1", 2: "4", 3: "3"}
     conversion = {1: 1, 3: 3, 4: 2, 5: 0}
 
     results = utils.eliminate_classes(
-        empty_classes=empty, old_classes=old_classes, old_cmap=old_cmap
+        empty_classes=empty, old_classes=exp_classes, old_cmap=old_cmap
     )
 
     assert new_classes == results[0]
@@ -147,15 +145,14 @@ def test_eliminate_classes() -> None:
     assert new_cmap == results[2]
 
 
-def test_check_test_empty() -> None:
-    old_classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+def test_check_test_empty(exp_classes) -> None:
     new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
     old_labels_1 = [1, 1, 3, 5, 1, 4, 1, 5, 3]
     new_labels = [1, 1, 3, 0, 1, 2, 1, 0, 3]
     old_pred_1 = [1, 4, 1, 5, 1, 4, 1, 5, 1]
     new_pred = [1, 2, 1, 0, 1, 2, 1, 0, 1]
 
-    results_1 = utils.check_test_empty(old_pred_1, old_labels_1, old_classes)
+    results_1 = utils.check_test_empty(old_pred_1, old_labels_1, exp_classes)
 
     assert_array_equal(results_1[0], new_pred)
     assert_array_equal(results_1[1], new_labels)
@@ -164,41 +161,40 @@ def test_check_test_empty() -> None:
     old_labels_2 = [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1]
     old_pred_2 = [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1]
 
-    results_2 = utils.check_test_empty(old_pred_2, old_labels_2, old_classes)
+    results_2 = utils.check_test_empty(old_pred_2, old_labels_2, exp_classes)
 
     assert_array_equal(results_2[0], old_pred_2)
     assert_array_equal(results_2[1], old_labels_2)
-    assert results_2[2] == old_classes
+    assert results_2[2] == exp_classes
 
     old_labels_3: NDArray[Shape["11"], Int] = np.array(old_labels_2)
     old_pred_3: NDArray[Shape["11"], Int] = np.array(old_pred_2)
 
-    results_3 = utils.check_test_empty(old_pred_3, old_labels_3, old_classes)
+    results_3 = utils.check_test_empty(old_pred_3, old_labels_3, exp_classes)
 
     assert_array_equal(results_3[0], old_pred_3)
     assert_array_equal(results_3[1], old_labels_3)
-    assert results_3[2] == old_classes
+    assert results_3[2] == exp_classes
 
 
-def test_find_modes() -> None:
-    classes = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+def test_find_modes(exp_classes) -> None:
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
     class_dist = utils.find_modes(labels, plot=True)
 
     assert class_dist == [(1, 4), (3, 3), (5, 2), (4, 1)]
 
-    utils.print_class_dist(class_dist, classes)
+    utils.print_class_dist(class_dist, exp_classes)
 
 
 def test_file_check() -> None:
-    fn = "tests/test.txt"
+    fn = Path("tests", "test.txt")
     with open(fn, "x") as f:
         f.write("")
 
     utils.exist_delete_check(fn)
 
-    assert os.path.exists(fn) is False
+    assert fn.exists() is False
 
 
 def test_class_transform() -> None:
@@ -590,9 +586,9 @@ def test_compute_roc_curves() -> None:
     class_names = {0: "Class 0", 1: "Class 1", 2: "Class 2", 3: "Class 3"}
     cmap_dict = {0: "#000000", 1: "#00c5ff", 2: "#267300", 3: "#a3ff73"}
 
-    path = os.path.join(os.getcwd(), "tmp")
+    path = Path(os.getcwd(), "tmp")
 
-    os.makedirs(path, exist_ok=True)
+    path.mkdir(parents=True, exist_ok=True)
     fn = f"{path}/roc_curve.png"
 
     visutils.make_roc_curves(
@@ -645,17 +641,17 @@ def test_mkexpdir() -> None:
     name = "exp1"
 
     try:
-        os.makedirs(utils.RESULTS_DIR)
+        utils.RESULTS_DIR.mkdir(parents=True)
     except FileExistsError:
         pass
 
     utils.mkexpdir(name)
 
-    assert os.path.isdir(os.path.join(utils.RESULTS_DIR, name))
+    assert (utils.RESULTS_DIR / name).is_dir()
 
     utils.mkexpdir(name)
 
-    os.rmdir(os.path.join(utils.RESULTS_DIR, name))
+    (utils.RESULTS_DIR / name).rmdir()
 
 
 def test_get_dataset_name() -> None:
@@ -664,7 +660,7 @@ def test_get_dataset_name() -> None:
 
 def test_run_tensorboard() -> None:
     try:
-        env_name = ntpath.basename(os.environ["CONDA_DEFAULT_ENV"])
+        env_name = Path(os.environ["CONDA_DEFAULT_ENV"]).name
     except KeyError:
         env_name = "base"
 
@@ -672,10 +668,10 @@ def test_run_tensorboard() -> None:
 
     exp_name = "exp1"
 
-    path = tempfile.gettempdir()
+    path = Path(tempfile.gettempdir(), exp_name)
 
-    if not os.path.exists(os.path.join(path, exp_name)):
-        os.mkdir(os.path.join(path, exp_name))
+    if not path.exists():
+        path.mkdir()
 
     assert (
         utils.run_tensorboard(
@@ -693,7 +689,7 @@ def test_run_tensorboard() -> None:
 
     utils.CONFIG["dir"]["results"] = results_dir
 
-    os.rmdir(os.path.join(path, exp_name))
+    path.rmdir()
 
 
 def test_calc_constrastive_acc() -> None:
@@ -720,3 +716,21 @@ def test_print_config() -> None:
 
 def test_calc_grad() -> None:
     pass
+
+
+def test_tsne_cluster() -> None:
+    clusters = utils.tsne_cluster(np.random.rand(10, 100))
+    assert isinstance(clusters, NDArray)
+    assert clusters.shape == (10, 2)
+
+
+def test_calc_norm_euc_dist() -> None:
+    a1 = np.random.random_integers(0, 8, 10)
+    b1 = np.random.random_integers(0, 8, 10)
+
+    b2 = np.random.random_integers(0, 8, 8)
+
+    assert isinstance(utils.calc_norm_euc_dist(a1, b1), float)
+
+    with pytest.raises(AssertionError):
+        utils.calc_norm_euc_dist(a1, b2)

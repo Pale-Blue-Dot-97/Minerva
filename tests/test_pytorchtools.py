@@ -1,5 +1,5 @@
-import os
 import tempfile
+from pathlib import Path
 
 from torchvision.models import alexnet
 
@@ -7,14 +7,9 @@ from minerva.pytorchtools import EarlyStopping
 
 
 def test_earlystopping() -> None:
-    path = tempfile.gettempdir()
+    path = Path(tempfile.gettempdir(), "exp1.pt")
 
-    exp_name = "exp1.pt"
-
-    path = os.path.join(path, exp_name)
-
-    if os.path.exists(path):
-        os.remove(path)
+    path.unlink(missing_ok=True)
 
     stopper = EarlyStopping(patience=3, verbose=True, path=path)
 
@@ -29,4 +24,4 @@ def test_earlystopping() -> None:
     stopper(2.1, model)
     assert stopper.early_stop
 
-    os.remove(path)
+    path.unlink(missing_ok=True)

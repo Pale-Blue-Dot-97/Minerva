@@ -35,6 +35,7 @@ from typing import (
     Union,
 )
 import os
+from pathlib import Path
 
 import numpy as np
 from nptyping import NDArray
@@ -51,7 +52,7 @@ from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchvision.transforms import RandomApply
 
 from minerva.transforms import MinervaCompose
-from minerva.utils import AUX_CONFIGS, CONFIG, utils
+from minerva.utils import AUX_CONFIGS, CONFIG, utils, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -67,8 +68,10 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 # =====================================================================================================================
 IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
 
+CACHE_DIR = CONFIG["dir"]["cache"]
+
 # Path to cache directory.
-CACHE_DIR = os.sep.join(CONFIG["dir"]["cache"])
+CACHE_DIR = universal_path(CONFIG["dir"]["cache"])
 
 __all__ = [
     "PairedDataset",
@@ -120,7 +123,8 @@ class PairedDataset(RasterDataset):
         dataset (RasterDataset): Wrapped dataset to sampled from.
 
     Args:
-        dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`RasterDataset` to be wrapped for paired sampling.
+        dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`RasterDataset`
+            to be wrapped for paired sampling.
     """
 
     def __init__(
@@ -232,7 +236,7 @@ def intersect_datasets(
 
 
 def make_dataset(
-    data_directory: Iterable[str],
+    data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
     transform_params: Optional[Dict[Any, Any]] = None,
     sample_pairs: bool = False,
@@ -265,11 +269,14 @@ def make_dataset(
         )
 
         # Construct the root to the sub-dataset's files.
-        sub_dataset_root = os.sep.join((*data_directory, sub_dataset_params["root"]))
+        sub_dataset_root = str(
+            universal_path(data_directory) / sub_dataset_params["root"]
+        )
 
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations: Optional[Any] = None
         if type(transform_params) == dict:
+            assert transform_params is not None
             try:
                 if transform_params[key]:
                     transformations = make_transformations(
@@ -348,7 +355,7 @@ def construct_dataloader(
         per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
         sampler_params["params"]["batch_size"] = per_device_batch_size
 
-    sampler: Union[BatchGeoSampler, GeoSampler] = _sampler(
+    sampler: Union[BatchGeoSampler, GeoSampler, DistributedSamplerWrapper] = _sampler(
         dataset=subdatasets[0],
         roi=make_bounding_box(sampler_params["roi"]),
         **sampler_params["params"],
@@ -521,15 +528,23 @@ def make_loaders(
     transform_params: Dict[str, Any] = params["transform_params"]
     batch_size: int = dataloader_params["batch_size"]
 
-    # Load manifest from cache for this dataset.
-    manifest = get_manifest(get_manifest_path())
-    class_dist = utils.modes_from_manifest(manifest)
+    model_type = params["model_type"]
+    class_dist: List[Tuple[int, int]] = [(0, 0)]
 
-    # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
-    # and new colours.
-    new_classes, forwards, new_colours = utils.load_data_specs(
-        class_dist=class_dist, elim=params.get("elim", False)
-    )
+    new_classes: Dict[int, str] = {}
+    new_colours: Dict[int, str] = {}
+    forwards: Dict[int, int] = {}
+
+    if model_type != "siamese":
+        # Load manifest from cache for this dataset.
+        manifest = get_manifest(get_manifest_path())
+        class_dist = utils.modes_from_manifest(manifest)
+
+        # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
+        # and new colours.
+        new_classes, forwards, new_colours = utils.load_data_specs(
+            class_dist=class_dist, elim=params.get("elim", False)
+        )
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
@@ -537,7 +552,7 @@ def make_loaders(
 
     for mode in dataset_params.keys():
         this_transform_params = transform_params[mode]
-        if params.get("elim", False):
+        if params.get("elim", False) and model_type != "siamese":
             if type(this_transform_params["mask"]) != dict:
                 this_transform_params["mask"] = {
                     "ClassTransform": {
@@ -569,17 +584,19 @@ def make_loaders(
         )
         print("DONE")
 
-    # Transform class dist if elimination of classes has occurred.
-    if params.get("elim", False):
-        class_dist = utils.class_dist_transform(class_dist, forwards)
+    if model_type != "siamese":
+        # Transform class dist if elimination of classes has occurred.
+        if params.get("elim", False):
+            class_dist = utils.class_dist_transform(class_dist, forwards)
 
-    # Prints class distribution in a pretty text format using tabulate to stdout.
-    if p_dist:
-        utils.print_class_dist(class_dist)
+        # Prints class distribution in a pretty text format using tabulate to stdout.
+        if p_dist:
+            utils.print_class_dist(class_dist)
 
-    params["hyperparams"]["model_params"]["n_classes"] = len(new_classes)
-    params["classes"] = new_classes
-    params["colours"] = new_colours
+        params["hyperparams"]["model_params"]["n_classes"] = len(new_classes)
+        params["classes"] = new_classes
+        params["colours"] = new_colours
+
     params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
 
     return loaders, n_batches, class_dist, params
@@ -591,10 +608,11 @@ def get_manifest_path() -> str:
     Returns:
         str: Path to manifest as string.
     """
-    return os.sep.join([CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"])
+    return str(Path(CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"))
 
 
-def get_manifest(manifest_path: str) -> DataFrame:
+def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
+    manifest_path = Path(manifest_path)
     try:
         return pd.read_csv(manifest_path)
     except FileNotFoundError as err:
@@ -608,8 +626,8 @@ def get_manifest(manifest_path: str) -> DataFrame:
         manifest = make_manifest(mf_config)
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
-        path, _ = os.path.split(manifest_path)
-        if not os.path.exists(path):
+        path = manifest_path.parent
+        if not path.exists():
             os.makedirs(path)
 
         manifest.to_csv(manifest_path)
@@ -676,4 +694,4 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
         modes = utils.find_modes(sample["mask"])
         sample_modes.append(modes)
 
-    return np.array(sample_modes)
+    return np.array(sample_modes, dtype=object)

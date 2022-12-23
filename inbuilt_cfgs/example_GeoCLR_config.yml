@@ -1,0 +1,151 @@
+---
+# EXAMPLE GeoCLR MASTER CONFIG FILE
+
+# === PATHS ===================================================================
+dir:
+    data:
+        - ..
+        - ..
+        - tests
+        - tmp
+        - data
+    configs:
+        #data_config: Chesapeake7.yml
+        imagery_config: ../../inbuilt_cfgs/NAIP.yml
+    results:
+        - ..
+        - ..
+        - tests
+        - tmp
+        - results
+    cache:
+        - ..
+        - ..
+        - tests
+        - tmp
+        - cache
+
+# ---+ Kwargs for make_datasets +----------------------------------------------
+# Name of model. Substring before hyphen is model class.
+model_name: SimCLR18-test
+
+# Type of model. Can be mlp, scene_classifier, segmentation.
+model_type: siamese
+
+sample_pairs: true
+elim: false
+balance: false
+patch_size: [32, 32]
+pre_train: true
+fine_tune: false
+max_r: 52
+
+# === MODEL IO & LOGGING ======================================================
+logger: SSL_Logger
+metrics: SSL_Metrics
+model_io: ssl_pair_tg
+
+# === DATASET PARAMETERS ======================================================
+dataset_params:
+    # Training Dataset
+    train:
+        image:
+            module: minerva.datasets
+            name: TstImgDataset
+            root: test_images
+            params:
+                res: 1.0
+
+    # Validation Dataset
+    val:
+        image:
+            module: minerva.datasets
+            name: TstImgDataset
+            root: test_images
+            params:
+                res: 1.0
+
+# === SAMPLER PARAMETERS ======================================================
+sampler_params:
+    # Training Dataset Sampler
+    train:
+        module: minerva.samplers
+        name: RandomPairGeoSampler
+        roi: false
+        params:
+            size: 32
+            length: 120
+
+    # Validation Dataset Sampler
+    val:
+        module: minerva.samplers
+        name: RandomPairGeoSampler
+        roi: false
+        params:
+            size: 32
+            length: 32
+
+# === TRANSFORM PARAMETERS ====================================================
+transform_params:
+    # Training Dataset Transforms
+    train:
+        image: false
+            #RandomResizedCrop:
+            #    module: torchvision.transforms
+            #    params:
+            #        size: 32
+
+    # Validation Dataset Transforms
+    val:
+        image: false
+
+# Collation
+collator:
+    module: torchgeo.datasets
+    name: stack_samples
+
+# Model hyper-parameters
+hyperparams:
+    params:
+        batch_size: 8
+        num_workers: 1
+        pin_memory: true
+    model_params:
+        input_size: [4, 32, 32]
+        # n_classes: 8
+    optim_params:
+        name: SGD
+        params:
+            lr: 1.0E-2
+    loss_params:
+        name: NTXentLoss
+        module: lightly.loss
+        params:
+            temperature: 0.5
+
+    max_epochs: 5
+    stopping:
+        patience: 2
+        verbose: true
+
+# Which plots to make
+plots:
+    History: true
+    CM: false
+    Pred: false
+    ROC: false
+    micro: false
+    macro: false
+    Mask: false
+
+# opt to ask at runtime;
+# auto or True to automatically do so;
+# or False, None etc to not
+save_model: false
+run_tensorboard: false
+save: true
+show: false
+p_dist: false
+calc_norm: false
+plot_last_epoch: true
+record_float: false

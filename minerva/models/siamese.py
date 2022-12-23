@@ -29,8 +29,7 @@ import torch
 from torch import Tensor
 import torch.nn.modules as nn
 
-from .core import MinervaModel, MinervaBackbone
-from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
+from .core import MinervaModel, MinervaBackbone, get_model
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -73,7 +72,7 @@ class _SimCLR(MinervaBackbone):
 
         super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
 
-        self.backbone: MinervaModel = globals()[backbone_name](
+        self.backbone: MinervaModel = get_model(backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs
         )
 
@@ -262,7 +261,7 @@ class _SimSiam(MinervaBackbone):
 
         super(_SimSiam, self).__init__(criterion=criterion, input_shape=input_size)
 
-        self.backbone: MinervaModel = globals()[backbone_name](
+        self.backbone: MinervaModel = get_model(backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs
         )
 
