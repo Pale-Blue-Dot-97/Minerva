@@ -1,9 +1,12 @@
-from typing import Tuple
+from typing import Any, Tuple
+from nptyping import NDArray, Int, Float, Shape
 import pytest
 from pathlib import Path
 import os
 import shutil
+import numpy as np
 import torch.nn.modules as nn
+from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel, MLP, CNN
 
@@ -63,3 +66,25 @@ def exp_mlp(x_entropy_loss) -> MinervaModel:
 @pytest.fixture
 def exp_cnn(x_entropy_loss, rgbi_input_size) -> MinervaModel:
     return CNN(x_entropy_loss, rgbi_input_size)
+
+
+@pytest.fixture
+def random_mask() -> NDArray[Shape["224, 224"], Int]:
+    return np.random.randint(0, 7, size=(224, 224))
+
+
+@pytest.fixture
+def random_image() -> NDArray[Shape["224, 224, 3"], Float]:
+    return np.random.rand(224, 224, 3)
+
+
+@pytest.fixture
+def bounds_for_test_img() -> BoundingBox:
+    return BoundingBox(
+        -1.4153283567520825,
+        -1.3964510733477618,
+        50.91896360773007,
+        50.93781998522083,
+        1.0,
+        2.0,
+    )
