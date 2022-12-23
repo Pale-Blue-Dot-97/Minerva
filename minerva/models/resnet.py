@@ -814,6 +814,7 @@ def _preload_weights(
 ) -> ResNet:
 
     if not weights:
+        print("Weights are None! The original resnet will be used")
         return resnet
 
     if isinstance(weights, WeightsEnum):
