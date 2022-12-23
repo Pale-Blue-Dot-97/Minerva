@@ -1,4 +1,4 @@
-from typing import Any, Tuple
+from typing import Tuple, Dict
 from nptyping import NDArray, Int, Float, Shape
 import pytest
 from pathlib import Path
@@ -88,3 +88,8 @@ def bounds_for_test_img() -> BoundingBox:
         1.0,
         2.0,
     )
+
+
+@pytest.fixture
+def exp_classes() -> Dict[int, str]:
+    return {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
