@@ -5,6 +5,7 @@ from pathlib import Path
 import os
 import shutil
 import numpy as np
+import torch
 import torch.nn.modules as nn
 from torchgeo.datasets.utils import BoundingBox
 
@@ -93,3 +94,8 @@ def bounds_for_test_img() -> BoundingBox:
 @pytest.fixture
 def exp_classes() -> Dict[int, str]:
     return {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+
+
+@pytest.fixture
+def simple_mask() -> torch.Tensor:
+    return torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]], dtype=torch.long)
