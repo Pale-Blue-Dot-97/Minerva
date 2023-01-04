@@ -99,3 +99,8 @@ def exp_classes() -> Dict[int, str]:
 @pytest.fixture
 def simple_mask() -> torch.Tensor:
     return torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]], dtype=torch.long)
+
+
+@pytest.fixture
+def example_matrix() -> Dict[int, int]:
+    return {1: 1, 3: 3, 4: 2, 5: 0}
