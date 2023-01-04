@@ -13,43 +13,40 @@ from minerva.transforms import (
 from minerva.utils import utils
 
 
-def test_class_transform() -> None:
+def test_class_transform(simple_mask) -> None:
     matrix = {1: 1, 3: 3, 4: 2, 5: 0}
 
     transform = ClassTransform(matrix)
 
-    input_1 = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
-
     output_1 = torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    input_2 = torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]])  # type: ignore[attr-defined]
+    input_2: torch.LongTensor = torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long)  # type: ignore[attr-defined]
 
     output_2 = torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]])  # type: ignore[attr-defined]
 
-    assert_array_equal(output_1.numpy(), transform(input_1).numpy())
+    assert_array_equal(output_1.numpy(), transform(simple_mask).numpy())
     assert_array_equal(output_2.numpy(), transform(input_2).numpy())
 
     assert repr(transform) == f"ClassTransform(transform={matrix})"
 
 
-def test_pair_create() -> None:
+def test_pair_create(simple_mask) -> None:
     transform = PairCreate()
     sample_1 = 42
-    sample_2 = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
     sample_3 = {1: 1, 3: 3, 4: 2, 5: 0}
 
     assert transform(sample_1) == (sample_1, sample_1)
-    assert transform(sample_2) == (sample_2, sample_2)
+    assert transform(simple_mask) == (simple_mask, simple_mask)
     assert transform(sample_3) == (sample_3, sample_3)
 
     assert repr(transform) == "PairCreate()"
 
 
-def test_normalise() -> None:
+def test_normalise(simple_mask) -> None:
     transform_1 = Normalise(255)
     transform_2 = Normalise(65535)
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
+    input_1 = simple_mask.type(torch.FloatTensor)
 
     input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[1023.0, 3.890, 557.0], [478.0, 5.788, 10009.0], [1.0, 10240.857, 1458.7]]
@@ -64,7 +61,7 @@ def test_normalise() -> None:
     assert repr(transform_2) == "Normalise(norm_value=65535)"
 
 
-def test_compose() -> None:
+def test_compose(simple_mask) -> None:
     transform_1 = Normalise(255)
     compose_1 = MinervaCompose(transform_1)
 
@@ -72,7 +69,7 @@ def test_compose() -> None:
         [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]
     )
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
+    input_1 = simple_mask.type(torch.FloatTensor)
 
     input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
@@ -130,10 +127,10 @@ def test_detachedcolorjitter() -> None:
     assert repr(transform_1) == f"Detached{repr(colorjitter_1)}"
 
 
-def test_dublicator() -> None:
+def test_dublicator(simple_mask) -> None:
     transform_1 = (utils.dublicator(Normalise))(255)
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
+    input_1 = simple_mask.type(torch.FloatTensor)
 
     input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
@@ -150,7 +147,7 @@ def test_dublicator() -> None:
     assert repr(transform_1) == f"dublicator({repr(Normalise(255))})"
 
 
-def test_tg_to_torch() -> None:
+def test_tg_to_torch(simple_mask) -> None:
     transform_1 = (utils.tg_to_torch(Normalise))(255)
 
     transform_2 = (utils.tg_to_torch(Normalise, keys=["image"]))(255)
@@ -161,15 +158,13 @@ def test_tg_to_torch() -> None:
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
     )
 
-    mask = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
-
     out_img = torch.tensor(  # type: ignore[attr-defined]
         [[127.5, 0.0, 255.0], [76.5, 127.5, 102.0], [204.0, 255.0, 178.5]]
     )
 
     out_mask = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    input_3 = {"image": img, "mask": mask}
+    input_3 = {"image": img, "mask": simple_mask}
     output_3 = {"image": out_img, "mask": out_mask}
 
     result_2 = transform_2({"image": img})
