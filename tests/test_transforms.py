@@ -13,43 +13,38 @@ from minerva.transforms import (
 from minerva.utils import utils
 
 
-def test_class_transform() -> None:
-    matrix = {1: 1, 3: 3, 4: 2, 5: 0}
+def test_class_transform(simple_mask, example_matrix) -> None:
 
-    transform = ClassTransform(matrix)
-
-    input_1 = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
+    transform = ClassTransform(example_matrix)
 
     output_1 = torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    input_2 = torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]])  # type: ignore[attr-defined]
+    input_2: torch.LongTensor = torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long)  # type: ignore[attr-defined]
 
     output_2 = torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]])  # type: ignore[attr-defined]
 
-    assert_array_equal(output_1.numpy(), transform(input_1).numpy())
+    assert_array_equal(output_1.numpy(), transform(simple_mask).numpy())
     assert_array_equal(output_2.numpy(), transform(input_2).numpy())
 
-    assert repr(transform) == f"ClassTransform(transform={matrix})"
+    assert repr(transform) == f"ClassTransform(transform={example_matrix})"
 
 
-def test_pair_create() -> None:
+def test_pair_create(simple_mask, example_matrix) -> None:
     transform = PairCreate()
     sample_1 = 42
-    sample_2 = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
-    sample_3 = {1: 1, 3: 3, 4: 2, 5: 0}
 
     assert transform(sample_1) == (sample_1, sample_1)
-    assert transform(sample_2) == (sample_2, sample_2)
-    assert transform(sample_3) == (sample_3, sample_3)
+    assert transform(simple_mask) == (simple_mask, simple_mask)
+    assert transform(example_matrix) == (example_matrix, example_matrix)
 
     assert repr(transform) == "PairCreate()"
 
 
-def test_normalise() -> None:
+def test_normalise(simple_mask) -> None:
     transform_1 = Normalise(255)
     transform_2 = Normalise(65535)
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
+    input_1 = simple_mask.type(torch.FloatTensor)
 
     input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[1023.0, 3.890, 557.0], [478.0, 5.788, 10009.0], [1.0, 10240.857, 1458.7]]
@@ -64,7 +59,7 @@ def test_normalise() -> None:
     assert repr(transform_2) == "Normalise(norm_value=65535)"
 
 
-def test_compose() -> None:
+def test_compose(simple_mask) -> None:
     transform_1 = Normalise(255)
     compose_1 = MinervaCompose(transform_1)
 
@@ -72,7 +67,7 @@ def test_compose() -> None:
         [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]
     )
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
+    input_1 = simple_mask.type(torch.FloatTensor)
 
     input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
@@ -110,7 +105,7 @@ def test_compose() -> None:
 
 def test_detachedcolorjitter() -> None:
     transform_1 = DetachedColorJitter(0.8, 0.8, 0.8, 0.2)
-    colorjitter_1 = ColorJitter(0.8, 0.8, 0.8, 0.2)
+    colorjitter_1 = ColorJitter(0.8, 0.8, 0.8, 0.2)  # type: ignore[type]
 
     img = torch.rand(4, 224, 224)
     img_rgb = img[:3]
@@ -130,10 +125,10 @@ def test_detachedcolorjitter() -> None:
     assert repr(transform_1) == f"Detached{repr(colorjitter_1)}"
 
 
-def test_dublicator() -> None:
+def test_dublicator(simple_mask) -> None:
     transform_1 = (utils.dublicator(Normalise))(255)
 
-    input_1 = torch.tensor([[1.0, 3.0, 5.0], [4.0, 5.0, 1.0], [1.0, 1.0, 1.0]])  # type: ignore[attr-defined]
+    input_1 = simple_mask.type(torch.FloatTensor)
 
     input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
@@ -150,7 +145,7 @@ def test_dublicator() -> None:
     assert repr(transform_1) == f"dublicator({repr(Normalise(255))})"
 
 
-def test_tg_to_torch() -> None:
+def test_tg_to_torch(simple_mask) -> None:
     transform_1 = (utils.tg_to_torch(Normalise))(255)
 
     transform_2 = (utils.tg_to_torch(Normalise, keys=["image"]))(255)
@@ -161,21 +156,19 @@ def test_tg_to_torch() -> None:
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
     )
 
-    mask = torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]])  # type: ignore[attr-defined]
-
     out_img = torch.tensor(  # type: ignore[attr-defined]
         [[127.5, 0.0, 255.0], [76.5, 127.5, 102.0], [204.0, 255.0, 178.5]]
     )
 
     out_mask = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    input_3 = {"image": img, "mask": mask}
+    input_3 = {"image": img, "mask": simple_mask}
     output_3 = {"image": out_img, "mask": out_mask}
 
     result_2 = transform_2({"image": img})
     result_3 = transform_3(input_3)
 
-    assert_array_equal(transform_1(img), img / 255)
+    assert_array_equal(transform_1(img), img / 255)  # type: ignore[type]
     assert_array_equal(result_2["image"], img / 255)
     assert_array_equal(result_3["image"], output_3["image"])
     assert_array_equal(result_3["mask"], output_3["mask"])
@@ -183,6 +176,6 @@ def test_tg_to_torch() -> None:
     input_4 = ["wrongisimo!"]
 
     with pytest.raises(TypeError):
-        transform_1(input_4)
+        transform_1(input_4)  # type: ignore[type]
 
     assert repr(transform_1) == repr(Normalise(255))
