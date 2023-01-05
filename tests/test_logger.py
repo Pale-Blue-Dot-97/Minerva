@@ -20,7 +20,7 @@ from minerva.models import FCN16ResNet18, SimCLR18
 device = torch.device("cpu")  # type: ignore[attr-defined]
 
 
-def test_STG_Logger():
+def test_STG_Logger(simple_bbox):
     criterion = nn.CrossEntropyLoss()
 
     path = Path(tempfile.gettempdir(), "exp1")
@@ -54,7 +54,7 @@ def test_STG_Logger():
         for i in range(n_batches):
             images = torch.rand(size=(6, 4, 256, 256))
             masks = torch.randint(0, 8, (6, 256, 256))  # type: ignore[attr-defined]
-            bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
+            bboxes = [simple_bbox] * 6
             batch: Dict[str, Union[Tensor, List[Any]]] = {
                 "image": images,
                 "mask": masks,
@@ -87,7 +87,7 @@ def test_STG_Logger():
     shutil.rmtree(path, ignore_errors=True)
 
 
-def test_SSL_Logger():
+def test_SSL_Logger(simple_bbox):
     criterion = NTXentLoss(0.5)
 
     path = Path(tempfile.gettempdir(), "exp2")
@@ -114,7 +114,7 @@ def test_SSL_Logger():
         data = []
         for i in range(n_batches):
             images = torch.rand(size=(6, 4, 256, 256))
-            bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
+            bboxes = [simple_bbox] * 6
             batch = {
                 "image": images,
                 "bbox": bboxes,
