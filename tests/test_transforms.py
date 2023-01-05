@@ -1,5 +1,6 @@
 import pytest
 import torch
+from torch import LongTensor
 from numpy.testing import assert_array_equal
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
 
@@ -19,7 +20,9 @@ def test_class_transform(simple_mask, example_matrix) -> None:
 
     output_1 = torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    input_2: torch.LongTensor = torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long)  # type: ignore[attr-defined]
+    input_2: LongTensor = torch.tensor(  # type: ignore[attr-defined]
+        [[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long
+    )
 
     output_2 = torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]])  # type: ignore[attr-defined]
 
