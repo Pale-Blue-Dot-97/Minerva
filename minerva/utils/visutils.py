@@ -159,7 +159,6 @@ def dec_extent_to_deg(
         new_crs=new_crs,
     )
 
-    # TODO: Perhaps this should ensure that arrays of floats not ints are returned to prevent over-rounding.
     # Creates a discrete mapping of the spaced ticks to latitude longitude extent of the image.
     lat_extent = np.around(
         np.linspace(
