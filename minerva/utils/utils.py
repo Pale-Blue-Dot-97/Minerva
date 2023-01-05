@@ -636,8 +636,8 @@ def deg_to_dms(deg: float, axis: str = "lat") -> str:
 
 
 def dec2deg(
-    dec_co: Union[Sequence[float], NDArray[Shape["*"], Float]],
-    axis: str = "lat",  # noqa: F722
+    dec_co: Union[Sequence[float], NDArray[Shape["*"], Float]],  # noqa: F722
+    axis: str = "lat",
 ) -> List[str]:
     """Wrapper for :func:`deg_to_dms`.
 
