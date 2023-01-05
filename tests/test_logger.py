@@ -11,7 +11,6 @@ import torch.nn.modules as nn
 from numpy.testing import assert_array_equal
 from lightly.loss import NTXentLoss
 from torch.utils.tensorboard.writer import SummaryWriter
-from torchgeo.datasets.utils import BoundingBox
 
 from minerva.logger import SSL_Logger, STG_Logger
 from minerva.modelio import ssl_pair_tg, sup_tg
