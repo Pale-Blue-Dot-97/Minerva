@@ -104,3 +104,8 @@ def simple_mask() -> torch.Tensor:
 @pytest.fixture
 def example_matrix() -> Dict[int, int]:
     return {1: 1, 3: 3, 4: 2, 5: 0}
+
+
+@pytest.fixture
+def simple_bbox():
+    return BoundingBox(0, 1, 0, 1, 0, 1)
