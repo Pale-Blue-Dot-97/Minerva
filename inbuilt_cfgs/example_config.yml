@@ -3,21 +3,12 @@
 
 # === PATHS ===================================================================
 dir:
-    data:
-        - tests
-        - tmp
-        - data
+    data: tests/tmp/data
     configs:
         data_config: Chesapeake7.yml
         imagery_config: NAIP.yml
-    results:
-        - tests
-        - tmp
-        - results
-    cache:
-        - tests
-        - tmp
-        - cache
+    results: tests/tmp/results
+    cache: tests/tmp/cache
 
 # ---+ Kwargs for make_datasets +----------------------------------------------
 # Name of model. Substring before hyphen is model class.
