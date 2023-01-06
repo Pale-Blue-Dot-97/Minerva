@@ -29,7 +29,7 @@ model_type: segmentation
 sample_pairs: false
 elim: true
 balance: true
-patch_size: [32, 32]
+patch_size: &patch_size [32, 32]
 pre_train: false
 fine_tune: false
 max_r: 52
@@ -97,7 +97,7 @@ sampler_params:
         name: RandomGeoSampler
         roi: false
         params:
-            size: 32
+            size: *patch_size
             length: 120
 
     # Validation Dataset Sampler
@@ -106,7 +106,7 @@ sampler_params:
         name: RandomGeoSampler
         roi: false
         params:
-            size: 32
+            size: *patch_size
             length: 32
 
     # Test Dataset Sampler
@@ -115,7 +115,7 @@ sampler_params:
         name: RandomGeoSampler
         roi: false
         params:
-            size: 32
+            size: *patch_size
             length: 32
 
 
