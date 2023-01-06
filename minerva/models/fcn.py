@@ -111,7 +111,7 @@ class _FCN(MinervaBackbone, ABC):
 
         # Initialises the selected Minerva backbone.
         self.backbone: MinervaModel = get_model(backbone_name)(
-            input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
+            input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs  # type: ignore
         )
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
@@ -191,6 +191,9 @@ class DCN(MinervaModel, ABC):
         n_classes (int): Optional; Number of classes in dataset. Defines number of output classification channels.
         variant (str): Optional; Flag for which DCN variant to construct. Must be either '32', '16' or '8'.
             See the FCN paper for details on these variants.
+
+    Raises:
+        NotImplementedError: Raised if ``variant`` does not match known types.
     """
 
     def __init__(
@@ -276,6 +279,11 @@ class DCN(MinervaModel, ABC):
             self.DC8.weight.data = bilinear_init(self.n_classes, self.n_classes, 16)
             self.dbn8 = nn.BatchNorm2d(self.n_classes)
 
+        if variant not in ("32", "16", "8"):
+            raise NotImplementedError(
+                f"Variant {self.variant} does not match known types"
+            )
+
     def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
@@ -289,6 +297,9 @@ class DCN(MinervaModel, ABC):
         Returns:
             Tensor segmentation mask with a channel for each class of the likelihoods the network places on
                 each pixel input 'x' being of that class.
+
+        Raises:
+            NotImplementedError: Raised if ``variant`` does not match known types.
         """
         # Unpack outputs from the ResNet layers.
         x4, x3, x2, *_ = x
@@ -315,7 +326,7 @@ class DCN(MinervaModel, ABC):
             return z
 
         # If DCN8, continue through remaining layers to output.
-        elif self.variant == "8":
+        if self.variant == "8":
             x2 = self.bn1(self.relu(self.Conv1x1_x2(x2)))
             z = self.dbn4(self.relu(self.DC4(z)))
 
@@ -325,6 +336,11 @@ class DCN(MinervaModel, ABC):
 
             assert isinstance(z, Tensor)
             return z
+
+        else:
+            raise NotImplementedError(
+                f"Variant {self.variant} does not match known types"
+            )
 
 
 class FCN32ResNet18(_FCN):
