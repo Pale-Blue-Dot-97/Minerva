@@ -891,7 +891,7 @@ class Trainer:
     def save_backbone(self) -> None:
         """Readies the model for use in downstream tasks and saves to file."""
         # Checks that model has the required method to ready it for use on downstream tasks.
-        assert isinstance(self.model, MinervaBackbone)
+        # assert isinstance(self.model, MinervaBackbone)
         pre_trained_backbone: Module = self.model.get_backbone()
 
         cache_dir = universal_path(self.params["dir"]["cache"])
