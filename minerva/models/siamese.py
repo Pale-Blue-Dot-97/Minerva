@@ -73,7 +73,7 @@ class _SimCLR(MinervaBackbone):
         super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
 
         self.backbone: MinervaModel = get_model(backbone_name)(
-            input_size=input_size, encoder=True, **backbone_kwargs
+            input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
         )
 
         self.backbone.determine_output_dim()
@@ -262,7 +262,7 @@ class _SimSiam(MinervaBackbone):
         super(_SimSiam, self).__init__(criterion=criterion, input_shape=input_size)
 
         self.backbone: MinervaModel = get_model(backbone_name)(
-            input_size=input_size, encoder=True, **backbone_kwargs
+            input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
         )
 
         self.backbone.determine_output_dim()
