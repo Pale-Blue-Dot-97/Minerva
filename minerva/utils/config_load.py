@@ -88,7 +88,7 @@ def check_paths(
 
         if str(head) != "" or str(head) is not None:
             config_path = head
-        elif head == "" or head is None:
+        elif str(head) == "" or head is None:
             config_path = Path("")
 
         config_name = tail
@@ -108,9 +108,7 @@ def check_paths(
 
     # Check the config specified exists at the path given. If not, assume its in the default directory.
     else:
-        if config_name is None:
-            config_name = chdir_to_default(config_name)
-        elif not (config_path / config_name).exists():
+        if config_name is None or not (config_path / config_name).exists():
             config_name = chdir_to_default(config_name)
         else:
             pass
@@ -135,9 +133,7 @@ def chdir_to_default(config_name: Optional[str] = None) -> str:
     this_abs_path = (Path(__file__).parent / DEFAULT_CONF_DIR_PATH).resolve()
     os.chdir(this_abs_path)
 
-    if config_name is None:
-        return DEFAULT_CONFIG_NAME
-    elif not Path(config_name).exists():
+    if config_name is None or not Path(config_name).exists():
         return DEFAULT_CONFIG_NAME
     else:
         return config_name

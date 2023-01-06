@@ -27,7 +27,8 @@ Source: https://github.com/Bjarten/early-stopping-pytorch
 # =====================================================================================================================
 #                                                    IMPORTS
 # =====================================================================================================================
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
+from pathlib import Path
 import numpy as np
 import torch
 from torch.nn.modules import Module
@@ -48,7 +49,7 @@ class EarlyStopping:
         patience: int = 7,
         verbose: bool = False,
         delta: float = 0.0,
-        path: str = "checkpoint.pt",
+        path: Union[str, Path] = "checkpoint.pt",
         trace_func=print,
     ):
         """
@@ -71,7 +72,7 @@ class EarlyStopping:
         self.early_stop: bool = False
         self.val_loss_min: float = np.Inf
         self.delta: float = delta
-        self.path: str = path
+        self.path: Union[str, Path] = path
         self.trace_func: Callable[..., None] = trace_func
 
     def __call__(self, val_loss: float, model: Module) -> None:

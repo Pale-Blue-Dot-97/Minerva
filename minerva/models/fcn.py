@@ -37,7 +37,7 @@ import torch
 import torch.nn.modules as nn
 from torch import Tensor
 
-from .core import MinervaModel, bilinear_init, get_model
+from .core import MinervaModel, MinervaBackbone, bilinear_init, get_model
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -65,7 +65,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class _FCN(MinervaModel, ABC):
+class _FCN(MinervaBackbone, ABC):
     """Base Fully Convolutional Network (FCN) class to be subclassed by FCN variants described in the FCN paper.
 
     Subclasses MinervaModel.

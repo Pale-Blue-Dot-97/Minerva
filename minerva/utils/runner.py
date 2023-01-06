@@ -24,7 +24,7 @@
 # =====================================================================================================================
 import argparse
 from argparse import Namespace
-from typing import Any, Callable, Optional, Iterable
+from typing import Any, Callable, Optional, Iterable, Union
 import os
 import signal
 import subprocess
@@ -264,7 +264,9 @@ def config_args(args: Namespace) -> Namespace:
     return config_env_vars(args)
 
 
-def distributed_run(run: Callable[[int, Iterable[Any]], Any], args: Namespace) -> None:
+def distributed_run(
+    run: Callable[[int, Union[Namespace, Iterable[Any]]], Any], args: Namespace
+) -> None:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
     :func:`run_preamble` adds some additional commands to initialise the process group for each run
@@ -294,7 +296,7 @@ def distributed_run(run: Callable[[int, Iterable[Any]], Any], args: Namespace) -
 
         if torch.cuda.is_available():
             torch.cuda.set_device(gpu)
-            torch.backends.cudnn.benchmark = True
+            torch.backends.cudnn.benchmark = True  # type: ignore
 
         run(gpu, args)
 
