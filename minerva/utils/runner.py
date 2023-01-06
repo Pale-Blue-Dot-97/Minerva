@@ -24,7 +24,7 @@
 # =====================================================================================================================
 import argparse
 from argparse import Namespace
-from typing import Any, Callable, Optional, Iterable, Union
+from typing import Any, Callable, Optional
 import os
 import signal
 import subprocess
