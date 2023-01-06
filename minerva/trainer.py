@@ -239,7 +239,7 @@ class Trainer:
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(
+            self.model = torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(  # type: ignore
                 self.model
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
@@ -250,7 +250,7 @@ class Trainer:
         Returns:
             Tuple[int, ...]: Tuple describing the input shape of the model.
         """
-        input_shape: Optional[Tuple[int, ...]] = self.model.input_shape
+        input_shape: Optional[Tuple[int, ...]] = self.model.input_shape  # type: ignore
         assert input_shape is not None
         input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
 
@@ -338,7 +338,7 @@ class Trainer:
         optimiser = utils.func_by_str(module, optimiser_params["name"])
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(
+        self.model.set_optimiser(  # type: ignore
             optimiser(self.model.parameters(), **optimiser_params["params"])
         )
 
@@ -457,7 +457,7 @@ class Trainer:
 
                 # Updates progress bar that batch has been processed.
                 if self.gpu == 0:
-                    bar()
+                    bar()  # type: ignore
 
         # Updates metrics with epoch results.
         self.metric_logger(mode, epoch_logger.get_logs)
