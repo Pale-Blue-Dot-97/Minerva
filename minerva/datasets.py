@@ -670,7 +670,7 @@ def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
 
     print("CALCULATING CLASS FRACTIONS")
     # Calculates the fractional size of each class in each patch.
-    df = DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
+    df = DataFrame([row for row in df.apply(utils.class_frac, axis=1)])  # type: ignore[arg-type]
     df.fillna(0, inplace=True)
 
     # Delete redundant MODES column.
