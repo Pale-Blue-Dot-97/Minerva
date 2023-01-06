@@ -122,7 +122,6 @@ class Trainer:
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
-        print(f"{gpu=}")
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
@@ -151,9 +150,9 @@ class Trainer:
         self.params["exp_name"] = "{}_{}".format(
             self.params["model_name"], self.params["timestamp"]
         )
-        self.params["dir"]["results"].append(self.params["exp_name"])
 
-        results_dir = universal_path(self.params["dir"]["results"])
+        self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
+        results_dir = self.params["dir"]["results"] / self.params["exp_name"]
 
         # Path to experiment directory and experiment name.
         self.exp_fn = results_dir / self.params["exp_name"]
@@ -536,8 +535,8 @@ class Trainer:
                         plots["Mask"] = False
 
                     # Amends the results' directory to add a new level for train or validation.
-                    results_dir: List[str] = self.params["dir"]["results"].copy()
-                    results_dir.append(mode)
+                    results_dir: Path = self.params["dir"]["results"]
+                    results_dir = results_dir / mode
 
                     if self.gpu == 0:
                         # Plots the results of this epoch.
@@ -607,8 +606,8 @@ class Trainer:
                 plots["Mask"] = False
 
             # Amends the results' directory to add a new level for test results.
-            results_dir: List[str] = self.params["dir"]["results"]
-            results_dir.append("test")
+            results_dir: Path = self.params["dir"]["results"]
+            results_dir = results_dir / "test"
 
             # Plots the results.
             visutils.plot_results(
@@ -912,7 +911,7 @@ class Trainer:
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
         utils.run_tensorboard(
-            path=self.params["dir"]["results"][:-1],
+            path=self.params["dir"]["results"].parent,
             env_name="env2",
             exp_name=self.params["exp_name"],
             host_num=6006,

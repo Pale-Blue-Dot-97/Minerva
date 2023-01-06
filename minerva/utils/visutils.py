@@ -1168,16 +1168,14 @@ def plot_embedding(
 
 
 def format_plot_names(
-    model_name: str,
-    timestamp: str,
-    path: Sequence[str],
+    model_name: str, timestamp: str, path: Union[Sequence[str], str, Path]
 ) -> Dict[str, str]:
     """Creates unique filenames of plots in a standardised format.
 
     Args:
         model_name (str): Name of model. e.g. MLP-MkVI.
         timestamp (str): Time and date to be used to identify experiment.
-        path (list[str]): Path to the directory for storing plots as a list of strings for each level.
+        path (Union[list[str], str, Path]): Path to the directory for storing plots as a list of strings for each level.
 
     Returns:
         filenames (dict): Formatted filenames for plots.
@@ -1225,7 +1223,7 @@ def plot_results(
     show: bool = False,
     model_name: Optional[str] = None,
     timestamp: Optional[str] = None,
-    results_dir: Optional[Sequence[str]] = None,
+    results_dir: Optional[Union[Sequence[str], str, Path]] = None,
 ) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
@@ -1249,7 +1247,7 @@ def plot_results(
         model_name (str): Optional; Name of model. e.g. MLP-MkVI.
         timestamp (str): Optional; Time and date to be used to identify experiment.
             If not specified, the current date-time is used.
-        results_dir (list): Optional; Path to the directory for storing plots as a list of strings for each level.
+        results_dir (Union[list[str], str, Path]): Optional; Path to the directory for storing plots.
 
     Notes:
         save = True, show = False regardless of input for plots made for each sample such as PvT or Mask plots.
@@ -1282,7 +1280,7 @@ def plot_results(
 
     if results_dir is None:
         results_dir = CONFIG["dir"]["results"]
-        assert isinstance(results_dir, Sequence)
+        assert isinstance(results_dir, (Sequence, str, Path))
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 

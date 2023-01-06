@@ -1448,7 +1448,7 @@ def run_tensorboard(
     """
     if not path:
         try:
-            path = CONFIG["dir"]["results"][:-1]
+            path = universal_path(CONFIG["dir"]["results"]).parent
         except KeyError:
             print("KeyError: Path not specified and default cannot be found.")
             print("ABORT OPERATION")
