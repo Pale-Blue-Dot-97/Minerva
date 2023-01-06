@@ -58,7 +58,9 @@ def universal_path(path: Any) -> Path:
     Returns:
         Path: :class:`Path` object of the input ``path``.
     """
-    if type(path) == str:
+    if isinstance(path, Path):
+        return path
+    elif type(path) == str:
         return Path(path)
     else:
         return Path(*path)
