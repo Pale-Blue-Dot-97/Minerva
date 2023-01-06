@@ -50,7 +50,7 @@ class EarlyStopping:
         verbose: bool = False,
         delta: float = 0.0,
         path: Union[str, Path] = "checkpoint.pt",
-        trace_func=print,
+        trace_func: Callable[..., None] = print,
     ):
         """
         Args:
