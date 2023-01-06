@@ -159,21 +159,24 @@ def dec_extent_to_deg(
         new_crs=new_crs,
     )
 
-    # TODO: Perhaps this should ensure that arrays of floats not ints are returned to prevent over-rounding.
     # Creates a discrete mapping of the spaced ticks to latitude longitude extent of the image.
-    lat_extent = np.linspace(
-        start=corners[1][0],
-        stop=corners[1][1],
-        num=int(shape[0] / spacing) + 1,
-        endpoint=True,
-        dtype=np.int32,
+    lat_extent = np.around(
+        np.linspace(
+            start=corners[1][0],
+            stop=corners[1][1],
+            num=int(shape[0] / spacing) + 1,
+            endpoint=True,
+        ),
+        decimals=3,
     )
-    lon_extent = np.linspace(
-        start=corners[0][0],
-        stop=corners[0][1],
-        num=int(shape[0] / spacing) + 1,
-        endpoint=True,
-        dtype=np.int32,
+    lon_extent = np.around(
+        np.linspace(
+            start=corners[0][0],
+            stop=corners[0][1],
+            num=int(shape[0] / spacing) + 1,
+            endpoint=True,
+        ),
+        decimals=3,
     )
 
     return extent, lat_extent, lon_extent
@@ -404,6 +407,9 @@ def labelled_rgb_image(
     # Set ticks for lat-lon.
     ax2.set_xticks(lon_extent)
     ax2.set_yticks(lat_extent)
+
+    print(f"{lat_extent=}")
+    print(f"{lon_extent=}")
 
     # Sets the limits of the secondary axis, so they should align with the primary.
     ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
