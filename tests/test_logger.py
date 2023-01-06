@@ -1,5 +1,6 @@
 from typing import Any, Dict, List, Union
-import os
+import shutil
+from pathlib import Path
 import tempfile
 from nptyping import NDArray, Shape
 
@@ -22,11 +23,10 @@ device = torch.device("cpu")  # type: ignore[attr-defined]
 def test_STG_Logger():
     criterion = nn.CrossEntropyLoss()
 
-    exp_name = "exp1"
-    path = tempfile.gettempdir()
+    path = Path(tempfile.gettempdir(), "exp1")
 
-    if not os.path.exists(os.path.join(path, exp_name)):
-        os.mkdir(os.path.join(path, exp_name))
+    if not path.exists():
+        path.mkdir()
 
     writer = SummaryWriter(log_dir=path)
 
@@ -84,17 +84,16 @@ def test_STG_Logger():
 
         assert_array_equal(results["y"], y)
 
-    os.rmdir(os.path.join(path, exp_name))
+    shutil.rmtree(path, ignore_errors=True)
 
 
 def test_SSL_Logger():
     criterion = NTXentLoss(0.5)
 
-    exp_name = "exp2"
-    path = tempfile.gettempdir()
+    path = Path(tempfile.gettempdir(), "exp2")
 
-    if not os.path.exists(os.path.join(path, exp_name)):
-        os.mkdir(os.path.join(path, exp_name))
+    if not path.exists():
+        path.mkdir()
 
     writer = SummaryWriter(log_dir=path)
 
@@ -138,4 +137,4 @@ def test_SSL_Logger():
         results = logger.get_results
         assert results == {}
 
-    os.rmdir(os.path.join(path, exp_name))
+    shutil.rmtree(path, ignore_errors=True)

@@ -276,6 +276,7 @@ def make_dataset(
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations: Optional[Any] = None
         if type(transform_params) == dict:
+            assert transform_params is not None
             try:
                 if transform_params[key]:
                     transformations = make_transformations(
@@ -354,7 +355,7 @@ def construct_dataloader(
         per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
         sampler_params["params"]["batch_size"] = per_device_batch_size
 
-    sampler: Union[BatchGeoSampler, GeoSampler] = _sampler(
+    sampler: Union[BatchGeoSampler, GeoSampler, DistributedSamplerWrapper] = _sampler(
         dataset=subdatasets[0],
         roi=make_bounding_box(sampler_params["roi"]),
         **sampler_params["params"],
@@ -530,6 +531,10 @@ def make_loaders(
     model_type = params["model_type"]
     class_dist: List[Tuple[int, int]] = [(0, 0)]
 
+    new_classes: Dict[int, str] = {}
+    new_colours: Dict[int, str] = {}
+    forwards: Dict[int, int] = {}
+
     if model_type != "siamese":
         # Load manifest from cache for this dataset.
         manifest = get_manifest(get_manifest_path())
@@ -547,7 +552,7 @@ def make_loaders(
 
     for mode in dataset_params.keys():
         this_transform_params = transform_params[mode]
-        if params.get("elim", False):
+        if params.get("elim", False) and model_type != "siamese":
             if type(this_transform_params["mask"]) != dict:
                 this_transform_params["mask"] = {
                     "ClassTransform": {
@@ -689,4 +694,4 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
         modes = utils.find_modes(sample["mask"])
         sample_modes.append(modes)
 
-    return np.array(sample_modes)
+    return np.array(sample_modes, dtype=object)

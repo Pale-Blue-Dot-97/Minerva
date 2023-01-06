@@ -6,7 +6,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="docs/images/Minerva_logo.png" alt="Logo" width="500" height="180">
+    <img src="docs/images/Minerva_logo_v3.png" alt="Logo" width="400" height="300">
   </a>
   <p align="center">
     Framework for machine learning in remote sensing
@@ -138,6 +138,8 @@ Contributions also provided by:
 
 I'd like to acknowledge the invaluable supervision and contributions of Dr Jonathon Hare and
 Dr Isabel Sargent towards this work.
+
+Credit for new `minerva` logo goes to [DALL-E 2](https://openai.com/dall-e-2/).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
