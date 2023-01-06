@@ -264,9 +264,7 @@ def config_args(args: Namespace) -> Namespace:
     return config_env_vars(args)
 
 
-def distributed_run(
-    run: Callable[[int, Union[Namespace, Iterable[Any]]], Any], args: Namespace
-) -> None:
+def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> None:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
     :func:`run_preamble` adds some additional commands to initialise the process group for each run
@@ -277,7 +275,7 @@ def distributed_run(
         configured using :func:`config_env_vars` or :func:`config_args`.
 
     Args:
-        run (Callable[[int, Iterable[Any]], Any]): Function to run with distributed computing.
+        run (Callable[[int, Namespace], Any]): Function to run with distributed computing.
         args (Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
 
