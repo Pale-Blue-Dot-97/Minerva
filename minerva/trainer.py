@@ -452,13 +452,12 @@ class Trainer:
                     dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                     results = (loss, *results[1:])
 
-                epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
-
-                self.step_num[mode] += 1
-
                 # Updates progress bar that batch has been processed.
                 if self.gpu == 0:
+                    epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
                     bar()
+
+                self.step_num[mode] += 1
 
         # Updates metrics with epoch results.
         self.metric_logger(mode, epoch_logger.get_logs)
