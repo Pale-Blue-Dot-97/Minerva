@@ -374,8 +374,14 @@ def construct_dataloader(
         per_device_batch_size = dataloader_params["batch_size"] // world_size
         _dataloader_params["batch_size"] = per_device_batch_size
 
-    if sample_pairs and not torch.cuda.device_count() > 1:
-        collator = utils.pair_collate(collator)
+    if sample_pairs:
+        if not torch.cuda.device_count() > 1:
+            collator = utils.pair_collate(collator)
+
+        # Can't wrap functions in distributed runs due to pickling error.
+        # Therefore, the collator is set to `stack_sample_pairs` automatically.
+        else:
+            collator = stack_sample_pairs
 
     if batch_sampler:
         _dataloader_params["batch_sampler"] = sampler
