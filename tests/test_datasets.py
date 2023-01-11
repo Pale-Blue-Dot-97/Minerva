@@ -280,13 +280,3 @@ def test_get_manifest() -> None:
 
     if manifest_path.exists():
         Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv").unlink()
-
-
-"""
-def test_make_manifest() -> None:
-    assert isinstance(mdt.make_manifest(), pd.DataFrame)
-
-
-def test_load_all_samples() -> None:
-    pass
-"""
