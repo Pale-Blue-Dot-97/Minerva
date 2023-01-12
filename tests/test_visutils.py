@@ -255,6 +255,7 @@ def test_plot_results() -> None:
         "micro": True,
         "macro": True,
         "Mask": False,
+        "TSNE": True,
     }
     z = np.random.randint(0, 8, size=16 * 224 * 224)
     y = np.random.randint(0, 8, size=16 * 224 * 224)
@@ -274,12 +275,23 @@ def test_plot_results() -> None:
 
     probs = np.random.rand(16, 224, 224, len(utils.CLASSES))
 
+    from minerva.datasets import make_dataset
+
+    embeddings = torch.rand([4, 152]).numpy()
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
+    bounds = np.array(
+        [get_random_bounding_box(dataset.bounds, 12.0, 1.0) for _ in range(4)]
+    )
+
     visutils.plot_results(
         plots,
         z,
         y,
         metrics,
         probs=probs,
+        bounds=bounds,
+        embeddings=embeddings,
+        mode="test",
         class_names=utils.CLASSES,
         colours=utils.CMAP_DICT,
         save=False,
@@ -300,6 +312,7 @@ def test_plot_embeddings() -> None:
             "test",
             show=True,
             filename="tsne_cluster_vis.png",
+            title="test_plot",
         )
         is None
     )
