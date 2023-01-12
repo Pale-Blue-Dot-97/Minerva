@@ -5,6 +5,8 @@ import tempfile
 from typing import Any
 from nptyping import NDArray, Shape
 
+import torch
+from torchgeo.samplers import get_random_bounding_box
 import numpy as np
 import pytest
 import matplotlib as mlp
@@ -13,7 +15,7 @@ from matplotlib.image import AxesImage
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 
-from minerva.utils import utils, visutils
+from minerva.utils import utils, visutils, CONFIG
 
 
 def test_de_interlace() -> None:
@@ -175,26 +177,6 @@ def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None
     visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
 
 
-"""
-def test_seg_plot() -> None:
-    z = np.random.randint(0, 7, size=25*224*224)
-    y = np.random.randint(0, 7, size=25*224*224)
-    ids = ["ID"] * 25
-    bbox = BoundingBox(
-        -1.4153283567520825,
-        -1.3964510733477618,
-        50.91896360773007,
-        50.93781998522083,
-        1.0,
-        2.0,
-    )
-
-    bounds = [bbox] * 25
-
-    assert visutils.seg_plot(z, y, ids, bounds, ) is None
-"""
-
-
 def test_plot_subpopulations() -> None:
     class_dist = [(1, 25), (0, 13), (2, 10), (3, 4)]
 
@@ -304,11 +286,20 @@ def test_plot_results() -> None:
     )
 
 
-# def test_plot_embeddings() -> None:
-#    visutils.plot_embedding(
-#        embeddings.detach().cpu(),
-#        data["bbox"],
-#        "test",
-#        show=True,
-#        filename="tsne_cluster_vis.png",
-#    )
+def test_plot_embeddings() -> None:
+    from minerva.datasets import make_dataset
+
+    embeddings = torch.rand([4, 152])
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
+    bounds = [get_random_bounding_box(dataset.bounds, 12.0, 1.0) for _ in range(4)]
+
+    assert (
+        visutils.plot_embedding(
+            embeddings,
+            bounds,
+            "test",
+            show=True,
+            filename="tsne_cluster_vis.png",
+        )
+        is None
+    )
