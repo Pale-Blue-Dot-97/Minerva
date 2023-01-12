@@ -160,7 +160,6 @@ class Trainer:
 
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
-        print(f"{self.device=}")
 
         # Creates model (and loss function) from specified parameters in params.
         self.model: Union[
@@ -224,7 +223,7 @@ class Trainer:
                 self.model, input_to_model=torch.rand(*input_size, device=self.device)
             )
 
-            if torch.cuda.device_count() == 1:
+            if torch.cuda.device_count() == 1 or self.device == torch.device("cpu"):
                 # Adds a graphical layout of the model to the TensorBoard logger.
                 try:
                     self.writer.add_graph(
