@@ -328,8 +328,10 @@ class STG_Logger(MinervaLogger):
             y_pred = torch.argmax(z, 1).detach().cpu().numpy()  # type: ignore[attr-defined]
             for i in range(len(y)):
 
-                self.logs["total_miou"] += jaccard_score(
-                    y_true[i].flatten(), y_pred[i].flatten(), average="macro"
+                self.logs["total_miou"] += float(
+                    jaccard_score(
+                        y_true[i].flatten(), y_pred[i].flatten(), average="macro"
+                    )
                 )  # noqa: E501 type: ignore[attr-defined]
 
         # Writes loss and correct predictions to the writer.
