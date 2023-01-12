@@ -1231,7 +1231,6 @@ def calc_grad(model: Module) -> Optional[float]:
             # Calculate 2D grad norm
             if p.grad is not None:
                 param_norm = p.grad.data.norm(2)
-                print(param_norm.item())
 
                 # Converts norm to float, squares and adds to total_norm.
                 total_norm += param_norm.item() ** 2
