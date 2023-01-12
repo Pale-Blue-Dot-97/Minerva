@@ -140,7 +140,9 @@ class MinervaLogger(ABC):
         """
         pass
 
-    def write_metric(self, key: str, value: SupportsFloat, step_num=None):
+    def write_metric(
+        self, key: str, value: SupportsFloat, step_num: Optional[int] = None
+    ):
         """Write metric values to logging backends after calculation"""
         # TODO: Are values being reduced across nodes / logged from rank 0?
         if self.writer:
