@@ -39,16 +39,14 @@ def test_randompairbatchgeosampler() -> None:
         dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1
     )
     loader: DataLoader[Dict[str, Any]] = DataLoader(
-        dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs
+        dataset, batch_sampler=sampler, collate_fn=stack_sample_pairs
     )
 
     assert isinstance(loader, DataLoader)
 
-    # TODO: Unknown bug in trying to yield from dataloader with batch sampler.
+    batch = next(iter(loader))
 
-    # batch = next(iter(loader))
-
-    # assert isinstance(batch[0], defaultdict)
-    # assert isinstance(batch[1], defaultdict)
-    # assert len(batch[0]["image"]) == 8
-    # assert len(batch[1]["image"]) == 8
+    assert isinstance(batch[0], defaultdict)
+    assert isinstance(batch[1], defaultdict)
+    assert len(batch[0]["image"]) == 8
+    assert len(batch[1]["image"]) == 8
