@@ -858,6 +858,24 @@ class Trainer:
         # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f"{self.exp_fn}_classification-report.csv")
 
+    def extract_model_from_distributed(self) -> MinervaModel:
+        """Extracts the actual model from any distributed wrapping if this is a distributed run.
+
+        Returns:
+            MinervaModel: Unwrapped model.
+        """
+        model = self.model
+
+        # Checks if this is a distributed run.
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            assert isinstance(model, MinervaDataParallel)
+
+            # Extracts the actual model instance from the distributed wrapping.
+            model = model.module
+
+        assert isinstance(model, MinervaModel)
+        return model
+
     def save_model_weights(self, fn: Optional[str] = None) -> None:
         """Saves model state dict to PyTorch file.
 
@@ -866,7 +884,10 @@ class Trainer:
         """
         if fn is None:
             fn = str(self.exp_fn)
-        torch.save(self.model.state_dict(), f"{fn}.pt")
+
+        model = self.extract_model_from_distributed()
+
+        torch.save(model.state_dict(), f"{fn}.pt")
 
     def save_model(self, fn: Optional[str] = None, format: str = "pt") -> None:
         """Saves the model object itself to PyTorch file.
@@ -878,14 +899,16 @@ class Trainer:
         Raises:
             ValueError: If format is not recognised.
         """
+        model = self.extract_model_from_distributed()
+
         if fn is None:
             fn = str(self.exp_fn)
 
         if format == "pt":
-            torch.save(self.model, f"{fn}.pt")
+            torch.save(model, f"{fn}.pt")
         elif format == "onnx":
             x = torch.rand(*self.get_input_size(), device=self.device)
-            torch.onnx.export(self.model, (x,), f"{fn}.onnx")
+            torch.onnx.export(model, (x,), f"{fn}.onnx")
         else:
             raise ValueError(f"format {format} unrecognised!")
 
