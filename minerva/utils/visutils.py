@@ -1114,7 +1114,7 @@ def plot_embedding(
             images.append(stack_rgb(sample["image"].numpy()))
             targets.append(
                 [
-                    int(stats.mode(mask, keepdims=False).mode)
+                    int(stats.mode(mask.flatten(), keepdims=False).mode)
                     for mask in sample["mask"].numpy()
                 ]
             )
