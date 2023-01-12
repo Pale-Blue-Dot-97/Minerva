@@ -1,3 +1,4 @@
+import pytest
 import argparse
 import torch
 from minerva.trainer import Trainer
@@ -27,6 +28,7 @@ def test_trainer() -> None:
 def run_trainer(gpu: int, args: argparse.Namespace):
     args.gpu = gpu
     params = CONFIG.copy()
+    params["calc_norm"] = True
 
     trainer = Trainer(gpu=args.gpu, **params)
     assert isinstance(trainer, Trainer)
@@ -36,4 +38,10 @@ def run_trainer(gpu: int, args: argparse.Namespace):
     trainer.test()
 
     if args.gpu == 0:
+        trainer.save_model()
+        trainer.save_model(format="onnx")
+
+        with pytest.raises(ValueError):
+            trainer.save_model(format="unkown")
+
         trainer.save_backbone()
