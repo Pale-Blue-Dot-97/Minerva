@@ -103,37 +103,44 @@ def test_SSL_Logger(simple_bbox):
     n_batches = 8
 
     for mode in ("train", "val", "test"):
-        logger = SSL_Logger(
-            n_batches=n_batches,
-            batch_size=6,
-            n_samples=8 * 6,
-            record_int=True,
-            record_float=True,
-        )
-        data = []
-        for i in range(n_batches):
-            images = torch.rand(size=(6, 4, 256, 256))
-            bboxes = [simple_bbox] * 6
-            batch = {
-                "image": images,
-                "bbox": bboxes,
-            }
-            data.append((batch, batch))
-
-            logger(
-                mode,
-                i,
-                writer,
-                *ssl_pair_tg((batch, batch), model, device=device, mode=mode)
+        for extra_metrics in (True, False):
+            logger = SSL_Logger(
+                n_batches=n_batches,
+                batch_size=6,
+                n_samples=8 * 6,
+                record_int=True,
+                record_float=True,
+                collapse_level=extra_metrics,
+                euclidean=extra_metrics,
             )
+            data = []
+            for i in range(n_batches):
+                images = torch.rand(size=(6, 4, 256, 256))
+                bboxes = [simple_bbox] * 6
+                batch = {
+                    "image": images,
+                    "bbox": bboxes,
+                }
+                data.append((batch, batch))
 
-        logs = logger.get_logs
-        assert logs["batch_num"] == 8
-        assert type(logs["total_loss"]) is float
-        assert type(logs["total_correct"]) is float
-        assert type(logs["total_top5"]) is float
+                logger(
+                    mode,
+                    i,
+                    writer,
+                    *ssl_pair_tg((batch, batch), model, device=device, mode=mode)
+                )
 
-        results = logger.get_results
-        assert results == {}
+            logs = logger.get_logs
+            assert logs["batch_num"] == 8
+            assert type(logs["total_loss"]) is float
+            assert type(logs["total_correct"]) is float
+            assert type(logs["total_top5"]) is float
+
+            if extra_metrics:
+                assert type(logs["collapse_level"]) is float
+                assert type(logs["euc_dist"]) is float
+
+            results = logger.get_results
+            assert results == {}
 
     shutil.rmtree(path, ignore_errors=True)
