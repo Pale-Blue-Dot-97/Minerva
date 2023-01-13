@@ -339,6 +339,7 @@ class SSL_Metrics(MinervaMetrics):
 
         if self.sample_pairs:
             self.metrics[f"{mode}_collapse_level"]["x"].append(epoch_no + 1)
+            self.metrics[f"{mode}_euc_dist"]["x"].append(epoch_no + 1)
 
     def print_epoch_results(self, mode: str, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
