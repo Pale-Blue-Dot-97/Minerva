@@ -29,8 +29,14 @@ def test_make_bounding_box() -> None:
     assert mdt.make_bounding_box() is None
     assert mdt.make_bounding_box(False) is None
 
-    bbox = [1.0, 2.0, 1.0, 2.0, 1.0, 2.0]
+    bbox = (1.0, 2.0, 1.0, 2.0, 1.0, 2.0)
     assert mdt.make_bounding_box(bbox) == BoundingBox(*bbox)
+
+    with pytest.raises(
+        ValueError,
+        match="``roi`` must be a sequence of floats or ``False``, not ``True``",
+    ):
+        _ = mdt.make_bounding_box(True)
 
 
 def test_tinydataset() -> None:
@@ -208,16 +214,6 @@ def test_construct_dataloader() -> None:
     assert isinstance(dataloader_3, DataLoader)
 
 
-def test_make_bounding_box() -> None:
-    with pytest.raises(
-        ValueError,
-        match="``roi`` must be a sequence of floats or ``False``, not ``True``",
-    ):
-        _ = mdt.make_bounding_box(True)
-
-    assert isinstance(mdt.make_bounding_box((0, 1, 0, 1, 0, 1)), BoundingBox)
-
-
 def test_get_transform() -> None:
     name = "RandomResizedCrop"
     params = {"module": "torchvision.transforms", "size": 128}
@@ -299,12 +295,19 @@ def test_get_manifest() -> None:
 
     new_path = Path("tests", "tmp", "empty", "Chesapeake7_Manifest.csv")
     if new_path.exists():
+        print("exists")
         new_path.unlink()
+
+    if new_path.parent.exists():
+        new_path.parent.rmdir()
 
     assert isinstance(mdt.get_manifest(new_path), pd.DataFrame)
 
     if new_path.exists():
         new_path.unlink()
+
+    if new_path.parent.exists():
+        new_path.parent.rmdir()
 
     if manifest_path.exists():
         manifest_path.unlink()
