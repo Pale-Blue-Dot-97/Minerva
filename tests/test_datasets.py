@@ -13,6 +13,7 @@ from torchgeo.samplers.utils import get_random_bounding_box
 from rasterio.crs import CRS
 
 from minerva import datasets as mdt
+from minerva.datasets import TstImgDataset, TstMaskDataset, PairedDataset
 from minerva.utils.utils import CONFIG, set_seeds
 
 data_root = Path("tests", "tmp")
@@ -35,15 +36,15 @@ def test_make_bounding_box() -> None:
 def test_tinydataset() -> None:
     """Source of TIFF: https://github.com/mommermi/geotiff_sample"""
 
-    imagery = mdt.TstImgDataset(img_root)
-    labels = mdt.TstMaskDataset(lc_root)
+    imagery = TstImgDataset(img_root)
+    labels = TstMaskDataset(lc_root)
 
     dataset = imagery & labels
     assert isinstance(dataset, IntersectionDataset)
 
 
 def test_paired_datasets() -> None:
-    dataset = mdt.PairedDataset(mdt.TstImgDataset, img_root)
+    dataset = PairedDataset(TstImgDataset, img_root)
 
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -55,8 +56,8 @@ def test_paired_datasets() -> None:
 
     assert type(dataset.crs) == CRS
     assert type(getattr(dataset, "crs")) == CRS
-    assert type(dataset.dataset) == mdt.TstImgDataset
-    assert type(dataset.__getattr__("dataset")) == mdt.TstImgDataset
+    assert type(dataset.dataset) == TstImgDataset
+    assert type(dataset.__getattr__("dataset")) == TstImgDataset
 
     with pytest.raises(AttributeError):
         dataset.roi
@@ -110,7 +111,13 @@ def test_stack_sample_pairs() -> None:
 
 
 def test_intersect_datasets() -> None:
-    pass
+    imagery = PairedDataset(TstImgDataset, img_root)
+    labels = PairedDataset(TstMaskDataset, lc_root)
+
+    assert isinstance(
+        mdt.intersect_datasets([imagery, labels], sample_pairs=True),
+        IntersectionDataset,
+    )
 
 
 def test_make_dataset() -> None:
@@ -199,6 +206,16 @@ def test_construct_dataloader() -> None:
     assert isinstance(dataloader_1, DataLoader)
     assert isinstance(dataloader_2, DataLoader)
     assert isinstance(dataloader_3, DataLoader)
+
+
+def test_make_bounding_box() -> None:
+    with pytest.raises(
+        ValueError,
+        match="``roi`` must be a sequence of floats or ``False``, not ``True``",
+    ):
+        _ = mdt.make_bounding_box(True)
+
+    assert isinstance(mdt.make_bounding_box((0, 1, 0, 1, 0, 1)), BoundingBox)
 
 
 def test_get_transform() -> None:
