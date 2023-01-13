@@ -629,7 +629,7 @@ class Trainer:
                 "OPT",
                 "Optional",
             ):
-                try:
+                try:  # pragma: no cover
                     res = inputimeout(
                         prompt="Run TensorBoard Logs? (Y/N): ", timeout=_timeout
                     )
@@ -640,7 +640,7 @@ class Trainer:
                         pass
                     else:
                         self.print("\n*Input not recognised*. Please try again")
-                except TimeoutOccurred:
+                except TimeoutOccurred:  # pragma: no cover
                     self.print(
                         "Input timeout elapsed. TensorBoard logs will not be run."
                     )
@@ -817,7 +817,7 @@ class Trainer:
                 "OPT",
                 "Optional",
             ):
-                try:
+                try:  # pragma: no cover
                     res = inputimeout(
                         prompt="\nSave model to file? (Y/N): ", timeout=_timeout
                     )
@@ -830,7 +830,7 @@ class Trainer:
                         pass
                     else:
                         self.print("Input not recognised. Please try again")
-                except TimeoutOccurred:
+                except TimeoutOccurred:  # pragma: no cover
                     self.print("Input timeout elapsed. Model will not be saved")
 
             elif self.params.get("save_model", False) in (True, "auto", "Auto"):
@@ -931,7 +931,7 @@ class Trainer:
 
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
-        utils.run_tensorboard(
+        utils.run_tensorboard(  # pragma: no cover
             path=self.params["dir"]["results"].parent,
             env_name="env2",
             exp_name=self.params["exp_name"],
