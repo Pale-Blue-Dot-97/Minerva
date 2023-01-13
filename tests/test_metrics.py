@@ -98,6 +98,8 @@ def test_ssl_metrics() -> None:
             "total_loss": random.random(),
             "total_correct": random.random(),
             "total_top5": random.random(),
+            "collapse_level": random.random(),
+            "euc_dist": random.random(),
         }
 
         return logs
@@ -110,10 +112,18 @@ def test_ssl_metrics() -> None:
 
     metric_loggers: List[MinervaMetrics] = []
     metric_loggers.append(
-        SSL_Metrics(n_batches, 16, (4, 224, 224), model_type="segmentation")
+        SSL_Metrics(
+            n_batches, 16, (4, 224, 224), model_type="segmentation", sample_pairs=True
+        )
     )
     metric_loggers.append(
-        SSL_Metrics(n_batches, 16, (4, 224, 224), model_type="scene_classifier")
+        SSL_Metrics(
+            n_batches,
+            16,
+            (4, 224, 224),
+            model_type="scene_classifier",
+            sample_pairs=True,
+        )
     )
 
     for mode in n_batches.keys():
@@ -160,6 +170,16 @@ def test_ssl_metrics() -> None:
             }
         )
 
+        correct_collapse_level = {
+            "x": epochs,
+            "y": [log["collapse_level"] for log in logs],
+        }
+
+        correct_euc_dist = {
+            "x": epochs,
+            "y": [log["euc_dist"] / n_batches[mode] for log in logs],
+        }
+
         for i, metric_logger in enumerate(metric_loggers):
             for j in range(len(logs)):
                 metric_logger(mode, logs[j])
@@ -171,9 +191,17 @@ def test_ssl_metrics() -> None:
             assert metrics[f"{mode}_loss"] == pytest.approx(correct_loss)
             assert metrics[f"{mode}_acc"] == pytest.approx(correct_acc[i])
             assert metrics[f"{mode}_top5_acc"] == pytest.approx(correct_top5[i])
+            assert metrics[f"{mode}_collapse_level"] == pytest.approx(
+                correct_collapse_level
+            )
+            assert metrics[f"{mode}_euc_dist"] == pytest.approx(correct_euc_dist)
 
             sub_metrics = metric_logger.get_sub_metrics()
 
             assert sub_metrics[f"{mode}_loss"] == pytest.approx(correct_loss)
             assert sub_metrics[f"{mode}_acc"] == pytest.approx(correct_acc[i])
             assert sub_metrics[f"{mode}_top5_acc"] == pytest.approx(correct_top5[i])
+            assert sub_metrics[f"{mode}_collapse_level"] == pytest.approx(
+                correct_collapse_level
+            )
+            assert sub_metrics[f"{mode}_euc_dist"] == pytest.approx(correct_euc_dist)
