@@ -185,10 +185,8 @@ def get_collator(
     else:
         collator = stack_samples
 
-    if callable(collator):
-        return collator
-    else:
-        raise TypeError(f"collator is of type {type(collator)}, not callable!")
+    assert callable(collator)
+    return collator
 
 
 def stack_sample_pairs(
