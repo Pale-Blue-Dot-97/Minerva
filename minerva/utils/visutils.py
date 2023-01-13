@@ -944,7 +944,7 @@ def make_confusion_matrix(
 
     if DATA_CONFIG is not None:
         figsize = DATA_CONFIG["fig_sizes"]["CM"]
-    else:
+    else:  # pragma: no cover
         figsize = None
 
     # Plots figure.
@@ -1259,7 +1259,7 @@ def plot_results(
         # Ensures that there is no attempt to display figures incase no display is present.
         try:
             mlp.use("agg")
-        except ImportError:
+        except ImportError:  # pragma: no cover
             pass
 
     flat_z = None
