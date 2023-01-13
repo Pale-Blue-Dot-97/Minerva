@@ -98,7 +98,7 @@ class MinervaMetrics(ABC):
             mode (str): Mode of model fitting.
             logs (Dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
-        pass
+        pass  # pragma: no cover
 
     @abc.abstractmethod
     def log_epoch_number(self, mode: str, epoch_no: int) -> None:
@@ -108,7 +108,7 @@ class MinervaMetrics(ABC):
             mode (str): Mode of model fitting.
             epoch_no (int): Epoch number to log.
         """
-        pass
+        pass  # pragma: no cover
 
     @property
     def get_metrics(self) -> Dict[str, Any]:
@@ -148,7 +148,7 @@ class MinervaMetrics(ABC):
             mode (str): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
-        pass
+        pass  # pragma: no cover
 
 
 class SP_Metrics(MinervaMetrics):
