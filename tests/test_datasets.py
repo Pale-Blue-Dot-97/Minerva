@@ -292,10 +292,19 @@ def test_get_manifest() -> None:
     manifest_path = Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
 
     if manifest_path.exists():
-        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv").unlink()
+        manifest_path.unlink()
 
     assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
     assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
+
+    new_path = Path("tests", "tmp", "empty", "Chesapeake7_Manifest.csv")
+    if new_path.exists():
+        new_path.unlink()
+
+    assert isinstance(mdt.get_manifest(new_path), pd.DataFrame)
+
+    if new_path.exists():
+        new_path.unlink()
 
     if manifest_path.exists():
-        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv").unlink()
+        manifest_path.unlink()
