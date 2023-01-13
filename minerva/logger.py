@@ -138,7 +138,7 @@ class MinervaLogger(ABC):
         Returns:
             None
         """
-        pass
+        pass  # pragma: no cover
 
     def write_metric(
         self, key: str, value: SupportsFloat, step_num: Optional[int] = None
@@ -246,7 +246,7 @@ class STG_Logger(MinervaLogger):
                     (self.n_batches, self.batch_size, n_classes, *out_shape),
                     dtype=np.float16,
                 )
-            except MemoryError:
+            except MemoryError:  # pragma: no cover
                 raise MemoryError(
                     "Dataset too large to record probabilities of predicted classes!"
                 )
@@ -255,7 +255,7 @@ class STG_Logger(MinervaLogger):
                 self.results["bounds"] = np.empty(
                     (self.n_batches, self.batch_size), dtype=object
                 )
-            except MemoryError:
+            except MemoryError:  # pragma: no cover
                 raise MemoryError(
                     "Dataset too large to record bounding boxes of samples!"
                 )
