@@ -54,7 +54,9 @@ def test_paired_datasets() -> None:
     assert type(sample_2) == dict
 
     assert type(dataset.crs) == CRS
+    assert type(getattr(dataset, "crs")) == CRS
     assert type(dataset.dataset) == mdt.TstImgDataset
+    assert type(dataset.__getattr__("dataset")) == mdt.TstImgDataset
 
     with pytest.raises(AttributeError):
         dataset.roi
