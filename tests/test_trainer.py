@@ -8,23 +8,6 @@ from minerva.utils import runner
 set_seeds(42)
 
 
-def test_trainer() -> None:
-    args = argparse.Namespace()
-
-    if torch.distributed.is_available():  # type: ignore
-        # Assumes distributed tests are single node
-        args.rank = 0
-        args.dist_url = "tcp://localhost:58472"
-        args.world_size = torch.cuda.device_count()
-        args.ngpus_per_node = args.world_size
-        args.distributed = True
-        runner.distributed_run(run_trainer, args)
-
-    else:
-        args.gpu = 0
-        run_trainer(args.gpu, args)
-
-
 def run_trainer(gpu: int, args: argparse.Namespace):
     args.gpu = gpu
     params = CONFIG.copy()
@@ -45,3 +28,20 @@ def run_trainer(gpu: int, args: argparse.Namespace):
             trainer.save_model(format="unkown")
 
         trainer.save_backbone()
+
+
+def test_trainer() -> None:
+    args = argparse.Namespace()
+
+    if torch.distributed.is_available():  # type: ignore
+        # Assumes distributed tests are single node
+        args.rank = 0
+        args.dist_url = "tcp://localhost:58472"
+        args.world_size = torch.cuda.device_count()
+        args.ngpus_per_node = args.world_size
+        args.distributed = True
+        runner.distributed_run(run_trainer, args)
+
+    else:
+        args.gpu = 0
+        run_trainer(args.gpu, args)
