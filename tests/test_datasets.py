@@ -142,17 +142,36 @@ def test_make_dataset() -> None:
         "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
     }
 
+    transform_params_2 = {
+        "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
+    }
+
     dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
-    assert isinstance(dataset_1, mdt.TstImgDataset)
+    assert isinstance(dataset_1, TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
         data_dir, dataset_params, transform_params, sample_pairs=True
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
-    assert isinstance(dataset_2, mdt.PairedDataset)
+    assert isinstance(dataset_2, PairedDataset)
+
+    dataset_params["mask"] = {
+        "module": "minerva.datasets",
+        "name": "TstMaskDataset",
+        "root": "test_lc",
+        "params": {"res": 10.0},
+    }
+
+    print(transform_params_2)
+    dataset_3, subdatasets_3 = mdt.make_dataset(
+        data_dir, dataset_params, transform_params_2
+    )
+    assert isinstance(dataset_3, IntersectionDataset)
+    assert isinstance(subdatasets_3[0], TstImgDataset)
+    assert isinstance(subdatasets_3[1], TstMaskDataset)
 
 
 def test_construct_dataloader() -> None:
