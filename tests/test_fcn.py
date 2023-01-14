@@ -1,3 +1,4 @@
+import pytest
 import torch
 from torch import Tensor
 
@@ -14,8 +15,9 @@ from minerva.models import (
     FCN32ResNet18,
     FCN32ResNet34,
     FCN32ResNet50,
+    ResNet18,
 )
-
+from minerva.models.fcn import DCN
 
 input_size = (4, 64, 64)
 
@@ -96,3 +98,18 @@ def test_fcn8resnet152(x_entropy_loss) -> None:
 def test_fcnresnet_torch_weights(x_entropy_loss) -> None:
     model = FCN8ResNet18(x_entropy_loss, input_size=input_size, torch_weights=True)
     fcn_test(model, x, y)
+
+
+def test_dcn() -> None:
+    with pytest.raises(
+        NotImplementedError, match=f"Variant 42 does not match known types"
+    ):
+        _ = DCN(variant="42")  # type: ignore[arg-type]
+
+    dcn = DCN(variant="32")
+    resnet = ResNet18()
+    with pytest.raises(
+        NotImplementedError, match=f"Variant 42 does not match known types"
+    ):
+        dcn.variant = "42"  # type: ignore[arg-type]
+        _ = dcn.forward(resnet(torch.rand((1, 4, 64, 64))))
