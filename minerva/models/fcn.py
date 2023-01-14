@@ -115,7 +115,7 @@ class _FCN(MinervaBackbone, ABC):
         )
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
-        if backbone_weight_path is not None:
+        if backbone_weight_path is not None:  # pragma: no cover
             self.backbone.load_state_dict(torch.load(backbone_weight_path))
 
             # Freezes the weights of backbone to avoid end-to-end training.
@@ -301,6 +301,11 @@ class DCN(MinervaModel, ABC):
         Raises:
             NotImplementedError: Raised if ``variant`` does not match known types.
         """
+        if self.variant not in ("32", "16", "8"):
+            raise NotImplementedError(
+                f"Variant {self.variant} does not match known types"
+            )
+
         # Unpack outputs from the ResNet layers.
         x4, x3, x2, *_ = x
 
@@ -326,7 +331,7 @@ class DCN(MinervaModel, ABC):
             return z
 
         # If DCN8, continue through remaining layers to output.
-        if self.variant == "8":
+        else:
             x2 = self.bn1(self.relu(self.Conv1x1_x2(x2)))
             z = self.dbn4(self.relu(self.DC4(z)))
 
@@ -336,11 +341,6 @@ class DCN(MinervaModel, ABC):
 
             assert isinstance(z, Tensor)
             return z
-
-        else:
-            raise NotImplementedError(
-                f"Variant {self.variant} does not match known types"
-            )
 
 
 class FCN32ResNet18(_FCN):
