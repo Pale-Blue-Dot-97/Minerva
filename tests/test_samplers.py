@@ -1,3 +1,4 @@
+import pytest
 from collections import defaultdict
 from typing import Any, Dict
 from pathlib import Path
@@ -50,3 +51,10 @@ def test_randompairbatchgeosampler() -> None:
     assert isinstance(batch[1], defaultdict)
     assert len(batch[0]["image"]) == 8
     assert len(batch[1]["image"]) == 8
+
+    with pytest.raises(
+        ValueError, match="tiles_per_batch=2 is not a multiple of batch_size=7"
+    ):
+        _ = RandomPairBatchGeoSampler(
+            dataset, size=32, length=32, batch_size=7, max_r=52, tiles_per_batch=2
+        )
