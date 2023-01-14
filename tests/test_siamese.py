@@ -1,3 +1,4 @@
+import pytest
 import torch
 from lightly.loss import NTXentLoss, NegativeCosineSimilarity
 
@@ -37,6 +38,11 @@ def test_simclr() -> None:
         assert type(loss.item()) is float
         assert z.size() == (12, 128)
 
+    model = SimCLR18(loss_func)
+
+    with pytest.raises(NotImplementedError, match="Optimiser has not been set!"):
+        _ = model.step(x, train=True)
+
 
 def test_simsiam() -> None:
     loss_func = NegativeCosineSimilarity()
@@ -63,3 +69,8 @@ def test_simsiam() -> None:
 
         assert type(loss.item()) is float
         assert z.size() == (12, 128)
+
+    model = SimSiam18(loss_func)
+
+    with pytest.raises(NotImplementedError, match="Optimiser has not been set!"):
+        _ = model.step(x, train=True)
