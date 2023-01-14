@@ -59,13 +59,19 @@ def test_minerva_dataparallel() -> None:
 
 
 def test_get_torch_weights() -> None:
-    weights = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
+    weights1 = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
 
     try:
-        assert isinstance(weights, WeightsEnum)
+        assert isinstance(weights1, WeightsEnum)
 
         with internet_sabotage.no_connection():
-            weights = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
+            weights2 = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
+
+            assert isinstance(weights2, WeightsEnum)
+
+            weights3 = get_torch_weights("ResNet50_Weights.IMAGENET1K_V1")
+
+            assert weights3 is None
 
     except AssertionError:
         pass
