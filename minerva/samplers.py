@@ -209,7 +209,7 @@ def get_greater_bbox(
 
     Args:
         bbox (BoundingBox): Bounding box of the original sample.
-        r (int): Distance in pixels to extend the original bounding box by
+        r (float): Distance in pixels to extend the original bounding box by
             to get a new greater bounds to sample from.
         size (float | Tuple[float, float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
             represents in pixels.
