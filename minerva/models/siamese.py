@@ -113,7 +113,6 @@ class _SimCLR(MinervaBackbone):
 
         Raises:
             NotImplementedError: If ``self.optimiser`` is None.
-            NotImplementedError: If ``self.criterion`` is None.
 
         Args:
             x (Tensor): Batch of input data to network.
@@ -129,9 +128,6 @@ class _SimCLR(MinervaBackbone):
         if self.optimiser is None:
             raise NotImplementedError("Optimiser has not been set!")
 
-        if self.criterion is None:
-            raise NotImplementedError("Criterion has not been set!")
-
         # Resets the optimiser's gradients if this is a training step.
         if train:
             self.optimiser.zero_grad()
@@ -140,7 +136,7 @@ class _SimCLR(MinervaBackbone):
         z, z_a, z_b, _, _ = self.forward(x)
 
         # Compute Loss.
-        loss: Tensor = self.criterion(z_a, z_b)
+        loss: Tensor = self.criterion(z_a, z_b)  # type: ignore[arg-type]
 
         # Performs a backward pass if this is a training step.
         if train:
@@ -272,14 +268,14 @@ class _SimSiam(MinervaBackbone):
 
         prev_dim = np.prod(backbone_out_shape)
 
-        self.proj_head = nn.Sequential(
-            nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
-            nn.BatchNorm1d(prev_dim),  # type: ignore[arg-type]
+        self.proj_head = nn.Sequential(  # type: ignore[arg-type]
+            nn.Linear(prev_dim, prev_dim, bias=False),
+            nn.BatchNorm1d(prev_dim),
             nn.ReLU(inplace=True),  # first layer
-            nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
-            nn.BatchNorm1d(prev_dim),  # type: ignore[arg-type]
+            nn.Linear(prev_dim, prev_dim, bias=False),
+            nn.BatchNorm1d(prev_dim),
             nn.ReLU(inplace=True),  # second layer
-            nn.Linear(prev_dim, feature_dim, bias=False),  # type: ignore[arg-type]
+            nn.Linear(prev_dim, feature_dim, bias=False),
             nn.BatchNorm1d(feature_dim, affine=False),
         )  # output layer
         # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
@@ -317,7 +313,6 @@ class _SimSiam(MinervaBackbone):
 
         Raises:
             NotImplementedError: If ``self.optimiser`` is None.
-            NotImplementedError: If ``self.criterion`` is None.
 
         Args:
             x (Tensor): Batch of input data to network.
@@ -333,9 +328,6 @@ class _SimSiam(MinervaBackbone):
         if self.optimiser is None:
             raise NotImplementedError("Optimiser has not been set!")
 
-        if self.criterion is None:
-            raise NotImplementedError("Criterion has not been set!")
-
         # Resets the optimiser's gradients if this is a training step.
         if train:
             self.optimiser.zero_grad()
@@ -344,7 +336,7 @@ class _SimSiam(MinervaBackbone):
         p, p_a, p_b, z_a, z_b = self.forward(x)
 
         # Compute Loss.
-        loss: Tensor = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))
+        loss: Tensor = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))  # type: ignore[arg-type]
 
         # Performs a backward pass if this is a training step.
         if train:
