@@ -4,8 +4,13 @@ from typing import Any, Dict
 from pathlib import Path
 
 from torch.utils.data import DataLoader
+from torchgeo.datasets.utils import BoundingBox
 
-from minerva.samplers import RandomPairBatchGeoSampler, RandomPairGeoSampler
+from minerva.samplers import (
+    RandomPairBatchGeoSampler,
+    RandomPairGeoSampler,
+    get_greater_bbox,
+)
 from minerva.datasets import TstImgDataset, PairedDataset, stack_sample_pairs
 from minerva.utils.utils import set_seeds
 
@@ -58,3 +63,8 @@ def test_randompairbatchgeosampler() -> None:
         _ = RandomPairBatchGeoSampler(
             dataset, size=32, length=32, batch_size=7, max_r=52, tiles_per_batch=2
         )
+
+
+def test_get_greater_bbox(simple_bbox) -> None:
+    new_bbox = get_greater_bbox(simple_bbox, 1.0, 1.0)
+    assert new_bbox == BoundingBox(-1.0, 2.0, -1.0, 2.0, 0.0, 1.0)
