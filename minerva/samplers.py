@@ -169,9 +169,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         if self.batch_size % tiles_per_batch == 0:
             self.sam_per_tile = self.batch_size // tiles_per_batch
         else:
-            raise ValueError(
-                "Value given for `tiles_per_batch` is not a multiple of batch_size"
-            )
+            raise ValueError(f"{tiles_per_batch=} is not a multiple of {batch_size=}")
 
     def __iter__(self) -> Iterator[List[Tuple[BoundingBox, BoundingBox]]]:  # type: ignore[override]
         """Return the indices of a dataset.
