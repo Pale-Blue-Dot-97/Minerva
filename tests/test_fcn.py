@@ -96,8 +96,15 @@ def test_fcn8resnet152(x_entropy_loss) -> None:
 
 
 def test_fcnresnet_torch_weights(x_entropy_loss) -> None:
-    model = FCN8ResNet18(x_entropy_loss, input_size=input_size, torch_weights=True)
-    fcn_test(model, x, y)
+    for _model in (
+        FCN8ResNet18,
+        FCN16ResNet34,
+        FCN32ResNet50,
+        FCN8ResNet101,
+        FCN8ResNet152,
+    ):
+        model = _model(x_entropy_loss, input_size=input_size, torch_weights=True)
+        fcn_test(model, x, y)
 
 
 def test_dcn() -> None:
