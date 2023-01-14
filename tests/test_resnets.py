@@ -12,7 +12,7 @@ from minerva.models import (
     ResNet101,
     ResNet152,
 )
-from minerva.models.resnet import ResNet
+from minerva.models.resnet import ResNet, _preload_weights
 
 input_size = (4, 64, 64)
 
@@ -92,3 +92,10 @@ def test_resnet_encoder(x_entropy_loss) -> None:
 
     x = torch.rand(6, *input_size)
     assert len(encoder(x)) == 5
+
+
+def test_preload_weights():
+    resnet = ResNet(BasicBlock, [2, 2, 2, 2])
+    new_resnet = _preload_weights(resnet, None, (4, 32, 32), encoder_on=False)
+
+    assert resnet == new_resnet
