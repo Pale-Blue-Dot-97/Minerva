@@ -66,11 +66,22 @@ def test_compose(simple_mask) -> None:
     transform_1 = Normalise(255)
     compose_1 = MinervaCompose(transform_1)
 
+    with pytest.raises(TypeError):
+        _ = compose_1(42)  # type: ignore[arg-type]
+
     compose_2 = MinervaCompose(
         [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]
     )
 
     input_1 = simple_mask.type(torch.FloatTensor)
+
+    wrong_compose = MinervaCompose(transforms=42)  # type: ignore[arg-type]
+
+    with pytest.raises(TypeError):
+        _ = wrong_compose(input_1)
+
+    with pytest.raises(TypeError):
+        _ = str(wrong_compose)
 
     input_2 = torch.tensor(  # type: ignore[attr-defined]
         [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
