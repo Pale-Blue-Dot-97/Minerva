@@ -711,7 +711,7 @@ def seg_plot(
         ids (list[str]): Corresponding patch IDs for the test data supplied to the network.
         bounds (list[BoundingBox] or np.ndarray[BoundingBox]): Array of objects describing a geospatial bounding box.
             Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
-        mode (str): Optional; Mode samples are from. Must be 'train', 'val' or 'test'.
+        mode (str): Mode samples are from. Must be 'train', 'val' or 'test'.
         classes (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
         fn_prefix (str): Common filename prefix (including path to file) for all plots of this type
