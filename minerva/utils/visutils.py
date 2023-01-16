@@ -236,7 +236,7 @@ def discrete_heatmap(
     cmap = get_mlp_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
-    heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+    heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)  # type: ignore[arg-type]
 
     # Sets tick intervals to block size. Default 32 x 32.
     plt.xticks(np.arange(0, data.shape[0] + 1, block_size))
@@ -384,7 +384,7 @@ def labelled_rgb_image(
 
     # Plots heatmap onto figure.
     heatmap = ax1.imshow(
-        mask, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha
+        mask, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha  # type: ignore[arg-type]
     )
 
     # Sets tick intervals to standard 32x32 block size.
@@ -1153,7 +1153,7 @@ def plot_embedding(
 
             ax.add_artist(imagebox)
 
-    plt.xticks([]), plt.yticks([])
+    plt.xticks([]), plt.yticks([])  # type: ignore
 
     if title is not None:
         plt.title(title)
