@@ -357,6 +357,10 @@ def test_lat_lon_to_loc() -> None:
     lat_5 = 41.90204312927206
     lon_5 = 12.45644780021287
 
+    # McMurdo Station, Antartica
+    lat6 = -77.844504
+    lon6 = 166.707506
+
     assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
     assert utils.lat_lon_to_loc(str(lat_1), str(lon_1)) == "Amber Valley, England"
     assert utils.lat_lon_to_loc(lat_2, lon_2) == "City of London, England"
@@ -367,6 +371,9 @@ def test_lat_lon_to_loc() -> None:
         "Civitas Vaticana - Città del Vaticano",
         "Civitas Vaticana",
     )
+
+    assert utils.lat_lon_to_loc(lat6, lon6) == ""
+
     with no_connection():
         assert utils.lat_lon_to_loc(lat_1, lon_1) == ""
 
