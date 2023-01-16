@@ -16,6 +16,7 @@ from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 
 from minerva.utils import utils, visutils, CONFIG
+from minerva.datasets import make_dataset
 
 
 def test_de_interlace() -> None:
@@ -175,6 +176,43 @@ def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None
         "bounds": bounds_for_test_img,
     }
     visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
+
+
+def test_seg_plot(data_root) -> None:
+    batch_size = 8
+    n_batches = 4
+
+    size = (32, 32)
+
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["train"])
+    bounds = dataset.bounds
+
+    z = []
+    y = []
+    bboxes = []
+    ids = []
+
+    for i in range(batch_size):
+        z.append([np.random.randint(0, 7, size=size) for _ in range(n_batches)])
+        y.append([np.random.randint(0, 7, size=size) for _ in range(n_batches)])
+        ids.append([f"{i}.{j}" for j in range(n_batches)])
+
+        for _ in range(n_batches):
+            bboxes.append(get_random_bounding_box(bounds, size, res=1.0))
+
+    fn_prefix = data_root / "seg_plot"
+
+    visutils.seg_plot(
+        z=z,
+        y=y,
+        ids=ids,
+        bounds=bboxes,
+        mode="train",
+        classes=utils.CLASSES,
+        colours=utils.CMAP_DICT,
+        fn_prefix=fn_prefix,
+        frac=1.0,
+    )
 
 
 def test_plot_subpopulations() -> None:
