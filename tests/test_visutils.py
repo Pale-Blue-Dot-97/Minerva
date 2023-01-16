@@ -216,7 +216,7 @@ def test_seg_plot(data_root) -> None:
 
 
 def test_plot_subpopulations() -> None:
-    class_dist = [(1, 25), (0, 13), (2, 10), (3, 4)]
+    class_dist = [(1, 25000), (0, 1300), (2, 100), (3, 2)]
 
     fn = Path("plot.png")
 
