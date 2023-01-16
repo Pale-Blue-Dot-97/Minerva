@@ -363,7 +363,7 @@ def pair_return(cls):
 
         def __getattr__(self, item):
             if item in self.__dict__:
-                return getattr(self, item)
+                return getattr(self, item)  # pragma: no cover
             elif item in self.wrap.__dict__:
                 return getattr(self.wrap, item)
             else:
