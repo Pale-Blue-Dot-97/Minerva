@@ -136,7 +136,7 @@ Contributions also provided by:
 
 ## Acknowledgments
 
-I'd like to acknowledge the invaluable supervision and contributions of Dr Jonathon Hare and
+I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
 Credit for new `minerva` logo goes to [DALL-E 2](https://openai.com/dall-e-2/).
