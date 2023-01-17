@@ -44,7 +44,7 @@ repos:
           - id: yamlfmt
             args: [--width, '120']
 
-# -   repo: https://github.com/PyCQA/isort
-#     rev: 5.10.1  # Use the ref you want to point at
-#     hooks:
-#     -   id: isort
+    - repo: https://github.com/PyCQA/isort
+      rev: 5.10.1    # Use the ref you want to point at
+      hooks:
+          - id: isort
