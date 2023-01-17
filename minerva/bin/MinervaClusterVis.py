@@ -32,7 +32,7 @@ https://github.com/facebookresearch/barlowtwins
 import argparse
 
 from minerva.trainer import Trainer
-from minerva.utils import runner, CONFIG
+from minerva.utils import CONFIG, runner
 
 # =====================================================================================================================
 #                                                    METADATA

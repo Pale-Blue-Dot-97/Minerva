@@ -1,13 +1,13 @@
-import pytest
+import internet_sabotage
 import numpy as np
+import pytest
 import torch
+from lightly.loss import NTXentLoss
 from torch import Tensor
 from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum
-from lightly.loss import NTXentLoss
-import internet_sabotage
 
-from minerva.models import SimCLR18, get_torch_weights, get_output_shape, bilinear_init
+from minerva.models import SimCLR18, bilinear_init, get_output_shape, get_torch_weights
 from minerva.models.__depreciated import MLP
 
 

@@ -24,18 +24,11 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 from abc import ABC
-from typing import (
-    Any,
-    Callable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
+
 import torch
-from torch import Tensor
 import torch.nn.modules as nn
+from torch import Tensor
 from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1

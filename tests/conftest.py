@@ -1,15 +1,16 @@
-from typing import Tuple, Dict
-from nptyping import NDArray, Int, Float, Shape
-import pytest
-from pathlib import Path
 import os
 import shutil
+from pathlib import Path
+from typing import Dict, Tuple
+
 import numpy as np
+import pytest
 import torch
 import torch.nn.modules as nn
+from nptyping import Float, Int, NDArray, Shape
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.models import MinervaModel, MLP, CNN
+from minerva.models import CNN, MLP, MinervaModel
 
 
 @pytest.fixture

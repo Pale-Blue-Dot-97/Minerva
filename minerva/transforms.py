@@ -21,10 +21,10 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Optional, Tuple, Sequence, Union, overload
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
 
 import torch
-from torch import Tensor, LongTensor
+from torch import LongTensor, Tensor
 from torchvision.transforms import ColorJitter
 from torchvision.transforms import functional_tensor as ft
 
