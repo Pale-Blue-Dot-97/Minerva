@@ -165,7 +165,7 @@ def test_make_gif(bounds_for_test_img) -> None:
 
 
 def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None:
-    pred = np.random.randint(0, 7, size=(224, 224))
+    pred = np.random.randint(0, 8, size=(32, 32))
 
     src_crs = utils.WGS84
 
@@ -249,10 +249,13 @@ def test_plot_history() -> None:
 
 
 def test_make_confusion_matrix() -> None:
-    pred_1 = np.random.randint(0, 8, size=16 * 224 * 224)
-    labels_1 = np.random.randint(0, 8, size=16 * 224 * 224)
+    batch_size = 2
+    patch_size = (32, 32)
 
-    pred_2 = np.random.randint(0, 6, size=16 * 224 * 224)
+    pred_1 = np.random.randint(0, 8, size=batch_size * patch_size[0] * patch_size[1])
+    labels_1 = np.random.randint(0, 8, size=batch_size * patch_size[0] * patch_size[1])
+
+    pred_2 = np.random.randint(0, 6, size=batch_size * patch_size[0] * patch_size[1])
 
     fn = Path("cm.png")
 
@@ -285,6 +288,10 @@ def test_format_names() -> None:
 
 
 def test_plot_results() -> None:
+    batch_size = 2
+    patch_size = (32, 32)
+    n_classes = 8
+
     plots = {
         "History": True,
         "Pred": True,
@@ -295,8 +302,8 @@ def test_plot_results() -> None:
         "Mask": False,
         "TSNE": True,
     }
-    z = np.random.randint(0, 8, size=16 * 224 * 224)
-    y = np.random.randint(0, 8, size=16 * 224 * 224)
+    z = np.random.randint(0, n_classes, size=batch_size * patch_size[0] * patch_size[1])
+    y = np.random.randint(0, n_classes, size=batch_size * patch_size[0] * patch_size[1])
 
     train_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
     train_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
@@ -311,7 +318,7 @@ def test_plot_results() -> None:
         "val_acc": val_acc,
     }
 
-    probs = np.random.rand(16, 224, 224, len(utils.CLASSES))
+    probs = np.random.rand(batch_size, *patch_size, len(utils.CLASSES))
 
     from minerva.datasets import make_dataset
 
