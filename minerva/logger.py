@@ -90,7 +90,7 @@ class MinervaLogger(ABC):
         self.n_batches = n_batches
         self.batch_size = batch_size
         self.n_samples = n_samples
-        self.writer = None
+        self.writer: Optional[SummaryWriter] = None
 
         self.logs: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}
