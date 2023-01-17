@@ -150,7 +150,7 @@ class PairedDataset(RasterDataset):
 
     def __getattr__(self, item):
         if item in self.dataset.__dict__:
-            return getattr(self.dataset, item)
+            return getattr(self.dataset, item)  # pragma: no cover
         elif item in self.__dict__:
             return getattr(self, item)
         else:
@@ -185,10 +185,8 @@ def get_collator(
     else:
         collator = stack_samples
 
-    if callable(collator):
-        return collator
-    else:
-        raise TypeError(f"collator is of type {type(collator)}, not callable!")
+    assert callable(collator)
+    return collator
 
 
 def stack_sample_pairs(
@@ -374,8 +372,14 @@ def construct_dataloader(
         per_device_batch_size = dataloader_params["batch_size"] // world_size
         _dataloader_params["batch_size"] = per_device_batch_size
 
-    if sample_pairs and not torch.cuda.device_count() > 1:
-        collator = utils.pair_collate(collator)
+    if sample_pairs:
+        if not torch.cuda.device_count() > 1:
+            collator = utils.pair_collate(collator)
+
+        # Can't wrap functions in distributed runs due to pickling error.
+        # Therefore, the collator is set to `stack_sample_pairs` automatically.
+        else:
+            collator = stack_sample_pairs
 
     if batch_sampler:
         _dataloader_params["batch_sampler"] = sampler
@@ -670,7 +674,7 @@ def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
 
     print("CALCULATING CLASS FRACTIONS")
     # Calculates the fractional size of each class in each patch.
-    df = DataFrame([row for row in df.apply(utils.class_frac, axis=1)])
+    df = DataFrame([row for row in df.apply(utils.class_frac, axis=1)])  # type: ignore[arg-type]
     df.fillna(0, inplace=True)
 
     # Delete redundant MODES column.

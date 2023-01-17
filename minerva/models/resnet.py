@@ -304,7 +304,7 @@ class ResNet(MinervaModel, ABC):
         if self.encoder_on:
             return x4, x3, x2, x1, x0
 
-        if not self.encoder_on:
+        else:
             x5 = self.avgpool(x4)
             x5 = torch.flatten(x5, 1)  # type: ignore[attr-defined]
             x5 = self.fc(x5)
@@ -821,11 +821,11 @@ def _preload_weights(
         weights = weights.get_state_dict(True)
 
     if input_shape[0] != 3 or input_shape[1] <= 224 or input_shape[2] <= 224:
-        weights["conv1.weight"] = resnet.conv1.state_dict()["weight"]
+        weights["conv1.weight"] = resnet.conv1.state_dict()["weight"]  # type: ignore[attr-defined]
 
     if encoder_on:
-        del weights["fc.weight"]
-        del weights["fc.bias"]
+        del weights["fc.weight"]  # type: ignore[attr-defined]
+        del weights["fc.bias"]  # type: ignore[attr-defined]
 
     resnet.load_state_dict(weights)
 

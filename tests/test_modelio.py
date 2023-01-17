@@ -4,25 +4,26 @@ from torch import Tensor
 import torch.nn.modules as nn
 from numpy.testing import assert_array_equal
 from lightly.loss import NTXentLoss
-from torchgeo.datasets.utils import BoundingBox
 
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN32ResNet18, SimCLR34
 
-input_size = (4, 224, 224)
+input_size = (4, 64, 64)
+batch_size = 3
+n_classes = 8
 device = torch.device("cpu")  # type: ignore[attr-defined]
 
 
-def test_sup_tg() -> None:
+def test_sup_tg(simple_bbox) -> None:
     criterion = nn.CrossEntropyLoss()
     model = FCN32ResNet18(criterion, input_size=input_size)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
     for mode in ("train", "val", "test"):
-        images = torch.rand(size=(6, *input_size))
-        masks = torch.randint(0, 8, (6, *input_size[1:]))  # type: ignore[attr-defined]
-        bboxes = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
+        images = torch.rand(size=(batch_size, *input_size))
+        masks = torch.randint(0, n_classes, (batch_size, *input_size[1:]))  # type: ignore[attr-defined]
+        bboxes = [simple_bbox] * batch_size
         batch: Dict[str, Union[Tensor, List[Any]]] = {
             "image": images,
             "mask": masks,
@@ -33,28 +34,28 @@ def test_sup_tg() -> None:
 
         assert isinstance(results[0], Tensor)
         assert isinstance(results[1], Tensor)
-        assert results[1].size() == (6, 8, *input_size[1:])
+        assert results[1].size() == (batch_size, n_classes, *input_size[1:])
         assert_array_equal(results[2], batch["mask"])
         assert results[3] == batch["bbox"]
 
 
-def test_ssl_pair_tg() -> None:
+def test_ssl_pair_tg(simple_bbox) -> None:
     criterion = NTXentLoss(0.5)
     model = SimCLR34(criterion, input_size=input_size)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
     for mode in ("train", "val"):
-        images_1 = torch.rand(size=(6, *input_size))
-        bboxes_1 = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
+        images_1 = torch.rand(size=(batch_size, *input_size))
+        bboxes_1 = [simple_bbox] * batch_size
 
         batch_1 = {
             "image": images_1,
             "bbox": bboxes_1,
         }
 
-        images_2 = torch.rand(size=(6, *input_size))
-        bboxes_2 = [BoundingBox(0, 1, 0, 1, 0, 1)] * 6
+        images_2 = torch.rand(size=(batch_size, *input_size))
+        bboxes_2 = [simple_bbox] * batch_size
 
         batch_2 = {
             "image": images_2,
@@ -65,7 +66,7 @@ def test_ssl_pair_tg() -> None:
 
         assert isinstance(results[0], Tensor)
         assert isinstance(results[1], Tensor)
-        assert results[1].size() == (12, 128)
+        assert results[1].size() == (2 * batch_size, 128)
         assert results[2] is None
         assert isinstance(batch_1["bbox"], list)
         assert isinstance(batch_2["bbox"], list)

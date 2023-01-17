@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
+
 from internet_sabotage import no_connection
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
@@ -21,6 +22,7 @@ from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
 
 from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
+from minerva.models import MinervaModel
 
 
 def test_return_updated_kwargs() -> None:
@@ -355,6 +357,10 @@ def test_lat_lon_to_loc() -> None:
     lat_5 = 41.90204312927206
     lon_5 = 12.45644780021287
 
+    # McMurdo Station, Antartica
+    lat6 = -77.844504
+    lon6 = 166.707506
+
     assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
     assert utils.lat_lon_to_loc(str(lat_1), str(lon_1)) == "Amber Valley, England"
     assert utils.lat_lon_to_loc(lat_2, lon_2) == "City of London, England"
@@ -365,6 +371,9 @@ def test_lat_lon_to_loc() -> None:
         "Civitas Vaticana - Città del Vaticano",
         "Civitas Vaticana",
     )
+
+    assert utils.lat_lon_to_loc(lat6, lon6) == ""
+
     with no_connection():
         assert utils.lat_lon_to_loc(lat_1, lon_1) == ""
 
@@ -714,8 +723,19 @@ def test_print_config() -> None:
     utils.print_config(utils.CLASSES)
 
 
-def test_calc_grad() -> None:
-    pass
+def test_calc_grad(exp_mlp: MinervaModel) -> None:
+    batch_size = 16
+    x = torch.rand(batch_size, (64))
+    y = torch.LongTensor(np.random.randint(0, 8, size=batch_size))
+
+    optimiser = torch.optim.SGD(exp_mlp.parameters(), lr=1.0e-3)
+    exp_mlp.set_optimiser(optimiser)
+    _ = exp_mlp.step(x, y, train=True)
+
+    grad = utils.calc_grad(exp_mlp)
+    assert type(grad) is float
+    assert grad != 0.0
+    assert utils.calc_grad(42) is None  # type: ignore[arg-type]
 
 
 def test_tsne_cluster() -> None:

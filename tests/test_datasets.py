@@ -13,6 +13,7 @@ from torchgeo.samplers.utils import get_random_bounding_box
 from rasterio.crs import CRS
 
 from minerva import datasets as mdt
+from minerva.datasets import TstImgDataset, TstMaskDataset, PairedDataset
 from minerva.utils.utils import CONFIG, set_seeds
 
 data_root = Path("tests", "tmp")
@@ -28,22 +29,28 @@ def test_make_bounding_box() -> None:
     assert mdt.make_bounding_box() is None
     assert mdt.make_bounding_box(False) is None
 
-    bbox = [1.0, 2.0, 1.0, 2.0, 1.0, 2.0]
+    bbox = (1.0, 2.0, 1.0, 2.0, 1.0, 2.0)
     assert mdt.make_bounding_box(bbox) == BoundingBox(*bbox)
+
+    with pytest.raises(
+        ValueError,
+        match="``roi`` must be a sequence of floats or ``False``, not ``True``",
+    ):
+        _ = mdt.make_bounding_box(True)
 
 
 def test_tinydataset() -> None:
     """Source of TIFF: https://github.com/mommermi/geotiff_sample"""
 
-    imagery = mdt.TstImgDataset(img_root)
-    labels = mdt.TstMaskDataset(lc_root)
+    imagery = TstImgDataset(img_root)
+    labels = TstMaskDataset(lc_root)
 
     dataset = imagery & labels
     assert isinstance(dataset, IntersectionDataset)
 
 
 def test_paired_datasets() -> None:
-    dataset = mdt.PairedDataset(mdt.TstImgDataset, img_root)
+    dataset = PairedDataset(TstImgDataset, img_root)
 
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -54,7 +61,9 @@ def test_paired_datasets() -> None:
     assert type(sample_2) == dict
 
     assert type(dataset.crs) == CRS
-    assert type(dataset.dataset) == mdt.TstImgDataset
+    assert type(getattr(dataset, "crs")) == CRS
+    assert type(dataset.dataset) == TstImgDataset
+    assert type(dataset.__getattr__("dataset")) == TstImgDataset
 
     with pytest.raises(AttributeError):
         dataset.roi
@@ -108,7 +117,13 @@ def test_stack_sample_pairs() -> None:
 
 
 def test_intersect_datasets() -> None:
-    pass
+    imagery = PairedDataset(TstImgDataset, img_root)
+    labels = PairedDataset(TstMaskDataset, lc_root)
+
+    assert isinstance(
+        mdt.intersect_datasets([imagery, labels], sample_pairs=True),
+        IntersectionDataset,
+    )
 
 
 def test_make_dataset() -> None:
@@ -127,17 +142,36 @@ def test_make_dataset() -> None:
         "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
     }
 
+    transform_params_2 = {
+        "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
+    }
+
     dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
-    assert isinstance(dataset_1, mdt.TstImgDataset)
+    assert isinstance(dataset_1, TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
         data_dir, dataset_params, transform_params, sample_pairs=True
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
-    assert isinstance(dataset_2, mdt.PairedDataset)
+    assert isinstance(dataset_2, PairedDataset)
+
+    dataset_params["mask"] = {
+        "module": "minerva.datasets",
+        "name": "TstMaskDataset",
+        "root": "test_lc",
+        "params": {"res": 10.0},
+    }
+
+    print(transform_params_2)
+    dataset_3, subdatasets_3 = mdt.make_dataset(
+        data_dir, dataset_params, transform_params_2
+    )
+    assert isinstance(dataset_3, IntersectionDataset)
+    assert isinstance(subdatasets_3[0], TstImgDataset)
+    assert isinstance(subdatasets_3[1], TstMaskDataset)
 
 
 def test_construct_dataloader() -> None:
@@ -177,7 +211,7 @@ def test_construct_dataloader() -> None:
         "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
     }
 
-    dataloader_params = {"batch_size": 256, "num_workers": 4, "pin_memory": True}
+    dataloader_params = {"batch_size": 256, "num_workers": 2, "pin_memory": True}
 
     dataloader_1 = mdt.construct_dataloader(
         data_dir, dataset_params, sampler_params_1, dataloader_params
@@ -273,20 +307,26 @@ def test_get_manifest() -> None:
     manifest_path = Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
 
     if manifest_path.exists():
-        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv").unlink()
+        manifest_path.unlink()
 
     assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
     assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
+
+    new_path = Path("tests", "tmp", "empty", "Chesapeake7_Manifest.csv")
+    if new_path.exists():
+        print("exists")
+        new_path.unlink()
+
+    if new_path.parent.exists():
+        new_path.parent.rmdir()
+
+    assert isinstance(mdt.get_manifest(new_path), pd.DataFrame)
+
+    if new_path.exists():
+        new_path.unlink()
+
+    if new_path.parent.exists():
+        new_path.parent.rmdir()
 
     if manifest_path.exists():
-        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv").unlink()
-
-
-"""
-def test_make_manifest() -> None:
-    assert isinstance(mdt.make_manifest(), pd.DataFrame)
-
-
-def test_load_all_samples() -> None:
-    pass
-"""
+        manifest_path.unlink()

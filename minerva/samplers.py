@@ -169,9 +169,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         if self.batch_size % tiles_per_batch == 0:
             self.sam_per_tile = self.batch_size // tiles_per_batch
         else:
-            raise ValueError(
-                "Value given for `tiles_per_batch` is not a multiple of batch_size"
-            )
+            raise ValueError(f"{tiles_per_batch=} is not a multiple of {batch_size=}")
 
     def __iter__(self) -> Iterator[List[Tuple[BoundingBox, BoundingBox]]]:  # type: ignore[override]
         """Return the indices of a dataset.
@@ -211,7 +209,7 @@ def get_greater_bbox(
 
     Args:
         bbox (BoundingBox): Bounding box of the original sample.
-        r (int): Distance in pixels to extend the original bounding box by
+        r (float): Distance in pixels to extend the original bounding box by
             to get a new greater bounds to sample from.
         size (float | Tuple[float, float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
             represents in pixels.
