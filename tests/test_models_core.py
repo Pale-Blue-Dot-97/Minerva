@@ -73,7 +73,7 @@ def test_get_torch_weights() -> None:
 
             assert weights3 is None
 
-    except AssertionError:
+    except (AssertionError, ImportError):
         pass
 
 

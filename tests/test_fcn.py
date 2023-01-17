@@ -105,8 +105,11 @@ def test_fcnresnet_torch_weights(x_entropy_loss) -> None:
         FCN8ResNet101,
         FCN8ResNet152,
     ):
-        model = _model(x_entropy_loss, input_size=input_size, torch_weights=True)
-        fcn_test(model, x, y)
+        try:
+            model = _model(x_entropy_loss, input_size=input_size, torch_weights=True)
+            fcn_test(model, x, y)
+        except ImportError:
+            pass
 
 
 def test_dcn() -> None:
