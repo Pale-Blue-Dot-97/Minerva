@@ -114,14 +114,14 @@ def test_fcnresnet_torch_weights(x_entropy_loss) -> None:
 
 def test_dcn() -> None:
     with pytest.raises(
-        NotImplementedError, match=f"Variant 42 does not match known types"
+        NotImplementedError, match="Variant 42 does not match known types"
     ):
         _ = DCN(variant="42")  # type: ignore[arg-type]
 
     dcn = DCN(variant="32")
     resnet = ResNet18()
     with pytest.raises(
-        NotImplementedError, match=f"Variant 42 does not match known types"
+        NotImplementedError, match="Variant 42 does not match known types"
     ):
         dcn.variant = "42"  # type: ignore[arg-type]
         _ = dcn.forward(resnet(torch.rand((batch_size, *input_size))))
