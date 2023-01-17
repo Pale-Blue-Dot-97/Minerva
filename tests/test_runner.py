@@ -1,7 +1,9 @@
 import os
+
 import pytest
 import torch
-from minerva.utils import runner, CONFIG
+
+from minerva.utils import CONFIG, runner
 
 
 def test_config_env_vars():

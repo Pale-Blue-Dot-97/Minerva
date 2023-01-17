@@ -32,6 +32,7 @@ https://github.com/facebookresearch/barlowtwins
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
+
 import argcomplete
 
 from minerva.trainer import Trainer

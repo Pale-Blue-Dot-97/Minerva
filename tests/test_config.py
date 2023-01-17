@@ -1,11 +1,12 @@
 import os
 from pathlib import Path
+
 from minerva.utils.config_load import (
+    DEFAULT_CONFIG_NAME,
+    chdir_to_default,
+    check_paths,
     load_configs,
     universal_path,
-    check_paths,
-    chdir_to_default,
-    DEFAULT_CONFIG_NAME,
 )
 
 

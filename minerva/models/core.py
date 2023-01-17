@@ -24,24 +24,25 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
+import os
 from abc import ABC
+from pathlib import Path
 from typing import (
     Any,
     Callable,
     Iterable,
     List,
     Optional,
+    Sequence,
     Tuple,
     Type,
-    Sequence,
     Union,
     overload,
 )
-import os
-from pathlib import Path
-from nptyping import NDArray
+
 import numpy as np
 import torch
+from nptyping import NDArray
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel, DistributedDataParallel
