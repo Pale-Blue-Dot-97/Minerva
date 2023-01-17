@@ -128,6 +128,8 @@ class _SimCLR(MinervaBackbone):
         if self.optimiser is None:
             raise NotImplementedError("Optimiser has not been set!")
 
+        assert self.criterion
+
         # Resets the optimiser's gradients if this is a training step.
         if train:
             self.optimiser.zero_grad()
@@ -269,13 +271,13 @@ class _SimSiam(MinervaBackbone):
         prev_dim = np.prod(backbone_out_shape)
 
         self.proj_head = nn.Sequential(  # type: ignore[arg-type]
-            nn.Linear(prev_dim, prev_dim, bias=False),
-            nn.BatchNorm1d(prev_dim),
+            nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(prev_dim),  # type: ignore[arg-type]
             nn.ReLU(inplace=True),  # first layer
-            nn.Linear(prev_dim, prev_dim, bias=False),
-            nn.BatchNorm1d(prev_dim),
+            nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(prev_dim),  # type: ignore[arg-type]
             nn.ReLU(inplace=True),  # second layer
-            nn.Linear(prev_dim, feature_dim, bias=False),
+            nn.Linear(prev_dim, feature_dim, bias=False),  # type: ignore[arg-type]
             nn.BatchNorm1d(feature_dim, affine=False),
         )  # output layer
         # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
@@ -327,6 +329,8 @@ class _SimSiam(MinervaBackbone):
 
         if self.optimiser is None:
             raise NotImplementedError("Optimiser has not been set!")
+
+        assert self.criterion
 
         # Resets the optimiser's gradients if this is a training step.
         if train:
