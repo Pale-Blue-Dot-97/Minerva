@@ -58,14 +58,16 @@ def universal_path(path: Any) -> Path:
     Returns:
         Path: :class:`Path` object of the input ``path``.
     """
-    if type(path) == str:
+    if isinstance(path, Path):
+        return path
+    elif type(path) == str:
         return Path(path)
     else:
         return Path(*path)
 
 
 def check_paths(
-    config: Optional[Union[str, PathLike]], use_default_conf_dir: bool
+    config: Optional[Union[str, PathLike]] = None, use_default_conf_dir: bool = False
 ) -> Tuple[str, Optional[str], Optional[Path]]:
     """Checks the path given for the config.
 

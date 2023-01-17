@@ -53,6 +53,15 @@ def test_check_paths(config_root: Path):
     assert config_name2 == exp_config
     assert config_path2 is None
 
+    nonexist_config_path = config_root / "non_existant_config.yml"
+    assert not nonexist_config_path.exists()
+
+    path3, config_name3, config_path3 = check_paths(nonexist_config_path)
+
+    assert path3 == str(config_root / "example_config.yml")
+    assert str(config_name3) == "example_config.yml"
+    assert config_path3 == config_root
+
     # Change the working directory back to script location.
     os.chdir(cwd)
 

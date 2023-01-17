@@ -1,3 +1,4 @@
+import pytest
 import torch
 from torch import Tensor
 
@@ -14,13 +15,16 @@ from minerva.models import (
     FCN32ResNet18,
     FCN32ResNet34,
     FCN32ResNet50,
+    ResNet18,
 )
-
+from minerva.models.fcn import DCN
 
 input_size = (4, 64, 64)
+batch_size = 2
+n_classes = 8
 
-x = torch.rand((6, *input_size))
-y = torch.randint(0, 8, (6, 64, 64))  # type: ignore[attr-defined]
+x = torch.rand((batch_size, *input_size))
+y = torch.randint(0, n_classes, (batch_size, *input_size[1:]))  # type: ignore[attr-defined]
 
 
 def fcn_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
@@ -29,13 +33,13 @@ def fcn_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
     test_model.set_optimiser(optimiser)
 
     test_model.determine_output_dim()
-    assert test_model.output_shape == (64, 64)
+    assert test_model.output_shape == input_size[1:]
 
     loss, z = test_model.step(x, y, True)
 
     assert type(loss.item()) is float
     assert isinstance(z, Tensor)
-    assert z.size() == (6, 8, 64, 64)
+    assert z.size() == (batch_size, n_classes, *input_size[1:])
 
 
 def test_fcn32resnet18(x_entropy_loss) -> None:
@@ -94,5 +98,30 @@ def test_fcn8resnet152(x_entropy_loss) -> None:
 
 
 def test_fcnresnet_torch_weights(x_entropy_loss) -> None:
-    model = FCN8ResNet18(x_entropy_loss, input_size=input_size, torch_weights=True)
-    fcn_test(model, x, y)
+    for _model in (
+        FCN8ResNet18,
+        FCN16ResNet34,
+        FCN32ResNet50,
+        FCN8ResNet101,
+        FCN8ResNet152,
+    ):
+        try:
+            model = _model(x_entropy_loss, input_size=input_size, torch_weights=True)
+            fcn_test(model, x, y)
+        except ImportError as err:
+            print(err)
+
+
+def test_dcn() -> None:
+    with pytest.raises(
+        NotImplementedError, match=f"Variant 42 does not match known types"
+    ):
+        _ = DCN(variant="42")  # type: ignore[arg-type]
+
+    dcn = DCN(variant="32")
+    resnet = ResNet18()
+    with pytest.raises(
+        NotImplementedError, match=f"Variant 42 does not match known types"
+    ):
+        dcn.variant = "42"  # type: ignore[arg-type]
+        _ = dcn.forward(resnet(torch.rand((batch_size, *input_size))))

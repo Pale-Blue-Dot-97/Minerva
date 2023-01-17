@@ -25,7 +25,6 @@ from typing import (
     Any,
     Callable,
     Dict,
-    List,
     Iterable,
     Optional,
     Sequence,
@@ -122,7 +121,6 @@ class Trainer:
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
-        print(f"{gpu=}")
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
@@ -151,9 +149,9 @@ class Trainer:
         self.params["exp_name"] = "{}_{}".format(
             self.params["model_name"], self.params["timestamp"]
         )
-        self.params["dir"]["results"].append(self.params["exp_name"])
 
-        results_dir = universal_path(self.params["dir"]["results"])
+        self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
+        results_dir = self.params["dir"]["results"] / self.params["exp_name"]
 
         # Path to experiment directory and experiment name.
         self.exp_fn = results_dir / self.params["exp_name"]
@@ -162,7 +160,6 @@ class Trainer:
 
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
-        print(f"{self.device=}")
 
         # Creates model (and loss function) from specified parameters in params.
         self.model: Union[
@@ -226,7 +223,7 @@ class Trainer:
                 self.model, input_to_model=torch.rand(*input_size, device=self.device)
             )
 
-            if torch.cuda.device_count() == 1:
+            if torch.cuda.device_count() == 1 or self.device == torch.device("cpu"):
                 # Adds a graphical layout of the model to the TensorBoard logger.
                 try:
                     self.writer.add_graph(
@@ -240,7 +237,7 @@ class Trainer:
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
             self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(
+            self.model = torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(  # type: ignore
                 self.model
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
@@ -251,7 +248,7 @@ class Trainer:
         Returns:
             Tuple[int, ...]: Tuple describing the input shape of the model.
         """
-        input_shape: Optional[Tuple[int, ...]] = self.model.input_shape
+        input_shape: Optional[Tuple[int, ...]] = self.model.input_shape  # type: ignore
         assert input_shape is not None
         input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
 
@@ -339,7 +336,7 @@ class Trainer:
         optimiser = utils.func_by_str(module, optimiser_params["name"])
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(
+        self.model.set_optimiser(  # type: ignore
             optimiser(self.model.parameters(), **optimiser_params["params"])
         )
 
@@ -458,7 +455,7 @@ class Trainer:
 
                 # Updates progress bar that batch has been processed.
                 if self.gpu == 0:
-                    bar()
+                    bar()  # type: ignore
 
         # Updates metrics with epoch results.
         self.metric_logger(mode, epoch_logger.get_logs)
@@ -536,8 +533,8 @@ class Trainer:
                         plots["Mask"] = False
 
                     # Amends the results' directory to add a new level for train or validation.
-                    results_dir: List[str] = self.params["dir"]["results"].copy()
-                    results_dir.append(mode)
+                    results_dir: Path = self.params["dir"]["results"]
+                    results_dir = results_dir / mode
 
                     if self.gpu == 0:
                         # Plots the results of this epoch.
@@ -607,8 +604,8 @@ class Trainer:
                 plots["Mask"] = False
 
             # Amends the results' directory to add a new level for test results.
-            results_dir: List[str] = self.params["dir"]["results"]
-            results_dir.append("test")
+            results_dir: Path = self.params["dir"]["results"]
+            results_dir = results_dir / "test"
 
             # Plots the results.
             visutils.plot_results(
@@ -632,7 +629,7 @@ class Trainer:
                 "OPT",
                 "Optional",
             ):
-                try:
+                try:  # pragma: no cover
                     res = inputimeout(
                         prompt="Run TensorBoard Logs? (Y/N): ", timeout=_timeout
                     )
@@ -643,7 +640,7 @@ class Trainer:
                         pass
                     else:
                         self.print("\n*Input not recognised*. Please try again")
-                except TimeoutOccurred:
+                except TimeoutOccurred:  # pragma: no cover
                     self.print(
                         "Input timeout elapsed. TensorBoard logs will not be run."
                     )
@@ -820,7 +817,7 @@ class Trainer:
                 "OPT",
                 "Optional",
             ):
-                try:
+                try:  # pragma: no cover
                     res = inputimeout(
                         prompt="\nSave model to file? (Y/N): ", timeout=_timeout
                     )
@@ -833,7 +830,7 @@ class Trainer:
                         pass
                     else:
                         self.print("Input not recognised. Please try again")
-                except TimeoutOccurred:
+                except TimeoutOccurred:  # pragma: no cover
                     self.print("Input timeout elapsed. Model will not be saved")
 
             elif self.params.get("save_model", False) in (True, "auto", "Auto"):
@@ -860,6 +857,24 @@ class Trainer:
         # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f"{self.exp_fn}_classification-report.csv")
 
+    def extract_model_from_distributed(self) -> MinervaModel:
+        """Extracts the actual model from any distributed wrapping if this is a distributed run.
+
+        Returns:
+            MinervaModel: Unwrapped model.
+        """
+        model = self.model
+
+        # Checks if this is a distributed run.
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            assert isinstance(model, MinervaDataParallel)
+
+            # Extracts the actual model instance from the distributed wrapping.
+            model = model.module
+
+        assert isinstance(model, MinervaModel)
+        return model
+
     def save_model_weights(self, fn: Optional[str] = None) -> None:
         """Saves model state dict to PyTorch file.
 
@@ -868,7 +883,10 @@ class Trainer:
         """
         if fn is None:
             fn = str(self.exp_fn)
-        torch.save(self.model.state_dict(), f"{fn}.pt")
+
+        model = self.extract_model_from_distributed()
+
+        torch.save(model.state_dict(), f"{fn}.pt")
 
     def save_model(self, fn: Optional[str] = None, format: str = "pt") -> None:
         """Saves the model object itself to PyTorch file.
@@ -880,14 +898,16 @@ class Trainer:
         Raises:
             ValueError: If format is not recognised.
         """
+        model = self.extract_model_from_distributed()
+
         if fn is None:
             fn = str(self.exp_fn)
 
         if format == "pt":
-            torch.save(self.model, f"{fn}.pt")
+            torch.save(model, f"{fn}.pt")
         elif format == "onnx":
             x = torch.rand(*self.get_input_size(), device=self.device)
-            torch.onnx.export(self.model, (x,), f"{fn}.onnx")
+            torch.onnx.export(model, (x,), f"{fn}.onnx")
         else:
             raise ValueError(f"format {format} unrecognised!")
 
@@ -911,8 +931,8 @@ class Trainer:
 
     def run_tensorboard(self) -> None:
         """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
-        utils.run_tensorboard(
-            path=self.params["dir"]["results"][:-1],
+        utils.run_tensorboard(  # pragma: no cover
+            path=self.params["dir"]["results"].parent,
             env_name="env2",
             exp_name=self.params["exp_name"],
             host_num=6006,

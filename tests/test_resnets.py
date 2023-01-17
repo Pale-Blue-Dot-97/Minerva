@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import torch
 from torch import Tensor, LongTensor
+from torchvision.models.resnet import BasicBlock
 
 from minerva.models import (
     MinervaModel,
@@ -11,7 +12,7 @@ from minerva.models import (
     ResNet101,
     ResNet152,
 )
-
+from minerva.models.resnet import ResNet, _preload_weights
 
 input_size = (4, 64, 64)
 
@@ -32,6 +33,10 @@ def resnet_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
     assert type(loss.item()) is float
     assert isinstance(z, Tensor)
     assert z.size() == (6, 8)
+
+
+def test_resnet():
+    assert isinstance(ResNet(BasicBlock, [2, 2, 2, 2], groups=2), ResNet)
 
 
 def test_resnet18(x_entropy_loss) -> None:
@@ -87,3 +92,10 @@ def test_resnet_encoder(x_entropy_loss) -> None:
 
     x = torch.rand(6, *input_size)
     assert len(encoder(x)) == 5
+
+
+def test_preload_weights():
+    resnet = ResNet(BasicBlock, [2, 2, 2, 2])
+    new_resnet = _preload_weights(resnet, None, (4, 32, 32), encoder_on=False)
+
+    assert resnet == new_resnet

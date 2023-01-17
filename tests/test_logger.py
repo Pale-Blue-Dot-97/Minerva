@@ -17,6 +17,10 @@ from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN16ResNet18, SimCLR18
 
 device = torch.device("cpu")  # type: ignore[attr-defined]
+n_batches = 2
+batch_size = 3
+patch_size = (32, 32)
+n_classes = 8
 
 
 def test_STG_Logger(simple_bbox):
@@ -29,59 +33,63 @@ def test_STG_Logger(simple_bbox):
 
     writer = SummaryWriter(log_dir=path)
 
-    model = FCN16ResNet18(criterion)
+    model = FCN16ResNet18(criterion, input_size=(4, *patch_size))
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
     model.determine_output_dim()
-
-    n_batches = 8
 
     output_shape = model.output_shape
     assert isinstance(output_shape, tuple)
 
     for mode in ("train", "val", "test"):
-        logger = STG_Logger(
-            n_batches=n_batches,
-            batch_size=6,
-            n_samples=8 * 6 * 256 * 256,
-            out_shape=output_shape,
-            n_classes=8,
-            record_int=True,
-            record_float=True,
-        )
-        data: List[Dict[str, Union[Tensor, List[Any]]]] = []
-        for i in range(n_batches):
-            images = torch.rand(size=(6, 4, 256, 256))
-            masks = torch.randint(0, 8, (6, 256, 256))  # type: ignore[attr-defined]
-            bboxes = [simple_bbox] * 6
-            batch: Dict[str, Union[Tensor, List[Any]]] = {
-                "image": images,
-                "mask": masks,
-                "bbox": bboxes,
-            }
-            data.append(batch)
+        for model_type in ("scene_classifier", "segmentation"):
+            logger = STG_Logger(
+                n_batches=n_batches,
+                batch_size=batch_size,
+                n_samples=n_batches * batch_size * patch_size[0] * patch_size[1],
+                out_shape=output_shape,
+                n_classes=n_classes,
+                record_int=True,
+                record_float=True,
+                model_type=model_type,
+            )
+            data: List[Dict[str, Union[Tensor, List[Any]]]] = []
+            for i in range(n_batches):
+                images = torch.rand(size=(batch_size, 4, *patch_size))
+                masks = torch.randint(0, n_classes, (batch_size, *patch_size))  # type: ignore[attr-defined]
+                bboxes = [simple_bbox] * batch_size
+                batch: Dict[str, Union[Tensor, List[Any]]] = {
+                    "image": images,
+                    "mask": masks,
+                    "bbox": bboxes,
+                }
+                data.append(batch)
 
-            logger(mode, i, writer, *sup_tg(batch, model, device=device, mode=mode))
+                logger(mode, i, writer, *sup_tg(batch, model, device=device, mode=mode))
 
-        logs = logger.get_logs
-        assert logs["batch_num"] == 8
-        assert type(logs["total_loss"]) is float
-        assert type(logs["total_correct"]) is float
+            logs = logger.get_logs
+            assert logs["batch_num"] == n_batches
+            assert type(logs["total_loss"]) is float
+            assert type(logs["total_correct"]) is float
 
-        results = logger.get_results
-        assert results["z"].shape == (8, 6, 256, 256)
-        assert results["y"].shape == (8, 6, 256, 256)
-        assert np.array(results["ids"]).shape == (8, 6)
+            if model_type == "segmentation":
+                assert type(logs["total_miou"]) is float
 
-        y: NDArray[Shape["8, 6, 256, 256"], Any] = np.empty(
-            (n_batches, 6, *output_shape), dtype=np.uint8
-        )
-        for i in range(n_batches):
-            mask: Union[Tensor, List[Any]] = data[i]["mask"]
-            assert isinstance(mask, Tensor)
-            y[i] = mask.cpu().numpy()
+            results = logger.get_results
+            assert results["z"].shape == (n_batches, batch_size, *patch_size)
+            assert results["y"].shape == (n_batches, batch_size, *patch_size)
+            assert np.array(results["ids"]).shape == (n_batches, batch_size)
 
-        assert_array_equal(results["y"], y)
+            shape = f"{n_batches}, {batch_size}, {patch_size[0]}, {patch_size[1]}"
+            y: NDArray[Shape[shape], Any] = np.empty(
+                (n_batches, batch_size, *output_shape), dtype=np.uint8
+            )
+            for i in range(n_batches):
+                mask: Union[Tensor, List[Any]] = data[i]["mask"]
+                assert isinstance(mask, Tensor)
+                y[i] = mask.cpu().numpy()
+
+            assert_array_equal(results["y"], y)
 
     shutil.rmtree(path, ignore_errors=True)
 
@@ -96,44 +104,49 @@ def test_SSL_Logger(simple_bbox):
 
     writer = SummaryWriter(log_dir=path)
 
-    model = SimCLR18(criterion)
+    model = SimCLR18(criterion, input_size=(4, *patch_size))
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
-    n_batches = 8
-
     for mode in ("train", "val", "test"):
-        logger = SSL_Logger(
-            n_batches=n_batches,
-            batch_size=6,
-            n_samples=8 * 6,
-            record_int=True,
-            record_float=True,
-        )
-        data = []
-        for i in range(n_batches):
-            images = torch.rand(size=(6, 4, 256, 256))
-            bboxes = [simple_bbox] * 6
-            batch = {
-                "image": images,
-                "bbox": bboxes,
-            }
-            data.append((batch, batch))
-
-            logger(
-                mode,
-                i,
-                writer,
-                *ssl_pair_tg((batch, batch), model, device=device, mode=mode)
+        for extra_metrics in (True, False):
+            logger = SSL_Logger(
+                n_batches=n_batches,
+                batch_size=batch_size,
+                n_samples=n_batches * batch_size,
+                record_int=True,
+                record_float=True,
+                collapse_level=extra_metrics,
+                euclidean=extra_metrics,
             )
+            data = []
+            for i in range(n_batches):
+                images = torch.rand(size=(batch_size, 4, *patch_size))
+                bboxes = [simple_bbox] * batch_size
+                batch = {
+                    "image": images,
+                    "bbox": bboxes,
+                }
+                data.append((batch, batch))
 
-        logs = logger.get_logs
-        assert logs["batch_num"] == 8
-        assert type(logs["total_loss"]) is float
-        assert type(logs["total_correct"]) is float
-        assert type(logs["total_top5"]) is float
+                logger(
+                    mode,
+                    i,
+                    writer,
+                    *ssl_pair_tg((batch, batch), model, device=device, mode=mode),
+                )
 
-        results = logger.get_results
-        assert results == {}
+            logs = logger.get_logs
+            assert logs["batch_num"] == n_batches
+            assert type(logs["total_loss"]) is float
+            assert type(logs["total_correct"]) is float
+            assert type(logs["total_top5"]) is float
+
+            if extra_metrics:
+                assert type(logs["collapse_level"]) is float
+                assert type(logs["euc_dist"]) is float
+
+            results = logger.get_results
+            assert results == {}
 
     shutil.rmtree(path, ignore_errors=True)

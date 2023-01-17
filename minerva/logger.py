@@ -138,11 +138,13 @@ class MinervaLogger(ABC):
         Returns:
             None
         """
-        pass
+        pass  # pragma: no cover
 
-    def write_metric(self, key: str, value: SupportsFloat, step_num=None):
-        """Write metric values to logging backends after calculation
-        TODO? Are values being reduced across nodes / logged from rank 0?"""
+    def write_metric(
+        self, key: str, value: SupportsFloat, step_num: Optional[int] = None
+    ):
+        """Write metric values to logging backends after calculation"""
+        # TODO: Are values being reduced across nodes / logged from rank 0?
         if self.writer:
             self.writer.add_scalar(
                 tag=key,
@@ -244,7 +246,7 @@ class STG_Logger(MinervaLogger):
                     (self.n_batches, self.batch_size, n_classes, *out_shape),
                     dtype=np.float16,
                 )
-            except MemoryError:
+            except MemoryError:  # pragma: no cover
                 raise MemoryError(
                     "Dataset too large to record probabilities of predicted classes!"
                 )
@@ -253,7 +255,7 @@ class STG_Logger(MinervaLogger):
                 self.results["bounds"] = np.empty(
                     (self.n_batches, self.batch_size), dtype=object
                 )
-            except MemoryError:
+            except MemoryError:  # pragma: no cover
                 raise MemoryError(
                     "Dataset too large to record bounding boxes of samples!"
                 )
@@ -326,8 +328,10 @@ class STG_Logger(MinervaLogger):
             y_pred = torch.argmax(z, 1).detach().cpu().numpy()  # type: ignore[attr-defined]
             for i in range(len(y)):
 
-                self.logs["total_miou"] += jaccard_score(
-                    y_true[i].flatten(), y_pred[i].flatten(), average="macro"
+                self.logs["total_miou"] += float(
+                    jaccard_score(
+                        y_true[i].flatten(), y_pred[i].flatten(), average="macro"
+                    )
                 )  # noqa: E501 type: ignore[attr-defined]
 
         # Writes loss and correct predictions to the writer.

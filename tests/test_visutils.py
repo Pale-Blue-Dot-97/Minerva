@@ -5,6 +5,8 @@ import tempfile
 from typing import Any
 from nptyping import NDArray, Shape
 
+import torch
+from torchgeo.samplers import get_random_bounding_box
 import numpy as np
 import pytest
 import matplotlib as mlp
@@ -13,7 +15,8 @@ from matplotlib.image import AxesImage
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 
-from minerva.utils import utils, visutils
+from minerva.utils import utils, visutils, CONFIG
+from minerva.datasets import make_dataset
 
 
 def test_de_interlace() -> None:
@@ -162,7 +165,7 @@ def test_make_gif(bounds_for_test_img) -> None:
 
 
 def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None:
-    pred = np.random.randint(0, 7, size=(224, 224))
+    pred = np.random.randint(0, 8, size=(32, 32))
 
     src_crs = utils.WGS84
 
@@ -175,28 +178,45 @@ def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None
     visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
 
 
-"""
-def test_seg_plot() -> None:
-    z = np.random.randint(0, 7, size=25*224*224)
-    y = np.random.randint(0, 7, size=25*224*224)
-    ids = ["ID"] * 25
-    bbox = BoundingBox(
-        -1.4153283567520825,
-        -1.3964510733477618,
-        50.91896360773007,
-        50.93781998522083,
-        1.0,
-        2.0,
+def test_seg_plot(data_root) -> None:
+    batch_size = 8
+    n_batches = 4
+
+    size = (32, 32)
+
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["train"])
+    bounds = dataset.bounds
+
+    z = []
+    y = []
+    bboxes = []
+    ids = []
+
+    for i in range(batch_size):
+        z.append([np.random.randint(0, 7, size=size) for _ in range(n_batches)])
+        y.append([np.random.randint(0, 7, size=size) for _ in range(n_batches)])
+        ids.append([f"{i}.{j}" for j in range(n_batches)])
+
+        for _ in range(n_batches):
+            bboxes.append(get_random_bounding_box(bounds, size, res=1.0))
+
+    fn_prefix = data_root / "seg_plot"
+
+    visutils.seg_plot(
+        z=z,
+        y=y,
+        ids=ids,
+        bounds=bboxes,
+        mode="train",
+        classes=utils.CLASSES,
+        colours=utils.CMAP_DICT,
+        fn_prefix=fn_prefix,
+        frac=1.0,
     )
-
-    bounds = [bbox] * 25
-
-    assert visutils.seg_plot(z, y, ids, bounds, ) is None
-"""
 
 
 def test_plot_subpopulations() -> None:
-    class_dist = [(1, 25), (0, 13), (2, 10), (3, 4)]
+    class_dist = [(1, 25000), (0, 1300), (2, 100), (3, 2)]
 
     fn = Path("plot.png")
 
@@ -229,10 +249,13 @@ def test_plot_history() -> None:
 
 
 def test_make_confusion_matrix() -> None:
-    pred_1 = np.random.randint(0, 8, size=16 * 224 * 224)
-    labels_1 = np.random.randint(0, 8, size=16 * 224 * 224)
+    batch_size = 2
+    patch_size = (32, 32)
 
-    pred_2 = np.random.randint(0, 6, size=16 * 224 * 224)
+    pred_1 = np.random.randint(0, 8, size=batch_size * patch_size[0] * patch_size[1])
+    labels_1 = np.random.randint(0, 8, size=batch_size * patch_size[0] * patch_size[1])
+
+    pred_2 = np.random.randint(0, 6, size=batch_size * patch_size[0] * patch_size[1])
 
     fn = Path("cm.png")
 
@@ -265,6 +288,10 @@ def test_format_names() -> None:
 
 
 def test_plot_results() -> None:
+    batch_size = 2
+    patch_size = (32, 32)
+    n_classes = 8
+
     plots = {
         "History": True,
         "Pred": True,
@@ -273,9 +300,10 @@ def test_plot_results() -> None:
         "micro": True,
         "macro": True,
         "Mask": False,
+        "TSNE": True,
     }
-    z = np.random.randint(0, 8, size=16 * 224 * 224)
-    y = np.random.randint(0, 8, size=16 * 224 * 224)
+    z = np.random.randint(0, n_classes, size=batch_size * patch_size[0] * patch_size[1])
+    y = np.random.randint(0, n_classes, size=batch_size * patch_size[0] * patch_size[1])
 
     train_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
     train_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
@@ -290,7 +318,15 @@ def test_plot_results() -> None:
         "val_acc": val_acc,
     }
 
-    probs = np.random.rand(16, 224, 224, len(utils.CLASSES))
+    probs = np.random.rand(batch_size, *patch_size, len(utils.CLASSES))
+
+    from minerva.datasets import make_dataset
+
+    embeddings = torch.rand([4, 152]).numpy()
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
+    bounds = np.array(
+        [get_random_bounding_box(dataset.bounds, 12.0, 1.0) for _ in range(4)]
+    )
 
     visutils.plot_results(
         plots,
@@ -298,17 +334,30 @@ def test_plot_results() -> None:
         y,
         metrics,
         probs=probs,
+        bounds=bounds,
+        embeddings=embeddings,
+        mode="test",
         class_names=utils.CLASSES,
         colours=utils.CMAP_DICT,
         save=False,
     )
 
 
-# def test_plot_embeddings() -> None:
-#    visutils.plot_embedding(
-#        embeddings.detach().cpu(),
-#        data["bbox"],
-#        "test",
-#        show=True,
-#        filename="tsne_cluster_vis.png",
-#    )
+def test_plot_embeddings() -> None:
+    from minerva.datasets import make_dataset
+
+    embeddings = torch.rand([4, 152])
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
+    bounds = [get_random_bounding_box(dataset.bounds, 12.0, 1.0) for _ in range(4)]
+
+    assert (
+        visutils.plot_embedding(
+            embeddings,
+            bounds,
+            "test",
+            show=True,
+            filename="tsne_cluster_vis.png",
+            title="test_plot",
+        )
+        is None
+    )

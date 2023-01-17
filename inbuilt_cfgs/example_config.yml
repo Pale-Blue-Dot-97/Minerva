@@ -3,21 +3,12 @@
 
 # === PATHS ===================================================================
 dir:
-    data:
-        - tests
-        - tmp
-        - data
+    data: tests/tmp/data
     configs:
         data_config: Chesapeake7.yml
         imagery_config: NAIP.yml
-    results:
-        - tests
-        - tmp
-        - results
-    cache:
-        - tests
-        - tmp
-        - cache
+    results: tests/tmp/results
+    cache: tests/tmp/cache
 
 # ---+ Kwargs for make_datasets +----------------------------------------------
 # Name of model. Substring before hyphen is model class.
@@ -29,7 +20,7 @@ model_type: segmentation
 sample_pairs: false
 elim: true
 balance: true
-patch_size: [32, 32]
+patch_size: &patch_size [32, 32]
 pre_train: false
 fine_tune: false
 max_r: 52
@@ -97,7 +88,7 @@ sampler_params:
         name: RandomGeoSampler
         roi: false
         params:
-            size: 32
+            size: *patch_size
             length: 120
 
     # Validation Dataset Sampler
@@ -106,7 +97,7 @@ sampler_params:
         name: RandomGeoSampler
         roi: false
         params:
-            size: 32
+            size: *patch_size
             length: 32
 
     # Test Dataset Sampler
@@ -115,7 +106,7 @@ sampler_params:
         name: RandomGeoSampler
         roi: false
         params:
-            size: 32
+            size: *patch_size
             length: 32
 
 

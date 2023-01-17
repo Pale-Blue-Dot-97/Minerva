@@ -119,7 +119,7 @@ _data_config_path: Optional[Union[str, PathLike]] = CONFIG["dir"]["configs"].get
 )
 if _data_config_path:
     DATA_CONFIG_PATH = universal_path(_data_config_path)
-else:
+else:  # pragma: no cover
     assert _data_config_path is None
     DATA_CONFIG_PATH = _data_config_path
 
@@ -151,7 +151,7 @@ CMAP_DICT: Dict[int, str]
 if DATA_CONFIG:
     CLASSES = DATA_CONFIG["classes"]
     CMAP_DICT = DATA_CONFIG["colours"]
-else:
+else:  # pragma: no cover
     CLASSES = {}
     CMAP_DICT = {}
 
@@ -313,11 +313,11 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
 
         @overload
         def __call__(self, batch: Dict[str, Any]) -> Dict[str, Any]:
-            ...
+            ...  # pragma: no cover
 
         @overload
         def __call__(self, batch: Tensor) -> Dict[str, Any]:
-            ...
+            ...  # pragma: no cover
 
         def __call__(self, batch: Union[Dict[str, Any], Tensor]) -> Dict[str, Any]:
             if isinstance(batch, Tensor):
@@ -363,7 +363,7 @@ def pair_return(cls):
 
         def __getattr__(self, item):
             if item in self.__dict__:
-                return getattr(self, item)
+                return getattr(self, item)  # pragma: no cover
             elif item in self.wrap.__dict__:
                 return getattr(self.wrap, item)
             else:
@@ -480,7 +480,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     try:
         assert DATA_CONFIG_PATH is not None
         data_config_fn = DATA_CONFIG_PATH.name
-    except AssertionError as err:
+    except AssertionError as err:  # pragma: no cover
         print(err)
         print(
             "DATA_CONFIG_PATH is empty! This is needed here to obtain the dataset name."
@@ -489,7 +489,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
 
     match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
 
-    if match is None:
+    if match is None:  # pragma: no cover
         print("\nDataset not found!")
         return None
     else:
@@ -503,7 +503,7 @@ def transform_coordinates(
     src_crs: CRS,
     new_crs: CRS = WGS84,
 ) -> Tuple[Sequence[float], Sequence[float]]:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
@@ -513,7 +513,7 @@ def transform_coordinates(
     src_crs: CRS,
     new_crs: CRS = WGS84,
 ) -> Tuple[Sequence[float], Sequence[float]]:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
@@ -523,14 +523,14 @@ def transform_coordinates(
     src_crs: CRS,
     new_crs: CRS = WGS84,
 ) -> Tuple[Sequence[float], Sequence[float]]:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
 def transform_coordinates(
     x: float, y: float, src_crs: CRS, new_crs: CRS = WGS84
 ) -> Tuple[float, float]:
-    ...
+    ...  # pragma: no cover
 
 
 def transform_coordinates(
@@ -914,12 +914,12 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
 def mask_transform(
     array: NDArray[Any, Int], matrix: Dict[int, int]
 ) -> NDArray[Any, Int]:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
 def mask_transform(array: LongTensor, matrix: Dict[int, int]) -> LongTensor:
-    ...
+    ...  # pragma: no cover
 
 
 def mask_transform(
@@ -1231,7 +1231,6 @@ def calc_grad(model: Module) -> Optional[float]:
             # Calculate 2D grad norm
             if p.grad is not None:
                 param_norm = p.grad.data.norm(2)
-                print(param_norm.item())
 
                 # Converts norm to float, squares and adds to total_norm.
                 total_norm += param_norm.item() ** 2
@@ -1448,7 +1447,7 @@ def run_tensorboard(
     """
     if not path:
         try:
-            path = CONFIG["dir"]["results"][:-1]
+            path = universal_path(CONFIG["dir"]["results"]).parent
         except KeyError:
             print("KeyError: Path not specified and default cannot be found.")
             print("ABORT OPERATION")
@@ -1478,16 +1477,17 @@ def run_tensorboard(
         os.chdir(cwd)
         return 0
 
-    # Runs TensorBoard log.
-    os.system("tensorboard --logdir={}".format(exp_name))
+    else:  # pragma: no cover
+        # Runs TensorBoard log.
+        os.system("tensorboard --logdir={}".format(exp_name))
 
-    # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
-    webbrowser.open("localhost:{}".format(host_num))
+        # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
+        webbrowser.open("localhost:{}".format(host_num))
 
-    # Changes back to the original CWD.
-    os.chdir(cwd)
+        # Changes back to the original CWD.
+        os.chdir(cwd)
 
-    return None
+        return None
 
 
 def compute_roc_curves(
@@ -1555,10 +1555,10 @@ def compute_roc_curves(
                     targets.ravel(), probs.ravel()
                 )
                 roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
-            except MemoryError as err:
+            except MemoryError as err:  # pragma: no cover
                 print(err)
                 pass
-        else:
+        else:  # pragma: no cover
             try:
                 raise MemoryError(
                     "WARNING: Size of predicted probabilities may exceed free system memory."

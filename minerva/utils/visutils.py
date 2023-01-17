@@ -236,7 +236,7 @@ def discrete_heatmap(
     cmap = get_mlp_cmap(cmap_style, len(classes))
 
     # Plots heatmap onto figure.
-    heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)
+    heatmap = plt.imshow(data, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5)  # type: ignore[arg-type]
 
     # Sets tick intervals to block size. Default 32 x 32.
     plt.xticks(np.arange(0, data.shape[0] + 1, block_size))
@@ -384,7 +384,7 @@ def labelled_rgb_image(
 
     # Plots heatmap onto figure.
     heatmap = ax1.imshow(
-        mask, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha
+        mask, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha  # type: ignore[arg-type]
     )
 
     # Sets tick intervals to standard 32x32 block size.
@@ -711,7 +711,7 @@ def seg_plot(
         ids (list[str]): Corresponding patch IDs for the test data supplied to the network.
         bounds (list[BoundingBox] or np.ndarray[BoundingBox]): Array of objects describing a geospatial bounding box.
             Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
-        mode (str): Optional; Mode samples are from. Must be 'train', 'val' or 'test'.
+        mode (str): Mode samples are from. Must be 'train', 'val' or 'test'.
         classes (dict): Dictionary mapping class labels to class names.
         colours (dict): Dictionary mapping class labels to colours.
         fn_prefix (str): Common filename prefix (including path to file) for all plots of this type
@@ -944,7 +944,7 @@ def make_confusion_matrix(
 
     if DATA_CONFIG is not None:
         figsize = DATA_CONFIG["fig_sizes"]["CM"]
-    else:
+    else:  # pragma: no cover
         figsize = None
 
     # Plots figure.
@@ -1114,7 +1114,7 @@ def plot_embedding(
             images.append(stack_rgb(sample["image"].numpy()))
             targets.append(
                 [
-                    int(stats.mode(mask, keepdims=False).mode)
+                    int(stats.mode(mask.flatten(), keepdims=False).mode)
                     for mask in sample["mask"].numpy()
                 ]
             )
@@ -1153,7 +1153,7 @@ def plot_embedding(
 
             ax.add_artist(imagebox)
 
-    plt.xticks([]), plt.yticks([])
+    plt.xticks([]), plt.yticks([])  # type: ignore
 
     if title is not None:
         plt.title(title)
@@ -1168,16 +1168,14 @@ def plot_embedding(
 
 
 def format_plot_names(
-    model_name: str,
-    timestamp: str,
-    path: Sequence[str],
+    model_name: str, timestamp: str, path: Union[Sequence[str], str, Path]
 ) -> Dict[str, str]:
     """Creates unique filenames of plots in a standardised format.
 
     Args:
         model_name (str): Name of model. e.g. MLP-MkVI.
         timestamp (str): Time and date to be used to identify experiment.
-        path (list[str]): Path to the directory for storing plots as a list of strings for each level.
+        path (Union[list[str], str, Path]): Path to the directory for storing plots as a list of strings for each level.
 
     Returns:
         filenames (dict): Formatted filenames for plots.
@@ -1225,7 +1223,7 @@ def plot_results(
     show: bool = False,
     model_name: Optional[str] = None,
     timestamp: Optional[str] = None,
-    results_dir: Optional[Sequence[str]] = None,
+    results_dir: Optional[Union[Sequence[str], str, Path]] = None,
 ) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
@@ -1249,7 +1247,7 @@ def plot_results(
         model_name (str): Optional; Name of model. e.g. MLP-MkVI.
         timestamp (str): Optional; Time and date to be used to identify experiment.
             If not specified, the current date-time is used.
-        results_dir (list): Optional; Path to the directory for storing plots as a list of strings for each level.
+        results_dir (Union[list[str], str, Path]): Optional; Path to the directory for storing plots.
 
     Notes:
         save = True, show = False regardless of input for plots made for each sample such as PvT or Mask plots.
@@ -1261,7 +1259,7 @@ def plot_results(
         # Ensures that there is no attempt to display figures incase no display is present.
         try:
             mlp.use("agg")
-        except ImportError:
+        except ImportError:  # pragma: no cover
             pass
 
     flat_z = None
@@ -1282,7 +1280,7 @@ def plot_results(
 
     if results_dir is None:
         results_dir = CONFIG["dir"]["results"]
-        assert isinstance(results_dir, Sequence)
+        assert isinstance(results_dir, (Sequence, str, Path))
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
