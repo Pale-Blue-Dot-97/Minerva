@@ -70,13 +70,13 @@ def exp_cnn(x_entropy_loss, rgbi_input_size) -> MinervaModel:
 
 
 @pytest.fixture
-def random_mask() -> NDArray[Shape["224, 224"], Int]:
-    return np.random.randint(0, 7, size=(224, 224))
+def random_mask() -> NDArray[Shape["32, 32"], Int]:
+    return np.random.randint(0, 7, size=(32, 32))
 
 
 @pytest.fixture
-def random_image() -> NDArray[Shape["224, 224, 3"], Float]:
-    return np.random.rand(224, 224, 3)
+def random_image() -> NDArray[Shape["32, 32, 3"], Float]:
+    return np.random.rand(32, 32, 3)
 
 
 @pytest.fixture
