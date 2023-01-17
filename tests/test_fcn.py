@@ -20,9 +20,11 @@ from minerva.models import (
 from minerva.models.fcn import DCN
 
 input_size = (4, 64, 64)
+batch_size = 2
+n_classes = 8
 
-x = torch.rand((6, *input_size))
-y = torch.randint(0, 8, (6, 64, 64))  # type: ignore[attr-defined]
+x = torch.rand((batch_size, *input_size))
+y = torch.randint(0, n_classes, (batch_size, *input_size[1:]))  # type: ignore[attr-defined]
 
 
 def fcn_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
@@ -31,13 +33,13 @@ def fcn_test(test_model: MinervaModel, x: Tensor, y: Tensor) -> None:
     test_model.set_optimiser(optimiser)
 
     test_model.determine_output_dim()
-    assert test_model.output_shape == (64, 64)
+    assert test_model.output_shape == input_size[1:]
 
     loss, z = test_model.step(x, y, True)
 
     assert type(loss.item()) is float
     assert isinstance(z, Tensor)
-    assert z.size() == (6, 8, 64, 64)
+    assert z.size() == (batch_size, n_classes, *input_size[1:])
 
 
 def test_fcn32resnet18(x_entropy_loss) -> None:
@@ -119,4 +121,4 @@ def test_dcn() -> None:
         NotImplementedError, match=f"Variant 42 does not match known types"
     ):
         dcn.variant = "42"  # type: ignore[arg-type]
-        _ = dcn.forward(resnet(torch.rand((1, 4, 64, 64))))
+        _ = dcn.forward(resnet(torch.rand((batch_size, *input_size))))
