@@ -45,6 +45,6 @@ repos:
             args: [--width, '120']
 
     - repo: https://github.com/PyCQA/isort
-      rev: 5.10.1    # Use the ref you want to point at
+      rev: 5.11.4    # Use the ref you want to point at
       hooks:
           - id: isort
