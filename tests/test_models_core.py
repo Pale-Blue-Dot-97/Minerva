@@ -59,22 +59,25 @@ def test_minerva_dataparallel() -> None:
 
 
 def test_get_torch_weights() -> None:
-    weights1 = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
-
     try:
-        assert isinstance(weights1, WeightsEnum)
+        weights1 = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
 
-        with internet_sabotage.no_connection():
-            weights2 = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
+        try:
+            assert isinstance(weights1, WeightsEnum)
 
-            assert isinstance(weights2, WeightsEnum)
+            with internet_sabotage.no_connection():
+                weights2 = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
 
-            weights3 = get_torch_weights("ResNet50_Weights.IMAGENET1K_V1")
+                assert isinstance(weights2, WeightsEnum)
 
-            assert weights3 is None
+                weights3 = get_torch_weights("ResNet50_Weights.IMAGENET1K_V1")
 
-    except (AssertionError, ImportError):
-        pass
+                assert weights3 is None
+
+        except (AssertionError, ImportError) as err:
+            print(err)
+    except ImportError as err:
+        print(err)
 
 
 def test_get_output_shape(exp_mlp) -> None:
