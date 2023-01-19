@@ -35,11 +35,19 @@ dataset_params:
     # Training Dataset
     train:
         image:
-            module: minerva.datasets
-            name: TstImgDataset
-            root: test_images
-            params:
-                res: 1.0
+            images_1:
+                module: minerva.datasets
+                name: TstImgDataset
+                root: test_images
+                params:
+                    res: 1.0
+
+            image2:
+                module: minerva.datasets
+                name: TstImgDataset
+                root: test_images
+                params:
+                    res: 1.0
 
         mask:
             module: minerva.datasets
