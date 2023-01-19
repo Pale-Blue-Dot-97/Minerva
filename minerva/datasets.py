@@ -496,19 +496,19 @@ def make_bounding_box(
         return BoundingBox(*roi)
 
 
-def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
+def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., Any]:
     """Creates a transform object based on config parameters.
 
     Args:
         name (str): Name of transform object to import e.g ``RandomResizedCrop``.
-        params (Dict[str, Any]): Arguements to construct transform with.
+        transform_params (Dict[str, Any]): Arguements to construct transform with.
             Should also include ``"module"`` key defining the import path to the transform object.
 
     Returns:
         Initialised transform object specified by config parameters.
 
     .. note::
-        If ``params`` contains no ``"module"`` key, it defaults to ``"torchvision.transforms"``.
+        If ``transform_params`` contains no ``"module"`` key, it defaults to ``"torchvision.transforms"``.
 
     Example:
         >>> name = "RandomResizedCrop"
@@ -518,6 +518,7 @@ def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
     Raises:
         TypeError: If created transform :class:`object` is itself not :class:`callable`.
     """
+    params = transform_params.copy()
     module = params.pop("module", "torchvision.transforms")
 
     # Gets the transform requested by config parameters.
