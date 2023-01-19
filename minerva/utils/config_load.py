@@ -25,7 +25,7 @@
 import os
 from os import PathLike
 from pathlib import Path
-from typing import Any, Dict, Tuple, Optional, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import yaml
 

@@ -1,7 +1,7 @@
 import pytest
 import torch
-from torch import LongTensor
 from numpy.testing import assert_array_equal
+from torch import LongTensor
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
 
 from minerva.transforms import (

@@ -26,7 +26,7 @@
 import argparse
 
 from minerva.trainer import Trainer
-from minerva.utils import runner, CONFIG, universal_path
+from minerva.utils import CONFIG, runner, universal_path
 
 # =====================================================================================================================
 #                                                    METADATA

@@ -1,22 +1,22 @@
 import os
-from pathlib import Path
 import shutil
 import tempfile
+from pathlib import Path
 from typing import Any
-from nptyping import NDArray, Shape
 
-import torch
-from torchgeo.samplers import get_random_bounding_box
+import matplotlib as mlp
 import numpy as np
 import pytest
-import matplotlib as mlp
+import torch
 from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.image import AxesImage
+from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
+from torchgeo.samplers import get_random_bounding_box
 
-from minerva.utils import utils, visutils, CONFIG
 from minerva.datasets import make_dataset
+from minerva.utils import CONFIG, utils, visutils
 
 
 def test_de_interlace() -> None:

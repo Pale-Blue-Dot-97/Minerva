@@ -23,16 +23,17 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
-from argparse import Namespace
-from typing import Any, Callable, Optional
 import os
 import signal
 import subprocess
+from argparse import Namespace
+from typing import Any, Callable, Optional
+
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from minerva.utils import utils, master_parser, CONFIG
+from minerva.utils import CONFIG, master_parser, utils
 
 # =====================================================================================================================
 #                                                    METADATA

@@ -27,22 +27,16 @@
 # =====================================================================================================================
 from abc import ABC
 from collections import OrderedDict
-from typing import (
-    Any,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Sequence,
-    Union,
-)
+from typing import Any, Iterable, List, Optional, Sequence, Tuple, Union
+
 import numpy as np
-from torch import Tensor
 import torch.nn.modules as nn
+from torch import Tensor
 from torch.nn.modules import Module
 
-from .core import MinervaModel, get_output_shape
 from minerva.utils.utils import check_len
+
+from .core import MinervaModel, get_output_shape
 
 # =====================================================================================================================
 #                                                    METADATA

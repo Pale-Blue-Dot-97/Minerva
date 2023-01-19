@@ -1,9 +1,10 @@
 from typing import Any, Dict, List, Union
+
 import torch
-from torch import Tensor
 import torch.nn.modules as nn
-from numpy.testing import assert_array_equal
 from lightly.loss import NTXentLoss
+from numpy.testing import assert_array_equal
+from torch import Tensor
 
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN32ResNet18, SimCLR34

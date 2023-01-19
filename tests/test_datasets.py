@@ -1,19 +1,20 @@
-from typing import Any, Dict, List, Union
-from pathlib import Path
 from collections import defaultdict
-from numpy.testing import assert_array_equal
+from pathlib import Path
+from typing import Any, Dict, List, Union
+
 import pandas as pd
 import pytest
 import torch
+from numpy.testing import assert_array_equal
+from rasterio.crs import CRS
 from torch import Tensor
 from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset, UnionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
-from rasterio.crs import CRS
 
 from minerva import datasets as mdt
-from minerva.datasets import TstImgDataset, TstMaskDataset, PairedDataset
+from minerva.datasets import PairedDataset, TstImgDataset, TstMaskDataset
 from minerva.utils.utils import CONFIG, set_seeds
 
 data_root = Path("tests", "tmp")

@@ -21,29 +21,19 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
-
 import os
-from pathlib import Path
 from contextlib import nullcontext
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Union
 
-from nptyping import NDArray, Int
 import pandas as pd
 import torch
-from torch import Tensor
 import torch.distributed as dist
 import yaml
 from alive_progress import alive_bar  # , alive_it
 from inputimeout import TimeoutOccurred, inputimeout
+from nptyping import Int, NDArray
+from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
@@ -55,7 +45,7 @@ from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
 from minerva.pytorchtools import EarlyStopping
-from minerva.utils import utils, visutils, universal_path
+from minerva.utils import universal_path, utils, visutils
 
 # =====================================================================================================================
 #                                                    METADATA
