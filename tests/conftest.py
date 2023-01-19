@@ -8,9 +8,12 @@ import pytest
 import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
+from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
 
+from minerva.datasets import make_dataset
 from minerva.models import CNN, MLP, MinervaModel
+from minerva.utils import CONFIG
 
 
 @pytest.fixture
@@ -110,3 +113,9 @@ def example_matrix() -> Dict[int, int]:
 @pytest.fixture
 def simple_bbox():
     return BoundingBox(0, 1, 0, 1, 0, 1)
+
+
+@pytest.fixture
+def default_dataset() -> GeoDataset:
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
+    return dataset
