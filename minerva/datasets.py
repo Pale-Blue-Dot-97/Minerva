@@ -46,7 +46,6 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from nptyping import NDArray
 from pandas import DataFrame
 from torch.utils.data import DataLoader
-import torch.distributed as dist
 from torchgeo.datasets import (
     GeoDataset,
     IntersectionDataset,
@@ -211,7 +210,7 @@ def stack_sample_pairs(
 
 
 def intersect_datasets(
-    datasets: List[GeoDataset], sample_pairs: bool = False
+    datasets: Sequence[GeoDataset], sample_pairs: bool = False
 ) -> IntersectionDataset:
     """Intersects a list of :class:`GeoDataset` together to return a single dataset object.
 
@@ -240,7 +239,7 @@ def intersect_datasets(
 
 
 def unionise_datasets(
-    datasets: List[GeoDataset], sample_pairs: bool = False
+    datasets: Sequence[GeoDataset], sample_pairs: bool = False
 ) -> UnionDataset:
     """Unionises a list of :class:`GeoDataset` together to return a single dataset object.
 
@@ -339,7 +338,7 @@ def make_dataset(
 
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
-    sub_datasets = []
+    sub_datasets: List[GeoDataset] = []
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
