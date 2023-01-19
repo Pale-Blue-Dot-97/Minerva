@@ -46,7 +46,13 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from nptyping import NDArray
 from pandas import DataFrame
 from torch.utils.data import DataLoader
-from torchgeo.datasets import GeoDataset, IntersectionDataset, RasterDataset
+import torch.distributed as dist
+from torchgeo.datasets import (
+    GeoDataset,
+    IntersectionDataset,
+    RasterDataset,
+    UnionDataset,
+)
 from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchvision.transforms import RandomApply
@@ -233,6 +239,33 @@ def intersect_datasets(
     return master_dataset
 
 
+def unionise_datasets(
+    datasets: List[GeoDataset], sample_pairs: bool = False
+) -> UnionDataset:
+    """Unionises a list of :class:`GeoDataset` together to return a single dataset object.
+
+    Args:
+        datasets (List[GeoDataset]): List of datasets to unionise together.
+
+    Returns:
+        UnionDataset: Final dataset object representing an union of all the parsed datasets.
+    """
+
+    def unionise_pair_datasets(a: GeoDataset, b: GeoDataset) -> UnionDataset:
+        if sample_pairs:
+            return UnionDataset(a, b, collate_fn=utils.pair_collate(concat_samples))
+        else:
+            return a | b
+
+    master_dataset: Union[GeoDataset, UnionDataset] = datasets[0]
+
+    for i in range(len(datasets) - 1):
+        master_dataset = unionise_pair_datasets(master_dataset, datasets[i + 1])
+
+    assert isinstance(master_dataset, UnionDataset)
+    return master_dataset
+
+
 def make_dataset(
     data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
@@ -242,7 +275,7 @@ def make_dataset(
     """Constructs a dataset object from `n` sub-datasets given by the parameters supplied.
 
     Args:
-        data_directory (Iterable[str]): List defining the path to the directory containing the data.
+        data_directory (Union[Iterable[str], str, Path]): List defining the path to the directory containing the data.
         dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
         transform_params: Optional; Dictionary defining the parameters of the transforms to perform
             when sampling from the dataset.
@@ -251,15 +284,12 @@ def make_dataset(
         Tuple[Any, List[Any]]: Tuple of Dataset object formed by the parameters given and list of
         the sub-datasets created that constitute ``dataset``.
     """
-    # --+ MAKE SUB-DATASETS +=========================================================================================+
-    # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
-    sub_datasets = []
 
-    # Iterate through all the sub-datasets defined in dataset_params.
-    for key in dataset_params.keys():
-
+    def get_subdataset(
+        this_dataset_params, key
+    ) -> Tuple[Callable[..., GeoDataset], str]:
         # Get the params for this sub-dataset.
-        sub_dataset_params = dataset_params[key]
+        sub_dataset_params = this_dataset_params[key]
 
         # Get the constructor for the class of dataset defined in params.
         _sub_dataset: Callable[..., GeoDataset] = utils.func_by_str(
@@ -271,37 +301,92 @@ def make_dataset(
             universal_path(data_directory) / sub_dataset_params["root"]
         )
 
+        return _sub_dataset, sub_dataset_root
+
+    def create_transforms(this_transform_params, key) -> Optional[Any]:
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations: Optional[Any] = None
-        if type(transform_params) == dict:
-            assert transform_params is not None
+        if type(this_transform_params) == dict:
+            assert this_transform_params is not None
             try:
-                if transform_params[key]:
+                if this_transform_params[key]:
                     transformations = make_transformations(
-                        transform_params[key], key=key
+                        this_transform_params[key], key=key
                     )
             except (KeyError, TypeError):
                 pass
         else:
             pass
 
-        sub_dataset: GeoDataset
+        return transformations
+
+    def create_subdataset(
+        dataset_class, root, subdataset_params, transformations
+    ) -> GeoDataset:
         if sample_pairs:
-            sub_dataset = PairedDataset(
-                _sub_dataset,
-                root=sub_dataset_root,
+            return PairedDataset(
+                dataset_class,
+                root=root,
                 transforms=transformations,
-                **dataset_params[key]["params"],
+                **subdataset_params["params"],
             )
         else:
-            sub_dataset = _sub_dataset(
-                root=sub_dataset_root,
+            return dataset_class(
+                root=root,
                 transforms=transformations,
-                **dataset_params[key]["params"],
+                **subdataset_params["params"],
             )
 
-        # Construct the sub-dataset using the objects defined from params, and append to list of sub-datasets.
-        sub_datasets.append(sub_dataset)
+    # --+ MAKE SUB-DATASETS +=========================================================================================+
+    # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
+    sub_datasets = []
+
+    # Iterate through all the sub-datasets defined in `dataset_params`.
+    for type_key in dataset_params.keys():
+
+        type_dataset_params = dataset_params[type_key]
+
+        type_subdatasets = []
+
+        multi_datasets_exist = False
+        for area_key in type_dataset_params.keys():
+            if area_key in ("module", "name", "params", "root"):
+                multi_datasets_exist = False
+                continue
+            else:
+                multi_datasets_exist = True
+                _subdataset, subdataset_root = get_subdataset(
+                    type_dataset_params, area_key
+                )
+                transformations: Optional[Any] = None
+                try:
+                    assert transform_params
+                    if transform_params[type_key]:
+                        transformations = create_transforms(
+                            transform_params[type_key], area_key
+                        )
+                except (KeyError, TypeError, AssertionError):
+                    pass
+
+                type_subdatasets.append(
+                    create_subdataset(
+                        _subdataset,
+                        subdataset_root,
+                        type_dataset_params[area_key],
+                        transformations,
+                    )
+                )
+
+        if multi_datasets_exist:
+            sub_datasets.append(unionise_datasets(type_subdatasets, sample_pairs))
+        else:
+            sub_datasets.append(
+                create_subdataset(
+                    *get_subdataset(dataset_params, type_key),
+                    type_dataset_params,
+                    create_transforms(transform_params, type_key),
+                )
+            )
 
     # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
@@ -412,19 +497,19 @@ def make_bounding_box(
         return BoundingBox(*roi)
 
 
-def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
+def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., Any]:
     """Creates a transform object based on config parameters.
 
     Args:
         name (str): Name of transform object to import e.g ``RandomResizedCrop``.
-        params (Dict[str, Any]): Arguements to construct transform with.
+        transform_params (Dict[str, Any]): Arguements to construct transform with.
             Should also include ``"module"`` key defining the import path to the transform object.
 
     Returns:
         Initialised transform object specified by config parameters.
 
     .. note::
-        If ``params`` contains no ``"module"`` key, it defaults to ``"torchvision.transforms"``.
+        If ``transform_params`` contains no ``"module"`` key, it defaults to ``"torchvision.transforms"``.
 
     Example:
         >>> name = "RandomResizedCrop"
@@ -434,6 +519,7 @@ def get_transform(name: str, params: Dict[str, Any]) -> Callable[..., Any]:
     Raises:
         TypeError: If created transform :class:`object` is itself not :class:`callable`.
     """
+    params = transform_params.copy()
     module = params.pop("module", "torchvision.transforms")
 
     # Gets the transform requested by config parameters.
