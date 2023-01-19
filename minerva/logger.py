@@ -23,17 +23,17 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from abc import ABC
 import math
-from typing import Any, Dict, Optional, Tuple, SupportsFloat
+from abc import ABC
+from typing import Any, Dict, Optional, SupportsFloat, Tuple
 
 import mlflow
 import numpy as np
 import torch
+from sklearn.metrics import jaccard_score
 from torch import Tensor
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchgeo.datasets.utils import BoundingBox
-from sklearn.metrics import jaccard_score
 
 from minerva.utils import utils
 

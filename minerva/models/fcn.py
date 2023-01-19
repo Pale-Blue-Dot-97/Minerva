@@ -24,20 +24,13 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 from abc import ABC
-from typing import (
-    Any,
-    Dict,
-    Literal,
-    Optional,
-    Tuple,
-    Sequence,
-)
+from typing import Any, Dict, Literal, Optional, Sequence, Tuple
 
 import torch
 import torch.nn.modules as nn
 from torch import Tensor
 
-from .core import MinervaModel, MinervaBackbone, bilinear_init, get_model
+from .core import MinervaBackbone, MinervaModel, bilinear_init, get_model
 
 # =====================================================================================================================
 #                                                    METADATA

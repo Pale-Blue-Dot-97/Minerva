@@ -27,8 +27,9 @@ Source: https://github.com/Bjarten/early-stopping-pytorch
 # =====================================================================================================================
 #                                                    IMPORTS
 # =====================================================================================================================
-from typing import Callable, Optional, Union
 from pathlib import Path
+from typing import Callable, Optional, Union
+
 import numpy as np
 import torch
 from torch.nn.modules import Module

@@ -23,13 +23,14 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Optional, Tuple, Sequence
+from typing import Any, Dict, Optional, Sequence, Tuple
+
 import numpy as np
 import torch
-from torch import Tensor
 import torch.nn.modules as nn
+from torch import Tensor
 
-from .core import MinervaModel, MinervaBackbone, get_model
+from .core import MinervaBackbone, MinervaModel, get_model
 
 # =====================================================================================================================
 #                                                    METADATA

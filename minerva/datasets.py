@@ -22,28 +22,29 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import inspect
+import os
+from pathlib import Path
 from typing import (
     Any,
     Callable,
     Dict,
     Iterable,
-    Literal,
     List,
+    Literal,
     Optional,
     Sequence,
     Tuple,
     Union,
 )
-import os
-from pathlib import Path
 
 import numpy as np
-from nptyping import NDArray
 import pandas as pd
-from pandas import DataFrame
 import torch
+import torch.distributed as dist
 from alive_progress import alive_it
 from catalyst.data.sampler import DistributedSamplerWrapper
+from nptyping import NDArray
+from pandas import DataFrame
 from torch.utils.data import DataLoader
 import torch.distributed as dist
 from torchgeo.datasets import (
@@ -57,7 +58,7 @@ from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchvision.transforms import RandomApply
 
 from minerva.transforms import MinervaCompose
-from minerva.utils import AUX_CONFIGS, CONFIG, utils, universal_path
+from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
 # =====================================================================================================================
 #                                                    METADATA

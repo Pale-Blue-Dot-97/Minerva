@@ -1,28 +1,27 @@
 import cmath
 import math
 import os
-from pathlib import Path
 import random
 import shutil
 import tempfile
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, Tuple
-from nptyping import NDArray, Shape, Int, Float
 
 import numpy as np
 import pandas as pd
 import pytest
 import torch
-
 from internet_sabotage import no_connection
+from nptyping import Float, Int, NDArray, Shape
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
 
-from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
 from minerva.models import MinervaModel
+from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
 
 
 def test_return_updated_kwargs() -> None:

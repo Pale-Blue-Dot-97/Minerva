@@ -1,5 +1,8 @@
-from minerva.models import get_torch_weights
+from typing import Optional
+
 from torchvision.models._api import WeightsEnum
+
+from minerva.models import get_torch_weights
 
 resnets = [
     "ResNet101_Weights.IMAGENET1K_V1",
@@ -10,5 +13,6 @@ resnets = [
 ]
 
 for resnet in resnets:
-    weights: WeightsEnum = get_torch_weights(resnet)
+    weights: Optional[WeightsEnum] = get_torch_weights(resnet)
+    assert weights
     weight_dict = weights.get_state_dict(True)

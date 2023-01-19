@@ -33,34 +33,33 @@ Attributes:
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-
 import os
 import random
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import imageio
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 import numpy as np
-from numpy.typing import ArrayLike
-from nptyping import NDArray, Int, Float, Shape
 import pandas as pd
 import seaborn as sns
 import tensorflow as tf
 from alive_progress import alive_bar
 from matplotlib import offsetbox
-from matplotlib.colors import ListedColormap, Colormap
+from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.gridspec import GridSpec
+from matplotlib.image import AxesImage
+from matplotlib.transforms import Bbox
+from nptyping import Float, Int, NDArray, Shape
+from numpy.typing import ArrayLike
+from rasterio.crs import CRS
 
 # from matplotlib.ticker import MaxNLocator
 from scipy import stats
-from matplotlib.image import AxesImage
-from matplotlib.transforms import Bbox
-from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.utils import AUX_CONFIGS, CONFIG, utils, universal_path
+from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
 # =====================================================================================================================
 #                                                    METADATA
