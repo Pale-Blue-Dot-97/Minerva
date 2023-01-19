@@ -7,7 +7,7 @@ import pytest
 import torch
 from torch import Tensor
 from torch.utils.data import DataLoader
-from torchgeo.datasets import IntersectionDataset
+from torchgeo.datasets import IntersectionDataset, UnionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 from rasterio.crs import CRS
@@ -142,10 +142,6 @@ def test_make_dataset() -> None:
         "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
     }
 
-    transform_params_2 = {
-        "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
-    }
-
     dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
@@ -165,13 +161,40 @@ def test_make_dataset() -> None:
         "params": {"res": 10.0},
     }
 
-    print(transform_params_2)
+    dataset_params2 = {
+        "image": {
+            "image_1": dataset_params["image"],
+            "image_2": dataset_params["image"],
+        },
+        "mask": {
+            "mask_1": dataset_params["mask"],
+            "mask_2": dataset_params["mask"],
+        },
+    }
+
     dataset_3, subdatasets_3 = mdt.make_dataset(
-        data_dir, dataset_params, transform_params_2
+        data_dir, dataset_params2, transform_params
     )
     assert isinstance(dataset_3, IntersectionDataset)
-    assert isinstance(subdatasets_3[0], TstImgDataset)
-    assert isinstance(subdatasets_3[1], TstMaskDataset)
+    assert isinstance(subdatasets_3[0], UnionDataset)
+    assert isinstance(subdatasets_3[1], UnionDataset)
+
+    transform_params_3 = {
+        "image": {
+            "image_1": transform_params["image"],
+            "image_2": transform_params["image"],
+        }
+    }
+
+    dataset_4, subdatasets_4 = mdt.make_dataset(
+        data_dir,
+        dataset_params2,
+        transform_params_3,
+        sample_pairs=True,
+    )
+    assert isinstance(dataset_4, IntersectionDataset)
+    assert isinstance(subdatasets_4[0], UnionDataset)
+    assert isinstance(subdatasets_4[1], UnionDataset)
 
 
 def test_construct_dataloader() -> None:
