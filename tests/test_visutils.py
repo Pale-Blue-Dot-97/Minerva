@@ -13,10 +13,10 @@ from matplotlib.image import AxesImage
 from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
+from torchgeo.datasets import GeoDataset
 from torchgeo.samplers import get_random_bounding_box
 
-from minerva.datasets import make_dataset
-from minerva.utils import CONFIG, utils, visutils
+from minerva.utils import utils, visutils
 
 
 def test_de_interlace() -> None:
@@ -178,36 +178,32 @@ def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None
     visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
 
 
-def test_seg_plot(data_root) -> None:
-    batch_size = 8
-    n_batches = 4
+def test_seg_plot(data_root, default_dataset: GeoDataset, monkeypatch) -> None:
+    batch_size = 2
+    n_batches = 2
 
     size = (32, 32)
 
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["train"])
-    bounds = dataset.bounds
+    bounds = default_dataset.bounds
+    bbox = get_random_bounding_box(bounds, size, res=1.0)
 
-    z = []
-    y = []
-    bboxes = []
+    z = list(np.random.randint(0, 7, size=(n_batches, batch_size, *size)))
     ids = []
 
-    for i in range(batch_size):
-        z.append([np.random.randint(0, 7, size=size) for _ in range(n_batches)])
-        y.append([np.random.randint(0, 7, size=size) for _ in range(n_batches)])
-        ids.append([f"{i}.{j}" for j in range(n_batches)])
+    for i in range(n_batches):
+        ids.append([f"{i}.{j}" for j in range(batch_size)])
 
-        for _ in range(n_batches):
-            bboxes.append(get_random_bounding_box(bounds, size, res=1.0))
+    bboxes = [bbox] * int(n_batches * batch_size)
 
     fn_prefix = data_root / "seg_plot"
 
+    monkeypatch.setattr(visutils, "_MAX_SAMPLES", 3)
     visutils.seg_plot(
         z=z,
-        y=y,
+        y=z,
         ids=ids,
         bounds=bboxes,
-        mode="train",
+        mode="test",
         classes=utils.CLASSES,
         colours=utils.CMAP_DICT,
         fn_prefix=fn_prefix,
@@ -287,7 +283,7 @@ def test_format_names() -> None:
     assert filenames == names
 
 
-def test_plot_results() -> None:
+def test_plot_results(default_dataset: GeoDataset) -> None:
     batch_size = 2
     patch_size = (32, 32)
     n_classes = 8
@@ -320,12 +316,9 @@ def test_plot_results() -> None:
 
     probs = np.random.rand(batch_size, *patch_size, len(utils.CLASSES))
 
-    from minerva.datasets import make_dataset
-
     embeddings = torch.rand([4, 152]).numpy()
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
     bounds = np.array(
-        [get_random_bounding_box(dataset.bounds, 12.0, 1.0) for _ in range(4)]
+        [get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)]
     )
 
     visutils.plot_results(
@@ -343,12 +336,11 @@ def test_plot_results() -> None:
     )
 
 
-def test_plot_embeddings() -> None:
-    from minerva.datasets import make_dataset
-
+def test_plot_embeddings(default_dataset: GeoDataset) -> None:
     embeddings = torch.rand([4, 152])
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
-    bounds = [get_random_bounding_box(dataset.bounds, 12.0, 1.0) for _ in range(4)]
+    bounds = [
+        get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)
+    ]
 
     assert (
         visutils.plot_embedding(
