@@ -50,12 +50,11 @@ from matplotlib import offsetbox
 from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.gridspec import GridSpec
 from matplotlib.image import AxesImage
+from matplotlib.ticker import MaxNLocator
 from matplotlib.transforms import Bbox
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
 from rasterio.crs import CRS
-
-# from matplotlib.ticker import MaxNLocator
 from scipy import stats
 from torchgeo.datasets.utils import BoundingBox
 
@@ -859,7 +858,7 @@ def plot_history(
         None
     """
     # Initialise figure.
-    plt.figure()
+    ax = plt.figure().gca()
 
     # Plots each metric in metrics, appending their artist handles.
     handles = []
@@ -869,21 +868,21 @@ def plot_history(
         if len(metrics[key]["x"]) == len(metrics[key]["y"]) >= 1.0:
 
             # Plot metric.
-            handles.append(plt.plot(metrics[key]["x"], metrics[key]["y"])[0])
+            handles.append(ax.plot(metrics[key]["x"], metrics[key]["y"])[0])
             labels.append(key)
 
     # Creates legend from plot artist handles and names of metrics.
-    plt.legend(handles=handles, labels=labels)
+    ax.legend(handles=handles, labels=labels)
 
-    # Forces x-axis ticks to be integers. FEATURE DISABLED DUE TO BUG.
-    # plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+    # Forces x-axis ticks to be integers.
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Adds a grid overlay with green dashed lines.
-    plt.grid(color="green", linestyle="--", linewidth=0.5)  # For some funky gridlines
+    ax.grid(color="green", linestyle="--", linewidth=0.5)  # For some funky gridlines
 
     # Adds axis labels.
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss/Accuracy")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Loss/Accuracy")
 
     # Shows and/or saves plot.
     if show:
