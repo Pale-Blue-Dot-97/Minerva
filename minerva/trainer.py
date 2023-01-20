@@ -213,7 +213,7 @@ class Trainer:
                 self.model, input_to_model=torch.rand(*input_size, device=self.device)
             )
 
-            if torch.cuda.device_count() == 1 or self.device == torch.device("cpu"):
+            if torch.cuda.device_count() == 1 or self.device == torch.device("cpu"):  # type: ignore[attr-defined]
                 # Adds a graphical layout of the model to the TensorBoard logger.
                 try:
                     self.writer.add_graph(
@@ -905,7 +905,7 @@ class Trainer:
         """Readies the model for use in downstream tasks and saves to file."""
         # Checks that model has the required method to ready it for use on downstream tasks.
         assert hasattr(self.model, "get_backbone")
-        pre_trained_backbone: Module = self.model.get_backbone()  # type: ignore[attr-defined]
+        pre_trained_backbone: Module = self.model.get_backbone()  # type: ignore[operator]
 
         cache_dir = universal_path(self.params["dir"]["cache"])
 
