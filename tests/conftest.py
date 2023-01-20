@@ -8,6 +8,7 @@ import pytest
 import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
+from torch import LongTensor
 from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
 
@@ -101,8 +102,11 @@ def exp_classes() -> Dict[int, str]:
 
 
 @pytest.fixture
-def simple_mask() -> torch.Tensor:
-    return torch.tensor([[1, 3, 5], [4, 5, 1], [1, 1, 1]], dtype=torch.long)
+def simple_mask() -> LongTensor:
+    mask: LongTensor = torch.tensor(  # type: ignore[attr-defined, assignment]
+        [[1, 3, 5], [4, 5, 1], [1, 1, 1]], dtype=torch.long  # type: ignore[attr-defined]
+    )
+    return mask
 
 
 @pytest.fixture
@@ -118,4 +122,5 @@ def simple_bbox():
 @pytest.fixture
 def default_dataset() -> GeoDataset:
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
+    assert isinstance(dataset, GeoDataset)
     return dataset
