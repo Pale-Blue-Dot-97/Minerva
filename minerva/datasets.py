@@ -285,7 +285,7 @@ def make_dataset(
     """
 
     def get_subdataset(
-        this_dataset_params, key
+        this_dataset_params: Dict[str, Any], key: str
     ) -> Tuple[Callable[..., GeoDataset], str]:
         # Get the params for this sub-dataset.
         sub_dataset_params = this_dataset_params[key]
@@ -302,7 +302,7 @@ def make_dataset(
 
         return _sub_dataset, sub_dataset_root
 
-    def create_transforms(this_transform_params, key) -> Optional[Any]:
+    def create_transforms(this_transform_params: Any, key: str) -> Optional[Any]:
         # Construct transforms for samples returned from this sub-dataset -- if found.
         transformations: Optional[Any] = None
         if type(this_transform_params) == dict:
@@ -320,7 +320,10 @@ def make_dataset(
         return transformations
 
     def create_subdataset(
-        dataset_class, root, subdataset_params, transformations
+        dataset_class: Callable[..., GeoDataset],
+        root: str,
+        subdataset_params: Dict[Literal["params"], Dict[str, Any]],
+        transformations: Optional[Any],
     ) -> GeoDataset:
         if sample_pairs:
             return PairedDataset(
