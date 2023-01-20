@@ -29,4 +29,5 @@ from .siamese import SimCLR50 as SimCLR50
 from .siamese import SimSiam18 as SimSiam18
 from .siamese import SimSiam34 as SimSiam34
 from .siamese import SimSiam50 as SimSiam50
+from .unet import UNet as UNet
 from .unet import UNetR18 as UNetR18
