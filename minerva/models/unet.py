@@ -229,33 +229,31 @@ class UNetR(MinervaModel, ABC):
         backbone_out_shape = self.backbone.output_shape
         assert isinstance(backbone_out_shape, Sequence)
 
-        latent_channels = backbone_out_shape[0] * 2
-
-        # Final extra conv down to latent space from backbone output.
-        self.down4 = Down(latent_channels // 2, latent_channels // factor)
+        latent_channels = backbone_out_shape[0]
 
         # De-conv back up concating in skip connections from backbone.
         self.up1 = Up(latent_channels, latent_channels // 2 * factor, bilinear)
         self.up2 = Up(latent_channels // 2, latent_channels // 4 * factor, bilinear)
         self.up3 = Up(latent_channels // 4, latent_channels // 8 * factor, bilinear)
-        self.up4 = Up(latent_channels // 8, latent_channels // 16, bilinear)
+
         self.upsample1 = nn.ConvTranspose2d(
-            latent_channels // 16, latent_channels // 32, kernel_size=2, stride=2
+            latent_channels // 8, latent_channels // 16, kernel_size=2, stride=2
         )
         self.upsample2 = nn.ConvTranspose2d(
-            latent_channels // 32, latent_channels // 64, kernel_size=2, stride=2
+            latent_channels // 16, latent_channels // 32, kernel_size=2, stride=2
         )
 
-        self.outc = OutConv(latent_channels // 64, n_classes)
+        self.outc = OutConv(latent_channels // 32, n_classes)
 
     def forward(self, x: Tensor) -> Tensor:
-        x4, x3, x2, x1, _ = self.backbone(x)
+        x4, x3, x2, x1, x0 = self.backbone(x)
 
-        x5 = self.down4(x4)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
+        x = self.up1(x4, x3)
+        x = self.up2(x, x2)
+        x = self.up3(x, x1)
+
+        x = x + x0
+
         x = self.upsample1(x)
         x = self.upsample2(x)
 
