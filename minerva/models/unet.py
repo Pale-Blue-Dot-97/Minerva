@@ -24,22 +24,15 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 from abc import ABC
-from typing import (
-    Any,
-    Dict,
-    Literal,
-    Optional,
-    Tuple,
-    Sequence,
-)
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import torch
-import torch.nn.modules as nn
 import torch.nn.functional as F
+import torch.nn.modules as nn
 from torch import Tensor
+from torch.nn.modules import Module
 
-from .core import MinervaModel, bilinear_init
-from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152
+from .core import MinervaModel, get_model
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -49,12 +42,20 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2022 Harry Baker"
 
-__all__ = []
+__all__ = [
+    "DoubleConv",
+    "Down",
+    "Up",
+    "OutConv",
+    "UNet",
+    "UNetR",
+    "UNetR18",
+]
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class DoubleConv(nn.Module):
+class DoubleConv(Module):
     """(convolution => [BN] => ReLU) * 2"""
 
     def __init__(
@@ -73,10 +74,12 @@ class DoubleConv(nn.Module):
         )
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.double_conv(x)
+        x = self.double_conv(x)
+        assert isinstance(x, Tensor)
+        return x
 
 
-class Down(nn.Module):
+class Down(Module):
     """Downscaling with maxpool then double conv"""
 
     def __init__(self, in_channels: int, out_channels: int) -> None:
@@ -86,16 +89,20 @@ class Down(nn.Module):
         )
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.maxpool_conv(x)
+        x = self.maxpool_conv(x)
+        assert isinstance(x, Tensor)
+        return x
 
 
-class Up(nn.Module):
+class Up(Module):
     """Upscaling then double conv"""
 
     def __init__(
         self, in_channels: int, out_channels: int, bilinear: bool = True
     ) -> None:
         super().__init__()
+
+        self.up: Module
 
         # if bilinear, use the normal convolutions to reduce the number of channels
         if bilinear:
@@ -108,9 +115,6 @@ class Up(nn.Module):
             self.conv = DoubleConv(in_channels, out_channels)
 
     def forward(self, x1: Tensor, x2: Tensor) -> Tensor:
-        # print("In forward:")
-        # print(f"{x1.size()=}")
-        # print(f"{x2.size()=}")
 
         x1 = self.up(x1)
         # input is CHW
@@ -121,18 +125,23 @@ class Up(nn.Module):
 
         # if you have padding issues, see
         # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
-        x = torch.cat([x2, x1], dim=1)
+        x = torch.cat([x2, x1], dim=1)  # type: ignore[attr-defined]
 
-        return self.conv(x)
+        x = self.conv(x)
+
+        assert isinstance(x, Tensor)
+        return x
 
 
-class OutConv(nn.Module):
+class OutConv(Module):
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x: Tensor) -> Tensor:
-        return self.conv(x)
+        x = self.conv(x)
+        assert isinstance(x, Tensor)
+        return x
 
 
 class UNet(MinervaModel):
@@ -150,12 +159,13 @@ class UNet(MinervaModel):
         self.n_channels = input_size[0]
         self.n_classes = n_classes
         self.bilinear = bilinear
+        factor = 2 if bilinear else 1
 
         self.inc = DoubleConv(self.n_channels, 64)
         self.down1 = Down(64, 128)
         self.down2 = Down(128, 256)
         self.down3 = Down(256, 512)
-        factor = 2 if bilinear else 1
+
         self.down4 = Down(512, 1024 // factor)
         self.up1 = Up(1024, 512 // factor, bilinear)
         self.up2 = Up(512, 256 // factor, bilinear)
@@ -164,7 +174,6 @@ class UNet(MinervaModel):
         self.outc = OutConv(64, n_classes)
 
     def forward(self, x):
-        print(f"{x.size()=}")
 
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -172,26 +181,12 @@ class UNet(MinervaModel):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
 
-        print(f"{x1.size()=}")
-        print(f"{x2.size()=}")
-        print(f"{x3.size()=}")
-        print(f"{x4.size()=}")
-        print(f"{x5.size()=}")
-
         x = self.up1(x5, x4)
-        print(f"{x.size()=}")
-
         x = self.up2(x, x3)
-        print(f"{x.size()=}")
-
         x = self.up3(x, x2)
-        print(f"{x.size()=}")
-
         x = self.up4(x, x1)
-        print(f"{x.size()=}")
 
         logits = self.outc(x)
-        print(f"{logits.size()=}")
 
         return logits
 
@@ -215,7 +210,7 @@ class UNetR(MinervaModel, ABC):
         factor = 2 if bilinear else 1
 
         # Initialises the selected Minerva backbone.
-        self.backbone: MinervaModel = globals()[backbone_name](
+        self.backbone: MinervaModel = get_model(backbone_name)(  # type: ignore[arg-type]
             input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
         )
 
@@ -234,7 +229,6 @@ class UNetR(MinervaModel, ABC):
         backbone_out_shape = self.backbone.output_shape
         assert isinstance(backbone_out_shape, Sequence)
 
-        print(backbone_out_shape)
         latent_channels = backbone_out_shape[0] * 2
 
         # Final extra conv down to latent space from backbone output.
@@ -245,33 +239,29 @@ class UNetR(MinervaModel, ABC):
         self.up2 = Up(latent_channels // 2, latent_channels // 4 * factor, bilinear)
         self.up3 = Up(latent_channels // 4, latent_channels // 8 * factor, bilinear)
         self.up4 = Up(latent_channels // 8, latent_channels // 16, bilinear)
-        self.outc = OutConv(latent_channels // 16, n_classes)
+        self.upsample1 = nn.ConvTranspose2d(
+            latent_channels // 16, latent_channels // 32, kernel_size=2, stride=2
+        )
+        self.upsample2 = nn.ConvTranspose2d(
+            latent_channels // 32, latent_channels // 64, kernel_size=2, stride=2
+        )
+
+        self.outc = OutConv(latent_channels // 64, n_classes)
 
     def forward(self, x: Tensor) -> Tensor:
         x4, x3, x2, x1, _ = self.backbone(x)
 
-        print(f"{x1.size()=}")
-        print(f"{x2.size()=}")
-        print(f"{x3.size()=}")
-        print(f"{x4.size()=}")
-
         x5 = self.down4(x4)
-
         x = self.up1(x5, x4)
-        print(f"{x.size()=}")
-
         x = self.up2(x, x3)
-        print(f"{x.size()=}")
-
         x = self.up3(x, x2)
-        print(f"{x.size()=}")
-
         x = self.up4(x, x1)
-        print(f"{x.size()=}")
+        x = self.upsample1(x)
+        x = self.upsample2(x)
 
-        logits = self.outc(x)
-        print(f"{logits.size()=}")
+        logits: Tensor = self.outc(x)
 
+        assert isinstance(logits, Tensor)
         return logits
 
 
