@@ -201,7 +201,7 @@ def test_seg_plot(data_root, default_dataset: GeoDataset, monkeypatch) -> None:
     visutils.seg_plot(
         z=z,
         y=z,
-        ids=ids,
+        ids=ids,  # type: ignore[arg-type]
         bounds=bboxes,
         mode="test",
         classes=utils.CLASSES,
@@ -342,14 +342,11 @@ def test_plot_embeddings(default_dataset: GeoDataset) -> None:
         get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)
     ]
 
-    assert (
-        visutils.plot_embedding(
-            embeddings,
-            bounds,
-            "test",
-            show=True,
-            filename="tsne_cluster_vis.png",
-            title="test_plot",
-        )
-        is None
+    visutils.plot_embedding(
+        embeddings,
+        bounds,
+        "test",
+        show=True,
+        filename="tsne_cluster_vis.png",
+        title="test_plot",
     )
