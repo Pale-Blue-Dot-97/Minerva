@@ -123,5 +123,5 @@ def test_dcn() -> None:
     with pytest.raises(
         NotImplementedError, match="Variant 42 does not match known types"
     ):
-        dcn.variant = "42"  # type: ignore[arg-type]
+        dcn.variant = "42"  # type: ignore[assignment]
         _ = dcn.forward(resnet(torch.rand((batch_size, *input_size))))
