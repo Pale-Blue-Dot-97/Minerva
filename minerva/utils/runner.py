@@ -168,7 +168,9 @@ generic_parser.add_argument(
 #                                                     METHODS
 # =====================================================================================================================
 def _handle_sigusr1(signum, frame) -> None:
-    subprocess.Popen(f'scontrol requeue {os.getenv("SLURM_JOB_ID")}')
+    subprocess.Popen(  # nosec B602
+        f'scontrol requeue {os.getenv("SLURM_JOB_ID")}', shell=True
+    )
     exit()
 
 

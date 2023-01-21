@@ -26,4 +26,4 @@ plugins = "numpy.typing.mypy_plugin"
 profile = "black"
 
 [tool.bandit]
-skips = ["B101", "B311", "B603", "B404"]
+skips = ["B101", "B311", "B404", "B603"]
