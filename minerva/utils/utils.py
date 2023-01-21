@@ -46,6 +46,7 @@ import math
 import os
 import random
 import re as regex
+import subprocess
 import sys
 import webbrowser
 from collections import Counter, OrderedDict
@@ -1469,7 +1470,7 @@ def run_tensorboard(
     os.chdir(_path)
 
     # Activates the correct Conda environment.
-    os.system("conda activate {}".format(env_name))
+    subprocess.Popen(f"conda activate {env_name}").wait()
 
     if _testing:
         os.chdir(cwd)
@@ -1477,10 +1478,10 @@ def run_tensorboard(
 
     else:  # pragma: no cover
         # Runs TensorBoard log.
-        os.system("tensorboard --logdir={}".format(exp_name))
+        subprocess.Popen(f"tensorboard --logdir={exp_name}").wait()
 
         # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
-        webbrowser.open("localhost:{}".format(host_num))
+        webbrowser.open(f"localhost:{host_num}")
 
         # Changes back to the original CWD.
         os.chdir(cwd)
