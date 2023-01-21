@@ -53,8 +53,9 @@ def main(config_path: str):
         )
 
         try:
-            exit_code = subprocess.Popen(
-                f"python MinervaExp.py -c {config[key]}"
+            exit_code = subprocess.Popen(  # nosec B602
+                f"python MinervaExp.py -c {config[key]}",
+                shell=True,
             ).wait()
 
             if exit_code != 0:
@@ -65,7 +66,7 @@ def main(config_path: str):
         except SystemExit as err:
             print(err)
             print(f"Error in {key} experiment -> ABORT")
-            sys.exit(exit_code)
+            sys.exit(exit_code)  # type: ignore
 
         print(
             f"\n{key} experiment COMPLETE + ====================================================================="
