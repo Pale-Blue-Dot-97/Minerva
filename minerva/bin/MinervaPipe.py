@@ -24,7 +24,7 @@
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
-import os
+import subprocess
 import sys
 from typing import Any, Dict
 
@@ -53,7 +53,9 @@ def main(config_path: str):
         )
 
         try:
-            exit_code = os.system(f"python MinervaExp.py -c {config[key]}")
+            exit_code = subprocess.Popen(
+                f"python MinervaExp.py -c {config[key]}"
+            ).wait()
 
             if exit_code != 0:
                 raise SystemExit()
