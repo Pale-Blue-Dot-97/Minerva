@@ -12,7 +12,7 @@ jobs:
         # Change the version below to your required version of python
         docker:
             - image: cimg/python:3.10.9
-        parallelism: 4
+        parallelism: 2
         steps:
             - checkout
             - python/install-packages:
