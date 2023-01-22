@@ -20,7 +20,11 @@ jobs:
             - run:
                   name: Run tests
                   command: |
-                      pipenv run pytest --version
+                      mkdir test-results
+                      pipenv shell
+                      pytest --junitxml=test-results/junit.xml
+            - store_test_results:
+                  path: test-results
 
 workflows:
     tests:
