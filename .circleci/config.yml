@@ -23,7 +23,7 @@ jobs:
                   command: |
                       mkdir test-results
                       TESTFILES=$(circleci tests glob tests/test*.py | circleci tests split --split-by=timings)
-                      pipenv run pytest --junitxml=test-results/junit.xml
+                      pipenv run pytest --junitxml=test-results/junit.xml $TESTFILES
             - store_test_results:
                   path: test-results
 
