@@ -12,7 +12,6 @@ jobs:
         # Change the version below to your required version of python
         docker:
             - image: cimg/python:3.10.9
-        parallelism: 4
         steps:
             - checkout
             - python/install-packages:
@@ -22,8 +21,7 @@ jobs:
                   name: Run tests
                   command: |
                       mkdir test-results
-                      TESTFILES=$(circleci tests glob tests/test*.py | circleci tests split --split-by=timings)
-                      pipenv run pytest --junitxml=test-results/junit.xml $TESTFILES
+                      pipenv run pytest --junitxml=test-results/junit.xml
             - store_test_results:
                   path: test-results
 
