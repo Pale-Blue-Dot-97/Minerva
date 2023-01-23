@@ -95,7 +95,20 @@ class Down(Module):
 
 
 class Up(Module):
-    """Upscaling then double conv"""
+    """Upscaling then double convolution.
+
+    Adapted from https://github.com/milesial/Pytorch-UNet for use in :mod:`minerva`.
+
+    Attributes:
+        up (Module): Upsampling if ``bilinear==True``, else transpose convolutional layer.
+        conv (DoubleConv): Double convolutional layers.
+
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        bilinear (bool): Optional;
+
+    """
 
     def __init__(
         self, in_channels: int, out_channels: int, bilinear: bool = True
