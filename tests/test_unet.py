@@ -30,6 +30,9 @@ def test_unet(x_entropy_loss) -> None:
     model = UNet(x_entropy_loss, input_size=input_size)
     unet_test(model, x, y)
 
+    bilinear_model = UNet(x_entropy_loss, input_size=input_size, bilinear=True)
+    unet_test(bilinear_model, x, y)
+
 
 def test_unetr18(x_entropy_loss) -> None:
     model = UNetR18(x_entropy_loss, input_size=input_size)
