@@ -1,0 +1,14 @@
+# Ignore everything
+**
+
+# ... except for dependencies and source
+!Pipfile
+!Pipfile.lock
+!minerva/
+!tests/*.py
+!tests/tmp/data/
+!inbuilt_cfgs/
+!*.txt
+!*.cfg
+!*.py
+!*.toml
