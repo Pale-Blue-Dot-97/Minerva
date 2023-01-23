@@ -191,14 +191,39 @@ class UNet(MinervaModel):
         return logits
 
 
-class UNetR(MinervaModel, ABC):
+class UNetR(MinervaModel):
+    """UNet model which incorporates a :class:`ResNet` as the encoder.
+
+    Attributes:
+        backbone (Module): Backbone of the FCN that takes the imagery input and
+            extracts learned representations.
+        up1 (Up): First upsample then concatenated input de-convolutional layer.
+        up2 (Up): Second upsample then concatenated input de-convolutional layer.
+        up3 (Up): Third upsample then concatenated input de-convolutional layer.
+        upsample1 (Module): First upsample from output of ``up3``.
+        upsample2 (Module): Second upsample from output of ``up3`` to match input spatial size.
+        outc (OutConv): 1x1 output convolutional layer.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int, ...]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        bilinear (bool):
+        backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
+        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
+        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
+            if using a pre-trained backbone.
+        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+
     def __init__(
         self,
         criterion: Any,
         input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
-        backbone_name: str = "ResNet18",
         bilinear: bool = False,
+        backbone_name: str = "ResNet18",
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         backbone_kwargs: Optional[Dict[str, Any]] = None,
