@@ -21,9 +21,12 @@ jobs:
                   name: Run tests
                   command: |
                       mkdir test-results
-                      pipenv run pytest --junitxml=test-results/junit.xml
+                      pipenv run pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
             - store_test_results:
                   path: test-results
+            - store_artifacts:
+                  path: test-results/coverage.lcov
+                  destination: coverage
 
 workflows:
     tests:
