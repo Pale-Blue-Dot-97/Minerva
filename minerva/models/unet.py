@@ -145,6 +145,31 @@ class OutConv(Module):
 
 
 class UNet(MinervaModel):
+    """UNet.
+
+    Adapted from https://github.com/milesial/Pytorch-UNet for use in :mod:`minerva`.
+
+    Attributes:
+        bilinear (bool):
+        inc (DoubleConv): Double convolutional layers as input to the network to 64 channels.
+        down1 (Down): Downscale then double convolution from 64 channels to 128.
+        down2 (Down): Downscale then double convolution from 128 channels to 256.
+        down3 (Down): Downscale then double convolution from 256 channels to 512.
+        down4 (Down): Downscale then double convolution from 512 channels to 1024 and the latent space.
+        up1 (Up): First upsample then concatenated input double de-convolutional layer.
+        up2 (Up): Second upsample then concatenated input double de-convolutional layer.
+        up3 (Up): Third upsample then concatenated input double de-convolutional layer.
+        up4 (Up): Fourth upsample then concatenated input double de-convolutional layer.
+        outc (OutConv): 1x1 output convolutional layer.
+
+    Args:
+        criterion: PyTorch loss function model will use.
+        input_size (tuple[int, ...]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        n_classes (int): Optional; Number of classes in data to be classified.
+        bilinear (bool): Optional;
+    """
+
     def __init__(
         self,
         criterion: Any,
@@ -156,12 +181,10 @@ class UNet(MinervaModel):
             criterion=criterion, input_shape=input_size, n_classes=n_classes
         )
 
-        self.n_channels = input_size[0]
-        self.n_classes = n_classes
         self.bilinear = bilinear
         factor = 2 if bilinear else 1
 
-        self.inc = DoubleConv(self.n_channels, 64)
+        self.inc = DoubleConv(input_size[0], 64)
         self.down1 = Down(64, 128)
         self.down2 = Down(128, 256)
         self.down3 = Down(256, 512)
@@ -197,24 +220,24 @@ class UNetR(MinervaModel):
     Attributes:
         backbone (Module): Backbone of the FCN that takes the imagery input and
             extracts learned representations.
-        up1 (Up): First upsample then concatenated input de-convolutional layer.
-        up2 (Up): Second upsample then concatenated input de-convolutional layer.
-        up3 (Up): Third upsample then concatenated input de-convolutional layer.
+        up1 (Up): First upsample then concatenated input double de-convolutional layer.
+        up2 (Up): Second upsample then concatenated input double de-convolutional layer.
+        up3 (Up): Third upsample then concatenated input double de-convolutional layer.
         upsample1 (Module): First upsample from output of ``up3``.
         upsample2 (Module): Second upsample from output of ``up3`` to match input spatial size.
         outc (OutConv): 1x1 output convolutional layer.
 
     Args:
         criterion: PyTorch loss function model will use.
-        input_size (tuple[int, ...]): Optional; Defines the shape of the input data in
+        input_size (Tuple[int, ...]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
-        bilinear (bool):
+        bilinear (bool): Optional;
         backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
             if using a pre-trained backbone.
-        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (Dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
     def __init__(
