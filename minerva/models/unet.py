@@ -23,7 +23,6 @@
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from abc import ABC
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 import torch
@@ -194,11 +193,31 @@ class Up(Module):
 
 
 class OutConv(Module):
+    """1x1 convolution to reduce the number of channels down of the input.
+
+    Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
+
+    Attributes:
+        conv (Module): 1x1 convolutional layer.
+
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+    """
+
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super(OutConv, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x: Tensor) -> Tensor:
+        """Passes the input tensor through the 1x1 convolutional layer.
+
+        Args:
+            x (Tensor): Input tensor.
+
+        Returns:
+            Tensor: Input passed reduced from ``in_channels`` to ``out_channels``.
+        """
         x = self.conv(x)
         assert isinstance(x, Tensor)
         return x
