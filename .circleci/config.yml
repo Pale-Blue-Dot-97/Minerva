@@ -6,7 +6,7 @@ version: 2.1
 # See: https://circleci.com/docs/2.0/orb-intro/
 orbs:
     python: circleci/python@2.1.1
-    coveralls: solven/coveralls@0.0.4
+    coveralls: coveralls/coveralls@1.0.6
 
 jobs:
     build-and-test:
@@ -31,12 +31,8 @@ jobs:
 
     coverage:
         docker:
-            - image: circleci/node:10.0.0
+            - image: cimg/node:19.5.0
         steps:
-            - checkout
-            - run:
-                  name: Install and Make
-                  command: npm install && make test-coverage
             - coveralls/upload:
                   path_to_lcov: test-results/coverage.lcov
 
