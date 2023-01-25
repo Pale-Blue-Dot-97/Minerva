@@ -31,3 +31,7 @@ from .siamese import SimSiam34 as SimSiam34
 from .siamese import SimSiam50 as SimSiam50
 from .unet import UNet as UNet
 from .unet import UNetR18 as UNetR18
+from .unet import UNetR34 as UNetR34
+from .unet import UNetR50 as UNetR50
+from .unet import UNetR101 as UNetR101
+from .unet import UNetR152 as UNetR152
