@@ -166,6 +166,15 @@ class Up(Module):
             self.conv = DoubleConv(in_channels, out_channels)
 
     def forward(self, x1: Tensor, x2: Tensor) -> Tensor:
+        """Applies upscaling to ``x1``, concats ``x1`` with ``x2`` then applies :class:`DoubleConv` to the result.
+
+        Args:
+            x1 (Tensor): Input tensor 1 to be upscaled to match ``x2``.
+            x2 (Tensor): Input tensor 2 to be concated with upscaled ``x1`` and passed through :class:`DoubleConv`.
+
+        Returns:
+            Tensor: Output tensor of the the upscaling and double convolutions.
+        """
 
         x1 = self.up(x1)
         # input is CHW
