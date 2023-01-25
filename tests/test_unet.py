@@ -1,7 +1,15 @@
 import torch
 from torch import Tensor
 
-from minerva.models import MinervaModel, UNet, UNetR18, UNetR34, UNetR50, UNetR101
+from minerva.models import (
+    MinervaModel,
+    UNet,
+    UNetR18,
+    UNetR34,
+    UNetR50,
+    UNetR101,
+    UNetR152,
+)
 
 input_size = (4, 64, 64)
 batch_size = 2
@@ -51,4 +59,9 @@ def test_unetr50(x_entropy_loss) -> None:
 
 def test_unetr101(x_entropy_loss) -> None:
     model = UNetR101(x_entropy_loss, input_size=input_size)
+    unet_test(model, x, y)
+
+
+def test_unetr152(x_entropy_loss) -> None:
+    model = UNetR152(x_entropy_loss, input_size=input_size)
     unet_test(model, x, y)
