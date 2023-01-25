@@ -28,6 +28,15 @@ jobs:
             - store_artifacts:
                   path: test-results/coverage.lcov
                   destination: coverage
+
+    coverage:
+        docker:
+            - image: circleci/node:10.0.0
+        steps:
+            - checkout
+            - run:
+                  name: Install and Make
+                  command: npm install && make test-coverage
             - coveralls/upload:
                   path_to_lcov: test-results/coverage.lcov
 
@@ -35,3 +44,4 @@ workflows:
     tests:
         jobs:
             - build-and-test
+            - coverage
