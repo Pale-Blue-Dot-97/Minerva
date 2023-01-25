@@ -193,7 +193,7 @@ class Up(Module):
 
 
 class OutConv(Module):
-    """1x1 convolution to reduce the number of channels down of the input.
+    """1x1 convolution to change the number of channels down of the input.
 
     Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
 
@@ -298,7 +298,7 @@ class UNet(MinervaModel):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
 
-        logits = self.outc(x)
+        logits: Tensor = self.outc(x)
 
         assert isinstance(logits, Tensor)
         return logits
@@ -384,17 +384,34 @@ class UNetR(MinervaModel):
         self.outc = OutConv(latent_channels // 32, n_classes)
 
     def forward(self, x: Tensor) -> Tensor:
+        """Performs a forward pass of the UNet using ``backbone``.
+
+        Passes the input tensor to the ``backbone``. Then passes the output tensors from the
+        resnet residual blocks to corresponding stages of the decoder, upsampling to create
+        an output with the same spatial size as the input size.
+
+        Args:
+            x (Tensor): Input tensor to the UNet.
+
+        Returns:
+            Tensor: Output from the UNet.
+        """
+        # Output tensors from the residual blocks of the resnet.
         x4, x3, x2, x1, x0 = self.backbone(x)
 
+        # Concats and upsamples the outputs of the resnet.
         x = self.up1(x4, x3)
         x = self.up2(x, x2)
         x = self.up3(x, x1)
 
+        # Add the upsampled and deconv tensor to the output of the input convolutional layer of the resnet.
         x = x + x0
 
+        # Upsample this result to match the input spatial size.
         x = self.upsample1(x)
         x = self.upsample2(x)
 
+        # Reduces the latent channels to the number of classes for the ouput tensor.
         logits: Tensor = self.outc(x)
 
         assert isinstance(logits, Tensor)
