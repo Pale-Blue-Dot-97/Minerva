@@ -356,6 +356,12 @@ class UNetR(MinervaModel):
             input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
         )
 
+        # Flag for when to concatenate the output of the Conv1 layer of the resnet with the upsampling
+        # output of the decoder. ResNet50s and larger use a `Bottleneck` type residual block which quadruples
+        # the number of feature maps compared to the `Basic` blocks of `ResNet18` and `ResNet34`.
+        # This in turn affects the sizes of the output from decoding layers which requires a reordering of operations.
+        self.early_cat = True if backbone_name in ("ResNet18", "ResNet34") else False
+
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:
             self.backbone.load_state_dict(torch.load(backbone_weight_path))
@@ -409,7 +415,8 @@ class UNetR(MinervaModel):
         x = self.up3(x, x1)
 
         # Add the upsampled and deconv tensor to the output of the input convolutional layer of the resnet.
-        x = x + x0
+        if self.early_cat:
+            x = x + x0
 
         # Upsample this result to match the input spatial size.
         x = self.upsample1(x)
