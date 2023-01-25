@@ -1,7 +1,7 @@
 import torch
 from torch import Tensor
 
-from minerva.models import MinervaModel, UNet, UNetR18
+from minerva.models import MinervaModel, UNet, UNetR18, UNetR34
 
 input_size = (4, 64, 64)
 batch_size = 2
@@ -36,4 +36,9 @@ def test_unet(x_entropy_loss) -> None:
 
 def test_unetr18(x_entropy_loss) -> None:
     model = UNetR18(x_entropy_loss, input_size=input_size)
+    unet_test(model, x, y)
+
+
+def test_unetr34(x_entropy_loss) -> None:
+    model = UNetR34(x_entropy_loss, input_size=input_size)
     unet_test(model, x, y)
