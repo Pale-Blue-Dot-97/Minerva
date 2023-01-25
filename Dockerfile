@@ -13,8 +13,6 @@ COPY Pipfile .
 COPY Pipfile.lock .
 COPY setup.py .
 COPY setup.cfg .
-#COPY pyproject.toml .
-#COPY requirements.txt .
 COPY requirements_dev.txt .
 
 RUN pip install -r requirements_dev.txt
@@ -22,7 +20,13 @@ RUN pip install -r requirements_dev.txt
 # Install application into container
 COPY . .
 
-RUN adduser -u 5678 --disabled-password --gecos "" appuser && chown -R appuser /minerva
-USER appuser
+ARG USER_ID
+ARG GROUP_ID
+
+# Creates a user and group for use in container from the user and group used to construct the image.
+RUN addgroup --gid $GROUP_ID user
+RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
+
+USER user
 
 CMD [ "python", "--version" ]
