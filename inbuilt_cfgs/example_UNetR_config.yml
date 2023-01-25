@@ -1,0 +1,182 @@
+---
+# EXAMPLE MASTER CONFIG FILE FOR A UNETR18 MODEL
+
+# === PATHS ===================================================================
+dir:
+    data: tests/tmp/data
+    configs:
+        data_config: Chesapeake7.yml
+        imagery_config: NAIP.yml
+    results: tests/tmp/results
+    cache: tests/tmp/cache
+
+# Kwargs for make_datasets
+model_name: UNetR18-MkI
+model_type: segmentation
+pre_train: false
+fine_tune: false
+sample_pairs: false
+elim: true
+balance: true
+patch_size: &patch_size [224, 224]
+
+# === MODEL IO & LOGGING ======================================================
+logger: STG_Logger
+metrics: SP_Metrics
+model_io: sup_tg
+
+# === DATASET PARAMETERS ======================================================
+dataset_params:
+    # Training Dataset
+    train:
+        image:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP 2013/Train
+            params:
+                res: 1.0
+        mask:
+            module: torchgeo.datasets
+            name: Chesapeake7
+            root: Chesapeake7
+            params:
+                res: 1.0
+                download: false
+                checksum: false
+
+    # Validation Dataset
+    val:
+        image:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP 2013/Validation
+            params:
+                res: 1.0
+        mask:
+            module: torchgeo.datasets
+            name: Chesapeake7
+            root: Chesapeake7
+            params:
+                res: 1.0
+                download: false
+
+    # Test Dataset
+    test:
+        image:
+            module: torchgeo.datasets
+            name: NAIP
+            root: NAIP 2013/Test
+            params:
+                res: 1.0
+        mask:
+            module: torchgeo.datasets
+            name: Chesapeake7
+            root: Chesapeake7
+            params:
+                res: 1.0
+                download: false
+
+# === SAMPLER PARAMETERS ======================================================
+sampler_params:
+    # Training Dataset Sampler
+    train:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: *patch_size
+            length: 320
+
+    # Validation Dataset Sampler
+    val:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: *patch_size
+            length: 80
+
+    # Test Dataset Sampler
+    test:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: *patch_size
+            length: 160
+
+
+# === TRANSFORM PARAMETERS ====================================================
+transform_params:
+    # Training Dataset Transforms
+    train:
+        image:
+            Normalise:
+                module: minerva.transforms
+                norm_value: 255
+        mask: false
+
+    # Validation Dataset Transforms
+    val:
+        image:
+            Normalise:
+                module: minerva.transforms
+                norm_value: 255
+        mask: false
+
+    # Test Dataset Transforms
+    test:
+        image:
+            Normalise:
+                module: minerva.transforms
+                norm_value: 255
+        mask: false
+
+# Collator
+collator:
+    module: torchgeo.datasets
+    name: stack_samples
+
+
+# Model hyper-parameters
+hyperparams:
+    params:
+        batch_size: 8
+        num_workers: 2
+        pin_memory: true
+    model_params:
+        input_size: [4, 224, 224]
+        n_classes: 8
+        torch_weights: true
+    optim_params:
+        name: SGD
+        params:
+            lr: 1.0E-3
+    loss_params:
+        name: CrossEntropyLoss
+        module: torch.nn
+        params:
+    max_epochs: 5
+    stopping:
+        patience: 2
+        verbose: true
+
+# Which plots to make
+plots:
+    History: true
+    CM: true
+    Pred: true
+    ROC: true
+    micro: false
+    macro: true
+    Mask: true
+
+# opt to ask at runtime; auto or True to automatically do so;
+# or False, None etc to not
+save_model: false
+run_tensorboard: false
+save: true
+show: false
+p_dist: false
+calc_norm: false
+plot_last_epoch: false
