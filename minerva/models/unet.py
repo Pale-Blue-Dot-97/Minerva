@@ -275,7 +275,17 @@ class UNet(MinervaModel):
         self.up4 = Up(128, 64, bilinear)
         self.outc = OutConv(64, n_classes)
 
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
+        """Performs a forward pass of the UNet.
+
+        Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
+
+        Args:
+            x (Tensor): Input tensor to the UNet.
+
+        Returns:
+            Tensor: Output from the UNet.
+        """
 
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -290,6 +300,7 @@ class UNet(MinervaModel):
 
         logits = self.outc(x)
 
+        assert isinstance(logits, Tensor)
         return logits
 
 
