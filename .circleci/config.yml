@@ -4,25 +4,29 @@
 version: 2.1
 
 # See: https://circleci.com/docs/2.0/orb-intro/
-orbs:
-    python: circleci/python@2.1.1
+# orbs:
     # coveralls: solven/coveralls@0.0.4
 
 jobs:
     build-and-test:
         # Change the version below to your required version of python
         docker:
-            - image: cimg/python:3.10.9
+            - image: docker:stable-git
         steps:
             - checkout
-            - python/install-packages:
-                  pkg-manager: pipenv
-                  args: --dev -e .
+            - setup_remote_docker:
+                  docker_layer_caching: true
+            - run:
+                  name: Build Docker image
+                  command: docker build . -t minerva:0.13
+            - run:
+                  name: Run Docker image
+                  command: docker run -n minerva:0.13
             - run:
                   name: Run tests
                   command: |
                       mkdir test-results
-                      pipenv run pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
+                      pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
             - store_test_results:
                   path: test-results
             - store_artifacts:
@@ -46,3 +50,5 @@ workflows:
         jobs:
             - build-and-test
             #- coverage
+
+# VS Code Extension Version: 1.5.1
