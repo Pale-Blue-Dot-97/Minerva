@@ -72,7 +72,7 @@ class DoubleConv(Module):
 
     def __init__(
         self, in_channels: int, out_channels: int, mid_channels: Optional[int] = None
-    ):
+    ) -> None:
         super().__init__()
         if not mid_channels:
             mid_channels = out_channels
@@ -100,7 +100,17 @@ class DoubleConv(Module):
 
 
 class Down(Module):
-    """Downscaling with maxpool then double conv"""
+    """Downscaling with maxpool then double convolution.
+
+    Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
+
+    Attributes:
+        maxpool_conv (Module): :class:`Sequential` of :class:`MaxPool2d` then :class:`DoubleConv`.
+
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+    """
 
     def __init__(self, in_channels: int, out_channels: int) -> None:
         super().__init__()
@@ -109,6 +119,14 @@ class Down(Module):
         )
 
     def forward(self, x: Tensor) -> Tensor:
+        """Applies a maxpool then double convolution to the input.
+
+        Args:
+            x (Tensor): Input tensor.
+
+        Returns:
+            Tensor: Input tensor passed through maxpooling then double convolutions.
+        """
         x = self.maxpool_conv(x)
         assert isinstance(x, Tensor)
         return x
