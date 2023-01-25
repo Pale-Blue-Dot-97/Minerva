@@ -35,16 +35,19 @@ argcomplete = "==2.0.0"
 types-PyYAML = "==6.0.12.2"
 types-tabulate = "==0.9.0.0"
 mlflow = "==2.0.1"
+protobuf = "==3.19.5" # not directly required, pinned by Snyk to avoid a vulnerability
+wheel = "==0.38.4" # not directly required, pinned by Snyk to avoid a vulnerability
 
 [dev-packages]
-pre-commit = "*"
-pytest = "*"
-pytest-cov = "*"
-mypy = "*"
-flake8 = "*"
-tox = "*"
-sphinx-rtd-theme = "*"
-internet-sabotage3 = "*"
+pre-commit = "==2.21.0"
+pytest = "==7.2.1"
+pytest-cov = "==4.0.0"
+mypy = "==0.991"
+flake8 = "==6.0.0"
+tox = "==3.25.0"
+myst_parser= "==0.18.1"
+sphinx-rtd-theme = "==1.0.0"
+internet-sabotage3 = "==0.1.6"
 minerva = {editable = true, path = "."}
 
 [requires]

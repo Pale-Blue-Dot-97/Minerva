@@ -6,12 +6,13 @@ version: 2.1
 # See: https://circleci.com/docs/2.0/orb-intro/
 orbs:
     python: circleci/python@2.1.1
+    coveralls: coveralls/coveralls@1.0.6
 
 jobs:
     build-and-test:
         # Change the version below to your required version of python
         docker:
-            - image: cimg/python:3.10.9
+            - image: cimg/python:3.10.9-node
         steps:
             - checkout
             - python/install-packages:
@@ -21,9 +22,14 @@ jobs:
                   name: Run tests
                   command: |
                       mkdir test-results
-                      pipenv run pytest --junitxml=test-results/junit.xml
+                      pipenv run pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
             - store_test_results:
                   path: test-results
+            - store_artifacts:
+                  path: test-results/coverage.lcov
+                  destination: coverage
+            - coveralls/upload:
+                  path_to_lcov: test-results/coverage.lcov
 
 workflows:
     tests:
