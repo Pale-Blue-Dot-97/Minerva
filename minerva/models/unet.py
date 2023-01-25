@@ -56,7 +56,19 @@ __all__ = [
 #                                                     CLASSES
 # =====================================================================================================================
 class DoubleConv(Module):
-    """(convolution => [BN] => ReLU) * 2"""
+    """Applies a double convolution to the input (convolution => [BN] => ReLU) * 2
+
+    Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
+
+    Attributes:
+        double_conv (Module):
+
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+        mid_channels (int): Optional; Intermediate number of channels between convolutions.
+            If ``None``, set to ``out_channels``.
+    """
 
     def __init__(
         self, in_channels: int, out_channels: int, mid_channels: Optional[int] = None
@@ -74,6 +86,14 @@ class DoubleConv(Module):
         )
 
     def forward(self, x: Tensor) -> Tensor:
+        """Applies the double convolutions to the input.
+
+        Args:
+            x (Tensor): Input tensor.
+
+        Returns:
+            Tensor: Input passed through the double convolutions.
+        """
         x = self.double_conv(x)
         assert isinstance(x, Tensor)
         return x
