@@ -73,15 +73,15 @@ MASTER_PARSER.add_argument(
     action="store_true",
     help="Set config path to default",
 )
-args, _ = MASTER_PARSER.parse_known_args()
+_args, _ = MASTER_PARSER.parse_known_args()
 
 # Store the current working directory (i.e where script is being run from).
-cwd = os.getcwd()
+_cwd = os.getcwd()
 
-path, CONFIG_NAME, CONFIG_PATH = check_paths(args.config, args.use_default_conf_dir)
+_path, CONFIG_NAME, CONFIG_PATH = check_paths(_args.config, _args.use_default_conf_dir)
 
 # Loads the configs from file using paths found in sys.args.
-CONFIG, AUX_CONFIGS = load_configs(path)
+CONFIG, AUX_CONFIGS = load_configs(_path)
 
 # Change the working directory back to script location.
-os.chdir(cwd)
+os.chdir(_cwd)
