@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,36 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Functionality and custom code for constructing datasets, samplers and :class:`DataLoaders` for :mod:`minerva`."""
+"""Functionality and custom code for constructing datasets, samplers and :class:`DataLoaders` for :mod:`minerva`.
+
+Attributes:
+    IMAGERY_CONFIG (Dict[str, Any]): Config defining the properties of the imagery used in the experiment.
+    CACHE_DIR (Path): Path to the cache directory used to store dataset manifests, cached model weights etc.
+"""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "PairedDataset",
+    "construct_dataloader",
+    "get_collator",
+    "get_manifest",
+    "get_transform",
+    "load_all_samples",
+    "make_bounding_box",
+    "make_dataset",
+    "make_loaders",
+    "make_manifest",
+    "make_transformations",
+    "stack_sample_pairs",
+    "intersect_datasets",
+    "get_manifest_path",
+]
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -60,40 +89,12 @@ from minerva.transforms import MinervaCompose
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
 # =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
-
-# =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
-
-CACHE_DIR = CONFIG["dir"]["cache"]
+IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
 
 # Path to cache directory.
-CACHE_DIR = universal_path(CONFIG["dir"]["cache"])
-
-__all__ = [
-    "PairedDataset",
-    "construct_dataloader",
-    "get_collator",
-    "get_manifest",
-    "get_transform",
-    "load_all_samples",
-    "make_bounding_box",
-    "make_dataset",
-    "make_loaders",
-    "make_manifest",
-    "make_transformations",
-    "stack_sample_pairs",
-    "intersect_datasets",
-    "get_manifest_path",
-]
+CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
 
 
 # =====================================================================================================================
