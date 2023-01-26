@@ -29,4 +29,4 @@ RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
 
 USER user
 
-CMD [ "python", "--version" ]
+CMD [ "/bin/sh/" ]
