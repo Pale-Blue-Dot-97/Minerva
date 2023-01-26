@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,13 +23,29 @@
 """Module to visualise .tiff images, label masks and results from the fitting of neural networks for remote sensing.
 
 Attributes:
-    IMAGER_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
     DATA_CONFIG (dict): Config defining the properties of the data used in the experiment.
+    IMAGERY_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
     DATA_DIR (list): Path to directory holding dataset.
     BAND_IDS (dict): Band IDs and position in sample image.
     MAX_PIXEL_VALUE (int): Maximum pixel value (e.g. 255 for 8-bit integer).
     WGS84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
 """
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "DATA_CONFIG",
+    "IMAGERY_CONFIG",
+    "DATA_DIR",
+    "BAND_IDS",
+    "MAX_PIXEL_VALUE",
+    "WGS84",
+]
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -59,15 +75,6 @@ from scipy import stats
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
 
 # =====================================================================================================================
 #                                                     GLOBALS
