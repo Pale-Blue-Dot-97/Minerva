@@ -21,10 +21,13 @@ jobs:
                   name: Build Docker image
                   command: docker build . -t minerva:0.13
             - run:
+                  name: Make directory for test results
+                  command: mkdir test-results
+            - run:
                   name: Run Docker image
                   command: |
                       docker run -t minerva:0.13 \
-                      mkdir test-results && pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
+                      pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
             - store_test_results:
                   path: test-results
             - store_artifacts:
