@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,20 +21,21 @@
 """Converts :mod:`torch` model weights to ``ONNX`` format."""
 
 # =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+
+# =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
 
 from minerva.trainer import Trainer
 from minerva.utils import CONFIG, runner, universal_path
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
 
 
 # =====================================================================================================================
