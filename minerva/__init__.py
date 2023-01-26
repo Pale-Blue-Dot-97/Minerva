@@ -18,3 +18,9 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """:mod:`minerva` is a package designed to facilitate the fitting and visualation of models for geo-spatial research."""
+
+__version__ = "0.13.0"
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
