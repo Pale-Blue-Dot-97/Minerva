@@ -29,7 +29,7 @@ jobs:
                       docker run -t minerva:0.13 \
                       pytest --junitxml=/root/project/test-results/junit.xml --cov-report=lcov:/root/project/test-results/coverage.lcov
             - store_test_results:
-                  path: root/project/test-results
+                  path: /root/project/test-results
             - store_artifacts:
                   path: /root/project/test-results/coverage.lcov
                   destination: coverage
