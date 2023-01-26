@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,31 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Utility functionality, visualisation and configuration for :mod:`minerva`."""
+"""Utility functionality, visualisation and configuration for :mod:`minerva`.
+
+Attributes:
+    CONFIG_NAME (str): Name of the config to be used in the experiment.
+    CONFIG_PATH (str): Path to the config.
+    master_parser (ArgumentParser): Argparser for the CLI for the config loading.
+    CONFIG (Dict[str, Any]): The master config loaded by :mod:`config_load`.
+    AUX_CONFIGS (Dict[str, Any]): Dictionary containing the auxilary configs loaded by :mod:`config_load`.
+"""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "universal_path",
+    "CONFIG_NAME",
+    "CONFIG_PATH",
+    "master_parser",
+    "CONFIG",
+    "AUX_CONFIGS",
+]
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -28,15 +52,6 @@ from typing import Optional
 
 from minerva.utils.config_load import check_paths, load_configs
 from minerva.utils.config_load import universal_path as universal_path  # noqa: F401
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
 
 # =====================================================================================================================
 #                                                     GLOBALS
