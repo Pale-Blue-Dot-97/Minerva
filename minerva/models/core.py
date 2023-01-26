@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,22 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing core utility functions and abstract classes for models."""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+__all__ = [
+    "MinervaModel",
+    "MinervaDataParallel",
+    "MinervaBackbone",
+    "get_torch_weights",
+    "get_output_shape",
+    "bilinear_init",
+]
 
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -50,23 +66,6 @@ from torch.optim import Optimizer
 from torchvision.models._api import WeightsEnum
 
 from minerva.utils.utils import func_by_str
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
-__all__ = [
-    "MinervaModel",
-    "MinervaDataParallel",
-    "MinervaBackbone",
-    "get_torch_weights",
-    "get_output_shape",
-    "bilinear_init",
-]
 
 
 # =====================================================================================================================

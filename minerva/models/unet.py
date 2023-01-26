@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,27 +19,13 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing UNet models. Most code from https://github.com/milesial/Pytorch-UNet"""
-
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-from typing import Any, Dict, Optional, Sequence, Tuple
-
-import torch
-import torch.nn.functional as F
-import torch.nn.modules as nn
-from torch import Tensor
-from torch.nn.modules import Module
-
-from .core import MinervaModel, get_model
-
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
     "DoubleConv",
@@ -54,6 +40,20 @@ __all__ = [
     "UNetR101",
     "UNetR152",
 ]
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+from typing import Any, Dict, Optional, Sequence, Tuple
+
+import torch
+import torch.nn.functional as F
+import torch.nn.modules as nn
+from torch import Tensor
+from torch.nn.modules import Module
+
+from .core import MinervaModel, get_model
+
 
 # =====================================================================================================================
 #                                                     CLASSES

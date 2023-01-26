@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,6 +19,21 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing neural network model classes."""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "ResNet",
+    "ResNet18",
+    "ResNet34",
+    "ResNet50",
+    "ResNet101",
+    "ResNet152",
+]
 
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -34,14 +49,6 @@ from torchvision.models._api import WeightsEnum
 from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
 
 from .core import MinervaModel, get_torch_weights
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
 
 
 # =====================================================================================================================
