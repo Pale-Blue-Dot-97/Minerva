@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,27 +18,23 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Script to create manifests of data for use in Minerva pre-processing to reduce computation time.
-
-Attributes:
-    config_path (str): Path to master config YAML file.
-    config (dict): Master config defining how the experiment should be conducted.
-"""
+"""Script to create manifests of data for use in Minerva pre-processing to reduce computation time."""
 # TODO: Re-engineer for use with torchvision style datasets.
 # TODO: Consider use of parquet format rather than csv.
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-from minerva.datasets import make_manifest
-from minerva.utils import CONFIG, universal_path, utils
-
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+from minerva.datasets import make_manifest
+from minerva.utils import CONFIG, universal_path, utils
 
 
 # =====================================================================================================================
