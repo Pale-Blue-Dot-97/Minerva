@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,6 +18,19 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module containing custom samplers for :mod:`torchgeo` datasets."""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "RandomPairGeoSampler",
+    "RandomPairBatchGeoSampler",
+    "get_greater_bbox",
+    "get_pair_bboxes",
+]
 
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -31,14 +44,6 @@ from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple, get_random_bounding_box
 
 from minerva.utils import utils
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
 
 
 # =====================================================================================================================
