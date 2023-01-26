@@ -12,10 +12,9 @@ jobs:
         # Change the version below to your required version of python
         machine:
             image: cimg/python:3.10.9-node
+            docker_layer_caching: true
         steps:
             - checkout
-            - setup_remote_docker:
-                  docker_layer_caching: true
             - run:
                   name: Build Docker image
                   command: docker build . -t minerva:0.13 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)
