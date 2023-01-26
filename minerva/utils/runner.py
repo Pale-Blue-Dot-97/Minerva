@@ -33,7 +33,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 
-from minerva.utils import CONFIG, master_parser, utils
+from minerva.utils import CONFIG, MASTER_PARSER, utils
 
 # =====================================================================================================================
 #                                                    METADATA
@@ -48,7 +48,7 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 #                                                     GLOBALS
 # =====================================================================================================================
 # ---+ CLI +--------------------------------------------------------------+
-generic_parser = argparse.ArgumentParser(parents=[master_parser])
+generic_parser = argparse.ArgumentParser(parents=[MASTER_PARSER])
 
 generic_parser.add_argument(
     "--seed",

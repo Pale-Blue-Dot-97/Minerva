@@ -22,7 +22,7 @@
 Attributes:
     CONFIG_NAME (str): Name of the config to be used in the experiment.
     CONFIG_PATH (str): Path to the config.
-    master_parser (ArgumentParser): Argparser for the CLI for the config loading.
+    MASTER_PARSER (ArgumentParser): Argparser for the CLI for the config loading.
     CONFIG (Dict[str, Any]): The master config loaded by :mod:`config_load`.
     AUX_CONFIGS (Dict[str, Any]): Dictionary containing the auxilary configs loaded by :mod:`config_load`.
 """
@@ -37,7 +37,7 @@ __all__ = [
     "universal_path",
     "CONFIG_NAME",
     "CONFIG_PATH",
-    "master_parser",
+    "MASTER_PARSER",
     "CONFIG",
     "AUX_CONFIGS",
 ]
@@ -60,20 +60,20 @@ from minerva.utils.config_load import universal_path as universal_path  # noqa: 
 CONFIG_NAME: Optional[str] = None
 CONFIG_PATH: Optional[Path] = None
 
-master_parser = argparse.ArgumentParser(add_help=False)
-master_parser.add_argument(
+MASTER_PARSER = argparse.ArgumentParser(add_help=False)
+MASTER_PARSER.add_argument(
     "-c",
     "--config",
     type=str,
     help="Path to the config file defining experiment",
 )
-master_parser.add_argument(
+MASTER_PARSER.add_argument(
     "--use-default-conf-dir",
     dest="use_default_conf_dir",
     action="store_true",
     help="Set config path to default",
 )
-args, _ = master_parser.parse_known_args()
+args, _ = MASTER_PARSER.parse_known_args()
 
 # Store the current working directory (i.e where script is being run from).
 cwd = os.getcwd()
