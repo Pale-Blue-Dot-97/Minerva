@@ -22,7 +22,7 @@ jobs:
             - run:
                   name: Run Docker image
                   command: |
-                      docker run -it --workdir . minerva:0.13 /bin/bash
+                      docker run -it minerva:0.13 /bin/bash
             - run:
                   name: Run tests
                   command: |
