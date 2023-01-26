@@ -19,7 +19,17 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """:mod:`models` contains several types of models designed to work within :mod:`minerva`."""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
 
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
 from .__depreciated import CNN as CNN
 from .__depreciated import MLP as MLP
 from .core import MinervaBackbone as MinervaBackbone
