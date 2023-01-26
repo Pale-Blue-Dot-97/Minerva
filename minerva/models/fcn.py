@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,26 +19,13 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing Fully Convolutional Network (FCN) models."""
-
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-from abc import ABC
-from typing import Any, Dict, Literal, Optional, Sequence, Tuple
-
-import torch
-import torch.nn.modules as nn
-from torch import Tensor
-
-from .core import MinervaBackbone, MinervaModel, bilinear_init, get_model
-
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
     "FCN8ResNet18",
@@ -53,6 +40,18 @@ __all__ = [
     "FCN32ResNet34",
     "FCN32ResNet50",
 ]
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+from abc import ABC
+from typing import Any, Dict, Literal, Optional, Sequence, Tuple
+
+import torch
+import torch.nn.modules as nn
+from torch import Tensor
+
+from .core import MinervaBackbone, MinervaModel, bilinear_init, get_model
 
 
 # =====================================================================================================================
