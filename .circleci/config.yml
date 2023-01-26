@@ -12,6 +12,7 @@ jobs:
         # Change the version below to your required version of python
         docker:
             - image: cimg/python:3.10.9-node
+              user: root
         steps:
             - checkout
             - setup_remote_docker:
