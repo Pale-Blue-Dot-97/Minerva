@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -35,6 +35,66 @@ Attributes:
     CMAP_DICT (Dict[str, Any]): Mapping of class labels to colours.
     WGS84 (CRS): WGS84 co-ordinate reference system acting as a default :class:`CRS` for transformations.
 """
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "IMAGERY_CONFIG_PATH",
+    "DATA_CONFIG_PATH",
+    "DATA_CONFIG",
+    "IMAGERY_CONFIG",
+    "CLASSES",
+    "CONFIG",
+    "CMAP_DICT",
+    "return_updated_kwargs",
+    "pair_collate",
+    "dublicator",
+    "tg_to_torch",
+    "pair_return",
+    "get_cuda_device",
+    "exist_delete_check",
+    "mkexpdir",
+    "check_dict_key",
+    "datetime_reformat",
+    "get_dataset_name",
+    "transform_coordinates",
+    "check_within_bounds",
+    "deg_to_dms",
+    "dec2deg",
+    "get_centre_loc",
+    "lat_lon_to_loc",
+    "labels_to_ohe",
+    "class_weighting",
+    "find_empty_classes",
+    "eliminate_classes",
+    "load_data_specs",
+    "class_transform",
+    "mask_transform",
+    "check_test_empty",
+    "class_dist_transform",
+    "class_frac",
+    "threshold_scene_select",
+    "find_best_of",
+    "timestamp_now",
+    "find_modes",
+    "modes_from_manifest",
+    "func_by_str",
+    "check_len",
+    "print_class_dist",
+    "batch_flatten",
+    "make_classification_report",
+    "run_tensorboard",
+    "compute_roc_curves",
+    "find_geo_similar",
+    "print_config",
+    "tsne_cluster",
+    "calc_norm_euc_dist",
+]
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -97,15 +157,6 @@ from torchgeo.datasets.utils import BoundingBox
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, visutils
 
 # =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
-
-# =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
 IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
@@ -159,60 +210,6 @@ WGS84: CRS = CRS.from_epsg(4326)
 
 # Filters out all TensorFlow messages other than errors.
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-
-__all__ = [
-    "IMAGERY_CONFIG_PATH",
-    "DATA_CONFIG_PATH",
-    "DATA_CONFIG",
-    "IMAGERY_CONFIG",
-    "CLASSES",
-    "CONFIG",
-    "CMAP_DICT",
-    "return_updated_kwargs",
-    "pair_collate",
-    "dublicator",
-    "tg_to_torch",
-    "pair_return",
-    "get_cuda_device",
-    "exist_delete_check",
-    "mkexpdir",
-    "check_dict_key",
-    "datetime_reformat",
-    "get_dataset_name",
-    "transform_coordinates",
-    "check_within_bounds",
-    "deg_to_dms",
-    "dec2deg",
-    "get_centre_loc",
-    "lat_lon_to_loc",
-    "labels_to_ohe",
-    "class_weighting",
-    "find_empty_classes",
-    "eliminate_classes",
-    "load_data_specs",
-    "class_transform",
-    "mask_transform",
-    "check_test_empty",
-    "class_dist_transform",
-    "class_frac",
-    "threshold_scene_select",
-    "find_best_of",
-    "timestamp_now",
-    "find_modes",
-    "modes_from_manifest",
-    "func_by_str",
-    "check_len",
-    "print_class_dist",
-    "batch_flatten",
-    "make_classification_report",
-    "run_tensorboard",
-    "compute_roc_curves",
-    "find_geo_similar",
-    "print_config",
-    "tsne_cluster",
-    "calc_norm_euc_dist",
-]
 
 
 # =====================================================================================================================

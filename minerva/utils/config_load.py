@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,19 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Handles the loading of config files and checking paths.
+
+Attributes:
+    DEFAULT_CONF_DIR_PATH (Path): Path to the default config directory.
+    DEFAULT_CONFIG_NAME (str): Name of the default, example config.
 """
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -28,15 +40,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
 import yaml
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
 
 # =====================================================================================================================
 #                                                     GLOBALS

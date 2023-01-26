@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,8 +17,26 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module to handle generic functionality for running ``minerva`` scripts.
+"""Module to handle generic functionality for running :mod:`minerva` scripts.
+
+Attributes:
+    generic_parser (ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
+        Can be used as the basis for a user defined extended argparser.
 """
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "generic_parser",
+    "config_env_vars",
+    "config_args",
+    "distributed_run",
+]
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -34,15 +52,6 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 
 from minerva.utils import CONFIG, MASTER_PARSER, utils
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
 
 # =====================================================================================================================
 #                                                     GLOBALS
