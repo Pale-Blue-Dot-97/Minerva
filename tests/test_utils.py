@@ -680,7 +680,7 @@ def test_run_tensorboard() -> None:
     path = Path(tempfile.gettempdir(), exp_name)
 
     if not path.exists():
-        path.mkdir()
+        path.mkdir(parents=True, exist_ok=True)
 
     assert (
         utils.run_tensorboard(
@@ -691,8 +691,6 @@ def test_run_tensorboard() -> None:
 
     results_dir = CONFIG["dir"]["results"]
     del CONFIG["dir"]["results"]
-
-    print(CONFIG["dir"])
 
     assert utils.run_tensorboard(exp_name, env_name=env_name) is None
 
