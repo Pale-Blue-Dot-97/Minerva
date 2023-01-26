@@ -22,12 +22,7 @@ jobs:
             - run:
                   name: Run Docker image
                   command: |
-                      docker run -it minerva:0.13 /bin/bash
-            - run:
-                  name: Run tests
-                  command: |
-                      mkdir test-results
-                      pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
+                      docker run -it minerva:0.13 "mkdir test-results && pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov"
             - store_test_results:
                   path: test-results
             - store_artifacts:
