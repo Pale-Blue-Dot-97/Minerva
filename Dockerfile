@@ -20,13 +20,4 @@ RUN pip install -r requirements_dev.txt
 # Install application into container
 COPY . .
 
-#ARG USER_ID
-#ARG GROUP_ID
-
-# Creates a user and group for use in container from the user and group used to construct the image.
-#RUN addgroup --gid $GROUP_ID user
-#RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID user
-
-#USER user
-
 CMD [ "/bin/bash/" ]
