@@ -10,8 +10,8 @@ orbs:
 jobs:
     build-and-test:
         # Change the version below to your required version of python
-        machine:
-            image: cimg/python:3.10.9-node
+        docker:
+            - image: cimg/python:3.10.9-node
         steps:
             - checkout
             - setup_remote_docker:
@@ -22,9 +22,7 @@ jobs:
             - run:
                   name: Run Docker image
                   command: |
-                      docker run -it --mount "type=bind,src=$(pwd)/shared,dst=/opt/shared" \
-                      --workdir /opt/sharedminerva:0.13 \
-                      mkdir test-results && pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
+                      docker run -it minerva:0.13 mkdir test-results && pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
             - store_test_results:
                   path: test-results
             - store_artifacts:
