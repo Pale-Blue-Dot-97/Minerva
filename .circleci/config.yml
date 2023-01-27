@@ -22,22 +22,25 @@ jobs:
                   command: docker build . -t minerva:0.13
             - run:
                   name: Make directory for test results
-                  command: mkdir -p /root/project/test-results
+                  command: mkdir -p /tmp/test-results
             - run:
                   name: Run Docker image
                   command: |
-                      docker run -t minerva:0.13 \
-                      pytest --junitxml=/root/project/test-results/junit.xml --cov-report=lcov:/root/project/test-results/coverage.lcov
+                      docker run --name minerva-runner -t minerva:0.13 \
+                      pytest --junitxml=/tmp/test-results/junit.xml --cov-report=lcov:/tmp/test-results/coverage.lcov
+
             - run:
-                  name: Check paths
-                  command: ls && ls /root/ && ls /root/project && ls /root/project/test-results
+                  name: Copy test artifacts from container to host
+                  command: |
+                      docker cp minerva-runner:/tmp/test-results/junit.xml /tmp/test-results/junit.xml
+                      docker cp minerva-runner:/tmp/test-results/coverage.lcov /tmp/test-results/coverage.lcov
             - store_test_results:
-                  path: /root/project/test-results
+                  path: /tmp/test-results
             - store_artifacts:
-                  path: /root/project/test-results/coverage.lcov
+                  path: /tmp/test-results/coverage.lcov
                   destination: coverage
             - coveralls/upload:
-                  path_to_lcov: /root/project/test-results/coverage.lcov
+                  path_to_lcov: /tmp/test-results/coverage.lcov
 
 workflows:
     tests:
