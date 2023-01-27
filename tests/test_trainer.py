@@ -1,9 +1,11 @@
-import pytest
 import argparse
+
+import pytest
 import torch
+
 from minerva.trainer import Trainer
-from minerva.utils.utils import CONFIG, set_seeds
 from minerva.utils import runner
+from minerva.utils.utils import CONFIG, set_seeds
 
 set_seeds(42)
 

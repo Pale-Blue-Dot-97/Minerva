@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,31 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Utility functionality, visualisation and configuration for :mod:`minerva`."""
+"""Utility functionality, visualisation and configuration for :mod:`minerva`.
+
+Attributes:
+    CONFIG_NAME (str): Name of the config to be used in the experiment.
+    CONFIG_PATH (str): Path to the config.
+    MASTER_PARSER (ArgumentParser): Argparser for the CLI for the config loading.
+    CONFIG (Dict[str, Any]): The master config loaded by :mod:`config_load`.
+    AUX_CONFIGS (Dict[str, Any]): Dictionary containing the auxilary configs loaded by :mod:`config_load`.
+"""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "universal_path",
+    "CONFIG_NAME",
+    "CONFIG_PATH",
+    "MASTER_PARSER",
+    "CONFIG",
+    "AUX_CONFIGS",
+]
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -26,20 +50,8 @@ import os
 from pathlib import Path
 from typing import Optional
 
-from minerva.utils.config_load import (  # noqa: F401
-    check_paths,
-    load_configs,
-    universal_path as universal_path,
-)
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
+from minerva.utils.config_load import check_paths, load_configs
+from minerva.utils.config_load import universal_path as universal_path  # noqa: F401
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -48,28 +60,28 @@ __copyright__ = "Copyright (C) 2022 Harry Baker"
 CONFIG_NAME: Optional[str] = None
 CONFIG_PATH: Optional[Path] = None
 
-master_parser = argparse.ArgumentParser(add_help=False)
-master_parser.add_argument(
+MASTER_PARSER = argparse.ArgumentParser(add_help=False)
+MASTER_PARSER.add_argument(
     "-c",
     "--config",
     type=str,
     help="Path to the config file defining experiment",
 )
-master_parser.add_argument(
+MASTER_PARSER.add_argument(
     "--use-default-conf-dir",
     dest="use_default_conf_dir",
     action="store_true",
     help="Set config path to default",
 )
-args, _ = master_parser.parse_known_args()
+_args, _ = MASTER_PARSER.parse_known_args()
 
 # Store the current working directory (i.e where script is being run from).
-cwd = os.getcwd()
+_cwd = os.getcwd()
 
-path, CONFIG_NAME, CONFIG_PATH = check_paths(args.config, args.use_default_conf_dir)
+_path, CONFIG_NAME, CONFIG_PATH = check_paths(_args.config, _args.use_default_conf_dir)
 
 # Loads the configs from file using paths found in sys.args.
-CONFIG, AUX_CONFIGS = load_configs(path)
+CONFIG, AUX_CONFIGS = load_configs(_path)
 
 # Change the working directory back to script location.
-os.chdir(cwd)
+os.chdir(_cwd)

@@ -17,40 +17,32 @@
 
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-#
-# TODO: Consider removing redundant models.
-#
 """Module for redundant model classes."""
-
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-from abc import ABC
-from collections import OrderedDict
-from typing import (
-    Any,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Sequence,
-    Union,
-)
-import numpy as np
-from torch import Tensor
-import torch.nn.modules as nn
-from torch.nn.modules import Module
-
-from .core import MinervaModel, get_output_shape
-from minerva.utils.utils import check_len
-
+# TODO: Consider removing redundant models.
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+from abc import ABC
+from collections import OrderedDict
+from typing import Any, Iterable, List, Optional, Sequence, Tuple, Union
+
+import numpy as np
+import torch.nn.modules as nn
+from torch import Tensor
+from torch.nn.modules import Module
+
+from minerva.utils.utils import check_len
+
+from .core import MinervaModel, get_output_shape
 
 
 # =====================================================================================================================

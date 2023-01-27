@@ -19,6 +19,18 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module to handle various IO from `dataloaders` and to models."""
 # =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "sup_tg",
+    "ssl_pair_tg",
+]
+
+# =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Any, Dict, Sequence, Tuple, Union
@@ -29,14 +41,6 @@ from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
 
 
 # =====================================================================================================================

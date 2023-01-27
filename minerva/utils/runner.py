@@ -17,37 +17,47 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module to handle generic functionality for running ``minerva`` scripts.
+"""Module to handle generic functionality for running :mod:`minerva` scripts.
+
+Attributes:
+    generic_parser (ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
+        Can be used as the basis for a user defined extended argparser.
 """
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-import argparse
-from argparse import Namespace
-from typing import Any, Callable, Optional
-import os
-import signal
-import subprocess
-import torch
-import torch.distributed as dist
-import torch.multiprocessing as mp
-
-from minerva.utils import utils, master_parser, CONFIG
-
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "generic_parser",
+    "config_env_vars",
+    "config_args",
+    "distributed_run",
+]
 
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+import argparse
+import os
+import signal
+import subprocess
+from argparse import Namespace
+from typing import Any, Callable, Optional
+
+import torch
+import torch.distributed as dist
+import torch.multiprocessing as mp
+
+from minerva.utils import CONFIG, MASTER_PARSER, utils
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
 # ---+ CLI +--------------------------------------------------------------+
-generic_parser = argparse.ArgumentParser(parents=[master_parser])
+generic_parser = argparse.ArgumentParser(parents=[MASTER_PARSER])
 
 generic_parser.add_argument(
     "--seed",
@@ -167,7 +177,9 @@ generic_parser.add_argument(
 #                                                     METHODS
 # =====================================================================================================================
 def _handle_sigusr1(signum, frame) -> None:
-    os.system(f'scontrol requeue {os.getenv("SLURM_JOB_ID")}')
+    subprocess.Popen(  # nosec B602
+        f'scontrol requeue {os.getenv("SLURM_JOB_ID")}', shell=True
+    )
     exit()
 
 

@@ -19,31 +19,30 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module containing the class :class:`Trainer` to handle the fitting of neural networks."""
 # =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = ["Trainer"]
+
+# =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
-
 import os
-from pathlib import Path
 from contextlib import nullcontext
+from pathlib import Path
+from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Union
 
-from nptyping import NDArray, Int
 import pandas as pd
 import torch
-from torch import Tensor
 import torch.distributed as dist
 import yaml
 from alive_progress import alive_bar  # , alive_it
 from inputimeout import TimeoutOccurred, inputimeout
+from nptyping import Int, NDArray
+from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
@@ -55,24 +54,13 @@ from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
 from minerva.pytorchtools import EarlyStopping
-from minerva.utils import utils, visutils, universal_path
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
+from minerva.utils import universal_path, utils, visutils
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
 # Default time till timeout waiting for a user input in seconds.
 _timeout = 30
-
-__all__ = ["Trainer"]
 
 
 # =====================================================================================================================
@@ -223,7 +211,7 @@ class Trainer:
                 self.model, input_to_model=torch.rand(*input_size, device=self.device)
             )
 
-            if torch.cuda.device_count() == 1 or self.device == torch.device("cpu"):
+            if torch.cuda.device_count() == 1 or self.device == torch.device("cpu"):  # type: ignore[attr-defined]
                 # Adds a graphical layout of the model to the TensorBoard logger.
                 try:
                     self.writer.add_graph(
@@ -915,7 +903,7 @@ class Trainer:
         """Readies the model for use in downstream tasks and saves to file."""
         # Checks that model has the required method to ready it for use on downstream tasks.
         assert hasattr(self.model, "get_backbone")
-        pre_trained_backbone: Module = self.model.get_backbone()  # type: ignore[attr-defined]
+        pre_trained_backbone: Module = self.model.get_backbone()  # type: ignore[operator]
 
         cache_dir = universal_path(self.params["dir"]["cache"])
 

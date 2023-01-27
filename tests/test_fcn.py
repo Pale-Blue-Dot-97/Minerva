@@ -3,7 +3,6 @@ import torch
 from torch import Tensor
 
 from minerva.models import (
-    MinervaModel,
     FCN8ResNet18,
     FCN8ResNet34,
     FCN8ResNet50,
@@ -15,6 +14,7 @@ from minerva.models import (
     FCN32ResNet18,
     FCN32ResNet34,
     FCN32ResNet50,
+    MinervaModel,
     ResNet18,
 )
 from minerva.models.fcn import DCN
@@ -123,5 +123,5 @@ def test_dcn() -> None:
     with pytest.raises(
         NotImplementedError, match="Variant 42 does not match known types"
     ):
-        dcn.variant = "42"  # type: ignore[arg-type]
+        dcn.variant = "42"  # type: ignore[assignment]
         _ = dcn.forward(resnet(torch.rand((batch_size, *input_size))))

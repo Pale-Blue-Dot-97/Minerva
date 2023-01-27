@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 import torch
-from torch import Tensor, LongTensor
+from torch import LongTensor, Tensor
 from torchvision.models.resnet import BasicBlock
 
 from minerva.models import (

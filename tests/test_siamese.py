@@ -1,15 +1,8 @@
 import pytest
 import torch
-from lightly.loss import NTXentLoss, NegativeCosineSimilarity
+from lightly.loss import NegativeCosineSimilarity, NTXentLoss
 
-from minerva.models import (
-    SimCLR18,
-    SimCLR34,
-    SimCLR50,
-    SimSiam18,
-    SimSiam34,
-    SimSiam50,
-)
+from minerva.models import SimCLR18, SimCLR34, SimCLR50, SimSiam18, SimSiam34, SimSiam50
 
 
 def test_simclr() -> None:

@@ -10,7 +10,6 @@ dir:
         - tmp
         - data
     configs:
-        #data_config: Chesapeake7.yml
         imagery_config: ../../inbuilt_cfgs/NAIP.yml
     results:
         - ..
@@ -35,7 +34,7 @@ model_type: siamese
 sample_pairs: true
 elim: false
 balance: false
-patch_size: [32, 32]
+patch_size: &patch_size [32, 32]
 pre_train: true
 fine_tune: false
 max_r: 52
@@ -73,7 +72,7 @@ sampler_params:
         name: RandomPairGeoSampler
         roi: false
         params:
-            size: 32
+            size: *patch_size
             length: 120
 
     # Validation Dataset Sampler
@@ -82,7 +81,7 @@ sampler_params:
         name: RandomPairGeoSampler
         roi: false
         params:
-            size: 32
+            size: *patch_size
             length: 32
 
 # === TRANSFORM PARAMETERS ====================================================
@@ -90,10 +89,6 @@ transform_params:
     # Training Dataset Transforms
     train:
         image: false
-            #RandomResizedCrop:
-            #    module: torchvision.transforms
-            #    params:
-            #        size: 32
 
     # Validation Dataset Transforms
     val:
@@ -112,7 +107,6 @@ hyperparams:
         pin_memory: true
     model_params:
         input_size: [4, 32, 32]
-        # n_classes: 8
     optim_params:
         name: SGD
         params:

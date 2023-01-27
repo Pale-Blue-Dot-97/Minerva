@@ -29,21 +29,23 @@ https://github.com/facebookresearch/barlowtwins
 
 # TODO: Add ability to conduct hyper-parameter iterative variation experimentation.
 # =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-import argparse
-import argcomplete
-
-from minerva.trainer import Trainer
-from minerva.utils import CONFIG, runner
-
-# =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+import argparse
+
+import argcomplete
+
+from minerva.trainer import Trainer
+from minerva.utils import CONFIG, runner
 
 
 # =====================================================================================================================

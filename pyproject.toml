@@ -21,3 +21,9 @@ warn_unreachable = true
 warn_unused_configs = true
 no_implicit_reexport = true
 plugins = "numpy.typing.mypy_plugin"
+
+[tool.isort]
+profile = "black"
+
+[tool.bandit]
+skips = ["B101", "B311", "B404", "B603"]
