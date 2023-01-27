@@ -1,15 +1,15 @@
-from typing import Any, Dict, List, Union
 import shutil
-from pathlib import Path
 import tempfile
-from nptyping import NDArray, Shape
+from pathlib import Path
+from typing import Any, Dict, List, Union
 
 import numpy as np
 import torch
-from torch import Tensor
 import torch.nn.modules as nn
-from numpy.testing import assert_array_equal
 from lightly.loss import NTXentLoss
+from nptyping import NDArray, Shape
+from numpy.testing import assert_array_equal
+from torch import Tensor
 from torch.utils.tensorboard.writer import SummaryWriter
 
 from minerva.logger import SSL_Logger, STG_Logger

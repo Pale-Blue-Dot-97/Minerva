@@ -19,24 +19,31 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module containing custom transforms to be used with :mod:`torchvision.transforms`."""
 # =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-from typing import Any, Callable, Dict, Optional, Tuple, Sequence, Union, overload
-
-import torch
-from torch import Tensor, LongTensor
-from torchvision.transforms import ColorJitter
-from torchvision.transforms import functional_tensor as ft
-
-from minerva.utils.utils import mask_transform
-
-# =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "ClassTransform",
+    "PairCreate",
+    "Normalise",
+    "DetachedColorJitter",
+    "MinervaCompose",
+]
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
+
+import torch
+from torch import LongTensor, Tensor
+from torchvision.transforms import ColorJitter
+from torchvision.transforms import functional_tensor as ft
+
+from minerva.utils.utils import mask_transform
 
 
 # =====================================================================================================================

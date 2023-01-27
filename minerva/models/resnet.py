@@ -19,36 +19,36 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing neural network model classes."""
-
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-from abc import ABC
-from typing import (
-    Any,
-    Callable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
-import torch
-from torch import Tensor
-import torch.nn.modules as nn
-from torch.nn.modules import Module
-from torchvision.models._api import WeightsEnum
-from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
-
-from .core import MinervaModel, get_torch_weights
-
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "ResNet",
+    "ResNet18",
+    "ResNet34",
+    "ResNet50",
+    "ResNet101",
+    "ResNet152",
+]
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+from abc import ABC
+from typing import Any, Callable, List, Optional, Tuple, Type, Union
+
+import torch
+import torch.nn.modules as nn
+from torch import Tensor
+from torch.nn.modules import Module
+from torchvision.models._api import WeightsEnum
+from torchvision.models.resnet import BasicBlock, Bottleneck, conv1x1
+
+from .core import MinervaModel, get_torch_weights
 
 
 # =====================================================================================================================

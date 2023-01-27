@@ -19,25 +19,33 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing Siamese models."""
-
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-from typing import Any, Dict, Optional, Tuple, Sequence
-import numpy as np
-import torch
-from torch import Tensor
-import torch.nn.modules as nn
-
-from .core import MinervaModel, MinervaBackbone, get_model
-
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "SimCLR18",
+    "SimCLR34",
+    "SimCLR50",
+    "SimSiam18",
+    "SimSiam34",
+    "SimSiam50",
+]
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+from typing import Any, Dict, Optional, Sequence, Tuple
+
+import numpy as np
+import torch
+import torch.nn.modules as nn
+from torch import Tensor
+
+from .core import MinervaBackbone, MinervaModel, get_model
 
 
 # =====================================================================================================================
@@ -127,6 +135,8 @@ class _SimCLR(MinervaBackbone):
 
         if self.optimiser is None:
             raise NotImplementedError("Optimiser has not been set!")
+
+        assert self.criterion
 
         # Resets the optimiser's gradients if this is a training step.
         if train:
@@ -269,13 +279,13 @@ class _SimSiam(MinervaBackbone):
         prev_dim = np.prod(backbone_out_shape)
 
         self.proj_head = nn.Sequential(  # type: ignore[arg-type]
-            nn.Linear(prev_dim, prev_dim, bias=False),
-            nn.BatchNorm1d(prev_dim),
+            nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(prev_dim),  # type: ignore[arg-type]
             nn.ReLU(inplace=True),  # first layer
-            nn.Linear(prev_dim, prev_dim, bias=False),
-            nn.BatchNorm1d(prev_dim),
+            nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(prev_dim),  # type: ignore[arg-type]
             nn.ReLU(inplace=True),  # second layer
-            nn.Linear(prev_dim, feature_dim, bias=False),
+            nn.Linear(prev_dim, feature_dim, bias=False),  # type: ignore[arg-type]
             nn.BatchNorm1d(feature_dim, affine=False),
         )  # output layer
         # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
@@ -327,6 +337,8 @@ class _SimSiam(MinervaBackbone):
 
         if self.optimiser is None:
             raise NotImplementedError("Optimiser has not been set!")
+
+        assert self.criterion
 
         # Resets the optimiser's gradients if this is a training step.
         if train:

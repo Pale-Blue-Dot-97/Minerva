@@ -18,32 +18,36 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module to handle the logging of results from various model types."""
-
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-import abc
-from abc import ABC
-import math
-from typing import Any, Dict, Optional, Tuple, SupportsFloat
-
-import mlflow
-import numpy as np
-import torch
-from torch import Tensor
-from torch.utils.tensorboard.writer import SummaryWriter
-from torchgeo.datasets.utils import BoundingBox
-from sklearn.metrics import jaccard_score
-
-from minerva.utils import utils
-
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "MinervaLogger",
+    "STG_Logger",
+    "SSL_Logger",
+]
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+import abc
+import math
+from abc import ABC
+from typing import Any, Dict, Optional, SupportsFloat, Tuple
+
+import mlflow
+import numpy as np
+import torch
+from sklearn.metrics import jaccard_score
+from torch import Tensor
+from torch.utils.tensorboard.writer import SummaryWriter
+from torchgeo.datasets.utils import BoundingBox
+
+from minerva.utils import utils
 
 
 # =====================================================================================================================
@@ -90,7 +94,7 @@ class MinervaLogger(ABC):
         self.n_batches = n_batches
         self.batch_size = batch_size
         self.n_samples = n_samples
-        self.writer = None
+        self.writer: Optional[SummaryWriter] = None
 
         self.logs: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}

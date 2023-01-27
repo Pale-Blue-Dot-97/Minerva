@@ -25,22 +25,26 @@
 Source: https://github.com/Bjarten/early-stopping-pytorch
 """
 # =====================================================================================================================
-#                                                    IMPORTS
-# =====================================================================================================================
-from typing import Callable, Optional, Union
-from pathlib import Path
-import numpy as np
-import torch
-from torch.nn.modules import Module
-
-# =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Bjarte Mehus Sunde"
 __license__ = "MIT"
 __copyright__ = "Copyright (C) 2018 Bjarte Mehus Sunde"
 
+# =====================================================================================================================
+#                                                    IMPORTS
+# =====================================================================================================================
+from pathlib import Path
+from typing import Callable, Optional, Union
 
+import numpy as np
+import torch
+from torch.nn.modules import Module
+
+
+# =====================================================================================================================
+#                                                    CLASSES
+# =====================================================================================================================
 class EarlyStopping:
     """Early stops the training if validation loss doesn't improve after a given patience."""
 

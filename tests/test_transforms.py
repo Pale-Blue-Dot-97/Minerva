@@ -1,7 +1,7 @@
 import pytest
 import torch
-from torch import LongTensor
 from numpy.testing import assert_array_equal
+from torch import LongTensor
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
 
 from minerva.transforms import (
@@ -20,8 +20,8 @@ def test_class_transform(simple_mask, example_matrix) -> None:
 
     output_1 = torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])  # type: ignore[attr-defined]
 
-    input_2: LongTensor = torch.tensor(  # type: ignore[attr-defined]
-        [[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long
+    input_2: LongTensor = torch.tensor(  # type: ignore[attr-defined, assignment]
+        [[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long  # type: ignore[attr-defined]
     )
 
     output_2 = torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]])  # type: ignore[attr-defined]
@@ -67,7 +67,7 @@ def test_compose(simple_mask) -> None:
     compose_1 = MinervaCompose(transform_1)
 
     with pytest.raises(TypeError):
-        _ = compose_1(42)  # type: ignore[arg-type]
+        _ = compose_1(42)  # type: ignore[arg-type, call-overload]
 
     compose_2 = MinervaCompose(
         [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]

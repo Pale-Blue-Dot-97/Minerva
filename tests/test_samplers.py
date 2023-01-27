@@ -1,19 +1,18 @@
-import pytest
 from collections import defaultdict
-from typing import Any, Dict
 from pathlib import Path
+from typing import Any, Dict
 
+import pytest
 from torch.utils.data import DataLoader
 from torchgeo.datasets.utils import BoundingBox
 
+from minerva.datasets import PairedDataset, TstImgDataset, stack_sample_pairs
 from minerva.samplers import (
     RandomPairBatchGeoSampler,
     RandomPairGeoSampler,
     get_greater_bbox,
 )
-from minerva.datasets import TstImgDataset, PairedDataset, stack_sample_pairs
 from minerva.utils.utils import set_seeds
-
 
 data_root = Path("tests", "tmp")
 img_root = str(data_root / "data" / "test_images")

@@ -36,14 +36,86 @@ Attributes:
     WGS84 (CRS): WGS84 co-ordinate reference system acting as a default :class:`CRS` for transformations.
 """
 # =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "GNU GPLv3"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "IMAGERY_CONFIG_PATH",
+    "DATA_CONFIG_PATH",
+    "DATA_CONFIG",
+    "IMAGERY_CONFIG",
+    "CLASSES",
+    "CONFIG",
+    "CMAP_DICT",
+    "return_updated_kwargs",
+    "pair_collate",
+    "dublicator",
+    "tg_to_torch",
+    "pair_return",
+    "get_cuda_device",
+    "exist_delete_check",
+    "mkexpdir",
+    "check_dict_key",
+    "datetime_reformat",
+    "get_dataset_name",
+    "transform_coordinates",
+    "check_within_bounds",
+    "deg_to_dms",
+    "dec2deg",
+    "get_centre_loc",
+    "lat_lon_to_loc",
+    "labels_to_ohe",
+    "class_weighting",
+    "find_empty_classes",
+    "eliminate_classes",
+    "load_data_specs",
+    "class_transform",
+    "mask_transform",
+    "check_test_empty",
+    "class_dist_transform",
+    "class_frac",
+    "threshold_scene_select",
+    "find_best_of",
+    "timestamp_now",
+    "find_modes",
+    "modes_from_manifest",
+    "func_by_str",
+    "check_len",
+    "print_class_dist",
+    "batch_flatten",
+    "make_classification_report",
+    "run_tensorboard",
+    "compute_roc_curves",
+    "find_geo_similar",
+    "print_config",
+    "tsne_cluster",
+    "calc_norm_euc_dist",
+]
+
+# =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
+import cmath
+import functools
+import importlib
+import math
+import os
+import random
+import re as regex
+import subprocess
+import sys
+import webbrowser
 from collections import Counter, OrderedDict
+from datetime import datetime
+from os import PathLike
+from pathlib import Path
+from typing import Any, Callable
+from typing import Counter as CounterType
 from typing import (
-    Any,
-    Callable,
-    Counter as CounterType,
     Dict,
     Iterable,
     List,
@@ -55,23 +127,8 @@ from typing import (
     overload,
 )
 
-import cmath
-import functools
-import importlib
-import math
-import os
-from os import PathLike
-from pathlib import Path
-import random
-import re as regex
-import sys
-import webbrowser
-from datetime import datetime
-
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import numpy as np
-from numpy.typing import ArrayLike
-from nptyping import NDArray, Shape, Int, Float
 import pandas as pd
 import psutil
 import rasterio as rt
@@ -80,31 +137,24 @@ import yaml
 from alive_progress import alive_bar
 from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Nominatim
+from nptyping import Float, Int, NDArray, Shape
+from numpy.typing import ArrayLike
 from pandas import DataFrame
 from rasterio.crs import CRS
 from scipy.spatial import distance
-from sklearn.manifold import TSNE
 from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.manifold import TSNE
 from sklearn.metrics import auc, classification_report, roc_curve
 from sklearn.preprocessing import label_binarize
 from tabulate import tabulate
-from torch import Tensor, LongTensor
-from torch.types import _device
-from torch.nn.modules import Module
+from torch import LongTensor, Tensor
 from torch.nn import functional as F
+from torch.nn.modules import Module
+from torch.types import _device
 from torchgeo.datasets.utils import BoundingBox
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
-from minerva.utils import AUX_CONFIGS, CONFIG, visutils, universal_path
-
-# =====================================================================================================================
-#                                                    METADATA
-# =====================================================================================================================
-__author__ = "Harry Baker"
-__contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
-
+from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, visutils
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -160,60 +210,6 @@ WGS84: CRS = CRS.from_epsg(4326)
 
 # Filters out all TensorFlow messages other than errors.
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
-
-
-__all__ = [
-    "IMAGERY_CONFIG_PATH",
-    "DATA_CONFIG_PATH",
-    "DATA_CONFIG",
-    "IMAGERY_CONFIG",
-    "CLASSES",
-    "CONFIG",
-    "CMAP_DICT",
-    "return_updated_kwargs",
-    "pair_collate",
-    "dublicator",
-    "tg_to_torch",
-    "pair_return",
-    "get_cuda_device",
-    "exist_delete_check",
-    "mkexpdir",
-    "check_dict_key",
-    "datetime_reformat",
-    "get_dataset_name",
-    "transform_coordinates",
-    "check_within_bounds",
-    "deg_to_dms",
-    "dec2deg",
-    "get_centre_loc",
-    "lat_lon_to_loc",
-    "labels_to_ohe",
-    "class_weighting",
-    "find_empty_classes",
-    "eliminate_classes",
-    "load_data_specs",
-    "class_transform",
-    "mask_transform",
-    "check_test_empty",
-    "class_dist_transform",
-    "class_frac",
-    "threshold_scene_select",
-    "find_best_of",
-    "timestamp_now",
-    "find_modes",
-    "modes_from_manifest",
-    "func_by_str",
-    "check_len",
-    "print_class_dist",
-    "batch_flatten",
-    "make_classification_report",
-    "run_tensorboard",
-    "compute_roc_curves",
-    "find_geo_similar",
-    "print_config",
-    "tsne_cluster",
-    "calc_norm_euc_dist",
-]
 
 
 # =====================================================================================================================
@@ -1471,7 +1467,7 @@ def run_tensorboard(
     os.chdir(_path)
 
     # Activates the correct Conda environment.
-    os.system("conda activate {}".format(env_name))
+    subprocess.Popen(f"conda activate {env_name}", shell=True).wait()  # nosec B602
 
     if _testing:
         os.chdir(cwd)
@@ -1479,10 +1475,10 @@ def run_tensorboard(
 
     else:  # pragma: no cover
         # Runs TensorBoard log.
-        os.system("tensorboard --logdir={}".format(exp_name))
+        subprocess.Popen(f"tensorboard --logdir={exp_name}", shell=True)  # nosec B602
 
         # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
-        webbrowser.open("localhost:{}".format(host_num))
+        webbrowser.open(f"localhost:{host_num}")
 
         # Changes back to the original CWD.
         os.chdir(cwd)

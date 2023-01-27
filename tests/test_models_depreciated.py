@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from torch import Tensor
 
-from minerva.models.__depreciated import MLP, CNN
+from minerva.models.__depreciated import CNN, MLP
 
 
 def test_mlp(x_entropy_loss) -> None:

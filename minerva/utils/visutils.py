@@ -23,53 +23,58 @@
 """Module to visualise .tiff images, label masks and results from the fitting of neural networks for remote sensing.
 
 Attributes:
-    IMAGER_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
     DATA_CONFIG (dict): Config defining the properties of the data used in the experiment.
+    IMAGERY_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
     DATA_DIR (list): Path to directory holding dataset.
     BAND_IDS (dict): Band IDs and position in sample image.
     MAX_PIXEL_VALUE (int): Maximum pixel value (e.g. 255 for 8-bit integer).
     WGS84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
 """
 # =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-
-import os
-import random
-from pathlib import Path
-
-import imageio
-import matplotlib as mlp
-import matplotlib.pyplot as plt
-import numpy as np
-from numpy.typing import ArrayLike
-from nptyping import NDArray, Int, Float, Shape
-import pandas as pd
-import seaborn as sns
-import tensorflow as tf
-from alive_progress import alive_bar
-from matplotlib import offsetbox
-from matplotlib.colors import ListedColormap, Colormap
-from matplotlib.gridspec import GridSpec
-
-# from matplotlib.ticker import MaxNLocator
-from scipy import stats
-from matplotlib.image import AxesImage
-from matplotlib.transforms import Bbox
-from rasterio.crs import CRS
-from torchgeo.datasets.utils import BoundingBox
-
-from minerva.utils import AUX_CONFIGS, CONFIG, utils, universal_path
-
-# =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "DATA_CONFIG",
+    "IMAGERY_CONFIG",
+    "DATA_DIR",
+    "BAND_IDS",
+    "MAX_PIXEL_VALUE",
+    "WGS84",
+]
 
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+import os
+import random
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+
+import imageio
+import matplotlib as mlp
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+import tensorflow as tf
+from alive_progress import alive_bar
+from matplotlib import offsetbox
+from matplotlib.colors import Colormap, ListedColormap
+from matplotlib.gridspec import GridSpec
+from matplotlib.image import AxesImage
+from matplotlib.ticker import MaxNLocator
+from matplotlib.transforms import Bbox
+from nptyping import Float, Int, NDArray, Shape
+from numpy.typing import ArrayLike
+from rasterio.crs import CRS
+from scipy import stats
+from torchgeo.datasets.utils import BoundingBox
+
+from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -860,7 +865,7 @@ def plot_history(
         None
     """
     # Initialise figure.
-    plt.figure()
+    ax = plt.figure().gca()
 
     # Plots each metric in metrics, appending their artist handles.
     handles = []
@@ -870,21 +875,21 @@ def plot_history(
         if len(metrics[key]["x"]) == len(metrics[key]["y"]) >= 1.0:
 
             # Plot metric.
-            handles.append(plt.plot(metrics[key]["x"], metrics[key]["y"])[0])
+            handles.append(ax.plot(metrics[key]["x"], metrics[key]["y"])[0])
             labels.append(key)
 
     # Creates legend from plot artist handles and names of metrics.
-    plt.legend(handles=handles, labels=labels)
+    ax.legend(handles=handles, labels=labels)
 
-    # Forces x-axis ticks to be integers. FEATURE DISABLED DUE TO BUG.
-    # plt.axes().xaxis.set_major_locator(MaxNLocator(integer=True))
+    # Forces x-axis ticks to be integers.
+    ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
     # Adds a grid overlay with green dashed lines.
-    plt.grid(color="green", linestyle="--", linewidth=0.5)  # For some funky gridlines
+    ax.grid(color="green", linestyle="--", linewidth=0.5)  # For some funky gridlines
 
     # Adds axis labels.
-    plt.xlabel("Epoch")
-    plt.ylabel("Loss/Accuracy")
+    ax.set_xlabel("Epoch")
+    ax.set_ylabel("Loss/Accuracy")
 
     # Shows and/or saves plot.
     if show:

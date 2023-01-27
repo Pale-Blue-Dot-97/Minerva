@@ -19,44 +19,13 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing core utility functions and abstract classes for models."""
-
-# =====================================================================================================================
-#                                                     IMPORTS
-# =====================================================================================================================
-import abc
-from abc import ABC
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Sequence,
-    Union,
-    overload,
-)
-import os
-from pathlib import Path
-from nptyping import NDArray
-import numpy as np
-import torch
-from torch import Tensor
-from torch.nn.modules import Module
-from torch.nn.parallel import DataParallel, DistributedDataParallel
-from torch.optim import Optimizer
-from torchvision.models._api import WeightsEnum
-
-from minerva.utils.utils import func_by_str
-
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
-__copyright__ = "Copyright (C) 2022 Harry Baker"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
     "MinervaModel",
@@ -66,6 +35,37 @@ __all__ = [
     "get_output_shape",
     "bilinear_init",
 ]
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
+import abc
+import os
+from abc import ABC
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    Union,
+    overload,
+)
+
+import numpy as np
+import torch
+from nptyping import NDArray
+from torch import Tensor
+from torch.nn.modules import Module
+from torch.nn.parallel import DataParallel, DistributedDataParallel
+from torch.optim import Optimizer
+from torchvision.models._api import WeightsEnum
+
+from minerva.utils.utils import func_by_str
 
 
 # =====================================================================================================================

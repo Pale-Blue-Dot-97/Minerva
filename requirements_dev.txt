@@ -1,4 +1,4 @@
-git+https://github.com/microsoft/torchgeo
+torchgeo==0.4.0
 pyyaml==6.0
 numpy==1.23.4
 scikit-learn==1.0.2
@@ -41,6 +41,3 @@ tox==3.25.0
 myst_parser==0.18.1
 sphinx-rtd-theme==1.0.0
 internet-sabotage3==0.1.6
-
-protobuf==3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability
-wheel==0.38.4 # not directly required, pinned by Snyk to avoid a vulnerability
