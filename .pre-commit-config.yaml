@@ -36,7 +36,7 @@ repos:
       hooks:
           - id: yamllint
             args: [--format, parsable, --strict]
-            exclude: .github/workflows/
+            exclude: (.github/workflows/*|.circleci/*)
 
     - repo: https://github.com/jumanjihouse/pre-commit-hook-yamlfmt
       rev: 0.2.1  # or other specific tag

@@ -1,37 +1,17 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
+# Ignore everything
+#**
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-pip-wheel-metadata/
-share/python-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
+# ... except for dependencies and source
+#!Pipfile
+#!Pipfile.lock
+#!minerva/
+#!tests/*.py
+#!tests/tmp/data/
+#!inbuilt_cfgs/
+#!*.txt
+#!*.cfg
+#!*.py
+#!*.toml
 
 # Installer logs
 pip-log.txt
@@ -101,15 +81,6 @@ celerybeat-schedule
 # VS Code
 *.code-workspace
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
-
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -130,9 +101,6 @@ dmypy.json
 *.tif
 *.png
 *.gif
-*.ficache
-*.xml
-*.iml
 
 # Exclusions
 !docs/images/*.png
