@@ -19,14 +19,14 @@ jobs:
                   docker_layer_caching: true
             - run:
                   name: Build Docker image
-                  command: docker build . -t minerva:0.13
+                  command: docker build . -t minerva:latest
             - run:
                   name: Make directory for test results
                   command: mkdir -p /tmp/test-results
             - run:
                   name: Run Docker image
                   command: |
-                      docker run --name minerva-runner -t minerva:0.13 \
+                      docker run --name minerva-runner -t minerva:latest \
                       pytest --junitxml=/tmp/test-results/junit.xml --cov-report=lcov:/tmp/test-results/coverage.lcov
 
             - run:
