@@ -31,6 +31,7 @@ __all__ = [
     "MinervaModel",
     "MinervaDataParallel",
     "MinervaBackbone",
+    "get_model",
     "get_torch_weights",
     "get_output_shape",
     "bilinear_init",
