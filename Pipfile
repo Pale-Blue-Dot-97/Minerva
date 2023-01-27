@@ -48,7 +48,7 @@ tox = "==3.25.0"
 myst_parser= "==0.18.1"
 sphinx-rtd-theme = "==1.0.0"
 internet-sabotage3 = "==0.1.6"
-minerva = {editable = true, path = "."}
+# minerva = {editable = true, path = "."}
 
 [requires]
 python_version = "3.10"

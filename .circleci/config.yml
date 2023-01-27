@@ -5,7 +5,6 @@ version: 2.1
 
 # See: https://circleci.com/docs/2.0/orb-intro/
 orbs:
-    python: circleci/python@2.1.1
     coveralls: coveralls/coveralls@1.0.6
 
 jobs:
@@ -13,25 +12,39 @@ jobs:
         # Change the version below to your required version of python
         docker:
             - image: cimg/python:3.10.9-node
+              user: root
         steps:
             - checkout
-            - python/install-packages:
-                  pkg-manager: pipenv
-                  args: --dev -e .
+            - setup_remote_docker:
+                  docker_layer_caching: true
             - run:
-                  name: Run tests
+                  name: Build Docker image
+                  command: docker build . -t minerva:0.13
+            - run:
+                  name: Make directory for test results
+                  command: mkdir -p /tmp/test-results
+            - run:
+                  name: Run Docker image
                   command: |
-                      mkdir test-results
-                      pipenv run pytest --junitxml=test-results/junit.xml --cov-report=lcov:test-results/coverage.lcov
+                      docker run --name minerva-runner -t minerva:0.13 \
+                      pytest --junitxml=/tmp/test-results/junit.xml --cov-report=lcov:/tmp/test-results/coverage.lcov
+
+            - run:
+                  name: Copy test artifacts from container to host
+                  command: |
+                      docker cp minerva-runner:/tmp/test-results/junit.xml /tmp/test-results/junit.xml
+                      docker cp minerva-runner:/tmp/test-results/coverage.lcov /tmp/test-results/coverage.lcov
             - store_test_results:
-                  path: test-results
+                  path: /tmp/test-results
             - store_artifacts:
-                  path: test-results/coverage.lcov
+                  path: /tmp/test-results/coverage.lcov
                   destination: coverage
             - coveralls/upload:
-                  path_to_lcov: test-results/coverage.lcov
+                  path_to_lcov: /tmp/test-results/coverage.lcov
 
 workflows:
     tests:
         jobs:
             - build-and-test
+
+# VS Code Extension Version: 1.5.1
