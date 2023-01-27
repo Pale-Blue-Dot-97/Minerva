@@ -139,12 +139,14 @@ def dec_extent_to_deg(
     new_crs: CRS = WGS84,
     spacing: int = 32,
 ) -> Tuple[Tuple[int, int, int, int], NDArray[Any, Float], NDArray[Any, Float]]:
-    """Gets the extent of the image with ``shape`` and with ``bounds`` in latitude, longitude of system ``new_cs``.
+    """Gets the extent of the image with ``shape`` and with ``bounds`` in latitude, longitude of system ``new_crs``.
 
     Args:
         shape (Tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
         bounds (BoundingBox): Object describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
+        src_crs (CRS): Source co-ordinate reference system (CRS).
+        new_crs (CRS): Optional; The co-ordinate reference system (CRS) to transform to.
         spacing (int): Spacing of the lat - lon ticks.
 
     Returns:
@@ -349,13 +351,15 @@ def labelled_rgb_image(
     Args:
         image (np.ndarray[int]): Array representing the image of shape (height x width x bands).
         mask (np.ndarray[int]): Ground truth mask. Should be of shape (height x width) matching ``image``.
-        path (str): Path to where to save created figure.
-        name (str): Name of figure. Will be used for title and in the filename.
         bounds (BoundingBox): Object describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
+        src_crs (CRS): Source co-ordinate reference system (CRS).
+        path (str): Path to where to save created figure.
+        name (str): Name of figure. Will be used for title and in the filename.
         classes (list[str]): Optional; List of all possible class labels.
-        block_size (int): Optional; Size of block image subdivision in pixels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
+        new_crs (CRS): Optional; The co-ordinate reference system (CRS) to transform to.
+        block_size (int): Optional; Size of block image subdivision in pixels.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
         show (bool): Optional; ``True`` for show figure when plotted. ``False`` if not.
         save (bool): Optional; ``True`` to save figure to file. ``False`` if not.
@@ -474,7 +478,7 @@ def labelled_rgb_image(
 
 
 def make_gif(
-    dates: List[str],
+    dates: Sequence[str],
     images: NDArray[Shape["*, *, *, 3"], Any],  # noqa: F722
     masks: NDArray[Shape["*, *, *"], Any],  # noqa: F722
     bounds: BoundingBox,
@@ -491,8 +495,11 @@ def make_gif(
     """Wrapper to :func:`labelled_rgb_image` to make a GIF for a patch out of scenes.
 
     Args:
+        dates (Sequence[str]): Dates of scenes to be used as the frames in the GIF.
+        src_crs (CRS): Source co-ordinate reference system (CRS).
         gif_name (str): Path to and name of GIF to be made.
         fps (float): Optional; Frames per second of GIF.
+        new_crs (CRS): Optional; The co-ordinate reference system (CRS) to transform to.
         classes (list[str]): Optional; List of all possible class labels.
         cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
         new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
