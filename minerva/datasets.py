@@ -310,12 +310,12 @@ def make_dataset(
 
     def create_transforms(this_transform_params: Any, key: str) -> Optional[Any]:
         # Construct transforms for samples returned from this sub-dataset -- if found.
-        transformations: Optional[Any] = None
+        _transformations: Optional[Any] = None
         if type(this_transform_params) == dict:
             assert this_transform_params is not None
             try:
                 if this_transform_params[key]:
-                    transformations = make_transformations(
+                    _transformations = make_transformations(
                         this_transform_params[key], key=key
                     )
             except (KeyError, TypeError):
@@ -323,25 +323,25 @@ def make_dataset(
         else:
             pass
 
-        return transformations
+        return _transformations
 
     def create_subdataset(
         dataset_class: Callable[..., GeoDataset],
         root: str,
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
-        transformations: Optional[Any],
+        _transformations: Optional[Any],
     ) -> GeoDataset:
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
                 root=root,
-                transforms=transformations,
+                transforms=_transformations,
                 **subdataset_params["params"],
             )
         else:
             return dataset_class(
                 root=root,
-                transforms=transformations,
+                transforms=_transformations,
                 **subdataset_params["params"],
             )
 
