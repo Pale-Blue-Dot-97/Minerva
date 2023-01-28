@@ -291,24 +291,24 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         args (Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
 
-    def run_preamble(gpu: int, args: Namespace) -> None:
+    def run_preamble(gpu: int, _args: Namespace) -> None:
         # Calculates the global rank of this process.
-        args.rank += gpu
+        _args.rank += gpu
 
-        if args.world_size > 1:
+        if _args.world_size > 1:
             dist.init_process_group(  # type: ignore[attr-defined]
                 backend="gloo",
-                init_method=args.dist_url,
-                world_size=args.world_size,
-                rank=args.rank,
+                init_method=_args.dist_url,
+                world_size=_args.world_size,
+                rank=_args.rank,
             )
-            print(f"INITIALISED PROCESS ON {args.rank}")
+            print(f"INITIALISED PROCESS ON {_args.rank}")
 
         if torch.cuda.is_available():
             torch.cuda.set_device(gpu)
             torch.backends.cudnn.benchmark = True  # type: ignore
 
-        run(gpu, args)
+        run(gpu, _args)
 
     if args.world_size <= 1:
         run(0, args)
