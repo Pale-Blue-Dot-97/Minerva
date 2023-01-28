@@ -26,8 +26,8 @@ fine_tune: false
 max_r: 52
 
 # === MODEL IO & LOGGING ======================================================
-logger: STG_Logger
-metrics: SP_Metrics
+logger: STGLogger
+metrics: SPMetrics
 model_io: sup_tg
 
 # === DATASET PARAMETERS ======================================================
