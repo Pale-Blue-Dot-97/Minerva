@@ -12242,6 +12242,60 @@
           "kind": "fail",
           "level": "note",
           "message": {
+            "text": "Lowercase variable imported as non-lowercase",
+            "markdown": "Lowercase variable imported as non-lowercase"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "minerva/models/unet.py",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 50,
+                  "startColumn": 31,
+                  "charOffset": 1913,
+                  "charLength": 1,
+                  "snippet": {
+                    "text": "F"
+                  },
+                  "sourceLanguage": "Python"
+                },
+                "contextRegion": {
+                  "startLine": 48,
+                  "startColumn": 1,
+                  "charOffset": 1869,
+                  "charLength": 100,
+                  "snippet": {
+                    "text": "\nimport torch\nimport torch.nn.functional as F\nimport torch.nn.modules as nn\nfrom torch import Tensor"
+                  }
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "project",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "65725519c05472c1ec4b6469310026a5e9da4bf6eb25ee184236f29ad8716877"
+          },
+          "baselineState": "new",
+          "properties": {
+            "ideaSeverity": "WEAK WARNING",
+            "tags": [
+              "Python"
+            ]
+          }
+        },
+        {
+          "ruleId": "PyPep8NamingInspection",
+          "kind": "fail",
+          "level": "note",
+          "message": {
             "text": "CamelCase variable imported as constant",
             "markdown": "CamelCase variable imported as constant"
           },
@@ -12284,6 +12338,60 @@
             "equalIndicator/v1": "98a8c3c3d6ba3a3924c981c6dd0882faf249d678172e7fd610cfb7704bf8917a"
           },
           "baselineState": "unchanged",
+          "properties": {
+            "ideaSeverity": "WEAK WARNING",
+            "tags": [
+              "Python"
+            ]
+          }
+        },
+        {
+          "ruleId": "PyPep8NamingInspection",
+          "kind": "fail",
+          "level": "note",
+          "message": {
+            "text": "Lowercase variable imported as non-lowercase",
+            "markdown": "Lowercase variable imported as non-lowercase"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "minerva/utils/utils.py",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 151,
+                  "startColumn": 36,
+                  "charOffset": 5251,
+                  "charLength": 1,
+                  "snippet": {
+                    "text": "F"
+                  },
+                  "sourceLanguage": "Python"
+                },
+                "contextRegion": {
+                  "startLine": 149,
+                  "startColumn": 1,
+                  "charOffset": 5149,
+                  "charLength": 171,
+                  "snippet": {
+                    "text": "from tabulate import tabulate\nfrom torch import LongTensor, Tensor\nfrom torch.nn import functional as F\nfrom torch.nn.modules import Module\nfrom torch.types import _device"
+                  }
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "project",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "2d464a2c81685f7916d0f8ad088c43eb0b965d0349d761d33463e4bb86420e02"
+          },
+          "baselineState": "new",
           "properties": {
             "ideaSeverity": "WEAK WARNING",
             "tags": [
