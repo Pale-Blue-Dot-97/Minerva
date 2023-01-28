@@ -12184,6 +12184,60 @@
           }
         },
         {
+          "ruleId": "PyShadowingNamesInspection",
+          "kind": "fail",
+          "level": "note",
+          "message": {
+            "text": "Shadows name 'transform_params' from outer scope",
+            "markdown": "Shadows name 'transform_params' from outer scope"
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "minerva/datasets.py",
+                  "uriBaseId": "SRCROOT"
+                },
+                "region": {
+                  "startLine": 559,
+                  "startColumn": 13,
+                  "charOffset": 21524,
+                  "charLength": 16,
+                  "snippet": {
+                    "text": "transform_params"
+                  },
+                  "sourceLanguage": "Python"
+                },
+                "contextRegion": {
+                  "startLine": 557,
+                  "startColumn": 1,
+                  "charOffset": 21498,
+                  "charLength": 213,
+                  "snippet": {
+                    "text": "\n    Example:\n        >>> transform_params = {\n        >>>    \"CenterCrop\": {\"module\": \"torchvision.transforms\", \"size\": 128},\n        >>>     \"RandomHorizontalFlip\": {\"module\": \"torchvision.transforms\", \"p\": 0.7}"
+                  }
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "project",
+                  "kind": "module"
+                }
+              ]
+            }
+          ],
+          "partialFingerprints": {
+            "equalIndicator/v1": "e73512b1cbf57397dbd1d24889bac79f2f364a29cf40acf64c43d2a1780e1474"
+          },
+          "baselineState": "new",
+          "properties": {
+            "ideaSeverity": "WEAK WARNING",
+            "tags": [
+              "Python"
+            ]
+          }
+        },
+        {
           "ruleId": "PyUnboundLocalVariableInspection",
           "kind": "fail",
           "level": "warning",
