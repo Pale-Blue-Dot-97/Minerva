@@ -220,6 +220,7 @@ class MinervaDataParallel(Module):
 
     Attributes:
         model (Module): PyTorch Model to be wrapped by :class:`DataParallel`.
+        paralleliser (Union[DataParallel, DistributedDataParallel]): The paralleliser to wrap the model in.
 
     Args:
         model (Module): PyTorch Model to be wrapped by :class:`DataParallel`.
@@ -228,12 +229,12 @@ class MinervaDataParallel(Module):
     def __init__(
         self,
         model: Module,
-        Paralleliser: Union[Type[DataParallel], Type[DistributedDataParallel]],
+        paralleliser: Union[Type[DataParallel], Type[DistributedDataParallel]],
         *args,
         **kwargs,
     ) -> None:
         super(MinervaDataParallel, self).__init__()
-        self.model = Paralleliser(model, *args, **kwargs).cuda()
+        self.model = paralleliser(model, *args, **kwargs).cuda()
 
     def forward(self, *input: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
         """Ensures a forward call to the model goes to the actual wrapped model.
@@ -311,19 +312,21 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
 
 def get_output_shape(
     model: Module,
-    image_dim: Union[Tuple[int, ...], List[int], int],
+    image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
 ) -> Union[int, Sequence[int]]:
     """Gets the output shape of a model.
 
     Args:
         model (Module): Model for which the shape of the output needs to be found.
-        image_dim (list[int] or tuple[int, ...]): Expected shape of the input data to the model.
+        image_dim (Union[Sequence[int], int]): Expected shape of the input data to the model.
+        sample_pairs (bool): Optional; Flag for if paired sampling is active.
+            Will send a paired sample through the model.
 
     Returns:
         The shape of the output data from the model.
     """
-    _image_dim: Union[Tuple[int, ...], List[int], int] = image_dim
+    _image_dim: Union[Sequence[int], int] = image_dim
     try:
         assert not isinstance(image_dim, int)
         if len(image_dim) == 1:
