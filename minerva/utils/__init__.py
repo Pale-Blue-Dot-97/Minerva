@@ -57,8 +57,8 @@ from minerva.utils.config_load import universal_path as universal_path  # noqa: 
 #                                                     GLOBALS
 # =====================================================================================================================
 # Objects to hold the config name and path.
-CONFIG_NAME: Optional[str] = None
-CONFIG_PATH: Optional[Path] = None
+CONFIG_NAME: Optional[str]
+CONFIG_PATH: Optional[Path]
 
 MASTER_PARSER = argparse.ArgumentParser(add_help=False)
 MASTER_PARSER.add_argument(
