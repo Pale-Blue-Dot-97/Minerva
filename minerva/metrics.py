@@ -27,8 +27,8 @@ __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "MinervaMetrics",
-    "SP_Metrics",
-    "SSL_Metrics",
+    "SPMetrics",
+    "SSLMetrics",
 ]
 
 # =====================================================================================================================
@@ -155,7 +155,7 @@ class MinervaMetrics(ABC):
         pass  # pragma: no cover
 
 
-class SP_Metrics(MinervaMetrics):
+class SPMetrics(MinervaMetrics):
     """Metric logging for supervised models.
 
     Attributes:
@@ -182,7 +182,7 @@ class SP_Metrics(MinervaMetrics):
         model_type: str = "segmentation",
         **params,
     ) -> None:
-        super(SP_Metrics, self).__init__(
+        super(SPMetrics, self).__init__(
             n_batches, batch_size, data_size, model_type=model_type
         )
 
@@ -248,7 +248,7 @@ class SP_Metrics(MinervaMetrics):
         print(msg)
 
 
-class SSL_Metrics(MinervaMetrics):
+class SSLMetrics(MinervaMetrics):
     """Metric logging for self-supervised models.
 
     Attributes:
@@ -277,7 +277,7 @@ class SSL_Metrics(MinervaMetrics):
         sample_pairs: bool = False,
         **params,
     ) -> None:
-        super(SSL_Metrics, self).__init__(
+        super(SSLMetrics, self).__init__(
             n_batches,
             batch_size,
             data_size,

@@ -12,7 +12,7 @@ from numpy.testing import assert_array_equal
 from torch import Tensor
 from torch.utils.tensorboard.writer import SummaryWriter
 
-from minerva.logger import SSL_Logger, STG_Logger
+from minerva.logger import SSLLogger, STGLogger
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN16ResNet18, SimCLR18
 
@@ -43,7 +43,7 @@ def test_STG_Logger(simple_bbox):
 
     for mode in ("train", "val", "test"):
         for model_type in ("scene_classifier", "segmentation"):
-            logger = STG_Logger(
+            logger = STGLogger(
                 n_batches=n_batches,
                 batch_size=batch_size,
                 n_samples=n_batches * batch_size * patch_size[0] * patch_size[1],
@@ -110,7 +110,7 @@ def test_SSL_Logger(simple_bbox):
 
     for mode in ("train", "val", "test"):
         for extra_metrics in (True, False):
-            logger = SSL_Logger(
+            logger = SSLLogger(
                 n_batches=n_batches,
                 batch_size=batch_size,
                 n_samples=n_batches * batch_size,
