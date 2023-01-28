@@ -926,7 +926,7 @@ def make_confusion_matrix(
         labels (list[int]): Accompanying ground truth labels for testing images.
         classes (dict): Dictionary mapping class labels to class names.
         filename (str): Optional; Name of file to save plot to.
-        cmap_styles (str): Colourmap style to use in the confusion matrix.
+        cmap_style (str): Colourmap style to use in the confusion matrix.
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
 
