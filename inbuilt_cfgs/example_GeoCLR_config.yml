@@ -40,8 +40,8 @@ fine_tune: false
 max_r: 52
 
 # === MODEL IO & LOGGING ======================================================
-logger: SSL_Logger
-metrics: SSL_Metrics
+logger: SSLLogger
+metrics: SSLMetrics
 model_io: ssl_pair_tg
 
 # === DATASET PARAMETERS ======================================================
