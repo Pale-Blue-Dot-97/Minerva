@@ -113,8 +113,6 @@ def ssl_pair_tg(
         model (MinervaModel): Model being fitted.
         device (torch.device): :mod:`torch` device object to send data to (e.g. ``CUDA`` device).
         mode (str): Mode of model fitting to use.
-        dataset (GeoDataset): The same dataset object the `batch` was sampled from,
-            to be used to sample the geo-similar batch.
 
     Returns:
         Tuple[Tensor, Tensor, Tensor, Sequence[BoundingBox]]: The ``loss``, the model output ``z``,
