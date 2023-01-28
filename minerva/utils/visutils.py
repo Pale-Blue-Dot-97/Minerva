@@ -496,15 +496,19 @@ def make_gif(
 
     Args:
         dates (Sequence[str]): Dates of scenes to be used as the frames in the GIF.
+        images (NDArray[Shape[*, *, *, 3], Any]): All the frames of imagery to make the GIF from.
+            Leading dimension must be the same length as ``dates`` and ``masks``.
+        masks (NDArray[Shape[*, *, *, 3], Any]): The masks for each frame of the GIF.
+            Leading dimension must be the same length as ``dates`` and ``image``.
+        bounds (BoundingBox): The bounding box (in the ``src_crs`` CRS) of the patch the GIF will be of.
         src_crs (CRS): Source co-ordinate reference system (CRS).
+        classes (list[str]): List of all possible class labels.
         gif_name (str): Path to and name of GIF to be made.
+        path (Union[Path, str]): Path to where to save frames of the GIF.
+        cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
         fps (float): Optional; Frames per second of GIF.
         new_crs (CRS): Optional; The co-ordinate reference system (CRS) to transform to.
-        classes (list[str]): Optional; List of all possible class labels.
-        cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
-        new_cs(CRS): Optional; Co-ordinate system to convert image to and use for labelling.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
-        save (bool): Optional; True to save figure to file. False if not.
         figdim (tuple): Optional; Figure (height, width) in inches.
 
     Returns:
@@ -922,6 +926,7 @@ def make_confusion_matrix(
         labels (list[int]): Accompanying ground truth labels for testing images.
         classes (dict): Dictionary mapping class labels to class names.
         filename (str): Optional; Name of file to save plot to.
+        cmap_styles (str): Colourmap style to use in the confusion matrix.
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
 
@@ -1252,6 +1257,7 @@ def plot_results(
             each sample. Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
         probs (list or np.ndarray): Optional; Array of probabilistic predicted classes from model where each sample
             should have a list of the predicted probability for each class.
+        embeddings (NDArray[Any, Any]): Embeddings from the model to visualise with TSNE clustering.
         class_names (dict): Optional; Dictionary mapping class labels to class names.
         colours (dict): Optional; Dictionary mapping class labels to colours.
         save (bool): Optional; Whether to save the plots to file.
