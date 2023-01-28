@@ -256,8 +256,7 @@ def get_pair_bboxes(
         bounds (BoundingBox): Maximum bounds of the :term:`tile` to sample pair from.
         size (Union[Tuple[float, float], float]): Size of each :term:`patch`.
         res (float): Resolution to sample :term:`patch` at.
-        r (Tuple[float, float]): ``x`` and ``y`` padding around original :term:`patch`
-            to sample new :term:`patch` from.
+        max_r (float): Padding around original :term:`patch` to sample new :term:`patch` from.
 
     Returns:
         Tuple[BoundingBox, BoundingBox]: Pair of bounding boxes to sample pair of patches from dataset.
