@@ -27,8 +27,8 @@ __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "MinervaLogger",
-    "STG_Logger",
-    "SSL_Logger",
+    "STGLogger",
+    "SSLLogger",
 ]
 
 # =====================================================================================================================
@@ -180,7 +180,7 @@ class MinervaLogger(ABC):
         return self.results
 
 
-class STG_Logger(MinervaLogger):
+class STGLogger(MinervaLogger):
     """Logger designed for supervised learning using `torchgeo` datasets.
 
     Args:
@@ -212,7 +212,7 @@ class STG_Logger(MinervaLogger):
         **kwargs,
     ) -> None:
 
-        super(STG_Logger, self).__init__(
+        super(STGLogger, self).__init__(
             n_batches, batch_size, n_samples, record_int, record_float
         )
 
@@ -348,7 +348,7 @@ class STG_Logger(MinervaLogger):
         self.logs["batch_num"] += 1
 
 
-class SSL_Logger(MinervaLogger):
+class SSLLogger(MinervaLogger):
     """Logger designed for self-supervised learning.
 
     Args:
@@ -375,7 +375,7 @@ class SSL_Logger(MinervaLogger):
         **kwargs,
     ) -> None:
 
-        super(SSL_Logger, self).__init__(
+        super(SSLLogger, self).__init__(
             n_batches, batch_size, n_samples, record_int, record_float=False
         )
 

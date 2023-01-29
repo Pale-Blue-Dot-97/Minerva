@@ -217,6 +217,8 @@ def intersect_datasets(
 
     Args:
         datasets (List[GeoDataset]): List of datasets to intersect together. Should have some geospatial overlap.
+        sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function
+            for paired samples.
 
     Returns:
         IntersectionDataset: Final dataset object representing an intersection of all the parsed datasets.
@@ -246,6 +248,7 @@ def unionise_datasets(
 
     Args:
         datasets (List[GeoDataset]): List of datasets to unionise together.
+        sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function for paired samples.
 
     Returns:
         UnionDataset: Final dataset object representing an union of all the parsed datasets.
@@ -272,13 +275,15 @@ def make_dataset(
     transform_params: Optional[Dict[Any, Any]] = None,
     sample_pairs: bool = False,
 ) -> Tuple[Any, List[Any]]:
-    """Constructs a dataset object from `n` sub-datasets given by the parameters supplied.
+    """Constructs a dataset object from ``n`` sub-datasets given by the parameters supplied.
 
     Args:
         data_directory (Union[Iterable[str], str, Path]): List defining the path to the directory containing the data.
         dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
         transform_params: Optional; Dictionary defining the parameters of the transforms to perform
             when sampling from the dataset.
+        sample_pairs (bool): Optional; True if paired sampling. This will ensure paired samples are handled
+            correctly in the datasets.
 
     Returns:
         Tuple[Any, List[Any]]: Tuple of Dataset object formed by the parameters given and list of
@@ -305,12 +310,12 @@ def make_dataset(
 
     def create_transforms(this_transform_params: Any, key: str) -> Optional[Any]:
         # Construct transforms for samples returned from this sub-dataset -- if found.
-        transformations: Optional[Any] = None
+        _transformations: Optional[Any] = None
         if type(this_transform_params) == dict:
             assert this_transform_params is not None
             try:
                 if this_transform_params[key]:
-                    transformations = make_transformations(
+                    _transformations = make_transformations(
                         this_transform_params[key], key=key
                     )
             except (KeyError, TypeError):
@@ -318,25 +323,25 @@ def make_dataset(
         else:
             pass
 
-        return transformations
+        return _transformations
 
     def create_subdataset(
         dataset_class: Callable[..., GeoDataset],
         root: str,
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
-        transformations: Optional[Any],
+        _transformations: Optional[Any],
     ) -> GeoDataset:
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
                 root=root,
-                transforms=transformations,
+                transforms=_transformations,
                 **subdataset_params["params"],
             )
         else:
             return dataset_class(
                 root=root,
-                transforms=transformations,
+                transforms=_transformations,
                 **subdataset_params["params"],
             )
 
@@ -421,6 +426,10 @@ def construct_dataloader(
             and stack samples from the sampler.
         transform_params: Optional; Dictionary defining the parameters of the transforms to perform
             when sampling from the dataset.
+        rank (int): Optional; The rank of this process for distributed computing.
+        world_size (int): Optional; The total number of processes within a distributed run.
+        sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function
+            for paired samples.
 
     Returns:
         loader (DataLoader): Object to handle the returning of batched samples from the dataset.
@@ -543,6 +552,8 @@ def make_transformations(
     Args:
         transform_params (dict): Parameters defining transforms desired. The name of each transform should be the key,
             while the kwargs for the transform should be the value of that key as a dict.
+        key (str): Optional; Key of the type of data within the sample to be transformed.
+            Must be ``"image"`` or ``"mask"``.
 
     Example:
         >>> transform_params = {

@@ -181,10 +181,10 @@ class Up(Module):
 
         x1 = self.up(x1)
         # input is CHW
-        diffY = x2.size()[2] - x1.size()[2]
-        diffX = x2.size()[3] - x1.size()[3]
+        diffy = x2.size()[2] - x1.size()[2]
+        diffx = x2.size()[3] - x1.size()[3]
 
-        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2, diffY // 2, diffY - diffY // 2])
+        x1 = F.pad(x1, [diffx // 2, diffx - diffx // 2, diffy // 2, diffy - diffy // 2])
 
         # if you have padding issues, see
         # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd

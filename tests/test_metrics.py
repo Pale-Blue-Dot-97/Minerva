@@ -3,11 +3,11 @@ from typing import Dict, List
 
 import pytest
 
-from minerva.metrics import MinervaMetrics, SP_Metrics, SSL_Metrics
+from minerva.metrics import MinervaMetrics, SPMetrics, SSLMetrics
 
 
 def test_minervametrics() -> None:
-    assert issubclass(SP_Metrics, MinervaMetrics)
+    assert issubclass(SPMetrics, MinervaMetrics)
 
 
 def test_sp_metrics() -> None:
@@ -31,10 +31,10 @@ def test_sp_metrics() -> None:
     metric_loggers: List[MinervaMetrics] = []
 
     metric_loggers.append(
-        SP_Metrics(n_batches, 16, (4, 224, 224), model_type="segmentation")
+        SPMetrics(n_batches, 16, (4, 224, 224), model_type="segmentation")
     )
     metric_loggers.append(
-        SP_Metrics(n_batches, 16, (4, 224, 224), model_type="scene_classifier")
+        SPMetrics(n_batches, 16, (4, 224, 224), model_type="scene_classifier")
     )
 
     epochs = [k + 1 for k in range(n_epochs)]
@@ -112,12 +112,12 @@ def test_ssl_metrics() -> None:
 
     metric_loggers: List[MinervaMetrics] = []
     metric_loggers.append(
-        SSL_Metrics(
+        SSLMetrics(
             n_batches, 16, (4, 224, 224), model_type="segmentation", sample_pairs=True
         )
     )
     metric_loggers.append(
-        SSL_Metrics(
+        SSLMetrics(
             n_batches,
             16,
             (4, 224, 224),
