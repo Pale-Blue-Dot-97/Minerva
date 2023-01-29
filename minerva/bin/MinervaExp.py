@@ -43,6 +43,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 import argparse
 
 import argcomplete
+import wandb
 
 from minerva.trainer import Trainer
 from minerva.utils import CONFIG, runner
@@ -73,6 +74,9 @@ if __name__ == "__main__":
 
     # Export args from CLI.
     cli_args = parser.parse_args()
+
+    # Initialise Weights and Biases.
+    wandb.init(project=cli_args.project_name)
 
     # Configure the arguments and environment variables.
     runner.config_args(cli_args)
