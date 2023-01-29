@@ -7,7 +7,7 @@ from minerva.utils import CONFIG, runner
 
 
 def test_config_env_vars():
-    args, _ = runner.generic_parser.parse_known_args()
+    args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args.ngpus_per_node = 1
 
@@ -28,7 +28,7 @@ def test_config_env_vars():
 
 
 def test_config_args():
-    args, _ = runner.generic_parser.parse_known_args()
+    args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args_dict = vars(args)
 
@@ -48,7 +48,7 @@ def test_distributed_run():
     def run(*args):
         pass
 
-    args, _ = runner.generic_parser.parse_known_args()
+    args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args = runner.config_args(args)
 
