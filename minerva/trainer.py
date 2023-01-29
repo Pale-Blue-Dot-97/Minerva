@@ -38,6 +38,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Uni
 import pandas as pd
 import torch
 import torch.distributed as dist
+import wandb
 import yaml
 from alive_progress import alive_bar  # , alive_it
 from inputimeout import TimeoutOccurred, inputimeout
@@ -199,6 +200,12 @@ class Trainer:
         self.make_optimiser()
 
         if self.gpu == 0:
+            wandb.config = {
+                "learning_rate": params["hyperparams"]["optim_params"]["params"]["lr"],
+                "epochs": params["hyperparams"]["max_epochs"],
+                "batch_size": self.batch_size,
+            }
+
             # Determines the input size of the model.
             input_size = self.get_input_size()
 
