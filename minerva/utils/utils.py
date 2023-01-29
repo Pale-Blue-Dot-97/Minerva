@@ -235,7 +235,7 @@ def return_updated_kwargs(
     def wrapper(*args, **kwargs):
         results = func(*args, **kwargs)
         kwargs.update(results[-1])
-        return (*results[:-1], kwargs)
+        return *results[:-1], kwargs
 
     return wrapper
 

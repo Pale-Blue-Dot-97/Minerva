@@ -21,8 +21,8 @@ balance: true
 patch_size: &patch_size [224, 224]
 
 # === MODEL IO & LOGGING ======================================================
-logger: STG_Logger
-metrics: SP_Metrics
+logger: STGLogger
+metrics: SPMetrics
 model_io: sup_tg
 
 # === DATASET PARAMETERS ======================================================

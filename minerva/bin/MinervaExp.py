@@ -72,10 +72,10 @@ if __name__ == "__main__":
     # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
 
     # Export args from CLI.
-    args = parser.parse_args()
+    cli_args = parser.parse_args()
 
     # Configure the arguments and environment variables.
-    runner.config_args(args)
+    runner.config_args(cli_args)
 
     # Run the specified main with distributed computing and the arguments provided.
-    runner.distributed_run(main, args)
+    runner.distributed_run(main, cli_args)

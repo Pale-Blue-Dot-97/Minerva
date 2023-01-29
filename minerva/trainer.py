@@ -186,7 +186,7 @@ class Trainer:
         }
 
         # Initialise the metric logger and model IO for the experiment.
-        self.make_metric_logger()
+        self.metric_logger = self.make_metric_logger()
         self.modelio_func = self.get_io_func()
 
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
@@ -328,25 +328,27 @@ class Trainer:
             optimiser(self.model.parameters(), **optimiser_params["params"])
         )
 
-    def make_metric_logger(self) -> None:
+    def make_metric_logger(self) -> MinervaMetrics:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
 
         # Gets the size of the input data to the network (without batch dimension).
         data_size = self.params["hyperparams"]["model_params"]["input_size"]
 
         # Gets constructor of the metric logger from name in the config.
-        metric_logger: Callable[..., Any] = utils.func_by_str(
+        _metric_logger: Callable[..., Any] = utils.func_by_str(
             "minerva.metrics", self.params["metrics"]
         )
 
         # Initialises the metric logger with arguments.
-        self.metric_logger: MinervaMetrics = metric_logger(
+        metric_logger: MinervaMetrics = _metric_logger(
             self.n_batches,
             batch_size=self.batch_size,
             data_size=data_size,
             model_type=self.params["model_type"],
             sample_pairs=self.params["sample_pairs"],
         )
+
+        return metric_logger
 
     def get_logger(self) -> Callable[..., Any]:
         """Creates an object to log the results from each step of model fitting during an epoch.
