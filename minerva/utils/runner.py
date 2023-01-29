@@ -172,6 +172,13 @@ generic_parser.add_argument(
     help="Plot the results from the final validation epoch.",
 )
 
+generic_parser.add_argument(
+    "--project_name",
+    dest="project_name",
+    type=str,
+    help="Name of the Weights and Biases project this experiment belongs to.",
+)
+
 
 # =====================================================================================================================
 #                                                     METHODS
