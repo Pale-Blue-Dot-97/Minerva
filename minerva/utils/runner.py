@@ -31,7 +31,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
-    "generic_parser",
+    "GENERIC_PARSER",
     "config_env_vars",
     "config_args",
     "distributed_run",
@@ -57,16 +57,16 @@ from minerva.utils import CONFIG, MASTER_PARSER, utils
 #                                                     GLOBALS
 # =====================================================================================================================
 # ---+ CLI +--------------------------------------------------------------+
-generic_parser = argparse.ArgumentParser(parents=[MASTER_PARSER])
+GENERIC_PARSER = argparse.ArgumentParser(parents=[MASTER_PARSER])
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--seed",
     type=int,
     default=42,
     help="Set seed number",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--model-name",
     dest="model_name",
     type=str,
@@ -75,53 +75,53 @@ generic_parser.add_argument(
     + " Sub-string past hyphen can be used to differeniate between versions.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--model-type",
     dest="model_type",
     type=str,
     help="Type of model. Should be 'segmentation', 'scene_classifier', 'siamese' or 'mlp'",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--pre-train",
     action="store_true",
     help="Sets experiment type to pre-train. Will save model to cache at end of training.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--fine-tune",
     action="store_true",
     help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--eval",
     action="store_true",
     help="Sets experiment type to pre-train. Will save model to cache at end of training.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--balance",
     action="store_true",
     help="Activates class balancing."
     + " Depending on `model_type`, this will either be via sampling or weighting of the loss function.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--class-elim",
     dest="elim",
     action="store_true",
     help="Eliminates classes that are specified in config but not present in the data.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--sample-pairs",
     dest="sample_pairs",
     action="store_true",
     help="Use paired sampling. E.g. For Siamese models.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--save-model",
     dest="save_model",
     type=str,
@@ -132,7 +132,7 @@ generic_parser.add_argument(
     + " 'false' will not save the model and will not ask the user at runtime.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--run-tensorboard",
     dest="run_tensorboard",
     type=str,
@@ -143,14 +143,14 @@ generic_parser.add_argument(
     + " 'false' will not save the model and will not ask the user at runtime.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--save-plots-no",
     dest="save",
     action="store_false",
     help="Plots created will not be saved to file.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--show-plots",
     dest="show",
     action="store_true",
@@ -158,21 +158,21 @@ generic_parser.add_argument(
     + " Warning: Do not use with a terminal-less operation, e.g. SLURM.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--print-dist",
     dest="p_dist",
     action="store_true",
     help="Print the distribution of classes within the data to `stdout`.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--plot-last-epoch",
     dest="plot_last_epoch",
     action="store_true",
     help="Plot the results from the final validation epoch.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--project_name",
     dest="project_name",
     type=str,
