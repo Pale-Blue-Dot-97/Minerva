@@ -187,6 +187,13 @@ GENERIC_PARSER.add_argument(
     help="The Weights and Biases entity to send runs to.",
 )
 
+GENERIC_PARSER.add_argument(
+    "--wandb-log-all",
+    dest="log-all",
+    action="store_true",
+    help="Will log each process on Weights and Biases. Otherwise, logging will be performed from the master process.",
+)
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
