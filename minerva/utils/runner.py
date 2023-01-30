@@ -177,7 +177,7 @@ GENERIC_PARSER.add_argument(
 
 GENERIC_PARSER.add_argument(
     "--project_name",
-    dest="project_name",
+    dest="project",
     type=str,
     help="Name of the Weights and Biases project this experiment belongs to.",
 )
@@ -191,7 +191,7 @@ GENERIC_PARSER.add_argument(
 
 GENERIC_PARSER.add_argument(
     "--wandb-log-all",
-    dest="log-all",
+    dest="log_all",
     action="store_true",
     help="Will log each process on Weights and Biases. Otherwise, logging will be performed from the master process.",
 )
@@ -229,21 +229,26 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
         Optional[Union[Run, RunDisabled]]: The :mod:`wandb` run object for this process
             or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
-    run: Optional[Union[Run, RunDisabled]]
-    if args.log_all and args.world_size > 1:
-        run = wandb.init(
-            entity=args.entity,
-            project=args.project,
-            group="DDP",
-        )
-    else:
-        if gpu == 0:
+    run: Optional[Union[Run, RunDisabled]] = None
+    try:
+        if args.log_all and args.world_size > 1:
             run = wandb.init(
                 entity=args.entity,
                 project=args.project,
+                group="DDP",
             )
         else:
-            run = None
+            if gpu == 0:
+                run = wandb.init(
+                    entity=args.entity,
+                    project=args.project,
+                )
+    except wandb.UsageError:
+        print(
+            "wandb API Key has not been inited.", 
+            "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.", 
+            "\nOr if not using wandb, safely ignore this message."
+        )
 
     return run
 
