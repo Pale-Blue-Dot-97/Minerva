@@ -49,6 +49,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchinfo import summary
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
@@ -101,8 +103,12 @@ class Trainer:
         rank: int = 0,
         world_size: int = 1,
         verbose: bool = True,
+        wandb_run: Optional[Union[Run, RunDisabled]] = None,
         **params: Dict[str, Any],
     ) -> None:
+        # Sets the `wandb` run object (or None).
+        self.wandb_run = wandb_run
+
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
         loaders, n_batches, class_dist, new_params = make_loaders(
             rank, world_size, **params

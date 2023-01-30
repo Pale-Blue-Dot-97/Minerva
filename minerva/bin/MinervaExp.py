@@ -52,7 +52,13 @@ from minerva.utils import CONFIG, runner
 #                                                      MAIN
 # =====================================================================================================================
 def main(gpu: int, args) -> None:
-    trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **CONFIG)
+    trainer = Trainer(
+        gpu=gpu,
+        rank=args.rank,
+        world_size=args.world_size,
+        wandb_run=args.wand_run,
+        **CONFIG
+    )
 
     if not CONFIG["eval"]:
         trainer.fit()
