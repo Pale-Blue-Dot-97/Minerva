@@ -50,6 +50,7 @@ from typing import Any, Callable, Optional
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import wandb
 
 from minerva.utils import CONFIG, MASTER_PARSER, utils
 
@@ -179,6 +180,12 @@ GENERIC_PARSER.add_argument(
     help="Name of the Weights and Biases project this experiment belongs to.",
 )
 
+GENERIC_PARSER.add_argument(
+    "--wandb-entity",
+    dest="entity",
+    type=str,
+    help="The Weights and Biases entity to send runs to.",
+)
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -322,6 +329,7 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
 
     else:
         try:
+            wandb.setup()
             mp.spawn(run_preamble, (args,), args.ngpus_per_node)  # type: ignore[attr-defined]
         except KeyboardInterrupt:
             dist.destroy_process_group()  # type: ignore[attr-defined]
