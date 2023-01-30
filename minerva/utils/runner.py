@@ -45,12 +45,14 @@ import os
 import signal
 import subprocess
 from argparse import Namespace
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 import wandb
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
 from minerva.utils import CONFIG, MASTER_PARSER, utils
 
@@ -208,6 +210,44 @@ def _handle_sigterm(signum, frame) -> None:
     pass
 
 
+def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisabled]]:
+    """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
+
+    .. note::
+        ``args`` must contain these keys:
+            * ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
+                Only log on the master process if ``False``.
+            * ``entity`` (str): :mod:`wandb` entity where to send runs to.
+            * ``project`` (str): Name of the :mod:`wandb` project this experiment belongs to.
+            * ``world_size`` (int): Total number of processes across the experiment.
+
+    Args:
+        gpu (int): Local process (GPU) number.
+        args (Namespace): CLI arguments from :mod:`argparse`.
+
+    Returns:
+        Optional[Union[Run, RunDisabled]]: The :mod:`wandb` run object for this process
+            or ``None`` if ``log_all=False`` and ``rank!=0``.
+    """
+    run: Optional[Union[Run, RunDisabled]]
+    if args.log_all and args.world_size > 1:
+        run = wandb.init(
+            entity=args.entity,
+            project=args.project,
+            group="DDP",
+        )
+    else:
+        if gpu == 0:
+            run = wandb.init(
+                entity=args.entity,
+                project=args.project,
+            )
+        else:
+            run = None
+
+    return run
+
+
 def config_env_vars(args: Namespace) -> Namespace:
     """Finds SLURM environment variables (if they exist) and configures args accordingly.
 
@@ -316,6 +356,9 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         # Calculates the global rank of this process.
         _args.rank += gpu
 
+        # Setups the `wandb` run for this process.
+        _args.wand_run = setup_wandb_run(gpu, _args)
+
         if _args.world_size > 1:
             dist.init_process_group(  # type: ignore[attr-defined]
                 backend="gloo",
@@ -329,14 +372,18 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
             torch.cuda.set_device(gpu)
             torch.backends.cudnn.benchmark = True  # type: ignore
 
+        # Start this this process run.
         run(gpu, _args)
 
     if args.world_size <= 1:
+        # Setups up the `wandb` run.
+        args.wandb_run = setup_wandb_run(0, args)
+
+        # Run the experiment.
         run(0, args)
 
     else:
         try:
-            wandb.setup()
             mp.spawn(run_preamble, (args,), args.ngpus_per_node)  # type: ignore[attr-defined]
         except KeyboardInterrupt:
             dist.destroy_process_group()  # type: ignore[attr-defined]
