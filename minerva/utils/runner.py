@@ -253,6 +253,7 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
                         entity=args.entity,
                         project=args.project,
                     )
+            args.wandb_log = True
         except wandb.UsageError:
             print(
                 "wandb API Key has not been inited.",
