@@ -37,7 +37,7 @@ __all__ = [
 import abc
 import math
 from abc import ABC
-from typing import Any, Dict, Optional, SupportsFloat, Tuple
+from typing import Any, Dict, Optional, SupportsFloat, Tuple, Union
 
 import mlflow
 import numpy as np
@@ -46,6 +46,7 @@ from sklearn.metrics import jaccard_score
 from torch import Tensor
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchgeo.datasets.utils import BoundingBox
+from wandb.sdk.wandb_run import Run
 
 from minerva.utils import utils
 
@@ -71,9 +72,11 @@ class MinervaLogger(ABC):
         batch_size (int): Size of the batch.
         n_samples (int): Total number of samples in the epoch.
         record_int (bool): Optional; Whether to record the integer values from an epoch of model fitting.
-            Defaults to True.
+            Defaults to ``True``.
         record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
-            Defaults to False.
+            Defaults to ``False``.
+        writer (Union[SummaryWriter, Run]): Optional; Writer object from :mod:`tensorboard`,
+            a :mod:`wandb` :class:`Run` object or ``None``.
     """
 
     __metaclass__ = abc.ABCMeta
@@ -85,6 +88,7 @@ class MinervaLogger(ABC):
         n_samples: int,
         record_int: bool = True,
         record_float: bool = False,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
 
@@ -94,33 +98,29 @@ class MinervaLogger(ABC):
         self.n_batches = n_batches
         self.batch_size = batch_size
         self.n_samples = n_samples
-        self.writer: Optional[SummaryWriter] = None
+        self.writer = writer
 
         self.logs: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}
 
-    def __call__(
-        self, mode: str, step_num: int, writer: SummaryWriter, loss: Tensor, *args
-    ) -> None:
+    def __call__(self, mode: str, step_num: int, loss: Tensor, *args) -> None:
         """Call :func:`log`.
 
         Args:
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
-            writer (SummaryWriter): Writer object from `tensorboard`.
             loss (Tensor): Loss from this step of model fitting.
 
         Returns:
             None
         """
-        self.log(mode, step_num, writer, loss, *args)
+        self.log(mode, step_num, loss, *args)
 
     @abc.abstractmethod
     def log(
         self,
         mode: str,
         step_num: int,
-        writer: SummaryWriter,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
@@ -133,7 +133,6 @@ class MinervaLogger(ABC):
         Args:
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
-            writer (SummaryWriter): Writer object from `tensorboard`.
             loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Optional; Output tensor from the model.
             y (Tensor): Optional; Labels to assess model output against.
@@ -150,11 +149,14 @@ class MinervaLogger(ABC):
         """Write metric values to logging backends after calculation"""
         # TODO: Are values being reduced across nodes / logged from rank 0?
         if self.writer:
-            self.writer.add_scalar(
-                tag=key,
-                scalar_value=value,  # type: ignore[attr-defined]
-                global_step=step_num,
-            )
+            if isinstance(self.writer, SummaryWriter):
+                self.writer.add_scalar(
+                    tag=key,
+                    scalar_value=value,  # type: ignore[attr-defined]
+                    global_step=step_num,
+                )
+            elif isinstance(self.writer, Run):
+                self.writer.log({key: value}, step_num)
 
         if mlflow.active_run():
             # If running in Azure Machine Learning, tracking URI / experiment ID set already
@@ -193,6 +195,8 @@ class STGLogger(MinervaLogger):
             Defaults to True.
         record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
             Defaults to False.
+        writer (Union[SummaryWriter, Run]): Optional; Writer object from :mod:`tensorboard`,
+            a :mod:`wandb` :class:`Run` object or ``None``.
 
     Raises:
         MemoryError: If trying to allocate memory to hold the probabilites of predictions
@@ -209,11 +213,17 @@ class STGLogger(MinervaLogger):
         n_classes: int,
         record_int: bool = True,
         record_float: bool = False,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
 
         super(STGLogger, self).__init__(
-            n_batches, batch_size, n_samples, record_int, record_float
+            n_batches,
+            batch_size,
+            n_samples,
+            record_int,
+            record_float,
+            writer,
         )
 
         self.logs: Dict[str, Any] = {
@@ -268,7 +278,6 @@ class STGLogger(MinervaLogger):
         self,
         mode: str,
         step_num: int,
-        writer: SummaryWriter,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
@@ -281,7 +290,6 @@ class STGLogger(MinervaLogger):
         Args:
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
-            writer (SummaryWriter): Writer object from `tensorboard`.
             loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Output tensor from the model.
             y (Tensor): Labels to assess model output against.
@@ -293,10 +301,6 @@ class STGLogger(MinervaLogger):
 
         assert z is not None
         assert y is not None
-
-        # TODO - consider a deeper change where trainer accesses the writer through the logger
-        # Worth reading through how `timm` handles tf/wandb/other logging
-        self.writer = writer
 
         if self.record_int:
             # Arg max the estimated probabilities and add to predictions.
@@ -361,6 +365,8 @@ class SSLLogger(MinervaLogger):
             Defaults to True.
         record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
             Defaults to False.
+        writer (Union[SummaryWriter, Run]): Optional; Writer object from :mod:`tensorboard`,
+            a :mod:`wandb` :class:`Run` object or ``None``.
     """
 
     def __init__(
@@ -372,11 +378,17 @@ class SSLLogger(MinervaLogger):
         n_classes: Optional[int] = None,
         record_int: bool = True,
         record_float: bool = False,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
 
         super(SSLLogger, self).__init__(
-            n_batches, batch_size, n_samples, record_int, record_float=False
+            n_batches,
+            batch_size,
+            n_samples,
+            record_int,
+            record_float=False,
+            writer=writer,
         )
 
         self.logs: Dict[str, Any] = {
@@ -400,7 +412,6 @@ class SSLLogger(MinervaLogger):
         self,
         mode: str,
         step_num: int,
-        writer: SummaryWriter,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
@@ -413,15 +424,12 @@ class SSLLogger(MinervaLogger):
         Args:
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
-            writer (SummaryWriter): Writer object from `tensorboard`.
             loss (Tensor): Loss from this step of model fitting.
             z (Tensor): Optional; Output tensor from the model.
             y (Tensor): Optional; Labels to assess model output against.
             bbox (BoundingBox): Optional; Bounding boxes of the input samples.
         """
         assert z is not None
-
-        self.writer = writer
 
         # Adds the loss for this step to the logs.
         ls = loss.item()
