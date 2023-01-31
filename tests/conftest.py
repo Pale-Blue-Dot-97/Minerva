@@ -124,3 +124,9 @@ def default_dataset() -> GeoDataset:
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
     assert isinstance(dataset, GeoDataset)
     return dataset
+
+
+@pytest.fixture(scope="session", autouse=True)
+def wandb_offline():
+    yield os.system("wandb offline")  # nosec B605, B607
+    os.system("wandb online")  # nosec B605, B607
