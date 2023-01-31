@@ -106,8 +106,8 @@ class Trainer:
         wandb_run: Optional[Union[Run, RunDisabled]] = None,
         **params: Dict[str, Any],
     ) -> None:
-        # Sets the `wandb` run object (or None).
-        self.wandb_run = wandb_run
+
+        assert not isinstance(wandb_run, RunDisabled)
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
         loaders, n_batches, class_dist, new_params = make_loaders(
@@ -147,6 +147,14 @@ class Trainer:
 
         self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
         results_dir = self.params["dir"]["results"] / self.params["exp_name"]
+
+        self.writer: Optional[Union[SummaryWriter, Run]] = None
+        if params.get("wandb_log", False):
+            # Sets the `wandb` run object (or None).
+            self.writer = wandb_run
+        else:
+            # Initialise TensorBoard logger
+            self.writer = SummaryWriter(results_dir)
 
         # Path to experiment directory and experiment name.
         self.exp_fn = results_dir / self.params["exp_name"]
@@ -199,15 +207,12 @@ class Trainer:
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
         self.step_num = {mode: 0 for mode in self.modes}
 
-        # Initialise TensorBoard logger
-        self.writer = SummaryWriter(results_dir)
-
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
 
         if self.gpu == 0:
-            if self.wandb_run:
-                self.wandb_run.config.update(params)
+            if isinstance(self.writer, Run):
+                self.writer.config.update(params)
 
             # Determines the input size of the model.
             input_size = self.get_input_size()
@@ -216,12 +221,7 @@ class Trainer:
                 # Print model summary.
                 summary(self.model, input_size=input_size)
 
-            # Adds a graphical layout of the model to the TensorBoard logger.
-            self.writer.add_graph(
-                self.model, input_to_model=torch.rand(*input_size, device=self.device)
-            )
-
-            if torch.cuda.device_count() == 1 or self.device == torch.device("cpu"):  # type: ignore[attr-defined]
+            if (torch.cuda.device_count() == 1 or self.device == torch.device("cpu")) and isinstance(self.writer, SummaryWriter):  # type: ignore[attr-defined]
                 # Adds a graphical layout of the model to the TensorBoard logger.
                 try:
                     self.writer.add_graph(
@@ -231,6 +231,10 @@ class Trainer:
                 except RuntimeError as err:
                     print(err)
                     print("ABORT adding graph to writer")
+
+        # If writer is `wandb`, `watch` the model to log gradients.
+        if isinstance(self.writer, Run):
+            self.writer.watch(self.model)
 
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
@@ -786,8 +790,12 @@ class Trainer:
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
-        # Ensure the TensorBoard logger is closed.
-        self.writer.close()
+        if isinstance(self.writer, SummaryWriter):
+            # Ensure the TensorBoard logger is closed.
+            self.writer.close()
+        elif isinstance(self.writer, Run):
+            # Ensures all the `wandb` runs finish and sync.
+            self.writer.finish()
 
         if self.gpu == 0:
             self.print("\nSAVING EXPERIMENT CONFIG TO FILE")
