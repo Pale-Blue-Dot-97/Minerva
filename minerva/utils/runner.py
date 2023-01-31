@@ -50,10 +50,10 @@ from typing import Any, Callable, Optional, Union
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.utils import CONFIG, MASTER_PARSER, utils
 
 # =====================================================================================================================
@@ -176,6 +176,13 @@ GENERIC_PARSER.add_argument(
 )
 
 GENERIC_PARSER.add_argument(
+    "--wandb-log",
+    dest="wandb_log",
+    action="store_true",
+    help="Activate Weights and Biases logging.",
+)
+
+GENERIC_PARSER.add_argument(
     "--project_name",
     dest="project",
     type=str,
@@ -201,7 +208,8 @@ GENERIC_PARSER.add_argument(
 # =====================================================================================================================
 def _handle_sigusr1(signum, frame) -> None:
     subprocess.Popen(  # nosec B602
-        f'scontrol requeue {os.getenv("SLURM_JOB_ID")}', shell=True
+        f'scontrol requeue {os.getenv("SLURM_JOB_ID")}',
+        shell=True,
     )
     exit()
 
@@ -215,6 +223,7 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
 
     .. note::
         ``args`` must contain these keys:
+            * ``wandb_log`` (bool): Activate :mod:`wandb` logging.
             * ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
                 Only log on the master process if ``False``.
             * ``entity`` (str): :mod:`wandb` entity where to send runs to.
@@ -230,25 +239,28 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
             or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
     run: Optional[Union[Run, RunDisabled]] = None
-    try:
-        if args.log_all and args.world_size > 1:
-            run = wandb.init(
-                entity=args.entity,
-                project=args.project,
-                group="DDP",
-            )
-        else:
-            if gpu == 0:
+    if args.wandb_log or args.project:
+        try:
+            if args.log_all and args.world_size > 1:
                 run = wandb.init(
                     entity=args.entity,
                     project=args.project,
+                    group="DDP",
                 )
-    except wandb.UsageError:
-        print(
-            "wandb API Key has not been inited.", 
-            "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.", 
-            "\nOr if not using wandb, safely ignore this message."
-        )
+            else:
+                if gpu == 0:
+                    run = wandb.init(
+                        entity=args.entity,
+                        project=args.project,
+                    )
+        except wandb.UsageError:
+            print(
+                "wandb API Key has not been inited.",
+                "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.",
+                "\nOr if not using wandb, safely ignore this message.",
+            )
+    else:
+        print("Weights and Biases logging OFF")
 
     return run
 
@@ -362,7 +374,7 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         _args.rank += gpu
 
         # Setups the `wandb` run for this process.
-        _args.wand_run = setup_wandb_run(gpu, _args)
+        _args.wandb_run = setup_wandb_run(gpu, _args)
 
         if _args.world_size > 1:
             dist.init_process_group(  # type: ignore[attr-defined]
