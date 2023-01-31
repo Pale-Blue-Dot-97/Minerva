@@ -39,10 +39,15 @@ def test_trainer_1() -> None:
         args.world_size = torch.cuda.device_count()
         args.ngpus_per_node = args.world_size
         args.distributed = True
+        args.log_all = False
+        args.entity = None
+        args.project = "pytest"
+        args.wandb_log = True
         runner.distributed_run(run_trainer, args)
 
     else:
         args.gpu = 0
+        args.wandb_run = None
         run_trainer(args.gpu, args)
 
 
