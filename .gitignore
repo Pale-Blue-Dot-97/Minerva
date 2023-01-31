@@ -137,6 +137,9 @@ dmypy.json
 *.xml
 *.iml
 
+# Weights and Biases stuff
+/wandb
+
 # Exclusions
 !docs/images/*.png
 !tests/tmp/data/test_images/*.tif
