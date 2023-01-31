@@ -449,7 +449,7 @@ class Trainer:
                     dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                     results = (loss, *results[1:])
 
-                epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
+                epoch_logger.log(mode, self.step_num[mode], *results)
 
                 self.step_num[mode] += 1
 
