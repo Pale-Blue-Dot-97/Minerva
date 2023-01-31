@@ -206,6 +206,9 @@ class Trainer:
         self.make_optimiser()
 
         if self.gpu == 0:
+            if self.wandb_run:
+                self.wandb_run.config.update(params)
+
             # Determines the input size of the model.
             input_size = self.get_input_size()
 
