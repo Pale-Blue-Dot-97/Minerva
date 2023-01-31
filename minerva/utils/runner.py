@@ -20,7 +20,7 @@
 """Module to handle generic functionality for running :mod:`minerva` scripts.
 
 Attributes:
-    generic_parser (ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
+    GENERIC_PARSER (ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
         Can be used as the basis for a user defined extended argparser.
 """
 # =====================================================================================================================
