@@ -239,21 +239,21 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
             or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
     run: Optional[Union[Run, RunDisabled]] = None
-    if args.wandb_log or args.project:
+    if CONFIG.get("wandb_log", False) or CONFIG.get("project", None):
         try:
-            if args.log_all and args.world_size > 1:
+            if CONFIG.get("log_all", False) and args.world_size > 1:
                 run = wandb.init(
-                    entity=args.entity,
-                    project=args.project,
-                    group="DDP",
+                    entity=CONFIG.get("entity", None),
+                    project=CONFIG.get("project", None),
+                    group=CONFIG.get("group", "DDP"),
                 )
             else:
                 if gpu == 0:
                     run = wandb.init(
-                        entity=args.entity,
-                        project=args.project,
+                        entity=CONFIG.get("entity", None),
+                        project=CONFIG.get("project", None),
                     )
-            args.wandb_log = True
+            CONFIG["wandb_log"] = True
         except wandb.UsageError:
             print(
                 "wandb API Key has not been inited.",
