@@ -25,6 +25,11 @@ pre_train: false
 fine_tune: false
 max_r: 52
 
+# === WANDB LOGGING ===========================================================
+wandb_log: true
+project: pytest
+wandb_dir: /home/harry/wandb/
+
 # === MODEL IO & LOGGING ======================================================
 logger: STGLogger
 metrics: SPMetrics
