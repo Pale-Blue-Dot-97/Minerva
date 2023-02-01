@@ -197,6 +197,14 @@ GENERIC_PARSER.add_argument(
 )
 
 GENERIC_PARSER.add_argument(
+    "--wandb-dir",
+    dest="wandb_dir",
+    type=str,
+    default="./wandb",
+    help="Where to store the Weights and Biases logs locally.",
+)
+
+GENERIC_PARSER.add_argument(
     "--wandb-log-all",
     dest="log_all",
     action="store_true",
@@ -246,12 +254,14 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
                     entity=CONFIG.get("entity", None),
                     project=CONFIG.get("project", None),
                     group=CONFIG.get("group", "DDP"),
+                    dir=CONFIG.get("wandb_dir", None),
                 )
             else:
                 if gpu == 0:
                     run = wandb.init(
                         entity=CONFIG.get("entity", None),
                         project=CONFIG.get("project", None),
+                        dir=CONFIG.get("wandb_dir", None),
                     )
             CONFIG["wandb_log"] = True
         except wandb.UsageError:
