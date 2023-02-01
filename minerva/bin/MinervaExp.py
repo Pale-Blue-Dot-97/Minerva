@@ -56,7 +56,7 @@ def main(gpu: int, args) -> None:
         gpu=gpu,
         rank=args.rank,
         world_size=args.world_size,
-        wandb_run=args.wand_run,
+        wandb_run=args.wandb_run,
         **CONFIG
     )
 
