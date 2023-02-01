@@ -23,7 +23,7 @@ patch_size = (32, 32)
 n_classes = 8
 
 
-def test_STG_Logger(simple_bbox):
+def test_STGLogger(simple_bbox):
     criterion = nn.CrossEntropyLoss()
 
     path = Path(tempfile.gettempdir(), "exp1")
@@ -52,6 +52,7 @@ def test_STG_Logger(simple_bbox):
                 record_int=True,
                 record_float=True,
                 model_type=model_type,
+                writer=writer,
             )
             data: List[Dict[str, Union[Tensor, List[Any]]]] = []
             for i in range(n_batches):
@@ -65,7 +66,7 @@ def test_STG_Logger(simple_bbox):
                 }
                 data.append(batch)
 
-                logger(mode, i, writer, *sup_tg(batch, model, device=device, mode=mode))
+                logger(mode, i, *sup_tg(batch, model, device=device, mode=mode))
 
             logs = logger.get_logs
             assert logs["batch_num"] == n_batches
@@ -94,7 +95,7 @@ def test_STG_Logger(simple_bbox):
     shutil.rmtree(path, ignore_errors=True)
 
 
-def test_SSL_Logger(simple_bbox):
+def test_SSLLogger(simple_bbox):
     criterion = NTXentLoss(0.5)
 
     path = Path(tempfile.gettempdir(), "exp2")
@@ -118,6 +119,7 @@ def test_SSL_Logger(simple_bbox):
                 record_float=True,
                 collapse_level=extra_metrics,
                 euclidean=extra_metrics,
+                writer=writer,
             )
             data = []
             for i in range(n_batches):
@@ -132,7 +134,6 @@ def test_SSL_Logger(simple_bbox):
                 logger(
                     mode,
                     i,
-                    writer,
                     *ssl_pair_tg((batch, batch), model, device=device, mode=mode),
                 )
 
