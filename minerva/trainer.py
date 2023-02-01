@@ -147,6 +147,9 @@ class Trainer:
         self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
         results_dir = self.params["dir"]["results"] / self.params["exp_name"]
 
+        # Makes a directory for this experiment.
+        utils.mkexpdir(self.params["exp_name"])
+
         self.writer: Optional[Union[SummaryWriter, Run]] = None
         if params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
