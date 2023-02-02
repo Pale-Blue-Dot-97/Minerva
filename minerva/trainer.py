@@ -160,6 +160,7 @@ class Trainer:
         if params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
             self.writer = wandb_run
+            self.init_wandb_metrics()
         else:
             # Initialise TensorBoard logger
             self.writer = SummaryWriter(results_dir)
@@ -254,6 +255,13 @@ class Trainer:
                 self.model
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
+
+    def init_wandb_metrics(self) -> None:
+        """Setups up separate step counters for :mod:`wandb` logging of train, val, etc."""
+        if isinstance(self.writer, Run):
+            for mode in self.n_batches:
+                self.writer.define_metric(f"{mode}/step")
+                self.writer.define_metric(f"{mode}/*", step_metric=f"{mode}/step")
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
