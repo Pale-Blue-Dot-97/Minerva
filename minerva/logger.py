@@ -144,19 +144,19 @@ class MinervaLogger(ABC):
         pass  # pragma: no cover
 
     def write_metric(
-        self, key: str, value: SupportsFloat, step_num: Optional[int] = None
+        self, mode: str, key: str, value: SupportsFloat, step_num: Optional[int] = None
     ):
         """Write metric values to logging backends after calculation"""
         # TODO: Are values being reduced across nodes / logged from rank 0?
         if self.writer:
             if isinstance(self.writer, SummaryWriter):
                 self.writer.add_scalar(
-                    tag=key,
+                    tag=f"{mode}_{key}",
                     scalar_value=value,  # type: ignore[attr-defined]
                     global_step=step_num,
                 )
             elif isinstance(self.writer, Run):
-                self.writer.log({key: value}, step_num)
+                self.writer.log({f"{mode}/step": step_num, f"{mode}/{key}": value})
 
         if mlflow.active_run():
             # If running in Azure Machine Learning, tracking URI / experiment ID set already
@@ -343,9 +343,9 @@ class STGLogger(MinervaLogger):
                 )  # noqa: E501 type: ignore[attr-defined]
 
         # Writes loss and correct predictions to the writer.
-        self.write_metric(f"{mode}_loss", ls, step_num=step_num)
+        self.write_metric(mode, "loss", ls, step_num=step_num)
         self.write_metric(
-            f"{mode}_acc", correct / len(torch.flatten(y)), step_num=step_num
+            mode, "acc", correct / len(torch.flatten(y)), step_num=step_num
         )
 
         # Adds 1 to batch number (step number).
@@ -482,9 +482,9 @@ class SSLLogger(MinervaLogger):
         self.logs["total_top5"] += top5
 
         # Writes the loss to the writer.
-        self.write_metric(f"{mode}_loss", ls, step_num=step_num)
-        self.write_metric(f"{mode}_acc", correct / 2 * len(z[0]), step_num)
-        self.write_metric(f"{mode}_top5_acc", top5 / 2 * len(z[0]), step_num)
+        self.write_metric(mode, "loss", ls, step_num=step_num)
+        self.write_metric(mode, "acc", correct / 2 * len(z[0]), step_num)
+        self.write_metric(mode, "top5_acc", top5 / 2 * len(z[0]), step_num)
 
         # Adds 1 to the batch number (step number).
         self.logs["batch_num"] += 1
