@@ -606,7 +606,7 @@ class Trainer:
                 if self.early_stop:
                     if self.gpu == 0:
                         self.model.load_state_dict(torch.load(f"{self.exp_fn}.pt"))
-                    break
+                    return
 
     def test(self, save: bool = True, show: bool = False) -> None:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
