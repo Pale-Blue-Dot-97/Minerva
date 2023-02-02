@@ -454,7 +454,9 @@ class SSLLogger(MinervaLogger):
                     )
                 )
 
-            self.logs["euc_dist"] += sum(euc_dists) / len(euc_dists)
+            euc_dist = sum(euc_dists) / len(euc_dists)
+            self.write_metric(mode, "euc_dist", euc_dist, step_num)
+            self.logs["euc_dist"] += euc_dist
 
         if self.collapse_level:
             # calculate the per-dimension standard deviation of the outputs
