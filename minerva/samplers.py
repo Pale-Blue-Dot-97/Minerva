@@ -223,6 +223,7 @@ def get_greater_bbox(
         BoundingBox: Greater bounds around original bounding box to sample from.
     """
     x: float
+    print(x)
     if isinstance(size, Sequence):
         assert isinstance(size, Sequence)
         x = float(size[0])
