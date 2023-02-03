@@ -160,7 +160,7 @@ class Trainer:
             self.writer = SummaryWriter(results_dir)
 
         # Path to experiment directory and experiment name.
-        self.exp_fn = results_dir / self.params["exp_name"]
+        self.exp_fn: Path = results_dir / self.params["exp_name"]
 
         self.batch_size: int = params["hyperparams"]["params"]["batch_size"]
 
@@ -547,8 +547,7 @@ class Trainer:
                         plots["Mask"] = False
 
                     # Amends the results' directory to add a new level for train or validation.
-                    results_dir: Path = self.params["dir"]["results"]
-                    results_dir = results_dir / mode
+                    results_dir = self.exp_fn.parent / mode
 
                     if self.gpu == 0:
                         # Plots the results of this epoch.
@@ -618,8 +617,7 @@ class Trainer:
                 plots["Mask"] = False
 
             # Amends the results' directory to add a new level for test results.
-            results_dir: Path = self.params["dir"]["results"]
-            results_dir = results_dir / "test"
+            results_dir = self.exp_fn.parent / "test"
 
             # Plots the results.
             visutils.plot_results(
