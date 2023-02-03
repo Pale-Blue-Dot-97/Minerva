@@ -36,7 +36,7 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import random
-from typing import Iterator, List, Optional, Tuple, Union
+from typing import Iterator, List, Optional, Sequence, Tuple, Union
 
 from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
@@ -208,7 +208,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
 
 
 def get_greater_bbox(
-    bbox: BoundingBox, r: float, size: Union[float, Tuple[float, float]]
+    bbox: BoundingBox, r: float, size: Union[float, int, Sequence[float]]
 ) -> BoundingBox:
     """Return a bounding box at ``max_r`` distance around the first box.
 
@@ -216,20 +216,19 @@ def get_greater_bbox(
         bbox (BoundingBox): Bounding box of the original sample.
         r (float): Distance in pixels to extend the original bounding box by
             to get a new greater bounds to sample from.
-        size (float | Tuple[float, float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
-            represents in pixels.
+        size (float | Sequence[float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
+            represents in pixels. Will only use size[0] if a :class:`Sequence`.
 
     Returns:
         BoundingBox: Greater bounds around original bounding box to sample from.
     """
     x: float
-    print(type(size))
-    if isinstance(size, tuple):
-        assert isinstance(size, tuple)
-        x = size[0]
+    if isinstance(size, Sequence):
+        assert isinstance(size, Sequence)
+        x = float(size[0])
     else:
-        assert isinstance(size, float)
-        x = size
+        assert isinstance(size, float) or isinstance(size, int)
+        x = float(size)
 
     # Calculates the geospatial distance to add to the existing bounding box to get
     # the box to sample the other side of the pair from.
