@@ -60,14 +60,14 @@ def main(gpu: int, args) -> None:
         **CONFIG
     )
 
-    if not CONFIG["eval"]:
+    if not CONFIG.get("eval", False):
         trainer.fit()
 
-    if CONFIG["pre_train"] and gpu == 0:
+    if CONFIG.get("pre_train", False) and gpu == 0:
         trainer.save_backbone()
         trainer.close()
 
-    if not CONFIG["pre_train"]:
+    if not CONFIG.get("pre_train", False):
         trainer.test()
 
 
