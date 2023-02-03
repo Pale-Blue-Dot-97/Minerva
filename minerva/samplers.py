@@ -222,8 +222,8 @@ def get_greater_bbox(
     Returns:
         BoundingBox: Greater bounds around original bounding box to sample from.
     """
+    print(f"{size=}")
     x: float
-    print(x)
     if isinstance(size, Sequence):
         assert isinstance(size, Sequence)
         x = float(size[0])
@@ -231,6 +231,7 @@ def get_greater_bbox(
         assert isinstance(size, float) or isinstance(size, int)
         x = float(size)
 
+    print(f"{x=}")
     # Calculates the geospatial distance to add to the existing bounding box to get
     # the box to sample the other side of the pair from.
     r_in_crs = r * abs(bbox.maxx - bbox.minx) / float(x)
