@@ -365,6 +365,32 @@ def config_args(args: Namespace) -> Namespace:
     return config_env_vars(args)
 
 
+def _run_preamble(
+    gpu: int, run: Callable[[int, Namespace], Any], args: Namespace
+) -> None:
+    # Calculates the global rank of this process.
+    args.rank += gpu
+
+    # Setups the `wandb` run for this process.
+    args.wandb_run = setup_wandb_run(gpu, args)
+
+    if args.world_size > 1:
+        dist.init_process_group(  # type: ignore[attr-defined]
+            backend="gloo",
+            init_method=args.dist_url,
+            world_size=args.world_size,
+            rank=args.rank,
+        )
+        print(f"INITIALISED PROCESS ON {args.rank}")
+
+    if torch.cuda.is_available():
+        torch.cuda.set_device(gpu)
+        torch.backends.cudnn.benchmark = True  # type: ignore
+
+    # Start this this process run.
+    run(gpu, args)
+
+
 def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> None:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
@@ -379,30 +405,6 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         run (Callable[[int, Namespace], Any]): Function to run with distributed computing.
         args (Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
-
-    def run_preamble(gpu: int, _args: Namespace) -> None:
-        # Calculates the global rank of this process.
-        _args.rank += gpu
-
-        # Setups the `wandb` run for this process.
-        _args.wandb_run = setup_wandb_run(gpu, _args)
-
-        if _args.world_size > 1:
-            dist.init_process_group(  # type: ignore[attr-defined]
-                backend="gloo",
-                init_method=_args.dist_url,
-                world_size=_args.world_size,
-                rank=_args.rank,
-            )
-            print(f"INITIALISED PROCESS ON {_args.rank}")
-
-        if torch.cuda.is_available():
-            torch.cuda.set_device(gpu)
-            torch.backends.cudnn.benchmark = True  # type: ignore
-
-        # Start this this process run.
-        run(gpu, _args)
-
     if args.world_size <= 1:
         # Setups up the `wandb` run.
         args.wandb_run = setup_wandb_run(0, args)
@@ -412,6 +414,6 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
 
     else:
         try:
-            mp.spawn(run_preamble, (args,), args.ngpus_per_node)  # type: ignore[attr-defined]
+            mp.spawn(_run_preamble, (run, args), args.ngpus_per_node)  # type: ignore[attr-defined]
         except KeyboardInterrupt:
             dist.destroy_process_group()  # type: ignore[attr-defined]
