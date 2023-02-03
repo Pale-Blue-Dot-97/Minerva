@@ -414,7 +414,7 @@ def mkexpdir(name: str) -> None:
         None
     """
     try:
-        (RESULTS_DIR / name).mkdir()
+        (RESULTS_DIR / name).mkdir(parents=True)
     except FileExistsError:
         pass
 

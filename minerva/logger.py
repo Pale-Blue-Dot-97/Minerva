@@ -479,7 +479,7 @@ class SSLLogger(MinervaLogger):
             collapse_level = max(
                 0.0, 1 - math.sqrt(len(output)) * self.logs["avg_output_std"]
             )
-            
+
             self.write_metric(mode, "collapse_level", collapse_level, step_num)
 
             self.logs["collapse_level"] = collapse_level
