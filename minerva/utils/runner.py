@@ -47,6 +47,7 @@ import subprocess
 from argparse import Namespace
 from typing import Any, Callable, Optional, Union
 
+import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
@@ -210,6 +211,29 @@ GENERIC_PARSER.add_argument(
     action="store_true",
     help="Will log each process on Weights and Biases. Otherwise, logging will be performed from the master process.",
 )
+
+# =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class WandbConnectionManager:
+    """Checks for a connection to `wandb`. If not, sets `wandb` to offline during context."""
+
+    def __init__(self) -> None:
+        try:
+            requests.head("http://www.wandb.ai/", timeout=1.0)
+            self._on = True
+        except requests.ConnectionError:
+            self._on = False
+
+    def __enter__(self) -> None:
+        if self._on:
+            os.environ["WANDB_MODE"] = "online"
+        else:
+            os.environ["WANDB_MODE"] = "offline"
+
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+        os.environ["WANDB_MODE"] = "online"
+
 
 # =====================================================================================================================
 #                                                     METHODS
