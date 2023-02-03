@@ -65,6 +65,7 @@ GENERIC_PARSER = argparse.ArgumentParser(parents=[MASTER_PARSER])
 
 GENERIC_PARSER.add_argument(
     "--seed",
+    dest="seed",
     type=int,
     default=42,
     help="Set seed number",
@@ -88,24 +89,28 @@ GENERIC_PARSER.add_argument(
 
 GENERIC_PARSER.add_argument(
     "--pre-train",
+    dest="pre_train",
     action="store_true",
     help="Sets experiment type to pre-train. Will save model to cache at end of training.",
 )
 
 GENERIC_PARSER.add_argument(
     "--fine-tune",
+    dest="fine_tune",
     action="store_true",
     help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
 )
 
 GENERIC_PARSER.add_argument(
     "--eval",
+    dest="eval",
     action="store_true",
     help="Sets experiment type to pre-train. Will save model to cache at end of training.",
 )
 
 GENERIC_PARSER.add_argument(
     "--balance",
+    dest="balance",
     action="store_true",
     help="Activates class balancing."
     + " Depending on `model_type`, this will either be via sampling or weighting of the loss function.",
