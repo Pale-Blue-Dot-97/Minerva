@@ -255,6 +255,7 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
                     project=CONFIG.get("project", None),
                     group=CONFIG.get("group", "DDP"),
                     dir=CONFIG.get("wandb_dir", None),
+                    name=args.jobid,
                 )
             else:
                 if gpu == 0:
@@ -262,6 +263,7 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
                         entity=CONFIG.get("entity", None),
                         project=CONFIG.get("project", None),
                         dir=CONFIG.get("wandb_dir", None),
+                        name=args.jobid,
                     )
             CONFIG["wandb_log"] = True
         except wandb.UsageError:
@@ -307,11 +309,13 @@ def config_env_vars(args: Namespace) -> Namespace:
         slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
         slurm_nodeid: Optional[str] = os.getenv("SLURM_NODEID")
         slurm_nnodes: Optional[str] = os.getenv("SLURM_NNODES")
+        slurm_jobid: Optional[str] = os.getenv("SLURM_JOB_ID")
 
         # Check that SLURM variables have been found.
         assert slurm_job_nodelist is not None
         assert slurm_nodeid is not None
         assert slurm_nnodes is not None
+        assert slurm_jobid is not None
 
         # Find a common host name on all nodes.
         # Assume scontrol returns hosts in the same order on all nodes.
@@ -321,12 +325,14 @@ def config_env_vars(args: Namespace) -> Namespace:
         args.rank = int(slurm_nodeid) * args.ngpus_per_node
         args.world_size = int(slurm_nnodes) * args.ngpus_per_node
         args.dist_url = f"tcp://{host_name}:58472"
+        args.jobid = slurm_jobid
 
     else:
         # Single-node distributed training.
         args.rank = 0
         args.dist_url = "tcp://localhost:58472"
         args.world_size = args.ngpus_per_node
+        args.jobid = None
 
     return args
 
