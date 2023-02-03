@@ -1,4 +1,5 @@
 import argparse
+import shutil
 
 import pytest
 import torch
@@ -30,6 +31,9 @@ def run_trainer(gpu: int, args: argparse.Namespace):
             trainer.save_model(format="unkown")
 
         trainer.save_backbone()
+
+    assert trainer.exp_fn.parent.exists()
+    shutil.rmtree(trainer.exp_fn.parent)
 
 
 def test_trainer() -> None:
