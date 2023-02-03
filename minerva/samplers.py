@@ -223,7 +223,7 @@ def get_greater_bbox(
         BoundingBox: Greater bounds around original bounding box to sample from.
     """
     x: float
-    if type(size) == tuple:
+    if isinstance(size, tuple):
         assert isinstance(size, tuple)
         x = size[0]
     else:
