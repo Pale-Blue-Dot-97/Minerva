@@ -80,8 +80,9 @@ if __name__ == "__main__":
     # Export args from CLI.
     cli_args = parser.parse_args()
 
-    # Configure the arguments and environment variables.
-    runner.config_args(cli_args)
+    with runner.WandbConnectionManager():
+        # Configure the arguments and environment variables.
+        runner.config_args(cli_args)
 
-    # Run the specified main with distributed computing and the arguments provided.
-    runner.distributed_run(main, cli_args)
+        # Run the specified main with distributed computing and the arguments provided.
+        runner.distributed_run(main, cli_args)
