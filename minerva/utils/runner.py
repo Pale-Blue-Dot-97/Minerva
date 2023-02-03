@@ -266,7 +266,7 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
                         name=args.jobid,
                     )
             CONFIG["wandb_log"] = True
-        except wandb.UsageError:
+        except wandb.UsageError:  # type: ignore[attr-defined]
             print(
                 "wandb API Key has not been inited.",
                 "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.",
