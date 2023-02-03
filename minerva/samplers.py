@@ -227,7 +227,7 @@ def get_greater_bbox(
         assert isinstance(size, Sequence)
         x = float(size[0])
     else:
-        assert isinstance(size, float) or isinstance(size, int)
+        assert isinstance(size, (float, int))
         x = float(size)
 
     # Calculates the geospatial distance to add to the existing bounding box to get
