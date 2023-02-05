@@ -151,7 +151,7 @@ class Trainer:
         self.device = utils.get_cuda_device(gpu)
 
         self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
-        if Path(self.params.get("pre_train_name", None)).suffix == "onnx":
+        if Path(self.params.get("pre_train_name", "none")).suffix == "onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
         else:
