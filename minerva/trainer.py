@@ -42,6 +42,7 @@ import yaml
 from alive_progress import alive_bar  # , alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
+from onnx2torch import convert
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -245,6 +246,15 @@ class Trainer:
 
         return input_size
 
+    def get_weights_path(self) -> Path:
+        """Get the path to the cached version of the pre-trained model.
+
+        Returns:
+            Path: Path to the cached model (excluding file extension).
+        """
+        cache_dir = universal_path(self.params["dir"]["cache"])
+        return Path(cache_dir / self.params["pre_train_name"])
+
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
 
@@ -259,24 +269,29 @@ class Trainer:
         )
 
         if self.fine_tune:
-            # Define path to the cached version of the desired pre-trained model.
-            cache_dir = universal_path(self.params["dir"]["cache"])
-            weights_path = Path(cache_dir / self.params["pre_train_name"])
-
             # Add the path to the pre-trained weights to the model params.
-            model_params["backbone_weight_path"] = f"{weights_path}.pt"
+            model_params["backbone_weight_path"] = f"{self.get_weights_path()}.pt"
 
         # Initialise model.
         model: MinervaModel = _model(self.make_criterion(), **model_params)
 
         if self.params.get("reload", False):
-            # Define path to the cached version of the desired pre-trained model.
-            cache_dir = universal_path(self.params["dir"]["cache"])
-            weights_path = Path(cache_dir / self.params["pre_train_name"])
             model.load_state_dict(
-                torch.load(f"{weights_path}.pt", map_location=self.device)
+                torch.load(f"{self.get_weights_path()}.pt", map_location=self.device)
             )
 
+        return model
+
+    def load_onnx_model(self) -> MinervaModel:
+        """Loads and returns a :mod:`onnx` model from the cache in :mod:`pytorch` form.
+
+        Assumes that the `onnx` model came from :mod:`minerva`.
+
+        Returns:
+            MinervaModel: Loaded model ready for use.
+        """
+        model = convert(f"{self.get_weights_path()}.onnx")
+        assert isinstance(model, MinervaModel)
         return model
 
     def make_criterion(self) -> Any:
