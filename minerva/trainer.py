@@ -150,10 +150,13 @@ class Trainer:
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
 
-        # Creates model (and loss function) from specified parameters in params.
-        self.model: Union[
-            MinervaModel, MinervaDataParallel, MinervaBackbone
-        ] = self.make_model()
+        self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
+        if Path(self.params.get("pre_train_name", None)).suffix == "onnx":
+            # Loads model from `onnx` format.
+            self.model = self.load_onnx_model()
+        else:
+            # Creates model (and loss function) from specified parameters in params.
+            self.model = self.make_model()
 
         # Determines the output shape of the model.
         sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
@@ -285,7 +288,7 @@ class Trainer:
     def load_onnx_model(self) -> MinervaModel:
         """Loads and returns a :mod:`onnx` model from the cache in :mod:`pytorch` form.
 
-        Assumes that the `onnx` model came from :mod:`minerva`.
+        Assumes that the :mod:`onnx` model came from :mod:`minerva`.
 
         Returns:
             MinervaModel: Loaded model ready for use.
