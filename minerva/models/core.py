@@ -31,6 +31,7 @@ __all__ = [
     "MinervaModel",
     "MinervaDataParallel",
     "MinervaBackbone",
+    "MinervaOnnxModel",
     "get_model",
     "get_torch_weights",
     "get_output_shape",
@@ -240,6 +241,7 @@ class MinervaDataParallel(Module):
 
         Args:
             input (Tuple[Tensor, ...]): Input of tensors to be parsed to the model forward.
+
         Returns:
             Tuple[Tensor, ...]: Output of model.
         """
@@ -261,6 +263,15 @@ class MinervaDataParallel(Module):
 
 
 class MinervaOnnxModel(MinervaModel):
+    """Special model class for enabling :mod:`onnx` models to be used within :mod:`minerva`.
+
+    Attributes:
+        model (Module): :mod:`onnx` model imported into :mod:`torch`.
+
+    Args:
+        model (Module): :mod:`onnx` model imported into :mod:`torch`.
+    """
+
     def __init__(self, model: Module, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -278,8 +289,18 @@ class MinervaOnnxModel(MinervaModel):
     def __repr__(self) -> Any:
         return super().__repr__()
 
-    def forward(self, *input) -> Any:
-        return self.model.forward(*input)
+    def forward(self, *input: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
+        """Performs a forward pass of the ``model`` within.
+
+        Args:
+            input (Tuple[Tensor, ...]): Input of tensors to be parsed to ``model.forward``.
+
+        Returns:
+            Tuple[Tensor, ...]: Output of model.
+        """
+        z = self.model.forward(*input)
+        assert isinstance(z, tuple) and list(map(type, z)) == [Tensor] * len(z)
+        return z
 
 
 # =====================================================================================================================
