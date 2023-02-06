@@ -53,7 +53,12 @@ from torchinfo import summary
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
-from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
+from minerva.models import (
+    MinervaBackbone,
+    MinervaDataParallel,
+    MinervaModel,
+    MinervaOnnxModel,
+)
 from minerva.pytorchtools import EarlyStopping
 from minerva.utils import universal_path, utils, visutils
 
@@ -151,7 +156,7 @@ class Trainer:
         self.device = utils.get_cuda_device(gpu)
 
         self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
-        if Path(self.params.get("pre_train_name", "none")).suffix == "onnx":
+        if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
         else:
@@ -240,7 +245,7 @@ class Trainer:
         Returns:
             Tuple[int, ...]: Tuple describing the input shape of the model.
         """
-        input_shape: Optional[Tuple[int, ...]] = self.model.input_shape  # type: ignore
+        input_shape: Optional[Tuple[int, ...]] = self.model.input_size  # type: ignore
         assert input_shape is not None
         input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
 
@@ -249,6 +254,16 @@ class Trainer:
 
         return input_size
 
+    def get_model_cache_path(self) -> Path:
+        """Get the path to where to cache this model to.
+
+        Returns:
+            Path: Path to cache directory and the filename
+                (model name excluding version and file extension).
+        """
+        cache_dir = universal_path(self.params["dir"]["cache"])
+        return Path(cache_dir / Path(self.params["model_name"].split("-")[0]))
+
     def get_weights_path(self) -> Path:
         """Get the path to the cached version of the pre-trained model.
 
@@ -256,7 +271,7 @@ class Trainer:
             Path: Path to the cached model (excluding file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
-        return Path(cache_dir / self.params["pre_train_name"])
+        return Path(cache_dir / Path(self.params["pre_train_name"]).with_suffix(""))
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
@@ -293,7 +308,10 @@ class Trainer:
         Returns:
             MinervaModel: Loaded model ready for use.
         """
-        model = convert(f"{self.get_weights_path()}.onnx")
+        model_params = self.params["hyperparams"]["model_params"]
+
+        onnx_model = convert(f"{self.get_weights_path()}.onnx")
+        model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
         assert isinstance(model, MinervaModel)
         return model
 
@@ -654,7 +672,11 @@ class Trainer:
                     )
 
             # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
-            elif self.params.get("run_tensorboard", False) in (True, "auto", "Auto"):
+            elif self.params.get("run_tensorboard", False) in (
+                True,
+                "auto",
+                "Auto",
+            ):  # pragma: no cover
                 self.run_tensorboard()
                 return
 
