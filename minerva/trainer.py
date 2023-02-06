@@ -42,6 +42,7 @@ import yaml
 from alive_progress import alive_bar  # , alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
+from onnx2torch import convert
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -52,7 +53,12 @@ from torchinfo import summary
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
-from minerva.models import MinervaBackbone, MinervaDataParallel, MinervaModel
+from minerva.models import (
+    MinervaBackbone,
+    MinervaDataParallel,
+    MinervaModel,
+    MinervaOnnxModel,
+)
 from minerva.pytorchtools import EarlyStopping
 from minerva.utils import universal_path, utils, visutils
 
@@ -149,10 +155,13 @@ class Trainer:
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
 
-        # Creates model (and loss function) from specified parameters in params.
-        self.model: Union[
-            MinervaModel, MinervaDataParallel, MinervaBackbone
-        ] = self.make_model()
+        self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
+        if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
+            # Loads model from `onnx` format.
+            self.model = self.load_onnx_model()
+        else:
+            # Creates model (and loss function) from specified parameters in params.
+            self.model = self.make_model()
 
         # Determines the output shape of the model.
         sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
@@ -236,7 +245,7 @@ class Trainer:
         Returns:
             Tuple[int, ...]: Tuple describing the input shape of the model.
         """
-        input_shape: Optional[Tuple[int, ...]] = self.model.input_shape  # type: ignore
+        input_shape: Optional[Tuple[int, ...]] = self.model.input_size  # type: ignore
         assert input_shape is not None
         input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
 
@@ -244,6 +253,25 @@ class Trainer:
             input_size = (2, *input_size)
 
         return input_size
+
+    def get_model_cache_path(self) -> Path:
+        """Get the path to where to cache this model to.
+
+        Returns:
+            Path: Path to cache directory and the filename
+                (model name excluding version and file extension).
+        """
+        cache_dir = universal_path(self.params["dir"]["cache"])
+        return Path(cache_dir / Path(self.params["model_name"].split("-")[0]))
+
+    def get_weights_path(self) -> Path:
+        """Get the path to the cached version of the pre-trained model.
+
+        Returns:
+            Path: Path to the cached model (excluding file extension).
+        """
+        cache_dir = universal_path(self.params["dir"]["cache"])
+        return Path(cache_dir / Path(self.params["pre_train_name"]).with_suffix(""))
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
@@ -259,24 +287,32 @@ class Trainer:
         )
 
         if self.fine_tune:
-            # Define path to the cached version of the desired pre-trained model.
-            cache_dir = universal_path(self.params["dir"]["cache"])
-            weights_path = Path(cache_dir / self.params["pre_train_name"])
-
             # Add the path to the pre-trained weights to the model params.
-            model_params["backbone_weight_path"] = f"{weights_path}.pt"
+            model_params["backbone_weight_path"] = f"{self.get_weights_path()}.pt"
 
         # Initialise model.
         model: MinervaModel = _model(self.make_criterion(), **model_params)
 
         if self.params.get("reload", False):
-            # Define path to the cached version of the desired pre-trained model.
-            cache_dir = universal_path(self.params["dir"]["cache"])
-            weights_path = Path(cache_dir / self.params["pre_train_name"])
             model.load_state_dict(
-                torch.load(f"{weights_path}.pt", map_location=self.device)
+                torch.load(f"{self.get_weights_path()}.pt", map_location=self.device)
             )
 
+        return model
+
+    def load_onnx_model(self) -> MinervaModel:
+        """Loads and returns a :mod:`onnx` model from the cache in :mod:`pytorch` form.
+
+        Assumes that the :mod:`onnx` model came from :mod:`minerva`.
+
+        Returns:
+            MinervaModel: Loaded model ready for use.
+        """
+        model_params = self.params["hyperparams"]["model_params"]
+
+        onnx_model = convert(f"{self.get_weights_path()}.onnx")
+        model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
+        assert isinstance(model, MinervaModel)
         return model
 
     def make_criterion(self) -> Any:
@@ -636,7 +672,11 @@ class Trainer:
                     )
 
             # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
-            elif self.params.get("run_tensorboard", False) in (True, "auto", "Auto"):
+            elif self.params.get("run_tensorboard", False) in (
+                True,
+                "auto",
+                "Auto",
+            ):  # pragma: no cover
                 self.run_tensorboard()
                 return
 
@@ -796,7 +836,7 @@ class Trainer:
                 metrics_df.set_index("Epoch", inplace=True, drop=True)
                 metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
 
-            except (ValueError, KeyError) as err:
+            except (ValueError, KeyError) as err:  # pragma: no cover
                 self.print(err)
                 self.print("\n*ERROR* in saving metrics to file.")
 

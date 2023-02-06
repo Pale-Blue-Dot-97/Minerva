@@ -639,6 +639,10 @@ def make_loaders(
     new_colours: Dict[int, str] = {}
     forwards: Dict[int, int] = {}
 
+    sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
+    if type(sample_pairs) != bool:
+        sample_pairs = False
+
     if model_type != "siamese":
         # Load manifest from cache for this dataset.
         manifest = get_manifest(get_manifest_path())
@@ -684,7 +688,7 @@ def make_loaders(
             transform_params=this_transform_params,
             rank=rank,
             world_size=world_size,
-            sample_pairs=params.get("sample_pairs", False),
+            sample_pairs=sample_pairs,
         )
         print("DONE")
 
