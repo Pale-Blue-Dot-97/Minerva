@@ -836,7 +836,7 @@ class Trainer:
                 metrics_df.set_index("Epoch", inplace=True, drop=True)
                 metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
 
-            except (ValueError, KeyError) as err:
+            except (ValueError, KeyError) as err:  # pragma: no cover
                 self.print(err)
                 self.print("\n*ERROR* in saving metrics to file.")
 
