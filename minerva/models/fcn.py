@@ -98,7 +98,7 @@ class _FCN(MinervaBackbone, ABC):
     ) -> None:
 
         super(_FCN, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         # Initialises the selected Minerva backbone.
