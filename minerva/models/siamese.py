@@ -78,7 +78,7 @@ class _SimCLR(MinervaBackbone):
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
 
-        super(_SimCLR, self).__init__(criterion=criterion, input_shape=input_size)
+        super(_SimCLR, self).__init__(criterion=criterion, input_size=input_size)
 
         self.backbone: MinervaModel = get_model(backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
@@ -265,7 +265,7 @@ class _SimSiam(MinervaBackbone):
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
 
-        super(_SimSiam, self).__init__(criterion=criterion, input_shape=input_size)
+        super(_SimSiam, self).__init__(criterion=criterion, input_size=input_size)
 
         self.backbone: MinervaModel = get_model(backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
