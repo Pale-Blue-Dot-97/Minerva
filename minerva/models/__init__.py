@@ -35,6 +35,7 @@ from .__depreciated import MLP as MLP
 from .core import MinervaBackbone as MinervaBackbone
 from .core import MinervaDataParallel as MinervaDataParallel
 from .core import MinervaModel as MinervaModel
+from .core import MinervaOnnxModel as MinervaOnnxModel
 from .core import bilinear_init as bilinear_init
 from .core import get_output_shape as get_output_shape
 from .core import get_torch_weights as get_torch_weights
