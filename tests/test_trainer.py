@@ -3,6 +3,7 @@ import argparse
 import pytest
 import torch
 
+from minerva.models import MinervaOnnxModel
 from minerva.trainer import Trainer
 from minerva.utils import runner
 from minerva.utils.utils import CONFIG, set_seeds
@@ -24,15 +25,11 @@ def run_trainer(gpu: int, args: argparse.Namespace):
 
     if args.gpu == 0:
         trainer.save_model()
-        trainer.save_model(format="onnx")
-
-        with pytest.raises(ValueError):
-            trainer.save_model(format="unkown")
 
         trainer.save_backbone()
 
 
-def test_trainer() -> None:
+def test_trainer_1() -> None:
     args = argparse.Namespace()
 
     if torch.distributed.is_available():  # type: ignore
@@ -47,3 +44,25 @@ def test_trainer() -> None:
     else:
         args.gpu = 0
         run_trainer(args.gpu, args)
+
+
+def test_trainer_2() -> None:
+    params1 = CONFIG.copy()
+
+    trainer1 = Trainer(0, **params1)
+
+    with pytest.raises(ValueError):
+        trainer1.save_model(format="unkown")
+
+    trainer1.save_model(fn=trainer1.get_model_cache_path(), format="onnx")
+
+    params2 = CONFIG.copy()
+    params2["pre_train_name"] = f"{params1['model_name'].split('-')[0]}.onnx"
+    params2["sample_pairs"] = "false"
+    params2["plot_last_epoch"] = False
+
+    trainer2 = Trainer(0, **params2)
+    assert isinstance(trainer2.model, MinervaOnnxModel)
+
+    trainer2.fit()
+    trainer2.test()
