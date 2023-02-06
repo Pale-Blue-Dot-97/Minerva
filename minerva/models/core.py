@@ -48,7 +48,6 @@ from typing import (
     Any,
     Callable,
     Iterable,
-    List,
     Optional,
     Sequence,
     Tuple,
@@ -97,7 +96,7 @@ class MinervaModel(Module, ABC):
     def __init__(
         self,
         criterion: Optional[Module] = None,
-        input_shape: Optional[Tuple[int, ...]] = None,
+        input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
     ) -> None:
 
@@ -106,7 +105,7 @@ class MinervaModel(Module, ABC):
         # Sets loss function
         self.criterion: Optional[Module] = criterion
 
-        self.input_shape = input_shape
+        self.input_size = input_size
         self.n_classes = n_classes
 
         # Output shape initialised as None. Should be set by calling determine_output_dim.
@@ -131,10 +130,10 @@ class MinervaModel(Module, ABC):
     def determine_output_dim(self, sample_pairs: bool = False) -> None:
         """Uses get_output_shape to find the dimensions of the output of this model and sets to attribute."""
 
-        assert self.input_shape is not None
+        assert self.input_size is not None
 
         self.output_shape = get_output_shape(
-            self, self.input_shape, sample_pairs=sample_pairs
+            self, self.input_size, sample_pairs=sample_pairs
         )
 
     @overload
@@ -259,6 +258,28 @@ class MinervaDataParallel(Module):
 
     def __repr__(self) -> Any:
         return self.model.__repr__()
+
+
+class MinervaOnnxModel(MinervaModel):
+    def __init__(self, model: Module, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.model = model
+
+    def __call__(self, *input) -> Any:
+        return self.model.forward(*input)
+
+    def __getattr__(self, name) -> Any:
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.model, name)
+
+    def __repr__(self) -> Any:
+        return super().__repr__()
+
+    def forward(self, *input) -> Any:
+        return self.model.forward(*input)
 
 
 # =====================================================================================================================
