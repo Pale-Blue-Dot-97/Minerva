@@ -289,18 +289,16 @@ class MinervaOnnxModel(MinervaModel):
     def __repr__(self) -> Any:
         return super().__repr__()
 
-    def forward(self, *input: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
+    def forward(self, *input: Any) -> Any:
         """Performs a forward pass of the ``model`` within.
 
         Args:
-            input (Tuple[Tensor, ...]): Input of tensors to be parsed to ``model.forward``.
+            input (Any): Input to be parsed to ``model.forward``.
 
         Returns:
-            Tuple[Tensor, ...]: Output of model.
+            Any: Output of model.
         """
-        z = self.model.forward(*input)
-        assert isinstance(z, tuple) and list(map(type, z)) == [Tensor] * len(z)
-        return z
+        return self.model.forward(*input)
 
 
 # =====================================================================================================================
