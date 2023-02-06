@@ -80,7 +80,7 @@ class MLP(MinervaModel):
     ) -> None:
 
         super(MLP, self).__init__(
-            criterion=criterion, input_shape=(input_size,), n_classes=n_classes
+            criterion=criterion, input_size=(input_size,), n_classes=n_classes
         )
 
         if isinstance(hidden_sizes, int):
@@ -168,7 +168,7 @@ class CNN(MinervaModel, ABC):
     ) -> None:
 
         super(CNN, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         self._conv_layers: OrderedDict[str, Module] = OrderedDict()
@@ -179,11 +179,11 @@ class CNN(MinervaModel, ABC):
         _conv_stride: Sequence[int] = check_len(conv_stride, features)
 
         # Constructs the convolutional layers determined by the number of input channels and the features of these.
-        assert self.input_shape is not None
+        assert self.input_size is not None
         for i in range(len(features)):
             if i == 0:
                 self._conv_layers["Conv-0"] = nn.Conv2d(
-                    self.input_shape[0],
+                    self.input_size[0],
                     features[i],
                     _conv_kernel_size[0],
                     stride=_conv_stride[0],
@@ -210,7 +210,7 @@ class CNN(MinervaModel, ABC):
 
         # Calculate the input of the Linear layer by sending some fake data through the network
         # and getting the shape of the output.
-        out_shape = get_output_shape(self.conv_net, self.input_shape)
+        out_shape = get_output_shape(self.conv_net, self.input_size)
 
         if type(out_shape) is int:
             self.flattened_size = out_shape

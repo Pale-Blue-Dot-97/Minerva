@@ -375,7 +375,7 @@ class ResNet18(MinervaModel, ABC):
     ) -> None:
 
         super(ResNet18, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         self.network = ResNet(
@@ -467,7 +467,7 @@ class ResNet34(MinervaModel, ABC):
     ) -> None:
 
         super(ResNet34, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         self.network = ResNet(
@@ -561,7 +561,7 @@ class ResNet50(MinervaModel, ABC):
     ) -> None:
 
         super(ResNet50, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         self.network = ResNet(
@@ -657,7 +657,7 @@ class ResNet101(MinervaModel, ABC):
     ) -> None:
 
         super(ResNet101, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         self.network = ResNet(
@@ -753,7 +753,7 @@ class ResNet152(MinervaModel, ABC):
     ) -> None:
 
         super(ResNet152, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         self.network = ResNet(

@@ -261,7 +261,7 @@ class UNet(MinervaModel):
         bilinear: bool = False,
     ) -> None:
         super(UNet, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         self.bilinear = bilinear
@@ -346,7 +346,7 @@ class UNetR(MinervaModel):
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
         super(UNetR, self).__init__(
-            criterion=criterion, input_shape=input_size, n_classes=n_classes
+            criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         factor = 2 if bilinear else 1
