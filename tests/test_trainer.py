@@ -17,7 +17,13 @@ def run_trainer(gpu: int, args: argparse.Namespace):
     params = CONFIG.copy()
     params["calc_norm"] = True
 
-    trainer = Trainer(gpu=args.gpu, **params)
+    trainer = Trainer(
+        gpu=args.gpu,
+        rank=args.rank,
+        world_size=args.world_size,
+        wandb_run=args.wandb_run,
+        **params,
+    )
     assert isinstance(trainer, Trainer)
 
     trainer.fit()
@@ -47,6 +53,7 @@ def test_trainer_1() -> None:
         args.entity = None
         args.project = "pytest"
         args.wandb_log = True
+        args.jobid = None
         runner.distributed_run(run_trainer, args)
 
     else:
@@ -69,6 +76,7 @@ def test_trainer_2() -> None:
     params2["pre_train_name"] = f"{params1['model_name'].split('-')[0]}.onnx"
     params2["sample_pairs"] = "false"
     params2["plot_last_epoch"] = False
+    params2["wandb_log"] = False
 
     trainer2 = Trainer(0, **params2)
     assert isinstance(trainer2.model, MinervaOnnxModel)
