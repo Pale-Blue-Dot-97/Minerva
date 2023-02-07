@@ -30,5 +30,6 @@ types-PyYAML==6.0.12.2
 types-tabulate==0.9.0.0
 mlflow==2.0.1
 onnx2torch==1.5.4
+wandb==0.13.9
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability
 wheel==0.38.4 # not directly required, pinned by Snyk to avoid a vulnerability
