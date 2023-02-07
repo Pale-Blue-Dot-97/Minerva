@@ -243,7 +243,7 @@ class WandbConnectionManager:
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def _handle_sigusr1(signum, frame) -> None:
+def _handle_sigusr1(signum, frame) -> None:  # pragma: no cover
     subprocess.Popen(  # nosec B602
         f'scontrol requeue {os.getenv("SLURM_JOB_ID")}',
         shell=True,
@@ -251,7 +251,7 @@ def _handle_sigusr1(signum, frame) -> None:
     exit()
 
 
-def _handle_sigterm(signum, frame) -> None:
+def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
     pass
 
 
