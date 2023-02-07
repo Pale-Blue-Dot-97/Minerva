@@ -240,7 +240,7 @@ class Trainer:
                         self.model,
                         input_to_model=torch.rand(*input_size, device=self.device),
                     )
-                except RuntimeError as err:
+                except RuntimeError as err:  # pragma: no cover
                     print(err)
                     print("ABORT adding graph to writer")
 
