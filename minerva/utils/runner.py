@@ -221,11 +221,11 @@ GENERIC_PARSER.add_argument(
 #                                                     CLASSES
 # =====================================================================================================================
 class WandbConnectionManager:
-    """Checks for a connection to `wandb`. If not, sets `wandb` to offline during context."""
+    """Checks for a connection to :mod:`wandb`. If not, sets :mod:`wandb` to offline during context."""
 
     def __init__(self) -> None:
         try:
-            requests.head("http://www.wandb.ai/", timeout=1.0)
+            requests.head("http://www.wandb.ai/", timeout=0.1)
             self._on = True
         except requests.ConnectionError:
             self._on = False
