@@ -248,7 +248,8 @@ def unionise_datasets(
 
     Args:
         datasets (List[GeoDataset]): List of datasets to unionise together.
-        sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function for paired samples.
+        sample_pairs (bool): Optional; True if paired sampling.
+            This will wrap the collation function for paired samples.
 
     Returns:
         UnionDataset: Final dataset object representing an union of all the parsed datasets.
