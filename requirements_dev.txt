@@ -43,3 +43,6 @@ tox==3.25.0
 myst_parser==0.18.1
 sphinx-rtd-theme==1.0.0
 internet-sabotage3==0.1.6
+certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerability
+pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
+sphinx>=3.0.4 # not directly required, pinned by Snyk to avoid a vulnerability
