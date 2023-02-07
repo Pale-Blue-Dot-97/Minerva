@@ -52,30 +52,37 @@ from minerva.utils import CONFIG, runner
 #                                                      MAIN
 # =====================================================================================================================
 def main(gpu: int, args) -> None:
-    trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **CONFIG)
+    trainer = Trainer(
+        gpu=gpu,
+        rank=args.rank,
+        world_size=args.world_size,
+        wandb_run=args.wandb_run,
+        **CONFIG
+    )
 
-    if not CONFIG["eval"]:
+    if not CONFIG.get("eval", False):
         trainer.fit()
 
-    if CONFIG["pre_train"] and gpu == 0:
+    if CONFIG.get("pre_train", False) and gpu == 0:
         trainer.save_backbone()
         trainer.close()
 
-    if not CONFIG["pre_train"]:
+    if not CONFIG.get("pre_train", False):
         trainer.test()
 
 
 if __name__ == "__main__":
     # ---+ CLI +--------------------------------------------------------------+
-    parser = argparse.ArgumentParser(parents=[runner.generic_parser], add_help=False)
+    parser = argparse.ArgumentParser(parents=[runner.GENERIC_PARSER], add_help=False)
     argcomplete.autocomplete(parser)
     # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
 
     # Export args from CLI.
     cli_args = parser.parse_args()
 
-    # Configure the arguments and environment variables.
-    runner.config_args(cli_args)
+    with runner.WandbConnectionManager():
+        # Configure the arguments and environment variables.
+        runner.config_args(cli_args)
 
-    # Run the specified main with distributed computing and the arguments provided.
-    runner.distributed_run(main, cli_args)
+        # Run the specified main with distributed computing and the arguments provided.
+        runner.distributed_run(main, cli_args)

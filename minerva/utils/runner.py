@@ -20,7 +20,7 @@
 """Module to handle generic functionality for running :mod:`minerva` scripts.
 
 Attributes:
-    generic_parser (ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
+    GENERIC_PARSER (ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
         Can be used as the basis for a user defined extended argparser.
 """
 # =====================================================================================================================
@@ -31,7 +31,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
-    "generic_parser",
+    "GENERIC_PARSER",
     "config_env_vars",
     "config_args",
     "distributed_run",
@@ -45,28 +45,33 @@ import os
 import signal
 import subprocess
 from argparse import Namespace
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
+import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.utils import CONFIG, MASTER_PARSER, utils
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
 # ---+ CLI +--------------------------------------------------------------+
-generic_parser = argparse.ArgumentParser(parents=[MASTER_PARSER])
+GENERIC_PARSER = argparse.ArgumentParser(parents=[MASTER_PARSER])
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--seed",
+    dest="seed",
     type=int,
     default=42,
     help="Set seed number",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--model-name",
     dest="model_name",
     type=str,
@@ -75,53 +80,57 @@ generic_parser.add_argument(
     + " Sub-string past hyphen can be used to differeniate between versions.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--model-type",
     dest="model_type",
     type=str,
     help="Type of model. Should be 'segmentation', 'scene_classifier', 'siamese' or 'mlp'",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--pre-train",
+    dest="pre_train",
     action="store_true",
     help="Sets experiment type to pre-train. Will save model to cache at end of training.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--fine-tune",
+    dest="fine_tune",
     action="store_true",
     help="Sets experiment type to fine-tune. Will load pre-trained backbone from file.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--eval",
+    dest="eval",
     action="store_true",
     help="Sets experiment type to pre-train. Will save model to cache at end of training.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--balance",
+    dest="balance",
     action="store_true",
     help="Activates class balancing."
     + " Depending on `model_type`, this will either be via sampling or weighting of the loss function.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--class-elim",
     dest="elim",
     action="store_true",
     help="Eliminates classes that are specified in config but not present in the data.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--sample-pairs",
     dest="sample_pairs",
     action="store_true",
     help="Use paired sampling. E.g. For Siamese models.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--save-model",
     dest="save_model",
     type=str,
@@ -132,7 +141,7 @@ generic_parser.add_argument(
     + " 'false' will not save the model and will not ask the user at runtime.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--run-tensorboard",
     dest="run_tensorboard",
     type=str,
@@ -143,14 +152,14 @@ generic_parser.add_argument(
     + " 'false' will not save the model and will not ask the user at runtime.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--save-plots-no",
     dest="save",
     action="store_false",
     help="Plots created will not be saved to file.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--show-plots",
     dest="show",
     action="store_true",
@@ -158,33 +167,144 @@ generic_parser.add_argument(
     + " Warning: Do not use with a terminal-less operation, e.g. SLURM.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--print-dist",
     dest="p_dist",
     action="store_true",
     help="Print the distribution of classes within the data to `stdout`.",
 )
 
-generic_parser.add_argument(
+GENERIC_PARSER.add_argument(
     "--plot-last-epoch",
     dest="plot_last_epoch",
     action="store_true",
     help="Plot the results from the final validation epoch.",
 )
 
+GENERIC_PARSER.add_argument(
+    "--wandb-log",
+    dest="wandb_log",
+    action="store_true",
+    help="Activate Weights and Biases logging.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--project_name",
+    dest="project",
+    type=str,
+    help="Name of the Weights and Biases project this experiment belongs to.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--wandb-entity",
+    dest="entity",
+    type=str,
+    help="The Weights and Biases entity to send runs to.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--wandb-dir",
+    dest="wandb_dir",
+    type=str,
+    default="./wandb",
+    help="Where to store the Weights and Biases logs locally.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--wandb-log-all",
+    dest="log_all",
+    action="store_true",
+    help="Will log each process on Weights and Biases. Otherwise, logging will be performed from the master process.",
+)
+
+# =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class WandbConnectionManager:
+    """Checks for a connection to :mod:`wandb`. If not, sets :mod:`wandb` to offline during context."""
+
+    def __init__(self) -> None:
+        try:
+            requests.head("http://www.wandb.ai/", timeout=0.1)
+            self._on = True
+        except requests.ConnectionError:
+            self._on = False
+
+    def __enter__(self) -> None:
+        if self._on:
+            os.environ["WANDB_MODE"] = "online"
+        else:
+            os.environ["WANDB_MODE"] = "offline"
+
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+        os.environ["WANDB_MODE"] = "online"
+
 
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def _handle_sigusr1(signum, frame) -> None:
+def _handle_sigusr1(signum, frame) -> None:  # pragma: no cover
     subprocess.Popen(  # nosec B602
-        f'scontrol requeue {os.getenv("SLURM_JOB_ID")}', shell=True
+        f'scontrol requeue {os.getenv("SLURM_JOB_ID")}',
+        shell=True,
     )
     exit()
 
 
-def _handle_sigterm(signum, frame) -> None:
+def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
     pass
+
+
+def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisabled]]:
+    """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
+
+    .. note::
+        ``args`` must contain these keys:
+            * ``wandb_log`` (bool): Activate :mod:`wandb` logging.
+            * ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
+                Only log on the master process if ``False``.
+            * ``entity`` (str): :mod:`wandb` entity where to send runs to.
+            * ``project`` (str): Name of the :mod:`wandb` project this experiment belongs to.
+            * ``world_size`` (int): Total number of processes across the experiment.
+
+    Args:
+        gpu (int): Local process (GPU) number.
+        args (Namespace): CLI arguments from :mod:`argparse`.
+
+    Returns:
+        Optional[Union[Run, RunDisabled]]: The :mod:`wandb` run object for this process
+            or ``None`` if ``log_all=False`` and ``rank!=0``.
+    """
+    run: Optional[Union[Run, RunDisabled]] = None
+    if CONFIG.get("wandb_log", False) or CONFIG.get("project", None):
+        try:
+            if CONFIG.get("log_all", False) and args.world_size > 1:
+                run = wandb.init(
+                    entity=CONFIG.get("entity", None),
+                    project=CONFIG.get("project", None),
+                    group=CONFIG.get("group", "DDP"),
+                    dir=CONFIG.get("wandb_dir", None),
+                    name=args.jobid,
+                )
+            else:
+                if gpu == 0:
+                    run = wandb.init(
+                        entity=CONFIG.get("entity", None),
+                        project=CONFIG.get("project", None),
+                        dir=CONFIG.get("wandb_dir", None),
+                        name=args.jobid,
+                    )
+            CONFIG["wandb_log"] = True
+        except wandb.UsageError:  # type: ignore[attr-defined]
+            print(
+                "wandb API Key has not been inited.",
+                "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.",
+                "\nOr if not using wandb, safely ignore this message.",
+            )
+    else:
+        print("Weights and Biases logging OFF")
+
+    return run
 
 
 def config_env_vars(args: Namespace) -> Namespace:
@@ -218,11 +338,13 @@ def config_env_vars(args: Namespace) -> Namespace:
         slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
         slurm_nodeid: Optional[str] = os.getenv("SLURM_NODEID")
         slurm_nnodes: Optional[str] = os.getenv("SLURM_NNODES")
+        slurm_jobid: Optional[str] = os.getenv("SLURM_JOB_ID")
 
         # Check that SLURM variables have been found.
         assert slurm_job_nodelist is not None
         assert slurm_nodeid is not None
         assert slurm_nnodes is not None
+        assert slurm_jobid is not None
 
         # Find a common host name on all nodes.
         # Assume scontrol returns hosts in the same order on all nodes.
@@ -232,12 +354,14 @@ def config_env_vars(args: Namespace) -> Namespace:
         args.rank = int(slurm_nodeid) * args.ngpus_per_node
         args.world_size = int(slurm_nnodes) * args.ngpus_per_node
         args.dist_url = f"tcp://{host_name}:58472"
+        args.jobid = slurm_jobid
 
     else:
         # Single-node distributed training.
         args.rank = 0
         args.dist_url = "tcp://localhost:58472"
         args.world_size = args.ngpus_per_node
+        args.jobid = None
 
     return args
 
@@ -276,6 +400,32 @@ def config_args(args: Namespace) -> Namespace:
     return config_env_vars(args)
 
 
+def _run_preamble(
+    gpu: int, run: Callable[[int, Namespace], Any], args: Namespace
+) -> None:
+    # Calculates the global rank of this process.
+    args.rank += gpu
+
+    # Setups the `wandb` run for this process.
+    args.wandb_run = setup_wandb_run(gpu, args)
+
+    if args.world_size > 1:
+        dist.init_process_group(  # type: ignore[attr-defined]
+            backend="gloo",
+            init_method=args.dist_url,
+            world_size=args.world_size,
+            rank=args.rank,
+        )
+        print(f"INITIALISED PROCESS ON {args.rank}")
+
+    if torch.cuda.is_available():
+        torch.cuda.set_device(gpu)
+        torch.backends.cudnn.benchmark = True  # type: ignore
+
+    # Start this this process run.
+    run(gpu, args)
+
+
 def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> None:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
@@ -290,31 +440,15 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         run (Callable[[int, Namespace], Any]): Function to run with distributed computing.
         args (Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
-
-    def run_preamble(gpu: int, _args: Namespace) -> None:
-        # Calculates the global rank of this process.
-        _args.rank += gpu
-
-        if _args.world_size > 1:
-            dist.init_process_group(  # type: ignore[attr-defined]
-                backend="gloo",
-                init_method=_args.dist_url,
-                world_size=_args.world_size,
-                rank=_args.rank,
-            )
-            print(f"INITIALISED PROCESS ON {_args.rank}")
-
-        if torch.cuda.is_available():
-            torch.cuda.set_device(gpu)
-            torch.backends.cudnn.benchmark = True  # type: ignore
-
-        run(gpu, _args)
-
     if args.world_size <= 1:
+        # Setups up the `wandb` run.
+        args.wandb_run = setup_wandb_run(0, args)
+
+        # Run the experiment.
         run(0, args)
 
     else:
         try:
-            mp.spawn(run_preamble, (args,), args.ngpus_per_node)  # type: ignore[attr-defined]
+            mp.spawn(_run_preamble, (run, args), args.ngpus_per_node)  # type: ignore[attr-defined]
         except KeyboardInterrupt:
             dist.destroy_process_group()  # type: ignore[attr-defined]

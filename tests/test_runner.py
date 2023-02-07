@@ -2,12 +2,23 @@ import os
 
 import pytest
 import torch
+from internet_sabotage import no_connection
 
 from minerva.utils import CONFIG, runner
 
 
-def test_config_env_vars():
-    args, _ = runner.generic_parser.parse_known_args()
+def test_wandb_connection_manager() -> None:
+
+    with runner.WandbConnectionManager():
+        assert os.environ["WANDB_MODE"] == "online"
+
+    with no_connection():
+        with runner.WandbConnectionManager():
+            assert os.environ["WANDB_MODE"] == "offline"
+
+
+def test_config_env_vars() -> None:
+    args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args.ngpus_per_node = 1
 
@@ -27,8 +38,8 @@ def test_config_env_vars():
         assert new_args.dist_url == "tcp://localhost:58472"
 
 
-def test_config_args():
-    args, _ = runner.generic_parser.parse_known_args()
+def test_config_args() -> None:
+    args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args_dict = vars(args)
 
@@ -44,11 +55,11 @@ def test_config_args():
         assert CONFIG[key] == new_args[key]
 
 
-def test_distributed_run():
+def test_distributed_run() -> None:
     def run(*args):
         pass
 
-    args, _ = runner.generic_parser.parse_known_args()
+    args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args = runner.config_args(args)
 

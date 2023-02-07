@@ -49,6 +49,8 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard.writer import SummaryWriter
 from torchinfo import summary
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
@@ -106,8 +108,12 @@ class Trainer:
         rank: int = 0,
         world_size: int = 1,
         verbose: bool = True,
+        wandb_run: Optional[Union[Run, RunDisabled]] = None,
         **params: Dict[str, Any],
     ) -> None:
+
+        assert not isinstance(wandb_run, RunDisabled)
+
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
         loaders, n_batches, class_dist, new_params = make_loaders(
             rank, world_size, **params
@@ -119,7 +125,7 @@ class Trainer:
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
 
-        if self.gpu == 0 and verbose:
+        if self.gpu == 0 and self.verbose:
             # Prints config to stdout.
             print(
                 "\n==+ Experiment Parameters +====================================================="
@@ -147,8 +153,20 @@ class Trainer:
         self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
         results_dir = self.params["dir"]["results"] / self.params["exp_name"]
 
+        # Makes a directory for this experiment.
+        utils.mkexpdir(self.params["exp_name"])
+
+        self.writer: Optional[Union[SummaryWriter, Run]] = None
+        if params.get("wandb_log", False):
+            # Sets the `wandb` run object (or None).
+            self.writer = wandb_run
+            self.init_wandb_metrics()
+        else:
+            # Initialise TensorBoard logger
+            self.writer = SummaryWriter(results_dir)
+
         # Path to experiment directory and experiment name.
-        self.exp_fn = results_dir / self.params["exp_name"]
+        self.exp_fn: Path = results_dir / self.params["exp_name"]
 
         self.batch_size: int = params["hyperparams"]["params"]["batch_size"]
 
@@ -201,35 +219,34 @@ class Trainer:
         # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
         self.step_num = {mode: 0 for mode in self.modes}
 
-        # Initialise TensorBoard logger
-        self.writer = SummaryWriter(results_dir)
-
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
 
         if self.gpu == 0:
+            if isinstance(self.writer, Run):
+                self.writer.config.update(params)
+
             # Determines the input size of the model.
             input_size = self.get_input_size()
 
-            if verbose:
+            if self.verbose:
                 # Print model summary.
                 summary(self.model, input_size=input_size)
 
-            # Adds a graphical layout of the model to the TensorBoard logger.
-            self.writer.add_graph(
-                self.model, input_to_model=torch.rand(*input_size, device=self.device)
-            )
-
-            if torch.cuda.device_count() == 1 or self.device == torch.device("cpu"):  # type: ignore[attr-defined]
+            if (torch.cuda.device_count() == 1 or self.device == torch.device("cpu")) and isinstance(self.writer, SummaryWriter):  # type: ignore[attr-defined]
                 # Adds a graphical layout of the model to the TensorBoard logger.
                 try:
                     self.writer.add_graph(
                         self.model,
                         input_to_model=torch.rand(*input_size, device=self.device),
                     )
-                except RuntimeError as err:
+                except RuntimeError as err:  # pragma: no cover
                     print(err)
                     print("ABORT adding graph to writer")
+
+        # If writer is `wandb`, `watch` the model to log gradients.
+        if isinstance(self.writer, Run):
+            self.writer.watch(self.model)
 
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
         if torch.cuda.device_count() > 1:
@@ -238,6 +255,13 @@ class Trainer:
                 self.model
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
+
+    def init_wandb_metrics(self) -> None:
+        """Setups up separate step counters for :mod:`wandb` logging of train, val, etc."""
+        if isinstance(self.writer, Run):
+            for mode in self.n_batches:
+                self.writer.define_metric(f"{mode}/step")
+                self.writer.define_metric(f"{mode}/*", step_metric=f"{mode}/step")
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
@@ -475,7 +499,7 @@ class Trainer:
                     dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                     results = (loss, *results[1:])
 
-                epoch_logger.log(mode, self.step_num[mode], self.writer, *results)
+                epoch_logger.log(mode, self.step_num[mode], *results)
 
                 self.step_num[mode] += 1
 
@@ -559,8 +583,7 @@ class Trainer:
                         plots["Mask"] = False
 
                     # Amends the results' directory to add a new level for train or validation.
-                    results_dir: Path = self.params["dir"]["results"]
-                    results_dir = results_dir / mode
+                    results_dir = self.exp_fn.parent / mode
 
                     if self.gpu == 0:
                         # Plots the results of this epoch.
@@ -582,7 +605,7 @@ class Trainer:
                 if self.early_stop:
                     if self.gpu == 0:
                         self.model.load_state_dict(torch.load(f"{self.exp_fn}.pt"))
-                    break
+                    return
 
     def test(self, save: bool = True, show: bool = False) -> None:
         """Tests the model by running a testing epoch then taking the results and orchestrating the plotting and
@@ -630,8 +653,7 @@ class Trainer:
                 plots["Mask"] = False
 
             # Amends the results' directory to add a new level for test results.
-            results_dir: Path = self.params["dir"]["results"]
-            results_dir = results_dir / "test"
+            results_dir = self.exp_fn.parent / "test"
 
             # Plots the results.
             visutils.plot_results(
@@ -816,8 +838,12 @@ class Trainer:
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
-        # Ensure the TensorBoard logger is closed.
-        self.writer.close()
+        if isinstance(self.writer, SummaryWriter):
+            # Ensure the TensorBoard logger is closed.
+            self.writer.close()
+        elif isinstance(self.writer, Run):
+            # Ensures all the `wandb` runs finish and sync.
+            self.writer.finish()
 
         if self.gpu == 0:
             self.print("\nSAVING EXPERIMENT CONFIG TO FILE")
