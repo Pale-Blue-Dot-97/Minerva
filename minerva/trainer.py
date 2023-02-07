@@ -233,7 +233,11 @@ class Trainer:
                 # Print model summary.
                 summary(self.model, input_size=input_size)
 
-            if (torch.cuda.device_count() == 1 or self.device == torch.device("cpu")) and isinstance(self.writer, SummaryWriter):  # type: ignore[attr-defined]
+            if (
+                torch.cuda.device_count() == 1 or self.device == torch.device("cpu")
+            ) and isinstance(
+                self.writer, SummaryWriter
+            ):  # type: ignore[attr-defined]
                 # Adds a graphical layout of the model to the TensorBoard logger.
                 try:
                     self.writer.add_graph(
