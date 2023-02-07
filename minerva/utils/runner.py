@@ -217,6 +217,7 @@ GENERIC_PARSER.add_argument(
     help="Will log each process on Weights and Biases. Otherwise, logging will be performed from the master process.",
 )
 
+
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
