@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "8925a95fef9b6fdee33d661a6c8677ef499f16b115cba3f1cb229de1d2d03285"
+            "sha256": "ec053e74c67e82aeef46ee94d300437c89353cdc7cc49e22837bd886a0ebf9bd"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -2514,6 +2514,14 @@
             "index": "pypi",
             "version": "==6.0.12.2"
         },
+        "types-requests": {
+            "hashes": [
+                "sha256:dbc2933635860e553ffc59f5e264264981358baffe6342b925e3eb8261f866ee",
+                "sha256:fd530aab3fc4f05ee36406af168f0836e6f00f1ee51a0b96b7311f82cb675230"
+            ],
+            "index": "pypi",
+            "version": "==2.28.11.12"
+        },
         "types-tabulate": {
             "hashes": [
                 "sha256:4a79474714cea156bcd2185bb9bddd8fb9d3d5227c8d0a7f21bf21caf5f60e67",
@@ -2521,6 +2529,13 @@
             ],
             "index": "pypi",
             "version": "==0.9.0.0"
+        },
+        "types-urllib3": {
+            "hashes": [
+                "sha256:5630e578246d170d91ebe3901788cd28d53c4e044dc2e2488e3b0d55fb6895d8",
+                "sha256:e8f25c8bb85cde658c72ee931e56e7abd28803c26032441eea9ff4a4df2b0c31"
+            ],
+            "version": "==1.26.25.5"
         },
         "typeshed-client": {
             "hashes": [
