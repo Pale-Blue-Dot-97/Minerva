@@ -715,25 +715,33 @@ class Trainer:
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
 
-    def tsne_cluster(self) -> None:
+    def tsne_cluster(self, mode: str = "test") -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.
 
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
-        data = next(iter(self.loaders["test"]))
+        # Get a batch of data.
+        data = next(iter(self.loaders[mode]))
 
+        # Make sure the model is in evaluation mode.
         self.model.eval()
+
+        # Pass the batch of data through the model to get the embeddings.
         embeddings: Tensor = self.model(data["image"].to(self.device))[0]
 
+        # Flatten embeddings.
         embeddings = embeddings.flatten(start_dim=1)
+
+        # Get the results directory.
+        results_dir = self.exp_fn.parent / mode
 
         visutils.plot_embedding(
             embeddings.detach().cpu(),
             data["bbox"],
-            "test",
+            mode,
             show=True,
-            filename="tsne_cluster_vis.png",
+            filename=str(results_dir / "tsne_cluster_vis.png"),
         )
 
     """
