@@ -164,7 +164,7 @@ IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
 ]
 
 DATA_CONFIG_PATH: Optional[Path]
-_data_config_path: Optional[Union[str, PathLike]] = CONFIG["dir"]["configs"].get(
+_data_config_path: Optional[Union[str, Path]] = CONFIG["dir"]["configs"].get(
     "data_config"
 )
 if _data_config_path:
