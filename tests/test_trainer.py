@@ -1,12 +1,13 @@
 import argparse
 import shutil
+from pathlib import Path
 
 import pytest
 import torch
 
 from minerva.models import MinervaOnnxModel
 from minerva.trainer import Trainer
-from minerva.utils import runner
+from minerva.utils import config_load, runner
 from minerva.utils.utils import CONFIG, set_seeds
 
 set_seeds(42)
@@ -83,3 +84,16 @@ def test_trainer_2() -> None:
 
     trainer2.fit()
     trainer2.test()
+
+
+def test_ssl_trainer() -> None:
+    ssl_cfg_path = (
+        Path(__file__).parent.parent / "inbuilt_cfgs" / "example_GeoCLR_config.yml"
+    )
+
+    with config_load.ToDefaultConfDir():
+        ssl_cfg, _ = config_load.load_configs(ssl_cfg_path)
+
+    trainer = Trainer(0, **ssl_cfg)
+
+    trainer.fit()
