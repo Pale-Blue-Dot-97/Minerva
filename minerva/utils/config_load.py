@@ -50,6 +50,23 @@ DEFAULT_CONFIG_NAME: str = "example_config.yml"
 
 
 # =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class ToDefaultConfDir:
+    """Changes to the default config directory. Switches back to the previous CWD on close."""
+
+    def __init__(self) -> None:
+        self._cwd = os.getcwd()
+        self._def_dir = (Path(__file__).parent / DEFAULT_CONF_DIR_PATH).resolve()
+
+    def __enter__(self) -> None:
+        os.chdir(self._def_dir)
+
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+        os.chdir(self._cwd)
+
+
+# =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
 def universal_path(path: Any) -> Path:
@@ -144,7 +161,7 @@ def chdir_to_default(config_name: Optional[str] = None) -> str:
         return config_name
 
 
-def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
+def load_configs(master_config_path: Union[str, Path]) -> Tuple[Dict[str, Any], ...]:
     """Loads the master config from YAML. Finds other config paths within and loads them.
 
     Args:
@@ -154,7 +171,7 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
         Master config and any other configs found from paths in the master config.
     """
 
-    def yaml_load(path: str) -> Any:
+    def yaml_load(path: Union[str, Path]) -> Any:
         """Loads YAML file from path as dict.
         Args:
             path(str): Path to YAML file.
