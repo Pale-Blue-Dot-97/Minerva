@@ -19,17 +19,17 @@ from minerva.utils import CONFIG
 
 @pytest.fixture
 def data_root():
-    return Path(__file__).parent / "tests" / "tmp"
+    return Path(__file__).parent / "tmp" / "results"
 
 
 @pytest.fixture
-def img_root(data_root):
-    return data_root / "data" / "test_images"
+def img_root(data_root: Path):
+    return data_root.parent / "data" / "test_images"
 
 
 @pytest.fixture
-def config_root(data_root):
-    config_path = data_root / "config"
+def config_root(data_root: Path):
+    config_path = data_root.parent / "config"
 
     # Make a temporary copy of a config manifest example
     os.makedirs(config_path, exist_ok=True)
