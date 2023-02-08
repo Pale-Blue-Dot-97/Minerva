@@ -30,6 +30,15 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "DEFAULT_CONF_DIR_PATH",
+    "DEFAULT_CONFIG_NAME",
+    "ToDefaultConfDir",
+    "universal_path",
+    "check_paths",
+    "chdir_to_default",
+    "load_configs",
+]
 
 # =====================================================================================================================
 #                                                     IMPORTS
