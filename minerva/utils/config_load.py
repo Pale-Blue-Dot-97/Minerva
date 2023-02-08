@@ -96,7 +96,7 @@ def universal_path(path: Any) -> Path:
 
 
 def check_paths(
-    config: Optional[Union[str, PathLike]] = None, use_default_conf_dir: bool = False
+    config: Optional[Union[str, Path]] = None, use_default_conf_dir: bool = False
 ) -> Tuple[str, Optional[str], Optional[Path]]:
     """Checks the path given for the config.
 
