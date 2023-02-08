@@ -17,6 +17,13 @@ from minerva.models import CNN, MLP, MinervaModel
 from minerva.utils import CONFIG
 
 
+@pytest.fixture(scope="session", autouse=True)
+def results_dir():
+    path = Path(__file__).parent / "tmp" / "results"
+    yield path
+    shutil.rmtree(path)
+
+
 @pytest.fixture
 def data_root():
     return Path(__file__).parent / "tmp" / "results"
