@@ -948,11 +948,13 @@ class Trainer:
 
         torch.save(model.state_dict(), f"{fn}.pt")
 
-    def save_model(self, fn: Optional[str] = None, format: str = "pt") -> None:
+    def save_model(
+        self, fn: Optional[Union[Path, str]] = None, format: str = "pt"
+    ) -> None:
         """Saves the model object itself to PyTorch file.
 
         Args:
-            fn (str): Optional; Filename and path (excluding extension) to save model to.
+            fn (Union[Path, str]): Optional; Filename and path (excluding extension) to save model to.
             format (str): Optional; Format to save model to. ``pt`` for PyTorch, or ``onnx`` for ONNX.
 
         Raises:
