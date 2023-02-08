@@ -3,26 +3,11 @@
 
 # === PATHS ===================================================================
 dir:
-    data:
-        - ..
-        - ..
-        - tests
-        - tmp
-        - data
+    data: tests/tmp/data
     configs:
-        imagery_config: ../../inbuilt_cfgs/NAIP.yml
-    results:
-        - ..
-        - ..
-        - tests
-        - tmp
-        - results
-    cache:
-        - ..
-        - ..
-        - tests
-        - tmp
-        - cache
+        imagery_config: NAIP.yml
+    results: tests/tmp/results
+    cache: tests/tmp/cache
 
 # ---+ Kwargs for make_datasets +----------------------------------------------
 # Name of model. Substring before hyphen is model class.
