@@ -14,7 +14,12 @@ from torchgeo.datasets.utils import BoundingBox
 
 from minerva.datasets import make_dataset
 from minerva.models import CNN, MLP, MinervaModel
-from minerva.utils import CONFIG
+from minerva.utils import CONFIG, utils
+
+
+@pytest.fixture(scope="session", autouse=True)
+def set_seeds():
+    utils.set_seeds(42)
 
 
 @pytest.fixture(scope="session", autouse=True)
