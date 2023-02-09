@@ -8,9 +8,7 @@ import torch
 from minerva.models import MinervaOnnxModel
 from minerva.trainer import Trainer
 from minerva.utils import config_load, runner
-from minerva.utils.utils import CONFIG, set_seeds
-
-set_seeds(42)
+from minerva.utils.utils import CONFIG
 
 
 def run_trainer(gpu: int, args: argparse.Namespace):
