@@ -6,9 +6,11 @@
 <br />
 <div align="center">
   <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="docs/images/Minerva_logo_v3.png" alt="Logo" width="400" height="300">
+    <img src="docs/images/Minerva_logo_v4.png" alt="Logo" width="" height="200">
   </a>
   <p align="center">
+    <b style="font-size:26px;"> Minerva 0.19-beta</b>
+    <br />
     Framework for machine learning in remote sensing
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
@@ -139,12 +141,10 @@ Contributions also provided by:
 I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
-Credit for new `minerva` logo goes to [DALL-E 2](https://openai.com/dall-e-2/).
-
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Project Status
 
-This project is still very much a WIP alpha state.
+This project is in a *beta* state. Expect bugs and breaking changes in future versions.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
