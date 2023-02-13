@@ -8,7 +8,7 @@ minerva
    trainer
    datasets
    samplers
-   models
+   models/index
    metrics
    logger
    transforms
