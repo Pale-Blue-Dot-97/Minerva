@@ -44,7 +44,6 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
-from os import PathLike
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
@@ -158,7 +157,7 @@ def chdir_to_default(config_name: Optional[str] = None) -> str:
         config_name (Optional[str]): Optional; Name of the config in the default directory. Defaults to None.
 
     Returns:
-        str: :var:`DEFAULT_CONFIG_NAME` if ``config_name`` not in default directory. ``config_name`` if it does exist.
+        str: ``DEFAULT_CONFIG_NAME`` if ``config_name`` not in default directory. ``config_name`` if it does exist.
     """
 
     this_abs_path = (Path(__file__).parent / DEFAULT_CONF_DIR_PATH).resolve()
