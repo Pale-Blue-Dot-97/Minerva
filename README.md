@@ -6,7 +6,7 @@
 <br />
 <div align="center">
   <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="docs/images/Minerva_logo_v4.png" alt="Logo" width="" height="200">
+    <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="200">
   </a>
   <p align="center">
     <b style="font-size:26px;"> Minerva 0.19-beta</b>
