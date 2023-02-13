@@ -39,7 +39,7 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 import yaml
-from alive_progress import alive_bar  # , alive_it
+from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
 from onnx2torch import convert
@@ -53,7 +53,7 @@ from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
-from minerva.logger import MinervaLogger
+from minerva.logger import KNNLogger, MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import (
     MinervaBackbone,
@@ -62,7 +62,7 @@ from minerva.models import (
     MinervaOnnxModel,
 )
 from minerva.pytorchtools import EarlyStopping
-from minerva.utils import universal_path, utils, visutils
+from minerva.utils import AUX_CONFIGS, universal_path, utils, visutils
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -539,16 +539,29 @@ class Trainer:
 
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
                 if self.params.get("plot_last_epoch", False):
-                    result: Optional[Dict[str, Any]] = self.epoch(
-                        mode,
-                        record_int=True,
-                        record_float=self.params.get("record_float", False),
-                    )
-                    assert result is not None
-                    results = result
+                    result: Optional[Dict[str, Any]]
+                    if mode == "val" and self.params["model_type"] in (
+                        "ssl",
+                        "siamese",
+                    ):
+                        result = self.weighted_knn_test()
+                    else:
+                        result = self.epoch(
+                            mode,
+                            record_int=True,
+                            record_float=self.params.get("record_float", False),
+                        )
+                        assert result is not None
+                        results = result
 
                 else:
-                    self.epoch(mode)
+                    if mode == "val" and self.params["model_type"] in (
+                        "ssl",
+                        "siamese",
+                    ):
+                        self.weighted_knn_test()
+                    else:
+                        self.epoch(mode)
 
                 # Add epoch number to metrics.
                 self.metric_logger.log_epoch_number(mode, epoch)
@@ -744,46 +757,60 @@ class Trainer:
             filename=str(results_dir / "tsne_cluster_vis.png"),
         )
 
-    """
     def weighted_knn_test(
         self,
-        epoch_logger: MinervaLogger,
         temp: float = 0.5,
         k: int = 200,
-    ) -> Tuple[float, float]:
+        mode: str = "val",
+        record_int: bool = True,
+        record_float: bool = False,
+    ) -> Optional[Dict[str, Any]]:
 
         self.model.eval()
-        n_classes = self.model.n_classes
+        n_classes = len(AUX_CONFIGS["data_config"]["classes"])
 
-        total_top1, total_top5, total_num, feature_bank, target_bank = (
-            0.0,
-            0.0,
-            0,
-            [],
-            [],
+        batch_size = self.batch_size
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
+
+        # Calculates the number of samples
+        n_samples = self.n_batches[mode] * batch_size
+
+        # Creates object to log the results from each step of this epoch.
+        epoch_logger = KNNLogger(
+            self.n_batches[mode],
+            batch_size,
+            n_samples,
+            record_int=record_int,
+            record_float=record_float,
+            writer=self.writer,
         )
 
+        total_num = 0
+        feature_list = []
+        target_list = []
+
         with torch.no_grad():
-            # generate feature bank and target bank
-            feat_bar = alive_it(self.loaders["val"], desc="Feature extracting")
+            # Generate feature bank and target bank.
+            feat_bar = alive_it(self.loaders["val"])
             for batch in feat_bar:
                 (data, _), target = batch["image"], batch["mask"]
-                target_bank.append(target)
+                target_list.append(target)
                 feature, _ = self.model(data.cuda(non_blocking=True))
-                feature_bank.append(feature)
+                feature_list.append(feature)
 
                 if self.gpu == 0:
                     feat_bar()
 
             # [D, N]
-            feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
+            feature_bank = torch.cat(feature_list, dim=0).t().contiguous()
 
             # [N]
             feature_labels = (
-                torch.cat(target_bank, dim=0).contiguous().to(feature_bank.device)
+                torch.cat(target_list, dim=0).contiguous().to(feature_bank.device)
             )
 
-            # loop test data to predict the label by weighted knn search
+            # Loop test data to predict the label by weighted KNN search.
             test_bar = alive_it(self.loaders["test"])
             for batch in test_bar:
                 (data, _), target = batch["image"], batch["mask"]
@@ -807,7 +834,7 @@ class Trainer:
 
                 sim_weight = (sim_weight / temp).exp()
 
-                # counts for each class
+                # Counts for each class
                 one_hot_label = torch.zeros(
                     data.size(0) * k, n_classes, device=sim_labels.device
                 )
@@ -817,7 +844,7 @@ class Trainer:
                     dim=-1, index=sim_labels.view(-1, 1), value=1.0
                 )
 
-                # weighted score ---> [B, C]
+                # Weighted score ---> [B, C]
                 pred_scores = torch.sum(
                     one_hot_label.view(data.size(0), -1, n_classes)
                     * sim_weight.unsqueeze(dim=-1),
@@ -825,28 +852,29 @@ class Trainer:
                 )
 
                 pred_labels = pred_scores.argsort(dim=-1, descending=True)
-                total_top1 += torch.sum(
-                    (pred_labels[:, :1] == target.unsqueeze(dim=-1)).any(dim=-1).float()
-                ).item()
 
-                total_top5 += torch.sum(
-                    (pred_labels[:, :5] == target.unsqueeze(dim=-1)).any(dim=-1).float()
-                ).item()
+                results = (_, pred_labels, target, _)
 
-                if dist.is_available() and dist.is_initialized():
-                    loss = results[0].data.clone()
-                    dist.all_reduce(loss.div_(dist.get_world_size()))
-                    results = (loss, *results[1:])
+                # if dist.is_available() and dist.is_initialized():
+                #    loss = results[0].data.clone()
+                #    dist.all_reduce(loss.div_(dist.get_world_size()))
+                #    results = (loss, *results[1:])
 
-                epoch_logger.log("val", self.step_num["val"], self.writer, *results)
+                epoch_logger.log("val", self.step_num["val"], *results)
 
                 self.step_num["val"] += 1
 
                 if self.gpu == 0:
                     test_bar()
 
-        return total_top1 / total_num * 100, total_top5 / total_num * 100
-    """
+        self.metric_logger(mode, epoch_logger.get_logs)
+
+        # total_top1 / total_num * 100, total_top5 / total_num * 100
+        # self.metric_logger()
+        if record_int or record_float:
+            return epoch_logger.get_results
+        else:
+            return None
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
