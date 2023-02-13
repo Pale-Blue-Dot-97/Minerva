@@ -355,6 +355,66 @@ class STGLogger(MinervaLogger):
         self.logs["batch_num"] += 1
 
 
+class KNNLogger(MinervaLogger):
+    def __init__(
+        self,
+        n_batches: int,
+        batch_size: int,
+        n_samples: int,
+        record_int: bool = True,
+        record_float: bool = False,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            n_batches, batch_size, n_samples, record_int, record_float, writer, **kwargs
+        )
+
+        self.logs: Dict[str, Any] = {
+            "batch_num": 0,
+            "total_loss": 0.0,
+            "total_correct": 0.0,
+            "total_top5": 0.0,
+        }
+
+        self.results: Dict[str, Any] = {
+            "y": None,
+            "z": None,
+            "probs": None,
+            "ids": [],
+            "bounds": None,
+        }
+
+    def log(
+        self,
+        mode: str,
+        step_num: int,
+        loss: Tensor,
+        z: Optional[Tensor] = None,
+        y: Optional[Tensor] = None,
+        bbox: Optional[BoundingBox] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+
+        assert isinstance(z, Tensor)
+        assert isinstance(y, Tensor)
+
+        top1 = torch.sum((z[:, :1] == y.unsqueeze(dim=-1)).any(dim=-1).float()).item()
+
+        top5 = torch.sum((z[:, :5] == y.unsqueeze(dim=-1)).any(dim=-1).float()).item()
+
+        self.logs["total_correct"] += top1
+        self.logs["total_top5"] += top5
+
+        # self.write_metric(mode, "loss", loss, step_num)
+        self.write_metric(mode, "acc", top1, step_num)
+        self.write_metric(mode, "top5", top5, step_num)
+
+        # Adds 1 to batch number (step number).
+        self.logs["batch_num"] += 1
+
+
 class SSLLogger(MinervaLogger):
     """Logger designed for self-supervised learning.
 
@@ -390,7 +450,7 @@ class SSLLogger(MinervaLogger):
             batch_size,
             n_samples,
             record_int,
-            record_float=False,
+            record_float=record_float,
             writer=writer,
         )
 
