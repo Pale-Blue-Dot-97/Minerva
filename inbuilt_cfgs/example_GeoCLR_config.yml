@@ -6,6 +6,7 @@ dir:
     data: tests/tmp/data
     configs:
         imagery_config: NAIP.yml
+        data_config: Chesapeake7.yml
     results: tests/tmp/results
     cache: tests/tmp/cache
 
@@ -49,6 +50,29 @@ dataset_params:
             params:
                 res: 1.0
 
+        mask:
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
+            params:
+                res: 1.0
+
+    # Test Dataset
+    test:
+        image:
+            module: minerva.datasets
+            name: TstImgDataset
+            root: test_images
+            params:
+                res: 1.0
+
+        mask:
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
+            params:
+                res: 1.0
+
 # === SAMPLER PARAMETERS ======================================================
 sampler_params:
     # Training Dataset Sampler
@@ -69,6 +93,15 @@ sampler_params:
             size: *patch_size
             length: 32
 
+    # Test Dataset Sampler
+    test:
+        module: minerva.samplers
+        name: RandomPairGeoSampler
+        roi: false
+        params:
+            size: *patch_size
+            length: 32
+
 # === TRANSFORM PARAMETERS ====================================================
 transform_params:
     # Training Dataset Transforms
@@ -78,6 +111,11 @@ transform_params:
     # Validation Dataset Transforms
     val:
         image: false
+        mask: false
+
+    test:
+        image: false
+        mask: false
 
 # Collation
 collator:
