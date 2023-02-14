@@ -24,6 +24,7 @@ patch_size: &patch_size [32, 32]
 pre_train: true
 fine_tune: false
 max_r: 52
+knn_k: 5
 
 # === MODEL IO & LOGGING ======================================================
 logger: SSLLogger
@@ -86,8 +87,8 @@ sampler_params:
 
     # Validation Dataset Sampler
     val:
-        module: minerva.samplers
-        name: RandomPairGeoSampler
+        module: torchgeo.samplers
+        name: RandomGeoSampler
         roi: false
         params:
             size: *patch_size
@@ -95,8 +96,8 @@ sampler_params:
 
     # Test Dataset Sampler
     test:
-        module: minerva.samplers
-        name: RandomPairGeoSampler
+        module: torchgeo.samplers
+        name: RandomGeoSampler
         roi: false
         params:
             size: *patch_size
