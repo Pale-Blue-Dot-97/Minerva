@@ -55,7 +55,12 @@ from .core import MinervaBackbone, MinervaModel, get_model
 #                                                     CLASSES
 # =====================================================================================================================
 class MinervaSiamese(MinervaBackbone):
-    """Abstract class for Siamese models."""
+    """Abstract class for Siamese models.
+
+    Attributes:
+        backbone (MinervaModel):
+        proj_head (Module):
+    """
 
     __metaclass__ = abc.ABCMeta
 
