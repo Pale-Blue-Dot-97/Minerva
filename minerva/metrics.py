@@ -324,7 +324,7 @@ class SSLMetrics(MinervaMetrics):
                 logs["total_top5"] / (self.n_batches[mode] * self.batch_size)
             )
 
-        if self.sample_pairs:
+        if self.sample_pairs and mode == "train":
             self.metrics[f"{mode}_collapse_level"]["y"].append(logs["collapse_level"])
             self.metrics[f"{mode}_euc_dist"]["y"].append(
                 logs["euc_dist"] / self.n_batches[mode]
@@ -341,7 +341,7 @@ class SSLMetrics(MinervaMetrics):
         self.metrics[f"{mode}_acc"]["x"].append(epoch_no + 1)
         self.metrics[f"{mode}_top5_acc"]["x"].append(epoch_no + 1)
 
-        if self.sample_pairs:
+        if self.sample_pairs and mode == "train":
             self.metrics[f"{mode}_collapse_level"]["x"].append(epoch_no + 1)
             self.metrics[f"{mode}_euc_dist"]["x"].append(epoch_no + 1)
 
@@ -359,7 +359,7 @@ class SSLMetrics(MinervaMetrics):
             self.metrics[f"{mode}_top5_acc"]["y"][epoch_no] * 100.0,
         )
 
-        if self.sample_pairs:
+        if self.sample_pairs and mode == "train":
             msg += "\n"
 
             msg += "| Collapse Level: {}%".format(
