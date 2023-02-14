@@ -498,10 +498,6 @@ class Trainer:
             writer=self.writer,
         )
 
-        # if mode == "val" and self.params["model_type"] == "ssl":
-        #    results = self.weighted_knn_test()
-
-        # else:
         # Initialises a progress bar for the epoch.
         with alive_bar(
             self.n_batches[mode], bar="blocks"
@@ -790,6 +786,8 @@ class Trainer:
         record_float: bool = False,
     ) -> Optional[Dict[str, Any]]:
         """Trains a KNN using the model to validate a SSL model.
+
+        Adapted from https://github.com/yaohungt/Barlow-Twins-HSIC for use in :mod:`minerva`.
 
         Args:
             temp (float, optional): Temperature of the similarity loss. Defaults to 0.5.
