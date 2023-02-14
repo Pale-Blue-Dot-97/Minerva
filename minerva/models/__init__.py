@@ -55,6 +55,7 @@ from .resnet import ResNet34 as ResNet34
 from .resnet import ResNet50 as ResNet50
 from .resnet import ResNet101 as ResNet101
 from .resnet import ResNet152 as ResNet152
+from .siamese import MinervaSiamese as MinervaSiamese
 from .siamese import SimCLR18 as SimCLR18
 from .siamese import SimCLR34 as SimCLR34
 from .siamese import SimCLR50 as SimCLR50
