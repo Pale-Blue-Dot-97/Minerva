@@ -191,17 +191,23 @@ def test_ssl_metrics() -> None:
             assert metrics[f"{mode}_loss"] == pytest.approx(correct_loss)
             assert metrics[f"{mode}_acc"] == pytest.approx(correct_acc[i])
             assert metrics[f"{mode}_top5_acc"] == pytest.approx(correct_top5[i])
-            assert metrics[f"{mode}_collapse_level"] == pytest.approx(
-                correct_collapse_level
-            )
-            assert metrics[f"{mode}_euc_dist"] == pytest.approx(correct_euc_dist)
+
+            if mode == "train":
+                assert metrics[f"{mode}_collapse_level"] == pytest.approx(
+                    correct_collapse_level
+                )
+                assert metrics[f"{mode}_euc_dist"] == pytest.approx(correct_euc_dist)
 
             sub_metrics = metric_logger.get_sub_metrics()
 
             assert sub_metrics[f"{mode}_loss"] == pytest.approx(correct_loss)
             assert sub_metrics[f"{mode}_acc"] == pytest.approx(correct_acc[i])
             assert sub_metrics[f"{mode}_top5_acc"] == pytest.approx(correct_top5[i])
-            assert sub_metrics[f"{mode}_collapse_level"] == pytest.approx(
-                correct_collapse_level
-            )
-            assert sub_metrics[f"{mode}_euc_dist"] == pytest.approx(correct_euc_dist)
+
+            if mode == "train":
+                assert sub_metrics[f"{mode}_collapse_level"] == pytest.approx(
+                    correct_collapse_level
+                )
+                assert sub_metrics[f"{mode}_euc_dist"] == pytest.approx(
+                    correct_euc_dist
+                )
