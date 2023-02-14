@@ -161,13 +161,13 @@ class Trainer:
         self.class_dist = class_dist
         self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
         self.n_batches = n_batches
-        self.batch_size: int = params["hyperparams"]["params"]["batch_size"]
-        self.model_type: str = params["model_type"]
+        self.batch_size: int = self.params["hyperparams"]["params"]["batch_size"]
+        self.model_type: str = self.params["model_type"]
 
         # Sets the max number of epochs of fitting.
-        self.max_epochs = params["hyperparams"].get("max_epochs", 25)
+        self.max_epochs = self.params["hyperparams"].get("max_epochs", 25)
 
-        self.modes = params["dataset_params"].keys()
+        self.modes = self.params["dataset_params"].keys()
 
         # Flag for a fine-tuning experiment.
         self.fine_tune = self.params.get("fine_tune", False)
@@ -191,7 +191,7 @@ class Trainer:
         self.exp_fn: Path = results_dir / self.params["exp_name"]
 
         self.writer: Optional[Union[SummaryWriter, Run]] = None
-        if params.get("wandb_log", False):
+        if self.params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
             self.writer = wandb_run
             self.init_wandb_metrics()
@@ -208,7 +208,7 @@ class Trainer:
             self.model = self.make_model()
 
         # Determines the output shape of the model.
-        sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
+        sample_pairs: Union[bool, Any] = self.params.get("sample_pairs", False)
         if type(sample_pairs) != bool:
             sample_pairs = False
             self.params["sample_pairs"] = False
@@ -247,7 +247,7 @@ class Trainer:
 
         if self.gpu == 0:
             if isinstance(self.writer, Run):
-                self.writer.config.update(params)
+                self.writer.config.update(self.params)
 
             # Determines the input size of the model.
             input_size = self.get_input_size()
@@ -789,6 +789,20 @@ class Trainer:
         record_int: bool = True,
         record_float: bool = False,
     ) -> Optional[Dict[str, Any]]:
+        """Trains a KNN using the model to validate a SSL model.
+
+        Args:
+            temp (float, optional): Temperature of the similarity loss. Defaults to 0.5.
+            k (int, optional): Number of similar images to use to predict images. Defaults to 200.
+            mode (str, optional): Mode of model fitting this has been called on. Defaults to "val".
+            record_int (bool, optional): Whether to record integer values. Defaults to True.
+            record_float (bool, optional): Whether to record floating point values. Warning!
+                This may result in memory issues on large amounts of data! Defaults to False.
+
+        Returns:
+            Optional[Dict[str, Any]]: Results dictionary from the epoch logger if ``record_int``
+                or ``record_float`` are ``True``.
+        """
 
         # Puts the model in evaluation mode so no back passes are made.
         self.model.eval()
