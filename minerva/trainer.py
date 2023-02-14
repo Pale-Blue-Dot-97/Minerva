@@ -905,6 +905,7 @@ class Trainer:
 
                 results = (_, pred_labels, test_target, _)
 
+                # TODO: Add appropiate loss calculation/ function.
                 # if dist.is_available() and dist.is_initialized():
                 #    loss = results[0].data.clone()
                 #    dist.all_reduce(loss.div_(dist.get_world_size()))
@@ -916,8 +917,6 @@ class Trainer:
 
         self.metric_logger(mode, epoch_logger.get_logs)
 
-        # total_top1 / total_num * 100, total_top5 / total_num * 100
-        # self.metric_logger()
         if record_int or record_float:
             return epoch_logger.get_results
         else:
