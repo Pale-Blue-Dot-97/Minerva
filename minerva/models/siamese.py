@@ -46,6 +46,7 @@ import numpy as np
 import torch
 import torch.nn.modules as nn
 from torch import Tensor
+from torch.nn.modules import Module
 
 from .core import MinervaBackbone, MinervaModel, get_model
 
@@ -62,7 +63,7 @@ class MinervaSiamese(MinervaBackbone):
         super().__init__(*args, **kwargs)
 
         self.backbone: MinervaModel
-        self.proj_head: MinervaModel
+        self.proj_head: Module
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of the network by using the forward methods of the backbone and
@@ -109,7 +110,7 @@ class MinervaSiamese(MinervaBackbone):
 
     @abc.abstractmethod
     def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
-        """Performs a forward pass of a single head of :class:`_SimSiam` by using the forward methods of the backbone
+        """Performs a forward pass of a single head of the network by using the forward methods of the backbone
         and feeding its output into the projection heads.
 
         Args:
@@ -119,13 +120,13 @@ class MinervaSiamese(MinervaBackbone):
             Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
             embedding vector from the backbone.
         """
-        pass
+        raise NotImplementedError
 
 
-class _SimCLR(MinervaBackbone):
+class _SimCLR(MinervaSiamese):
     """Base SimCLR class to be subclassed by SimCLR variants.
 
-    Subclasses MinervaModel.
+    Subclasses :class:`MinervaSiamse`.
 
     Attributes:
         backbone (Module): Backbone of SimCLR that takes the imagery input and
@@ -167,25 +168,21 @@ class _SimCLR(MinervaBackbone):
             nn.Linear(512, feature_dim, bias=False),
         )
 
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-        """Performs a forward pass of SimCLR by using the forward methods of the backbone and
-        feeding its output into the projection heads.
+    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        """Performs a forward pass of a single head of the network by using the forward methods of the backbone
+        and feeding its output into the projection heads.
 
-        Overwrites MinervaModel abstract method.
+        Args:
+            x (Tensor): (Unpaired) Batch of input data to the network.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Returns:
+            Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
+            embedding vector from the backbone.
         """
-        f_a: Tensor = torch.flatten(self.backbone(x[0])[0], start_dim=1)  # type: ignore[attr-defined]
-        f_b: Tensor = torch.flatten(self.backbone(x[1])[0], start_dim=1)  # type: ignore[attr-defined]
+        f: Tensor = torch.flatten(self.backbone(x)[0], start_dim=1)
+        g: Tensor = self.proj_head(f)
 
-        g_a: Tensor = self.proj_head(f_a)
-        g_b: Tensor = self.proj_head(f_b)
-
-        z = torch.cat([g_a, g_b], dim=0)  # type: ignore[attr-defined]
-
-        assert isinstance(z, Tensor)
-
-        return z, g_a, g_b, f_a, f_b
+        return g, f
 
     def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
@@ -308,10 +305,10 @@ class SimCLR50(_SimCLR):
         )
 
 
-class _SimSiam(MinervaBackbone):
+class _SimSiam(MinervaSiamese):
     """Base SimSiam class to be subclassed by SimSiam variants.
 
-    Subclasses MinervaModel.
+    Subclasses :class:`MinervaSiamese`.
 
     Attributes:
         backbone (Module): Backbone of SimSiam that takes the imagery input and
@@ -361,7 +358,7 @@ class _SimSiam(MinervaBackbone):
         )  # output layer
         # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
 
-        # build a 2-layer predictor
+        # Build a 2-layer predictor.
         self.predictor = nn.Sequential(
             nn.Linear(feature_dim, pred_dim, bias=False),
             nn.BatchNorm1d(pred_dim),
