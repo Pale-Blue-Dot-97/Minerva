@@ -217,6 +217,13 @@ GENERIC_PARSER.add_argument(
     help="Will log each process on Weights and Biases. Otherwise, logging will be performed from the master process.",
 )
 
+GENERIC_PARSER.add_argument(
+    "--knn-k",
+    dest="knn_k",
+    type=int,
+    default=200,
+    help="Top k most similar images used to predict the image for KNN validation.",
+)
 
 # =====================================================================================================================
 #                                                     CLASSES
