@@ -161,7 +161,7 @@ class MinervaLogger(ABC):
         if mlflow.active_run():
             # If running in Azure Machine Learning, tracking URI / experiment ID set already
             # https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-mlflow-cli-runs?tabs=python%2Cmlflow#creating-a-training-routine  # noqa: E501
-            mlflow.log_metric(key, value)
+            mlflow.log_metric(key, value)  # pragma: no cover
 
     @property
     def get_logs(self) -> Dict[str, Any]:
