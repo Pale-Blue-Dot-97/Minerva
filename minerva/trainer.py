@@ -386,16 +386,18 @@ class Trainer:
             for i in range(len(weights_dict)):
                 weights.append(weights_dict[i])
 
-            if not criterion_params_exist:
-                loss_params["params"] = {"weight": Tensor(weights)}
-            else:
+            if criterion_params_exist:
                 loss_params["params"]["weight"] = Tensor(weights)
-            return criterion(**loss_params["params"])
-        else:
-            if not criterion_params_exist:
-                return criterion()
             else:
+                loss_params["params"] = {"weight": Tensor(weights)}
+
+            return criterion(**loss_params["params"])
+
+        else:
+            if criterion_params_exist:
                 return criterion(**loss_params["params"])
+            else:
+                return criterion()
 
     def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
