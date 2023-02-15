@@ -95,3 +95,7 @@ def test_ssl_trainer() -> None:
     trainer = Trainer(0, **ssl_cfg)
 
     trainer.fit()
+
+    trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
+
+    trainer.tsne_cluster()
