@@ -1536,7 +1536,7 @@ def compute_roc_curves(
                 )
                 roc_auc[key] = auc(fpr[key], tpr[key])
                 bar()
-            except UndefinedMetricWarning:
+            except UndefinedMetricWarning:  # pragma: no cover
                 bar("Class empty!")
 
     if micro:
