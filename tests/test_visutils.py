@@ -347,6 +347,6 @@ def test_plot_embeddings(data_root: Path, default_dataset: GeoDataset) -> None:
         bounds,
         "test",
         show=True,
-        filename=str(data_root / "tsne_cluster_vis.png"),
+        filename=data_root / "tsne_cluster_vis.png",
         title="test_plot",
     )
