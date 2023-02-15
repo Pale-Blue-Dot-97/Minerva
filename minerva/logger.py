@@ -400,9 +400,15 @@ class KNNLogger(MinervaLogger):
         assert isinstance(z, Tensor)
         assert isinstance(y, Tensor)
 
-        top1 = torch.sum((z[:, :1] == y.unsqueeze(dim=-1)).any(dim=-1).float()).item()
+        sorted_z = z.argsort(dim=-1, descending=True)
 
-        top5 = torch.sum((z[:, :5] == y.unsqueeze(dim=-1)).any(dim=-1).float()).item()
+        top1 = torch.sum(
+            (sorted_z[:, :1] == y.unsqueeze(dim=-1)).any(dim=-1).float()
+        ).item()
+
+        top5 = torch.sum(
+            (sorted_z[:, :5] == y.unsqueeze(dim=-1)).any(dim=-1).float()
+        ).item()
 
         self.logs["total_correct"] += top1
         self.logs["total_top5"] += top5

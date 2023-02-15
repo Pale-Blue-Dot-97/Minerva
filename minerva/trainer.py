@@ -915,9 +915,7 @@ class Trainer:
                     dim=1,
                 )
 
-                pred_labels = pred_scores.argsort(dim=-1, descending=True)
-
-                results = (_, pred_labels, test_target, _)
+                results = (_, pred_scores, test_target, _)
 
                 # TODO: Add appropiate loss calculation/ function.
                 # if dist.is_available() and dist.is_initialized():
