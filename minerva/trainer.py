@@ -929,10 +929,10 @@ class Trainer:
                     results = (loss, *results[1:])
 
                 # Sends results to logger.
-                epoch_logger.log("val", self.step_num["val"], *results)
+                epoch_logger.log(mode, self.step_num[mode], *results)
 
                 # Update global step number for this mode of model fitting.
-                self.step_num["val"] += 1
+                self.step_num[mode] += 1
 
         # Send the logs to the metric logger.
         self.metric_logger(mode, epoch_logger.get_logs)
