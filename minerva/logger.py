@@ -400,20 +400,29 @@ class KNNLogger(MinervaLogger):
         assert isinstance(z, Tensor)
         assert isinstance(y, Tensor)
 
+        # Extract loss.
+        ls = loss.item()
+
+        # Sort the predicted labels.
         sorted_z = z.argsort(dim=-1, descending=True)
 
+        # Calculate the top-1 (standard) accuracy.
         top1 = torch.sum(
             (sorted_z[:, :1] == y.unsqueeze(dim=-1)).any(dim=-1).float()
         ).item()
 
+        # Calculate the top-5 accuracy
         top5 = torch.sum(
             (sorted_z[:, :5] == y.unsqueeze(dim=-1)).any(dim=-1).float()
         ).item()
 
+        # Add results to logs.
+        self.logs["total_loss"] += ls
         self.logs["total_correct"] += top1
         self.logs["total_top5"] += top5
 
-        # self.write_metric(mode, "loss", loss, step_num)
+        # Write results to the writer.
+        self.write_metric(mode, "loss", loss, step_num)
         self.write_metric(mode, "acc", top1, step_num)
         self.write_metric(mode, "top5", top5, step_num)
 
