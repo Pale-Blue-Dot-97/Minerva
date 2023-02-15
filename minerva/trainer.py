@@ -915,21 +915,26 @@ class Trainer:
                     dim=1,
                 )
 
+                # Calculate loss between predicted and ground truth labels by KNN.
                 criterion = torch.nn.CrossEntropyLoss()
                 loss = criterion(pred_scores, test_target)
 
+                # Pack results together for the logger.
                 results = (loss, pred_scores, test_target, _)
 
-                # TODO: Add appropiate loss calculation/ function.
+                # Gathers the losses across devices together if a distributed job.
                 if dist.is_available() and dist.is_initialized():
                     loss = results[0].data.clone()
                     dist.all_reduce(loss.div_(dist.get_world_size()))
                     results = (loss, *results[1:])
 
+                # Sends results to logger.
                 epoch_logger.log("val", self.step_num["val"], *results)
 
+                # Update global step number for this mode of model fitting.
                 self.step_num["val"] += 1
 
+        # Send the logs to the metric logger.
         self.metric_logger(mode, epoch_logger.get_logs)
 
         if record_int or record_float:
