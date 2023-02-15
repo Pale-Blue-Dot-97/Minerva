@@ -83,6 +83,8 @@ def test_trainer_2() -> None:
     trainer2.fit()
     trainer2.test()
 
+    assert type(repr(trainer2.model)) is str
+
 
 def test_ssl_trainer() -> None:
     ssl_cfg_path = (
