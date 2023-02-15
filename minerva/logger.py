@@ -403,18 +403,11 @@ class KNNLogger(MinervaLogger):
         # Extract loss.
         ls = loss.item()
 
-        # Sort the predicted labels.
-        sorted_z = z.argsort(dim=-1, descending=True)
-
         # Calculate the top-1 (standard) accuracy.
-        top1 = torch.sum(
-            (sorted_z[:, :1] == y.unsqueeze(dim=-1)).any(dim=-1).float()
-        ).item()
+        top1 = torch.sum((z[:, :1] == y.unsqueeze(dim=-1)).any(dim=-1).float()).item()
 
         # Calculate the top-5 accuracy
-        top5 = torch.sum(
-            (sorted_z[:, :5] == y.unsqueeze(dim=-1)).any(dim=-1).float()
-        ).item()
+        top5 = torch.sum((z[:, :5] == y.unsqueeze(dim=-1)).any(dim=-1).float()).item()
 
         # Add results to logs.
         self.logs["total_loss"] += ls

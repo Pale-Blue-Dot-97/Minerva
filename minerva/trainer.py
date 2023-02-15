@@ -38,6 +38,7 @@ from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Uni
 import pandas as pd
 import torch
 import torch.distributed as dist
+import torch.nn.functional as ptfunc
 import yaml
 from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
@@ -163,6 +164,7 @@ class Trainer:
         self.n_batches = n_batches
         self.batch_size: int = self.params["hyperparams"]["params"]["batch_size"]
         self.model_type: str = self.params["model_type"]
+        self.val_freq: int = self.params.get("val_freq", 1)
 
         # Sets the max number of epochs of fitting.
         self.max_epochs = self.params["hyperparams"].get("max_epochs", 25)
@@ -553,6 +555,14 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in ("train", "val"):
 
+                # Only run a KNN validation epoch at set frequency of epochs. Goes to next epoch if not.
+                if (
+                    mode == "val"
+                    and self.model_type in ("ssl", "siamese")
+                    and (epoch + 1) % self.val_freq != 0
+                ):
+                    break
+
                 results: Dict[str, Any] = {}
 
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
@@ -590,11 +600,20 @@ class Trainer:
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    self.metric_logger.print_epoch_results(mode, epoch)
+                    if mode == "val" and self.model_type in ("ssl", "siamese"):
+                        epoch_no = epoch // self.val_freq
+                    else:
+                        epoch_no = epoch
+                    self.metric_logger.print_epoch_results(mode, epoch_no)
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if mode == "val" and self.stopper is not None:
-                    val_loss = self.metric_logger.get_metrics["val_loss"]["y"][epoch]
+                    if mode == "val" and self.model_type in ("ssl", "siamese"):
+                        epoch_no = epoch // self.val_freq
+                    else:
+                        epoch_no = epoch
+
+                    val_loss = self.metric_logger.get_metrics["val_loss"]["y"][epoch_no]
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
 
@@ -914,6 +933,12 @@ class Trainer:
                     * sim_weight.unsqueeze(dim=-1),
                     dim=1,
                 )
+                pred_scores = ptfunc.normalize(
+                    pred_scores.nan_to_num(nan=0.0, posinf=1.0, neginf=0.0),
+                )
+
+                pred_lables = pred_scores.argsort(dim=-1, descending=True)
+                predictions = pred_lables[:, :1].flatten()
 
                 # Calculate loss between predicted and ground truth labels by KNN.
                 criterion = torch.nn.CrossEntropyLoss()
