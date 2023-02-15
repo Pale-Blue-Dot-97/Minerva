@@ -25,6 +25,7 @@ pre_train: true
 fine_tune: false
 max_r: 52
 knn_k: 5
+val_freq: 2
 
 # === MODEL IO & LOGGING ======================================================
 logger: SSLLogger
@@ -141,7 +142,7 @@ hyperparams:
         params:
             temperature: 0.5
 
-    max_epochs: 5
+    max_epochs: 4
     stopping:
         patience: 2
         verbose: true
