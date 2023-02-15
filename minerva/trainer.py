@@ -915,13 +915,16 @@ class Trainer:
                     dim=1,
                 )
 
-                results = (_, pred_scores, test_target, _)
+                criterion = torch.nn.CrossEntropyLoss()
+                loss = criterion(pred_scores, test_target)
+
+                results = (loss, pred_scores, test_target, _)
 
                 # TODO: Add appropiate loss calculation/ function.
-                # if dist.is_available() and dist.is_initialized():
-                #    loss = results[0].data.clone()
-                #    dist.all_reduce(loss.div_(dist.get_world_size()))
-                #    results = (loss, *results[1:])
+                if dist.is_available() and dist.is_initialized():
+                    loss = results[0].data.clone()
+                    dist.all_reduce(loss.div_(dist.get_world_size()))
+                    results = (loss, *results[1:])
 
                 epoch_logger.log("val", self.step_num["val"], *results)
 
