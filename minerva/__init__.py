@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2022 Harry Baker
+# Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 """:mod:`minerva` is a package designed to facilitate the fitting and visualation of models for geo-spatial research."""
 
-__version__ = "0.13.0"
+__version__ = "0.19.0"
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
