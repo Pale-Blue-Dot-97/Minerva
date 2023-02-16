@@ -30,17 +30,4 @@ onnx2torch==1.5.4
 wandb==0.13.10
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability
 wheel>=0.38.0 # not directly required, pinned by Snyk to avoid a vulnerability
-Werkzeug ==2.2.3 # Patches a potential security vulnerability.
-
-pre-commit==2.21.0
-pytest==7.2.1
-pytest-cov==4.0.0
-mypy==0.991
-flake8==6.0.0
-tox==3.25.0
-myst_parser==0.18.1
-sphinx-rtd-theme==1.0.0
-internet-sabotage3==0.1.6
-certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerability
-pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
-sphinx>=3.0.4 # not directly required, pinned by Snyk to avoid a vulnerability
+Werkzeug>=2.2.3 # Patches a potential security vulnerability.
