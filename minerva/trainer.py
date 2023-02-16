@@ -937,8 +937,8 @@ class Trainer:
                     pred_scores.nan_to_num(nan=0.0, posinf=1.0, neginf=0.0),
                 )
 
-                pred_lables = pred_scores.argsort(dim=-1, descending=True)
-                predictions = pred_lables[:, :1].flatten()
+                # pred_lables = pred_scores.argsort(dim=-1, descending=True)
+                # predictions = pred_lables[:, :1].flatten()
 
                 # Calculate loss between predicted and ground truth labels by KNN.
                 criterion = torch.nn.CrossEntropyLoss()
