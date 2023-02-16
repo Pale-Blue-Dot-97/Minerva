@@ -1638,6 +1638,7 @@ def tsne_cluster(
     lr: str = "auto",
     n_iter: int = 1000,
     verbose: int = 1,
+    perplexity: int = 30,
 ) -> Any:
     """Trains a TSNE algorithm on the embeddings passed.
 
@@ -1647,12 +1648,24 @@ def tsne_cluster(
         lr (str, optional): Learning rate. Defaults to "auto".
         n_iter (int, optional): Number of iterations. Defaults to 1000.
         verbose (int, optional): Verbosity. Defaults to 1.
+        perplexity (int, optional): Relates to number of nearest neighbours used.
+            Must be less than the length of ``embeddings``.
 
     Returns:
         Any: Embeddings transformed to ``n_dim`` dimensions using TSNE.
     """
 
-    tsne = TSNE(n_dim, learning_rate=lr, n_iter=n_iter, verbose=verbose, init="random")
+    if len(embeddings) < perplexity:
+        perplexity = len(embeddings) - 1
+
+    tsne = TSNE(
+        n_dim,
+        learning_rate=lr,
+        n_iter=n_iter,
+        verbose=verbose,
+        init="random",
+        perplexity=perplexity,
+    )
 
     return tsne.fit_transform(embeddings)
 
