@@ -14,22 +14,34 @@ from torchgeo.datasets.utils import BoundingBox
 
 from minerva.datasets import make_dataset
 from minerva.models import CNN, MLP, MinervaModel
-from minerva.utils import CONFIG
+from minerva.utils import CONFIG, utils
+
+
+@pytest.fixture(scope="session", autouse=True)
+def set_seeds():
+    utils.set_seeds(42)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def results_dir():
+    path = Path(__file__).parent / "tmp" / "results"
+    yield path
+    shutil.rmtree(path)
 
 
 @pytest.fixture
 def data_root():
-    return Path(__file__).parent / "tests" / "tmp"
+    return Path(__file__).parent / "tmp" / "results"
 
 
 @pytest.fixture
-def img_root(data_root):
-    return data_root / "data" / "test_images"
+def img_root(data_root: Path):
+    return data_root.parent / "data" / "test_images"
 
 
 @pytest.fixture
-def config_root(data_root):
-    config_path = data_root / "config"
+def config_root(data_root: Path):
+    config_path = data_root.parent / "config"
 
     # Make a temporary copy of a config manifest example
     os.makedirs(config_path, exist_ok=True)

@@ -27,6 +27,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
+    "MinervaSiamese",
     "SimCLR18",
     "SimCLR34",
     "SimCLR50",
@@ -38,12 +39,14 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import abc
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 import torch.nn.modules as nn
 from torch import Tensor
+from torch.nn.modules import Module
 
 from .core import MinervaBackbone, MinervaModel, get_model
 
@@ -51,10 +54,84 @@ from .core import MinervaBackbone, MinervaModel, get_model
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class _SimCLR(MinervaBackbone):
+class MinervaSiamese(MinervaBackbone):
+    """Abstract class for Siamese models.
+
+    Attributes:
+        backbone (MinervaModel):
+        proj_head (Module):
+    """
+
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self.backbone: MinervaModel
+        self.proj_head: Module
+
+    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        """Performs a forward pass of the network by using the forward methods of the backbone and
+        feeding its output into the projection heads.
+
+        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+
+        Args:
+            x (Tensor): Pair of batches of input data to the network.
+
+        Returns:
+            Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]: Tuple of:
+                * Ouput feature vectors concated together.
+                * Output feature vector A.
+                * Output feature vector B.
+                * Detached embedding, A, from the backbone.
+                * Detached embedding, B, from the backbone.
+        """
+        return self.forward_pair(x)
+
+    def forward_pair(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+        """Performs a forward pass of the network by using the forward methods of the backbone and
+        feeding its output into the projection heads.
+
+        Args:
+            x (Tensor): Pair of batches of input data to the network.
+
+        Returns:
+            Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]: Tuple of:
+                * Ouput feature vectors concated together.
+                * Output feature vector A.
+                * Output feature vector B.
+                * Embedding, A, from the backbone.
+                * Embedding, B, from the backbone.
+        """
+        g_a, f_a = self.forward_single(x[0])
+        g_b, f_b = self.forward_single(x[1])
+
+        g = torch.cat([g_a, g_b], dim=0)  # type: ignore[attr-defined]
+
+        assert isinstance(g, Tensor)
+
+        return g, g_a, g_b, f_a, f_b
+
+    @abc.abstractmethod
+    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        """Performs a forward pass of a single head of the network by using the forward methods of the backbone
+        and feeding its output into the projection heads.
+
+        Args:
+            x (Tensor): (Unpaired) Batch of input data to the network.
+
+        Returns:
+            Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
+            embedding vector from the backbone.
+        """
+        raise NotImplementedError
+
+
+class _SimCLR(MinervaSiamese):
     """Base SimCLR class to be subclassed by SimCLR variants.
 
-    Subclasses MinervaModel.
+    Subclasses :class:`MinervaSiamse`.
 
     Attributes:
         backbone (Module): Backbone of SimCLR that takes the imagery input and
@@ -96,25 +173,21 @@ class _SimCLR(MinervaBackbone):
             nn.Linear(512, feature_dim, bias=False),
         )
 
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-        """Performs a forward pass of SimCLR by using the forward methods of the backbone and
-        feeding its output into the projection heads.
+    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        """Performs a forward pass of a single head of the network by using the forward methods of the backbone
+        and feeding its output into the projection heads.
 
-        Overwrites MinervaModel abstract method.
+        Args:
+            x (Tensor): (Unpaired) Batch of input data to the network.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Returns:
+            Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
+            embedding vector from the backbone.
         """
-        f_a: Tensor = torch.flatten(self.backbone(x[0])[0], start_dim=1)  # type: ignore[attr-defined]
-        f_b: Tensor = torch.flatten(self.backbone(x[1])[0], start_dim=1)  # type: ignore[attr-defined]
+        f: Tensor = torch.flatten(self.backbone(x)[0], start_dim=1)
+        g: Tensor = self.proj_head(f)
 
-        g_a: Tensor = self.proj_head(f_a)
-        g_b: Tensor = self.proj_head(f_b)
-
-        z = torch.cat([g_a, g_b], dim=0)  # type: ignore[attr-defined]
-
-        assert isinstance(z, Tensor)
-
-        return z, g_a, g_b, f_a, f_b
+        return g, f
 
     def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.
@@ -237,10 +310,10 @@ class SimCLR50(_SimCLR):
         )
 
 
-class _SimSiam(MinervaBackbone):
+class _SimSiam(MinervaSiamese):
     """Base SimSiam class to be subclassed by SimSiam variants.
 
-    Subclasses MinervaModel.
+    Subclasses :class:`MinervaSiamese`.
 
     Attributes:
         backbone (Module): Backbone of SimSiam that takes the imagery input and
@@ -290,7 +363,7 @@ class _SimSiam(MinervaBackbone):
         )  # output layer
         # self.proj_head[6].bias.requires_grad = False # hack: not use bias as it is followed by BN
 
-        # build a 2-layer predictor
+        # Build a 2-layer predictor.
         self.predictor = nn.Sequential(
             nn.Linear(feature_dim, pred_dim, bias=False),
             nn.BatchNorm1d(pred_dim),
@@ -298,25 +371,22 @@ class _SimSiam(MinervaBackbone):
             nn.Linear(pred_dim, feature_dim),
         )  # output layer
 
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
-        """Performs a forward pass of SimCLR by using the forward methods of the backbone and
-        feeding its output into the projection heads.
+    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        """Performs a forward pass of a single head of :class:`_SimSiam` by using the forward methods of the backbone
+        and feeding its output into the projection heads.
 
-        Overwrites MinervaModel abstract method.
+        Args:
+            x (Tensor): (Unpaired) Batch of input data to the network.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Returns:
+            Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
+            embedding vector from the backbone.
         """
-        z_a: Tensor = self.proj_head(torch.flatten(self.backbone(x[0])[0], start_dim=1))  # type: ignore[attr-defined]
-        z_b: Tensor = self.proj_head(torch.flatten(self.backbone(x[1])[0], start_dim=1))  # type: ignore[attr-defined]
+        z: Tensor = self.proj_head(torch.flatten(self.backbone(x)[0], start_dim=1))  # type: ignore[attr-defined]
 
-        p_a: Tensor = self.predictor(z_a)
-        p_b: Tensor = self.predictor(z_b)
+        p: Tensor = self.predictor(z)
 
-        p = torch.cat([p_a, p_b], dim=0)  # type: ignore[attr-defined]
-
-        assert isinstance(p, Tensor)
-
-        return p, p_a, p_b, z_a.detach(), z_b.detach()
+        return p, z.detach()
 
     def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
         """Overwrites :class:`MinervaModel` to account for paired logits.

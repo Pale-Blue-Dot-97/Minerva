@@ -269,7 +269,7 @@ class ResNet(MinervaModel, ABC):
                     )
                 )
 
-            except ValueError as err:
+            except ValueError as err:  # pragma: no cover
                 print(err.args)
 
         self.inplanes = planes * block.expansion

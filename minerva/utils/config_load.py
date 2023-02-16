@@ -30,12 +30,20 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = [
+    "DEFAULT_CONF_DIR_PATH",
+    "DEFAULT_CONFIG_NAME",
+    "ToDefaultConfDir",
+    "universal_path",
+    "check_paths",
+    "chdir_to_default",
+    "load_configs",
+]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
-from os import PathLike
 from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
@@ -47,6 +55,23 @@ import yaml
 # Default values for the path to the config directory and config name.
 DEFAULT_CONF_DIR_PATH = Path("../../inbuilt_cfgs/")
 DEFAULT_CONFIG_NAME: str = "example_config.yml"
+
+
+# =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class ToDefaultConfDir:
+    """Changes to the default config directory. Switches back to the previous CWD on close."""
+
+    def __init__(self) -> None:
+        self._cwd = os.getcwd()
+        self._def_dir = (Path(__file__).parent / DEFAULT_CONF_DIR_PATH).resolve()
+
+    def __enter__(self) -> None:
+        os.chdir(self._def_dir)
+
+    def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
+        os.chdir(self._cwd)
 
 
 # =====================================================================================================================
@@ -70,7 +95,7 @@ def universal_path(path: Any) -> Path:
 
 
 def check_paths(
-    config: Optional[Union[str, PathLike]] = None, use_default_conf_dir: bool = False
+    config: Optional[Union[str, Path]] = None, use_default_conf_dir: bool = False
 ) -> Tuple[str, Optional[str], Optional[Path]]:
     """Checks the path given for the config.
 
@@ -132,7 +157,7 @@ def chdir_to_default(config_name: Optional[str] = None) -> str:
         config_name (Optional[str]): Optional; Name of the config in the default directory. Defaults to None.
 
     Returns:
-        str: :var:`DEFAULT_CONFIG_NAME` if ``config_name`` not in default directory. ``config_name`` if it does exist.
+        str: ``DEFAULT_CONFIG_NAME`` if ``config_name`` not in default directory. ``config_name`` if it does exist.
     """
 
     this_abs_path = (Path(__file__).parent / DEFAULT_CONF_DIR_PATH).resolve()
@@ -144,7 +169,7 @@ def chdir_to_default(config_name: Optional[str] = None) -> str:
         return config_name
 
 
-def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
+def load_configs(master_config_path: Union[str, Path]) -> Tuple[Dict[str, Any], ...]:
     """Loads the master config from YAML. Finds other config paths within and loads them.
 
     Args:
@@ -154,7 +179,7 @@ def load_configs(master_config_path: str) -> Tuple[Dict[str, Any], ...]:
         Master config and any other configs found from paths in the master config.
     """
 
-    def yaml_load(path: str) -> Any:
+    def yaml_load(path: Union[str, Path]) -> Any:
         """Loads YAML file from path as dict.
         Args:
             path(str): Path to YAML file.

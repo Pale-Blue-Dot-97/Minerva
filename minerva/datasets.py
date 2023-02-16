@@ -689,7 +689,7 @@ def make_loaders(
             transform_params=this_transform_params,
             rank=rank,
             world_size=world_size,
-            sample_pairs=sample_pairs,
+            sample_pairs=sample_pairs if mode == "train" else False,
         )
         print("DONE")
 

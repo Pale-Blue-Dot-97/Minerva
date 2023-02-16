@@ -29,6 +29,7 @@ __all__ = [
     "MinervaLogger",
     "STGLogger",
     "SSLLogger",
+    "KNNLogger",
 ]
 
 # =====================================================================================================================
@@ -161,7 +162,7 @@ class MinervaLogger(ABC):
         if mlflow.active_run():
             # If running in Azure Machine Learning, tracking URI / experiment ID set already
             # https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-mlflow-cli-runs?tabs=python%2Cmlflow#creating-a-training-routine  # noqa: E501
-            mlflow.log_metric(key, value)
+            mlflow.log_metric(key, value)  # pragma: no cover
 
     @property
     def get_logs(self) -> Dict[str, Any]:
@@ -355,6 +356,74 @@ class STGLogger(MinervaLogger):
         self.logs["batch_num"] += 1
 
 
+class KNNLogger(MinervaLogger):
+    def __init__(
+        self,
+        n_batches: int,
+        batch_size: int,
+        n_samples: int,
+        record_int: bool = True,
+        record_float: bool = False,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            n_batches, batch_size, n_samples, record_int, record_float, writer, **kwargs
+        )
+
+        self.logs: Dict[str, Any] = {
+            "batch_num": 0,
+            "total_loss": 0.0,
+            "total_correct": 0.0,
+            "total_top5": 0.0,
+        }
+
+        self.results: Dict[str, Any] = {
+            "y": None,
+            "z": None,
+            "probs": None,
+            "ids": [],
+            "bounds": None,
+        }
+
+    def log(
+        self,
+        mode: str,
+        step_num: int,
+        loss: Tensor,
+        z: Optional[Tensor] = None,
+        y: Optional[Tensor] = None,
+        bbox: Optional[BoundingBox] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+
+        assert isinstance(z, Tensor)
+        assert isinstance(y, Tensor)
+
+        # Extract loss.
+        ls = loss.item()
+
+        # Calculate the top-1 (standard) accuracy.
+        top1 = torch.sum((z[:, :1] == y.unsqueeze(dim=-1)).any(dim=-1).float()).item()
+
+        # Calculate the top-5 accuracy
+        top5 = torch.sum((z[:, :5] == y.unsqueeze(dim=-1)).any(dim=-1).float()).item()
+
+        # Add results to logs.
+        self.logs["total_loss"] += ls
+        self.logs["total_correct"] += top1
+        self.logs["total_top5"] += top5
+
+        # Write results to the writer.
+        self.write_metric(mode, "loss", loss, step_num)
+        self.write_metric(mode, "acc", top1, step_num)
+        self.write_metric(mode, "top5", top5, step_num)
+
+        # Adds 1 to batch number (step number).
+        self.logs["batch_num"] += 1
+
+
 class SSLLogger(MinervaLogger):
     """Logger designed for self-supervised learning.
 
@@ -390,7 +459,7 @@ class SSLLogger(MinervaLogger):
             batch_size,
             n_samples,
             record_int,
-            record_float=False,
+            record_float=record_float,
             writer=writer,
         )
 

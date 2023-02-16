@@ -217,6 +217,21 @@ GENERIC_PARSER.add_argument(
     help="Will log each process on Weights and Biases. Otherwise, logging will be performed from the master process.",
 )
 
+GENERIC_PARSER.add_argument(
+    "--knn-k",
+    dest="knn_k",
+    type=int,
+    default=200,
+    help="Top k most similar images used to predict the image for KNN validation.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--val-freq",
+    dest="val_freq",
+    type=int,
+    default=5,
+    help="Frequency at which to conduct a validation epoch with KNN compared to training epochs for SSL or Siamese models.",
+)
 
 # =====================================================================================================================
 #                                                     CLASSES

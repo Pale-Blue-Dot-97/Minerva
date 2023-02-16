@@ -38,8 +38,9 @@ from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Uni
 import pandas as pd
 import torch
 import torch.distributed as dist
+import torch.nn.functional as ptfunc
 import yaml
-from alive_progress import alive_bar  # , alive_it
+from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
 from onnx2torch import convert
@@ -53,16 +54,17 @@ from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
-from minerva.logger import MinervaLogger
+from minerva.logger import KNNLogger, MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import (
     MinervaBackbone,
     MinervaDataParallel,
     MinervaModel,
     MinervaOnnxModel,
+    MinervaSiamese,
 )
 from minerva.pytorchtools import EarlyStopping
-from minerva.utils import universal_path, utils, visutils
+from minerva.utils import AUX_CONFIGS, universal_path, utils, visutils
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -78,25 +80,46 @@ class Trainer:
     """Helper class to handle the entire fitting and evaluation of a model.
 
     Attributes:
-        params (dict): Dictionary describing all the parameters that define how the model will be constructed, trained
-            and evaluated. These should be defined via config YAML files.
+        params (Dict[str, Any]): Dictionary describing all the parameters that define how the model will be
+            constructed, trained and evaluated. These should be defined via config YAML files.
         model: Model to be fitted of a class contained within `minerva.models`.
         max_epochs (int): Number of epochs to train the model for.
         batch_size (int): Size of each batch of samples supplied to the model.
-        loaders (dict[DataLoader]): Dictionary containing DataLoaders for each dataset.
-        n_batches (dict[int]): Dictionary of the number of batches to supply to the model for train, validation and
-            testing.
-        metrics (dict): Dictionary to hold the loss and accuracy results from training, validation and testing.
+        loaders (Dict[str, DataLoader]): Dictionary containing DataLoaders for each dataset.
+        n_batches (Dict[str, int]): Dictionary of the number of batches to supply to the model for train,
+            validation and testing.
+        metrics (Dict[str, Any]): Dictionary to hold the loss and accuracy results from training,
+            validation and testing.
         device: The CUDA device on which to fit the model.
+        gpu (int): CUDA GPU device number this process is running on.
+        verbose (bool): Provides more prints to stdout if ``True``.
+        fine_tune (bool): Assumes this is a fine-tuning job if ``True``. Will attempt to load model weights
+            from cache.
+        class_dist (Any): Distribution of classes within the data.
+        exp_name (Path): Path to the unique results directory for this experiment.
+        sample_pairs (bool): Whether samples are paired together for Siamese learning.
+        modes (Tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
+        writer (Union[SummaryWriter, Run, None]): The *writer* to perform logging for this experiment.
+            For use with either Tensorboard or Weights and Biases.
+        stopper (Union[EarlyStopper, None]): Early stopping function.
+        early_stop (bool): Whether early stopping has been triggered. Will end model training if ``True``.
+        n_samples (Dict[str, int]): Number of samples in each mode of model fitting.
+        metric_logger (MinervaLogger): Object to calculate and log metrics to track the performance of the model.
+        modelio_func ():
+        steps (Dict[str, int]):
+        model_type (str): Type of the model that determines how to handle IO, metric calculations etc.
 
     Args:
-        gpu (int, optional): CUDA GPU device number. For use in distributed computing. Defaults to 0.
+        gpu (int): Optional; CUDA GPU device number. For use in distributed computing. Defaults to 0.
+        rank (int): Optional; The rank of this process across all devices in the distributed run.
+        world_size (int): Optional; The total number of processes across the distributed run.
         verbose (bool): Turns messages to stdout off/on.
+        wandb_run (Union[Run, RunDisabled]): Optional; Run object for Weights and Biases.
         params (Dict[str, Any]): Dictionary describing all the parameters that define how the model will be
             constructed, trained and evaluated. These should be defined via config YAML files.
 
     Keyword Args:
-        results (list[str]): Path to the results' directory to save plots to.
+        results (List[str]): Path to the results' directory to save plots to.
         model_name (str): Name of the model to be used in filenames of results.
         batch_size (int): Size of each batch of samples supplied to the model.
         max_epochs (int): Number of epochs to train the model for.
@@ -122,6 +145,9 @@ class Trainer:
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
 
+        # Finds and sets the CUDA device to be used.
+        self.device = utils.get_cuda_device(gpu)
+
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
 
@@ -136,8 +162,14 @@ class Trainer:
         self.class_dist = class_dist
         self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
         self.n_batches = n_batches
+        self.batch_size: int = self.params["hyperparams"]["params"]["batch_size"]
+        self.model_type: str = self.params["model_type"]
+        self.val_freq: int = self.params.get("val_freq", 1)
 
-        self.modes = params["dataset_params"].keys()
+        # Sets the max number of epochs of fitting.
+        self.max_epochs = self.params["hyperparams"].get("max_epochs", 25)
+
+        self.modes = self.params["dataset_params"].keys()
 
         # Flag for a fine-tuning experiment.
         self.fine_tune = self.params.get("fine_tune", False)
@@ -153,25 +185,21 @@ class Trainer:
         self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
         results_dir = self.params["dir"]["results"] / self.params["exp_name"]
 
-        # Makes a directory for this experiment.
-        utils.mkexpdir(self.params["exp_name"])
+        if self.gpu == 0:
+            # Makes a directory for this experiment.
+            utils.mkexpdir(self.params["exp_name"])
+
+        # Path to experiment directory and experiment name.
+        self.exp_fn: Path = results_dir / self.params["exp_name"]
 
         self.writer: Optional[Union[SummaryWriter, Run]] = None
-        if params.get("wandb_log", False):
+        if self.params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
             self.writer = wandb_run
             self.init_wandb_metrics()
         else:
             # Initialise TensorBoard logger
             self.writer = SummaryWriter(results_dir)
-
-        # Path to experiment directory and experiment name.
-        self.exp_fn: Path = results_dir / self.params["exp_name"]
-
-        self.batch_size: int = params["hyperparams"]["params"]["batch_size"]
-
-        # Finds and sets the CUDA device to be used.
-        self.device = utils.get_cuda_device(gpu)
 
         self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
@@ -182,7 +210,7 @@ class Trainer:
             self.model = self.make_model()
 
         # Determines the output shape of the model.
-        sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
+        sample_pairs: Union[bool, Any] = self.params.get("sample_pairs", False)
         if type(sample_pairs) != bool:
             sample_pairs = False
             self.params["sample_pairs"] = False
@@ -204,9 +232,6 @@ class Trainer:
                 **self.params["hyperparams"]["stopping"],
             )
 
-        # Sets the max number of epochs of fitting.
-        self.max_epochs = params["hyperparams"].get("max_epochs", 25)
-
         # Calculates number of samples in each mode of fitting.
         self.n_samples = {
             mode: self.n_batches[mode] * self.batch_size for mode in self.modes
@@ -216,7 +241,7 @@ class Trainer:
         self.metric_logger = self.make_metric_logger()
         self.modelio_func = self.get_io_func()
 
-        # Stores the step number for that mode of fitting. To be used for TensorBoard logging.
+        # Stores the step number for that mode of fitting. To be used for logging.
         self.step_num = {mode: 0 for mode in self.modes}
 
         # Creates and sets the optimiser for the model.
@@ -224,7 +249,7 @@ class Trainer:
 
         if self.gpu == 0:
             if isinstance(self.writer, Run):
-                self.writer.config.update(params)
+                self.writer.config.update(self.params)
 
             # Determines the input size of the model.
             input_size = self.get_input_size()
@@ -356,26 +381,25 @@ class Trainer:
 
         criterion_params_exist = utils.check_dict_key(loss_params, "params")
 
-        if (
-            self.params.get("balance", False)
-            and self.params["model_type"] == "segmentation"
-        ):
+        if self.params.get("balance", False) and self.model_type == "segmentation":
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
             for i in range(len(weights_dict)):
                 weights.append(weights_dict[i])
 
-            if not criterion_params_exist:
-                loss_params["params"] = {"weight": Tensor(weights)}
-            else:
+            if criterion_params_exist:
                 loss_params["params"]["weight"] = Tensor(weights)
-            return criterion(**loss_params["params"])
-        else:
-            if not criterion_params_exist:
-                return criterion()
             else:
+                loss_params["params"] = {"weight": Tensor(weights)}
+
+            return criterion(**loss_params["params"])
+
+        else:
+            if criterion_params_exist:
                 return criterion(**loss_params["params"])
+            else:
+                return criterion()
 
     def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
@@ -408,7 +432,7 @@ class Trainer:
             self.n_batches,
             batch_size=self.batch_size,
             data_size=data_size,
-            model_type=self.params["model_type"],
+            model_type=self.model_type,
             sample_pairs=self.params["sample_pairs"],
         )
 
@@ -474,14 +498,10 @@ class Trainer:
             record_float=record_float,
             collapse_level=self.params["sample_pairs"],
             euclidean=self.params["sample_pairs"],
-            model_type=self.params["model_type"],
+            model_type=self.model_type,
             writer=self.writer,
         )
 
-        # if mode == "val" and self.params["model_type"] == "ssl":
-        #    results = self.weighted_knn_test()
-
-        # else:
         # Initialises a progress bar for the epoch.
         with alive_bar(
             self.n_batches[mode], bar="blocks"
@@ -535,31 +555,65 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in ("train", "val"):
 
+                # Only run a KNN validation epoch at set frequency of epochs. Goes to next epoch if not.
+                if (
+                    mode == "val"
+                    and self.model_type in ("ssl", "siamese")
+                    and (epoch + 1) % self.val_freq != 0
+                ):
+                    break
+
                 results: Dict[str, Any] = {}
 
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
                 if self.params.get("plot_last_epoch", False):
-                    result: Optional[Dict[str, Any]] = self.epoch(
-                        mode,
-                        record_int=True,
-                        record_float=self.params.get("record_float", False),
-                    )
+                    result: Optional[Dict[str, Any]]
+                    if mode == "val" and self.model_type in (
+                        "ssl",
+                        "siamese",
+                    ):
+                        result = self.weighted_knn_validation(
+                            k=self.params.get("knn_k", None),
+                            record_int=True,
+                            record_float=self.params.get("record_float", False),
+                        )
+                    else:
+                        result = self.epoch(
+                            mode,
+                            record_int=True,
+                            record_float=self.params.get("record_float", False),
+                        )
                     assert result is not None
                     results = result
 
                 else:
-                    self.epoch(mode)
+                    if mode == "val" and self.model_type in (
+                        "ssl",
+                        "siamese",
+                    ):
+                        self.weighted_knn_validation(k=self.params.get("knn_k", None))
+                    else:
+                        self.epoch(mode)
 
                 # Add epoch number to metrics.
                 self.metric_logger.log_epoch_number(mode, epoch)
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    self.metric_logger.print_epoch_results(mode, epoch)
+                    if mode == "val" and self.model_type in ("ssl", "siamese"):
+                        epoch_no = epoch // self.val_freq
+                    else:
+                        epoch_no = epoch
+                    self.metric_logger.print_epoch_results(mode, epoch_no)
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if mode == "val" and self.stopper is not None:
-                    val_loss = self.metric_logger.get_metrics["val_loss"]["y"][epoch]
+                    if mode == "val" and self.model_type in ("ssl", "siamese"):
+                        epoch_no = epoch // self.val_freq
+                    else:
+                        epoch_no = epoch
+
+                    val_loss = self.metric_logger.get_metrics["val_loss"]["y"][epoch_no]
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
 
@@ -583,7 +637,7 @@ class Trainer:
                     sub_metrics = self.metric_logger.get_sub_metrics()
 
                     # Ensures masks are not plotted for model types that do not yield such outputs.
-                    if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
+                    if self.model_type in ("scene classifier", "mlp", "MLP"):
                         plots["Mask"] = False
 
                     # Amends the results' directory to add a new level for train or validation.
@@ -653,7 +707,7 @@ class Trainer:
             # Ensure history is not plotted again.
             plots["History"] = False
 
-            if self.params["model_type"] in ("scene classifier", "mlp", "MLP"):
+            if self.model_type in ("scene classifier", "mlp", "MLP"):
                 plots["Mask"] = False
 
             # Amends the results' directory to add a new level for test results.
@@ -715,76 +769,138 @@ class Trainer:
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
 
-    def tsne_cluster(self) -> None:
+    def tsne_cluster(self, mode: str = "test") -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.
 
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
-        data = next(iter(self.loaders["test"]))
+        # Get a batch of data.
+        data = next(iter(self.loaders[mode]))
 
+        # Make sure the model is in evaluation mode.
         self.model.eval()
+
+        # Pass the batch of data through the model to get the embeddings.
         embeddings: Tensor = self.model(data["image"].to(self.device))[0]
 
+        # Flatten embeddings.
         embeddings = embeddings.flatten(start_dim=1)
+
+        # Get the results directory.
+        results_dir = self.exp_fn.parent / mode
 
         visutils.plot_embedding(
             embeddings.detach().cpu(),
             data["bbox"],
-            "test",
+            mode,
             show=True,
-            filename="tsne_cluster_vis.png",
+            filename=str(results_dir / "tsne_cluster_vis.png"),
         )
 
-    """
-    def weighted_knn_test(
+    def weighted_knn_validation(
         self,
-        epoch_logger: MinervaLogger,
         temp: float = 0.5,
         k: int = 200,
-    ) -> Tuple[float, float]:
+        mode: str = "val",
+        record_int: bool = True,
+        record_float: bool = False,
+    ) -> Optional[Dict[str, Any]]:
+        """Trains a KNN using the model to validate a SSL model.
 
+        Adapted from https://github.com/yaohungt/Barlow-Twins-HSIC for use in :mod:`minerva`.
+
+        Args:
+            temp (float, optional): Temperature of the similarity loss. Defaults to 0.5.
+            k (int, optional): Number of similar images to use to predict images. Defaults to 200.
+            mode (str, optional): Mode of model fitting this has been called on. Defaults to "val".
+            record_int (bool, optional): Whether to record integer values. Defaults to True.
+            record_float (bool, optional): Whether to record floating point values. Warning!
+                This may result in memory issues on large amounts of data! Defaults to False.
+
+        Returns:
+            Optional[Dict[str, Any]]: Results dictionary from the epoch logger if ``record_int``
+                or ``record_float`` are ``True``.
+        """
+
+        # Puts the model in evaluation mode so no back passes are made.
         self.model.eval()
-        n_classes = self.model.n_classes
 
-        total_top1, total_top5, total_num, feature_bank, target_bank = (
-            0.0,
-            0.0,
-            0,
-            [],
-            [],
+        # Get the number of classes from the data config.
+        n_classes = len(AUX_CONFIGS["data_config"]["classes"])
+
+        batch_size = self.batch_size
+
+        # Corrects the batch size if this is a distributed job to account for batches being split across devices.
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
+
+        # Calculates the number of samples.
+        n_samples = self.n_batches[mode] * batch_size
+
+        # Uses the special `KNNLogger` to log the results from the KNN.
+        epoch_logger = KNNLogger(
+            self.n_batches[mode],
+            batch_size,
+            n_samples,
+            record_int=record_int,
+            record_float=record_float,
+            writer=self.writer,
         )
 
-        with torch.no_grad():
-            # generate feature bank and target bank
-            feat_bar = alive_it(self.loaders["val"], desc="Feature extracting")
-            for batch in feat_bar:
-                (data, _), target = batch["image"], batch["mask"]
-                target_bank.append(target)
-                feature, _ = self.model(data.cuda(non_blocking=True))
-                feature_bank.append(feature)
+        total_num = 0
+        feature_list = []
+        target_list = []
 
-                if self.gpu == 0:
-                    feat_bar()
+        with torch.no_grad():
+            # Generate feature bank and target bank.
+            feat_bar = alive_it(self.loaders["val"])
+            for batch in feat_bar:
+                val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
+                val_target: Tensor = batch["mask"].to(self.device, non_blocking=True)
+                target_list.append(
+                    torch.mode(torch.flatten(val_target, start_dim=1)).values
+                )
+
+                # Get features from passing the input data through the model.
+                if self.model_type == "siamese":
+                    # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
+                    assert isinstance(self.model, MinervaSiamese)
+
+                    # Ensures that the data is parsed through a single head of the model rather than paired.
+                    feature, _ = self.model.forward_single(val_data)
+                else:
+                    feature, _ = self.model(val_data)
+
+                feature_list.append(feature)
 
             # [D, N]
-            feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
+            feature_bank = torch.cat(feature_list, dim=0).t().contiguous()
 
             # [N]
             feature_labels = (
-                torch.cat(target_bank, dim=0).contiguous().to(feature_bank.device)
+                torch.cat(target_list, dim=0).contiguous().to(feature_bank.device)
             )
 
-            # loop test data to predict the label by weighted knn search
+            # Loop test data to predict the label by weighted KNN search.
             test_bar = alive_it(self.loaders["test"])
             for batch in test_bar:
-                (data, _), target = batch["image"], batch["mask"]
-                data, target = data.cuda(non_blocking=True), target.cuda(
-                    non_blocking=True
-                )
-                feature, _ = self.model(data)
+                test_data: Tensor = batch["image"].to(self.device, non_blocking=True)
+                test_target: Tensor = torch.mode(
+                    torch.flatten(batch["mask"], start_dim=1)
+                ).values
 
-                total_num += data.size(0)
+                # Get features from passing the input data through the model.
+                if self.model_type == "siamese":
+                    # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
+                    assert isinstance(self.model, MinervaSiamese)
+
+                    # Ensures that the data is parsed through a single head of the model rather than paired.
+                    feature, _ = self.model.forward_single(test_data)
+                else:
+                    feature, _ = self.model(test_data)
+
+                total_num += batch_size
 
                 # compute cos similarity between each feature vector and feature bank ---> [B, N]
                 sim_matrix = torch.mm(feature, feature_bank)
@@ -794,14 +910,16 @@ class Trainer:
 
                 # [B, K]
                 sim_labels = torch.gather(
-                    feature_labels.expand(data.size(0), -1), dim=-1, index=sim_indices
+                    feature_labels.expand(test_data.size(0), -1),
+                    dim=-1,
+                    index=sim_indices,
                 )
 
                 sim_weight = (sim_weight / temp).exp()
 
-                # counts for each class
+                # Counts for each class
                 one_hot_label = torch.zeros(
-                    data.size(0) * k, n_classes, device=sim_labels.device
+                    test_data.size(0) * k, n_classes, device=sim_labels.device
                 )
 
                 # [B*K, C]
@@ -809,36 +927,45 @@ class Trainer:
                     dim=-1, index=sim_labels.view(-1, 1), value=1.0
                 )
 
-                # weighted score ---> [B, C]
+                # Weighted score ---> [B, C]
                 pred_scores = torch.sum(
-                    one_hot_label.view(data.size(0), -1, n_classes)
+                    one_hot_label.view(test_data.size(0), -1, n_classes)
                     * sim_weight.unsqueeze(dim=-1),
                     dim=1,
                 )
+                pred_scores = ptfunc.normalize(
+                    pred_scores.nan_to_num(nan=0.0, posinf=1.0, neginf=0.0),
+                )
 
-                pred_labels = pred_scores.argsort(dim=-1, descending=True)
-                total_top1 += torch.sum(
-                    (pred_labels[:, :1] == target.unsqueeze(dim=-1)).any(dim=-1).float()
-                ).item()
+                # pred_lables = pred_scores.argsort(dim=-1, descending=True)
+                # predictions = pred_lables[:, :1].flatten()
 
-                total_top5 += torch.sum(
-                    (pred_labels[:, :5] == target.unsqueeze(dim=-1)).any(dim=-1).float()
-                ).item()
+                # Calculate loss between predicted and ground truth labels by KNN.
+                criterion = torch.nn.CrossEntropyLoss()
+                loss = criterion(pred_scores, test_target)
 
+                # Pack results together for the logger.
+                results = (loss, pred_scores, test_target, _)
+
+                # Gathers the losses across devices together if a distributed job.
                 if dist.is_available() and dist.is_initialized():
                     loss = results[0].data.clone()
                     dist.all_reduce(loss.div_(dist.get_world_size()))
                     results = (loss, *results[1:])
 
-                epoch_logger.log("val", self.step_num["val"], self.writer, *results)
+                # Sends results to logger.
+                epoch_logger.log(mode, self.step_num[mode], *results)
 
-                self.step_num["val"] += 1
+                # Update global step number for this mode of model fitting.
+                self.step_num[mode] += 1
 
-                if self.gpu == 0:
-                    test_bar()
+        # Send the logs to the metric logger.
+        self.metric_logger(mode, epoch_logger.get_logs)
 
-        return total_top1 / total_num * 100, total_top5 / total_num * 100
-    """
+        if record_int or record_float:
+            return epoch_logger.get_results
+        else:
+            return None
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""

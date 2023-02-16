@@ -1,15 +1,14 @@
 import argparse
 import shutil
+from pathlib import Path
 
 import pytest
 import torch
 
 from minerva.models import MinervaOnnxModel
 from minerva.trainer import Trainer
-from minerva.utils import runner
-from minerva.utils.utils import CONFIG, set_seeds
-
-set_seeds(42)
+from minerva.utils import config_load, runner
+from minerva.utils.utils import CONFIG
 
 
 def run_trainer(gpu: int, args: argparse.Namespace):
@@ -83,3 +82,22 @@ def test_trainer_2() -> None:
 
     trainer2.fit()
     trainer2.test()
+
+    assert type(repr(trainer2.model)) is str
+
+
+def test_ssl_trainer() -> None:
+    ssl_cfg_path = (
+        Path(__file__).parent.parent / "inbuilt_cfgs" / "example_GeoCLR_config.yml"
+    )
+
+    with config_load.ToDefaultConfDir():
+        ssl_cfg, _ = config_load.load_configs(ssl_cfg_path)
+
+    trainer = Trainer(0, **ssl_cfg)
+
+    trainer.fit()
+
+    trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
+
+    trainer.tsne_cluster()

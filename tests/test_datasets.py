@@ -15,15 +15,13 @@ from torchgeo.samplers.utils import get_random_bounding_box
 
 from minerva import datasets as mdt
 from minerva.datasets import PairedDataset, TstImgDataset, TstMaskDataset
-from minerva.utils.utils import CONFIG, set_seeds
+from minerva.utils.utils import CONFIG
 
 data_root = Path("tests", "tmp")
 img_root = str(data_root / "data" / "test_images")
 lc_root = str(data_root / "data" / "test_lc")
 
 bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
-
-set_seeds(42)
 
 
 def test_make_bounding_box() -> None:
