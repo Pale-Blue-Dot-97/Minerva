@@ -2,6 +2,28 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "minerva"
+description = "Package to build, train and test neural network models on geospatial data"
+readme = "README.md"
+authors = [
+    { name="Harry Baker", email="hjb1d20@soton.ac.uk" },
+]
+requires-python = ">=3.8"
+classifiers = [
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.8",
+        "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+        "Development Status :: 4 - Beta",
+        "Operating System :: POSIX :: Linux",
+        "Natural Language :: English",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/Pale-Blue-Dot-97/Minerva"
+"Bug Tracker" = "https://github.com/Pale-Blue-Dot-97/Minerva/issues"
+
 [tool.pytest.ini_options]
 addopts = "--cov=minerva"
 testpaths = ["tests",]
