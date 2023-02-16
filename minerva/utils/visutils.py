@@ -947,7 +947,7 @@ def make_confusion_matrix(
             cm.astype(np.float16) / cm.sum(axis=1)[:, np.newaxis], decimals=2
         )
 
-    except RuntimeWarning as err:
+    except RuntimeWarning as err:  # pragma: no cover
         print("\n", err)
         print("At least one class had no ground truth or no predicted labels!")
 
@@ -1092,7 +1092,7 @@ def plot_embedding(
     title: Optional[str] = None,
     show: bool = False,
     save: bool = True,
-    filename: Optional[str] = None,
+    filename: Optional[Union[Path, str]] = None,
 ) -> None:
     """Using TSNE Clustering, visualises the embeddings from a model.
 
@@ -1179,6 +1179,9 @@ def plot_embedding(
     if show:
         plt.show()
     if save:
+        if filename is None:  # pragma: no cover
+            filename = "tsne_cluster_vis.png"
+        os.makedirs(Path(filename).parent, exist_ok=True)
         plt.savefig(filename)
         print("TSNE cluster visualisation SAVED")
         plt.close()

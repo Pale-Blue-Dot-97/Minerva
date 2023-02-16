@@ -287,7 +287,7 @@ class MinervaOnnxModel(MinervaModel):
             return getattr(self.model, name)
 
     def __repr__(self) -> Any:
-        return super().__repr__()
+        return self.model.__repr__()
 
     def forward(self, *input: Any) -> Any:
         """Performs a forward pass of the ``model`` within.
@@ -343,7 +343,7 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
                 name=weights_name,
                 source="local",
             )
-        except FileNotFoundError as err:
+        except FileNotFoundError as err:  # pragma: no cover
             print(err)
             weights = None
 

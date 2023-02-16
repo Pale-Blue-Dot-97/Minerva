@@ -3,26 +3,12 @@
 
 # === PATHS ===================================================================
 dir:
-    data:
-        - ..
-        - ..
-        - tests
-        - tmp
-        - data
+    data: tests/tmp/data
     configs:
-        imagery_config: ../../inbuilt_cfgs/NAIP.yml
-    results:
-        - ..
-        - ..
-        - tests
-        - tmp
-        - results
-    cache:
-        - ..
-        - ..
-        - tests
-        - tmp
-        - cache
+        imagery_config: NAIP.yml
+        data_config: Chesapeake7.yml
+    results: tests/tmp/results
+    cache: tests/tmp/cache
 
 # ---+ Kwargs for make_datasets +----------------------------------------------
 # Name of model. Substring before hyphen is model class.
@@ -38,6 +24,8 @@ patch_size: &patch_size [32, 32]
 pre_train: true
 fine_tune: false
 max_r: 52
+knn_k: 5
+val_freq: 2
 
 # === MODEL IO & LOGGING ======================================================
 logger: SSLLogger
@@ -64,6 +52,29 @@ dataset_params:
             params:
                 res: 1.0
 
+        mask:
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
+            params:
+                res: 1.0
+
+    # Test Dataset
+    test:
+        image:
+            module: minerva.datasets
+            name: TstImgDataset
+            root: test_images
+            params:
+                res: 1.0
+
+        mask:
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
+            params:
+                res: 1.0
+
 # === SAMPLER PARAMETERS ======================================================
 sampler_params:
     # Training Dataset Sampler
@@ -77,8 +88,17 @@ sampler_params:
 
     # Validation Dataset Sampler
     val:
-        module: minerva.samplers
-        name: RandomPairGeoSampler
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: *patch_size
+            length: 32
+
+    # Test Dataset Sampler
+    test:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
         roi: false
         params:
             size: *patch_size
@@ -93,6 +113,11 @@ transform_params:
     # Validation Dataset Transforms
     val:
         image: false
+        mask: false
+
+    test:
+        image: false
+        mask: false
 
 # Collation
 collator:
@@ -117,7 +142,7 @@ hyperparams:
         params:
             temperature: 0.5
 
-    max_epochs: 5
+    max_epochs: 4
     stopping:
         patience: 2
         verbose: true

@@ -12,13 +12,10 @@ from minerva.samplers import (
     RandomPairGeoSampler,
     get_greater_bbox,
 )
-from minerva.utils.utils import set_seeds
 
 data_root = Path("tests", "tmp")
 img_root = str(data_root / "data" / "test_images")
 lc_root = str(data_root / "data" / "test_lc")
-
-set_seeds(42)
 
 
 def test_randompairgeosampler() -> None:
