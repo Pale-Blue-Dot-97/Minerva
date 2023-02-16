@@ -230,8 +230,10 @@ GENERIC_PARSER.add_argument(
     dest="val_freq",
     type=int,
     default=5,
-    help="Frequency at which to conduct a validation epoch with KNN compared to training epochs for SSL or Siamese models.",
+    help="Perform a validation epoch with KNN for every ``val_freq``"
+    + "training epochs for SSL or Siamese models.",
 )
+
 
 # =====================================================================================================================
 #                                                     CLASSES
