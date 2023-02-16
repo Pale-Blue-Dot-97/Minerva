@@ -7,7 +7,7 @@ tqdm==4.64.1
 pandas==1.5.3
 seaborn==0.12.2
 tensorflow==2.11.0
-imageio==2.14.1
+imageio==2.25.1
 torchinfo==1.6.3
 setuptools==67.3.2
 rasterio>=1.2.10
