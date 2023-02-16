@@ -111,7 +111,6 @@ import sys
 import webbrowser
 from collections import Counter, OrderedDict
 from datetime import datetime
-from os import PathLike
 from pathlib import Path
 from typing import Any, Callable
 from typing import Counter as CounterType
