@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 import torch
 from urllib3.exceptions import MaxRetryError, NewConnectionError

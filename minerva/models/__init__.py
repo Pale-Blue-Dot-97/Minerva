@@ -1,5 +1,5 @@
-# flake8: noqa: F401
 # -*- coding: utf-8 -*-
+# flake8: noqa: F401
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify

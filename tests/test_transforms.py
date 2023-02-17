@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 import torch
 from numpy.testing import assert_array_equal
