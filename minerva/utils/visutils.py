@@ -1162,7 +1162,7 @@ def plot_embedding(
             dist = np.sum((x[i] - shown_images) ** 2, 1)
             if np.min(dist) < 4e-3:
                 # don’t show points that are too close
-                continue
+                continue  # pragma: no cover
 
             shown_images = np.r_[shown_images, [x[i]]]
             imagebox = offsetbox.AnnotationBbox(
