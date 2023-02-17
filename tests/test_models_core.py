@@ -2,7 +2,12 @@ import internet_sabotage
 import numpy as np
 import pytest
 import torch
-from lightly.loss import NTXentLoss
+
+# Needed to avoid connection error when importing lightly.
+try:
+    from lightly.loss import NTXentLoss
+except OSError:
+    from lightly.loss import NTXentLoss
 from torch import Tensor
 from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum
