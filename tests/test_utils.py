@@ -28,7 +28,6 @@ from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
 def test_return_updated_kwargs() -> None:
     @utils.return_updated_kwargs
     def example_func(*args, **kwargs) -> Tuple[Any, Dict[str, Any]]:
-
         _ = (
             kwargs["update_1"] * kwargs["update_3"]
             - kwargs["static_2"] / args[1] * args[0]

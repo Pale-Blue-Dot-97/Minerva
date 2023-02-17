@@ -57,7 +57,7 @@ def main(gpu: int, args) -> None:
         rank=args.rank,
         world_size=args.world_size,
         wandb_run=args.wandb_run,
-        **CONFIG
+        **CONFIG,
     )
 
     if not CONFIG.get("eval", False):

@@ -92,7 +92,6 @@ class MinervaLogger(ABC):
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
-
         super(MinervaLogger, self).__init__()
         self.record_int = record_int
         self.record_float = record_float
@@ -217,7 +216,6 @@ class STGLogger(MinervaLogger):
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
-
         super(STGLogger, self).__init__(
             n_batches,
             batch_size,
@@ -397,7 +395,6 @@ class KNNLogger(MinervaLogger):
         *args,
         **kwargs,
     ) -> None:
-
         assert isinstance(z, Tensor)
         assert isinstance(y, Tensor)
 
@@ -453,7 +450,6 @@ class SSLLogger(MinervaLogger):
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
-
         super(SSLLogger, self).__init__(
             n_batches,
             batch_size,

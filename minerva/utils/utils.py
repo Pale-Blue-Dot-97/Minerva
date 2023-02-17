@@ -789,7 +789,6 @@ def find_empty_classes(
 
     # Checks which classes are not present in class_dist
     for label in class_names.keys():
-
         # If not present, add class label to empty.
         if label not in [mode[0] for mode in class_dist]:
             empty.append(label)

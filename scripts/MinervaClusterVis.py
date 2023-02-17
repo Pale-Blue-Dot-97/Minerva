@@ -47,7 +47,6 @@ from minerva.utils import CONFIG, runner
 #                                                      MAIN
 # =====================================================================================================================
 def main(gpu: int, args) -> None:
-
     trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **CONFIG)
 
     trainer.tsne_cluster()
