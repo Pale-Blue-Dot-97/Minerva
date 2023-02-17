@@ -34,6 +34,7 @@ repos:
           - id: python-use-type-annotations
           - id: python-no-log-warn
           - id: python-check-blanket-noqa
+          - id: python-check-mock-methods
           - id: rst-backticks
           - id: rst-directive-colons
           - id: rst-inline-touching-normal
