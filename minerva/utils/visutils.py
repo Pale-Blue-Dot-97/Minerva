@@ -369,13 +369,14 @@ def labelled_rgb_image(
         str: Path to figure save location.
     """
     # Checks that the mask and image shapes will align.
-    assert mask.shape == image.shape[:2]
+    mask_shape: Tuple[int, int] = mask.shape  # type: ignore[assignment]
+    assert mask_shape == image.shape[:2]
 
     assert new_crs is not None
 
     # Gets the extent of the image in pixel, lattitude and longitude dimensions.
     extent, lat_extent, lon_extent = dec_extent_to_deg(
-        mask.shape,
+        mask_shape,
         bounds=bounds,
         src_crs=src_crs,
         spacing=block_size,
