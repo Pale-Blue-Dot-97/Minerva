@@ -13,7 +13,7 @@ COPY Pipfile .
 COPY Pipfile.lock .
 COPY setup.py .
 COPY setup.cfg .
-COPY requirements_dev.txt .
+COPY requirements/requirements_dev.txt .
 
 RUN pip install -r requirements_dev.txt
 
