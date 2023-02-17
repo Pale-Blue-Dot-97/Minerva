@@ -1,11 +1,12 @@
 import pytest
 import torch
+from urllib3.exceptions import MaxRetryError, NewConnectionError
 
 # Needed to avoid connection error when importing lightly.
 try:
     from lightly.loss import NegativeCosineSimilarity, NTXentLoss
-except OSError:
-    from lightly.loss import NegativeCosineSimilarity, NTXentLoss
+except (OSError, NewConnectionError, MaxRetryError):
+    pass
 
 from minerva.models import SimCLR18, SimCLR34, SimCLR50, SimSiam18, SimSiam34, SimSiam50
 
