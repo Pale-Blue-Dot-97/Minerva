@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 import torch
 import torch.nn.modules as nn

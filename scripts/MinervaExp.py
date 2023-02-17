@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# PYTHON_ARGCOMPLETE_OK
 # -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify

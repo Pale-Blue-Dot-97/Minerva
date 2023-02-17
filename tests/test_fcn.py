@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 import torch
 from torch import Tensor

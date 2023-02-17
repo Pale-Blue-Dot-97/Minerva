@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import internet_sabotage
 import numpy as np
 import pytest
