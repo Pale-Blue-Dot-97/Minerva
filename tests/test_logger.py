@@ -6,12 +6,13 @@ from typing import Any, Dict, List, Union
 import numpy as np
 import torch
 import torch.nn.modules as nn
+from urllib3.exceptions import MaxRetryError, NewConnectionError
 
 # Needed to avoid connection error when importing lightly.
 try:
     from lightly.loss import NTXentLoss
-except OSError:
-    from lightly.loss import NTXentLoss
+except (OSError, NewConnectionError, MaxRetryError):
+    pass
 from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
 from torch import Tensor
