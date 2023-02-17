@@ -44,7 +44,6 @@ import yaml
 #                                                      MAIN
 # =====================================================================================================================
 def main(config_path: str):
-
     with open(config_path) as f:
         config: Dict[str, Any] = yaml.safe_load(f)
 

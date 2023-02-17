@@ -9,7 +9,6 @@ from minerva.utils import CONFIG, runner
 
 
 def test_wandb_connection_manager() -> None:
-
     with runner.WandbConnectionManager():
         assert os.environ["WANDB_MODE"] == "online"
 

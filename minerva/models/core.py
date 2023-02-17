@@ -100,7 +100,6 @@ class MinervaModel(Module, ABC):
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
     ) -> None:
-
         super(MinervaModel, self).__init__()
 
         # Sets loss function

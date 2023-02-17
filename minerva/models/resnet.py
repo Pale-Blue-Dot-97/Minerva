@@ -124,7 +124,6 @@ class ResNet(MinervaModel, ABC):
         norm_layer: Optional[Callable[..., Module]] = None,
         encoder: bool = False,
     ) -> None:
-
         super(ResNet, self).__init__()
 
         # Inits normalisation layer for use in each block.
@@ -222,7 +221,6 @@ class ResNet(MinervaModel, ABC):
         stride: int = 1,
         dilate: bool = False,
     ) -> nn.Sequential:
-
         norm_layer = self._norm_layer
         downsample = None
         previous_dilation = self.dilation
@@ -290,7 +288,6 @@ class ResNet(MinervaModel, ABC):
     def _forward_impl(
         self, x: Tensor
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -373,7 +370,6 @@ class ResNet18(MinervaModel, ABC):
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-
         super(ResNet18, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
@@ -465,7 +461,6 @@ class ResNet34(MinervaModel, ABC):
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-
         super(ResNet34, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
@@ -559,7 +554,6 @@ class ResNet50(MinervaModel, ABC):
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-
         super(ResNet50, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
@@ -655,7 +649,6 @@ class ResNet101(MinervaModel, ABC):
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-
         super(ResNet101, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
@@ -751,7 +744,6 @@ class ResNet152(MinervaModel, ABC):
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-
         super(ResNet152, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
@@ -812,7 +804,6 @@ def _preload_weights(
     input_shape: Tuple[int, int, int],
     encoder_on: bool,
 ) -> ResNet:
-
     if not weights:
         print("Weights are None! The original resnet will be used")
         return resnet

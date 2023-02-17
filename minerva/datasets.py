@@ -352,7 +352,6 @@ def make_dataset(
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
-
         type_dataset_params = dataset_params[type_key]
 
         type_subdatasets = []

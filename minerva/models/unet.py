@@ -455,7 +455,6 @@ class UNetR18(UNetR):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(UNetR18, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -494,7 +493,6 @@ class UNetR34(UNetR):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(UNetR34, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -533,7 +531,6 @@ class UNetR50(UNetR):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(UNetR50, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -572,7 +569,6 @@ class UNetR101(UNetR):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(UNetR101, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -611,7 +607,6 @@ class UNetR152(UNetR):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(UNetR152, self).__init__(
             criterion=criterion,
             input_size=input_size,

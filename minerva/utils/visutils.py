@@ -517,7 +517,6 @@ def make_gif(
     """
     # Initialise progress bar.
     with alive_bar(len(dates), bar="blocks") as bar:
-
         # List to hold filenames and paths of images created.
         frames = []
         for i in range(len(dates)):
@@ -768,7 +767,6 @@ def seg_plot(
 
     # Initialises a progress bar for the epoch.
     with alive_bar(n_samples, bar="blocks") as bar:
-
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(flat_ids)), n_samples):
             image = stack_rgb(dataset[bounds[i]]["image"].numpy())
@@ -885,7 +883,6 @@ def plot_history(
     for key in metrics:
         # Checks that the length of x matches y and is greater than 1 so can be plotted.
         if len(metrics[key]["x"]) == len(metrics[key]["y"]) >= 1.0:
-
             # Plot metric.
             handles.append(ax.plot(metrics[key]["x"], metrics[key]["y"])[0])
             labels.append(key)
@@ -1125,7 +1122,6 @@ def plot_embedding(
 
     # Initialises a progress bar for the epoch.
     with alive_bar(len(x), bar="blocks") as bar:
-
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in range(len(x)):
             sample = dataset[bounds[i]]

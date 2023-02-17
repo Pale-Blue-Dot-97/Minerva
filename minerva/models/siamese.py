@@ -154,7 +154,6 @@ class _SimCLR(MinervaSiamese):
         backbone_name: str = "ResNet18",
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
-
         super(_SimCLR, self).__init__(criterion=criterion, input_size=input_size)
 
         self.backbone: MinervaModel = get_model(backbone_name)(
@@ -246,7 +245,6 @@ class SimCLR18(_SimCLR):
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
-
         super(SimCLR18, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -273,7 +271,6 @@ class SimCLR34(_SimCLR):
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
-
         super(SimCLR34, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -300,7 +297,6 @@ class SimCLR50(_SimCLR):
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
-
         super(SimCLR50, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -337,7 +333,6 @@ class _SimSiam(MinervaSiamese):
         backbone_name: str = "ResNet18",
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
-
         super(_SimSiam, self).__init__(criterion=criterion, input_size=input_size)
 
         self.backbone: MinervaModel = get_model(backbone_name)(
@@ -445,7 +440,6 @@ class SimSiam18(_SimSiam):
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
-
         super(SimSiam18, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -472,7 +466,6 @@ class SimSiam34(_SimSiam):
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
-
         super(SimSiam34, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -499,7 +492,6 @@ class SimSiam50(_SimSiam):
         feature_dim: int = 128,
         **resnet_kwargs,
     ) -> None:
-
         super(SimSiam50, self).__init__(
             criterion=criterion,
             input_size=input_size,

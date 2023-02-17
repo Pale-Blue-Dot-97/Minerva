@@ -134,7 +134,6 @@ class Trainer:
         wandb_run: Optional[Union[Run, RunDisabled]] = None,
         **params: Dict[str, Any],
     ) -> None:
-
         assert not isinstance(wandb_run, RunDisabled)
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
@@ -554,7 +553,6 @@ class Trainer:
 
             # Conduct training or validation epoch.
             for mode in ("train", "val"):
-
                 # Only run a KNN validation epoch at set frequency of epochs. Goes to next epoch if not.
                 if (
                     mode == "val"
