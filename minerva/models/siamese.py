@@ -125,7 +125,7 @@ class MinervaSiamese(MinervaBackbone):
             Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
             embedding vector from the backbone.
         """
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
 
 class _SimCLR(MinervaSiamese):
