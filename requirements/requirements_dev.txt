@@ -15,10 +15,10 @@ mypy==1.0.0
 myst_parser==0.18.1
 nptyping==2.4.1
 numpy==1.23.5
-onnx2torch==1.5.4
+onnx==1.13.0
+onnx2torch==1.5.6
 overload==1.1
 pandas==1.5.3
-
 pre-commit==3.0.4
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability
 psutil==5.9.4
@@ -33,7 +33,7 @@ setuptools==65.5.1
 sphinx>=3.0.4 # not directly required, pinned by Snyk to avoid a vulnerability
 sphinx-rtd-theme==1.2.0
 tabulate==0.9.0
-tensorflow==2.11.0
+tensorflow==2.12.0rc0
 torchgeo==0.4.0
 torchinfo==1.7.2
 tox==4.0.0
