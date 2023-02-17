@@ -11,7 +11,8 @@ repos:
           - id: check-docstring-first
           - id: detect-private-key
           - id: fix-encoding-pragma
-          # - id: check-added-large-files
+          - id: check-added-large-files
+            args: [--maxkb=2000]
           - id: name-tests-test
             args: [--pytest-test-first]
 
