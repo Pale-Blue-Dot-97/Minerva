@@ -26,7 +26,8 @@ def set_seeds():
 def results_dir():
     path = Path(__file__).parent / "tmp" / "results"
     yield path
-    shutil.rmtree(path)
+    if path.exists():
+        shutil.rmtree(path)
 
 
 @pytest.fixture
