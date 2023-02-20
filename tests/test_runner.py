@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
+import subprocess
 import time
+from typing import Optional
 
 import pytest
 import requests
@@ -37,8 +39,24 @@ def test_config_env_vars() -> None:
     new_args = runner.config_env_vars(args)
 
     if "SLURM_JOB_ID" in os.environ:
-        # TODO: Simulate SLURM environment.
-        pass
+        slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
+        slurm_nodeid: Optional[str] = os.getenv("SLURM_NODEID")
+        slurm_nnodes: Optional[str] = os.getenv("SLURM_NNODES")
+        slurm_jobid: Optional[str] = os.getenv("SLURM_JOB_ID")
+
+        assert slurm_job_nodelist is not None
+        assert slurm_nodeid is not None
+        assert slurm_nnodes is not None
+        assert slurm_jobid is not None
+
+        cmd = "scontrol show hostnames " + slurm_job_nodelist
+        stdout = subprocess.check_output(cmd.split())
+        host_name = stdout.decode().splitlines()[0]
+        args.rank = int(slurm_nodeid) * args.ngpus_per_node
+        args.world_size = int(slurm_nnodes) * args.ngpus_per_node
+        args.dist_url = f"tcp://{host_name}:58472"
+        args.jobid = slurm_jobid
+
     else:
         assert new_args.rank == 0
         assert new_args.world_size == 1
@@ -64,10 +82,11 @@ def test_config_args() -> None:
 
 def _run(gpu: int, args) -> None:
     time.sleep(0.5)
+    return
 
 
 def test_distributed_run() -> None:
-    args, _ = runner.GENERIC_PARSER.parse_known_args()
+    args, _ = runner.GENERIC_PARSER.parse_args()
 
     args = runner.config_args(args)
 
