@@ -259,7 +259,7 @@ def discrete_heatmap(
     clb.ax.set_yticklabels(classes)
 
     # Display figure.
-    plt.show()
+    plt.show(block=False)
 
     # Close figure.
     plt.close()
@@ -325,7 +325,7 @@ def make_rgb_image(
     # Add grid overlay.
     plt.grid(which="both", color="#CCCCCC", linestyle=":")
 
-    plt.show()
+    plt.show(block=False)
 
     return rgb_image
 
@@ -459,7 +459,7 @@ def labelled_rgb_image(
 
     # Display figure.
     if show:
-        plt.show()
+        plt.show(block=False)
 
     # Path and file name of figure.
     fn = f"{path}/{name}_RGBHM.png"
@@ -686,7 +686,7 @@ def prediction_plot(
 
     # Display figure.
     if show:
-        plt.show()
+        plt.show(block=False)
 
     if fn_prefix is None:
         path = universal_path(CONFIG["dir"]["results"])
@@ -851,7 +851,7 @@ def plot_subpopulations(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         plt.savefig(filename)
         plt.close()
@@ -902,7 +902,7 @@ def plot_history(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         plt.savefig(filename)
         plt.close()
@@ -979,7 +979,7 @@ def make_confusion_matrix(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         plt.savefig(filename)
         plt.close()
@@ -1076,7 +1076,7 @@ def make_roc_curves(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         plt.savefig(filename)
         print("ROC Curves plot SAVED")
@@ -1174,7 +1174,7 @@ def plot_embedding(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         if filename is None:  # pragma: no cover
             filename = "tsne_cluster_vis.png"
