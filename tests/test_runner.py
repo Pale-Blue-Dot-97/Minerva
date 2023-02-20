@@ -61,14 +61,15 @@ def test_config_args() -> None:
         assert CONFIG[key] == new_args[key]
 
 
-def test_distributed_run() -> None:
-    def run(*args):
-        pass
+def _run(*args):
+    pass
 
+
+def test_distributed_run() -> None:
     args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args = runner.config_args(args)
 
-    runner.distributed_run(run, args)
+    runner.distributed_run(_run, args)
 
     # TODO: Simulate multiprocessing runs.
