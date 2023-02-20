@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+import time
 
 import pytest
 import requests
@@ -61,8 +62,8 @@ def test_config_args() -> None:
         assert CONFIG[key] == new_args[key]
 
 
-def _run(*args):
-    pass
+def _run(gpu: int, args) -> None:
+    time.sleep(0.5)
 
 
 def test_distributed_run() -> None:
