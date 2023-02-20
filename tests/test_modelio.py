@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import importlib
 from typing import Any, Dict, List, Union
 
 import torch
@@ -9,7 +10,7 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 try:
     from lightly.loss import NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
-    pass
+    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 from numpy.testing import assert_array_equal
 from torch import Tensor
 

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import importlib
+
 import internet_sabotage
 import numpy as np
 import pytest
@@ -9,7 +11,7 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 try:
     from lightly.loss import NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
-    pass
+    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 from torch import Tensor
 from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum

@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import importlib
+
 import pytest
 import torch
 from urllib3.exceptions import MaxRetryError, NewConnectionError
@@ -7,7 +9,10 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 try:
     from lightly.loss import NegativeCosineSimilarity, NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
-    pass
+    NegativeCosineSimilarity = getattr(
+        importlib.import_module("lightly.loss"), "NegativeCosineSimilarity"
+    )
+    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 
 from minerva.models import SimCLR18, SimCLR34, SimCLR50, SimSiam18, SimSiam34, SimSiam50
 
