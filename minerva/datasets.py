@@ -83,6 +83,7 @@ from torchgeo.datasets import (
 )
 from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
+from torchgeo.samplers.utils import get_random_bounding_box
 from torchvision.transforms import RandomApply
 
 from minerva.transforms import MinervaCompose
@@ -803,3 +804,9 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
         sample_modes.append(modes)
 
     return np.array(sample_modes, dtype=object)
+
+
+def get_random_sample(
+    dataset: GeoDataset, size: Union[Tuple[int, int], int], res: int
+) -> Dict[str, Any]:
+    return dataset[get_random_bounding_box(dataset.bounds, size, res)]
