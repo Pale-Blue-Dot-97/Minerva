@@ -346,7 +346,7 @@ def config_env_vars(args: Namespace) -> Namespace:
     Returns:
         Namespace: Inputted arguments with the addition of ``rank``, ``dist_url`` and ``world_sized`` attributes.
     """
-    if "SLURM_JOB_ID" in os.environ:  # pragma: no cover
+    if "SLURM_JOB_ID" in os.environ:
         # Single-node and multi-node distributed training on SLURM cluster.
         # Requeue job on SLURM preemption.
         signal.signal(signal.SIGUSR1, _handle_sigusr1)
