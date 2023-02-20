@@ -333,9 +333,12 @@ class _ResNetX(MinervaModel):
     by stripping classification layers away.
 
     Attributes:
+        block_type (Union[BasicBlock, Bottleneck]): Type of the *block* used to construct the :class:`ResNet` layers.
+        layer_struct (List[int]): Number of layers per block in the :class:`ResNet`.
+        weights_name (str): Name of the :mod:`torch` pre-trained weights to use if ``torch_weights==True``.
         network (ResNet): :class:`ResNet` network.
 
-     Args:
+    Args:
         criterion: PyTorch loss function model will use.
         input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
