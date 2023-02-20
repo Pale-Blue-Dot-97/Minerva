@@ -2,6 +2,7 @@
 import os
 
 import pytest
+import requests
 import torch
 from internet_sabotage import no_connection
 
@@ -9,8 +10,13 @@ from minerva.utils import CONFIG, runner
 
 
 def test_wandb_connection_manager() -> None:
-    with runner.WandbConnectionManager():
-        assert os.environ["WANDB_MODE"] == "online"
+    try:
+        requests.head("http://www.wandb.ai/", timeout=0.1)
+    except requests.ConnectionError:
+        pass
+    else:
+        with runner.WandbConnectionManager():
+            assert os.environ["WANDB_MODE"] == "online"
 
     with no_connection():
         with runner.WandbConnectionManager():
