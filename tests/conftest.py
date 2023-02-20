@@ -28,7 +28,7 @@ def results_dir():
     path = Path(__file__).parent / "tmp" / "results"
     yield path
     if path.exists():
-        shutil.rmtree(path)
+        shutil.rmtree(path, ignore_errors=True)
 
 
 @pytest.fixture
