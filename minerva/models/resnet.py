@@ -328,14 +328,14 @@ class ResNet(MinervaModel, ABC):
         return self._forward_impl(x)
 
 
-class ResNet18(MinervaModel, ABC):
-    """ResNet18 modified from source to have customisable number of input channels and to be used as a backbone
+class _ResNetX(MinervaModel):
+    """Base ResNet class modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
 
     Attributes:
-        network (ResNet): ResNet18 network.
+        network (ResNet): :class:`ResNet` network.
 
-    Args:
+     Args:
         criterion: PyTorch loss function model will use.
         input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
@@ -359,38 +359,43 @@ class ResNet18(MinervaModel, ABC):
         smaller than ``224x224`` with the randomly initialised ``conv1`` that is appropiate for ``input_size``.
     """
 
+    block_type: Union[Type[BasicBlock], Type[Bottleneck]] = BasicBlock
+    layer_struct: List[int] = [2, 2, 2, 2]
+    weights_name = "ResNet18_Weights.IMAGENET1K_V1"
+
     def __init__(
         self,
         criterion: Optional[Any] = None,
         input_size: Tuple[int, int, int] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
-        norm_layer: Optional[Callable[..., Module]] = None,
+        groups: int = 1,
+        width_per_group: int = 64,
         replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+        norm_layer: Optional[Callable[..., Module]] = None,
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-        super(ResNet18, self).__init__(
+        super(_ResNetX, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         self.network = ResNet(
-            BasicBlock,
-            [2, 2, 2, 2],
+            self.block_type,
+            self.layer_struct,
             in_channels=input_size[0],
             n_classes=n_classes,
             zero_init_residual=zero_init_residual,
-            groups=1,
-            width_per_group=64,
+            groups=groups,
+            width_per_group=width_per_group,
             replace_stride_with_dilation=replace_stride_with_dilation,
             norm_layer=norm_layer,
             encoder=encoder,
         )
 
         if torch_weights:
-            weights_name = "ResNet18_Weights.IMAGENET1K_V1"
             self.network = _preload_weights(
-                self.network, get_torch_weights(weights_name), input_size, encoder
+                self.network, get_torch_weights(self.weights_name), input_size, encoder
             )
 
     def forward(
@@ -419,380 +424,52 @@ class ResNet18(MinervaModel, ABC):
             return z
 
 
-class ResNet34(MinervaModel, ABC):
+class ResNet18(_ResNetX):
+    """ResNet18 modified from source to have customisable number of input channels and to be used as a backbone
+    by stripping classification layers away.
+    """
+
+    layer_struct: List[int] = [2, 2, 2, 2]
+    weights_name = "ResNet18_Weights.IMAGENET1K_V1"
+
+
+class ResNet34(_ResNetX):
     """ResNet34 modified from source to have customisable number of input channels and to be used as a backbone
-        by stripping classification layers away.
-
-    Attributes:
-        network (ResNet): ResNet34 network.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
-            so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates whether
-            to replace the ``2x2`` stride with a dilated convolution instead. Must be a three element tuple of bools.
-        norm_layer (Callable[..., Module]): Optional; Normalisation layer to use in each block.
-            Typically ``torch.nn.BatchNorm2d``.
-        encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
-            If ``True``, forward method returns the output of each layer block.
-            ``avgpool`` and ``fc`` are not initialised.
-            If ``False``, adds a global average pooling layer after the last block, flattens the output
-            and passes through a fully connected layer for classification output.
-        torch_weights (bool): Optional; Whether to use the pre-trained weights from ``torchvision``. See note.
-
-    Note:
-        If using ``torch_weights``, the weight ``state_dict`` is modified to remove incompatible layers
-        (such as the ``conv1`` layer) if ``input_size`` is non-RGB (i.e not 3-channel) and/or images
-        smaller than ``224x224`` with the randomly initialised ``conv1`` that is appropiate for ``input_size``.
+    by stripping classification layers away.
     """
 
-    def __init__(
-        self,
-        criterion: Optional[Any] = None,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        n_classes: int = 8,
-        zero_init_residual: bool = False,
-        replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-        norm_layer: Optional[Callable[..., Module]] = None,
-        encoder: bool = False,
-        torch_weights: bool = False,
-    ) -> None:
-        super(ResNet34, self).__init__(
-            criterion=criterion, input_size=input_size, n_classes=n_classes
-        )
-
-        self.network = ResNet(
-            BasicBlock,
-            [3, 4, 6, 3],
-            in_channels=input_size[0],
-            n_classes=n_classes,
-            zero_init_residual=zero_init_residual,
-            groups=1,
-            width_per_group=64,
-            replace_stride_with_dilation=replace_stride_with_dilation,
-            norm_layer=norm_layer,
-            encoder=encoder,
-        )
-
-        if torch_weights:
-            weights_name = "ResNet34_Weights.IMAGENET1K_V1"
-            self.network = _preload_weights(
-                self.network, get_torch_weights(weights_name), input_size, encoder
-            )
-
-    def forward(
-        self, x: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the :class:`ResNet`.
-
-        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
-        to model (e.g. ``model()``).
-
-        Args:
-            x (Tensor): Input data to network.
-
-        Returns:
-            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
-            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
-            network places on the input `x` being of each class.
-        """
-        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
-            x
-        )
-        if isinstance(z, Tensor):
-            return z
-        elif isinstance(z, tuple):
-            assert all(isinstance(n, Tensor) for n in z)
-            return z
+    layer_struct: List[int] = [3, 4, 6, 3]
+    weights_name = "ResNet34_Weights.IMAGENET1K_V1"
 
 
-class ResNet50(MinervaModel, ABC):
+class ResNet50(_ResNetX):
     """ResNet50 modified from source to have customisable number of input channels and to be used as a backbone
-            by stripping classification layers away.
-
-    Attributes:
-        network (ResNet): ResNet50 network.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
-            so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates whether
-            to replace the ``2x2`` stride with a dilated convolution instead. Must be a three element tuple of bools.
-        norm_layer (Callable[..., Module]): Optional; Normalisation layer to use in each block.
-            Typically ``torch.nn.BatchNorm2d``.
-        encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
-            If ``True``, forward method returns the output of each layer block.
-            ``avgpool`` and ``fc`` are not initialised.
-            If ``False``, adds a global average pooling layer after the last block, flattens the output
-            and passes through a fully connected layer for classification output.
-        torch_weights (bool): Optional; Whether to use the pre-trained weights from ``torchvision``. See note.
-
-    Note:
-        If using ``torch_weights``, the weight ``state_dict`` is modified to remove incompatible layers
-        (such as the ``conv1`` layer) if ``input_size`` is non-RGB (i.e not 3-channel) and/or images
-        smaller than ``224x224`` with the randomly initialised ``conv1`` that is appropiate for ``input_size``.
+    by stripping classification layers away.
     """
 
-    def __init__(
-        self,
-        criterion: Optional[Any] = None,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        n_classes: int = 8,
-        zero_init_residual: bool = False,
-        groups: int = 1,
-        width_per_group: int = 64,
-        replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-        norm_layer: Optional[Callable[..., Module]] = None,
-        encoder: bool = False,
-        torch_weights: bool = False,
-    ) -> None:
-        super(ResNet50, self).__init__(
-            criterion=criterion, input_size=input_size, n_classes=n_classes
-        )
-
-        self.network = ResNet(
-            Bottleneck,
-            [3, 4, 6, 3],
-            in_channels=input_size[0],
-            n_classes=n_classes,
-            zero_init_residual=zero_init_residual,
-            groups=groups,
-            width_per_group=width_per_group,
-            replace_stride_with_dilation=replace_stride_with_dilation,
-            norm_layer=norm_layer,
-            encoder=encoder,
-        )
-
-        if torch_weights:
-            weights_name = "ResNet50_Weights.IMAGENET1K_V1"
-            self.network = _preload_weights(
-                self.network, get_torch_weights(weights_name), input_size, encoder
-            )
-
-    def forward(
-        self, x: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the :class:`ResNet`.
-
-        Overwrites :class:`MinervaModel` abstract method.
-
-        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
-        to model (e.g. ``model()``).
-
-        Args:
-            x (Tensor): Input data to network.
-
-        Returns:
-            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
-            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
-            network places on the input `x` being of each class.
-        """
-        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
-            x
-        )
-        if isinstance(z, Tensor):
-            return z
-        elif isinstance(z, tuple):
-            assert all(isinstance(n, Tensor) for n in z)
-            return z
+    block_type = Bottleneck
+    layer_struct = [3, 4, 6, 3]
+    weights_name = "ResNet50_Weights.IMAGENET1K_V1"
 
 
-class ResNet101(MinervaModel, ABC):
+class ResNet101(_ResNetX):
     """ResNet101 modified from source to have customisable number of input channels and to be used as a backbone
-            by stripping classification layers away.
-
-    Attributes:
-        network (ResNet): ResNet50 network.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
-            so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates whether
-            to replace the ``2x2`` stride with a dilated convolution instead. Must be a three element tuple of bools.
-        norm_layer (Callable[..., Module]): Optional; Normalisation layer to use in each block.
-            Typically ``torch.nn.BatchNorm2d``.
-        encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
-            If ``True``, forward method returns the output of each layer block.
-            ``avgpool`` and ``fc`` are not initialised.
-            If ``False``, adds a global average pooling layer after the last block, flattens the output
-            and passes through a fully connected layer for classification output.
-        torch_weights (bool): Optional; Whether to use the pre-trained weights from ``torchvision``. See note.
-
-    Note:
-        If using ``torch_weights``, the weight ``state_dict`` is modified to remove incompatible layers
-        (such as the ``conv1`` layer) if ``input_size`` is non-RGB (i.e not 3-channel) and/or images
-        smaller than ``224x224`` with the randomly initialised ``conv1`` that is appropiate for ``input_size``.
+    by stripping classification layers away.
     """
 
-    def __init__(
-        self,
-        criterion: Optional[Any] = None,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        n_classes: int = 8,
-        zero_init_residual: bool = False,
-        groups: int = 1,
-        width_per_group: int = 64,
-        replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-        norm_layer: Optional[Callable[..., Module]] = None,
-        encoder: bool = False,
-        torch_weights: bool = False,
-    ) -> None:
-        super(ResNet101, self).__init__(
-            criterion=criterion, input_size=input_size, n_classes=n_classes
-        )
-
-        self.network = ResNet(
-            Bottleneck,
-            [3, 4, 23, 3],
-            in_channels=input_size[0],
-            n_classes=n_classes,
-            zero_init_residual=zero_init_residual,
-            groups=groups,
-            width_per_group=width_per_group,
-            replace_stride_with_dilation=replace_stride_with_dilation,
-            norm_layer=norm_layer,
-            encoder=encoder,
-        )
-
-        if torch_weights:
-            weights_name = "ResNet101_Weights.IMAGENET1K_V1"
-            self.network = _preload_weights(
-                self.network, get_torch_weights(weights_name), input_size, encoder
-            )
-
-    def forward(
-        self, x: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the :class:`ResNet`.
-
-        Overwrites :class:`MinervaModel` abstract method.
-
-        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
-        to model (e.g. ``model()``).
-
-        Args:
-            x (Tensor): Input data to network.
-
-        Returns:
-            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
-            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
-            network places on the input `x` being of each class.
-        """
-        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
-            x
-        )
-        if isinstance(z, Tensor):
-            return z
-        elif isinstance(z, tuple):
-            assert all(isinstance(n, Tensor) for n in z)
-            return z
+    block_type = Bottleneck
+    layer_struct = [3, 4, 23, 3]
+    weights_name = "ResNet101_Weights.IMAGENET1K_V1"
 
 
-class ResNet152(MinervaModel, ABC):
+class ResNet152(_ResNetX):
     """ResNet152 modified from source to have customisable number of input channels and to be used as a backbone
-            by stripping classification layers away.
-
-    Attributes:
-        network (ResNet): ResNet50 network.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
-            so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates whether
-            to replace the ``2x2`` stride with a dilated convolution instead. Must be a three element tuple of bools.
-        norm_layer (Callable[..., Module]): Optional; Normalisation layer to use in each block.
-            Typically ``torch.nn.BatchNorm2d``.
-        encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
-            If ``True``, forward method returns the output of each layer block.
-            ``avgpool`` and ``fc`` are not initialised.
-            If ``False``, adds a global average pooling layer after the last block, flattens the output
-            and passes through a fully connected layer for classification output.
-        torch_weights (bool): Optional; Whether to use the pre-trained weights from ``torchvision``. See note.
-
-    Note:
-        If using ``torch_weights``, the weight ``state_dict`` is modified to remove incompatible layers
-        (such as the ``conv1`` layer) if ``input_size`` is non-RGB (i.e not 3-channel) and/or images
-        smaller than ``224x224`` with the randomly initialised ``conv1`` that is appropiate for ``input_size``.
+    by stripping classification layers away.
     """
 
-    def __init__(
-        self,
-        criterion: Optional[Any] = None,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        n_classes: int = 8,
-        zero_init_residual: bool = False,
-        groups: int = 1,
-        width_per_group: int = 64,
-        replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
-        norm_layer: Optional[Callable[..., Module]] = None,
-        encoder: bool = False,
-        torch_weights: bool = False,
-    ) -> None:
-        super(ResNet152, self).__init__(
-            criterion=criterion, input_size=input_size, n_classes=n_classes
-        )
-
-        self.network = ResNet(
-            Bottleneck,
-            [3, 8, 36, 3],
-            in_channels=input_size[0],
-            n_classes=n_classes,
-            zero_init_residual=zero_init_residual,
-            groups=groups,
-            width_per_group=width_per_group,
-            replace_stride_with_dilation=replace_stride_with_dilation,
-            norm_layer=norm_layer,
-            encoder=encoder,
-        )
-
-        if torch_weights:
-            weights_name = "ResNet152_Weights.IMAGENET1K_V1"
-            self.network = _preload_weights(
-                self.network, get_torch_weights(weights_name), input_size, encoder
-            )
-
-    def forward(
-        self, x: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
-        """Performs a forward pass of the :class:`ResNet`.
-
-        Overwrites :class:`MinervaModel` abstract method.
-
-        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
-        to model (e.g. ``model()``).
-
-        Args:
-            x (Tensor): Input data to network.
-
-        Returns:
-            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
-            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
-            network places on the input `x` being of each class.
-        """
-        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
-            x
-        )
-        if isinstance(z, Tensor):
-            return z
-        elif isinstance(z, tuple):
-            assert all(isinstance(n, Tensor) for n in z)
-            return z
+    block_type = Bottleneck
+    layer_struct = [3, 8, 36, 3]
+    weights_name = "ResNet152_Weights.IMAGENET1K_V1"
 
 
 # =====================================================================================================================
