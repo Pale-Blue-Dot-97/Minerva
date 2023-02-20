@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import importlib
 import shutil
 import tempfile
 from pathlib import Path
@@ -13,7 +14,7 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 try:
     from lightly.loss import NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
-    pass
+    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
 from torch import Tensor
