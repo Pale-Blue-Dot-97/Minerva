@@ -13,6 +13,7 @@ from typing import Any, Dict, Tuple
 import numpy as np
 import pandas as pd
 import pytest
+import requests
 import torch
 from internet_sabotage import no_connection
 from nptyping import Float, Int, NDArray, Shape
@@ -360,18 +361,23 @@ def test_lat_lon_to_loc() -> None:
     lat6 = -77.844504
     lon6 = 166.707506
 
-    assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
-    assert utils.lat_lon_to_loc(str(lat_1), str(lon_1)) == "Amber Valley, England"
-    assert utils.lat_lon_to_loc(lat_2, lon_2) == "City of London, England"
-    assert utils.lat_lon_to_loc(lat_3, lon_3) == "Cimarron County, Oklahoma"
+    try:
+        requests.head("http://www.wandb.ai/", timeout=0.1)
+    except requests.ConnectionError:
+        pass
+    else:
+        assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
+        assert utils.lat_lon_to_loc(str(lat_1), str(lon_1)) == "Amber Valley, England"
+        assert utils.lat_lon_to_loc(lat_2, lon_2) == "City of London, England"
+        assert utils.lat_lon_to_loc(lat_3, lon_3) == "Cimarron County, Oklahoma"
 
-    assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
-    assert utils.lat_lon_to_loc(lat_5, lon_5) in (
-        "Civitas Vaticana - Città del Vaticano",
-        "Civitas Vaticana",
-    )
+        assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
+        assert utils.lat_lon_to_loc(lat_5, lon_5) in (
+            "Civitas Vaticana - Città del Vaticano",
+            "Civitas Vaticana",
+        )
 
-    assert utils.lat_lon_to_loc(lat6, lon6) == ""
+        assert utils.lat_lon_to_loc(lat6, lon6) == ""
 
     with no_connection():
         assert utils.lat_lon_to_loc(lat_1, lon_1) == ""
