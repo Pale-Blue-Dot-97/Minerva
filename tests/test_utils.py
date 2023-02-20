@@ -362,7 +362,7 @@ def test_lat_lon_to_loc() -> None:
     lon6 = 166.707506
 
     try:
-        requests.head("http://www.wandb.ai/", timeout=0.1)
+        requests.head("http://www.google.com/", timeout=0.1)
     except requests.ConnectionError:
         pass
     else:
