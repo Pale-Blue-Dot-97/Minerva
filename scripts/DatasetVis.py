@@ -40,7 +40,6 @@ import argcomplete
 import matplotlib.pyplot as plt
 
 from minerva.trainer import Trainer
-from minerva.transforms import Normalise
 from minerva.utils import CONFIG, runner
 
 
