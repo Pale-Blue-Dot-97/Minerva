@@ -19,15 +19,9 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Script to execute the creation, fitting and testing of a computer vision neural network model.
-
-Designed for use in SLURM clusters and with distributed computing support.
-
-Some code derived from Barlow Twins implementation of distributed computing:
-https://github.com/facebookresearch/barlowtwins
+"""Script to visualise patches from the dataset. PRE-RELEASE CODE!
 """
 
-# TODO: Add ability to conduct hyper-parameter iterative variation experimentation.
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -59,19 +53,20 @@ def main(args) -> None:
         **CONFIG,
     )
 
-    transform = Normalise(255)
-
     for batch in trainer.loaders["train"]:
-        sample = {key: batch[key][0] for key in batch}
-        image = transform(sample["image"][0:3, :, :].permute(1, 2, 0))
+        image1 = batch[0]["image"][0][0:3, :, :].permute(1, 2, 0)
+        image2 = batch[1]["image"][0][0:3, :, :].permute(1, 2, 0)
         # fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
 
-        plt.imshow(image)
+        plt.imshow(image1)
         plt.axis("off")
         plt.savefig("pic1.png")
 
+        plt.imshow(image2)
+        plt.axis("off")
+        plt.savefig("pic2.png")
+
         break
-        # dataset.plot({key: batch[key][0][1] for key in batch})
 
 
 if __name__ == "__main__":
