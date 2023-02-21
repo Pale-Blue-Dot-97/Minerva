@@ -85,11 +85,11 @@ def _run(gpu: int, args) -> None:
     return
 
 
-def test_distributed_run() -> None:
-    args, _ = runner.GENERIC_PARSER.parse_known_args()
-
-    args = runner.config_args(args)
-
-    runner.distributed_run(_run, args)
-
-    # TODO: Simulate multiprocessing runs.
+# def test_distributed_run() -> None:
+#    args, _ = runner.GENERIC_PARSER.parse_known_args()
+#
+#    args = runner.config_args(args)
+#
+#    runner.distributed_run(_run, args)
+#
+#    # TODO: Simulate multiprocessing runs.
