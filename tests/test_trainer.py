@@ -51,13 +51,13 @@ def test_trainer_1() -> None:
             args.entity = None
             args.project = "pytest"
             args.wandb_log = True
+            args.dist_url = "tcp://localhost:58472"
 
             # Run the specified main with distributed computing and the arguments provided.
             runner.distributed_run(run_trainer, args)
             # Assumes distributed tests are single node
 
             # args.rank = 0
-            # args.dist_url = "tcp://localhost:58472"
             # args.world_size = torch.cuda.device_count()
             # args.ngpus_per_node = args.world_size
             # args.distributed = True
