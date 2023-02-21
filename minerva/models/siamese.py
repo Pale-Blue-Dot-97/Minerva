@@ -134,6 +134,7 @@ class _SimCLR(MinervaSiamese):
     Subclasses :class:`MinervaSiamse`.
 
     Attributes:
+        backbone_name (str): Name of the backbone within this module to use.
         backbone (Module): Backbone of SimCLR that takes the imagery input and
             extracts learned representations.
         proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
@@ -142,21 +143,22 @@ class _SimCLR(MinervaSiamese):
         criterion: PyTorch loss function model will use.
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
-        backbone_name (str): Optional; Name of the backbone within this module to use.
+
         backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
+
+    backbone_name = "ResNet18"
 
     def __init__(
         self,
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
-        backbone_name: str = "ResNet18",
-        backbone_kwargs: Optional[Dict[str, Any]] = None,
+        backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(_SimCLR, self).__init__(criterion=criterion, input_size=input_size)
 
-        self.backbone: MinervaModel = get_model(backbone_name)(
+        self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
         )
 
@@ -229,81 +231,21 @@ class _SimCLR(MinervaSiamese):
 
 
 class SimCLR18(_SimCLR):
-    """SimCLR network using a ResNet18 backbone.
+    """SimCLR network using a ResNet18 backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        feature_dim: int = 128,
-        **resnet_kwargs,
-    ) -> None:
-        super(SimCLR18, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            feature_dim=feature_dim,
-            backbone_name="ResNet18",
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet18"
 
 
 class SimCLR34(_SimCLR):
-    """SimCLR network using a ResNet32 backbone.
+    """SimCLR network using a ResNet32 backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        feature_dim: int = 128,
-        **resnet_kwargs,
-    ) -> None:
-        super(SimCLR34, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            feature_dim=feature_dim,
-            backbone_name="ResNet34",
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet34"
 
 
 class SimCLR50(_SimCLR):
-    """SimCLR network using a ResNet50 backbone.
+    """SimCLR network using a ResNet50 backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        feature_dim: int = 128,
-        **resnet_kwargs,
-    ) -> None:
-        super(SimCLR50, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            feature_dim=feature_dim,
-            backbone_name="ResNet50",
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet50"
 
 
 class _SimSiam(MinervaSiamese):
@@ -312,6 +254,7 @@ class _SimSiam(MinervaSiamese):
     Subclasses :class:`MinervaSiamese`.
 
     Attributes:
+        backbone_name (str): Name of the backbone within this module to use.
         backbone (Module): Backbone of SimSiam that takes the imagery input and
             extracts learned representations.
         proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
@@ -320,22 +263,23 @@ class _SimSiam(MinervaSiamese):
         criterion: PyTorch loss function model will use.
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
-        backbone_name (str): Optional; Name of the backbone within this module to use.
+
         backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
     """
+
+    backbone_name = "ResNet18"
 
     def __init__(
         self,
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
-        feature_dim: int = 2048,
+        feature_dim: int = 128,
         pred_dim: int = 512,
-        backbone_name: str = "ResNet18",
-        backbone_kwargs: Optional[Dict[str, Any]] = None,
+        backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(_SimSiam, self).__init__(criterion=criterion, input_size=input_size)
 
-        self.backbone: MinervaModel = get_model(backbone_name)(
+        self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
         )
 
@@ -424,78 +368,18 @@ class _SimSiam(MinervaSiamese):
 
 
 class SimSiam18(_SimSiam):
-    """SimSiam network using a ResNet18 backbone.
+    """SimSiam network using a :class:`ResNet18` backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        feature_dim: int = 128,
-        **resnet_kwargs,
-    ) -> None:
-        super(SimSiam18, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            feature_dim=feature_dim,
-            backbone_name="ResNet18",
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet18"
 
 
 class SimSiam34(_SimSiam):
-    """SimSiam network using a ResNet32 backbone.
+    """SimSiam network using a :class:`ResNet34` backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        feature_dim: int = 128,
-        **resnet_kwargs,
-    ) -> None:
-        super(SimSiam34, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            feature_dim=feature_dim,
-            backbone_name="ResNet34",
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet34"
 
 
 class SimSiam50(_SimSiam):
-    """SimSiam network using a ResNet50 backbone.
+    """SimSiam network using a :class:`ResNet50` backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
-        feature_dim: int = 128,
-        **resnet_kwargs,
-    ) -> None:
-        super(SimSiam50, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            feature_dim=feature_dim,
-            backbone_name="ResNet50",
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet50"

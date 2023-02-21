@@ -86,7 +86,7 @@ def _run(gpu: int, args) -> None:
 
 
 def test_distributed_run() -> None:
-    args, _ = runner.GENERIC_PARSER.parse_args()
+    args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args = runner.config_args(args)
 
