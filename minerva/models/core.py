@@ -214,7 +214,7 @@ class MinervaBackbone(MinervaModel):
         return self.backbone
 
 
-class MinervaDataParallel(Module):
+class MinervaDataParallel(Module):  # pragma: no cover
     """Custom wrapper for DataParallel that automatically fetches the attributes of the wrapped model.
 
     Attributes:
