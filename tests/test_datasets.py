@@ -3,6 +3,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
 import torch
@@ -69,6 +70,8 @@ def test_paired_datasets() -> None:
         dataset.roi
 
     assert type(dataset.__repr__()) == str
+
+    assert isinstance(dataset.plot_random_sample((32, 32), 1.0), plt.Figure)
 
 
 def test_get_collator() -> None:
