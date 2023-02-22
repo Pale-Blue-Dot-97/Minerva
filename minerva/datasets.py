@@ -66,6 +66,7 @@ from typing import (
     Union,
 )
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -165,6 +166,72 @@ class PairedDataset(RasterDataset):
 
     def __repr__(self) -> Any:
         return self.dataset.__repr__()
+
+    def plot(
+        self,
+        sample: Dict[str, Any],
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> plt.Figure:
+        """Plots a sample from the dataset.
+
+        Adapted from ``torchgeo.datasets.NAIP.plot``.
+        https://torchgeo.readthedocs.io/en/v0.4.0/_modules/torchgeo/datasets/naip.html
+
+        Args:
+            sample (Dict[str, Any]): Sample to plot.
+            show_titles (bool, optional): Add title to the figure. Defaults to True.
+            suptitle (Optional[str], optional): Super title to add to figure. Defaults to None.
+
+        Returns:
+            plt.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+        """
+
+        image = sample["image"][0:3, :, :].permute(1, 2, 0)
+
+        # Setup the figure.
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+
+        # Plot the image.
+        ax.imshow(image)
+
+        # Turn the axis off.
+        ax.axis("off")
+
+        # Add title to figure.
+        if show_titles:
+            ax.set_title("Image")
+
+        if suptitle is not None:
+            plt.suptitle(suptitle)
+
+        return fig
+
+    def plot_random_sample(
+        self,
+        size: Union[Tuple[int, int], int],
+        res: int,
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> plt.Figure:
+        """Plots a random sample the dataset at a given size and resolution.
+
+        Adapted from ``torchgeo.datasets.NAIP.plot``.
+        https://torchgeo.readthedocs.io/en/v0.4.0/_modules/torchgeo/datasets/naip.html
+
+        Args:
+            size (Union[Tuple[int, int], int]): Size of the patch to plot.
+            res (int): Resolution of the patch.
+            show_titles (bool, optional): Add title to the figure. Defaults to True.
+            suptitle (Optional[str], optional): Super title to add to figure. Defaults to None.
+
+        Returns:
+            plt.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+        """
+
+        # Get a random sample from the dataset at the given size and resolution.
+        sample = get_random_sample(self.dataset, size, res)
+        return self.plot(sample, show_titles, suptitle)
 
 
 # =====================================================================================================================
