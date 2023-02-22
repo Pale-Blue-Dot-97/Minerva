@@ -447,9 +447,15 @@ def construct_dataloader(
     batch_sampler = True if "batch_size" in sampler_params["params"] else False
 
     if batch_sampler and dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
-        assert sampler_params["params"]["batch_size"] % world_size == 0
-        per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
-        sampler_params["params"]["batch_size"] = per_device_batch_size
+        assert (
+            sampler_params["params"]["batch_size"] % world_size == 0
+        )  # pragma: no cover
+        per_device_batch_size = (
+            sampler_params["params"]["batch_size"] // world_size
+        )  # pragma: no cover
+        sampler_params["params"][
+            "batch_size"
+        ] = per_device_batch_size  # pragma: no cover
 
     sampler: Union[BatchGeoSampler, GeoSampler, DistributedSamplerWrapper] = _sampler(
         dataset=subdatasets[0],
@@ -476,7 +482,7 @@ def construct_dataloader(
 
         # Can't wrap functions in distributed runs due to pickling error.
         # Therefore, the collator is set to `stack_sample_pairs` automatically.
-        else:
+        else:  # pragma: no cover
             collator = stack_sample_pairs
 
     if batch_sampler:
@@ -809,4 +815,14 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
 def get_random_sample(
     dataset: GeoDataset, size: Union[Tuple[int, int], int], res: int
 ) -> Dict[str, Any]:
+    """Gets a random sample from the provided dataset of size ``size`` and at ``res`` resolution.
+
+    Args:
+        dataset (GeoDataset): Dataset to sample from.
+        size (Union[Tuple[int, int], int]): Size of the patch to sample.
+        res (int): Resolution of the patch.
+
+    Returns:
+        Dict[str, Any]: Random sample from the dataset.
+    """
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]

@@ -277,7 +277,7 @@ class Trainer:
             self.writer.watch(self.model)
 
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
-        if torch.cuda.device_count() > 1:
+        if torch.cuda.device_count() > 1:  # pragma: no cover
             self.print(f"{torch.cuda.device_count()} GPUs detected")
             self.model = torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(  # type: ignore
                 self.model
@@ -479,7 +479,7 @@ class Trainer:
             and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
         """
         batch_size = self.batch_size
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
             batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         # Calculates the number of samples
@@ -517,7 +517,7 @@ class Trainer:
                     batch, self.model, self.device, mode, **self.params
                 )
 
-                if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+                if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
                     loss = results[0].data.clone()
                     dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                     results = (loss, *results[1:])
@@ -830,7 +830,7 @@ class Trainer:
         batch_size = self.batch_size
 
         # Corrects the batch size if this is a distributed job to account for batches being split across devices.
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
             batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         # Calculates the number of samples.
@@ -946,7 +946,7 @@ class Trainer:
                 results = (loss, pred_scores, test_target, _)
 
                 # Gathers the losses across devices together if a distributed job.
-                if dist.is_available() and dist.is_initialized():
+                if dist.is_available() and dist.is_initialized():  # pragma: no cover
                     loss = results[0].data.clone()
                     dist.all_reduce(loss.div_(dist.get_world_size()))
                     results = (loss, *results[1:])
@@ -1051,7 +1051,7 @@ class Trainer:
         model = self.model
 
         # Checks if this is a distributed run.
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
             assert isinstance(model, MinervaDataParallel)
 
             # Extracts the actual model instance from the distributed wrapping.
