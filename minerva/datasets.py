@@ -210,7 +210,7 @@ class PairedDataset(RasterDataset):
     def plot_random_sample(
         self,
         size: Union[Tuple[int, int], int],
-        res: int,
+        res: float,
         show_titles: bool = True,
         suptitle: Optional[str] = None,
     ) -> plt.Figure:
@@ -221,7 +221,7 @@ class PairedDataset(RasterDataset):
 
         Args:
             size (Union[Tuple[int, int], int]): Size of the patch to plot.
-            res (int): Resolution of the patch.
+            res (float): Resolution of the patch.
             show_titles (bool, optional): Add title to the figure. Defaults to True.
             suptitle (Optional[str], optional): Super title to add to figure. Defaults to None.
 
@@ -880,14 +880,14 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
 
 
 def get_random_sample(
-    dataset: GeoDataset, size: Union[Tuple[int, int], int], res: int
+    dataset: GeoDataset, size: Union[Tuple[int, int], int], res: float
 ) -> Dict[str, Any]:
     """Gets a random sample from the provided dataset of size ``size`` and at ``res`` resolution.
 
     Args:
         dataset (GeoDataset): Dataset to sample from.
         size (Union[Tuple[int, int], int]): Size of the patch to sample.
-        res (int): Resolution of the patch.
+        res (float): Resolution of the patch.
 
     Returns:
         Dict[str, Any]: Random sample from the dataset.
