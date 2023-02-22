@@ -26,6 +26,10 @@ from minerva.models import MinervaModel
 from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
 
 
+def test_is_notebook() -> None:
+    assert utils.is_notebook() is False
+
+
 def test_return_updated_kwargs() -> None:
     @utils.return_updated_kwargs
     def example_func(*args, **kwargs) -> Tuple[Any, Dict[str, Any]]:
