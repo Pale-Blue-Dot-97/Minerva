@@ -297,7 +297,7 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
     if CONFIG.get("wandb_log", False) or CONFIG.get("project", None):
         try:
             if CONFIG.get("log_all", False) and args.world_size > 1:
-                run = wandb.init(
+                run = wandb.init(  # pragma: no cover
                     entity=CONFIG.get("entity", None),
                     project=CONFIG.get("project", None),
                     group=CONFIG.get("group", "DDP"),
@@ -313,8 +313,8 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
                         name=args.jobid,
                     )
             CONFIG["wandb_log"] = True
-        except wandb.UsageError:  # type: ignore[attr-defined]
-            print(  # pragma: no cover
+        except wandb.UsageError:  # type: ignore[attr-defined]  # pragma: no cover
+            print(
                 "wandb API Key has not been inited.",
                 "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.",
                 "\nOr if not using wandb, safely ignore this message.",
@@ -420,7 +420,7 @@ def config_args(args: Namespace) -> Namespace:
 
 def _run_preamble(
     gpu: int, run: Callable[[int, Namespace], Any], args: Namespace
-) -> None:
+) -> None:  # pragma: no cover
     # Calculates the global rank of this process.
     args.rank += gpu
 
@@ -465,7 +465,7 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         # Run the experiment.
         run(0, args)
 
-    else:
+    else:  # pragma: no cover
         try:
             mp.spawn(_run_preamble, (run, args), args.ngpus_per_node)  # type: ignore[attr-defined]
         except KeyboardInterrupt:
