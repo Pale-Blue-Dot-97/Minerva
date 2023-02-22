@@ -389,7 +389,7 @@ def is_notebook() -> bool:
             return False
         if "VSCODE_PID" in os.environ:  # pragma: no cover
             return False
-    except:
+    except:  # noqa: E722
         return False
     else:  # pragma: no cover
         return True
