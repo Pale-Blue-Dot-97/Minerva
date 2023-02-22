@@ -17,9 +17,32 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-""":mod:`minerva` is a package designed to facilitate the fitting and visualation of models for geo-spatial research."""
+r""":mod:`minerva` is a package designed to facilitate the fitting and visualation of models for geo-spatial research.
 
-__version__ = "0.19.2"
+To main entry point to :mod:`minerva` is via :class:`Trainer`.
+    >>> from minerva.utils import CONFIG     # Module containing various utility functions.
+    >>> from minerva.trainer import Trainer  # Class designed to handle fitting of model.
+
+Initialise a Trainer. Also creates the model.
+    >>> trainer = Trainer(**CONFIG)
+
+Run the fitting (train and validation epochs).
+    >>> trainer.fit()
+
+Run the testing epoch and output results.
+    >>> trainer.test()
+
+.. note::
+    Includes two small ``.tiff`` exercpts from the ChesapeakeCVPR dataset used for testing.
+
+    https://lila.science/datasets/chesapeakelandcover Credit for the data goes to:
+
+    Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N.
+    Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data.
+    Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019)
+"""
+
+__version__ = "0.20.0"
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU GPLv3"
