@@ -8,6 +8,7 @@ geopy==2.2.0
 imageio==2.25.1
 inputimeout==1.0.4
 internet-sabotage3==0.1.6
+ipykernel==6.21.2
 lightly==1.2.46
 matplotlib==3.7.0
 mlflow==2.0.1
