@@ -71,7 +71,9 @@ def test_paired_datasets() -> None:
 
     assert type(dataset.__repr__()) == str
 
-    assert isinstance(dataset.plot_random_sample((32, 32), 1.0), plt.Figure)
+    assert isinstance(
+        dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure
+    )
 
 
 def test_get_collator() -> None:
