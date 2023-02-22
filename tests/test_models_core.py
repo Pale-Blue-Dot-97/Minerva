@@ -63,10 +63,6 @@ def test_minerva_backbone() -> None:
     assert isinstance(model.get_backbone(), Module)
 
 
-def test_minerva_dataparallel() -> None:
-    pass
-
-
 def test_get_torch_weights() -> None:
     try:
         weights1 = get_torch_weights("ResNet18_Weights.IMAGENET1K_V1")
