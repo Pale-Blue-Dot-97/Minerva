@@ -363,7 +363,7 @@ def test_lat_lon_to_loc() -> None:
 
     try:
         requests.head("http://www.google.com/", timeout=1.0)
-    except requests.ConnectionError:
+    except (requests.ConnectionError, requests.ReadTimeout):
         pass
     else:
         assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
