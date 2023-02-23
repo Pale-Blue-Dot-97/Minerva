@@ -1,8 +1,16 @@
+# -*- coding: utf-8 -*-
+import importlib
 from typing import Any, Dict, List, Union
 
 import torch
 import torch.nn.modules as nn
-from lightly.loss import NTXentLoss
+from urllib3.exceptions import MaxRetryError, NewConnectionError
+
+# Needed to avoid connection error when importing lightly.
+try:
+    from lightly.loss import NTXentLoss
+except (OSError, NewConnectionError, MaxRetryError):
+    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 from numpy.testing import assert_array_equal
 from torch import Tensor
 

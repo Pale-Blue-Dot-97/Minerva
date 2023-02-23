@@ -66,6 +66,7 @@ from typing import (
     Union,
 )
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
@@ -83,6 +84,7 @@ from torchgeo.datasets import (
 )
 from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
+from torchgeo.samplers.utils import get_random_bounding_box
 from torchvision.transforms import RandomApply
 
 from minerva.transforms import MinervaCompose
@@ -164,6 +166,72 @@ class PairedDataset(RasterDataset):
 
     def __repr__(self) -> Any:
         return self.dataset.__repr__()
+
+    def plot(
+        self,
+        sample: Dict[str, Any],
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> plt.Figure:
+        """Plots a sample from the dataset.
+
+        Adapted from ``torchgeo.datasets.NAIP.plot``.
+        https://torchgeo.readthedocs.io/en/v0.4.0/_modules/torchgeo/datasets/naip.html
+
+        Args:
+            sample (Dict[str, Any]): Sample to plot.
+            show_titles (bool, optional): Add title to the figure. Defaults to True.
+            suptitle (Optional[str], optional): Super title to add to figure. Defaults to None.
+
+        Returns:
+            plt.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+        """
+
+        image = sample["image"][0:3, :, :].permute(1, 2, 0)
+
+        # Setup the figure.
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+
+        # Plot the image.
+        ax.imshow(image)
+
+        # Turn the axis off.
+        ax.axis("off")
+
+        # Add title to figure.
+        if show_titles:
+            ax.set_title("Image")
+
+        if suptitle is not None:
+            plt.suptitle(suptitle)
+
+        return fig
+
+    def plot_random_sample(
+        self,
+        size: Union[Tuple[int, int], int],
+        res: float,
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> plt.Figure:
+        """Plots a random sample the dataset at a given size and resolution.
+
+        Adapted from ``torchgeo.datasets.NAIP.plot``.
+        https://torchgeo.readthedocs.io/en/v0.4.0/_modules/torchgeo/datasets/naip.html
+
+        Args:
+            size (Union[Tuple[int, int], int]): Size of the patch to plot.
+            res (float): Resolution of the patch.
+            show_titles (bool, optional): Add title to the figure. Defaults to True.
+            suptitle (Optional[str], optional): Super title to add to figure. Defaults to None.
+
+        Returns:
+            plt.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+        """
+
+        # Get a random sample from the dataset at the given size and resolution.
+        sample = get_random_sample(self.dataset, size, res)
+        return self.plot(sample, show_titles, suptitle)
 
 
 # =====================================================================================================================
@@ -352,7 +420,6 @@ def make_dataset(
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
-
         type_dataset_params = dataset_params[type_key]
 
         type_subdatasets = []
@@ -447,9 +514,15 @@ def construct_dataloader(
     batch_sampler = True if "batch_size" in sampler_params["params"] else False
 
     if batch_sampler and dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
-        assert sampler_params["params"]["batch_size"] % world_size == 0
-        per_device_batch_size = sampler_params["params"]["batch_size"] // world_size
-        sampler_params["params"]["batch_size"] = per_device_batch_size
+        assert (
+            sampler_params["params"]["batch_size"] % world_size == 0
+        )  # pragma: no cover
+        per_device_batch_size = (
+            sampler_params["params"]["batch_size"] // world_size
+        )  # pragma: no cover
+        sampler_params["params"][
+            "batch_size"
+        ] = per_device_batch_size  # pragma: no cover
 
     sampler: Union[BatchGeoSampler, GeoSampler, DistributedSamplerWrapper] = _sampler(
         dataset=subdatasets[0],
@@ -476,7 +549,7 @@ def construct_dataloader(
 
         # Can't wrap functions in distributed runs due to pickling error.
         # Therefore, the collator is set to `stack_sample_pairs` automatically.
-        else:
+        else:  # pragma: no cover
             collator = stack_sample_pairs
 
     if batch_sampler:
@@ -804,3 +877,19 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
         sample_modes.append(modes)
 
     return np.array(sample_modes, dtype=object)
+
+
+def get_random_sample(
+    dataset: GeoDataset, size: Union[Tuple[int, int], int], res: float
+) -> Dict[str, Any]:
+    """Gets a random sample from the provided dataset of size ``size`` and at ``res`` resolution.
+
+    Args:
+        dataset (GeoDataset): Dataset to sample from.
+        size (Union[Tuple[int, int], int]): Size of the patch to sample.
+        res (float): Resolution of the patch.
+
+    Returns:
+        Dict[str, Any]: Random sample from the dataset.
+    """
+    return dataset[get_random_bounding_box(dataset.bounds, size, res)]

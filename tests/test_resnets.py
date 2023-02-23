@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import numpy as np
 import pytest
 import torch
@@ -44,7 +45,6 @@ def test_resnet18(x_entropy_loss) -> None:
         _ = ResNet18(replace_stride_with_dilation=(True, False))  # type: ignore[arg-type]
 
     for zero_init_residual in (True, False):
-
         resnet18 = ResNet18(
             x_entropy_loss, input_size=input_size, zero_init_residual=zero_init_residual
         )

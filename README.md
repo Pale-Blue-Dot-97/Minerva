@@ -9,7 +9,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="200">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> Minerva 0.19-beta</b>
+    <b style="font-size:26px;"> Minerva 0.20-beta</b>
     <br />
     Framework for machine learning in remote sensing
     <br />
@@ -34,24 +34,13 @@ compilation of the required C-based libraries.
 
 ### Installation
 
-The recommended installation order is to start with a fresh `conda` environment, specifying the `python`
-version and installing `pytorch` upon environment creation:
+`minerva` is currently not included in any distribution. The recommended install is therefore to install the latest pre-release version from `GitHub`.
 
 ```shell
-conda create env --name minerva-310 python=3.10 pytorch torchvision pytorch-cuda=11.6 -c pytorch -c nvidia
+pip install git+https://github.com/Pale-Blue-Dot-97/Minerva.git
 ```
 
-Clone `minerva` from the git repo.
-
-```shell
-git clone https://github.com/Pale-Blue-Dot-97/Minerva.git
-```
-
-Then install `minerva` via `pip` in editable mode from within the root level of the cloned repositry:
-
-```shell
-pip install -e ./
-```
+You will be required to provide your `GitHub` credentials that have valid access to `minerva`.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -75,12 +64,12 @@ initialising a Trainer and model, and fitting and testing that model then output
 ### MWE Driver Script
 
 ```python
-from minerva.utils import config  # Module containing various utility functions.
+from minerva.utils import CONFIG  # Module containing various utility functions.
 from minerva.trainer import Trainer  # Class designed to handle fitting of model.
 
 
 # Initialise a Trainer. Also creates the model.
-trainer = Trainer(**config)
+trainer = Trainer(**CONFIG)
 
 # Run the fitting (train and validation epochs).
 trainer.fit()
@@ -89,7 +78,7 @@ trainer.fit()
 trainer.test()
 ```
 
-See `minerva\bin\MinervaExp.py` as an example script implementing `minerva`.
+See `scripts\MinervaExp.py` as an example script implementing `minerva`.
 
 ### Config Structure
 
@@ -97,7 +86,7 @@ See `inbuilt_cfgs\example_config.yml` as an example config file.
 
 ### Creating a Manifest for your Dataset
 
-Use `minerva\bin\ManifestMake.py` to construct a manifest to act as a look-up table for a dataset.
+Use `scripts\ManifestMake.py` to construct a manifest to act as a look-up table for a dataset.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

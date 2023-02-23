@@ -23,7 +23,7 @@ balance: false
 patch_size: &patch_size [32, 32]
 pre_train: true
 fine_tune: false
-max_r: 52
+max_r: &max_r 56
 knn_k: 5
 val_freq: 2
 
@@ -85,6 +85,7 @@ sampler_params:
         params:
             size: *patch_size
             length: 120
+            max_r: *max_r
 
     # Validation Dataset Sampler
     val:
@@ -108,7 +109,28 @@ sampler_params:
 transform_params:
     # Training Dataset Transforms
     train:
-        image: false
+        image:
+            Normalise:
+                module: minerva.transforms
+                norm_value: 255
+            RandomApply:
+                p: 0.25
+                RandomResizedCrop:
+                    module: torchvision.transforms
+                    size: *patch_size
+            DetachedColorJitter:
+                module: minerva.transforms
+                brightness: 0.8
+                contrast: 0.8
+                saturation: 0.8
+                hue: 0.2
+            RandomHorizontalFlip:
+                module: torchvision.transforms
+            RandomVerticalFlip:
+                module: torchvision.transforms
+            GaussianBlur:
+                module: torchvision.transforms
+                kernel_size: 25
 
     # Validation Dataset Transforms
     val:

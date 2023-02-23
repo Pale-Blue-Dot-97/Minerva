@@ -78,7 +78,6 @@ class MLP(MinervaModel):
         n_classes: int = 8,
         hidden_sizes: Union[Tuple[int, ...], List[int], int] = (256, 144),
     ) -> None:
-
         super(MLP, self).__init__(
             criterion=criterion, input_size=(input_size,), n_classes=n_classes
         )
@@ -166,7 +165,6 @@ class CNN(MinervaModel, ABC):
         p_conv_do: float = 0.1,
         p_fc_do: float = 0.5,
     ) -> None:
-
         super(CNN, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )

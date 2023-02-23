@@ -259,7 +259,7 @@ def discrete_heatmap(
     clb.ax.set_yticklabels(classes)
 
     # Display figure.
-    plt.show()
+    plt.show(block=False)
 
     # Close figure.
     plt.close()
@@ -325,7 +325,7 @@ def make_rgb_image(
     # Add grid overlay.
     plt.grid(which="both", color="#CCCCCC", linestyle=":")
 
-    plt.show()
+    plt.show(block=False)
 
     return rgb_image
 
@@ -459,7 +459,7 @@ def labelled_rgb_image(
 
     # Display figure.
     if show:
-        plt.show()
+        plt.show(block=False)
 
     # Path and file name of figure.
     fn = f"{path}/{name}_RGBHM.png"
@@ -517,7 +517,6 @@ def make_gif(
     """
     # Initialise progress bar.
     with alive_bar(len(dates), bar="blocks") as bar:
-
         # List to hold filenames and paths of images created.
         frames = []
         for i in range(len(dates)):
@@ -687,7 +686,7 @@ def prediction_plot(
 
     # Display figure.
     if show:
-        plt.show()
+        plt.show(block=False)
 
     if fn_prefix is None:
         path = universal_path(CONFIG["dir"]["results"])
@@ -768,7 +767,6 @@ def seg_plot(
 
     # Initialises a progress bar for the epoch.
     with alive_bar(n_samples, bar="blocks") as bar:
-
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(flat_ids)), n_samples):
             image = stack_rgb(dataset[bounds[i]]["image"].numpy())
@@ -853,7 +851,7 @@ def plot_subpopulations(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         plt.savefig(filename)
         plt.close()
@@ -885,7 +883,6 @@ def plot_history(
     for key in metrics:
         # Checks that the length of x matches y and is greater than 1 so can be plotted.
         if len(metrics[key]["x"]) == len(metrics[key]["y"]) >= 1.0:
-
             # Plot metric.
             handles.append(ax.plot(metrics[key]["x"], metrics[key]["y"])[0])
             labels.append(key)
@@ -905,7 +902,7 @@ def plot_history(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         plt.savefig(filename)
         plt.close()
@@ -982,7 +979,7 @@ def make_confusion_matrix(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         plt.savefig(filename)
         plt.close()
@@ -1079,7 +1076,7 @@ def make_roc_curves(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         plt.savefig(filename)
         print("ROC Curves plot SAVED")
@@ -1125,7 +1122,6 @@ def plot_embedding(
 
     # Initialises a progress bar for the epoch.
     with alive_bar(len(x), bar="blocks") as bar:
-
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in range(len(x)):
             sample = dataset[bounds[i]]
@@ -1162,7 +1158,7 @@ def plot_embedding(
             dist = np.sum((x[i] - shown_images) ** 2, 1)
             if np.min(dist) < 4e-3:
                 # don’t show points that are too close
-                continue
+                continue  # pragma: no cover
 
             shown_images = np.r_[shown_images, [x[i]]]
             imagebox = offsetbox.AnnotationBbox(
@@ -1178,7 +1174,7 @@ def plot_embedding(
 
     # Shows and/or saves plot.
     if show:
-        plt.show()
+        plt.show(block=False)
     if save:
         if filename is None:  # pragma: no cover
             filename = "tsne_cluster_vis.png"

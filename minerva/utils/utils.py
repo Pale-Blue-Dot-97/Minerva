@@ -55,6 +55,7 @@ __all__ = [
     "dublicator",
     "tg_to_torch",
     "pair_return",
+    "is_notebook",
     "get_cuda_device",
     "exist_delete_check",
     "mkexpdir",
@@ -373,6 +374,27 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def is_notebook() -> bool:
+    """Check if this code is being executed from a Juypter Notebook or not.
+
+    Adapted from https://gist.github.com/thomasaarholt/e5e2da71ea3ee412616b27d364e3ae82
+
+    Returns:
+        bool: ``True`` if executed by Juypter kernel. ``False`` if not.
+    """
+    try:
+        from IPython.core.getipython import get_ipython
+
+        if "IPKernelApp" not in get_ipython().config:  # pragma: no cover
+            return False
+        if "VSCODE_PID" in os.environ:  # pragma: no cover
+            return False
+    except:  # noqa: E722
+        return False
+    else:  # pragma: no cover
+        return True
+
+
 def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
     """Finds and returns the CUDA device, if one is available. Else, returns CPU as device.
     Assumes there is at most only one CUDA device.
@@ -789,7 +811,6 @@ def find_empty_classes(
 
     # Checks which classes are not present in class_dist
     for label in class_names.keys():
-
         # If not present, add class label to empty.
         if label not in [mode[0] for mode in class_dist]:
             empty.append(label)

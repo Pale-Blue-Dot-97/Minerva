@@ -18,13 +18,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Adaptation of ``MinervaExp.py`` for cluster visualisation of a model.
+"""Script to handle the pre-training of model and its subsequent downstream task fine-tuning."""
 
-Designed for use in SLURM clusters and with distributed computing support.
-
-Some code derived from Barlow Twins implementation of distributed computing:
-https://github.com/facebookresearch/barlowtwins
-"""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -38,35 +33,51 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
+import subprocess
+import sys
+from typing import Any, Dict
 
-from minerva.trainer import Trainer
-from minerva.utils import CONFIG, runner
+import yaml
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-def main(gpu: int, args) -> None:
+def main(config_path: str):
+    with open(config_path) as f:
+        config: Dict[str, Any] = yaml.safe_load(f)
 
-    trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **CONFIG)
+    for key in config.keys():
+        print(
+            f"\nExecuting {key} experiment + ====================================================================="
+        )
 
-    trainer.tsne_cluster()
+        try:
+            exit_code = subprocess.Popen(  # nosec B602
+                f"python MinervaExp.py -c {config[key]}",
+                shell=True,
+            ).wait()
 
-    if gpu == 0:
-        trainer.close()
+            if exit_code != 0:
+                raise SystemExit()
+        except KeyboardInterrupt as err:
+            print(f"{err}: Skipping to next experiment...")
+
+        except SystemExit as err:
+            print(err)
+            print(f"Error in {key} experiment -> ABORT")
+            sys.exit(exit_code)  # type: ignore
+
+        print(
+            f"\n{key} experiment COMPLETE + ====================================================================="
+        )
+
+    print("\nPipeline COMPLETE")
 
 
 if __name__ == "__main__":
-    # ---+ CLI +--------------------------------------------------------------+
-    parser = argparse.ArgumentParser(parents=[runner.GENERIC_PARSER], add_help=False)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("config_path", type=str)
+    args = parser.parse_args()
 
-    # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
-
-    # Export args from CLI.
-    cli_args = parser.parse_args()
-
-    # Configure the arguments and environment variables.
-    runner.config_args(cli_args)
-
-    # Run the specified main with distributed computing and the arguments provided.
-    runner.distributed_run(main, cli_args)
+    main(config_path=args.config_path)
