@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import argparse
 import shutil
 from pathlib import Path
@@ -41,24 +42,33 @@ def run_trainer(gpu: int, args: argparse.Namespace):
 def test_trainer_1() -> None:
     args = argparse.Namespace()
 
-    if torch.distributed.is_available():  # type: ignore
-        # Assumes distributed tests are single node
-        args.rank = 0
-        args.dist_url = "tcp://localhost:58472"
-        args.world_size = torch.cuda.device_count()
-        args.ngpus_per_node = args.world_size
-        args.distributed = True
-        args.log_all = False
-        args.entity = None
-        args.project = "pytest"
-        args.wandb_log = True
-        args.jobid = None
-        runner.distributed_run(run_trainer, args)
+    with runner.WandbConnectionManager():
+        if torch.distributed.is_available():  # type: ignore
+            # Configure the arguments and environment variables.
+            runner.config_args(args)
 
-    else:
-        args.gpu = 0
-        args.wandb_run = None
-        run_trainer(args.gpu, args)
+            args.log_all = False
+            args.entity = None
+            args.project = "pytest"
+            args.wandb_log = True
+
+            # Run the specified main with distributed computing and the arguments provided.
+            runner.distributed_run(run_trainer, args)
+            # Assumes distributed tests are single node
+
+            # args.rank = 0
+            # args.dist_url = "tcp://localhost:58472"
+            # args.world_size = torch.cuda.device_count()
+            # args.ngpus_per_node = args.world_size
+            # args.distributed = True
+
+            # args.jobid = None
+            # runner.distributed_run(run_trainer, args)
+
+        else:
+            args.gpu = 0
+            args.wandb_run = None
+            run_trainer(args.gpu, args)
 
 
 def test_trainer_2() -> None:

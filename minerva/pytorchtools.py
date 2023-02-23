@@ -80,7 +80,6 @@ class EarlyStopping:
         self.trace_func: Callable[..., None] = trace_func
 
     def __call__(self, val_loss: float, model: Module) -> None:
-
         score = -val_loss
 
         if self.best_score is None:

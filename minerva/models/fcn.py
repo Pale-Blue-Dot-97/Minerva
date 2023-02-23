@@ -96,7 +96,6 @@ class _FCN(MinervaBackbone, ABC):
         freeze_backbone: bool = False,
         backbone_kwargs: Optional[Dict[str, Any]] = None,
     ) -> None:
-
         super(_FCN, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
@@ -194,7 +193,6 @@ class DCN(MinervaModel, ABC):
         n_classes: int = 21,
         variant: Literal["32", "16", "8"] = "32",
     ) -> None:
-
         super(DCN, self).__init__(n_classes=n_classes)
         self.variant: Literal["32", "16", "8"] = variant
 
@@ -358,7 +356,6 @@ class FCN32ResNet18(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN32ResNet18, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -394,7 +391,6 @@ class FCN32ResNet34(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN32ResNet34, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -430,7 +426,6 @@ class FCN32ResNet50(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN32ResNet50, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -466,7 +461,6 @@ class FCN16ResNet18(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN16ResNet18, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -502,7 +496,6 @@ class FCN16ResNet34(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN16ResNet34, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -538,7 +531,6 @@ class FCN16ResNet50(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN16ResNet50, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -574,7 +566,6 @@ class FCN8ResNet18(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN8ResNet18, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -610,7 +601,6 @@ class FCN8ResNet34(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN8ResNet34, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -646,7 +636,6 @@ class FCN8ResNet50(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN8ResNet50, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -682,7 +671,6 @@ class FCN8ResNet101(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN8ResNet101, self).__init__(
             criterion=criterion,
             input_size=input_size,
@@ -718,7 +706,6 @@ class FCN8ResNet152(_FCN):
         freeze_backbone: bool = False,
         **resnet_kwargs,
     ) -> None:
-
         super(FCN8ResNet152, self).__init__(
             criterion=criterion,
             input_size=input_size,

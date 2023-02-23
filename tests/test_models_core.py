@@ -1,8 +1,17 @@
+# -*- coding: utf-8 -*-
+import importlib
+
 import internet_sabotage
 import numpy as np
 import pytest
 import torch
-from lightly.loss import NTXentLoss
+from urllib3.exceptions import MaxRetryError, NewConnectionError
+
+# Needed to avoid connection error when importing lightly.
+try:
+    from lightly.loss import NTXentLoss
+except (OSError, NewConnectionError, MaxRetryError):
+    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 from torch import Tensor
 from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum
@@ -52,10 +61,6 @@ def test_minerva_backbone() -> None:
     model = SimCLR18(loss_func, input_size=input_size)
 
     assert isinstance(model.get_backbone(), Module)
-
-
-def test_minerva_dataparallel() -> None:
-    pass
 
 
 def test_get_torch_weights() -> None:

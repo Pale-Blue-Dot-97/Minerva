@@ -100,7 +100,6 @@ class MinervaModel(Module, ABC):
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
     ) -> None:
-
         super(MinervaModel, self).__init__()
 
         # Sets loss function
@@ -215,7 +214,7 @@ class MinervaBackbone(MinervaModel):
         return self.backbone
 
 
-class MinervaDataParallel(Module):
+class MinervaDataParallel(Module):  # pragma: no cover
     """Custom wrapper for DataParallel that automatically fetches the attributes of the wrapped model.
 
     Attributes:

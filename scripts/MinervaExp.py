@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-# PYTHON_ARGCOMPLETE_OK
 # -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
@@ -57,7 +57,7 @@ def main(gpu: int, args) -> None:
         rank=args.rank,
         world_size=args.world_size,
         wandb_run=args.wandb_run,
-        **CONFIG
+        **CONFIG,
     )
 
     if not CONFIG.get("eval", False):

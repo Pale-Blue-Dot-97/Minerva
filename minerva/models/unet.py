@@ -334,16 +334,17 @@ class UNetR(MinervaModel):
         backbone_kwargs (Dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
+    backbone_name = "ResNet18"
+
     def __init__(
         self,
         criterion: Any,
         input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
-        backbone_name: str = "ResNet18",
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
-        backbone_kwargs: Optional[Dict[str, Any]] = None,
+        backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(UNetR, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
@@ -352,7 +353,7 @@ class UNetR(MinervaModel):
         factor = 2 if bilinear else 1
 
         # Initialises the selected Minerva backbone.
-        self.backbone: MinervaModel = get_model(backbone_name)(  # type: ignore[arg-type]
+        self.backbone: MinervaModel = get_model(self.backbone_name)(  # type: ignore[arg-type]
             input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs
         )
 
@@ -360,7 +361,9 @@ class UNetR(MinervaModel):
         # output of the decoder. ResNet50s and larger use a `Bottleneck` type residual block which quadruples
         # the number of feature maps compared to the `Basic` blocks of `ResNet18` and `ResNet34`.
         # This in turn affects the sizes of the output from decoding layers which requires a reordering of operations.
-        self.early_cat = True if backbone_name in ("ResNet18", "ResNet34") else False
+        self.early_cat = (
+            True if self.backbone_name in ("ResNet18", "ResNet34") else False
+        )
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:
@@ -430,195 +433,30 @@ class UNetR(MinervaModel):
 
 
 class UNetR18(UNetR):
-    """UNet with a :class:`ResNet18` as the backbone.
+    """UNet with a :class:`ResNet18` as the backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (Tuple[int, ...]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        bilinear (bool): Optional;
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (Dict[str, Any]): Optional; Keyword arguments for the resnet.
-            See :class:`ResNet` for valid arguments.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        bilinear: bool = False,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(UNetR18, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            bilinear=bilinear,
-            backbone_name="ResNet18",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet18"
 
 
 class UNetR34(UNetR):
-    """UNet with a :class:`ResNet34` as the backbone.
+    """UNet with a :class:`ResNet34` as the backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (Tuple[int, ...]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        bilinear (bool): Optional;
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (Dict[str, Any]): Optional; Keyword arguments for the resnet.
-            See :class:`ResNet` for valid arguments.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        bilinear: bool = False,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(UNetR34, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            bilinear=bilinear,
-            backbone_name="ResNet34",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet34"
 
 
 class UNetR50(UNetR):
-    """UNet with a :class:`ResNet50` as the backbone.
+    """UNet with a :class:`ResNet50` as the backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (Tuple[int, ...]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        bilinear (bool): Optional;
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (Dict[str, Any]): Optional; Keyword arguments for the resnet.
-            See :class:`ResNet` for valid arguments.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        bilinear: bool = False,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(UNetR50, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            bilinear=bilinear,
-            backbone_name="ResNet50",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet50"
 
 
 class UNetR101(UNetR):
-    """UNet with a :class:`ResNet101` as the backbone.
+    """UNet with a :class:`ResNet101` as the backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (Tuple[int, ...]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        bilinear (bool): Optional;
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (Dict[str, Any]): Optional; Keyword arguments for the resnet.
-            See :class:`ResNet` for valid arguments.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        bilinear: bool = False,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(UNetR101, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            bilinear=bilinear,
-            backbone_name="ResNet101",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet101"
 
 
 class UNetR152(UNetR):
-    """UNet with a :class:`ResNet152` as the backbone.
+    """UNet with a :class:`ResNet152` as the backbone."""
 
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (Tuple[int, ...]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        bilinear (bool): Optional;
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (Dict[str, Any]): Optional; Keyword arguments for the resnet.
-            See :class:`ResNet` for valid arguments.
-    """
-
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        bilinear: bool = False,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-
-        super(UNetR152, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            bilinear=bilinear,
-            backbone_name="ResNet152",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet152"

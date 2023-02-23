@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import pytest
 import torch
 from numpy.testing import assert_array_equal
@@ -15,7 +16,6 @@ from minerva.utils import utils
 
 
 def test_class_transform(simple_mask, example_matrix) -> None:
-
     transform = ClassTransform(example_matrix)
 
     output_1 = torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])  # type: ignore[attr-defined]
