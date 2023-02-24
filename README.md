@@ -22,17 +22,17 @@
   </p>
 </div>
 
-## About
+## About 🔎
 
 Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial
 rasterised land cover data.
 
-## Getting Started
+## Getting Started ▶
 
 If one wishes to use [torchgeo](https://pypi.org/project/torchgeo/), installation on Linux is recommended to handle the
 compilation of the required C-based libraries.
 
-### Installation
+### Installation ⬇
 
 `minerva` is currently not included in any distribution. The recommended install is therefore to install the latest pre-release version from `GitHub`.
 
@@ -44,7 +44,7 @@ You will be required to provide your `GitHub` credentials that have valid access
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### Requirements
+### Requirements 📌
 
 `minerva` now supports the use of [torchgeo](https://torchgeo.readthedocs.io/en/latest/)
 datasets with upcoming support for [torchvision](https://pytorch.org/vision/stable/index.html) datasets.
@@ -55,13 +55,13 @@ Required Python modules for `minerva` are stated in `requirements.txt`.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-## Usage
+## Usage 🖥
 
 The core functionality of `minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process,
 load and parse data, and a `Trainer` to handle all aspects of a model fitting. Below is a MWE of creating datasets,
 initialising a Trainer and model, and fitting and testing that model then outputting the results:
 
-### MWE Driver Script
+### MWE Driver Script 📄
 
 ```python
 from minerva.utils import CONFIG  # Module containing various utility functions.
@@ -80,18 +80,18 @@ trainer.test()
 
 See `scripts\MinervaExp.py` as an example script implementing `minerva`.
 
-### Config Structure
+### Config Structure ⚙
 
 See `inbuilt_cfgs\example_config.yml` as an example config file.
 
-### Creating a Manifest for your Dataset
+### Creating a Manifest for your Dataset 📑
 
 Use `scripts\ManifestMake.py` to construct a manifest to act as a look-up table for a dataset.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
-## Contributing
+## Contributing 🤝
 
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
@@ -106,13 +106,13 @@ Don't forget to give the project a star! Thanks again!
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-## License
+## License 🔏
 
 Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/licenses/gpl-3.0/).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-## Authors
+## Authors ✒
 
 Created by Harry Baker as part of a project towards for a PhD in Computer Science from the
 University of Southampton. Funded by the Ordnance Survey Ltd.
@@ -125,14 +125,14 @@ Contributions also provided by:
 - [Steve Coupland](https://github.com/scoupland-os)
 - [Joe Guyatt](https://github.com/joeguyatt97)
 
-## Acknowledgments
+## Acknowledgments 📢
 
 I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-## Project Status
+## Project Status 🔴🟡🟢
 
 This project is in a *beta* state. Expect bugs and breaking changes in future versions.
 
