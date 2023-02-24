@@ -11,15 +11,21 @@ Welcome to Minerva's documentation!
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Source Documentation 📙:
 
    source/minerva/index
    source/utils/index
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Guides and Information 📗:
+
    source/guides/index
    source/glossary
 
-Indices and tables
-==================
+Indices and tables 📚
+=====================
 
 * :ref:`genindex`
 * :ref:`modindex`
