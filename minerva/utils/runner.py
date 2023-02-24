@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
@@ -85,6 +86,7 @@ GENERIC_PARSER.add_argument(
     dest="model_type",
     type=str,
     help="Type of model. Should be 'segmentation', 'scene_classifier', 'siamese' or 'mlp'",
+    choices=("segmentation", "ssl", "siamese", "scene_classifier", "mlp"),
 )
 
 GENERIC_PARSER.add_argument(
@@ -139,6 +141,7 @@ GENERIC_PARSER.add_argument(
     + " Setting 'auto' will automatically save the model to file."
     + " 'true' will ask the user whether to or not at runtime."
     + " 'false' will not save the model and will not ask the user at runtime.",
+    choices=("true", "false", "auto"),
 )
 
 GENERIC_PARSER.add_argument(
@@ -150,6 +153,7 @@ GENERIC_PARSER.add_argument(
     + " Setting 'auto' will automatically locate and run the logs on a local browser."
     + " 'true' will ask the user whether to or not at runtime."
     + " 'false' will not save the model and will not ask the user at runtime.",
+    choices=("true", "false", "auto"),
 )
 
 GENERIC_PARSER.add_argument(
