@@ -161,12 +161,12 @@ class Trainer:
         self.class_dist = class_dist
         self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
         self.n_batches = n_batches
-        self.batch_size: int = self.params["hyperparams"]["params"]["batch_size"]
+        self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
 
         # Sets the max number of epochs of fitting.
-        self.max_epochs = self.params["hyperparams"].get("max_epochs", 25)
+        self.max_epochs = self.params.get("max_epochs", 25)
 
         self.modes = self.params["dataset_params"].keys()
 
@@ -224,11 +224,11 @@ class Trainer:
         # Sets up the early stopping functionality.
         self.stopper = None
         self.early_stop = False
-        if "stopping" in self.params["hyperparams"]:
+        if "stopping" in self.params:
             self.stopper = EarlyStopping(
                 path=f"{self.exp_fn}.pt",
                 trace_func=self.print,
-                **self.params["hyperparams"]["stopping"],
+                **self.params["stopping"],
             )
 
         # Calculates number of samples in each mode of fitting.
@@ -331,7 +331,7 @@ class Trainer:
         Returns:
             MinervaModel: Initialised model.
         """
-        model_params = self.params["hyperparams"]["model_params"]
+        model_params = self.params["model_params"]
 
         # Gets the model requested by config parameters.
         _model = utils.func_by_str(
@@ -360,7 +360,7 @@ class Trainer:
         Returns:
             MinervaModel: Loaded model ready for use.
         """
-        model_params = self.params["hyperparams"]["model_params"]
+        model_params = self.params["model_params"]
 
         onnx_model = convert(f"{self.get_weights_path()}.onnx")
         model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
@@ -374,7 +374,7 @@ class Trainer:
             Any: Initialised PyTorch loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = self.params["hyperparams"]["loss_params"].copy()
+        loss_params: Dict[str, Any] = self.params["loss_params"].copy()
         module = loss_params.pop("module", "torch.nn")
         criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
 
@@ -404,9 +404,7 @@ class Trainer:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
 
         # Gets the optimiser requested by config parameters.
-        optimiser_params: Dict[str, Any] = self.params["hyperparams"][
-            "optim_params"
-        ].copy()
+        optimiser_params: Dict[str, Any] = self.params["optim_params"].copy()
         module = optimiser_params.pop("module", "torch.optim")
         optimiser = utils.func_by_str(module, optimiser_params["name"])
 
@@ -419,7 +417,7 @@ class Trainer:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
 
         # Gets the size of the input data to the network (without batch dimension).
-        data_size = self.params["hyperparams"]["model_params"]["input_size"]
+        data_size = self.params["input_size"]
 
         # Gets constructor of the metric logger from name in the config.
         _metric_logger: Callable[..., Any] = utils.func_by_str(

@@ -688,7 +688,6 @@ def make_loaders(
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Keyword Args:
-        hyperparams (dict): Dictionary of hyper-parameters for the model.
         batch_size (int): Number of samples in each batch to be returned by the DataLoaders.
         elim (bool): Whether to eliminate classes with no samples in.
 
@@ -700,11 +699,11 @@ def make_loaders(
             * Unused and updated kwargs.
     """
     # Gets out the parameters for the DataLoaders from params.
-    dataloader_params: Dict[Any, Any] = params["hyperparams"]["params"]
+    dataloader_params: Dict[Any, Any] = params["loader_params"]
     dataset_params: Dict[str, Any] = params["dataset_params"]
     sampler_params: Dict[str, Any] = params["sampler_params"]
     transform_params: Dict[str, Any] = params["transform_params"]
-    batch_size: int = dataloader_params["batch_size"]
+    batch_size: int = params["batch_size"]
 
     model_type = params["model_type"]
     class_dist: List[Tuple[int, int]] = [(0, 0)]
@@ -775,7 +774,8 @@ def make_loaders(
         if p_dist:
             utils.print_class_dist(class_dist)
 
-        params["hyperparams"]["model_params"]["n_classes"] = len(new_classes)
+        params["n_classes"] = len(new_classes)
+        params["model_params"]["n_classes"] = len(new_classes)
         params["classes"] = new_classes
         params["colours"] = new_colours
 
@@ -803,7 +803,7 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
         print("CONSTRUCTING MISSING MANIFEST")
         mf_config = CONFIG.copy()
 
-        mf_config["dataloader_params"] = CONFIG["hyperparams"]["params"]
+        mf_config["dataloader_params"] = CONFIG["loader_params"]
 
         manifest = make_manifest(mf_config)
 
