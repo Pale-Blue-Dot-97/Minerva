@@ -106,6 +106,14 @@ GENERIC_PARSER.add_argument(
 )
 
 GENERIC_PARSER.add_argument(
+    "--lr",
+    dest="lr",
+    type=float,
+    default=0.01,
+    help="Learning rate of the optimiser.",
+)
+
+GENERIC_PARSER.add_argument(
     "--pre-train",
     dest="pre_train",
     action="store_true",
