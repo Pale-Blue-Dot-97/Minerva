@@ -9,7 +9,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="200">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> Minerva 0.20-beta</b>
+    <b style="font-size:26px;"> Minerva 0.21-beta</b>
     <br />
     Framework for machine learning in remote sensing
     <br />
