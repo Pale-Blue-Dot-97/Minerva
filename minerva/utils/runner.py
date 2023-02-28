@@ -114,6 +114,15 @@ GENERIC_PARSER.add_argument(
 )
 
 GENERIC_PARSER.add_argument(
+    "--optim-func",
+    dest="optim_func",
+    type=str,
+    default="SGD",
+    help="Name of the optimiser to use. Only works for ``torch`` losses"
+    + "(or if ``module`` is specified in the ``optim_params`` in the config)",
+)
+
+GENERIC_PARSER.add_argument(
     "--loss-func",
     dest="loss_func",
     type=str,
