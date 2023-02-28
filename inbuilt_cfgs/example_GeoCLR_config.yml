@@ -1,6 +1,12 @@
 ---
-# EXAMPLE GeoCLR MASTER CONFIG FILE
-
+#       *       *    __  ________   ____________ _    _____
+#   *        *      /  |/  /  _/ | / / ____/ __ \ |  / /   |  *           *
+#       *          / /|_/ // //  |/ / __/ / /_/ / | / / /| |     *
+#   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
+#    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
+#
+#                     EXAMPLE GeoCLR MASTER CONFIG FILE
+#
 # === PATHS ===================================================================
 dir:
     data: tests/tmp/data
@@ -10,27 +16,79 @@ dir:
     results: tests/tmp/results
     cache: tests/tmp/cache
 
-# ---+ Kwargs for make_datasets +----------------------------------------------
+# === HYPERPARAMETERS =========================================================
+# ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
 model_name: SimCLR18-test
 
-# Type of model. Can be mlp, scene_classifier, segmentation.
+# Type of model. Can be mlp, scene_classifier, segmentation, ssl or siamese.
 model_type: siamese
 
-sample_pairs: true
-elim: false
-balance: false
-patch_size: &patch_size [32, 32]
-pre_train: true
-fine_tune: false
+# ---+ Sizing +----------------------------------------------------------------
+batch_size: &batch_size 8             # Number of samples in each batch.
+patch_size: &patch_size [32, 32]      # 2D tuple or float.
+input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
+max_epochs: &max_epochs 4             # Maximum number of training epochs.
+
+# ---+ Loss and Optimisers +---------------------------------------------------
+loss_func: &loss_func NTXentLoss      # Name of the loss function to use.
+lr: &lr 1.0E-2                        # Learning rate of optimiser.
+optim_func: &optim_func SGD           # Name of the optimiser function.
+
+sample_pairs: true                    # Activates Siamese paired sampling.
+elim: false                           # Eliminates empty classes from schema.
+balance: false                        # Balances dataset classes.
+pre_train: true                       # Activate pre-training mode.
+fine_tune: false                      # Activate fine-tuning mode.
+
+# Maximum geospatial distance between patches within a Siamese pair.
+# For use with GeoCLR-type models.
 max_r: &max_r 56
 knn_k: 5
 val_freq: 2
 
+# ---+ Model Paramets +--------------------------------------------------------
+model_params:
+    input_size: *input_size
+    # any other params...
+
+# ---+ Optimiser Parameters +--------------------------------------------------
+optim_params:
+    name: *optim_func
+    params:
+        lr: *lr
+
+# ---+ Loss Function Parameters +----------------------------------------------
+loss_params:
+    name: *loss_func
+    module: lightly.loss
+    params:
+        temperature: 0.5
+
+# ---+ Dataloader Parameters +-------------------------------------------------
+loader_params:
+    batch_size: *batch_size
+    num_workers: 1
+    pin_memory: true
+
+# === WANDB LOGGING ===========================================================
+wandb_log: true
+project: pytest
+wandb_dir: /test/tmp/wandb
+
 # === MODEL IO & LOGGING ======================================================
+# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
 logger: SSLLogger
 metrics: SSLMetrics
 model_io: ssl_pair_tg
+
+record_int: true
+record_float: true
+
+# ---+ Collator +--------------------------------------------------------------
+collator:
+    module: torchgeo.datasets
+    name: stack_samples
 
 # === DATASET PARAMETERS ======================================================
 dataset_params:
@@ -141,35 +199,7 @@ transform_params:
         image: false
         mask: false
 
-# Collation
-collator:
-    module: torchgeo.datasets
-    name: stack_samples
-
-# Model hyper-parameters
-hyperparams:
-    params:
-        batch_size: 8
-        num_workers: 1
-        pin_memory: true
-    model_params:
-        input_size: [4, 32, 32]
-    optim_params:
-        name: SGD
-        params:
-            lr: 1.0E-2
-    loss_params:
-        name: NTXentLoss
-        module: lightly.loss
-        params:
-            temperature: 0.5
-
-    max_epochs: 4
-    stopping:
-        patience: 2
-        verbose: true
-
-# Which plots to make
+# === PLOTTING OPTIONS ========================================================
 plots:
     History: true
     CM: false
@@ -179,14 +209,25 @@ plots:
     macro: false
     Mask: false
 
-# opt to ask at runtime;
-# auto or True to automatically do so;
-# or False, None etc to not
+# === MISCELLANEOUS OPTIONS ===================================================
+# ---+ Early Stopping +--------------------------------------------------------
+stopping:
+    patience: 2    # No. of val epochs with increasing loss before stopping.
+    verbose: true  # Verbosity of early stopping prints to stdout.
+
+# ---+ Verbosity and Saving +--------------------------------------------------
+verbose: true           # Verbosity of Trainer print statements to stdout.
+save: true              # Saves created figures to file.
+show: false             # Shows created figures in a pop-up window.
+p_dist: true            # Shows the distribution of classes to stdout.
+plot_last_epoch: true   # Plot the results of the last training and val epochs.
+
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
 save_model: false
+
+# ---+ Other +-----------------------------------------------------------------
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
 run_tensorboard: false
-save: true
-show: false
-p_dist: false
 calc_norm: false
-plot_last_epoch: true
-record_float: false
