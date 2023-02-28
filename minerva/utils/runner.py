@@ -65,6 +65,14 @@ from minerva.utils import CONFIG, MASTER_PARSER, utils
 GENERIC_PARSER = argparse.ArgumentParser(parents=[MASTER_PARSER])
 
 GENERIC_PARSER.add_argument(
+    "-o",
+    "--override",
+    dest="override",
+    action="store_true",
+    help="Override config arguments with the CLI arguments where they overlap.",
+)
+
+GENERIC_PARSER.add_argument(
     "--seed",
     dest="seed",
     type=int,
@@ -420,6 +428,16 @@ def config_args(args: Namespace) -> Namespace:
 
     # Updates the config with new arguments from the CLI.
     CONFIG.update(new_args)
+
+    # Overrides the arguments from the config with those of the CLI where they overlap.
+    # WARNING: This will include the use of the default CLI arguments.
+    if args_dict.get("override"):  # pragma: no cover
+        updated_args = {
+            key: args_dict[key]
+            for key in args_dict
+            if args_dict[key] != CONFIG[key] and args_dict[key] != None
+        }
+        CONFIG.update(updated_args)
 
     # Get seed from config.
     seed = CONFIG.get("seed", 42)
