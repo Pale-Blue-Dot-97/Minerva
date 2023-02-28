@@ -45,7 +45,7 @@ import argparse
 import argcomplete
 
 from minerva.trainer import Trainer
-from minerva.utils import CONFIG, runner
+from minerva.utils import CONFIG, runner, utils
 
 
 # =====================================================================================================================
@@ -79,6 +79,9 @@ if __name__ == "__main__":
 
     # Export args from CLI.
     cli_args = parser.parse_args()
+
+    # Print Minerva banner.
+    utils.print_banner()
 
     with runner.WandbConnectionManager():
         # Configure the arguments and environment variables.
