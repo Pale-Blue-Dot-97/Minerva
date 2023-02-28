@@ -106,6 +106,14 @@ GENERIC_PARSER.add_argument(
 )
 
 GENERIC_PARSER.add_argument(
+    "--batch-size",
+    dest="batch_size",
+    type=int,
+    default=8,
+    help="Number of samples in each batch.",
+)
+
+GENERIC_PARSER.add_argument(
     "--lr",
     dest="lr",
     type=float,
