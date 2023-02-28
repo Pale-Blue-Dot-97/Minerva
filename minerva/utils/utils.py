@@ -385,7 +385,8 @@ def print_banner(print_func: Callable[..., None] = print) -> None:
     """
     banner_path = Path(__file__).parent.parent.parent / "banner.txt"
     if banner_path.exists():
-        print_func(banner_path)
+        with open(banner_path, "r") as f:
+            print_func(f.read())
     else:  # pragma: no cover
         raise FileNotFoundError("Cannot find the banner.txt file")
 
