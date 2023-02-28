@@ -42,11 +42,10 @@ balance: false                        # Balances dataset classes.
 pre_train: true                       # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 
-# Maximum geospatial distance between patches within a Siamese pair.
-# For use with GeoCLR-type models.
-max_r: &max_r 56
-knn_k: 5
-val_freq: 2
+# ---+ SSL/ Siamese Options +--------------------------------------------------
+max_r: &max_r 56  # Max distance between patches within a Siamese pair.
+knn_k: 5          # Top-k most similar images used to predict image for KNN val
+val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
@@ -73,9 +72,9 @@ loader_params:
     pin_memory: true
 
 # === WANDB LOGGING ===========================================================
-wandb_log: true
-project: pytest
-wandb_dir: /test/tmp/wandb
+wandb_log: true              # Activates wandb logging.
+project: pytest              # Define the project name for wandb.
+wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
@@ -83,8 +82,8 @@ logger: SSLLogger
 metrics: SSLMetrics
 model_io: ssl_pair_tg
 
-record_int: true
-record_float: true
+record_int: true    # Store integer results in memory.
+record_float: true  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
 collator:
@@ -202,13 +201,13 @@ transform_params:
 
 # === PLOTTING OPTIONS ========================================================
 plots:
-    History: true
-    CM: false
-    Pred: false
-    ROC: false
-    micro: false
-    macro: false
-    Mask: false
+    History: true   # Plot of the training and validation metrics over epochs.
+    CM: false       # Confusion matrix.
+    Pred: false     # Pie chart of the distribution of the predicted classes.
+    ROC: false      # Receiver Operator Characteristics for each class.
+    micro: false    # Include micro averaging in ROC plot.
+    macro: false    # Include macro averaging in ROC plot.
+    Mask: false     # Plot predicted masks against ground truth and imagery.
 
 # === MISCELLANEOUS OPTIONS ===================================================
 # ---+ Early Stopping +--------------------------------------------------------

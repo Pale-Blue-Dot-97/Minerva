@@ -67,9 +67,9 @@ loader_params:
     pin_memory: true
 
 # === WANDB LOGGING ===========================================================
-wandb_log: true
-project: pytest
-wandb_dir: /test/tmp/wandb
+wandb_log: true              # Activates wandb logging.
+project: pytest              # Define the project name for wandb.
+wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
@@ -77,8 +77,8 @@ logger: STGLogger
 metrics: SPMetrics
 model_io: sup_tg
 
-record_int: true
-record_float: true
+record_int: true    # Store integer results in memory.
+record_float: true  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
 collator:
@@ -191,13 +191,13 @@ transform_params:
 
 # === PLOTTING OPTIONS ========================================================
 plots:
-    History: true
-    CM: true
-    Pred: true
-    ROC: true
-    micro: true
-    macro: true
-    Mask: true
+    History: true   # Plot of the training and validation metrics over epochs.
+    CM: true        # Confusion matrix.
+    Pred: true      # Pie chart of the distribution of the predicted classes.
+    ROC: true       # Receiver Operator Characteristics for each class.
+    micro: true     # Include micro averaging in ROC plot.
+    macro: true     # Include macro averaging in ROC plot.
+    Mask: true      # Plot predicted masks against ground truth and imagery.
 
 # === MISCELLANEOUS OPTIONS ===================================================
 # ---+ Early Stopping +--------------------------------------------------------
