@@ -25,16 +25,16 @@ model_name: UNetR18-MkI
 model_type: segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: &batch_size 8              # Number of samples in each batch.
+batch_size: 8                          # Number of samples in each batch.
 patch_size: &patch_size [224, 224]     # 2D tuple or float.
 input_size: &input_size [4, 224, 224]  # patch_size plus leading channel dim.
-max_epochs: &max_epochs 5              # Maximum number of training epochs.
+max_epochs: 5                          # Maximum number of training epochs.
 n_classes: &n_classes 8                # Number of classes in dataset.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: &loss_func CrossEntropyLoss  # Name of the loss function to use.
-lr: &lr 1.0E-3                          # Learning rate of optimiser.
-optim_func: &optim_func SGD             # Name of the optimiser function.
+loss_func: CrossEntropyLoss            # Name of the loss function to use.
+lr: 1.0E-3                             # Learning rate of optimiser.
+optim_func: SGD                        # Name of the optimiser function.
 
 # ---+ Miscellaneous +---------------------------------------------------------
 sample_pairs: false                   # Activates Siamese paired sampling.
@@ -52,18 +52,14 @@ model_params:
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
-    name: *optim_func
     params:
-        lr: *lr
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
     params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    batch_size: *batch_size
     num_workers: 2
     pin_memory: true
 
