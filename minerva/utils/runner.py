@@ -90,6 +90,14 @@ GENERIC_PARSER.add_argument(
 )
 
 GENERIC_PARSER.add_argument(
+    "--max_epochs",
+    dest="max_epochs",
+    type=int,
+    default=100,
+    help="Maximum number of training epochs.",
+)
+
+GENERIC_PARSER.add_argument(
     "--pre-train",
     dest="pre_train",
     action="store_true",
