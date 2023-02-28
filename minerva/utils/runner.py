@@ -114,6 +114,15 @@ GENERIC_PARSER.add_argument(
 )
 
 GENERIC_PARSER.add_argument(
+    "--loss-func",
+    dest="loss_func",
+    type=str,
+    default="CrossEntropyLoss",
+    help="Name of the loss function to use. Only works for ``torch`` losses"
+    + "(or if ``module`` is specified in the ``loss_params`` in the config)",
+)
+
+GENERIC_PARSER.add_argument(
     "--pre-train",
     dest="pre_train",
     action="store_true",
