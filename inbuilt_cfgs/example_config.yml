@@ -36,13 +36,14 @@ loss_func: &loss_func CrossEntropyLoss  # Name of the loss function to use.
 lr: &lr 1.0E-2                          # Learning rate of optimiser.
 optim_func: &optim_func SGD             # Name of the optimiser function.
 
+# ---+ Miscellaneous +---------------------------------------------------------
 sample_pairs: false                   # Activates Siamese paired sampling.
 elim: true                            # Eliminates empty classes from schema.
 balance: true                         # Balances dataset classes.
 pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 
-# ---+ Model Paramets +--------------------------------------------------------
+# ---+ Model Parameters +------------------------------------------------------
 model_params:
     input_size: *input_size
     n_classes: *n_classes
