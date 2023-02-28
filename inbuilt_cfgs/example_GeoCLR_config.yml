@@ -25,15 +25,15 @@ model_name: SimCLR18-test
 model_type: siamese
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: &batch_size 8             # Number of samples in each batch.
+batch_size: 8                         # Number of samples in each batch.
 patch_size: &patch_size [32, 32]      # 2D tuple or float.
 input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
-max_epochs: &max_epochs 4             # Maximum number of training epochs.
+max_epochs: 4                         # Maximum number of training epochs.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: &loss_func NTXentLoss      # Name of the loss function to use.
-lr: &lr 1.0E-2                        # Learning rate of optimiser.
-optim_func: &optim_func SGD           # Name of the optimiser function.
+loss_func: NTXentLoss                 # Name of the loss function to use.
+lr: 1.0E-2                            # Learning rate of optimiser.
+optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ Miscellaneous +---------------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
@@ -54,20 +54,16 @@ model_params:
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
-    name: *optim_func
     params:
-        lr: *lr
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
     module: lightly.loss
     params:
         temperature: 0.5
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    batch_size: *batch_size
     num_workers: 1
     pin_memory: true
 
