@@ -374,6 +374,22 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def print_banner(print_func: Callable[..., None] = print) -> None:
+    """Prints the Minerva banner to stdout.
+
+    Args:
+        print_func (Callable[..., None]): Function to use to print the banner. Defaults to inbuilt print.
+
+    Raises:
+        FileNotFoundError: If ``banner.txt`` cannot be found.
+    """
+    banner_path = Path(__file__).parent.parent.parent / "banner.txt"
+    if banner_path.exists():
+        print_func(banner_path)
+    else:  # pragma: no cover
+        raise FileNotFoundError("Cannot find the banner.txt file")
+
+
 def is_notebook() -> bool:
     """Check if this code is being executed from a Juypter Notebook or not.
 
