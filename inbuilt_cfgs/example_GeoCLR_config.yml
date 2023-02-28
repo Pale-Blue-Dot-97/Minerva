@@ -35,6 +35,7 @@ loss_func: &loss_func NTXentLoss      # Name of the loss function to use.
 lr: &lr 1.0E-2                        # Learning rate of optimiser.
 optim_func: &optim_func SGD           # Name of the optimiser function.
 
+# ---+ Miscellaneous +---------------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
 elim: false                           # Eliminates empty classes from schema.
 balance: false                        # Balances dataset classes.
@@ -47,7 +48,7 @@ max_r: &max_r 56
 knn_k: 5
 val_freq: 2
 
-# ---+ Model Paramets +--------------------------------------------------------
+# ---+ Model Parameters +------------------------------------------------------
 model_params:
     input_size: *input_size
     # any other params...
