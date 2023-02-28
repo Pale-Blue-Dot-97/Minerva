@@ -376,9 +376,12 @@ class Trainer:
         # Gets the loss function requested by config parameters.
         loss_params: Dict[str, Any] = self.params["loss_params"].copy()
         module = loss_params.pop("module", "torch.nn")
-        criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
+        criterion: Callable[..., Any] = utils.func_by_str(
+            module, self.params["loss_func"]
+        )
 
-        criterion_params_exist = utils.check_dict_key(loss_params, "params")
+        if not utils.check_dict_key(loss_params, "params"):
+            loss_params["params"] = {}
 
         if self.params.get("balance", False) and self.model_type == "segmentation":
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
@@ -387,18 +390,12 @@ class Trainer:
             for i in range(len(weights_dict)):
                 weights.append(weights_dict[i])
 
-            if criterion_params_exist:
-                loss_params["params"]["weight"] = Tensor(weights)
-            else:
-                loss_params["params"] = {"weight": Tensor(weights)}
+            loss_params["params"]["weight"] = Tensor(weights)
 
             return criterion(**loss_params["params"])
 
         else:
-            if criterion_params_exist:
-                return criterion(**loss_params["params"])
-            else:
-                return criterion()
+            return criterion(**loss_params["params"])
 
     def make_optimiser(self) -> None:
         """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
@@ -406,7 +403,13 @@ class Trainer:
         # Gets the optimiser requested by config parameters.
         optimiser_params: Dict[str, Any] = self.params["optim_params"].copy()
         module = optimiser_params.pop("module", "torch.optim")
-        optimiser = utils.func_by_str(module, optimiser_params["name"])
+        optimiser = utils.func_by_str(module, self.params["optim_func"])
+
+        if not utils.check_dict_key(optimiser_params, "params"):
+            optimiser_params["params"] = {}
+
+        # Add learning rate from top-level of config to the optimiser parameters.
+        optimiser_params["params"]["lr"] = self.params["lr"]
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(  # type: ignore
