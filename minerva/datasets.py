@@ -52,6 +52,7 @@ __all__ = [
 # =====================================================================================================================
 import inspect
 import os
+import re
 from pathlib import Path
 from typing import (
     Any,
@@ -477,6 +478,7 @@ def construct_dataloader(
     dataset_params: Dict[str, Any],
     sampler_params: Dict[str, Any],
     dataloader_params: Dict[str, Any],
+    batch_size: int,
     collator_params: Optional[Dict[str, Any]] = None,
     transform_params: Optional[Dict[str, Any]] = None,
     rank: int = 0,
@@ -511,18 +513,20 @@ def construct_dataloader(
         module_path=sampler_params["module"], func=sampler_params["name"]
     )
 
-    batch_sampler = True if "batch_size" in sampler_params["params"] else False
+    batch_sampler = True if re.search(r"Batch", sampler_params["name"]) else False
+    if batch_sampler:
+        sampler_params["params"]["batch_size"] = batch_size
 
-    if batch_sampler and dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
-        assert (
-            sampler_params["params"]["batch_size"] % world_size == 0
-        )  # pragma: no cover
-        per_device_batch_size = (
-            sampler_params["params"]["batch_size"] // world_size
-        )  # pragma: no cover
-        sampler_params["params"][
-            "batch_size"
-        ] = per_device_batch_size  # pragma: no cover
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            assert (
+                sampler_params["params"]["batch_size"] % world_size == 0
+            )  # pragma: no cover
+            per_device_batch_size = (
+                sampler_params["params"]["batch_size"] // world_size
+            )  # pragma: no cover
+            sampler_params["params"][
+                "batch_size"
+            ] = per_device_batch_size  # pragma: no cover
 
     sampler: Union[BatchGeoSampler, GeoSampler, DistributedSamplerWrapper] = _sampler(
         dataset=subdatasets[0],
@@ -534,13 +538,16 @@ def construct_dataloader(
     collator = get_collator(collator_params)
     _dataloader_params = dataloader_params.copy()
 
+    # Add batch size from top-level parameters to the dataloader parameters.
+    _dataloader_params["batch_size"] = batch_size
+
     if world_size > 1:
         # Wraps sampler for distributed computing.
         sampler = DistributedSamplerWrapper(sampler, num_replicas=world_size, rank=rank)
 
         # Splits batch size across devices.
-        assert dataloader_params["batch_size"] % world_size == 0
-        per_device_batch_size = dataloader_params["batch_size"] // world_size
+        assert batch_size % world_size == 0
+        per_device_batch_size = batch_size // world_size
         _dataloader_params["batch_size"] = per_device_batch_size
 
     if sample_pairs:
@@ -757,6 +764,7 @@ def make_loaders(
             dataset_params[mode],
             sampler_params[mode],
             dataloader_params,
+            batch_size,
             collator_params=params["collator"],
             transform_params=this_transform_params,
             rank=rank,
@@ -825,6 +833,7 @@ def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
     Returns:
         DataFrame: The completed manifest as a :class:`DataFrame`.
     """
+    batch_size = mf_config["batch_size"]
     dataloader_params = mf_config["dataloader_params"]
     dataset_params = mf_config["dataset_params"]
     sampler_params = mf_config["sampler_params"]
@@ -837,6 +846,7 @@ def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
         dataset_params[keys[0]],
         sampler_params[keys[0]],
         dataloader_params,
+        batch_size,
         collator_params=collator_params,
     )
 
