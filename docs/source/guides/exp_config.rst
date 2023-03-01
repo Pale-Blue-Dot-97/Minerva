@@ -507,6 +507,8 @@ Model IO & Logging
 wandb Logging
 ^^^^^^^^^^^^^
 
+Here's where to define how Weights and Biases (``wandb``) behaves in ``minerva``.
+
 .. code-block:: yaml
 
     wandb_log: true              # Activates wandb logging.
@@ -518,7 +520,7 @@ Minerva Inbuilt Logging Functions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In addition, there are also options for defining the logging, metric calculator
-and IO function at the global level:
+and IO function using inbuilt ``minerva`` functionality:
 
 .. code-block:: yaml
 
@@ -578,7 +580,6 @@ The collator is the function that collates the samples from the datset to make a
 defined using the simple ``collator`` :class:`dict`.
 
 .. code-block:: yaml
-    :caption: Example of ``collator_params``.
 
     collator:
         module: torchgeo.datasets
@@ -738,7 +739,7 @@ These keys *MUST* match those in ``dataset_params``.
                 length: 9600
 
 
-There is only a sampler for the overall intersected dataset, not for each sub-dataset.
+There is only a sampler for the overall intersected and unionised dataset, not for each sub-dataset.
 Within each mode, there are 4 recognised keys again:
 
 
@@ -915,8 +916,56 @@ Miscellaneous Options
 Early Stopping
 ^^^^^^^^^^^^^^
 
+.. code-block:: yaml
+
+    stopping:
+        patience: 2    # No. of val epochs with increasing loss before stopping.
+        verbose: true  # Verbosity of early stopping prints to stdout.
+
+.. py:data:: stopping
+
+    Dictionary to hold the parameters defining the early stopping functionality.
+    If no dictionary is given, it is assumed that there will be no early stopping.
+
+    :type: dict
+
+
+.. py:data:: patience
+
+    Number of validation epochs with increasing loss from
+    the lowest recorded validation loss before stopping the experiment.
+
+    :type: int
+
+.. py:data:: verbose
+    :noindex:
+
+    Verbosity of the early stopping prints to stdout.
+
+    :type: bool
+
+
 Verbosity and Saving
 ^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: yaml
+
+    verbose: true           # Verbosity of Trainer print statements to stdout.
+    save: true              # Saves created figures to file.
+    show: false             # Shows created figures in a pop-up window.
+    p_dist: true            # Shows the distribution of classes to stdout.
+    plot_last_epoch: true   # Plot the results of the last training and val epochs.
+
+    # opt to ask at runtime; auto or True to automatically do so; or False,
+    # None etc to not
+    save_model: true
+
+.. py:data:: verbose
+
+    Verbosity of :class:`trainer.Trainer` prints to stdout.
+
+    :type: bool
+
 
 .. py:data:: save
 
@@ -964,6 +1013,13 @@ Verbosity and Saving
 
 Other
 ^^^^^
+
+.. code-block:: yaml
+
+    # opt to ask at runtime; auto or True to automatically do so; or False,
+    # None etc to not
+    run_tensorboard: false
+    calc_norm: false
 
 .. py:data:: run_tensorboard
 
