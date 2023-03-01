@@ -240,20 +240,12 @@ Paths to required directories are contained in the ``dir`` sub-dictionary with t
     :caption: Example ``dir`` dictionary describing the paths to directories needed in experiment.
 
     dir:
-        data:
-            - path
-            - to
-            - data
-            - directory
+        data: tests/tmp/data
         configs:
-            data_config: ../../inbuilt_cfgs/Chesapeake13.yml
-            imagery_config: ../../inbuilt_cfgs/NAIP.yml
-        results:
-            - path
-            - to
-            - results
-            - directory
-        cache: can/also/be/a/string/path/to/cache/directory
+            data_config: Chesapeake7.yml
+            imagery_config: NAIP.yml
+        results: tests/tmp/results
+        cache: tests/tmp/cache
 
 
 .. py:data:: data
