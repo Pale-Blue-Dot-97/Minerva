@@ -28,21 +28,21 @@ model_type: siamese
 batch_size: 8                         # Number of samples in each batch.
 patch_size: &patch_size [32, 32]      # 2D tuple or float.
 input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
+
+# ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 4                         # Maximum number of training epochs.
+elim: false                           # Eliminates empty classes from schema.
+balance: false                        # Balances dataset classes.
+pre_train: true                       # Activate pre-training mode.
+fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: NTXentLoss                 # Name of the loss function to use.
 lr: 1.0E-2                            # Learning rate of optimiser.
 optim_func: SGD                       # Name of the optimiser function.
 
-# ---+ Miscellaneous +---------------------------------------------------------
-sample_pairs: true                    # Activates Siamese paired sampling.
-elim: false                           # Eliminates empty classes from schema.
-balance: false                        # Balances dataset classes.
-pre_train: true                       # Activate pre-training mode.
-fine_tune: false                      # Activate fine-tuning mode.
-
 # ---+ SSL/ Siamese Options +--------------------------------------------------
+sample_pairs: true                    # Activates Siamese paired sampling.
 max_r: &max_r 56  # Max distance between patches within a Siamese pair.
 knn_k: 5          # Top-k most similar images used to predict image for KNN val
 val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
