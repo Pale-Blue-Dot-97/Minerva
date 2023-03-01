@@ -28,20 +28,19 @@ model_type: segmentation
 batch_size: 8                         # Number of samples in each batch.
 patch_size: &patch_size [32, 32]      # 2D tuple or float.
 input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
-max_epochs: 5                         # Maximum number of training epochs.
 n_classes: &n_classes 8               # Number of classes in dataset.
+
+# ---+ Experiment Execution +--------------------------------------------------
+max_epochs: 5                         # Maximum number of training epochs.
+pre_train: false                      # Activate pre-training mode.
+fine_tune: false                      # Activate fine-tuning mode.
+elim: true                            # Eliminates empty classes from schema.
+balance: true                         # Balances dataset classes.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: CrossEntropyLoss           # Name of the loss function to use.
 lr: 1.0E-2                            # Learning rate of optimiser.
 optim_func: SGD                       # Name of the optimiser function.
-
-# ---+ Miscellaneous +---------------------------------------------------------
-sample_pairs: false                   # Activates Siamese paired sampling.
-elim: true                            # Eliminates empty classes from schema.
-balance: true                         # Balances dataset classes.
-pre_train: false                      # Activate pre-training mode.
-fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
@@ -62,12 +61,12 @@ loader_params:
     num_workers: 1
     pin_memory: true
 
-# === WANDB LOGGING ===========================================================
+# === MODEL IO & LOGGING ======================================================
+# ---+ wandb Logging +---------------------------------------------------------
 wandb_log: true              # Activates wandb logging.
 project: pytest              # Define the project name for wandb.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
-# === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
 logger: STGLogger
 metrics: SPMetrics
