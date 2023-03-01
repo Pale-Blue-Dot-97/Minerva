@@ -156,6 +156,41 @@ using the provided ``MinervaExp.py`` script.
     :value: False
 
 
+Model Paramaters
+^^^^^^^^^^^^^^^^
+These are the parameters parsed to the model class to initiate it.
+
+.. code-block:: yaml
+    model_params:
+        input_size: *input_size
+        n_classes: *n_classes
+        # any other params...
+
+Two common parameters are:
+
+.. py:data:: input_size
+    :noindex:
+
+    Shape of the input to the model. Typically in CxHxW format.
+    Should align with the values given for ``patch_size``.
+
+    :type: list
+
+.. py:data:: n_classes
+    :noindex:
+
+    Number of possible classes to predict in output.
+
+    :type: int
+
+But you can add any other parameters in the ``model_params`` dict that the model expects.
+
+Optimiser Parameters
+^^^^^^^^^^^^^^^^^^^^
+
+Loss Paramaters
+^^^^^^^^^^^^^^^
+
 Metrics and Loggers
 ^^^^^^^^^^^^^^^^^^^
 
@@ -629,16 +664,6 @@ Hyperparams
 
 Dataloader Paramaters
 ^^^^^^^^^^^^^^^^^^^^^
-
-
-Model Paramaters
-^^^^^^^^^^^^^^^^
-
-Optimiser Parameters
-^^^^^^^^^^^^^^^^^^^^
-
-Loss Paramaters
-^^^^^^^^^^^^^^^
 
 Early Stopping
 ^^^^^^^^^^^^^^
