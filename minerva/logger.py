@@ -56,7 +56,8 @@ from minerva.utils import utils
 #                                                     CLASSES
 # =====================================================================================================================
 class MinervaLogger(ABC):
-    """Base abstract class for all `minerva` logger classes to ensure intercompatibility with `trainer`.
+    """Base abstract class for all :mod:`minerva` logger classes to ensure intercompatibility with
+    :class:`~trainer.Trainer`.
 
     Attributes:
         record_int (bool): Whether to record the integer values from an epoch of model fitting.
@@ -104,7 +105,7 @@ class MinervaLogger(ABC):
         self.results: Dict[str, Any] = {}
 
     def __call__(self, mode: str, step_num: int, loss: Tensor, *args) -> None:
-        """Call :func:`log`.
+        """Call :meth:`log`.
 
         Args:
             mode (str): Mode of model fitting.
@@ -183,7 +184,7 @@ class MinervaLogger(ABC):
 
 
 class STGLogger(MinervaLogger):
-    """Logger designed for supervised learning using `torchgeo` datasets.
+    """Logger designed for supervised learning using :mod:`torchgeo` datasets.
 
     Args:
         n_batches (int): Number of batches in the epoch.

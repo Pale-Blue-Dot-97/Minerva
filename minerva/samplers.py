@@ -69,8 +69,8 @@ class RandomPairGeoSampler(GeoSampler):
 
         * a single ``float`` - in which case the same value is used for the height and
           width dimension
-        * a ``tuple`` of two floats - in which case, the first *float* is used for the
-          height dimension, and the second *float* for the width dimension
+        * a ``tuple`` of two floats - in which case, the first :class:`float` is used for the
+          height dimension, and the second :class:`float` for the width dimension
 
         Args:
             dataset (GeoDataset): Dataset to index from.
