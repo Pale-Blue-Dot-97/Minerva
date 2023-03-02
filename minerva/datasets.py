@@ -839,10 +839,13 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
         return manifest
 
 
-def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
+def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
     The dataset to construct a manifest of is defined by the ``data_config`` value in the config.
+
+    Args:
+        mf_config (Dict[Any, Any]): Config to use to construct the manifest with.
 
     Returns:
         DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
