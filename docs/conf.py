@@ -29,7 +29,17 @@ author = "Harry Baker"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.napoleon", "sphinx.ext.autodoc", "myst_parser"]
+extensions = [
+    "sphinx.ext.napoleon",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
+    "myst_parser",
+]
+
+intersphinx_mapping = {
+    "torch": ("https://pytorch.org/docs/master/", None),
+    "python": ("https://docs.python.org/3", None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
