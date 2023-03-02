@@ -48,14 +48,14 @@ class MinervaMetrics(ABC):
     Attributes:
         n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (Tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
         n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (Tuple[int, int, int]): Shape of the input data in ``C x H x W``.
 
     """
 
@@ -161,14 +161,14 @@ class SPMetrics(MinervaMetrics):
     Attributes:
         n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (Tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
         n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (Tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         model_type (str): Optional; Type of the model.
     """
 
@@ -254,14 +254,14 @@ class SSLMetrics(MinervaMetrics):
     Attributes:
         n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (Tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
         n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (Tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         model_type (str): Optional; Type of the model.
     """
 

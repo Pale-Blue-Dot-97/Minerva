@@ -85,13 +85,13 @@ class PairCreate:
         pass
 
     def __call__(self, sample: Any) -> Tuple[Any, Any]:
-        """Takes a sample and returns it and a copy as a tuple pair.
+        """Takes a sample and returns it and a copy as a :class:`tuple` pair.
 
         Args:
             sample (Any): Sample to duplicate.
 
         Returns:
-            Tuple[Any, Any]: Tuple of two copies of the sample.
+            tuple[Any, Any]: :class:`tuple` of two copies of the sample.
         """
         return sample, sample
 
@@ -170,8 +170,9 @@ class DetachedColorJitter(ColorJitter):
 
 
 class MinervaCompose:
-    """Extension of :class:`Compose`. Composes several transforms together. This transform does not support torchscript.
-    Please, see the note below.
+    """Extension of :class:`torchvision.transforms.Compose`. Composes several transforms together.
+
+    This transform does not support torchscript. Please, see the note below.
 
     Args:
         transforms (list of ``Transform`` objects): list of transforms to compose.

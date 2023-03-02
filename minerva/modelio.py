@@ -53,7 +53,7 @@ def sup_tg(
     mode: str,
     **kwargs,
 ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
-    """Provides IO functionality for a supervised model using `torchgeo` datasets.
+    """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
 
     Args:
         batch (Dict[Any, Any]): Batch of data in a dict. Must have 'image', 'mask' and 'bbox' keys.
