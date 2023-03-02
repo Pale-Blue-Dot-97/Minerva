@@ -17,7 +17,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Functionality and custom code for constructing datasets, samplers and :class:`DataLoaders` for :mod:`minerva`.
+"""Functionality for constructing datasets, samplers and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
 
 Attributes:
     IMAGERY_CONFIG (Dict[str, Any]): Config defining the properties of the imagery used in the experiment.
@@ -44,6 +44,7 @@ __all__ = [
     "make_transformations",
     "stack_sample_pairs",
     "intersect_datasets",
+    "unionise_datasets",
     "get_manifest_path",
 ]
 
@@ -132,7 +133,7 @@ class PairedDataset(RasterDataset):
         dataset (RasterDataset): Wrapped dataset to sampled from.
 
     Args:
-        dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`RasterDataset`
+        dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`~torchgeo.datasets.RasterDataset`
             to be wrapped for paired sampling.
     """
 
@@ -282,7 +283,8 @@ def stack_sample_pairs(
 def intersect_datasets(
     datasets: Sequence[GeoDataset], sample_pairs: bool = False
 ) -> IntersectionDataset:
-    """Intersects a list of :class:`GeoDataset` together to return a single dataset object.
+    r"""
+    Intersects a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
     Args:
         datasets (List[GeoDataset]): List of datasets to intersect together. Should have some geospatial overlap.
@@ -313,7 +315,7 @@ def intersect_datasets(
 def unionise_datasets(
     datasets: Sequence[GeoDataset], sample_pairs: bool = False
 ) -> UnionDataset:
-    """Unionises a list of :class:`GeoDataset` together to return a single dataset object.
+    """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
     Args:
         datasets (List[GeoDataset]): List of datasets to unionise together.
@@ -492,6 +494,7 @@ def construct_dataloader(
         dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
         sampler_params (dict): Dictionary of parameters for the sampler to be used to sample from the dataset.
         dataloader_params (dict): Dictionary of parameters for the DataLoader itself.
+        batch_size (int): Number of samples per (global) batch.
         collator_params (dict): Optional; Dictionary of parameters defining the function to collate
             and stack samples from the sampler.
         transform_params: Optional; Dictionary defining the parameters of the transforms to perform
@@ -610,7 +613,7 @@ def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., 
         >>> transform = get_transform(name, params)
 
     Raises:
-        TypeError: If created transform :class:`object` is itself not :class:`callable`.
+        TypeError: If created transform object is itself not :class:`~typing.Callable`.
     """
     params = transform_params.copy()
     module = params.pop("module", "torchvision.transforms")
@@ -687,20 +690,31 @@ def make_loaders(
     List[Tuple[int, int]],
     Dict[Any, Any],
 ]:
-    """Constructs train, validation and test datasets and places into :class:`DataLoader` objects.
+    """Constructs train, validation and test datasets and places into :class:`~torch.utils.data.DataLoader` objects.
 
     Args:
-        rank (int): Rank number of the process. For use with :class:`DistributedDataParallel`.
-        world_size (int): Total number of processes across all nodes. For use with :class:`DistributedDataParallel`.
+        rank (int): Rank number of the process. For use with :class:`~torch.distributed.DistributedDataParallel`.
+        world_size (int): Total number of processes across all nodes. For use with
+            :class:`~torch.distributed.DistributedDataParallel`.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Keyword Args:
         batch_size (int): Number of samples in each batch to be returned by the DataLoaders.
         elim (bool): Whether to eliminate classes with no samples in.
+        model_type (str): Defines the type of the model. If ``siamese``, ensures inappropiate functionality is not used.
+        dir (Dict[str, Any]): Dictionary providing the paths to directories needed. Must include the ``data`` path.
+        loader_params (Dict[str, Any]): Parameters to be parsed to construct the :class:`~torch.utils.data.DataLoader`.
+        dataset_params (Dict[str, Any]): Parameters to construct each dataset. See documentation on structure of these.
+        sampler_params (Dict[str, Any]): Parameters to construct the samplers for each mode of model fitting.
+        transform_params (Dict[str, Any]): Parameters to construct the transforms for each dataset.
+            See documentation for the structure of these.
+        collator (Dict[str, Any]): Defines the collator to use that will collate samples together into batches.
+            Contains the ``module`` key to define the import path and the ``name`` key for name of the collation function.
+        sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
 
     Returns:
         Tuple[Dict[str, DataLoader[Iterable[Any]]], Dict[str, int], List[Tuple[int, int]], Dict[Any, Any]]: Tuple of;
-            * Dictionary of the :class:`DataLoader` s for training, validation and testing.
+            * Dictionary of the :class:`~torch.utils.data.DataLoader` s for training, validation and testing.
             * Dictionary of the number of batches to return/ yield in each train, validation and test epoch.
             * The class distribution of the entire dataset, sorted from largest to smallest class.
             * Unused and updated kwargs.
@@ -831,7 +845,7 @@ def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
     The dataset to construct a manifest of is defined by the ``data_config`` value in the config.
 
     Returns:
-        DataFrame: The completed manifest as a :class:`DataFrame`.
+        DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
     batch_size = mf_config["batch_size"]
     dataloader_params = mf_config["dataloader_params"]
@@ -872,14 +886,15 @@ def make_manifest(mf_config: Dict[Any, Any] = CONFIG) -> DataFrame:
 
 
 def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]:
-    """Loads all sample masks from parsed :class:`DataLoader` and computes the modes of their classes.
+    """Loads all sample masks from parsed :class:`~torch.utils.data.DataLoader` and computes the modes of their classes.
 
     Args:
         dataloader (DataLoader): DataLoader containing samples. Must be using a dataset with ``__len__`` attribute
             and a sampler that returns a dict with a ``"mask"`` key.
 
     Returns:
-        np.ndarray: 2D array of the class modes within every sample defined by the parsed :class:`DataLoader`.
+        np.ndarray: 2D array of the class modes within every sample defined by the parsed
+            :class:`~torch.utils.data.DataLoader`.
     """
     sample_modes: List[List[Tuple[int, int]]] = []
     for sample in alive_it(dataloader):
