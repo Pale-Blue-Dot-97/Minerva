@@ -97,7 +97,7 @@ class Trainer:
         fine_tune (bool): Assumes this is a fine-tuning job if ``True``. Will attempt to load model weights
             from cache.
         class_dist (Any): Distribution of classes within the data.
-        exp_name (Path): Path to the unique results directory for this experiment.
+        exp_name (Path): :class:`~pathlib.Path` to the unique results directory for this experiment.
         sample_pairs (bool): Whether samples are paired together for Siamese learning.
         modes (tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
         writer (SummaryWriter | Run | None): The *writer* to perform logging for this experiment.
@@ -391,8 +391,8 @@ class Trainer:
         """Get the path to where to cache this model to.
 
         Returns:
-            Path: :class:`Path` to cache directory and the filename
-                (model name excluding version and file extension).
+            :class:`~pathlib.Path`: :class:`~pathlib.Path` to cache directory and the filename
+            (model name excluding version and file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
         return Path(cache_dir / Path(self.params["model_name"].split("-")[0]))
@@ -401,7 +401,7 @@ class Trainer:
         """Get the path to the cached version of the pre-trained model.
 
         Returns:
-            Path: :class:`Path` to the cached model (excluding file extension).
+            :class:`~pathlib.Path`: :class:`~pathlib.Path` to the cached model (excluding file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
         return Path(cache_dir / Path(self.params["pre_train_name"]).with_suffix(""))
@@ -899,8 +899,8 @@ class Trainer:
                 This may result in memory issues on large amounts of data! Defaults to False.
 
         Returns:
-            Optional[Dict[str, Any]]: Results dictionary from the epoch logger if ``record_int``
-                or ``record_float`` are ``True``.
+            Optional[dict[str, Any]]: Results dictionary from the epoch logger if ``record_int``
+            or ``record_float`` are ``True``.
         """
 
         # Puts the model in evaluation mode so no back passes are made.
@@ -1161,7 +1161,7 @@ class Trainer:
         """Saves the model object itself to :mod:`torch` file.
 
         Args:
-            fn (Union[Path, str]): Optional; Filename and path (excluding extension) to save model to.
+            fn (:class:`~pathlib.Path` | str): Optional; Filename and path (excluding extension) to save model to.
             format (str): Optional; Format to save model to. ``pt`` for :mod:`torch`, or :mod:`onnx` for ONNX.
 
         Raises:
