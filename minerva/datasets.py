@@ -130,7 +130,7 @@ class PairedDataset(RasterDataset):
     """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
 
     Attributes:
-        dataset (RasterDataset): Wrapped dataset to sampled from.
+        dataset (:class:`~torchgeo.datasets.RasterDataset`): Wrapped dataset to sampled from.
 
     Args:
         dataset_cls (Callable[..., GeoDataset]): Constructor for a :class:`~torchgeo.datasets.RasterDataset`
@@ -177,13 +177,12 @@ class PairedDataset(RasterDataset):
     ) -> plt.Figure:
         """Plots a sample from the dataset.
 
-        Adapted from ``torchgeo.datasets.NAIP.plot``.
-        https://torchgeo.readthedocs.io/en/v0.4.0/_modules/torchgeo/datasets/naip.html
+        Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
 
         Args:
             sample (Dict[str, Any]): Sample to plot.
             show_titles (bool, optional): Add title to the figure. Defaults to True.
-            suptitle (Optional[str], optional): Super title to add to figure. Defaults to None.
+            suptitle (str, optional): Super title to add to figure. Defaults to None.
 
         Returns:
             plt.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
@@ -218,14 +217,13 @@ class PairedDataset(RasterDataset):
     ) -> plt.Figure:
         """Plots a random sample the dataset at a given size and resolution.
 
-        Adapted from ``torchgeo.datasets.NAIP.plot``.
-        https://torchgeo.readthedocs.io/en/v0.4.0/_modules/torchgeo/datasets/naip.html
+        Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
 
         Args:
             size (Union[Tuple[int, int], int]): Size of the patch to plot.
             res (float): Resolution of the patch.
-            show_titles (bool, optional): Add title to the figure. Defaults to True.
-            suptitle (Optional[str], optional): Super title to add to figure. Defaults to None.
+            show_titles (bool, optional): Add title to the figure. Defaults to ``True``.
+            suptitle (str, optional): Super title to add to figure. Defaults to ``None``.
 
         Returns:
             plt.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
@@ -246,7 +244,7 @@ def get_collator(
 
     Args:
         collator_params (Dict[str, str]): Optional; Dictionary that must contain keys for
-            'module' and 'name' of the collation function. Defaults to config['collator'].
+            ``'module'`` and ``'name'`` of the collation function. Defaults to ``config['collator']``.
 
     Returns:
         Callable[..., Any]: Collation function found from parameters given.
@@ -354,7 +352,7 @@ def make_dataset(
         dataset_params (dict): Dictionary of parameters defining each sub-datasets to be used.
         transform_params: Optional; Dictionary defining the parameters of the transforms to perform
             when sampling from the dataset.
-        sample_pairs (bool): Optional; True if paired sampling. This will ensure paired samples are handled
+        sample_pairs (bool): Optional; ``True`` if paired sampling. This will ensure paired samples are handled
             correctly in the datasets.
 
     Returns:
@@ -487,7 +485,8 @@ def construct_dataloader(
     world_size: int = 1,
     sample_pairs: bool = False,
 ) -> DataLoader[Iterable[Any]]:
-    """Constructs a DataLoader object from the parameters provided for the datasets, sampler, collator and transforms.
+    """Constructs a :class:`~torch.utils.data.DataLoader` object from the parameters provided for the
+    datasets, sampler, collator and transforms.
 
     Args:
         data_directory (Iterable[str]): A list of str defining the common path for all datasets to be constructed.
@@ -574,14 +573,15 @@ def construct_dataloader(
 def make_bounding_box(
     roi: Union[Sequence[float], bool] = False
 ) -> Optional[BoundingBox]:
-    """Construct a BoundingBox object from the corners of the box. False for no BoundingBox.
+    """Construct a :class:`~torchgeo.datasets.utils.BoundingBox` object from the corners of the box.
+    ``False`` for no :class:`~torchgeo.datasets.utils.BoundingBox`.
 
     Args:
-        roi (tuple[float] or list[float] or bool): Either a tuple or array of values defining the corners
-            of a bounding box or False to designate no BoundingBox is defined.
+        roi (tuple[float] or list[float] or bool): Either a :class:`tuple` or array of values defining
+            the corners of a bounding box or False to designate no BoundingBox is defined.
 
     Returns:
-        BoundingBox object made from parsed values or None if False was given.
+        Optional[BoundingBox]: Bounding box made from parsed values or ``None`` if ``False`` was given.
     """
     if roi is False:
         return None
@@ -597,7 +597,7 @@ def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., 
     """Creates a transform object based on config parameters.
 
     Args:
-        name (str): Name of transform object to import e.g ``RandomResizedCrop``.
+        name (str): Name of transform object to import e.g :class:`~torchvision.transforms.RandomResizedCrop`.
         transform_params (Dict[str, Any]): Arguements to construct transform with.
             Should also include ``"module"`` key defining the import path to the transform object.
 
@@ -605,7 +605,7 @@ def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., 
         Initialised transform object specified by config parameters.
 
     .. note::
-        If ``transform_params`` contains no ``"module"`` key, it defaults to ``"torchvision.transforms"``.
+        If ``transform_params`` contains no ``"module"`` key, it defaults to ``torchvision.transforms``.
 
     Example:
         >>> name = "RandomResizedCrop"
@@ -693,10 +693,10 @@ def make_loaders(
     """Constructs train, validation and test datasets and places into :class:`~torch.utils.data.DataLoader` objects.
 
     Args:
-        rank (int): Rank number of the process. For use with :class:`~torch.distributed.DistributedDataParallel`.
+        rank (int): Rank number of the process. For use with :class:`~torch.nn.parallel.DistributedDataParallel`.
         world_size (int): Total number of processes across all nodes. For use with
-            :class:`~torch.distributed.DistributedDataParallel`.
-        p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
+            :class:`~torch.nn.parallel.DistributedDataParallel`.
+        p_dist (bool): Print to screen the distribution of classes within each dataset.
 
     Keyword Args:
         batch_size (int): Number of samples in each batch to be returned by the DataLoaders.
