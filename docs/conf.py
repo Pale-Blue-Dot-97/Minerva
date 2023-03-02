@@ -37,8 +37,9 @@ extensions = [
 ]
 
 intersphinx_mapping = {
-    "torch": ("https://pytorch.org/docs/master/", None),
     "python": ("https://docs.python.org/3", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
+    "torchgeo": ("https://torchgeo.readthedocs.io/en/stable/", None),
 }
 
 # Add any paths that contain templates here, relative to this directory.
