@@ -305,7 +305,7 @@ These parameters focus on defining the model, such as class, version and type.
 .. py:data:: model_name
 
     Name of the model. Should take the form ``{class_name}-{version}`` where ``class_name``
-    is a :class:`MinervaModel` class name and ``version`` is any string that can be used
+    is a :class:`~minerva.models.MinervaModel` class name and ``version`` is any string that can be used
     to differeniate version numbers of models and will be included in the ``exp_name`` used for results.
 
     :type: str
@@ -503,7 +503,7 @@ Dataloader Paramaters
 ^^^^^^^^^^^^^^^^^^^^^
 
 Finally, this is where to define parameters for the
-:class:`torch.utils.data.DataLoader`. Unlike the other ``x_params`` dicts,
+:class:`~torch.utils.data.DataLoader`. Unlike the other ``x_params`` dicts,
 parameters are placed at the immediate ``loader_params`` level (not in a ``params`` key).
 
 .. code-block:: yaml
@@ -550,7 +550,7 @@ and IO function using inbuilt ``minerva`` functionality:
 .. py:data:: logger
     :noindex:
 
-    Specify the logger to use. Must be the name of a :class:`MinervaLogger` class
+    Specify the logger to use. Must be the name of a :class:`~minerva.logger.MinervaLogger` class
     within :mod:`logger`.
 
     :type: str
@@ -559,7 +559,7 @@ and IO function using inbuilt ``minerva`` functionality:
 .. py:data:: metrics
     :noindex:
 
-    Specify the metric logger to use. Must be the name of a :class:`MinervaMetrics` class
+    Specify the metric logger to use. Must be the name of a :class:`~minerva.metrics.MinervaMetrics` class
     within :mod:`metrics`.
 
     :type: str
@@ -848,8 +848,8 @@ The order the transforms are given is respected.
 Within each transform :class:`dict`, the ``module`` key again gives the module name.
 The default is ``"torchvison.transforms"``. All other keys given are parsed to the transform constructor.
 
-There is one exception to this structure and that is the use of ``torchvision.transforms.RandomApply``.
-If the transform key is ``RandomApply`` then transforms can be provided within that :class:`dict` in the same
+There is one exception to this structure and that is the use of :class:`~torchvision.transforms.RandomApply`.
+If the transform key is :class:`~torchvision.transforms.RandomApply`` then transforms can be provided within that :class:`dict` in the same
 structure with the addition of a ``p`` key that gives the propability that the transforms within are applied.
 
 
@@ -983,7 +983,7 @@ These parameters dictate the behaviour of the outputs to stdout and saving resul
 
 .. py:data:: verbose
 
-    Verbosity of :class:`trainer.Trainer` prints to stdout.
+    Verbosity of :class:`~trainer.Trainer` prints to stdout.
 
     :type: bool
 
