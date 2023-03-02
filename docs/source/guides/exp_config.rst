@@ -285,9 +285,9 @@ Paths to required directories are contained in the ``dir`` sub-dictionary with t
 Hyperparameters
 ---------------
 
-The following are non-structured (i.e not a :class:`list` or :class:`dict`) global level variables
-that can be set within the YAML config file. They can also be provided as command line arguments when
-using the provided ``MinervaExp.py`` script.
+This section of the config file covers hyperparmeters of the model and experiment.
+The most important of these are now top-level variables in the config.
+Most are also accessible from the CLI and thus are mostly not ``list`` or ``dict``.
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -477,6 +477,10 @@ But you can add any other parameters in the ``model_params`` dict that the model
 Optimiser Parameters
 ^^^^^^^^^^^^^^^^^^^^
 
+Here's where to place any additional parameters for the optimiser,
+other than the already handled learning rate -- ``lr``. Place them in the ``params`` key.
+If using a non-torch optimiser, use the ``module`` key to specify the import path to the optimiser function.
+
 .. code-block:: yaml
 
     optim_params:
@@ -486,6 +490,10 @@ Optimiser Parameters
 Loss Paramaters
 ^^^^^^^^^^^^^^^
 
+Here's where to specify any additional parameters for the loss function in the ``params`` key.
+If using a non-torch loss function, you need to specify the import path
+with the ``module`` key.
+
 .. code-block:: yaml
 
     loss_params:
@@ -493,6 +501,10 @@ Loss Paramaters
 
 Dataloader Paramaters
 ^^^^^^^^^^^^^^^^^^^^^
+
+Finally, this is where to define parameters for the
+:class:`torch.utils.data.DataLoader`. Unlike the other ``x_params`` dicts,
+parameters are placed at the immediate ``loader_params`` level (not in a ``params`` key).
 
 .. code-block:: yaml
 
@@ -503,6 +515,9 @@ Dataloader Paramaters
 
 Model IO & Logging
 ------------------
+
+These parameters allow for the configuring how to handle different types of
+input/ output to the model and how to handle logging of the model.
 
 wandb Logging
 ^^^^^^^^^^^^^
@@ -913,8 +928,12 @@ To define which plots to make from the results of testing, use the ``plots`` sub
 Miscellaneous Options
 ---------------------
 
+And finally, this section holds various other options.
+
 Early Stopping
 ^^^^^^^^^^^^^^
+
+Here's where to define the behaviour of early stopping functionality.
 
 .. code-block:: yaml
 
@@ -947,6 +966,8 @@ Early Stopping
 
 Verbosity and Saving
 ^^^^^^^^^^^^^^^^^^^^
+
+These parameters dictate the behaviour of the outputs to stdout and saving results.
 
 .. code-block:: yaml
 
@@ -1013,6 +1034,8 @@ Verbosity and Saving
 
 Other
 ^^^^^
+
+All other options belong in this section.
 
 .. code-block:: yaml
 
