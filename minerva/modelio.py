@@ -56,14 +56,14 @@ def sup_tg(
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
 
     Args:
-        batch (Dict[Any, Any]): Batch of data in a dict. Must have 'image', 'mask' and 'bbox' keys.
+        batch (dict[Any, Any]): Batch of data in a dict. Must have 'image', 'mask' and 'bbox' keys.
         model (MinervaModel): Model being fitted.
-        device (torch.device): `torch` device object to send data to (e.g. CUDA device).
+        device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
         mode (str): Mode of model fitting to use.
 
     Returns:
-        Tuple[Tensor, Tensor, Tensor, Sequence[BoundingBox]]: The `loss`, the model output `z`, the `y` supplied
-            and the bounding boxes of the input images supplied.
+        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, Sequence[~torchgeo.datasets.utils.BoundingBox]]: The `loss`,
+        the model output `z`, the `y` supplied and the bounding boxes of the input images supplied.
     """
     # Extracts the x and y batches from the dict.
     images: Tensor = batch["image"]
@@ -108,15 +108,16 @@ def ssl_pair_tg(
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
     Args:
-        batch (Tuple[Dict[str, Any], Dict[str, Any]]): Pair of batches of data in :class:`dicts`.
+        batch (tuple[dict[str, Any], dict[str, Any]]): Pair of batches of data in :class:`dict` (s).
             Must have ``"image"`` and ``"bbox"`` keys.
         model (MinervaModel): Model being fitted.
-        device (torch.device): :mod:`torch` device object to send data to (e.g. ``CUDA`` device).
+        device (~torch.device): :mod:`torch` device object to send data to (e.g. ``CUDA`` device).
         mode (str): Mode of model fitting to use.
 
     Returns:
-        Tuple[Tensor, Tensor, Tensor, Sequence[BoundingBox]]: The ``loss``, the model output ``z``,
-        the ``y`` supplied and the bounding boxes of the original input images supplied.
+        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, Sequence[~torchgeo.datasets.utils.BoundingBox]]: The
+        ``loss``, the model output ``z``, the ``y`` supplied and the bounding boxes
+        of the original input images supplied.
     """
     # Extracts the x_i batch from the dict.
     x_i_batch: Tensor = batch[0]["image"]

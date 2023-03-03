@@ -771,7 +771,7 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
         n_classes (int): Number of classes to determine length of OHE label.
 
     Returns:
-        ~nptyping.NDArray[Any]: Labels in OHE form.
+        ~numpy.ndarray[Any]: Labels in OHE form.
     """
     targets: NDArray[Any, Any] = np.array(labels).reshape(-1)
     ohe_labels = np.eye(n_classes)[targets]
@@ -965,11 +965,11 @@ def mask_transform(
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
-        array (~nptyping.NDArray[Any, Int]): N-dimensional array containing labels to be transformed.
+        array (~numpy.ndarray[int]): N-dimensional array containing labels to be transformed.
         matrix (dict[int, int]): Dictionary mapping old labels to new.
 
     Returns:
-        ~nptyping.NDArray[Any, Int]: Array of transformed labels.
+        ~numpy.ndarray[int]: Array of transformed labels.
     """
     for key in matrix.keys():
         array[array == key] = matrix[key]
@@ -987,13 +987,13 @@ def check_test_empty(
     Returns corrected and re-ordered predictions, labels and class labels.
 
     Args:
-        pred (Sequence[int] | ~nptyping.NDArray[Any, Int]): List of predicted labels.
-        labels (Sequence[int] | ~nptyping.NDArray[Any, Int]): List of corresponding ground truth labels.
+        pred (Sequence[int] | ~numpy.ndarray[int]): List of predicted labels.
+        labels (Sequence[int] | ~numpy.ndarray[int]): List of corresponding ground truth labels.
         class_labels (dict[int, str]): Dictionary mapping class labels to class names.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
-        tuple[~nptyping.NDArray[Any, Int], ~nptyping.NDArray[Any, Int], dict[int, str]]: :class:`tuple` of:
+        tuple[~numpy.ndarray[int], ~numpy.ndarray[int], dict[int, str]]: :class:`tuple` of:
             * List of predicted labels transformed to new classes.
             * List of corresponding ground truth labels transformed to new classes.
             * Dictionary mapping new class labels to class names.
@@ -1074,7 +1074,7 @@ def cloud_cover(scene: NDArray[Any, Any]) -> Any:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
     Args:
-        scene (~nptyping.NDArray[Any]): Cloud cover mask for a particular scene.
+        scene (~numpy.ndarray[Any]): Cloud cover mask for a particular scene.
 
     Returns:
         float: Percentage cloud cover of scene.
@@ -1336,10 +1336,10 @@ def batch_flatten(
     """Flattens the supplied array with :func:`numpy`.
 
     Args:
-        x (~nptyping.NDArray[Any, Any] | ~nptyping.ArrayLike]): Array to be flattened.
+        x (~numpy.ndarray[Any] | ~nptyping.ArrayLike]): Array to be flattened.
 
     Returns:
-        ~nptyping.NDArray[~nptyping.Shape["*"], Any]: Flattened :class:`~nptyping.NDArray`.
+        ~numpy.ndarray[Any]: Flattened :class:`~numpy.ndarray`.
     """
     if isinstance(x, np.ndarray):
         x = x.flatten()
@@ -1364,9 +1364,9 @@ def make_classification_report(
     https://scikit-learn.org/stable/modules/generated/sklearn.metrics.classification_report.html
 
     Args:
-        pred (list[int] | ~nptyping.NDArray[Any, ~nptyping.Int]): List of predicted labels.
-        labels (list[int] | ~nptyping.NDArray[Any, ~nptyping.Int]): List of corresponding ground truth labels.
-        class_labels (dict): Dictionary mapping class labels to class names.
+        pred (list[int] | ~numpy.ndarray[int]): List of predicted labels.
+        labels (list[int] | ~numpy.ndarray[int]): List of corresponding ground truth labels.
+        class_labels (dict[int, str]): Dictionary mapping class labels to class names.
         print_cr (bool): Optional; Whether to print a copy of the classification report
             :class:`~pandas.DataFrame` put through :mod:`tabulate`.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
@@ -1469,9 +1469,9 @@ def run_tensorboard(
 
     Args:
         exp_name (str): Unique name of the experiment to run the logs of.
-        path (str | list[str] | tuple[str, ...], ~pathlib.Path): Path to the directory holding the log.
+        path (str | list[str] | tuple[str, ...] | ~pathlib.Path): Path to the directory holding the log.
             Can be a string or a list of strings for each sub-directory.
-        env_name (str): Name of the `Conda` environment to run :mod:`tensorBoard` in.
+        env_name (str): Name of the ``conda`` environment to run :mod:`tensorBoard` in.
         host_num (str | int): Local host number :mod:`tensorBoard` will be hosted on.
 
     Raises:
@@ -1539,8 +1539,8 @@ def compute_roc_curves(
     https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
 
     Args:
-        probs (~nptyping.NDArray[Any, ~nptyping.Float]): Array of probabilistic predicted classes from model where each sample
-            should have a list of the predicted probability for each class.
+        probs (~numpy.ndarray[float]): Array of probabilistic predicted classes from model
+            where each sample should have a list of the predicted probability for each class.
         labels (list[int]): List of corresponding ground truth labels.
         class_labels (list[int]): List of class label numbers.
         micro (bool): Optional; Whether to compute the micro average ROC curves.
@@ -1683,7 +1683,7 @@ def tsne_cluster(
     """Trains a TSNE algorithm on the embeddings passed.
 
     Args:
-        embeddings (~nptyping.NDArray[Any, Any]): Embeddings outputted from the model.
+        embeddings (~numpy.ndarray[Any]): Embeddings outputted from the model.
         n_dim (int, optional): Number of dimensions to reduce embeddings to. Defaults to 2.
         lr (str, optional): Learning rate. Defaults to "auto".
         n_iter (int, optional): Number of iterations. Defaults to 1000.
@@ -1717,8 +1717,8 @@ def calc_norm_euc_dist(
     """Calculates the normalised Euclidean distance between two vectors.
 
     Args:
-        a (Sequence[int] | ~nptyping.NDArray[~nptyping.Shape["*"], ~nptyping.Int]): Vector `A`.
-        b (Sequence[int] | ~nptyping.NDArray[~nptyping.Shape["*"], ~nptyping.Int]): Vector `B`.
+        a (Sequence[int] | ~numpy.ndarray[int]): Vector `A`.
+        b (Sequence[int] | ~numpy.ndarray[int]): Vector `B`.
 
     Returns:
         float: Normalised Euclidean distance between vectors `A` and `B`.
