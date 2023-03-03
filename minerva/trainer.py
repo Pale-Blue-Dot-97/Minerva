@@ -82,7 +82,7 @@ class Trainer:
     Attributes:
         params (dict[str, Any]): Dictionary describing all the parameters that define how the model will be
             constructed, trained and evaluated. These should be defined via config ``YAML`` files.
-        model: Model to be fitted of a class contained within :mod:`~minerva.models`.
+        model (MinervaModel): Model to be fitted of a class contained within :mod:`~minerva.models`.
         max_epochs (int): Number of epochs to train the model for.
         batch_size (int): Size of each batch of samples supplied to the model.
         loaders (dict[str, ~torch.utils.data.DataLoader]): :class:`dict` containing
@@ -105,7 +105,8 @@ class Trainer:
         stopper (EarlyStopper | None): Early stopping function.
         early_stop (bool): Whether early stopping has been triggered. Will end model training if ``True``.
         n_samples (dict[str, int]): Number of samples in each mode of model fitting.
-        metric_logger (MinervaLogger): Object to calculate and log metrics to track the performance of the model.
+        metric_logger (~logger.MinervaLogger): Object to calculate and log metrics to track the performance
+            of the model.
         modelio_func (Callable[..., Any]): Function to handle the input/ output to the model.
         steps (dict[str, int]): :class:`dict` to hold the global step number for each mode of model fitting.
         model_type (str): Type of the model that determines how to handle IO, metric calculations etc.
@@ -134,7 +135,8 @@ class Trainer:
         transform_params (dict[str, Any]): Parameters to construct the transforms for each dataset.
             See documentation for the structure of these.
         collator (dict[str, Any]): Defines the collator to use that will collate samples together into batches.
-            Contains the ``module`` key to define the import path and the ``name`` key for name of the collation function.
+            Contains the ``module`` key to define the import path and the ``name`` key
+            for name of the collation function.
         sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
         model_name (str): Name of the model to be used in filenames of results.
         model_params (dict[str, Any]): Parameters parsed to the model class to initiate it.
@@ -172,9 +174,9 @@ class Trainer:
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
-        plots (dict[str, bool]): :class:`dict` that defines which plots to make from the results of testing using bools for each plot.
-            Possible plot types are:
-                * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs of fitting.
+        plots (dict[str, bool]): :class:`dict` that defines which plots to make from the results of testing
+            using bools for each plot. Possible plot types are:
+                * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs.
                 * CM: Plots a confusion matrix of the predictions against ground truth.
                 * Pred: Plots a pie chart of the relative sizes of the classes within the predictions from the model.
                 * ROC: Plots a *Receiver over Operator Curve* (ROC) including *Area Under Curve* (AUC) scores.
@@ -498,7 +500,11 @@ class Trainer:
         )
 
     def make_metric_logger(self) -> MinervaMetrics:
-        """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
+        """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
+
+        Returns:
+            MinervaMetrics: Constructed metric logger.
+        """
 
         # Gets the size of the input data to the network (without batch dimension).
         data_size = self.params["input_size"]
@@ -523,7 +529,7 @@ class Trainer:
         """Creates an object to log the results from each step of model fitting during an epoch.
 
         Returns:
-            Callable[..., Any]: The constructor of :class:`MinervaLogger` to be intialised within the epoch.
+            Callable[..., Any]: The constructor of :class:`~logger.MinervaLogger` to be intialised within the epoch.
         """
         logger: Callable[..., Any] = utils.func_by_str(
             "minerva.logger", self.params["logger"]
@@ -902,7 +908,7 @@ class Trainer:
                 This may result in memory issues on large amounts of data! Defaults to False.
 
         Returns:
-            Optional[dict[str, Any]]: Results dictionary from the epoch logger if ``record_int``
+            dict[str, Any] | None: Results dictionary from the epoch logger if ``record_int``
             or ``record_float`` are ``True``.
         """
 
@@ -1114,8 +1120,8 @@ class Trainer:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
 
         Args:
-            predictions (ArrayLike): List of predicted labels.
-            labels (ArrayLike): List of corresponding ground truth label masks.
+            predictions (ArrayLike[int]): List of predicted labels.
+            labels (ArrayLike[int]): List of corresponding ground truth label masks.
         """
         # Ensures predictions and labels are flattened.
         preds: NDArray[Any, Int] = utils.batch_flatten(predictions)

@@ -65,9 +65,9 @@ class MinervaLogger(ABC):
         n_batches (int): Number of batches in the epoch.
         batch_size (int): Size of the batch.
         n_samples (int): Total number of samples in the epoch.
-        logs (Dict[str, Any]): Dictionary to hold the logs from the epoch.
-            Logs should be more lightweight than `results`.
-        results (Dict[str, Any]): Dictionary to hold the results from the epoch.
+        logs (dict[str, Any]): Dictionary to hold the logs from the epoch.
+            Logs should be more lightweight than ``results``.
+        results (dict[str, Any]): Dictionary to hold the results from the epoch.
 
     Args:
         n_batches (int): Number of batches in the epoch.
@@ -77,8 +77,8 @@ class MinervaLogger(ABC):
             Defaults to ``True``.
         record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
             Defaults to ``False``.
-        writer (Union[SummaryWriter, Run]): Optional; Writer object from :mod:`tensorboard`,
-            a :mod:`wandb` :class:`Run` object or ``None``.
+        writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run): Optional; Writer object
+            from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
     """
 
     __metaclass__ = abc.ABCMeta
@@ -110,7 +110,7 @@ class MinervaLogger(ABC):
         Args:
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
-            loss (Tensor): Loss from this step of model fitting.
+            loss (~torch.Tensor): Loss from this step of model fitting.
 
         Returns:
             None
@@ -134,10 +134,10 @@ class MinervaLogger(ABC):
         Args:
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
-            loss (Tensor): Loss from this step of model fitting.
-            z (Tensor): Optional; Output tensor from the model.
-            y (Tensor): Optional; Labels to assess model output against.
-            bbox (BoundingBox): Optional; Bounding boxes of the input samples.
+            loss (~torch.Tensor): Loss from this step of model fitting.
+            z (~torch.Tensor): Optional; Output tensor from the model.
+            y (~torch.Tensor): Optional; Labels to assess model output against.
+            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
 
         Returns:
             None
@@ -147,7 +147,15 @@ class MinervaLogger(ABC):
     def write_metric(
         self, mode: str, key: str, value: SupportsFloat, step_num: Optional[int] = None
     ):
-        """Write metric values to logging backends after calculation"""
+        """Write metric values to logging backends after calculation.
+
+        Args:
+            mode (str): Mode of model fitting.
+            key (str): Key for the metric that ``value`` belongs to.
+            value (SupportsFloat): Metric to write to logger.
+            step_num (int): Optional; Global step number for this ``mode`` of fitting.
+
+        """
         # TODO: Are values being reduced across nodes / logged from rank 0?
         if self.writer:
             if isinstance(self.writer, SummaryWriter):
@@ -169,7 +177,7 @@ class MinervaLogger(ABC):
         """Gets the logs dictionary.
 
         Returns:
-            Dict[str, Any]: Log dictionary of the logger.
+            dict[str, Any]: Log dictionary of the logger.
         """
         return self.logs
 
@@ -178,7 +186,7 @@ class MinervaLogger(ABC):
         """Gets the results dictionary.
 
         Returns:
-            Dict[str,Any]: Results dictionary of the logger.
+            dict[str, Any]: Results dictionary of the logger.
         """
         return self.results
 
@@ -186,18 +194,37 @@ class MinervaLogger(ABC):
 class STGLogger(MinervaLogger):
     """Logger designed for supervised learning using :mod:`torchgeo` datasets.
 
+    Attributes:
+        logs (dict[str, Any]): The main logs from the KNN with these metrics:
+
+            * ``batch_num``
+            * ``total_loss``
+            * ``total_correct``
+            * ``total_top5``
+
+        results (dict[str, Any]): Hold these additional, full results from the KNN:
+
+            * ``y``
+            * ``z``
+            * ``probs``
+            * ``ids``
+            * ``bounds``
+
+        calc_miou (bool): Activates the calculating and logging of :term:`MIoU` for segmentation models.
+            Places the metric in the ``total_miou`` key of ``logs``.
+
     Args:
         n_batches (int): Number of batches in the epoch.
         batch_size (int): Size of the batch.
         n_samples (int): Total number of samples in the epoch.
-        out_shape (Tuple[int, ...]): Shape of the model output.
+        out_shape (tuple[int, ...]): Shape of the model output.
         n_classes (int): Number of classes in dataset.
         record_int (bool): Optional; Whether to record the integer values from an epoch of model fitting.
-            Defaults to True.
+            Defaults to ``True``.
         record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
-            Defaults to False.
-        writer (Union[SummaryWriter, Run]): Optional; Writer object from :mod:`tensorboard`,
-            a :mod:`wandb` :class:`Run` object or ``None``.
+            Defaults to ``False``.
+        writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run): Optional; Writer object
+            from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
 
     Raises:
         MemoryError: If trying to allocate memory to hold the probabilites of predictions
@@ -290,10 +317,10 @@ class STGLogger(MinervaLogger):
         Args:
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
-            loss (Tensor): Loss from this step of model fitting.
-            z (Tensor): Output tensor from the model.
-            y (Tensor): Labels to assess model output against.
-            bbox (BoundingBox): Bounding boxes of the input samples.
+            loss (~torch.Tensor): Loss from this step of model fitting.
+            z (~torch.Tensor): Output tensor from the model.
+            y (~torch.Tensor): Labels to assess model output against.
+            bbox (~torchgeo.datasets.utils.BoundingBox): Bounding boxes of the input samples.
 
         Returns:
             None
@@ -356,6 +383,37 @@ class STGLogger(MinervaLogger):
 
 
 class KNNLogger(MinervaLogger):
+    """Logger specifically designed for use with the KNN validation in
+    :meth:`trainer.Trainer.weighted_knn_validation`.
+
+    Attributes:
+        logs (dict[str, Any]): The main logs from the KNN with these metrics:
+
+            * ``batch_num``
+            * ``total_loss``
+            * ``total_correct``
+            * ``total_top5``
+
+        results (dict[str, Any]): Hold these additional, full results from the KNN:
+
+            * ``y``
+            * ``z``
+            * ``probs``
+            * ``ids``
+            * ``bounds``
+
+    Args:
+        n_batches (int): Number of batches in the epoch.
+        batch_size (int): Size of the batch.
+        n_samples (int): Total number of samples in the epoch.
+        record_int (bool): Optional; Whether to record the integer values from an epoch of model fitting.
+            Defaults to ``True``.
+        record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
+            Defaults to ``False``.
+        writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wand_run.Run): Optional; Writer object
+            from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
+    """
+
     def __init__(
         self,
         n_batches: int,
@@ -425,18 +483,33 @@ class KNNLogger(MinervaLogger):
 class SSLLogger(MinervaLogger):
     """Logger designed for self-supervised learning.
 
+    Attributes:
+        logs (dict[str, Any]): Dictionary to hold these logged metrics:
+
+            * ``batch_num``
+            * ``total_loss``
+            * ``total_correct``
+            * ``total_top5``
+            * ``avg_loss``
+            * ``avg_output_std``
+
+        collapse_level (bool): Adds calculation and logging of the :term:`collapse level` to the metrics.
+            Only to be used with Siamese type models.
+        euclidean (bool): Adds calculation and logging of the :term:`euclidean distance` to the metrics.
+            Only to be used with Siamese type models.
+
     Args:
         n_batches (int): Number of batches in the epoch.
         batch_size (int): Size of the batch.
         n_samples (int): Total number of samples in the epoch.
-        out_shape (Tuple[int, ...]): Shape of the model output.
+        out_shape (tuple[int, ...]): Shape of the model output.
         n_classes (int): Number of classes in dataset.
         record_int (bool): Optional; Whether to record the integer values from an epoch of model fitting.
-            Defaults to True.
+            Defaults to ``True``.
         record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
-            Defaults to False.
-        writer (Union[SummaryWriter, Run]): Optional; Writer object from :mod:`tensorboard`,
-            a :mod:`wandb` :class:`Run` object or ``None``.
+            Defaults to ``False``.
+        writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wand_run.Run): Optional; Writer object
+            from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
     """
 
     def __init__(
@@ -493,10 +566,10 @@ class SSLLogger(MinervaLogger):
         Args:
             mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
-            loss (Tensor): Loss from this step of model fitting.
-            z (Tensor): Optional; Output tensor from the model.
-            y (Tensor): Optional; Labels to assess model output against.
-            bbox (BoundingBox): Optional; Bounding boxes of the input samples.
+            loss (~torch.Tensor): Loss from this step of model fitting.
+            z (~torch.Tensor): Optional; Output tensor from the model.
+            y (~torch.Tensor): Optional; Labels to assess model output against.
+            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
         """
         assert z is not None
 
