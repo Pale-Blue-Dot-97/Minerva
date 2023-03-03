@@ -85,7 +85,7 @@ class Trainer:
         model: Model to be fitted of a class contained within :mod:`~minerva.models`.
         max_epochs (int): Number of epochs to train the model for.
         batch_size (int): Size of each batch of samples supplied to the model.
-        loaders (dict[str, :class:`~torch.utils.data.DataLoader`]): :class:`dict` containing
+        loaders (dict[str, ~torch.utils.data.DataLoader]): :class:`dict` containing
             :class:`~torch.utils.data.DataLoader` (s) for each dataset.
         n_batches (dict[str, int]): Dictionary of the number of batches to supply to the model for train,
             validation and testing.
@@ -97,11 +97,11 @@ class Trainer:
         fine_tune (bool): Assumes this is a fine-tuning job if ``True``. Will attempt to load model weights
             from cache.
         class_dist (Any): Distribution of classes within the data.
-        exp_name (Path): :class:`~pathlib.Path` to the unique results directory for this experiment.
+        exp_name (~pathlib.Path): :class:`~pathlib.Path` to the unique results directory for this experiment.
         sample_pairs (bool): Whether samples are paired together for Siamese learning.
         modes (tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
-        writer (SummaryWriter | Run | None): The *writer* to perform logging for this experiment.
-            For use with either Tensorboard or Weights and Biases.
+        writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run | None): The *writer*
+            to perform logging for this experiment. For use with either :mod:`tensorboard` or :mod:`wandb`.
         stopper (EarlyStopper | None): Early stopping function.
         early_stop (bool): Whether early stopping has been triggered. Will end model training if ``True``.
         n_samples (dict[str, int]): Number of samples in each mode of model fitting.
@@ -115,7 +115,7 @@ class Trainer:
         rank (int): Optional; The rank of this process across all devices in the distributed run.
         world_size (int): Optional; The total number of processes across the distributed run.
         verbose (bool): Turns messages to stdout off/on.
-        wandb_run (Run | RunDisabled): Optional; Run object for Weights and Biases.
+        wandb_run (~wandb.sdk.wandb_run.Run | RunDisabled): Optional; Run object for Weights and Biases.
         params (dict[str, Any]): Dictionary describing all the parameters that define how the model will be
             constructed, trained and evaluated. These should be defined via config ``YAML`` files.
 
@@ -123,7 +123,7 @@ class Trainer:
         batch_size (int): Number of samples in each batch.
         elim (bool): Will eliminate classes that have no samples in and reorder the class labels so they
             still run from ``0`` to ``n-1`` classes where ``n`` is the reduced number of classes.
-            ``minerva`` ensures that labels are converted between the old and new schemes seamlessly.
+            :mod:`minerva` ensures that labels are converted between the old and new schemes seamlessly.
         model_type (str): Defines the type of the model. If ``siamese``, ensures inappropiate functionality is not used.
         dir (dict[str, Any]): Dictionary providing the paths to directories needed. Must include the ``data`` path.
         loader_params (dict[str, Any]): Parameters for the :class:`~torch.utils.data.DataLoader`.
@@ -391,7 +391,7 @@ class Trainer:
         """Get the path to where to cache this model to.
 
         Returns:
-            :class:`~pathlib.Path`: :class:`~pathlib.Path` to cache directory and the filename
+            ~pathlib.Path: :class:`~pathlib.Path` to cache directory and the filename
             (model name excluding version and file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
@@ -401,7 +401,7 @@ class Trainer:
         """Get the path to the cached version of the pre-trained model.
 
         Returns:
-            :class:`~pathlib.Path`: :class:`~pathlib.Path` to the cached model (excluding file extension).
+            ~pathlib.Path: :class:`~pathlib.Path` to the cached model (excluding file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
         return Path(cache_dir / Path(self.params["pre_train_name"]).with_suffix(""))
@@ -434,7 +434,7 @@ class Trainer:
         return model
 
     def load_onnx_model(self) -> MinervaModel:
-        """Loads and returns a :mod:`onnx` model from the cache in :mod:`pytorch` form.
+        """Loads and returns a :mod:`onnx` model from the cache in :mod:`torch` form.
 
         Assumes that the :mod:`onnx` model came from :mod:`minerva`.
 
@@ -534,7 +534,7 @@ class Trainer:
         """Fetches a func to handle IO for the type of model used in the experiment.
 
         Returns:
-            Callable: Model IO function requested from parameters.
+            Callable[..., Any]: Model IO function requested from parameters.
         """
         io_func: Callable[..., Any] = utils.func_by_str(
             "minerva.modelio", self.params["model_io"]
@@ -854,6 +854,9 @@ class Trainer:
 
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
+
+        Args:
+            mode (str): The mode of model fitting that the embeddings come from.
         """
         # Get a batch of data.
         data = next(iter(self.loaders[mode]))
@@ -1161,7 +1164,7 @@ class Trainer:
         """Saves the model object itself to :mod:`torch` file.
 
         Args:
-            fn (:class:`~pathlib.Path` | str): Optional; Filename and path (excluding extension) to save model to.
+            fn (~pathlib.Path | str): Optional; Filename and path (excluding extension) to save model to.
             format (str): Optional; Format to save model to. ``pt`` for :mod:`torch`, or :mod:`onnx` for ONNX.
 
         Raises:
