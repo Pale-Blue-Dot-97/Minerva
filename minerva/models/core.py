@@ -162,8 +162,8 @@ class MinervaModel(Module, ABC):
             NotImplementedError: If ``self.criterion`` is None.
 
         Args:
-            x (torch.Tensor): Batch of input data to network.
-            y (torch.Tensor): Either a batch of ground truth labels or generated labels/ pairs.
+            x (~torch.Tensor): Batch of input data to network.
+            y (~torch.Tensor): Either a batch of ground truth labels or generated labels/ pairs.
             train (bool): Sets whether this shall be a training step or not. ``True`` for training step
                 which will then clear the optimiser, and perform a backward pass of the network then
                 update the optimiser. If ``False`` for a validation or testing step, these actions are not taken.
