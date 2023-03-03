@@ -66,21 +66,21 @@ class ResNet(MinervaModel, ABC):
         dilation (int): Dilation factor of convolutions. Initially set to ``1``.
         groups (int): Number of convolutions in grouped convolutions of Bottleneck Blocks.
         base_width (int): Modifies the number of feature maps in convolutional layers of Bottleneck Blocks.
-        conv1 (torch.nn.Conv2d): Input convolutional layer of Conv1 input block to the network.
-        bn1 (Module): Batch normalisation layer of the Conv1 input block to the network.
-        relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
-        maxpool (torch.nn.MaxPool2d): 3x3 Max-pooling layer with stride 2 of the Conv1 input block to the network.
-        layer1 (torch.nn.Sequential): Layer 1 of the :class:`ResNet` comprising number and type of blocks defined
+        conv1 (~torch.nn.Conv2d): Input convolutional layer of Conv1 input block to the network.
+        bn1 (~torch.nn.Module): Batch normalisation layer of the Conv1 input block to the network.
+        relu (~torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout ResNet.
+        maxpool (~torch.nn.MaxPool2d): 3x3 Max-pooling layer with stride 2 of the Conv1 input block to the network.
+        layer1 (~torch.nn.Sequential): Layer 1 of the :class:`ResNet` comprising number and type of blocks defined
             by ``layers``.
-        layer2 (torch.nn.Sequential): Layer 2 of the :class:`ResNet` comprising number and type of blocks defined
+        layer2 (~torch.nn.Sequential): Layer 2 of the :class:`ResNet` comprising number and type of blocks defined
             by ``layers``.
-        layer3 (torch.nn.Sequential): Layer 3 of the :class:`ResNet` comprising number and type of blocks defined
+        layer3 (~torch.nn.Sequential): Layer 3 of the :class:`ResNet` comprising number and type of blocks defined
             by ``layers``.
-        layer4 (torch.nn.Sequential): Layer 4 of the :class:`ResNet` comprising number and type of blocks defined
+        layer4 (~torch.nn.Sequential): Layer 4 of the :class:`ResNet` comprising number and type of blocks defined
             by ``layers``.
-        avgpool (torch.nn.AdaptiveAvgPool2d): Global average pooling layer taking the output from the last block.
+        avgpool (~torch.nn.AdaptiveAvgPool2d): Global average pooling layer taking the output from the last block.
             Only initialised if ``encoder_on=False``.
-        fc (torch.nn.Linear): Fully connected layer that takes the flattened output from average pooling
+        fc (~torch.nn.Linear): Fully connected layer that takes the flattened output from average pooling
             to a classification output. Only initialised if ``encoder_on=False``.
 
     .. warning::
@@ -88,8 +88,9 @@ class ResNet(MinervaModel, ABC):
         ``groups`` and ``width_per_group``.
 
     Args:
-        block (BasicBlock or Bottleneck): Type of block operations to use throughout network.
-        layers (list): Number of blocks in each of the 4 `layers`.
+        block (~torchvision.models.resnet.BasicBlock | ~torchvision.models.resnet.Bottleneck): Type of block operations
+            to use throughout network.
+        layers (list[int] | tuple[int, int, int, int]): Number of blocks in each of the 4 ``layers``.
         in_channels (int): Optional; Number of channels (or bands) in the input imagery.
         n_classes (int): Optional; Number of classes in data to be classified.
         zero_init_residual (bool): Optional; If ``True``, zero-initialise the last BN in each residual branch,
@@ -98,13 +99,14 @@ class ResNet(MinervaModel, ABC):
             Not compatible with Basic Block!
         width_per_group (int): Optional; Modifies the number of feature maps in convolutional layers
             of Bottleneck Blocks. Not compatible with Basic Block!
-        replace_stride_with_dilation (tuple): Optional; Each element in the tuple indicates whether to replace the
-            2x2 stride with a dilated convolution instead. Must be a three element tuple of bools.
+        replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates
+            whether to replace the ``2x2`` stride with a dilated convolution instead.
+            Must be a three element tuple of bools.
         norm_layer (function): Optional; Normalisation layer to use in each block.
-            Typically, :class:`torch.nn.BatchNorm2d`.
+            Typically, :class:`~torch.nn.BatchNorm2d`.
         encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
-            If True, forward method returns the output of each layer block. avgpool and fc are not initialised.
-            If False, adds a global average pooling layer after the last block, flattens the output
+            If ``True``, forward method returns the output of each layer block. avgpool and fc are not initialised.
+            If ``False``, adds a global average pooling layer after the last block, flattens the output
             and passes through a fully connected layer for classification output.
 
     Raises:
@@ -314,16 +316,17 @@ class ResNet(MinervaModel, ABC):
     ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
         """Performs a forward pass of the :class:`ResNet`.
 
-        Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
+        Can be called directly as a method (e.g. ``model.forward``) or when data is parsed
         to model (e.g. ``model()``).
 
         Args:
-            x (Tensor): Input data to network.
+            x (~torch.Tensor): Input data to network.
 
         Returns:
-            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
-            returns a tuple of outputs from each `layer` 1-4. Else, returns :class:`Tensor` of the likelihoods the
-            network places on the input `x` being of each class.
+            ~torch.Tensor | Tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
+            initialised as an encoder, returns a tuple of outputs from each ``layer`` 1-4. Else,
+            returns :class:`~torch.Tensor` of the likelihoods the network places on the
+            input ``x`` being of each class.
         """
         return self._forward_impl(x)
 
@@ -410,12 +413,12 @@ class _ResNetX(MinervaModel):
         to model (e.g. ``model()``).
 
         Args:
-            x (Tensor): Input data to network.
+            x (~torch.Tensor): Input data to network.
 
         Returns:
-            Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]: If initialised as an encoder,
-            returns a tuple of outputs from each ``layer`` 1-4. Else, returns :class:`Tensor` of the likelihoods the
-            network places on the input ``x`` being of each class.
+            torch.Tensor | tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
+            initialised as an encoder, returns a tuple of outputs from each ``layer`` 1-4. Else, returns
+            :class:`~torch.Tensor` of the likelihoods the network places on the input ``x`` being of each class.
         """
         z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
             x

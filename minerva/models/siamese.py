@@ -58,8 +58,8 @@ class MinervaSiamese(MinervaBackbone):
     """Abstract class for Siamese models.
 
     Attributes:
-        backbone (MinervaModel):
-        proj_head (Module):
+        backbone (MinervaModel): The backbone encoder for the Siamese model.
+        proj_head (~torch.nn.Module): The projection head for re-projecting the outputs from the ``backbone``.
     """
 
     __metaclass__ = abc.ABCMeta
@@ -77,10 +77,10 @@ class MinervaSiamese(MinervaBackbone):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (Tensor): Pair of batches of input data to the network.
+            x (~torch.Tensor): Pair of batches of input data to the network.
 
         Returns:
-            Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]: Tuple of:
+            tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: Tuple of:
                 * Ouput feature vectors concated together.
                 * Output feature vector A.
                 * Output feature vector B.
@@ -94,10 +94,10 @@ class MinervaSiamese(MinervaBackbone):
         feeding its output into the projection heads.
 
         Args:
-            x (Tensor): Pair of batches of input data to the network.
+            x (~torch.Tensor): Pair of batches of input data to the network.
 
         Returns:
-            Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]: Tuple of:
+            tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: Tuple of:
                 * Ouput feature vectors concated together.
                 * Output feature vector A.
                 * Output feature vector B.
@@ -119,11 +119,11 @@ class MinervaSiamese(MinervaBackbone):
         and feeding its output into the projection heads.
 
         Args:
-            x (Tensor): (Unpaired) Batch of input data to the network.
+            x (~torch.Tensor): (Unpaired) Batch of input data to the network.
 
         Returns:
-            Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
-            embedding vector from the backbone.
+            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the projection head
+            and the detached embedding vector from the backbone.
         """
         raise NotImplementedError  # pragma: no cover
 
@@ -179,11 +179,11 @@ class _SimCLR(MinervaSiamese):
         and feeding its output into the projection heads.
 
         Args:
-            x (Tensor): (Unpaired) Batch of input data to the network.
+            x (~torch.Tensor): (Unpaired) Batch of input data to the network.
 
         Returns:
-            Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
-            embedding vector from the backbone.
+            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the projection head
+            and the detached embedding vector from the backbone.
         """
         f: Tensor = torch.flatten(self.backbone(x)[0], start_dim=1)
         g: Tensor = self.proj_head(f)
@@ -197,13 +197,13 @@ class _SimCLR(MinervaSiamese):
             NotImplementedError: If ``self.optimiser`` is None.
 
         Args:
-            x (Tensor): Batch of input data to network.
+            x (~torch.Tensor): Batch of input data to network.
             train (bool): Sets whether this shall be a training step or not. True for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
                 If False for a validation or testing step, these actions are not taken.
 
         Returns:
-            Tuple[Tensor, Tensor]: Loss computed by the loss function and a :class:`Tensor`
+            tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
             with both projection's logits.
         """
 
@@ -315,11 +315,11 @@ class _SimSiam(MinervaSiamese):
         and feeding its output into the projection heads.
 
         Args:
-            x (Tensor): (Unpaired) Batch of input data to the network.
+            x (~torch.Tensor): (Unpaired) Batch of input data to the network.
 
         Returns:
-            Tuple[Tensor, Tensor]: Tuple of the feature vector outputted from the projection head and the detached
-            embedding vector from the backbone.
+            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the projection head
+            and the detached embedding vector from the backbone.
         """
         z: Tensor = self.proj_head(torch.flatten(self.backbone(x)[0], start_dim=1))  # type: ignore[attr-defined]
 
@@ -334,13 +334,13 @@ class _SimSiam(MinervaSiamese):
             NotImplementedError: If ``self.optimiser`` is None.
 
         Args:
-            x (Tensor): Batch of input data to network.
+            x (~torch.Tensor): Batch of input data to network.
             train (bool): Sets whether this shall be a training step or not. True for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
                 If False for a validation or testing step, these actions are not taken.
 
         Returns:
-            Tuple[Tensor, Tensor]: Loss computed by the loss function and a :class:`Tensor`
+            tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
             with both projection's logits.
         """
 
