@@ -200,8 +200,8 @@ def get_mlp_cmap(
 
     Returns:
         Union[Colormap, None]:
-        * If ``cmap_style`` and ``n_classes`` provided, returns a :class:`ListedColormap` instance.
-        * If ``cmap_style`` provided but no ``n_classes``, returns a :class:`Colormap` instance.
+        * If ``cmap_style`` and ``n_classes`` provided, returns a :class:`~matplotlib.colors.ListedColormap` instance.
+        * If ``cmap_style`` provided but no ``n_classes``, returns a :class:`~matplotlib.colors.Colormap` instance.
         * If neither arguments are provided, ``None`` is returned.
     """
     cmap: Optional[Colormap] = None
@@ -305,7 +305,7 @@ def make_rgb_image(
     """Creates an RGB image from a composition of red, green and blue bands.
 
     Args:
-        image (np.ndarray[int]): Array representing the image of shape (bands x height x width).
+        image (np.ndarray[int]): Array representing the image of shape ``(bands x height x width)``.
         rgb (dict): Dictionary of channel numbers of R, G & B bands within ``image``.
         block_size (int): Optional; Size of block image sub-division in pixels.
 
@@ -349,7 +349,7 @@ def labelled_rgb_image(
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
-        image (np.ndarray[int]): Array representing the image of shape (height x width x bands).
+        image (np.ndarray[int]): Array representing the image of shape ``(height x width x bands)``.
         mask (np.ndarray[int]): Ground truth mask. Should be of shape (height x width) matching ``image``.
         bounds (BoundingBox): Object describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
