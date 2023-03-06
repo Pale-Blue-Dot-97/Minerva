@@ -205,6 +205,8 @@ def test_make_dataset() -> None:
 def test_construct_dataloader() -> None:
     data_dir = ["tests", "tmp", "data"]
 
+    batch_size = 256
+
     dataset_params = {
         "image": {
             "module": "minerva.datasets",
@@ -221,7 +223,6 @@ def test_construct_dataloader() -> None:
         "params": {
             "size": 224,
             "length": 4096,
-            "batch_size": 16,
         },
     }
 
@@ -239,21 +240,31 @@ def test_construct_dataloader() -> None:
         "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
     }
 
-    dataloader_params = {"batch_size": 256, "num_workers": 2, "pin_memory": True}
+    dataloader_params = {"num_workers": 2, "pin_memory": True}
 
     dataloader_1 = mdt.construct_dataloader(
-        data_dir, dataset_params, sampler_params_1, dataloader_params
+        data_dir,
+        dataset_params,
+        sampler_params_1,
+        dataloader_params,
+        batch_size,
     )
     dataloader_2 = mdt.construct_dataloader(
         data_dir,
         dataset_params,
         sampler_params_2,
         dataloader_params,
+        batch_size,
         transform_params=transform_params,
         sample_pairs=True,
     )
     dataloader_3 = mdt.construct_dataloader(
-        data_dir, dataset_params, sampler_params_1, dataloader_params, world_size=2
+        data_dir,
+        dataset_params,
+        sampler_params_1,
+        dataloader_params,
+        batch_size,
+        world_size=2,
     )
 
     assert isinstance(dataloader_1, DataLoader)

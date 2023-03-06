@@ -5,16 +5,13 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="200">
+  <a>
+    <img src="images/Minerva_logo.png" alt="Logo" width="" height="200">
   </a>
   <p align="center">
     <b style="font-size:26px;"> Minerva 0.21-beta</b>
     <br />
     Framework for machine learning in remote sensing
-    <br />
-    <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
-    <br />
     <br />
     <a href="https://github.com/Pale-Blue-Dot-97/Minerva/issues">Report Bug</a>
     ·

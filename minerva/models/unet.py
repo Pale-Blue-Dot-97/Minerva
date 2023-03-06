@@ -64,7 +64,7 @@ class DoubleConv(Module):
     Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
 
     Attributes:
-        double_conv (Module):
+        double_conv (~torch.nn.Module): Double convolutions.
 
     Args:
         in_channels (int): Number of input channels.
@@ -92,10 +92,10 @@ class DoubleConv(Module):
         """Applies the double convolutions to the input.
 
         Args:
-            x (Tensor): Input tensor.
+            x (~torch.Tensor): Input tensor.
 
         Returns:
-            Tensor: Input passed through the double convolutions.
+            ~torch.Tensor: Input passed through the double convolutions.
         """
         x = self.double_conv(x)
         assert isinstance(x, Tensor)
@@ -108,7 +108,7 @@ class Down(Module):
     Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
 
     Attributes:
-        maxpool_conv (Module): :class:`Sequential` of :class:`MaxPool2d` then :class:`DoubleConv`.
+        maxpool_conv (Module): :class:`~torch.nn.Sequential` of :class:`MaxPool2d` then :class:`DoubleConv`.
 
     Args:
         in_channels (int): Number of input channels.
@@ -125,10 +125,10 @@ class Down(Module):
         """Applies a maxpool then double convolution to the input.
 
         Args:
-            x (Tensor): Input tensor.
+            x (~torch.Tensor): Input tensor.
 
         Returns:
-            Tensor: Input tensor passed through maxpooling then double convolutions.
+            ~torch.Tensor: Input tensor passed through maxpooling then double convolutions.
         """
         x = self.maxpool_conv(x)
         assert isinstance(x, Tensor)
@@ -141,7 +141,7 @@ class Up(Module):
     Adapted from https://github.com/milesial/Pytorch-UNet for use in :mod:`minerva`.
 
     Attributes:
-        up (Module): Upsampling if ``bilinear==True``, else transpose convolutional layer.
+        up (~torch.nn.Module): Upsampling if ``bilinear==True``, else transpose convolutional layer.
         conv (DoubleConv): Double convolutional layers.
 
     Args:
@@ -172,11 +172,12 @@ class Up(Module):
         """Applies upscaling to ``x1``, concats ``x1`` with ``x2`` then applies :class:`DoubleConv` to the result.
 
         Args:
-            x1 (Tensor): Input tensor 1 to be upscaled to match ``x2``.
-            x2 (Tensor): Input tensor 2 to be concated with upscaled ``x1`` and passed through :class:`DoubleConv`.
+            x1 (~torch.Tensor): Input tensor 1 to be upscaled to match ``x2``.
+            x2 (~torch.Tensor): Input tensor 2 to be concated with upscaled ``x1``
+                and passed through :class:`DoubleConv`.
 
         Returns:
-            Tensor: Output tensor of the the upscaling and double convolutions.
+            ~torch.Tensor: Output tensor of the the upscaling and double convolutions.
         """
 
         x1 = self.up(x1)
@@ -197,12 +198,12 @@ class Up(Module):
 
 
 class OutConv(Module):
-    """1x1 convolution to change the number of channels down of the input.
+    """``1x1`` convolution to change the number of channels down of the input.
 
     Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
 
     Attributes:
-        conv (Module): 1x1 convolutional layer.
+        conv (~torch.nn.Module): ``1x1`` convolutional layer.
 
     Args:
         in_channels (int): Number of input channels.
@@ -217,10 +218,10 @@ class OutConv(Module):
         """Passes the input tensor through the 1x1 convolutional layer.
 
         Args:
-            x (Tensor): Input tensor.
+            x (~torch.Tensor): Input tensor.
 
         Returns:
-            Tensor: Input passed reduced from ``in_channels`` to ``out_channels``.
+            ~torch.Tensor: Input passed reduced from ``in_channels`` to ``out_channels``.
         """
         x = self.conv(x)
         assert isinstance(x, Tensor)
@@ -246,7 +247,7 @@ class UNet(MinervaModel):
         outc (OutConv): 1x1 output convolutional layer.
 
     Args:
-        criterion: PyTorch loss function model will use.
+        criterion: :mod:`torch` loss function model will use.
         input_size (tuple[int, ...]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
@@ -285,10 +286,10 @@ class UNet(MinervaModel):
         Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
 
         Args:
-            x (Tensor): Input tensor to the UNet.
+            x (~torch.Tensor): Input tensor to the UNet.
 
         Returns:
-            Tensor: Output from the UNet.
+            ~torch.Tensor: Output from the UNet.
         """
 
         x1 = self.inc(x)
@@ -312,18 +313,18 @@ class UNetR(MinervaModel):
     """UNet model which incorporates a :class:`ResNet` as the encoder.
 
     Attributes:
-        backbone (Module): Backbone of the FCN that takes the imagery input and
+        backbone (~torch.nn.Module): Backbone of the FCN that takes the imagery input and
             extracts learned representations.
         up1 (Up): First upsample then concatenated input double de-convolutional layer.
         up2 (Up): Second upsample then concatenated input double de-convolutional layer.
         up3 (Up): Third upsample then concatenated input double de-convolutional layer.
-        upsample1 (Module): First upsample from output of ``up3``.
-        upsample2 (Module): Second upsample from output of ``up3`` to match input spatial size.
+        upsample1 (~torch.nn.Module): First upsample from output of ``up3``.
+        upsample2 (~torch.nn.Module): Second upsample from output of ``up3`` to match input spatial size.
         outc (OutConv): 1x1 output convolutional layer.
 
     Args:
-        criterion: PyTorch loss function model will use.
-        input_size (Tuple[int, ...]): Optional; Defines the shape of the input data in
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int, ...]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         bilinear (bool): Optional;
@@ -331,7 +332,7 @@ class UNetR(MinervaModel):
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
             if using a pre-trained backbone.
-        backbone_kwargs (Dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
     backbone_name = "ResNet18"
@@ -404,10 +405,10 @@ class UNetR(MinervaModel):
         an output with the same spatial size as the input size.
 
         Args:
-            x (Tensor): Input tensor to the UNet.
+            x (~torch.Tensor): Input tensor to the UNet.
 
         Returns:
-            Tensor: Output from the UNet.
+            ~torch.Tensor: Output from the UNet.
         """
         # Output tensors from the residual blocks of the resnet.
         x4, x3, x2, x1, x0 = self.backbone(x)

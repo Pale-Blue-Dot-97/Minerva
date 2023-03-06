@@ -22,9 +22,9 @@
 Attributes:
     CONFIG_NAME (str): Name of the config to be used in the experiment.
     CONFIG_PATH (str): Path to the config.
-    MASTER_PARSER (ArgumentParser): Argparser for the CLI for the config loading.
-    CONFIG (Dict[str, Any]): The master config loaded by :mod:`config_load`.
-    AUX_CONFIGS (Dict[str, Any]): Dictionary containing the auxilary configs loaded by :mod:`config_load`.
+    MASTER_PARSER (~argparse.ArgumentParser): Argparser for the CLI for the config loading.
+    CONFIG (dict[str, Any]): The master config loaded by :mod:`config_load`.
+    AUX_CONFIGS (dict[str, Any]): Dictionary containing the auxilary configs loaded by :mod:`config_load`.
 """
 # =====================================================================================================================
 #                                                    METADATA

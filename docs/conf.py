@@ -16,12 +16,14 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../minerva/"))
 
+import minerva
 
 # -- Project information -----------------------------------------------------
 
-project = "Minerva"
+project = "minerva"
 copyright = "2023, Harry Baker"
-author = "Harry Baker"
+author = minerva.__author__
+version = minerva.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -29,7 +31,27 @@ author = "Harry Baker"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.napoleon", "sphinx.ext.autodoc", "myst_parser"]
+extensions = [
+    "sphinx.ext.napoleon",
+    "sphinx.ext.autodoc",
+    "sphinx.ext.intersphinx",
+    "myst_parser",
+]
+
+source_suffix = [".rst", ".md"]
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "typing": ("https://typing.readthedocs.io/en/latest/", None),
+    "torch": ("https://pytorch.org/docs/stable/", None),
+    "torchgeo": ("https://torchgeo.readthedocs.io/en/stable/", None),
+    "torchvision": ("https://pytorch.org/vision/stable/", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "rasterio": ("https://rasterio.readthedocs.io/en/stable/", None),
+    "pillow": ("https://pillow.readthedocs.io/en/stable/", None),
+}
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -54,3 +76,9 @@ html_theme = "sphinx_rtd_theme"
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["source/_static"]
+
+html_logo = "images/Minerva_logo.png"
+
+html_theme_options = {
+    "navigation_depth": -1,
+}

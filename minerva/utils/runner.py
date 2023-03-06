@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# PYTHON_ARGCOMPLETE_OK
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
@@ -20,7 +21,7 @@
 """Module to handle generic functionality for running :mod:`minerva` scripts.
 
 Attributes:
-    GENERIC_PARSER (ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
+    GENERIC_PARSER (~argparse.ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
         Can be used as the basis for a user defined extended argparser.
 """
 # =====================================================================================================================
@@ -32,6 +33,8 @@ __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "GENERIC_PARSER",
+    "WandbConnectionManager",
+    "setup_wandb_run",
     "config_env_vars",
     "config_args",
     "distributed_run",
@@ -64,6 +67,14 @@ from minerva.utils import CONFIG, MASTER_PARSER, utils
 GENERIC_PARSER = argparse.ArgumentParser(parents=[MASTER_PARSER])
 
 GENERIC_PARSER.add_argument(
+    "-o",
+    "--override",
+    dest="override",
+    action="store_true",
+    help="Override config arguments with the CLI arguments where they overlap.",
+)
+
+GENERIC_PARSER.add_argument(
     "--seed",
     dest="seed",
     type=int,
@@ -85,6 +96,49 @@ GENERIC_PARSER.add_argument(
     dest="model_type",
     type=str,
     help="Type of model. Should be 'segmentation', 'scene_classifier', 'siamese' or 'mlp'",
+    choices=("segmentation", "ssl", "siamese", "scene_classifier", "mlp"),
+)
+
+GENERIC_PARSER.add_argument(
+    "--max_epochs",
+    dest="max_epochs",
+    type=int,
+    default=100,
+    help="Maximum number of training epochs.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--batch-size",
+    dest="batch_size",
+    type=int,
+    default=8,
+    help="Number of samples in each batch.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--lr",
+    dest="lr",
+    type=float,
+    default=0.01,
+    help="Learning rate of the optimiser.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--optim-func",
+    dest="optim_func",
+    type=str,
+    default="SGD",
+    help="Name of the optimiser to use. Only works for ``torch`` losses"
+    + "(or if ``module`` is specified in the ``optim_params`` in the config)",
+)
+
+GENERIC_PARSER.add_argument(
+    "--loss-func",
+    dest="loss_func",
+    type=str,
+    default="CrossEntropyLoss",
+    help="Name of the loss function to use. Only works for ``torch`` losses"
+    + "(or if ``module`` is specified in the ``loss_params`` in the config)",
 )
 
 GENERIC_PARSER.add_argument(
@@ -139,6 +193,7 @@ GENERIC_PARSER.add_argument(
     + " Setting 'auto' will automatically save the model to file."
     + " 'true' will ask the user whether to or not at runtime."
     + " 'false' will not save the model and will not ask the user at runtime.",
+    choices=("true", "false", "auto"),
 )
 
 GENERIC_PARSER.add_argument(
@@ -150,6 +205,7 @@ GENERIC_PARSER.add_argument(
     + " Setting 'auto' will automatically locate and run the logs on a local browser."
     + " 'true' will ask the user whether to or not at runtime."
     + " 'false' will not save the model and will not ask the user at runtime.",
+    choices=("true", "false", "auto"),
 )
 
 GENERIC_PARSER.add_argument(
@@ -278,20 +334,21 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
 
     .. note::
         ``args`` must contain these keys:
-            * ``wandb_log`` (bool): Activate :mod:`wandb` logging.
-            * ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
-                Only log on the master process if ``False``.
-            * ``entity`` (str): :mod:`wandb` entity where to send runs to.
-            * ``project`` (str): Name of the :mod:`wandb` project this experiment belongs to.
-            * ``world_size`` (int): Total number of processes across the experiment.
+
+        * ``wandb_log`` (bool): Activate :mod:`wandb` logging.
+        * ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
+            Only log on master process if ``False``.
+        * ``entity`` (str): :mod:`wandb` entity where to send runs to.
+        * ``project`` (str): Name of the :mod:`wandb` project this experiment belongs to.
+        * ``world_size`` (int): Total number of processes across the experiment.
 
     Args:
         gpu (int): Local process (GPU) number.
-        args (Namespace): CLI arguments from :mod:`argparse`.
+        args (~argparse.Namespace): CLI arguments from :mod:`argparse`.
 
     Returns:
-        Optional[Union[Run, RunDisabled]]: The :mod:`wandb` run object for this process
-            or ``None`` if ``log_all=False`` and ``rank!=0``.
+        ~wandb.sdk.wandb_run.Run | ~wandb.sdk.lib.RunDisabled | None: The :mod:`wandb` run object
+            for this process or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
     run: Optional[Union[Run, RunDisabled]] = None
     if CONFIG.get("wandb_log", False) or CONFIG.get("project", None):
@@ -341,10 +398,11 @@ def config_env_vars(args: Namespace) -> Namespace:
     * ``args.dist_url = "tcp://localhost:58472"``.
 
     Args:
-        args (Namespace): Arguments from the CLI ``parser`` from :mod:`argparse`.
+        args (~argparse.Namespace): Arguments from the CLI ``parser`` from :mod:`argparse`.
 
     Returns:
-        Namespace: Inputted arguments with the addition of ``rank``, ``dist_url`` and ``world_sized`` attributes.
+        ~argparse.Namespace: Inputted arguments with the addition of ``rank``, ``dist_url``
+        and ``world_sized`` attributes.
     """
     if "SLURM_JOB_ID" in os.environ:  # pragma: no cover
         # Single-node and multi-node distributed training on SLURM cluster.
@@ -385,7 +443,7 @@ def config_env_vars(args: Namespace) -> Namespace:
 
 
 def config_args(args: Namespace) -> Namespace:
-    """Prepare the arguments generated from the :mod:`argparser` CLI for the job run.
+    """Prepare the arguments generated from the :mod:`argparse` CLI for the job run.
 
     * Finds and sets ``args.ngpus_per_node``;
     * updates the ``CONFIG`` with new arguments from the CLI;
@@ -393,10 +451,11 @@ def config_args(args: Namespace) -> Namespace:
     * uses :func:`config_env_vars` to determine the correct arguments for distributed computing jobs e.g. SLURM.
 
     Args:
-        args (Namespace): Arguments from the CLI ``parser`` from :mod:`argparse`.
+        args (~argparse.Namespace): Arguments from the CLI ``parser`` from :mod:`argparse`.
 
     Returns:
-        Namespace: Inputted arguments with the addition of ``rank``, ``dist_url`` and ``world_sized`` attributes.
+        ~argparse.Namespace: Inputted arguments with the addition of ``rank``, ``dist_url``
+        and ``world_sized`` attributes.
     """
     args.ngpus_per_node = torch.cuda.device_count()
 
@@ -408,6 +467,16 @@ def config_args(args: Namespace) -> Namespace:
 
     # Updates the config with new arguments from the CLI.
     CONFIG.update(new_args)
+
+    # Overrides the arguments from the config with those of the CLI where they overlap.
+    # WARNING: This will include the use of the default CLI arguments.
+    if args_dict.get("override"):  # pragma: no cover
+        updated_args = {
+            key: args_dict[key]
+            for key in args_dict
+            if args_dict[key] != CONFIG[key] and args_dict[key] is not None
+        }
+        CONFIG.update(updated_args)
 
     # Get seed from config.
     seed = CONFIG.get("seed", 42)
@@ -447,7 +516,7 @@ def _run_preamble(
 def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> None:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
-    :func:`run_preamble` adds some additional commands to initialise the process group for each run
+    :func:`_run_preamble` adds some additional commands to initialise the process group for each run
     and allocating the GPU device number to use before running the supplied function.
 
     Note:
@@ -455,8 +524,8 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         configured using :func:`config_env_vars` or :func:`config_args`.
 
     Args:
-        run (Callable[[int, Namespace], Any]): Function to run with distributed computing.
-        args (Namespace): Arguments for the run and to specify the variables for distributed computing.
+        run (Callable[[int, ~argparse.Namespace], Any]): Function to run with distributed computing.
+        args (~argparse.Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
     if args.world_size <= 1:
         # Setups up the `wandb` run.

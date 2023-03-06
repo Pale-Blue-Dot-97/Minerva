@@ -25,10 +25,11 @@
 Attributes:
     DATA_CONFIG (dict): Config defining the properties of the data used in the experiment.
     IMAGERY_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
-    DATA_DIR (list): Path to directory holding dataset.
+    DATA_DIR (list[str] | str): Path to directory holding dataset.
     BAND_IDS (dict): Band IDs and position in sample image.
     MAX_PIXEL_VALUE (int): Maximum pixel value (e.g. 255 for 8-bit integer).
-    WGS84 (CRS): WGS84 co-ordinate reference system acting as a default CRS for transformations.
+    WGS84 (~rasterio.crs.CRS): WGS84 co-ordinate reference system acting as a
+        default :class:`~rasterio.crs.CRS` for transformations.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -44,6 +45,23 @@ __all__ = [
     "BAND_IDS",
     "MAX_PIXEL_VALUE",
     "WGS84",
+    "de_interlace",
+    "dec_extent_to_deg",
+    "get_mlp_cmap",
+    "discrete_heatmap",
+    "stack_rgb",
+    "make_rgb_image",
+    "labelled_rgb_image",
+    "make_gif",
+    "prediction_plot",
+    "seg_plot",
+    "plot_subpopulations",
+    "plot_history",
+    "make_confusion_matrix",
+    "make_roc_curves",
+    "plot_embedding",
+    "format_plot_names",
+    "plot_results",
 ]
 
 # =====================================================================================================================
@@ -120,7 +138,7 @@ def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any, Any]:
         f (int): Frequency at which interlacing occurs. Equivalent to number of sources interlaced together.
 
     Returns:
-        NDArray: De-interlaced array. Each source array is now sequentially connected.
+        ~numpy.ndarray: De-interlaced array. Each source array is now sequentially connected.
     """
     new_x: List[NDArray[Any, Any]] = []
     for i in range(f):
@@ -142,15 +160,15 @@ def dec_extent_to_deg(
     """Gets the extent of the image with ``shape`` and with ``bounds`` in latitude, longitude of system ``new_crs``.
 
     Args:
-        shape (Tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
-        bounds (BoundingBox): Object describing a geospatial bounding box.
+        shape (tuple[int, int]): 2D shape of image to be used to define the extents of the composite image.
+        bounds (~torchgeo.datasets.utils.BoundingBox): Object describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
-        src_crs (CRS): Source co-ordinate reference system (CRS).
-        new_crs (CRS): Optional; The co-ordinate reference system (CRS) to transform to.
+        src_crs (~rasterio.crs.CRS): Source co-ordinate reference system (CRS).
+        new_crs (~rasterio.crs.CRS): Optional; The co-ordinate reference system (CRS) to transform to.
         spacing (int): Spacing of the lat - lon ticks.
 
     Returns:
-        Tuple[Tuple[int, int, int, int], NDArray[Any, Float], NDArray[Any, Float]]:
+        tuple[tuple[int, int, int, int], ~numpy.ndarray[float], ~numpy.ndarray[float]]:
             * The corners of the image in pixel co-ordinates e.g. ``(0, 256, 0, 256)``.
             * The latitude extent of the image with ticks at intervals defined by ``spacing``.
             * The longitude extent of the image with ticks at intervals defined by ``spacing``.
@@ -195,13 +213,13 @@ def get_mlp_cmap(
     """Creates a cmap from query
 
     Args:
-        cmap_style (Union[Colormap, str]): Optional; :mod:`matplotlib` colourmap style to get.
+        cmap_style (~matplotlib.colors.Colormap | str): Optional; :mod:`matplotlib` colourmap style to get.
         n_classes (int): Optional; Number of classes in data to assign colours to.
 
     Returns:
-        Union[Colormap, None]:
-        * If ``cmap_style`` and ``n_classes`` provided, returns a :class:`ListedColormap` instance.
-        * If ``cmap_style`` provided but no ``n_classes``, returns a :class:`Colormap` instance.
+        ~matplotlib.colors.Colormap | None:
+        * If ``cmap_style`` and ``n_classes`` provided, returns a :class:`~matplotlib.colors.ListedColormap` instance.
+        * If ``cmap_style`` provided but no ``n_classes``, returns a :class:`~matplotlib.colors.Colormap` instance.
         * If neither arguments are provided, ``None`` is returned.
     """
     cmap: Optional[Colormap] = None
@@ -228,13 +246,10 @@ def discrete_heatmap(
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
 
     Args:
-        data (NDArray[Shape[*, *], Int]): 2D Array of data to be plotted as a heat map.
+        data (~numpy.ndarray[int]): 2D Array of data to be plotted as a heat map.
         classes (list[str]): Optional; List of all possible class labels.
-        cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
+        cmap_style (str | ~matplotlib.colors.ListedColormap): Optional; Name or object for colour map style.
         block_size (int): Optional; Size of block image subdivision in pixels.
-
-    Returns:
-        None
     """
     # Initialises a figure.
     plt.figure()
@@ -273,13 +288,13 @@ def stack_rgb(
     """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
-        image (NDArray[Shape[3, *, *], Float]): Image of separate channels to be normalised
+        image (~numpy.ndarray[float]): Image of separate channels to be normalised
             and reshaped into stacked RGB image.
-        rgb (Dict[str, int]): Optional; Dictionary of which channels in image are the R, G & B bands.
+        rgb (dict[str, int]): Optional; Dictionary of which channels in image are the R, G & B bands.
         max_value (int): Optional; The maximum pixel value in ``image``. e.g. for 8 bit this will be 255.
 
     Returns:
-        NDArray[Shape[*, *, 3], Float]: Normalised and stacked red, green, blue arrays into RGB array.
+        ~numpy.ndarray[float]: Normalised and stacked red, green, blue arrays into RGB array.
     """
 
     # Extract R, G, B bands from image and normalise.
@@ -305,8 +320,8 @@ def make_rgb_image(
     """Creates an RGB image from a composition of red, green and blue bands.
 
     Args:
-        image (np.ndarray[int]): Array representing the image of shape (bands x height x width).
-        rgb (dict): Dictionary of channel numbers of R, G & B bands within ``image``.
+        image (~numpy.ndarray[int]): Array representing the image of shape ``(bands x height x width)``.
+        rgb (dict[str, int]): Dictionary of channel numbers of R, G & B bands within ``image``.
         block_size (int): Optional; Size of block image sub-division in pixels.
 
     Returns:
@@ -349,21 +364,21 @@ def labelled_rgb_image(
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
-        image (np.ndarray[int]): Array representing the image of shape (height x width x bands).
-        mask (np.ndarray[int]): Ground truth mask. Should be of shape (height x width) matching ``image``.
-        bounds (BoundingBox): Object describing a geospatial bounding box.
+        image (~numpy.ndarray[int]): Array representing the image of shape ``(height x width x bands)``.
+        mask (~numpy.ndarray[int]): Ground truth mask. Should be of shape (height x width) matching ``image``.
+        bounds (~torchgeo.datasets.utils.BoundingBox): Object describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
-        src_crs (CRS): Source co-ordinate reference system (CRS).
+        src_crs (~rasterio.crs.CRS): Source co-ordinate reference system (CRS).
         path (str): Path to where to save created figure.
         name (str): Name of figure. Will be used for title and in the filename.
         classes (list[str]): Optional; List of all possible class labels.
-        cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
-        new_crs (CRS): Optional; The co-ordinate reference system (CRS) to transform to.
+        cmap_style (str | ~matplotlib.colors.ListedColormap): Optional; Name or object for colour map style.
+        new_crs (~rasterio.crs.CRS): Optional; The co-ordinate reference system (CRS) to transform to.
         block_size (int): Optional; Size of block image subdivision in pixels.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
-        show (bool): Optional; ``True`` for show figure when plotted. ``False`` if not.
-        save (bool): Optional; ``True`` to save figure to file. ``False`` if not.
-        figdim (tuple): Optional; Figure (height, width) in inches.
+        show (bool): Optional; Show the figure when plotted.
+        save (bool): Optional; Save the figure to ``path``.
+        figdim (tuple[int | float, int | float]): Optional; Figure (height, width) in inches.
 
     Returns:
         str: Path to figure save location.
@@ -497,20 +512,21 @@ def make_gif(
 
     Args:
         dates (Sequence[str]): Dates of scenes to be used as the frames in the GIF.
-        images (NDArray[Shape[*, *, *, 3], Any]): All the frames of imagery to make the GIF from.
+        images (~numpy.ndarray[Any]): All the frames of imagery to make the GIF from.
             Leading dimension must be the same length as ``dates`` and ``masks``.
-        masks (NDArray[Shape[*, *, *, 3], Any]): The masks for each frame of the GIF.
+        masks (~numpy.ndarray[Any]): The masks for each frame of the GIF.
             Leading dimension must be the same length as ``dates`` and ``image``.
-        bounds (BoundingBox): The bounding box (in the ``src_crs`` CRS) of the patch the GIF will be of.
-        src_crs (CRS): Source co-ordinate reference system (CRS).
+        bounds (~torchgeo.datasets.utils.BoundingBox): The bounding box (in the ``src_crs`` CRS) of the
+            :term:`patch` the ``GIF`` will be of.
+        src_crs (~rasterio.crs.CRS): Source co-ordinate reference system (CRS).
         classes (list[str]): List of all possible class labels.
         gif_name (str): Path to and name of GIF to be made.
-        path (Union[Path, str]): Path to where to save frames of the GIF.
-        cmap_style (str or ListedColormap): Optional; Name or object for colour map style.
-        fps (float): Optional; Frames per second of GIF.
-        new_crs (CRS): Optional; The co-ordinate reference system (CRS) to transform to.
+        path (~pathlib.Path | str]): Path to where to save frames of the ``GIF``.
+        cmap_style (str | ~matplotlib.colors.ListedColormap): Optional; Name or object for colour map style.
+        fps (float): Optional; Frames per second of ``GIF``.
+        new_crs (~rasterio.crs.CRS): Optional; The co-ordinate reference system (CRS) to transform to.
         alpha (float): Optional; Fraction determining alpha blending of label mask.
-        figdim (tuple): Optional; Figure (height, width) in inches.
+        figdim (tuple[int | float, int | float]): Optional; Figure (height, width) in inches.
 
     Returns:
         None
@@ -577,8 +593,8 @@ def prediction_plot(
     and a reference RGB image of the same patch.
 
     Args:
-        sample (dict[str, Any]): Dictionary holding the `image`, ground truth (`mask`) and predicted (`pred`) masks
-            and the bounding box for this sample.
+        sample (dict[str, Any]): Dictionary holding the ``"image"``, ground truth (``"mask"``)
+            and predicted (``"pred"``) masks and the bounding box for this sample.
         sample_id (str): ID for the sample.
         classes (dict[str]): Dictionary mapping class labels to class names.
         src_crs (CRS): Existing co-ordinate system of the image.
@@ -586,8 +602,8 @@ def prediction_plot(
         exp_id (str): Optional; Unique ID for the experiment run that predictions and labels come from.
         block_size (int): Optional; Size of block image sub-division in pixels.
         cmap_style (str, ListedColormap): Optional; Name or object for colour map style.
-        show (bool): Optional; True for show figure when plotted. False if not.
-        save (bool): Optional; True to save figure to file. False if not.
+        show (bool): Optional; Show the figure when plotted.
+        save (bool): Optional; Save the figure to file to ``fn_prefix``.
         fig_dim (Tuple[float, float]): Optional; Figure (height, width) in inches.
         fn_prefix (str): Optional; Common filename prefix (including path to file) for all plots of this type
             from this experiment. Appended with the sample ID to give the filename to save the plot to.
@@ -725,11 +741,12 @@ def seg_plot(
         z (list[float]): Predicted segmentation masks by the network.
         y (list[float]): Corresponding ground truth masks.
         ids (list[str]): Corresponding patch IDs for the test data supplied to the network.
-        bounds (list[BoundingBox] or np.ndarray[BoundingBox]): Array of objects describing a geospatial bounding box.
-            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
-        mode (str): Mode samples are from. Must be 'train', 'val' or 'test'.
-        classes (dict): Dictionary mapping class labels to class names.
-        colours (dict): Dictionary mapping class labels to colours.
+        bounds (list[~torchgeo.datasets.utils.BoundingBox] or ~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]):
+            Array of objects describing a geospatial bounding box.
+            Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
+        mode (str): Mode samples are from. Must be ``'train'``, ``'val'`` or ``'test'``.
+        classes (dict[int, str]): Dictionary mapping class labels to class names.
+        colours (dict[int, str]): Dictionary mapping class labels to colours.
         fn_prefix (str): Common filename prefix (including path to file) for all plots of this type
             from this experiment to use.
         frac (float): Optional; Fraction of patch samples to plot.
@@ -799,8 +816,8 @@ def plot_subpopulations(
 
     Args:
         class_dist (list[tuple[int, int]]): Modal distribution of classes in the dataset provided.
-        class_names (dict): Optional; Dictionary mapping class labels to class names.
-        cmap_dict (dict): Optional; Dictionary mapping class labels to class colours.
+        class_names (dict[int, str]): Optional; Dictionary mapping class labels to class names.
+        cmap_dict (dict[int, str]): Optional; Dictionary mapping class labels to class colours.
         filename (str): Optional; Name of file to save plot to.
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
@@ -866,7 +883,8 @@ def plot_history(
     """Plots model history based on metrics supplied.
 
     Args:
-        metrics (dict): Dictionary containing the names and results of the metrics by which model was assessed.
+        metrics (dict[str, Any]): Dictionary containing the names and results of the metrics
+            by which model was assessed.
         filename (str): Optional; Name of file to save plot to.
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
@@ -922,7 +940,7 @@ def make_confusion_matrix(
     Args:
         pred(list[int]): Predictions made by model on test images.
         labels (list[int]): Accompanying ground truth labels for testing images.
-        classes (dict): Dictionary mapping class labels to class names.
+        classes (dict[int, str]): Dictionary mapping class labels to class names.
         filename (str): Optional; Name of file to save plot to.
         cmap_style (str): Colourmap style to use in the confusion matrix.
         show (bool): Optional; Whether to show plot.
@@ -1002,11 +1020,11 @@ def make_roc_curves(
     https://scikit-learn.org/stable/auto_examples/model_selection/plot_roc.html
 
     Args:
-        probs (list or np.ndarray): Array of probabilistic predicted classes from model where each sample
+        probs (list | ~numpy.ndarray[int]): Array of probabilistic predicted classes from model where each sample
             should have a list of the predicted probability for each class.
-        labels (list or np.ndarray): List of corresponding ground truth labels.
-        class_names (dict): Dictionary mapping class labels to class names.
-        colours (dict): Dictionary mapping class labels to colours.
+        labels (list | ~numpy.ndarray[int]): List of corresponding ground truth labels.
+        class_names (dict[int, str]): Dictionary mapping class labels to class names.
+        colours (dict[int, str]): Dictionary mapping class labels to colours.
         micro (bool): Optional; Whether to compute and plot the micro average ROC curves.
         macro (bool): Optional; Whether to compute and plot the macro average ROC curves.
         filename (str): Optional; Name of file to save plot to.
@@ -1096,10 +1114,10 @@ def plot_embedding(
 
     Args:
         embeddings (Any): Embeddings from a model.
-        bounds (Union[Sequence[Any], NDArray[Any, Any]]): Array of objects describing a geospatial bounding box.
-            Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
-        mode (str): Mode samples are from. Must be 'train', 'val' or 'test'.
-        title (Optional[str], optional): Title of plot.
+        bounds (Sequence[Any] | ~numpy.ndarray[Any]): Array of objects describing a geospatial bounding box.
+            Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
+        mode (str): Mode samples are from. Must be ``'train'``, ``'val'`` or ``'test'``.
+        title (str): Optional; Title of plot.
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
         filename (str): Optional; Name of file to save plot to.
@@ -1245,30 +1263,31 @@ def plot_results(
     """Orchestrates the creation of various plots from the results of a model fitting.
 
     Args:
-        plots (dict): Dictionary defining which plots to make.
-        z (list[list[int]] or np.ndarray[np.ndarray[int]]): List of predicted label masks.
-        y (list[list[int]] or np.ndarray[np.ndarray[int]]): List of corresponding ground truth label masks.
-        metrics (dict): Optional; Dictionary containing a log of various metrics used to assess
+        plots (dict[str, bool]): Dictionary defining which plots to make.
+        z (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): List of predicted label masks.
+        y (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): List of corresponding ground truth label masks.
+        metrics (dict[str, Any]): Optional; Dictionary containing a log of various metrics used to assess
             the performance of a model.
         ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
             Maybe either patch IDs or scene tags.
-        mode (str): Optional; Mode samples are from. Must be 'train', 'val' or 'test'.
-        bounds (np.ndarray[BoundingBox]): Optional; Array of objects describing a geospatial bounding box for
-            each sample. Must contain `minx`, `maxx`, `miny` and `maxy` parameters.
-        probs (list or np.ndarray): Optional; Array of probabilistic predicted classes from model where each sample
-            should have a list of the predicted probability for each class.
-        embeddings (NDArray[Any, Any]): Embeddings from the model to visualise with TSNE clustering.
-        class_names (dict): Optional; Dictionary mapping class labels to class names.
-        colours (dict): Optional; Dictionary mapping class labels to colours.
-        save (bool): Optional; Whether to save the plots to file.
-        show (bool): Optional; Whether to show the plots.
+        mode (str): Optional; Mode samples are from. Must be ``'train'``, ``'val'`` or ``'test'``.
+        bounds (~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]): Optional; Array of objects describing
+            a geospatial bounding box for each sample.
+            Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
+        probs (list[float] | ~numpy.ndarray[float]): Optional; Array of probabilistic predicted classes
+            from model where each sample should have a list of the predicted probability for each class.
+        embeddings (~numpy.ndarray[Any]): Embeddings from the model to visualise with TSNE clustering.
+        class_names (dict[int, str]): Optional; Dictionary mapping class labels to class names.
+        colours (dict[int, str]): Optional; Dictionary mapping class labels to colours.
+        save (bool): Optional; Save the plots to file.
+        show (bool): Optional; Show the plots.
         model_name (str): Optional; Name of model. e.g. MLP-MkVI.
         timestamp (str): Optional; Time and date to be used to identify experiment.
             If not specified, the current date-time is used.
-        results_dir (Union[list[str], str, Path]): Optional; Path to the directory for storing plots.
+        results_dir (list[str] | str | ~pathlib.Path): Optional; Path to the directory for storing plots.
 
     Notes:
-        save = True, show = False regardless of input for plots made for each sample such as PvT or Mask plots.
+        ``save==True``, ``show==False`` regardless of input for plots made for each sample such as PvT or Mask plots.
 
     Returns:
         None

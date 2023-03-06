@@ -52,7 +52,24 @@ from minerva.utils import utils
 class RandomPairGeoSampler(GeoSampler):
     """Samples geo-close pairs of elements from a region of interest randomly.
 
-    An extension to :class:`RandomGeoSampler` that supports paired sampling (i.e for GeoCLR).
+    An extension to :class:`~torchgeo.samplers.RandomGeoSampler` that supports paired sampling (i.e for GeoCLR).
+
+    .. note::
+        The ``size`` argument can either be:
+
+        * a single :class:`float` - in which case the same value is used for the height and
+            width dimension
+        * a :class:`tuple` of two floats - in which case, the first :class:`float` is used for the
+            height dimension, and the second :class:`float` for the width dimension
+
+    Args:
+        dataset (~torchgeo.datasets.GeoDataset): Dataset to index from.
+        size (tuple[float, float] | float): Dimensions of each :term:`patch` in units of CRS.
+        length (int): number of random samples to draw per epoch.
+        roi (~torchgeo.datasets.utils.BoundingBox): Optional; Region of interest to sample from
+            (``minx``, ``maxx``, ``miny``, ``maxy``, ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``).
+        max_r (float): Optional; Maximum geo-spatial distance (from centre to centre)
+            to sample matching sample from.
     """
 
     def __init__(
@@ -63,24 +80,6 @@ class RandomPairGeoSampler(GeoSampler):
         roi: Optional[BoundingBox] = None,
         max_r: float = 256.0,
     ) -> None:
-        """Initialize a new Sampler instance.
-
-        The ``size`` argument can either be:
-
-        * a single ``float`` - in which case the same value is used for the height and
-          width dimension
-        * a ``tuple`` of two floats - in which case, the first *float* is used for the
-          height dimension, and the second *float* for the width dimension
-
-        Args:
-            dataset (GeoDataset): Dataset to index from.
-            size (Tuple[float, float] | float): Dimensions of each :term:`patch` in units of CRS.
-            length (int): number of random samples to draw per epoch.
-            roi (BoundingBox): Optional; Region of interest to sample from (``minx``, ``maxx``, ``miny``, ``maxy``,
-                ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``).
-            max_r (float): Optional; Maximum geo-spatial distance (from centre to centre)
-                to sample matching sample from.
-        """
         super().__init__(dataset, roi)
         self.size = _to_tuple(size)
         self.length = length
@@ -95,10 +94,12 @@ class RandomPairGeoSampler(GeoSampler):
                 self.hits.append(hit)
 
     def __iter__(self) -> Iterator[Tuple[BoundingBox, BoundingBox]]:  # type: ignore[override]
-        """Return a pair of BoundingBox indices of a dataset that are geospatially close.
+        """Return a pair of :class:`~torchgeo.datasets.utils.BoundingBox` indices of a dataset
+        that are geospatially close.
 
         Returns:
-            Tuple[BoundingBox, BoundingBox]: Tuple of bounding boxes to index a dataset.
+            tuple[~torchgeo.datasets.utils.BoundingBox, ~torchgeo.datasets.utils.BoundingBox]: Tuple of
+            bounding boxes to index a dataset.
         """
         for _ in range(len(self)):
             # Choose a random tile.
@@ -124,8 +125,32 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
     This is particularly useful during training when you want to maximize the size of
     the dataset and return as many random :term:`patches` as possible.
 
-    An extension to :class:`RandomBatchGeoSampler` that supports paired sampling (i.e. for GeoCLR)
-    and ability to samples from multiple tiles per batch to increase variance of batch.
+    An extension to :class:`~torchgeo.samplers.RandomBatchGeoSampler` that supports
+    paired sampling (i.e. for GeoCLR) and ability to samples from multiple tiles per batch
+    to increase variance of batch.
+
+    .. note::
+        The ``size`` argument can either be:
+
+        * a single :class:`float` - in which case the same value is used for the height and
+            width dimension
+        * a :class:`tuple` of two floats - in which case, the first :class:`float` is used for the
+            height dimension, and the second *float* for the width dimension
+
+    Args:
+        dataset (~torchgeo.datasets.GeoDataset): Dataset to index from.
+        size (tuple[float, float] | float): Dimensions of each :term:`patch` in units of CRS.
+        batch_size (int): Number of samples per batch.
+        length (int): Number of samples per epoch.
+        roi (~torchgeo.datasets.utils.BoundingBox): Optional; Region of interest to sample from
+            (``minx``, ``maxx``, ``miny``, ``maxy``, ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``)
+        max_r (float): Optional; Maximum geo-spatial distance (from centre to centre)
+            to sample matching sample from.
+        tiles_per_batch (int): Optional; Number of tiles to sample from per batch.
+            Must be a multiple of ``batch_size``.
+
+    Raises:
+        ValueError: If ``tiles_per_batch`` is not a multiple of ``batch_size``.
     """
 
     def __init__(
@@ -138,30 +163,6 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         max_r: float = 256.0,
         tiles_per_batch: int = 4,
     ) -> None:
-        """Initialize a new Sampler instance.
-
-        The ``size`` argument can either be:
-
-        * a single ``float`` - in which case the same value is used for the height and
-          width dimension
-        * a ``tuple`` of two floats - in which case, the first *float* is used for the
-          height dimension, and the second *float* for the width dimension
-
-        Args:
-            dataset (GeoDataset): Dataset to index from.
-            size (Union[Tuple[float, float], float]): Dimensions of each :term:`patch` in units of CRS.
-            batch_size (int): Number of samples per batch.
-            length (int): Number of samples per epoch.
-            roi (BoundingBox): Optional; Region of interest to sample from (``minx``, ``maxx``, ``miny``, ``maxy``,
-                ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``)
-            max_r (float): Optional; Maximum geo-spatial distance (from centre to centre)
-                to sample matching sample from.
-            tiles_per_batch (int): Optional; Number of tiles to sample from per batch.
-                Must be a multiple of ``batch_size``.
-
-        Raises:
-            ValueError: If ``tiles_per_batch`` is not a multiple of ``batch_size``.
-        """
         super().__init__(dataset, roi)
         self.size = _to_tuple(size)
         self.batch_size = batch_size
@@ -180,7 +181,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         """Return the indices of a dataset.
 
         Returns:
-            batch of (minx, maxx, miny, maxy, mint, maxt) coordinates to index a dataset
+            Batch of paired :class:`~torchgeo.datasets.utils.BoundingBox` to index a dataset.
         """
         for _ in range(len(self)):
             batch = []
@@ -213,14 +214,14 @@ def get_greater_bbox(
     """Return a bounding box at ``max_r`` distance around the first box.
 
     Args:
-        bbox (BoundingBox): Bounding box of the original sample.
+        bbox (~torchgeo.datasets.utils.BoundingBox): Bounding box of the original sample.
         r (float): Distance in pixels to extend the original bounding box by
             to get a new greater bounds to sample from.
         size (float | Sequence[float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
             represents in pixels. Will only use size[0] if a :class:`Sequence`.
 
     Returns:
-        BoundingBox: Greater bounds around original bounding box to sample from.
+        ~torchgeo.datasets.utils.BoundingBox: Greater bounds around original bounding box to sample from.
     """
     x: float
     if isinstance(size, Sequence):
@@ -253,13 +254,14 @@ def get_pair_bboxes(
     """Samples a pair of bounding boxes geo-spatially close to each other.
 
     Args:
-        bounds (BoundingBox): Maximum bounds of the :term:`tile` to sample pair from.
-        size (Union[Tuple[float, float], float]): Size of each :term:`patch`.
+        bounds (~torchgeo.datasets.utils.BoundingBox): Maximum bounds of the :term:`tile` to sample pair from.
+        size (tuple[float, float] | float): Size of each :term:`patch`.
         res (float): Resolution to sample :term:`patch` at.
         max_r (float): Padding around original :term:`patch` to sample new :term:`patch` from.
 
     Returns:
-        Tuple[BoundingBox, BoundingBox]: Pair of bounding boxes to sample pair of patches from dataset.
+        tuple[~torchgeo.datasets.utils.BoundingBox, ~torchgeo.datasets.utils.BoundingBox]: Pair of bounding boxes
+        to sample pair of patches from dataset.
     """
     # Choose a random index within that tile.
     bbox_a = get_random_bounding_box(bounds, size, res)

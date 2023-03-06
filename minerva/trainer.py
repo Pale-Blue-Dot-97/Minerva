@@ -17,7 +17,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module containing the class :class:`Trainer` to handle the fitting of neural networks."""
+"""Module containing the class :class:`~trainer.Trainer` to handle the fitting of neural networks."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -80,15 +80,16 @@ class Trainer:
     """Helper class to handle the entire fitting and evaluation of a model.
 
     Attributes:
-        params (Dict[str, Any]): Dictionary describing all the parameters that define how the model will be
-            constructed, trained and evaluated. These should be defined via config YAML files.
-        model: Model to be fitted of a class contained within `minerva.models`.
+        params (dict[str, Any]): Dictionary describing all the parameters that define how the model will be
+            constructed, trained and evaluated. These should be defined via config ``YAML`` files.
+        model (MinervaModel): Model to be fitted of a class contained within :mod:`~minerva.models`.
         max_epochs (int): Number of epochs to train the model for.
         batch_size (int): Size of each batch of samples supplied to the model.
-        loaders (Dict[str, DataLoader]): Dictionary containing DataLoaders for each dataset.
-        n_batches (Dict[str, int]): Dictionary of the number of batches to supply to the model for train,
+        loaders (dict[str, ~torch.utils.data.DataLoader]): :class:`dict` containing
+            :class:`~torch.utils.data.DataLoader` (s) for each dataset.
+        n_batches (dict[str, int]): Dictionary of the number of batches to supply to the model for train,
             validation and testing.
-        metrics (Dict[str, Any]): Dictionary to hold the loss and accuracy results from training,
+        metrics (dict[str, Any]): Dictionary to hold the loss and accuracy results from training,
             validation and testing.
         device: The CUDA device on which to fit the model.
         gpu (int): CUDA GPU device number this process is running on.
@@ -96,33 +97,115 @@ class Trainer:
         fine_tune (bool): Assumes this is a fine-tuning job if ``True``. Will attempt to load model weights
             from cache.
         class_dist (Any): Distribution of classes within the data.
-        exp_name (Path): Path to the unique results directory for this experiment.
+        exp_name (~pathlib.Path): :class:`~pathlib.Path` to the unique results directory for this experiment.
         sample_pairs (bool): Whether samples are paired together for Siamese learning.
-        modes (Tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
-        writer (Union[SummaryWriter, Run, None]): The *writer* to perform logging for this experiment.
-            For use with either Tensorboard or Weights and Biases.
-        stopper (Union[EarlyStopper, None]): Early stopping function.
+        modes (tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
+        writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run | None): The *writer*
+            to perform logging for this experiment. For use with either :mod:`tensorboard` or :mod:`wandb`.
+        stopper (EarlyStopper | None): Early stopping function.
         early_stop (bool): Whether early stopping has been triggered. Will end model training if ``True``.
-        n_samples (Dict[str, int]): Number of samples in each mode of model fitting.
-        metric_logger (MinervaLogger): Object to calculate and log metrics to track the performance of the model.
-        modelio_func ():
-        steps (Dict[str, int]):
+        n_samples (dict[str, int]): Number of samples in each mode of model fitting.
+        metric_logger (~logger.MinervaLogger): Object to calculate and log metrics to track the performance
+            of the model.
+        modelio_func (Callable[..., Any]): Function to handle the input/ output to the model.
+        steps (dict[str, int]): :class:`dict` to hold the global step number for each mode of model fitting.
         model_type (str): Type of the model that determines how to handle IO, metric calculations etc.
 
     Args:
-        gpu (int): Optional; CUDA GPU device number. For use in distributed computing. Defaults to 0.
+        gpu (int): Optional; CUDA GPU device number. For use in distributed computing. Defaults to ``0``.
         rank (int): Optional; The rank of this process across all devices in the distributed run.
         world_size (int): Optional; The total number of processes across the distributed run.
         verbose (bool): Turns messages to stdout off/on.
-        wandb_run (Union[Run, RunDisabled]): Optional; Run object for Weights and Biases.
-        params (Dict[str, Any]): Dictionary describing all the parameters that define how the model will be
-            constructed, trained and evaluated. These should be defined via config YAML files.
+        wandb_run (~wandb.sdk.wandb_run.Run | RunDisabled): Optional; Run object for Weights and Biases.
+        params (dict[str, Any]): Dictionary describing all the parameters that define how the model will be
+            constructed, trained and evaluated. These should be defined via config ``YAML`` files.
 
     Keyword Args:
-        results (List[str]): Path to the results' directory to save plots to.
+        batch_size (int): Number of samples in each batch.
+        elim (bool): Will eliminate classes that have no samples in and reorder the class labels so they
+            still run from ``0`` to ``n-1`` classes where ``n`` is the reduced number of classes.
+            :mod:`minerva` ensures that labels are converted between the old and new schemes seamlessly.
+        model_type (str): Defines the type of the model. If ``siamese``, ensures inappropiate functionality is not used.
+        dir (dict[str, Any]): Dictionary providing the paths to directories needed. Must include the ``data`` path.
+        loader_params (dict[str, Any]): Parameters for the :class:`~torch.utils.data.DataLoader`.
+            Unlike the other ``x_params`` dicts, parameters are placed at the immediate ``loader_params`` level
+            (not in a ``params`` key).
+        dataset_params (dict[str, Any]): Parameters to construct each dataset. See documentation on structure of these.
+        sampler_params (dict[str, Any]): Parameters to construct the samplers for each mode of model fitting.
+        transform_params (dict[str, Any]): Parameters to construct the transforms for each dataset.
+            See documentation for the structure of these.
+        collator (dict[str, Any]): Defines the collator to use that will collate samples together into batches.
+            Contains the ``module`` key to define the import path and the ``name`` key
+            for name of the collation function.
+        sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
         model_name (str): Name of the model to be used in filenames of results.
-        batch_size (int): Size of each batch of samples supplied to the model.
+        model_params (dict[str, Any]): Parameters parsed to the model class to initiate it.
         max_epochs (int): Number of epochs to train the model for.
+        val_freq (int): Perform a validation epoch with KNN for every ``val_freq``
+            training epochs for SSL or Siamese models.
+        knn_k (int): Top-k most similar images used to predict the image for KNN validation.
+        fine_tune (bool): Activate fine-tuning mode.
+        wandb_log (bool): Activates :mod:`wandb` logging.
+        stopping (dict[str, Any]): Dictionary to hold the parameters defining the early stopping functionality.
+            If no dictionary is given, it is assumed that there will be no early stopping.
+        pre_train_name (str): Name of the pre-trained model to use.
+        reload (bool): Reloads the weights in the cache matching ``pre_train_name`` to continue model fitting.
+        loss_func (str): Name of the loss function to use.
+        optim_func (str): Name of the optimiser function to use.
+        lr (float): Learning rate of optimiser.
+        optim_params (dict[str, Any]): :class:`dict` to hold any additional parameters for the optimiser,
+            other than the already handled learning rate -- ``lr``. Place them in the ``params`` key.
+            If using a non-torch optimiser, use the ``module`` key to specify the import path to the optimiser function.
+        loss_params (dict[str, Any]): :class:`dict` to hold any additional parameters for the loss function
+            in the ``params`` key. If using a non-torch loss function, you need to specify the import path
+            with the ``module`` key.
+        balance (bool): Activates class balancing. For ``model_type="scene_classifer"`` or ``model_type="mlp"``,
+            over and under sampling will be used. For ``model_type="segmentation"``, class weighting will be
+            used on the loss function.
+        patch_size (tuple[float, float]): Defines the shape of the patches in the dataset.
+        input_size (tuple[int, ...]): Shape of the input to the model. Typically in CxHxW format.
+            Should align with the values given for ``patch_size``.
+        metrics (str): Specify the metric logger to use. Must be the name of a :class:`~metrics.MinervaMetric` class
+            within :mod:`metrics`.
+        logger (str): Specify the logger to use. Must be the name of a :class:`~logger.MinervaLogger` class
+            within :mod:`logger`.
+        modelio (str): Specify the IO function to use to handle IO for the model during fitting. Must be the name
+            of a function within :mod:`modelio`.
+        record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
+        record_float (bool): Store the floating point results of each epoch in memory
+            such as the raw predicted probabilities.
+        plots (dict[str, bool]): :class:`dict` that defines which plots to make from the results of testing
+            using bools for each plot. Possible plot types are:
+                * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs.
+                * CM: Plots a confusion matrix of the predictions against ground truth.
+                * Pred: Plots a pie chart of the relative sizes of the classes within the predictions from the model.
+                * ROC: Plots a *Receiver over Operator Curve* (ROC) including *Area Under Curve* (AUC) scores.
+                * micro: Only used with ``ROC=True``. ROC plot includes micro-average ROC.
+                * macro: Only used with ``ROC=True``. ROC plot includes macro-average ROC.
+                * Mask: Plots a comparison of predicted segmentation masks, ground truth and original RGB imagery.
+        plot_last_epoch (bool): Plot the results from the final validation epoch.
+        save (bool): Save plots created to file or not.
+        show (bool): Show plots created in a window or not.
+        verbosity (bool): Verbosity of :class:`~trainer.Trainer` prints to stdout.
+        p_dist (bool): Prints the distribution of classes within the data to ``stdout``.
+        save_model (bool | str): Whether to save the model at end of testing. Must be ``True``, ``False`` or ``"auto"``.
+            Setting ``"auto"`` will automatically save the model to file.
+            ``True`` will ask the user whether to or not at runtime.
+            ``False`` will not save the model and will not ask the user at runtime.
+        run_tensorboard (bool | str): Whether to run the Tensorboard logs at end of testing.
+            Must be ``True``, ``False`` or ``"auto"``.
+            Setting ``"auto"`` will automatically locate and run the logs on a local browser.
+            ``True`` will ask the user whether to or not at runtime.
+            ``False`` will not save the model and will not ask the user at runtime.
+
+    .. warning::
+        Using ``record_float=True`` may cause a memory overload issue with large datasets
+        or systems with small RAM capacity.
+
+    .. warning::
+        Using ``plots={ROC: True, micro: True}`` can be very computationally and memory intensive.
+        Avoid use with large datasets!
+
     """
 
     def __init__(
@@ -161,12 +244,12 @@ class Trainer:
         self.class_dist = class_dist
         self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
         self.n_batches = n_batches
-        self.batch_size: int = self.params["hyperparams"]["params"]["batch_size"]
+        self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
 
         # Sets the max number of epochs of fitting.
-        self.max_epochs = self.params["hyperparams"].get("max_epochs", 25)
+        self.max_epochs = self.params.get("max_epochs", 25)
 
         self.modes = self.params["dataset_params"].keys()
 
@@ -224,11 +307,11 @@ class Trainer:
         # Sets up the early stopping functionality.
         self.stopper = None
         self.early_stop = False
-        if "stopping" in self.params["hyperparams"]:
+        if "stopping" in self.params:
             self.stopper = EarlyStopping(
                 path=f"{self.exp_fn}.pt",
                 trace_func=self.print,
-                **self.params["hyperparams"]["stopping"],
+                **self.params["stopping"],
             )
 
         # Calculates number of samples in each mode of fitting.
@@ -295,7 +378,7 @@ class Trainer:
         """Determines the input size of the model.
 
         Returns:
-            Tuple[int, ...]: Tuple describing the input shape of the model.
+            tuple[int, ...]: :class:`tuple` describing the input shape of the model.
         """
         input_shape: Optional[Tuple[int, ...]] = self.model.input_size  # type: ignore
         assert input_shape is not None
@@ -310,8 +393,8 @@ class Trainer:
         """Get the path to where to cache this model to.
 
         Returns:
-            Path: Path to cache directory and the filename
-                (model name excluding version and file extension).
+            ~pathlib.Path: :class:`~pathlib.Path` to cache directory and the filename
+            (model name excluding version and file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
         return Path(cache_dir / Path(self.params["model_name"].split("-")[0]))
@@ -320,7 +403,7 @@ class Trainer:
         """Get the path to the cached version of the pre-trained model.
 
         Returns:
-            Path: Path to the cached model (excluding file extension).
+            ~pathlib.Path: :class:`~pathlib.Path` to the cached model (excluding file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
         return Path(cache_dir / Path(self.params["pre_train_name"]).with_suffix(""))
@@ -331,7 +414,7 @@ class Trainer:
         Returns:
             MinervaModel: Initialised model.
         """
-        model_params = self.params["hyperparams"]["model_params"]
+        model_params = self.params["model_params"]
 
         # Gets the model requested by config parameters.
         _model = utils.func_by_str(
@@ -353,14 +436,14 @@ class Trainer:
         return model
 
     def load_onnx_model(self) -> MinervaModel:
-        """Loads and returns a :mod:`onnx` model from the cache in :mod:`pytorch` form.
+        """Loads and returns a :mod:`onnx` model from the cache in :mod:`torch` form.
 
         Assumes that the :mod:`onnx` model came from :mod:`minerva`.
 
         Returns:
             MinervaModel: Loaded model ready for use.
         """
-        model_params = self.params["hyperparams"]["model_params"]
+        model_params = self.params["model_params"]
 
         onnx_model = convert(f"{self.get_weights_path()}.onnx")
         model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
@@ -368,17 +451,20 @@ class Trainer:
         return model
 
     def make_criterion(self) -> Any:
-        """Creates a PyTorch loss function based on config parameters.
+        """Creates a :mod:`torch` loss function based on config parameters.
 
         Returns:
-            Any: Initialised PyTorch loss function specified by config parameters.
+            Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = self.params["hyperparams"]["loss_params"].copy()
+        loss_params: Dict[str, Any] = self.params["loss_params"].copy()
         module = loss_params.pop("module", "torch.nn")
-        criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
+        criterion: Callable[..., Any] = utils.func_by_str(
+            module, self.params["loss_func"]
+        )
 
-        criterion_params_exist = utils.check_dict_key(loss_params, "params")
+        if not utils.check_dict_key(loss_params, "params"):
+            loss_params["params"] = {}
 
         if self.params.get("balance", False) and self.model_type == "segmentation":
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
@@ -387,28 +473,26 @@ class Trainer:
             for i in range(len(weights_dict)):
                 weights.append(weights_dict[i])
 
-            if criterion_params_exist:
-                loss_params["params"]["weight"] = Tensor(weights)
-            else:
-                loss_params["params"] = {"weight": Tensor(weights)}
+            loss_params["params"]["weight"] = Tensor(weights)
 
             return criterion(**loss_params["params"])
 
         else:
-            if criterion_params_exist:
-                return criterion(**loss_params["params"])
-            else:
-                return criterion()
+            return criterion(**loss_params["params"])
 
     def make_optimiser(self) -> None:
-        """Creates a PyTorch optimiser based on config parameters and sets optimiser."""
+        """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
         # Gets the optimiser requested by config parameters.
-        optimiser_params: Dict[str, Any] = self.params["hyperparams"][
-            "optim_params"
-        ].copy()
+        optimiser_params: Dict[str, Any] = self.params["optim_params"].copy()
         module = optimiser_params.pop("module", "torch.optim")
-        optimiser = utils.func_by_str(module, optimiser_params["name"])
+        optimiser = utils.func_by_str(module, self.params["optim_func"])
+
+        if not utils.check_dict_key(optimiser_params, "params"):
+            optimiser_params["params"] = {}
+
+        # Add learning rate from top-level of config to the optimiser parameters.
+        optimiser_params["params"]["lr"] = self.params["lr"]
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         self.model.set_optimiser(  # type: ignore
@@ -416,10 +500,14 @@ class Trainer:
         )
 
     def make_metric_logger(self) -> MinervaMetrics:
-        """Creates an object to calculate and log the metrics from the experiment, selected by config parameters."""
+        """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
+
+        Returns:
+            MinervaMetrics: Constructed metric logger.
+        """
 
         # Gets the size of the input data to the network (without batch dimension).
-        data_size = self.params["hyperparams"]["model_params"]["input_size"]
+        data_size = self.params["input_size"]
 
         # Gets constructor of the metric logger from name in the config.
         _metric_logger: Callable[..., Any] = utils.func_by_str(
@@ -441,7 +529,7 @@ class Trainer:
         """Creates an object to log the results from each step of model fitting during an epoch.
 
         Returns:
-            Callable[..., Any]: The constructor of logger to be intialised within the epoch.
+            Callable[..., Any]: The constructor of :class:`~logger.MinervaLogger` to be intialised within the epoch.
         """
         logger: Callable[..., Any] = utils.func_by_str(
             "minerva.logger", self.params["logger"]
@@ -452,7 +540,7 @@ class Trainer:
         """Fetches a func to handle IO for the type of model used in the experiment.
 
         Returns:
-            Callable: Model IO function requested from parameters.
+            Callable[..., Any]: Model IO function requested from parameters.
         """
         io_func: Callable[..., Any] = utils.func_by_str(
             "minerva.modelio", self.params["model_io"]
@@ -475,7 +563,7 @@ class Trainer:
             record_float (bool): Optional; Whether to record the floating point results i.e. class probabilities.
 
         Returns:
-            Dict[str, Any] | None: If ``record_int=True`` or ``record_float=True``, returns the predicted
+            dict[str, Any] | None: If ``record_int=True`` or ``record_float=True``, returns the predicted
             and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
         """
         batch_size = self.batch_size
@@ -772,6 +860,9 @@ class Trainer:
 
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
+
+        Args:
+            mode (str): The mode of model fitting that the embeddings come from.
         """
         # Get a batch of data.
         data = next(iter(self.loaders[mode]))
@@ -817,8 +908,8 @@ class Trainer:
                 This may result in memory issues on large amounts of data! Defaults to False.
 
         Returns:
-            Optional[Dict[str, Any]]: Results dictionary from the epoch logger if ``record_int``
-                or ``record_float`` are ``True``.
+            dict[str, Any] | None: Results dictionary from the epoch logger if ``record_int``
+            or ``record_float`` are ``True``.
         """
 
         # Puts the model in evaluation mode so no back passes are made.
@@ -1029,8 +1120,8 @@ class Trainer:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
 
         Args:
-            predictions (ArrayLike): List of predicted labels.
-            labels (ArrayLike): List of corresponding ground truth label masks.
+            predictions (ArrayLike[int]): List of predicted labels.
+            labels (ArrayLike[int]): List of corresponding ground truth label masks.
         """
         # Ensures predictions and labels are flattened.
         preds: NDArray[Any, Int] = utils.batch_flatten(predictions)
@@ -1061,7 +1152,7 @@ class Trainer:
         return model
 
     def save_model_weights(self, fn: Optional[str] = None) -> None:
-        """Saves model state dict to PyTorch file.
+        """Saves model state dict to :mod:`torch` file.
 
         Args:
             fn (str): Optional; Filename and path (excluding extension) to save weights to.
@@ -1076,11 +1167,11 @@ class Trainer:
     def save_model(
         self, fn: Optional[Union[Path, str]] = None, format: str = "pt"
     ) -> None:
-        """Saves the model object itself to PyTorch file.
+        """Saves the model object itself to :mod:`torch` file.
 
         Args:
-            fn (Union[Path, str]): Optional; Filename and path (excluding extension) to save model to.
-            format (str): Optional; Format to save model to. ``pt`` for PyTorch, or ``onnx`` for ONNX.
+            fn (~pathlib.Path | str): Optional; Filename and path (excluding extension) to save model to.
+            format (str): Optional; Format to save model to. ``pt`` for :mod:`torch`, or :mod:`onnx` for ONNX.
 
         Raises:
             ValueError: If format is not recognised.
@@ -1117,7 +1208,7 @@ class Trainer:
         torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}.pt")
 
     def run_tensorboard(self) -> None:
-        """Opens TensorBoard log of the current experiment in a locally hosted webpage."""
+        """Opens :mod:`tensorboard` log of the current experiment in a locally hosted webpage."""
         utils.run_tensorboard(  # pragma: no cover
             path=self.params["dir"]["results"].parent,
             env_name="env2",
