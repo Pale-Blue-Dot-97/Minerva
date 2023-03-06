@@ -204,7 +204,7 @@ class DCN(MinervaModel):
         self.Conv1x1 = nn.Conv2d(in_channel, self.n_classes, kernel_size=(1, 1))
         self.bn1 = nn.BatchNorm2d(self.n_classes)
 
-        if variant == "32":
+        if self.variant == "32":
             self.DC32 = nn.ConvTranspose2d(
                 self.n_classes,
                 self.n_classes,
@@ -216,7 +216,7 @@ class DCN(MinervaModel):
             self.DC32.weight.data = bilinear_init(self.n_classes, self.n_classes, 64)
             self.dbn32 = nn.BatchNorm2d(self.n_classes)
 
-        if variant in ("16", "8"):
+        if self.variant in ("16", "8"):
             self.Conv1x1_x3 = nn.Conv2d(
                 int(in_channel / 2), self.n_classes, kernel_size=(1, 1)
             )
@@ -231,7 +231,7 @@ class DCN(MinervaModel):
             self.DC2.weight.data = bilinear_init(self.n_classes, self.n_classes, 4)
             self.dbn2 = nn.BatchNorm2d(self.n_classes)
 
-        if variant == "16":
+        if self.variant == "16":
             self.DC16 = nn.ConvTranspose2d(
                 self.n_classes,
                 self.n_classes,
@@ -243,7 +243,7 @@ class DCN(MinervaModel):
             self.DC16.weight.data = bilinear_init(self.n_classes, self.n_classes, 32)
             self.dbn16 = nn.BatchNorm2d(self.n_classes)
 
-        if variant == "8":
+        if self.variant == "8":
             self.Conv1x1_x2 = nn.Conv2d(
                 int(in_channel / 4), self.n_classes, kernel_size=(1, 1)
             )
@@ -270,7 +270,7 @@ class DCN(MinervaModel):
             self.DC8.weight.data = bilinear_init(self.n_classes, self.n_classes, 16)
             self.dbn8 = nn.BatchNorm2d(self.n_classes)
 
-        if variant not in ("32", "16", "8"):
+        if self.variant not in ("32", "16", "8"):
             raise NotImplementedError(
                 f"Variant {self.variant} does not match known types"
             )
@@ -337,7 +337,7 @@ class DCN(MinervaModel):
 class FCN32ResNet18(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
-    with a :class:`DCN32` decoder.
+    with a ``DCN32`` decoder.
     """
 
     backbone_name = "ResNet18"
@@ -347,7 +347,7 @@ class FCN32ResNet18(FCN):
 class FCN32ResNet34(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
-    with a :class:`DCN32` decoder.
+    with a ``DCN32`` decoder.
     """
 
     backbone_name = "ResNet34"
@@ -357,7 +357,7 @@ class FCN32ResNet34(FCN):
 class FCN32ResNet50(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
-    with a :class:`DCN32` decoder.
+    with a ``DCN32`` decoder.
     """
 
     backbone_name = "ResNet50"
@@ -367,7 +367,7 @@ class FCN32ResNet50(FCN):
 class FCN16ResNet18(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
-    with a :class:`DCN16` decoder.
+    with a ``DCN16`` decoder.
     """
 
     backbone_name = "ResNet18"
@@ -377,7 +377,7 @@ class FCN16ResNet18(FCN):
 class FCN16ResNet34(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
-    with a :class:`DCN16` decoder.
+    with a ``DCN16`` decoder.
     """
 
     backbone_name = "ResNet34"
@@ -387,7 +387,7 @@ class FCN16ResNet34(FCN):
 class FCN16ResNet50(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
-    with a :class:`DCN16` decoder.
+    with a ``DCN16`` decoder.
     """
 
     backbone_name = "ResNet50"
@@ -397,7 +397,7 @@ class FCN16ResNet50(FCN):
 class FCN8ResNet18(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
-    with a :class:`DCN8` decoder.
+    with a ``DCN8`` decoder.
     """
 
     backbone_name = "ResNet18"
@@ -407,7 +407,7 @@ class FCN8ResNet18(FCN):
 class FCN8ResNet34(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
-    with a :class:`DCN8` decoder.
+    with a ``DCN8`` decoder.
     """
 
     backbone_name = "ResNet34"
@@ -417,7 +417,7 @@ class FCN8ResNet34(FCN):
 class FCN8ResNet50(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
-    with a :class:`DCN8` decoder.
+    with a ``DCN8`` decoder.
     """
 
     backbone_name = "ResNet50"
@@ -427,7 +427,7 @@ class FCN8ResNet50(FCN):
 class FCN8ResNet101(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet101` backbone
-    with a :class:`DCN8` decoder.
+    with a ``DCN8`` decoder.
     """
 
     backbone_name = "ResNet101"
@@ -437,7 +437,7 @@ class FCN8ResNet101(FCN):
 class FCN8ResNet152(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet152` backbone
-    with a :class:`DCN8` decoder.
+    with a ``DCN8`` decoder.
     """
 
     backbone_name = "ResNet152"
