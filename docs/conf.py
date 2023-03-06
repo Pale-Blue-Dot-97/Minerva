@@ -16,12 +16,14 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../minerva/"))
 
+import minerva
 
 # -- Project information -----------------------------------------------------
 
 project = "minerva"
 copyright = "2023, Harry Baker"
-author = "Harry Baker"
+author = minerva.__author__
+version = minerva.__version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -74,3 +76,7 @@ html_theme = "sphinx_rtd_theme"
 html_static_path = ["source/_static"]
 
 html_logo = "images/Minerva_logo.png"
+
+html_theme_options = {
+    "navigation_depth": -1,
+}
