@@ -38,6 +38,8 @@ extensions = [
     "myst_parser",
 ]
 
+source_suffix = [".rst", ".md"]
+
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "typing": ("https://typing.readthedocs.io/en/latest/", None),
