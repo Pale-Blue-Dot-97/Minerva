@@ -169,8 +169,8 @@ class PairedDataset(RasterDataset):
     def __repr__(self) -> Any:
         return self.dataset.__repr__()
 
+    @staticmethod
     def plot(
-        self,
         sample: Dict[str, Any],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
