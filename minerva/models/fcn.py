@@ -28,6 +28,8 @@ __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
+    "FCN",
+    "DCN",
     "FCN8ResNet18",
     "FCN8ResNet34",
     "FCN8ResNet50",
@@ -44,7 +46,6 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from abc import ABC
 from typing import Any, Dict, Literal, Optional, Sequence, Tuple
 
 import torch
@@ -57,15 +58,17 @@ from .core import MinervaBackbone, MinervaModel, bilinear_init, get_model
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class _FCN(MinervaBackbone):
+class FCN(MinervaBackbone):
     """Base Fully Convolutional Network (FCN) class to be subclassed by FCN variants described in the FCN paper.
 
-    Subclasses MinervaModel.
+    Based on the example found here: https://github.com/haoran1062/FCN-pytorch/blob/master/FCN.py
+
+    Subclasses :class:`~models.MinervaModel`.
 
     Attributes:
         backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
-        decoder_variant (str): Optional; Flag for which DCN variant to construct. Must be either '32', '16' or '8'.
-            See the FCN paper for details on these variants.
+        decoder_variant (str): Optional; Flag for which DCN variant to construct.
+            Must be either ``'32'``, ``'16'`` or ``'8'``. See the FCN paper for details on these variants.
         backbone (~torch.nn.Module): Backbone of the FCN that takes the imagery input and
             extracts learned representations.
         decoder (~torch.nn.Module): Decoder that takes the learned representations from the backbone encoder
@@ -96,7 +99,7 @@ class _FCN(MinervaBackbone):
         freeze_backbone: bool = False,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(_FCN, self).__init__(
+        super(FCN, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
@@ -129,16 +132,14 @@ class _FCN(MinervaBackbone):
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
         feeding its output into the forward for the decoder.
 
-        Overwrites :class:`MinervaModel` abstract method.
-
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. ``model.forward()``) or when data is parsed to model (e.g. ``model()``).
 
         Args:
             x (~torch.Tensor): Input data to network.
 
         Returns:
-            z (~torch.Tensor): segmentation mask with a channel for each class of the likelihoods the network places on
-                each pixel input 'x' being of that class.
+            ~torch.Tensor: segmentation mask with a channel for each class of the likelihoods the network places on
+            each pixel input ``x`` being of that class.
         """
         z = self.backbone(x)
         z = self.decoder(z)
@@ -154,7 +155,7 @@ class DCN(MinervaModel):
 
     Attributes:
         variant (str): Defines which DCN variant this object is, altering the layers constructed
-            and the computational graph. Will be either '32', '16' or '8'.
+            and the computational graph. Will be either ``'32'``, ``'16'`` or ``'8'``.
             See the FCN paper for details on these variants.
         n_classes (int): Number of classes in dataset. Defines number of output classification channels.
         relu (~torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
@@ -180,8 +181,8 @@ class DCN(MinervaModel):
         in_channel (int): Optional; Number of channels in the input layer of the network.
             Should match the number of output channels (likely feature maps) from the encoder.
         n_classes (int): Optional; Number of classes in dataset. Defines number of output classification channels.
-        variant (str): Optional; Flag for which DCN variant to construct. Must be either '32', '16' or '8'.
-            See the FCN paper for details on these variants.
+        variant (str): Optional; Flag for which DCN variant to construct.
+            Must be either ``'32'``, ``'16'`` or ``'8'``. See the FCN paper for details on these variants.
 
     Raises:
         NotImplementedError: Raised if ``variant`` does not match known types.
@@ -278,7 +279,7 @@ class DCN(MinervaModel):
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. ``model.forward()``) or when data is parsed to model (e.g. ``model()``).
 
         Args:
             x (tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]): Input data to network.
@@ -286,7 +287,7 @@ class DCN(MinervaModel):
 
         Returns:
             ~torch.Tensor:  Segmentation mask with a channel for each class of the likelihoods the network places on
-                each pixel input 'x' being of that class.
+            each pixel input ``x`` being of that class.
 
         Raises:
             NotImplementedError: Raised if ``variant`` does not match known types.
@@ -333,7 +334,7 @@ class DCN(MinervaModel):
             return z
 
 
-class FCN32ResNet18(_FCN):
+class FCN32ResNet18(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
     with a :class:`DCN32` decoder.
@@ -343,7 +344,7 @@ class FCN32ResNet18(_FCN):
     decoder_variant = "32"
 
 
-class FCN32ResNet34(_FCN):
+class FCN32ResNet34(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
     with a :class:`DCN32` decoder.
@@ -353,7 +354,7 @@ class FCN32ResNet34(_FCN):
     decoder_variant = "32"
 
 
-class FCN32ResNet50(_FCN):
+class FCN32ResNet50(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
     with a :class:`DCN32` decoder.
@@ -363,7 +364,7 @@ class FCN32ResNet50(_FCN):
     decoder_variant = "32"
 
 
-class FCN16ResNet18(_FCN):
+class FCN16ResNet18(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
     with a :class:`DCN16` decoder.
@@ -373,7 +374,7 @@ class FCN16ResNet18(_FCN):
     decoder_variant = "16"
 
 
-class FCN16ResNet34(_FCN):
+class FCN16ResNet34(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
     with a :class:`DCN16` decoder.
@@ -383,7 +384,7 @@ class FCN16ResNet34(_FCN):
     decoder_variant = "16"
 
 
-class FCN16ResNet50(_FCN):
+class FCN16ResNet50(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
     with a :class:`DCN16` decoder.
@@ -393,7 +394,7 @@ class FCN16ResNet50(_FCN):
     decoder_variant = "16"
 
 
-class FCN8ResNet18(_FCN):
+class FCN8ResNet18(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
     with a :class:`DCN8` decoder.
@@ -403,7 +404,7 @@ class FCN8ResNet18(_FCN):
     decoder_variant = "8"
 
 
-class FCN8ResNet34(_FCN):
+class FCN8ResNet34(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
     with a :class:`DCN8` decoder.
@@ -413,7 +414,7 @@ class FCN8ResNet34(_FCN):
     decoder_variant = "8"
 
 
-class FCN8ResNet50(_FCN):
+class FCN8ResNet50(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
     with a :class:`DCN8` decoder.
@@ -423,7 +424,7 @@ class FCN8ResNet50(_FCN):
     decoder_variant = "8"
 
 
-class FCN8ResNet101(_FCN):
+class FCN8ResNet101(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet101` backbone
     with a :class:`DCN8` decoder.
@@ -433,7 +434,7 @@ class FCN8ResNet101(_FCN):
     decoder_variant = "8"
 
 
-class FCN8ResNet152(_FCN):
+class FCN8ResNet152(FCN):
     """
     Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet152` backbone
     with a :class:`DCN8` decoder.
