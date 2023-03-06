@@ -3,11 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root ``toctree`` directive.
 
-Minerva
-=======
-.. image:: images/Minerva_logo.png
-   :width: 600
-
+.. include:: readme_link.rst
 
 .. toctree::
    :maxdepth: 2
