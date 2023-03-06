@@ -313,6 +313,7 @@ class UNetR(MinervaModel):
     """UNet model which incorporates a :class:`ResNet` as the encoder.
 
     Attributes:
+        backbone_name (str): Name of the backbone class.
         backbone (~torch.nn.Module): Backbone of the FCN that takes the imagery input and
             extracts learned representations.
         up1 (Up): First upsample then concatenated input double de-convolutional layer.
@@ -434,30 +435,30 @@ class UNetR(MinervaModel):
 
 
 class UNetR18(UNetR):
-    """UNet with a :class:`ResNet18` as the backbone."""
+    """UNet with a :class:`~models.resnet.ResNet18` as the backbone."""
 
     backbone_name = "ResNet18"
 
 
 class UNetR34(UNetR):
-    """UNet with a :class:`ResNet34` as the backbone."""
+    """UNet with a :class:`~models.resnet.ResNet34` as the backbone."""
 
     backbone_name = "ResNet34"
 
 
 class UNetR50(UNetR):
-    """UNet with a :class:`ResNet50` as the backbone."""
+    """UNet with a :class:`~models.resnet.ResNet50` as the backbone."""
 
     backbone_name = "ResNet50"
 
 
 class UNetR101(UNetR):
-    """UNet with a :class:`ResNet101` as the backbone."""
+    """UNet with a :class:`~models.resnet.ResNet101` as the backbone."""
 
     backbone_name = "ResNet101"
 
 
 class UNetR152(UNetR):
-    """UNet with a :class:`ResNet152` as the backbone."""
+    """UNet with a :class:`~models.resnet.ResNet152` as the backbone."""
 
     backbone_name = "ResNet152"
