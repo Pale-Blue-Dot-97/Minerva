@@ -63,14 +63,14 @@ class _FCN(MinervaBackbone, ABC):
     Subclasses MinervaModel.
 
     Attributes:
-        backbone (Module): Backbone of the FCN that takes the imagery input and
+        backbone (~torch.nn.Module): Backbone of the FCN that takes the imagery input and
             extracts learned representations.
-        decoder (Module): Decoder that takes the learned representations from the backbone encoder
+        decoder (~torch.nn.Module): Decoder that takes the learned representations from the backbone encoder
             and de-convolves to output a classification segmentation mask.
 
     Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int] | list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
         backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
@@ -82,7 +82,7 @@ class _FCN(MinervaBackbone, ABC):
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
             if using a pre-trained backbone.
-        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
     def __init__(
@@ -129,15 +129,15 @@ class _FCN(MinervaBackbone, ABC):
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
         feeding its output into the forward for the decoder.
 
-        Overwrites MinervaModel abstract method.
+        Overwrites :class:`MinervaModel` abstract method.
 
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (Tensor): Input data to network.
+            x (~torch.Tensor): Input data to network.
 
         Returns:
-            z (Tensor): segmentation mask with a channel for each class of the likelihoods the network places on
+            z (~torch.Tensor): segmentation mask with a channel for each class of the likelihoods the network places on
                 each pixel input 'x' being of that class.
         """
         z = self.backbone(x)
@@ -157,24 +157,24 @@ class DCN(MinervaModel, ABC):
             and the computational graph. Will be either '32', '16' or '8'.
             See the FCN paper for details on these variants.
         n_classes (int): Number of classes in dataset. Defines number of output classification channels.
-        relu (torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
-        Conv1x1 (torch.nn.Conv2d): First Conv1x1 layer acting as input to the network from the final output of
+        relu (~torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
+        Conv1x1 (~torch.nn.Conv2d): First Conv1x1 layer acting as input to the network from the final output of
             the encoder and common to all variants.
-        bn1 (torch.nn.BatchNorm2d): First batch norm layer common to all variants that comes after Conv1x1.
-        DC32 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 32 for DCN32 variant.
-        dbn32 (torch.nn.BatchNorm2d): Batch norm layer after DC32.
-        Conv1x1_x3 (torch.nn.Conv2d): Conv1x1 layer acting as input to the network taking the output from the
+        bn1 (~torch.nn.BatchNorm2d): First batch norm layer common to all variants that comes after Conv1x1.
+        DC32 (~torch.nn.ConvTranspose2d): De-convolutional layer with stride 32 for DCN32 variant.
+        dbn32 (~torch.nn.BatchNorm2d): Batch norm layer after DC32.
+        Conv1x1_x3 (~torch.nn.Conv2d): Conv1x1 layer acting as input to the network taking the output from the
             third layer from the ResNet encoder.
-        DC2 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 2 for DCN16 & DCN8 variants.
-        dbn2 (torch.nn.BatchNorm2d): Batch norm layer after DC2.
-        DC16 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 16 for DCN16 variant.
-        dbn16 (torch.nn.BatchNorm2d): Batch norm layer after DC16.
-        Conv1x1_x2 (torch.nn.Conv2d): Conv1x1 layer acting as input to the network taking the output from the
+        DC2 (~torch.nn.ConvTranspose2d): De-convolutional layer with stride 2 for DCN16 & DCN8 variants.
+        dbn2 (~torch.nn.BatchNorm2d): Batch norm layer after DC2.
+        DC16 (~torch.nn.ConvTranspose2d): De-convolutional layer with stride 16 for DCN16 variant.
+        dbn16 (~torch.nn.BatchNorm2d): Batch norm layer after DC16.
+        Conv1x1_x2 (~torch.nn.Conv2d): Conv1x1 layer acting as input to the network taking the output from the
             second layer from the ResNet encoder.
-        DC4 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 2 for DCN8 variant.
-        dbn4 (torch.nn.BatchNorm2d): Batch norm layer after DC4.
-        DC8 (torch.nn.ConvTranspose2d): De-convolutional layer with stride 8 for DCN8 variant.
-        dbn8 (torch.nn.BatchNorm2d): Batch norm layer after DC8.
+        DC4 (~torch.nn.ConvTranspose2d): De-convolutional layer with stride 2 for DCN8 variant.
+        dbn4 (~torch.nn.BatchNorm2d): Batch norm layer after DC4.
+        DC8 (~torch.nn.ConvTranspose2d): De-convolutional layer with stride 8 for DCN8 variant.
+        dbn8 (~torch.nn.BatchNorm2d): Batch norm layer after DC8.
 
     Args:
         in_channel (int): Optional; Number of channels in the input layer of the network.
@@ -281,11 +281,11 @@ class DCN(MinervaModel, ABC):
         Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
 
         Args:
-            x (tuple[Tensor, Tensor, Tensor, Tensor, Tensor]): Input data to network.
+            x (tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]): Input data to network.
                 Should be from a backbone that supports output at multiple points e.g ResNet.
 
         Returns:
-            Tensor segmentation mask with a channel for each class of the likelihoods the network places on
+            ~torch.Tensor:  Segmentation mask with a channel for each class of the likelihoods the network places on
                 each pixel input 'x' being of that class.
 
         Raises:
@@ -337,7 +337,7 @@ class FCN32ResNet18(_FCN):
     """Fully Convolutional Network (FCN) using a ResNet18 backbone with a DCN32 decoder.
 
     Args:
-        criterion: PyTorch loss function model will use.
+        criterion: :mod:`torch` loss function model will use.
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
@@ -372,7 +372,7 @@ class FCN32ResNet34(_FCN):
     """Fully Convolutional Network (FCN) using a ResNet34 backbone with a DCN32 decoder.
 
     Args:
-        criterion: PyTorch loss function model will use.
+        criterion: :mod:`torch` loss function model will use.
         input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.

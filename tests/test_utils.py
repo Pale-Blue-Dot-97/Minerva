@@ -26,6 +26,10 @@ from minerva.models import MinervaModel
 from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
 
 
+def test_print_banner() -> None:
+    utils.print_banner()
+
+
 def test_is_notebook() -> None:
     assert utils.is_notebook() is False
 

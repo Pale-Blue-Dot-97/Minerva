@@ -41,7 +41,7 @@ from minerva.utils import CONFIG, universal_path, utils
 #                                                      MAIN
 # =====================================================================================================================
 def main():
-    manifest = make_manifest()
+    manifest = make_manifest(CONFIG)
 
     print(manifest)
 

@@ -75,18 +75,18 @@ from minerva.utils.utils import func_by_str
 class MinervaModel(Module, ABC):
     """Abstract class to act as a base for all Minerva Models.
 
-    Designed to provide inter-compatability with :class:`Trainer`.
+    Designed to provide inter-compatability with :class:`~trainer.Trainer`.
 
     Attributes:
-        criterion (Module): PyTorch loss function model will use.
+        criterion (~torch.nn.Module): :mod:`torch` loss function model will use.
         input_shape (tuple[int, int, int] or list[int]): The shape of the input data in order of
             number of channels, image width, image height.
         n_classes (int): Number of classes in input data.
-        output_shape: The shape of the output of the network. Determined and set by determine_output_dim.
-        optimiser: PyTorch optimiser model will use, to be initialised with inherited model's parameters.
+        output_shape: The shape of the output of the network. Determined and set by :meth:`determine_output_dim`.
+        optimiser: :mod:`torch` optimiser model will use, to be initialised with inherited model's parameters.
 
     Args:
-        criterion (Module): Optional; PyTorch loss function model will use.
+        criterion (~torch.nn.Module): Optional; :mod:`torch` loss function model will use.
         input_shape (tuple[int, int, int] or list[int]): Optional; Defines the shape of the input data in order of
             number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in input data.
@@ -119,16 +119,17 @@ class MinervaModel(Module, ABC):
         """Sets the optimiser used by the model.
 
         .. warning::
-            *MUST* be called after initialising a model and supplied with a PyTorch optimiser
+            *MUST* be called after initialising a model and supplied with a :class:`torch.optim.Optimizer`
             using this model's parameters.
 
         Args:
-            optimiser (Optimizer): PyTorch optimiser model will use, initialised with this model's parameters.
+            optimiser (~torch.optim.Optimizer): :class:`torch.optim.Optimizer` model will use,
+                initialised with this model's parameters.
         """
         self.optimiser = optimiser
 
     def determine_output_dim(self, sample_pairs: bool = False) -> None:
-        """Uses get_output_shape to find the dimensions of the output of this model and sets to attribute."""
+        """Uses :func:`get_output_shape` to find the dimensions of the output of this model and sets to attribute."""
 
         assert self.input_size is not None
 
@@ -161,15 +162,15 @@ class MinervaModel(Module, ABC):
             NotImplementedError: If ``self.criterion`` is None.
 
         Args:
-            x (Tensor): Batch of input data to network.
-            y (Tensor): Either a batch of ground truth labels or generated labels/ pairs.
-            train (bool): Sets whether this shall be a training step or not. True for training step which will then
-                clear the optimiser, and perform a backward pass of the network then update the optimiser.
-                If False for a validation or testing step, these actions are not taken.
+            x (~torch.Tensor): Batch of input data to network.
+            y (~torch.Tensor): Either a batch of ground truth labels or generated labels/ pairs.
+            train (bool): Sets whether this shall be a training step or not. ``True`` for training step
+                which will then clear the optimiser, and perform a backward pass of the network then
+                update the optimiser. If ``False`` for a validation or testing step, these actions are not taken.
 
         Returns:
-            Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]: Tuple of the loss computed by the loss function
-            and the model outputs.
+            tuple[~torch.Tensor, ~torch.Tensor | tuple[~torch.Tensor, ...]]: :class:`tuple` of the loss computed
+            by the loss function and the model outputs.
         """
 
         if self.optimiser is None:
@@ -208,21 +209,26 @@ class MinervaBackbone(MinervaModel):
 
     def get_backbone(self) -> Module:
         """Gets the backbone network of the model.
+
         Returns:
-            Module: The backbone of the model.
+            ~torch.nn.Module: The backbone of the model.
         """
         return self.backbone
 
 
 class MinervaDataParallel(Module):  # pragma: no cover
-    """Custom wrapper for DataParallel that automatically fetches the attributes of the wrapped model.
+    """Wrapper for :class:`~torch.nn.parallel.DataParallel` or :class:`~torch.nn.parallel.DistributedDataParallel`
+    that automatically fetches the attributes of the wrapped model.
 
     Attributes:
-        model (Module): PyTorch Model to be wrapped by :class:`DataParallel`.
-        paralleliser (Union[DataParallel, DistributedDataParallel]): The paralleliser to wrap the model in.
+        model (~torch.nn.Module): :mod:`torch` model to be wrapped by :class:`~torch.nn.parallel.DataParallel`
+            or :class:`~torch.nn.parallel.DistributedDataParallel`.
+        paralleliser (~torch.nn.parallel.DataParallel | ~torch.nn.parallel.DistributedDataParallel): The paralleliser to
+            wrap the model in.
 
     Args:
-        model (Module): PyTorch Model to be wrapped by :class:`DataParallel`.
+        model (~torch.nn.Module): :mod:`torch` model to be wrapped by :class:`~torch.nn.parallel.DataParallel`
+            or :class:`~torch.nn.parallel.DistributedDataParallel`.
     """
 
     def __init__(
@@ -239,10 +245,10 @@ class MinervaDataParallel(Module):  # pragma: no cover
         """Ensures a forward call to the model goes to the actual wrapped model.
 
         Args:
-            input (Tuple[Tensor, ...]): Input of tensors to be parsed to the model forward.
+            input (tuple[~torch.Tensor, ...]): Input of tensors to be parsed to the model forward.
 
         Returns:
-            Tuple[Tensor, ...]: Output of model.
+            tuple[~torch.Tensor, ...]: Output of model.
         """
         z = self.model(*input)
         assert isinstance(z, tuple) and list(map(type, z)) == [Tensor] * len(z)
@@ -265,10 +271,10 @@ class MinervaOnnxModel(MinervaModel):
     """Special model class for enabling :mod:`onnx` models to be used within :mod:`minerva`.
 
     Attributes:
-        model (Module): :mod:`onnx` model imported into :mod:`torch`.
+        model (~torch.nn.Module): :mod:`onnx` model imported into :mod:`torch`.
 
     Args:
-        model (Module): :mod:`onnx` model imported into :mod:`torch`.
+        model (~torch.nn.Module): :mod:`onnx` model imported into :mod:`torch`.
     """
 
     def __init__(self, model: Module, *args, **kwargs) -> None:
@@ -317,7 +323,7 @@ def get_model(model_name: str) -> Callable[..., MinervaModel]:
 
 
 def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
-    """Loads pre-trained model weights from ``torchvision`` via Torch Hub API.
+    """Loads pre-trained model weights from :mod:`torchvision` via Torch Hub API.
 
     Args:
         weights_name (str): Name of model weights. See ... for a list of possible pre-trained weights.
@@ -327,8 +333,7 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
 
     Note:
         This function only returns a query for the API of the weights. To actually use them, you need to call
-        ``get_state_dict(progress)`` where progress is a ``bool`` on whether to show a progress bar for the
-        downloading of the weights (if not already in cache).
+        :meth:`~torchvision.models._api.WeightsEnum.get_state_dict` to download the weights (if not already in cache).
     """
     weights: Optional[WeightsEnum] = None
     try:
@@ -357,13 +362,13 @@ def get_output_shape(
     """Gets the output shape of a model.
 
     Args:
-        model (Module): Model for which the shape of the output needs to be found.
-        image_dim (Union[Sequence[int], int]): Expected shape of the input data to the model.
+        model (~torch.nn.Module): Model for which the shape of the output needs to be found.
+        image_dim (Sequence[int] | int]): Expected shape of the input data to the model.
         sample_pairs (bool): Optional; Flag for if paired sampling is active.
             Will send a paired sample through the model.
 
     Returns:
-        The shape of the output data from the model.
+        int | Sequence[int]: The shape of the output data from the model.
     """
     _image_dim: Union[Sequence[int], int] = image_dim
     try:
@@ -404,7 +409,8 @@ def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tens
         kernel_size (int): Size of the (square) kernel.
 
     Returns:
-        Tensor of the initialised bi-linear interpolated weights for the transpose convolutional layer's kernels.
+        ~torch.Tensor: :class:`~torch.Tensor` of the initialised bi-linear interpolated weights for the
+        transpose convolutional layer's kernels.
     """
     factor = (kernel_size + 1) // 2
 

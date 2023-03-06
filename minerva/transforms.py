@@ -53,29 +53,32 @@ class ClassTransform:
     """Transform to be applied to a mask to convert from one labelling schema to another.
 
     Attributes:
-        transform (Dict[int, int]): Mapping from one labelling schema to another.
+        transform (dict[int, int]): Mapping from one labelling schema to another.
 
     Args:
-        transform (Dict[int, int]): Mapping from one labelling schema to another.
+        transform (dict[int, int]): Mapping from one labelling schema to another.
     """
 
     def __init__(self, transform: Dict[int, int]) -> None:
         self.transform = transform
 
     def __call__(self, mask: LongTensor) -> LongTensor:
-        """Transforms the given mask from the original label schema to the new.
-
-        Args:
-            mask (LongTensor): Mask in the original label schema.
-
-        Returns:
-            LongTensor: Mask transformed into new label schema.
-        """
-        transformed: LongTensor = mask_transform(mask, self.transform)
-        return transformed
+        return self.forward(mask)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(transform={self.transform})"
+
+    def forward(self, mask: LongTensor) -> LongTensor:
+        """Transforms the given mask from the original label schema to the new.
+
+        Args:
+            mask (~torch.LongTensor): Mask in the original label schema.
+
+        Returns:
+            ~torch.LongTensor: Mask transformed into new label schema.
+        """
+        transformed: LongTensor = mask_transform(mask, self.transform)
+        return transformed
 
 
 class PairCreate:
@@ -85,18 +88,21 @@ class PairCreate:
         pass
 
     def __call__(self, sample: Any) -> Tuple[Any, Any]:
-        """Takes a sample and returns it and a copy as a tuple pair.
+        return self.forward(sample)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}()"
+
+    def forward(self, sample: Any) -> Tuple[Any, Any]:
+        """Takes a sample and returns it and a copy as a :class:`tuple` pair.
 
         Args:
             sample (Any): Sample to duplicate.
 
         Returns:
-            Tuple[Any, Any]: Tuple of two copies of the sample.
+            tuple[Any, Any]: :class:`tuple` of two copies of the sample.
         """
         return sample, sample
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}()"
 
 
 class Normalise:
@@ -113,39 +119,46 @@ class Normalise:
         self.norm_value = norm_value
 
     def __call__(self, img: Tensor) -> Tensor:
-        """Normalises inputted image using ``norm_value``.
-
-        Args:
-            img (Tensor): Image tensor to be normalised. Should have a bit size that relates to ``norm_value``.
-
-        Returns:
-            Tensor: Input image tensor normalised by ``norm_value``.
-        """
-        return img / self.norm_value
+        return self.forward(img)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(norm_value={self.norm_value})"
 
+    def forward(self, img: Tensor) -> Tensor:
+        """Normalises inputted image using ``norm_value``.
+
+        Args:
+            img (~torch.Tensor): Image tensor to be normalised. Should have a bit size
+                that relates to ``norm_value``.
+
+        Returns:
+            ~torch.Tensor: Input image tensor normalised by ``norm_value``.
+        """
+        return img / self.norm_value
+
 
 class DetachedColorJitter(ColorJitter):
-    """Sends RGB channels of multi-spectral images to be transformed by :class:`ColorJitter`."""
+    """Sends RGB channels of multi-spectral images to be transformed by
+    :class:`~torchvision.transforms.ColorJitter`.
+    """
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
     def forward(self, img: Tensor) -> Tensor:
-        """Detaches RGB channels of input image to be sent to :class:`ColorJitter`.
+        """Detaches RGB channels of input image to be sent to :class:`~torchvision.transforms.ColorJitter`.
 
-        All other channels bypass :class:`ColorJitter` and are concatenated onto the colour jittered RGB channels.
+        All other channels bypass :class:`~torchvision.transforms.ColorJitter` and are
+        concatenated onto the colour jittered RGB channels.
 
         Args:
-            img (Tensor): Input image.
+            img (~torch.Tensor): Input image.
 
         Raises:
             ValueError: If number of channels of input ``img`` is 2.
 
         Returns:
-            Tensor: Color jittered image.
+            ~torch.Tensor: Color jittered image.
         """
         channels = ft.get_image_num_channels(img)
 
@@ -170,8 +183,9 @@ class DetachedColorJitter(ColorJitter):
 
 
 class MinervaCompose:
-    """Extension of :class:`Compose`. Composes several transforms together. This transform does not support torchscript.
-    Please, see the note below.
+    """Extension of :class:`torchvision.transforms.Compose`. Composes several transforms together.
+
+    This transform does not support torchscript. Please, see the note below.
 
     Args:
         transforms (list of ``Transform`` objects): list of transforms to compose.
@@ -184,7 +198,7 @@ class MinervaCompose:
         >>> ])
 
     .. note::
-        In order to script the transformations, please use ``torch.nn.Sequential`` as below.
+        In order to script the transformations, please use :class:`torch.nn.Sequential` as below.
 
         >>> transforms = torch.nn.Sequential(
         >>>     transforms.CenterCrop(10),
@@ -192,8 +206,8 @@ class MinervaCompose:
         >>> )
         >>> scripted_transforms = torch.jit.script(transforms)
 
-        Make sure to use only scriptable transformations, i.e. that work with ``torch.Tensor``, does not require
-        `lambda` functions or ``PIL.Image``.
+        Make sure to use only scriptable transformations, i.e. that work with :class:`torch.Tensor`,
+        does not require ``lambda`` functions or :class:`pillow.Image`.
 
     """
 

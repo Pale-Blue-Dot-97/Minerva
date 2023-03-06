@@ -20,7 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
-"""Custom PyTorch optimisers."""
+"""Custom :mod:`torch` optimisers."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -46,14 +46,14 @@ class LARS(Optimizer):
     Source: https://github.com/noahgolmant/pytorch-lars/blob/master/lars.py
 
     Args:
-        params (iterable or dict): Iterable of parameters to optimize or dicts defining
+        params (iterable | dict): Iterable of parameters to optimize or dicts defining
             parameter groups
         lr (float): base learning rate (\gamma_0)
         momentum (float, optional): momentum factor (default: 0) ("m")
         weight_decay (float, optional): weight decay (L2 penalty) (default: 0)
             ("\beta")
         eta (float, optional): LARS coefficient
-        max_epoch: maximum training epoch to determine polynomial LR decay.
+        max_epoch (int): maximum training epoch to determine polynomial LR decay.
 
     Based on Algorithm 1 of the following paper by You, Gitman, and Ginsburg.
     Large Batch Training of Convolutional Networks: https://arxiv.org/abs/1708.03888

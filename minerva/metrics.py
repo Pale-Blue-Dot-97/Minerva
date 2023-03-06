@@ -46,16 +46,16 @@ class MinervaMetrics(ABC):
     """Abstract class for metric logging within the :mod:`minerva` framework.
 
     Attributes:
-        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
-        metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
+        data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
+        metrics (dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
-        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
 
     """
 
@@ -100,7 +100,7 @@ class MinervaMetrics(ABC):
 
         Args:
             mode (str): Mode of model fitting.
-            logs (Dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
+            logs (dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
         pass  # pragma: no cover
 
@@ -119,7 +119,7 @@ class MinervaMetrics(ABC):
         """Get the ``metrics`` dictionary.
 
         Returns:
-            Dict[str, Any]: Metrics dictionary.
+            dict[str, Any]: Metrics dictionary.
         """
         return self.metrics
 
@@ -131,11 +131,11 @@ class MinervaMetrics(ABC):
         Useful for getting the train and validation metrics for plotting for example.
 
         Args:
-            pattern (Tuple[str, ...]): Optional; Strings to pattern match the metric keys to be returned.
-                Defaults to ("train", "val").
+            pattern (tuple[str, ...]): Optional; Strings to pattern match the metric keys to be returned.
+                Defaults to ``("train", "val")``.
 
         Returns:
-            Dict[str, Any]: Subset of ``metrics`` with keys that contained strings in ``pattern``.
+            dict[str, Any]: Subset of ``metrics`` with keys that contained strings in ``pattern``.
         """
         sub_metrics = {}
         for key in self.metrics.keys():
@@ -159,16 +159,16 @@ class SPMetrics(MinervaMetrics):
     """Metric logging for supervised models.
 
     Attributes:
-        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
-        metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
+        data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
+        metrics (dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
-        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         model_type (str): Optional; Type of the model.
     """
 
@@ -191,7 +191,7 @@ class SPMetrics(MinervaMetrics):
 
         Args:
             mode (str): Mode of model fitting.
-            logs (Dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
+            logs (dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
         self.metrics[f"{mode}_loss"]["y"].append(
             logs["total_loss"] / self.n_batches[mode]
@@ -252,16 +252,16 @@ class SSLMetrics(MinervaMetrics):
     """Metric logging for self-supervised models.
 
     Attributes:
-        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
-        metrics (Dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
+        data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
+        metrics (dict[str, Any]): Dictionary to hold the metrics to assess the model with for each mode of fitting.
         model_type (str): Type of the model.
 
     Args:
-        n_batches (Dict[str, int]): Dictionary of the number of batches in each mode of fitting.
+        n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (Tuple[int, int, int]): Shape of the input data in C x H x W.
+        data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         model_type (str): Optional; Type of the model.
     """
 
@@ -290,7 +290,7 @@ class SSLMetrics(MinervaMetrics):
 
         Args:
             mode (str): Mode of model fitting.
-            logs (Dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
+            logs (dict[str, Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
         self.metrics[f"{mode}_loss"]["y"].append(
             logs["total_loss"] / self.n_batches[mode]

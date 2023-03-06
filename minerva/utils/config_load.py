@@ -20,7 +20,7 @@
 """Handles the loading of config files and checking paths.
 
 Attributes:
-    DEFAULT_CONF_DIR_PATH (Path): Path to the default config directory.
+    DEFAULT_CONF_DIR_PATH (~pathlib.Path): Path to the default config directory.
     DEFAULT_CONFIG_NAME (str): Name of the default, example config.
 """
 # =====================================================================================================================
@@ -78,13 +78,13 @@ class ToDefaultConfDir:
 #                                                     METHODS
 # =====================================================================================================================
 def universal_path(path: Any) -> Path:
-    """Creates a :class:`Path` object from ``str`` or ``Iterable`` inputs.
+    """Creates a :class:`~pathlib.Path` object from :class:`str` or :class:`Iterable` inputs.
 
     Args:
-        path (Any): Representation of a path to convert to :class:`Path` object.
+        path (Any): Representation of a path to convert to :class:`~pathlib.Path` object.
 
     Returns:
-        Path: :class:`Path` object of the input ``path``.
+        ~pathlib.Path: :class:`~pathlib.Path` object of the input ``path``.
     """
     if isinstance(path, Path):
         return path
@@ -100,11 +100,11 @@ def check_paths(
     """Checks the path given for the config.
 
     Args:
-        config (Optional[Union[str, PathLike[str]]]): Path to the config given from the CLI.
+        config (str | ~pathlib.Path | None): Path to the config given from the CLI.
         use_default_conf_dir (bool): Assumes that ``config`` is in the default config directory if ``True``.
 
     Returns:
-        Tuple[str, Optional[str], Optional[Path]]: Tuple of the path for :func:`load_configs` to use,
+        tuple[str, Optional[str], Optional[~pathlib.Path]]: Tuple of the path for :func:`load_configs` to use,
         the config name and path to config.
     """
 
@@ -154,10 +154,10 @@ def chdir_to_default(config_name: Optional[str] = None) -> str:
     """Changes the current working directory to the default config directory.
 
     Args:
-        config_name (Optional[str]): Optional; Name of the config in the default directory. Defaults to None.
+        config_name (str): Optional; Name of the config in the default directory. Defaults to None.
 
     Returns:
-        str: ``DEFAULT_CONFIG_NAME`` if ``config_name`` not in default directory. ``config_name`` if it does exist.
+        str: :data:`DEFAULT_CONFIG_NAME` if ``config_name`` not in default directory. ``config_name`` if it does exist.
     """
 
     this_abs_path = (Path(__file__).parent / DEFAULT_CONF_DIR_PATH).resolve()
@@ -173,10 +173,10 @@ def load_configs(master_config_path: Union[str, Path]) -> Tuple[Dict[str, Any], 
     """Loads the master config from YAML. Finds other config paths within and loads them.
 
     Args:
-        master_config_path (str): Path to the master config YAML file.
+        master_config_path (str): Path to the master config ``YAML`` file.
 
     Returns:
-        Master config and any other configs found from paths in the master config.
+        tuple[dict[str, Any], ...]: Master config and any other configs found from paths in the master config.
     """
 
     def yaml_load(path: Union[str, Path]) -> Any:
@@ -194,10 +194,10 @@ def load_configs(master_config_path: Union[str, Path]) -> Tuple[Dict[str, Any], 
         """Loads and returns config files from YAML as dicts.
 
         Args:
-            paths (dict): Dictionary mapping config names to paths to their YAML files.
+            paths (dict[str, str]): Dictionary mapping config names to paths to their ``YAML`` files.
 
         Returns:
-            Config dictionaries loaded from YAML from paths.
+            dict[str, dict[str, Any]]: Config dictionaries loaded from ``YAML`` from paths.
         """
         configs = {}
         for _config_name in paths.keys():

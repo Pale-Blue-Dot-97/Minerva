@@ -31,7 +31,6 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from abc import ABC
 from collections import OrderedDict
 from typing import Any, Iterable, List, Optional, Sequence, Tuple, Union
 
@@ -51,23 +50,23 @@ from .core import MinervaModel, get_output_shape
 class MLP(MinervaModel):
     """Simple class to construct a Multi-Layer Perceptron (MLP).
 
-    Inherits from :class:`torch.nn.Module` and :class:`MinervaModel`. Designed for use with PyTorch functionality.
+    Inherits from :class:`~torch.nn.Module` and :class:`MinervaModel`. Designed for use with PyTorch functionality.
 
-    Should be used in tandem with :class:`Trainer`.
+    Should be used in tandem with :class:`~trainer.Trainer`.
 
     Attributes:
         input_size (int): Size of the input vector to the network.
         output_size (int): Size of the output vector of the network.
-        hidden_sizes (tuple[int] or list[int]): Series of values for the size of each hidden layers within the network.
+        hidden_sizes (tuple[int] | list[int]): Series of values for the size of each hidden layers within the network.
             Also determines the number of layers other than the required input and output layers.
         network (torch.nn.Sequential): The actual neural network of the model.
 
     Args:
-        criterion: PyTorch loss function model will use.
+        criterion: :mod:`torch` loss function model will use.
         input_size (int): Optional; Size of the input vector to the network.
         n_classes (int): Optional; Number of classes in input data.
             Determines the size of the output vector of the network.
-        hidden_sizes (tuple[int] or list[int]): Optional; Series of values for the size of each hidden layers
+        hidden_sizes (tuple[int] | list[int]): Optional; Series of values for the size of each hidden layers
             within the network. Also determines the number of layers other than the required input and output layers.
     """
 
@@ -113,22 +112,22 @@ class MLP(MinervaModel):
         or when data is parsed to :class:`MLP` (e.g. ``model()``).
 
         Args:
-            x (Tensor): Input data to network.
+            x (~torch.Tensor): Input data to network.
 
         Returns:
-            Tensor of the likelihoods the network places on the input ``x`` being of each class.
+            ~torch.Tensor. Tensor of the likelihoods the network places on the input ``x`` being of each class.
         """
         z = self.network(x)
         assert isinstance(z, Tensor)
         return z
 
 
-class CNN(MinervaModel, ABC):
+class CNN(MinervaModel):
     """Simple class to construct a Convolutional Neural Network (CNN).
 
-    Inherits from :class:`torch.nn.Module` and :class:`MinervaModel`. Designed for use with PyTorch functionality.
+    Inherits from :class:`~torch.nn.Module` and :class:`MinervaModel`. Designed for use with :mod:`torch` functionality.
 
-    Should be used in tandem with :class:`Trainer`.
+    Should be used in tandem with :class:`~trainer.Trainer`.
 
     Attributes:
         flattened_size (int): Length of the vector resulting from the flattening of the output from the convolutional
@@ -137,16 +136,21 @@ class CNN(MinervaModel, ABC):
         fc_net (torch.nn.Sequential): Fully connected network of the model.
 
     Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int] | list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in input data.
-        features (tuple[int] or list[int]): Optional; Series of values defining the number of feature maps.
-            The length of the list is also used to determine the number of convolutional layers in conv_net.
-        conv_kernel_size (int or tuple[int]): Optional; Size of all convolutional kernels for all channels and layers.
-        conv_stride (int or tuple[int]): Optional; Size of all convolutional stride lengths for all channels and layers.
-        max_kernel_size (int or tuple[int]): Optional; Size of all max-pooling kernels for all channels and layers.
-        max_stride (int or tuple[int]): Optional; Size of all max-pooling stride lengths for all channels and layers.
+        features (tuple[int] | list[int]): Optional; Series of values defining the number of feature maps.
+            The length of the list is also used to determine the number of convolutional layers
+            in ``conv_net``.
+        conv_kernel_size (int | tuple[int, ...]): Optional; Size of all convolutional kernels
+            for all channels and layers.
+        conv_stride (int | tuple[int, ...]): Optional; Size of all convolutional stride lengths
+            for all channels and layers.
+        max_kernel_size (int | tuple[int, ...]): Optional; Size of all max-pooling kernels
+            for all channels and layers.
+        max_stride (int | tuple[int, ...]): Optional; Size of all max-pooling stride lengths
+            for all channels and layers.
     """
 
     def __init__(
@@ -245,10 +249,10 @@ class CNN(MinervaModel, ABC):
         or when data is parsed to model (e.g. ``model()``).
 
         Args:
-            x (Tensor): Input data to network.
+            x (~torch.Tensor): Input data to network.
 
         Returns:
-            Tensor of the likelihoods the network places on the input ``x`` being of each class.
+            ~torch.Tensor: Tensor of the likelihoods the network places on the input ``x`` being of each class.
         """
         # Inputs the data into the convolutional network.
         conv_out = self.conv_net(x)
