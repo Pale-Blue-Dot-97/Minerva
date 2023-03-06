@@ -93,7 +93,8 @@ class PairCreate:
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
-    def forward(self, sample: Any) -> Tuple[Any, Any]:
+    @staticmethod
+    def forward(sample: Any) -> Tuple[Any, Any]:
         """Takes a sample and returns it and a copy as a :class:`tuple` pair.
 
         Args:
