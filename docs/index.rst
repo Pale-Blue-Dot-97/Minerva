@@ -3,22 +3,33 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root ``toctree`` directive.
 
-Welcome to Minerva's documentation!
-===================================
+Minerva
+=======
 .. image:: images/Minerva_logo.png
    :width: 600
 
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption: Source Documentation 📙:
 
-   source/minerva/index
-   source/utils/index
+   source/minerva/datasets
+   source/minerva/logger
+   source/minerva/metrics
+   source/minerva/modelio
+   source/minerva/optimisers
+   source/minerva/pytorchtools
+   source/minerva/samplers
+   source/minerva/trainer
+   source/minerva/transforms
+   source/minerva/models/index
+   source/minerva/utils/index
 
 
 .. toctree::
    :maxdepth: 2
+   :hidden:
    :caption: Guides and Information 📗:
 
    source/guides/index
