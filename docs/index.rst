@@ -14,6 +14,7 @@ Welcome to Minerva's documentation!
    :caption: Source Documentation 📙:
 
    source/minerva/index
+   source/models/index
    source/utils/index
 
 
