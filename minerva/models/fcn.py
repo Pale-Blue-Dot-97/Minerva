@@ -57,12 +57,15 @@ from .core import MinervaBackbone, MinervaModel, bilinear_init, get_model
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class _FCN(MinervaBackbone, ABC):
+class _FCN(MinervaBackbone):
     """Base Fully Convolutional Network (FCN) class to be subclassed by FCN variants described in the FCN paper.
 
     Subclasses MinervaModel.
 
     Attributes:
+        backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
+        decoder_variant (str): Optional; Flag for which DCN variant to construct. Must be either '32', '16' or '8'.
+            See the FCN paper for details on these variants.
         backbone (~torch.nn.Module): Backbone of the FCN that takes the imagery input and
             extracts learned representations.
         decoder (~torch.nn.Module): Decoder that takes the learned representations from the backbone encoder
@@ -73,10 +76,6 @@ class _FCN(MinervaBackbone, ABC):
         input_size (tuple[int] | list[int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_name (str): Optional; Name of the backbone within this module to use for the FCN.
-        decoder_name (str): Optional; Name of the decoder class to use for the FCN. Must be either 'DCN' or 'Decoder'.
-        decoder_variant (str): Optional; Flag for which DCN variant to construct. Must be either '32', '16' or '8'.
-            See the FCN paper for details on these variants.
         batch_size (int): Optional; Number of samples in each batch supplied to the network.
             Only needed for Decoder, not DCN.
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
@@ -85,23 +84,24 @@ class _FCN(MinervaBackbone, ABC):
         backbone_kwargs (dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
+    backbone_name: str = "ResNet18"
+    decoder_variant: Literal["32", "16", "8"] = "32"
+
     def __init__(
         self,
         criterion: Any,
         input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
-        backbone_name: str = "ResNet18",
-        decoder_variant: Literal["32", "16", "8"] = "32",
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
-        backbone_kwargs: Optional[Dict[str, Any]] = None,
+        backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(_FCN, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
         # Initialises the selected Minerva backbone.
-        self.backbone: MinervaModel = get_model(backbone_name)(
+        self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs  # type: ignore
         )
 
@@ -122,7 +122,7 @@ class _FCN(MinervaBackbone, ABC):
         self.decoder = DCN(
             in_channel=backbone_out_shape[0],
             n_classes=n_classes,
-            variant=decoder_variant,
+            variant=self.decoder_variant,
         )
 
     def forward(self, x: Tensor) -> Tensor:
@@ -147,7 +147,7 @@ class _FCN(MinervaBackbone, ABC):
         return z
 
 
-class DCN(MinervaModel, ABC):
+class DCN(MinervaModel):
     """Generic DCN defined by the FCN paper. Can construct the DCN32, DCN16 or DCN8 variants defined in the paper.
 
     Based on the example found here: https://github.com/haoran1062/FCN-pytorch/blob/master/FCN.py
@@ -334,385 +334,110 @@ class DCN(MinervaModel, ABC):
 
 
 class FCN32ResNet18(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet18 backbone with a DCN32 decoder.
-
-    Args:
-        criterion: :mod:`torch` loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
+    with a :class:`DCN32` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN32ResNet18, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet18",
-            decoder_variant="32",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet18"
+    decoder_variant = "32"
 
 
 class FCN32ResNet34(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet34 backbone with a DCN32 decoder.
-
-    Args:
-        criterion: :mod:`torch` loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
+    with a :class:`DCN32` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN32ResNet34, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet34",
-            decoder_variant="32",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet34"
+    decoder_variant = "32"
 
 
 class FCN32ResNet50(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet34 backbone with a DCN32 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
+    with a :class:`DCN32` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN32ResNet50, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet50",
-            decoder_variant="32",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet50"
+    decoder_variant = "32"
 
 
 class FCN16ResNet18(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet18 backbone with a DCN16 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
+    with a :class:`DCN16` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN16ResNet18, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet18",
-            decoder_variant="16",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet18"
+    decoder_variant = "16"
 
 
 class FCN16ResNet34(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet34 backbone with a DCN16 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
+    with a :class:`DCN16` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN16ResNet34, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet34",
-            decoder_variant="16",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet34"
+    decoder_variant = "16"
 
 
 class FCN16ResNet50(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet50 backbone with a DCN16 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
+    with a :class:`DCN16` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN16ResNet50, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet50",
-            decoder_variant="16",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet50"
+    decoder_variant = "16"
 
 
 class FCN8ResNet18(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet18 backbone with a DCN8 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet18` backbone
+    with a :class:`DCN8` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN8ResNet18, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet18",
-            decoder_variant="8",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet18"
+    decoder_variant = "8"
 
 
 class FCN8ResNet34(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet34 backbone with a DCN8 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet34` backbone
+    with a :class:`DCN8` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN8ResNet34, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet34",
-            decoder_variant="8",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet34"
+    decoder_variant = "8"
 
 
 class FCN8ResNet50(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet50 backbone with a DCN8 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet50` backbone
+    with a :class:`DCN8` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN8ResNet50, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet50",
-            decoder_variant="8",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet50"
+    decoder_variant = "8"
 
 
 class FCN8ResNet101(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet101 backbone with a DCN8 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet101` backbone
+    with a :class:`DCN8` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN8ResNet101, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet101",
-            decoder_variant="8",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet101"
+    decoder_variant = "8"
 
 
 class FCN8ResNet152(_FCN):
-    """Fully Convolutional Network (FCN) using a ResNet152 backbone with a DCN8 decoder.
-
-    Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
-            order of number of channels, image width, image height.
-        n_classes (int): Optional; Number of classes in data to be classified.
-        backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
-        freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
-            if using a pre-trained backbone.
-        resnet_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+    """
+    Fully Convolutional Network (FCN) using a :class:`~models.resnet.ResNet152` backbone
+    with a :class:`DCN8` decoder.
     """
 
-    def __init__(
-        self,
-        criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
-        n_classes: int = 8,
-        backbone_weight_path: Optional[str] = None,
-        freeze_backbone: bool = False,
-        **resnet_kwargs,
-    ) -> None:
-        super(FCN8ResNet152, self).__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            backbone_name="ResNet152",
-            decoder_variant="8",
-            backbone_weight_path=backbone_weight_path,
-            freeze_backbone=freeze_backbone,
-            backbone_kwargs=resnet_kwargs,
-        )
+    backbone_name = "ResNet152"
+    decoder_variant = "8"
