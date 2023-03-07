@@ -274,3 +274,40 @@ class MinervaCompose:
         format_string += "\n)"
 
         return format_string
+
+
+class SwapKeys:
+    """Transform to set one key in a :mod:`torchgeo` sample :class:`dict` to another.
+
+    Useful for testing autoencoders to predict their input.
+
+    Attributes:
+        from_key (str): Key for the value to set to ``to_key``.
+        to_key (str): Key to set the value from ``from_key`` to.
+
+    Args:
+        from_key (str): Key for the value to set to ``to_key``.
+        to_key (str): Key to set the value from ``from_key`` to.
+    """
+
+    def __init__(self, from_key: str, to_key: str) -> None:
+        self.from_key = from_key
+        self.to_key = to_key
+
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        return self.forward(sample)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.from_key} -> {self.to_key})"
+
+    def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Sets the ``to_key`` of ``sample`` to the ``from_key`` and returns.
+
+        Args:
+            sample (dict[str, Any]): Sample dict from :mod:`torchgeo` containing ``from_key``.
+
+        Returns:
+            dict[str, Any]: Sample with ``to_key`` set to the value of ``from_key``.
+        """
+        sample[self.to_key] = sample[self.from_key]
+        return sample
