@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "minerva"
-version = "0.21.0"
+version = "0.21.1"
 description = "Package to build, train and test neural network models on geospatial data"
 readme = "README.md"
 authors = [
