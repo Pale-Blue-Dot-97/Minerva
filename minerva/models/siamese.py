@@ -28,6 +28,7 @@ __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "MinervaSiamese",
+    "SimCLR",
     "SimCLR18",
     "SimCLR34",
     "SimCLR50",
@@ -128,7 +129,7 @@ class MinervaSiamese(MinervaBackbone):
         raise NotImplementedError  # pragma: no cover
 
 
-class _SimCLR(MinervaSiamese):
+class SimCLR(MinervaSiamese):
     """Base SimCLR class to be subclassed by SimCLR variants.
 
     Subclasses :class:`MinervaSiamse`.
@@ -155,7 +156,7 @@ class _SimCLR(MinervaSiamese):
         feature_dim: int = 128,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(_SimCLR, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimCLR, self).__init__(criterion=criterion, input_size=input_size)
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
@@ -231,19 +232,19 @@ class _SimCLR(MinervaSiamese):
         return loss, z
 
 
-class SimCLR18(_SimCLR):
+class SimCLR18(SimCLR):
     """SimCLR network using a :class:`~models.resnet.ResNet18` backbone."""
 
     backbone_name = "ResNet18"
 
 
-class SimCLR34(_SimCLR):
+class SimCLR34(SimCLR):
     """SimCLR network using a :class:`~models.resnet.ResNet32` backbone."""
 
     backbone_name = "ResNet34"
 
 
-class SimCLR50(_SimCLR):
+class SimCLR50(SimCLR):
     """SimCLR network using a :class:`~models.resnet.ResNet50` backbone."""
 
     backbone_name = "ResNet50"
