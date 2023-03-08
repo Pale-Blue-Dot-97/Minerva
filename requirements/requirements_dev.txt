@@ -20,7 +20,7 @@ onnx==1.13.1
 onnx2torch==1.5.6
 overload==1.1
 pandas==1.5.3
-pre-commit==3.0.4
+pre-commit==3.1.1
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability
 psutil==5.9.4
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability
