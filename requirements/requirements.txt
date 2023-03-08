@@ -1,5 +1,5 @@
 alive_progress==3.0.1
-argcomplete==2.0.0
+argcomplete==2.1.1
 catalyst==22.4
 fiona>=1.9.1
 geopy==2.2.0
