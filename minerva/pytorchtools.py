@@ -46,7 +46,32 @@ from torch.nn.modules import Module
 #                                                    CLASSES
 # =====================================================================================================================
 class EarlyStopping:
-    """Early stops the training if validation loss doesn't improve after a given patience."""
+    """Early stops the training if validation loss doesn't improve after a given patience.
+
+    Attributes:
+        patience (int): How long to wait after last time validation loss improved.
+        verbose (bool): If ``True``, prints a message for each validation loss improvement.
+        counter (int): Number of epochs of worsening validation loss since last improvement.
+        best_score (float): Best validation loss score recorded.
+        early_stop (bool): Will be ``True`` if early stopping is triggered by ``patience`` number of validation epochs
+            with worsening validation losses consecutively.
+        val_loss_min (float): The lowest validation loss recorded.
+        delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+        path (str): Path for the checkpoint to be saved to.
+        trace_func (~typing.Callable[..., None]): Trace print function.
+
+    Args:
+        patience (int): How long to wait after last time validation loss improved.
+            Default: ``7``
+        verbose (bool): If ``True``, prints a message for each validation loss improvement.
+            Default: ``False``
+        delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+            Default: ``0``
+        path (str): Path for the checkpoint to be saved to.
+            Default: ``'checkpoint.pt'``
+        trace_func (~typing.Callable[..., None]): Trace print function.
+            Default: :func:`print`
+    """
 
     def __init__(
         self,
@@ -56,19 +81,6 @@ class EarlyStopping:
         path: Union[str, Path] = "checkpoint.pt",
         trace_func: Callable[..., None] = print,
     ):
-        """
-        Args:
-            patience (int): How long to wait after last time validation loss improved.
-                Default: ``7``
-            verbose (bool): If ``True``, prints a message for each validation loss improvement.
-                Default: ``False``
-            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
-                Default: ``0``
-            path (str): Path for the checkpoint to be saved to.
-                Default: ``'checkpoint.pt'``
-            trace_func (function): Trace print function.
-                Default: :func:`print`
-        """
         self.patience: int = patience
         self.verbose: bool = verbose
         self.counter: int = 0

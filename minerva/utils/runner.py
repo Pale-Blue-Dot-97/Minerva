@@ -332,12 +332,12 @@ def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
 def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisabled]]:
     """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
 
-    .. note::
+    Note:
         ``args`` must contain these keys:
 
         * ``wandb_log`` (bool): Activate :mod:`wandb` logging.
-        * ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
-            Only log on master process if ``False``.
+        * | ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
+          | Only log on master process if ``False``.
         * ``entity`` (str): :mod:`wandb` entity where to send runs to.
         * ``project`` (str): Name of the :mod:`wandb` project this experiment belongs to.
         * ``world_size`` (int): Total number of processes across the experiment.
@@ -348,7 +348,7 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
 
     Returns:
         ~wandb.sdk.wandb_run.Run | ~wandb.sdk.lib.RunDisabled | None: The :mod:`wandb` run object
-            for this process or ``None`` if ``log_all=False`` and ``rank!=0``.
+        for this process or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
     run: Optional[Union[Run, RunDisabled]] = None
     if CONFIG.get("wandb_log", False) or CONFIG.get("project", None):
@@ -524,7 +524,7 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         configured using :func:`config_env_vars` or :func:`config_args`.
 
     Args:
-        run (Callable[[int, ~argparse.Namespace], Any]): Function to run with distributed computing.
+        run (~typing.Callable[[int, ~argparse.Namespace], ~typing.Any]): Function to run with distributed computing.
         args (~argparse.Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
     if args.world_size <= 1:

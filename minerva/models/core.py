@@ -18,7 +18,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-"""Module containing core utility functions and abstract classes for models."""
+"""Module containing core utility functions and abstract classes for :mod:`models`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -217,18 +217,21 @@ class MinervaBackbone(MinervaModel):
 
 
 class MinervaDataParallel(Module):  # pragma: no cover
-    """Wrapper for :class:`~torch.nn.parallel.DataParallel` or :class:`~torch.nn.parallel.DistributedDataParallel`
-    that automatically fetches the attributes of the wrapped model.
+    """Wrapper for :class:`~torch.nn.parallel.data_parallel.DataParallel` or
+    :class:`~torch.nn.parallel.DistributedDataParallel` that automatically fetches the
+    attributes of the wrapped model.
 
     Attributes:
-        model (~torch.nn.Module): :mod:`torch` model to be wrapped by :class:`~torch.nn.parallel.DataParallel`
-            or :class:`~torch.nn.parallel.DistributedDataParallel`.
-        paralleliser (~torch.nn.parallel.DataParallel | ~torch.nn.parallel.DistributedDataParallel): The paralleliser to
-            wrap the model in.
+        model (~torch.nn.Module): :mod:`torch` model to be wrapped by
+            :class:`~torch.nn.parallel.data_parallel.DataParallel` or
+            :class:`~torch.nn.parallel.DistributedDataParallel`.
+        paralleliser (~torch.nn.parallel.data_parallel.DataParallel | ~torch.nn.parallel.DistributedDataParallel):
+            The paralleliser to wrap the model in.
 
     Args:
-        model (~torch.nn.Module): :mod:`torch` model to be wrapped by :class:`~torch.nn.parallel.DataParallel`
-            or :class:`~torch.nn.parallel.DistributedDataParallel`.
+        model (~torch.nn.Module): :mod:`torch` model to be wrapped by
+            :class:`~torch.nn.parallel.data_parallel.DataParallel` or
+            :class:`~torch.nn.parallel.DistributedDataParallel`.
     """
 
     def __init__(
@@ -254,8 +257,8 @@ class MinervaDataParallel(Module):  # pragma: no cover
         assert isinstance(z, tuple) and list(map(type, z)) == [Tensor] * len(z)
         return z
 
-    def __call__(self, *input):
-        return self.model(*input)
+    def __call__(self, *input) -> Tuple[Tensor, ...]:
+        return self.forward(*input)
 
     def __getattr__(self, name):
         try:
@@ -298,10 +301,10 @@ class MinervaOnnxModel(MinervaModel):
         """Performs a forward pass of the ``model`` within.
 
         Args:
-            input (Any): Input to be parsed to ``model.forward``.
+            input (~typing.Any): Input to be parsed to ``model.forward``.
 
         Returns:
-            Any: Output of model.
+            ~typing.Any: Output of model.
         """
         return self.model.forward(*input)
 
@@ -316,7 +319,7 @@ def get_model(model_name: str) -> Callable[..., MinervaModel]:
         model_name (str): Name of the model to get.
 
     Returns:
-        Callable[..., MinervaModel]: Constructor of the model requested.
+        ~typing.Callable[..., MinervaModel]: Constructor of the model requested.
     """
     model: Callable[..., MinervaModel] = func_by_str("minerva.models", model_name)
     return model
@@ -326,10 +329,13 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
     """Loads pre-trained model weights from :mod:`torchvision` via Torch Hub API.
 
     Args:
-        weights_name (str): Name of model weights. See ... for a list of possible pre-trained weights.
+        weights_name (str): Name of model weights. See
+            https://pytorch.org/vision/stable/models.html#table-of-all-available-classification-weights
+            for a list of possible pre-trained weights.
 
     Returns:
-        Optional[WeightsEnum]: API query for the specified weights. None if query cannot be found. See note on use:
+        torchvision.models._api.WeightsEnum | None: API query for the specified weights.
+        ``None`` if query cannot be found. See note on use:
 
     Note:
         This function only returns a query for the API of the weights. To actually use them, you need to call
@@ -363,12 +369,12 @@ def get_output_shape(
 
     Args:
         model (~torch.nn.Module): Model for which the shape of the output needs to be found.
-        image_dim (Sequence[int] | int]): Expected shape of the input data to the model.
+        image_dim (~typing.Sequence[int] | int]): Expected shape of the input data to the model.
         sample_pairs (bool): Optional; Flag for if paired sampling is active.
             Will send a paired sample through the model.
 
     Returns:
-        int | Sequence[int]: The shape of the output data from the model.
+        int | ~typing.Sequence[int]: The shape of the output data from the model.
     """
     _image_dim: Union[Sequence[int], int] = image_dim
     try:
