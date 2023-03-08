@@ -830,6 +830,27 @@ def get_manifest_path() -> str:
 
 
 def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
+    """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
+
+    If a ``csv`` file is not found at ``manifest_path``, the manifest is constructed from
+    the parameters specified in the experiment :data:`CONFIG`.
+
+    .. warning::
+        As your :data:`CONFIG` is likely not setup for constructing manifests, not providing
+        a valid ``manifest_path`` to an existing manifest is likely to result in an error
+        in trying to construct the missing manifest.
+
+        It is therefore recommended that you construct the missing manifest by parsing
+        an appropriate manifest config to :func:`make_manifest` to get the manifest and
+        save it to ``manifest_path``.
+
+    Args:
+        manifest_path (str | ~pathlib.Path): Path (including filename and extension) to the manifest
+            saved as a ``csv``.
+
+    Returns:
+        ~pandas.DataFrame: Manifest either loaded from ``manifest_path`` or created from parameters in :data:`CONFIG`.
+    """
     manifest_path = Path(manifest_path)
     try:
         return pd.read_csv(manifest_path)
