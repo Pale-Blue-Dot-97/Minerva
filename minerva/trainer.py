@@ -176,15 +176,15 @@ class Trainer:
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
-        plots (dict[str, bool]): :class:`dict` that defines which plots to make from the results of testing
-            using bools for each plot. Possible plot types are:
-                * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs.
-                * CM: Plots a confusion matrix of the predictions against ground truth.
-                * Pred: Plots a pie chart of the relative sizes of the classes within the predictions from the model.
-                * ROC: Plots a *Receiver over Operator Curve* (ROC) including *Area Under Curve* (AUC) scores.
-                * micro: Only used with ``ROC=True``. ROC plot includes micro-average ROC.
-                * macro: Only used with ``ROC=True``. ROC plot includes macro-average ROC.
-                * Mask: Plots a comparison of predicted segmentation masks, ground truth and original RGB imagery.
+        plots (dict[str, bool]): :class:`dict` to define plots to make from results of testing. Possible plot types are:
+
+            * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs.
+            * CM: Plots a confusion matrix of the predictions against ground truth.
+            * Pred: Plots a pie chart of the relative sizes of the classes within the predictions from the model.
+            * ROC: Plots a *Receiver over Operator Curve* (ROC) including *Area Under Curve* (AUC) scores.
+            * micro: Only used with ``ROC=True``. ROC plot includes micro-average ROC.
+            * macro: Only used with ``ROC=True``. ROC plot includes macro-average ROC.
+            * Mask: Plots a comparison of predicted segmentation masks, ground truth and original RGB imagery.
         plot_last_epoch (bool): Plot the results from the final validation epoch.
         save (bool): Save plots created to file or not.
         show (bool): Show plots created in a window or not.
