@@ -18,7 +18,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-"""Module containing neural network model classes."""
+"""Module containing ResNets adapted for use in :mod:`minerva`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -28,6 +28,7 @@ __license__ = "GNU GPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "ResNet",
+    "ResNetX",
     "ResNet18",
     "ResNet34",
     "ResNet50",
@@ -330,9 +331,25 @@ class ResNet(MinervaModel):
         return self._forward_impl(x)
 
 
-class _ResNetX(MinervaModel):
-    """Base ResNet class modified from source to have customisable number of input channels and to be used as a backbone
-    by stripping classification layers away.
+class ResNetX(MinervaModel):
+    """Helper class to allow for easy creation of ResNet variant classes of the base :class:`ResNet` class.
+
+    Example:
+        To build a :class:`ResNet` variant class, just simply set the appropiate attributes in the definition of
+        your new variant class that inherits from :class:`ResNetX`.
+
+        >>> from minerva.models import ResNetX
+        >>> from torchvision.models.resnet import Bottleneck
+        >>>
+        >>> class ResNet101(ResNetX):
+        >>>     layer_struct = [3, 4, 23, 3]
+        >>>     block_type = BottleNeck
+        >>>     weights_name = "ResNet101_Weights.IMAGENET1K_V1"
+
+        You can then construct an instance of your new class like any other :class:`ResNet` with the added bonus
+        of being able to use pre-trained torch weights:
+
+        >>> model = ResNet101(*args, **kwargs, torch_weights=True)
 
     Attributes:
         block_type (~torchvision.models.resnet.BasicBlock | ~torchvision.models.resnet.Bottleneck): Type of the *block*
@@ -382,7 +399,7 @@ class _ResNetX(MinervaModel):
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-        super(_ResNetX, self).__init__(
+        super(ResNetX, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
@@ -416,7 +433,7 @@ class _ResNetX(MinervaModel):
             x (~torch.Tensor): Input data to network.
 
         Returns:
-            torch.Tensor | tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
+            ~torch.Tensor | tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
             initialised as an encoder, returns a tuple of outputs from each ``layer`` 1-4. Else, returns
             :class:`~torch.Tensor` of the likelihoods the network places on the input ``x`` being of each class.
         """
@@ -430,7 +447,7 @@ class _ResNetX(MinervaModel):
             return z
 
 
-class ResNet18(_ResNetX):
+class ResNet18(ResNetX):
     """ResNet18 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
@@ -439,7 +456,7 @@ class ResNet18(_ResNetX):
     weights_name = "ResNet18_Weights.IMAGENET1K_V1"
 
 
-class ResNet34(_ResNetX):
+class ResNet34(ResNetX):
     """ResNet34 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
@@ -448,7 +465,7 @@ class ResNet34(_ResNetX):
     weights_name = "ResNet34_Weights.IMAGENET1K_V1"
 
 
-class ResNet50(_ResNetX):
+class ResNet50(ResNetX):
     """ResNet50 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
@@ -458,7 +475,7 @@ class ResNet50(_ResNetX):
     weights_name = "ResNet50_Weights.IMAGENET1K_V1"
 
 
-class ResNet101(_ResNetX):
+class ResNet101(ResNetX):
     """ResNet101 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
@@ -468,7 +485,7 @@ class ResNet101(_ResNetX):
     weights_name = "ResNet101_Weights.IMAGENET1K_V1"
 
 
-class ResNet152(_ResNetX):
+class ResNet152(ResNetX):
     """ResNet152 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
