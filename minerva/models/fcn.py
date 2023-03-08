@@ -132,7 +132,8 @@ class FCN(MinervaBackbone):
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
         feeding its output into the forward for the decoder.
 
-        Can be called directly as a method (e.g. ``model.forward()``) or when data is parsed to model (e.g. ``model()``).
+        Can be called directly as a method (e.g. ``model.forward()``)
+        or when data is parsed to model (e.g. ``model()``).
 
         Args:
             x (~torch.Tensor): Input data to network.
@@ -279,7 +280,8 @@ class DCN(MinervaModel):
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
 
-        Can be called directly as a method (e.g. ``model.forward()``) or when data is parsed to model (e.g. ``model()``).
+        Can be called directly as a method (e.g. ``model.forward()``)
+        or when data is parsed to model (e.g. ``model()``).
 
         Args:
             x (tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]): Input data to network.
