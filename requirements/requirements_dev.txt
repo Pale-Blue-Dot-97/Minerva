@@ -14,7 +14,7 @@ matplotlib==3.7.0
 mlflow==2.2.1
 mypy==1.0.0
 myst_parser==0.18.1
-nptyping==2.4.1
+nptyping==2.5.0
 numpy==1.23.5
 onnx==1.13.0
 onnx2torch==1.5.6
