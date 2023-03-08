@@ -158,15 +158,16 @@ class MinervaModel(Module, ABC):
         """Generic step of model fitting using a batch of data.
 
         Raises:
-            NotImplementedError: If ``self.optimiser`` is None.
-            NotImplementedError: If ``self.criterion`` is None.
+            NotImplementedError: If :attr:`~MinervaModel.optimiser` is ``None``.
+            NotImplementedError: If :attr:`~MinervaModel.criterion` is ``None``.
 
         Args:
             x (~torch.Tensor): Batch of input data to network.
             y (~torch.Tensor): Either a batch of ground truth labels or generated labels/ pairs.
             train (bool): Sets whether this shall be a training step or not. ``True`` for training step
-                which will then clear the optimiser, and perform a backward pass of the network then
-                update the optimiser. If ``False`` for a validation or testing step, these actions are not taken.
+                which will then clear the :attr:`~MinervaModel.optimiser`, and perform a backward pass of the
+                network then update the :attr:`~MinervaModel.optimiser`. If ``False`` for a validation or testing step,
+                these actions are not taken.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor | tuple[~torch.Tensor, ...]]: :class:`tuple` of the loss computed
@@ -208,10 +209,10 @@ class MinervaBackbone(MinervaModel):
         self.backbone: MinervaModel
 
     def get_backbone(self) -> Module:
-        """Gets the backbone network of the model.
+        """Gets the :attr:`~MinervaBackbone.backbone` network of the model.
 
         Returns:
-            ~torch.nn.Module: The backbone of the model.
+            ~torch.nn.Module: The :attr:`~MinervaModel.backbone` of the model.
         """
         return self.backbone
 
@@ -226,7 +227,7 @@ class MinervaDataParallel(Module):  # pragma: no cover
             :class:`~torch.nn.parallel.data_parallel.DataParallel` or
             :class:`~torch.nn.parallel.DistributedDataParallel`.
         paralleliser (~torch.nn.parallel.data_parallel.DataParallel | ~torch.nn.parallel.DistributedDataParallel):
-            The paralleliser to wrap the model in.
+            The paralleliser to wrap the :attr:`~MinervaDataParallel.model` in.
 
     Args:
         model (~torch.nn.Module): :mod:`torch` model to be wrapped by
@@ -248,10 +249,11 @@ class MinervaDataParallel(Module):  # pragma: no cover
         """Ensures a forward call to the model goes to the actual wrapped model.
 
         Args:
-            input (tuple[~torch.Tensor, ...]): Input of tensors to be parsed to the model forward.
+            input (tuple[~torch.Tensor, ...]): Input of tensors to be parsed to the
+                :attr:`~MinervaDataParallel.model` forward.
 
         Returns:
-            tuple[~torch.Tensor, ...]: Output of model.
+            tuple[~torch.Tensor, ...]: Output of :attr:`~MinervaDataParallel.model`.
         """
         z = self.model(*input)
         assert isinstance(z, tuple) and list(map(type, z)) == [Tensor] * len(z)
@@ -298,13 +300,13 @@ class MinervaOnnxModel(MinervaModel):
         return self.model.__repr__()
 
     def forward(self, *input: Any) -> Any:
-        """Performs a forward pass of the ``model`` within.
+        """Performs a forward pass of the :attr:`~MinervaOnnxModel.model` within.
 
         Args:
-            input (~typing.Any): Input to be parsed to ``model.forward``.
+            input (~typing.Any): Input to be parsed to the ``.forward`` method of :attr:`~MinervaOnnxModel.model`.
 
         Returns:
-            ~typing.Any: Output of model.
+            ~typing.Any: Output of :attr:`~MinervaOnnxModel.model`.
         """
         return self.model.forward(*input)
 
