@@ -20,7 +20,7 @@
 """Functionality for constructing datasets, samplers and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
 
 Attributes:
-    IMAGERY_CONFIG (dict[str, Any]): Config defining the properties of the imagery used in the experiment.
+    IMAGERY_CONFIG (dict[str, ~typing.Any]): Config defining the properties of the imagery used in the experiment.
     CACHE_DIR (~pathlib.Path): Path to the cache directory used to store dataset manifests, cached model weights etc.
 """
 # =====================================================================================================================
@@ -75,6 +75,7 @@ import torch
 import torch.distributed as dist
 from alive_progress import alive_it
 from catalyst.data.sampler import DistributedSamplerWrapper
+from matplotlib.figure import Figure
 from nptyping import NDArray
 from pandas import DataFrame
 from torch.utils.data import DataLoader
@@ -133,7 +134,7 @@ class PairedDataset(RasterDataset):
         dataset (~torchgeo.datasets.RasterDataset): Wrapped dataset to sampled from.
 
     Args:
-        dataset_cls (Callable[..., ~torchgeo.datasets.GeoDataset]): Constructor for a
+        dataset_cls (~typing.Callable[..., ~torchgeo.datasets.GeoDataset]): Constructor for a
             :class:`~torchgeo.datasets.RasterDataset` to be wrapped for paired sampling.
     """
 
@@ -174,18 +175,18 @@ class PairedDataset(RasterDataset):
         sample: Dict[str, Any],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
-    ) -> plt.Figure:
+    ) -> Figure:
         """Plots a sample from the dataset.
 
         Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
 
         Args:
-            sample (dict[str, Any]): Sample to plot.
+            sample (dict[str, ~typing.Any]): Sample to plot.
             show_titles (bool): Optional; Add title to the figure. Defaults to True.
             suptitle (str): Optional; Super title to add to figure. Defaults to None.
 
         Returns:
-            ~matplotlib.pyplot.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+            ~matplotlib.figure.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
         """
 
         image = sample["image"][0:3, :, :].permute(1, 2, 0)
@@ -214,7 +215,7 @@ class PairedDataset(RasterDataset):
         res: float,
         show_titles: bool = True,
         suptitle: Optional[str] = None,
-    ) -> plt.Figure:
+    ) -> Figure:
         """Plots a random sample the dataset at a given size and resolution.
 
         Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
@@ -226,7 +227,7 @@ class PairedDataset(RasterDataset):
             suptitle (str): Optional; Super title to add to figure. Defaults to ``None``.
 
         Returns:
-            ~matplotlib.pyplot.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+            ~matplotlib.figure.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
         """
 
         # Get a random sample from the dataset at the given size and resolution.
@@ -247,7 +248,7 @@ def get_collator(
             ``'module'`` and ``'name'`` of the collation function. Defaults to ``config['collator']``.
 
     Returns:
-        Callable[..., Any]: Collation function found from parameters given.
+        ~typing.Callable[..., ~typing.Any]: Collation function found from parameters given.
     """
     collator: Callable[..., Any]
     if collator_params is not None:
@@ -269,10 +270,11 @@ def stack_sample_pairs(
     """Takes a list of paired sample dicts and stacks them into a tuple of batches of sample dicts.
 
     Args:
-        samples (Iterable[tuple[dict[Any, Any], dict[Any, Any]]]): List of paired sample dicts to be stacked.
+        samples (~typing.Iterable[tuple[dict[~typing.Any, ~typing.Any], dict[~typing.Any, ~typing.Any]]]): List of
+            paired sample dicts to be stacked.
 
     Returns:
-        tuple[dict[Any, Any], dict[Any, Any]]: Tuple of batches within dicts.
+        tuple[dict[~typing.Any, ~typing.Any], dict[~typing.Any, ~typing.Any]]: Tuple of batches within dicts.
     """
     a, b = tuple(zip(*samples))
     return stack_samples(a), stack_samples(b)
@@ -350,16 +352,16 @@ def make_dataset(
     """Constructs a dataset object from ``n`` sub-datasets given by the parameters supplied.
 
     Args:
-        data_directory (Iterable[str] | str | ~pathlib.Path]): List defining the path to the directory
+        data_directory (~typing.Iterable[str] | str | ~pathlib.Path]): List defining the path to the directory
             containing the data.
-        dataset_params (dict[Any, Any]): Dictionary of parameters defining each sub-datasets to be used.
+        dataset_params (dict[~typing.Any, ~typing.Any]): Dictionary of parameters defining each sub-datasets to be used.
         transform_params: Optional; Dictionary defining the parameters of the transforms to perform
             when sampling from the dataset.
         sample_pairs (bool): Optional; ``True`` if paired sampling. This will ensure paired samples are handled
             correctly in the datasets.
 
     Returns:
-        tuple[Any, list[Any]]: Tuple of Dataset object formed by the parameters given and list of
+        tuple[~typing.Any, list[~typing.Any]]: Tuple of Dataset object formed by the parameters given and list of
         the sub-datasets created that constitute ``dataset``.
     """
 
@@ -492,22 +494,24 @@ def construct_dataloader(
     datasets, sampler, collator and transforms.
 
     Args:
-        data_directory (Iterable[str]): A list of str defining the common path for all datasets to be constructed.
-        dataset_params (dict[str, Any]): Dictionary of parameters defining each sub-datasets to be used.
-        sampler_params (dict[str, Any]): Dictionary of parameters for the sampler to be used to sample from the dataset.
-        dataloader_params (dict[str, Any]): Dictionary of parameters for the DataLoader itself.
+        data_directory (~typing.Iterable[str]): A list of :class:`str` defining the common path
+            for all datasets to be constructed.
+        dataset_params (dict[str, ~typing.Any]): Dictionary of parameters defining each sub-datasets to be used.
+        sampler_params (dict[str, ~typing.Any]): Dictionary of parameters for the sampler to be used
+            to sample from the dataset.
+        dataloader_params (dict[str, ~typing.Any]): Dictionary of parameters for the DataLoader itself.
         batch_size (int): Number of samples per (global) batch.
-        collator_params (dict[str, Any]): Optional; Dictionary of parameters defining the function to collate
+        collator_params (dict[str, ~typing.Any]): Optional; Dictionary of parameters defining the function to collate
             and stack samples from the sampler.
-        transform_params (dict[str, Any]): Optional; Dictionary defining the parameters of the transforms to perform
-            when sampling from the dataset.
+        transform_params (dict[str, ~typing.Any]): Optional; Dictionary defining the parameters of the transforms
+            to perform when sampling from the dataset.
         rank (int): Optional; The rank of this process for distributed computing.
         world_size (int): Optional; The total number of processes within a distributed run.
         sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function
             for paired samples.
 
     Returns:
-        loader (~torch.data.utils.DataLoader): Object to handle the returning of batched samples from the dataset.
+        ~torch.utils.data.DataLoader: Object to handle the returning of batched samples from the dataset.
     """
     dataset, subdatasets = make_dataset(
         data_directory, dataset_params, transform_params, sample_pairs=sample_pairs
@@ -580,7 +584,7 @@ def make_bounding_box(
     ``False`` for no :class:`~torchgeo.datasets.utils.BoundingBox`.
 
     Args:
-        roi (Sequence[float] | bool): Either a :class:`tuple` or array of values defining
+        roi (~typing.Sequence[float] | bool): Either a :class:`tuple` or array of values defining
             the corners of a bounding box or False to designate no BoundingBox is defined.
 
     Returns:
@@ -602,7 +606,7 @@ def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., 
 
     Args:
         name (str): Name of transform object to import e.g :class:`~torchvision.transforms.RandomResizedCrop`.
-        transform_params (dict[str, Any]): Arguements to construct transform with.
+        transform_params (dict[str, ~typing.Any]): Arguements to construct transform with.
             Should also include ``"module"`` key defining the import path to the transform object.
 
     Returns:
@@ -638,7 +642,7 @@ def make_transformations(
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:
-        transform_params (dict[str, Any] | Literal[False]): Parameters defining transforms desired.
+        transform_params (dict[str, ~typing.Any] | ~typing.Literal[False]): Parameters defining transforms desired.
             The name of each transform should be the key, while the kwargs for the transform should
             be the value of that key as a dict.
         key (str): Optional; Key of the type of data within the sample to be transformed.
@@ -707,19 +711,22 @@ def make_loaders(
         batch_size (int): Number of samples in each batch to be returned by the DataLoaders.
         elim (bool): Whether to eliminate classes with no samples in.
         model_type (str): Defines the type of the model. If ``siamese``, ensures inappropiate functionality is not used.
-        dir (dict[str, Any]): Dictionary providing the paths to directories needed. Must include the ``data`` path.
-        loader_params (dict[str, Any]): Parameters to be parsed to construct the :class:`~torch.utils.data.DataLoader`.
-        dataset_params (dict[str, Any]): Parameters to construct each dataset. See documentation on structure of these.
-        sampler_params (dict[str, Any]): Parameters to construct the samplers for each mode of model fitting.
-        transform_params (dict[str, Any]): Parameters to construct the transforms for each dataset.
+        dir (dict[str, ~typing.Any]): Dictionary providing the paths to directories needed.
+            Must include the ``data`` path.
+        loader_params (dict[str, ~typing.Any]): Parameters to be parsed to construct the
+            :class:`~torch.utils.data.DataLoader`.
+        dataset_params (dict[str, ~typing.Any]): Parameters to construct each dataset.
+            See documentation on structure of these.
+        sampler_params (dict[str, ~typing.Any]): Parameters to construct the samplers for each mode of model fitting.
+        transform_params (dict[str, ~typing.Any]): Parameters to construct the transforms for each dataset.
             See documentation for the structure of these.
-        collator (dict[str, Any]): Defines the collator to use that will collate samples together into batches.
+        collator (dict[str, ~typing.Any]): Defines the collator to use that will collate samples together into batches.
             Contains the ``module`` key to define the import path and the ``name`` key
             for name of the collation function.
         sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
 
     Returns:
-        tuple[dict[str, ~torch.data.utils.DataLoader[Iterable[Any]]], dict[str, int], list[tuple[int, int]], dict]:
+        tuple[dict[str, ~torch.utils.data.DataLoader[~typing.Iterable]], dict[str, int], list[tuple[int, int]], dict]:
         :class:`tuple` of;
             * Dictionary of the :class:`~torch.utils.data.DataLoader` (s) for training, validation and testing.
             * Dictionary of the number of batches to return/ yield in each train, validation and test epoch.
@@ -852,7 +859,7 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     The dataset to construct a manifest of is defined by the ``data_config`` value in the config.
 
     Args:
-        mf_config (dict[Any, Any]): Config to use to construct the manifest with.
+        mf_config (dict[~typing.Any, ~typing.Any]): Config to use to construct the manifest with.
 
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
@@ -899,12 +906,12 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
     """Loads all sample masks from parsed :class:`~torch.utils.data.DataLoader` and computes the modes of their classes.
 
     Args:
-        dataloader (~torch.data.utils.DataLoader): DataLoader containing samples. Must be using a dataset with
+        dataloader (~torch.utils.data.DataLoader): DataLoader containing samples. Must be using a dataset with
             ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` key.
 
     Returns:
         ~numpy.ndarray: 2D array of the class modes within every sample defined by the parsed
-            :class:`~torch.utils.data.DataLoader`.
+        :class:`~torch.utils.data.DataLoader`.
     """
     sample_modes: List[List[Tuple[int, int]]] = []
     for sample in alive_it(dataloader):
@@ -925,6 +932,6 @@ def get_random_sample(
         res (float): Resolution of the patch.
 
     Returns:
-        dict[str, Any]: Random sample from the dataset.
+        dict[str, ~typing.Any]: Random sample from the dataset.
     """
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]

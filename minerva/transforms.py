@@ -98,10 +98,10 @@ class PairCreate:
         """Takes a sample and returns it and a copy as a :class:`tuple` pair.
 
         Args:
-            sample (Any): Sample to duplicate.
+            sample (~typing.Any): Sample to duplicate.
 
         Returns:
-            tuple[Any, Any]: :class:`tuple` of two copies of the sample.
+            tuple[~typing.Any, ~typing.Any]: :class:`tuple` of two copies of the sample.
         """
         return sample, sample
 

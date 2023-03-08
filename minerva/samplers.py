@@ -211,14 +211,14 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
 def get_greater_bbox(
     bbox: BoundingBox, r: float, size: Union[float, int, Sequence[float]]
 ) -> BoundingBox:
-    """Return a bounding box at ``max_r`` distance around the first box.
+    """Return a bounding box at ``r`` distance around the first box.
 
     Args:
         bbox (~torchgeo.datasets.utils.BoundingBox): Bounding box of the original sample.
         r (float): Distance in pixels to extend the original bounding box by
             to get a new greater bounds to sample from.
-        size (float | Sequence[float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
-            represents in pixels. Will only use size[0] if a :class:`Sequence`.
+        size (float | ~typing.Sequence[float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
+            represents in pixels. Will only use size[0] if a :class:`~typing.Sequence`.
 
     Returns:
         ~torchgeo.datasets.utils.BoundingBox: Greater bounds around original bounding box to sample from.

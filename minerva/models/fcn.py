@@ -84,7 +84,7 @@ class FCN(MinervaBackbone):
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
             if using a pre-trained backbone.
-        backbone_kwargs (dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
     backbone_name: str = "ResNet18"
@@ -155,8 +155,8 @@ class DCN(MinervaModel):
     Based on the example found here: https://github.com/haoran1062/FCN-pytorch/blob/master/FCN.py
 
     Attributes:
-        variant (str): Defines which DCN variant this object is, altering the layers constructed
-            and the computational graph. Will be either ``'32'``, ``'16'`` or ``'8'``.
+        variant (~typing.Literal['32', '16', '8']): Defines which DCN variant this object is, altering the
+            layers constructed and the computational graph. Will be either ``'32'``, ``'16'`` or ``'8'``.
             See the FCN paper for details on these variants.
         n_classes (int): Number of classes in dataset. Defines number of output classification channels.
         relu (~torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
@@ -182,7 +182,7 @@ class DCN(MinervaModel):
         in_channel (int): Optional; Number of channels in the input layer of the network.
             Should match the number of output channels (likely feature maps) from the encoder.
         n_classes (int): Optional; Number of classes in dataset. Defines number of output classification channels.
-        variant (str): Optional; Flag for which DCN variant to construct.
+        variant (~typing.Literal['32', '16', '8']): Optional; Flag for which DCN variant to construct.
             Must be either ``'32'``, ``'16'`` or ``'8'``. See the FCN paper for details on these variants.
 
     Raises:

@@ -119,7 +119,7 @@ class MinervaSiamese(MinervaBackbone):
         and feeding its output into the projection heads.
 
         Args:
-            x (~torch.Tensor): (Unpaired) Batch of input data to the network.
+            x (~torch.Tensor): Batch of unpaired input data to the network.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the projection head
@@ -135,16 +135,15 @@ class _SimCLR(MinervaSiamese):
 
     Attributes:
         backbone_name (str): Name of the backbone within this module to use.
-        backbone (Module): Backbone of SimCLR that takes the imagery input and
+        backbone (~torch.nn.Module): Backbone of SimCLR that takes the imagery input and
             extracts learned representations.
-        proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
+        proj_head (~torch.nn.Module): Projection head that takes the learned representations from the backbone encoder.
 
     Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
-
-        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
     backbone_name = "ResNet18"
@@ -178,8 +177,10 @@ class _SimCLR(MinervaSiamese):
         """Performs a forward pass of a single head of the network by using the forward methods of the backbone
         and feeding its output into the projection heads.
 
+        Overwrites :meth:`MinervaSiamese.forward_single`
+
         Args:
-            x (~torch.Tensor): (Unpaired) Batch of input data to the network.
+            x (~torch.Tensor): Batch of unpaired input data to the network.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the projection head
@@ -198,9 +199,9 @@ class _SimCLR(MinervaSiamese):
 
         Args:
             x (~torch.Tensor): Batch of input data to network.
-            train (bool): Sets whether this shall be a training step or not. True for training step which will then
+            train (bool): Sets whether this shall be a training step or not. ``True`` for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
-                If False for a validation or testing step, these actions are not taken.
+                If ``False`` for a validation or testing step, these actions are not taken.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
@@ -231,19 +232,19 @@ class _SimCLR(MinervaSiamese):
 
 
 class SimCLR18(_SimCLR):
-    """SimCLR network using a ResNet18 backbone."""
+    """SimCLR network using a :class:`~models.resnet.ResNet18` backbone."""
 
     backbone_name = "ResNet18"
 
 
 class SimCLR34(_SimCLR):
-    """SimCLR network using a ResNet32 backbone."""
+    """SimCLR network using a :class:`~models.resnet.ResNet32` backbone."""
 
     backbone_name = "ResNet34"
 
 
 class SimCLR50(_SimCLR):
-    """SimCLR network using a ResNet50 backbone."""
+    """SimCLR network using a :class:`~models.resnet.ResNet50` backbone."""
 
     backbone_name = "ResNet50"
 
@@ -255,16 +256,16 @@ class _SimSiam(MinervaSiamese):
 
     Attributes:
         backbone_name (str): Name of the backbone within this module to use.
-        backbone (Module): Backbone of SimSiam that takes the imagery input and
+        backbone (~torch.nn.Module): Backbone of SimSiam that takes the imagery input and
             extracts learned representations.
-        proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
+        proj_head (~torch.nn.Module): Projection head that takes the learned representations from the backbone encoder.
 
     Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
 
-        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
     backbone_name = "ResNet18"
@@ -335,9 +336,9 @@ class _SimSiam(MinervaSiamese):
 
         Args:
             x (~torch.Tensor): Batch of input data to network.
-            train (bool): Sets whether this shall be a training step or not. True for training step which will then
+            train (bool): Sets whether this shall be a training step or not. ``True`` for training step which will then
                 clear the optimiser, and perform a backward pass of the network then update the optimiser.
-                If False for a validation or testing step, these actions are not taken.
+                If ``False`` for a validation or testing step, these actions are not taken.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
@@ -368,18 +369,18 @@ class _SimSiam(MinervaSiamese):
 
 
 class SimSiam18(_SimSiam):
-    """SimSiam network using a :class:`ResNet18` backbone."""
+    """SimSiam network using a :class:`~models.resnet.ResNet18` backbone."""
 
     backbone_name = "ResNet18"
 
 
 class SimSiam34(_SimSiam):
-    """SimSiam network using a :class:`ResNet34` backbone."""
+    """SimSiam network using a :class:`~models.resnet.ResNet34` backbone."""
 
     backbone_name = "ResNet34"
 
 
 class SimSiam50(_SimSiam):
-    """SimSiam network using a :class:`ResNet50` backbone."""
+    """SimSiam network using a :class:`~models.resnet.ResNet50` backbone."""
 
     backbone_name = "ResNet50"

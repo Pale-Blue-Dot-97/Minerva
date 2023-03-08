@@ -38,7 +38,6 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from abc import ABC
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 import torch
@@ -54,7 +53,7 @@ from .core import MinervaModel, get_torch_weights
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class ResNet(MinervaModel, ABC):
+class ResNet(MinervaModel):
     """Modified version of the ResNet network to handle multi-spectral inputs and cross-entropy.
 
     Attributes:
@@ -102,7 +101,7 @@ class ResNet(MinervaModel, ABC):
         replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates
             whether to replace the ``2x2`` stride with a dilated convolution instead.
             Must be a three element tuple of bools.
-        norm_layer (function): Optional; Normalisation layer to use in each block.
+        norm_layer (~typing.Callable[..., ~torch.nn.Module]): Optional; Normalisation layer to use in each block.
             Typically, :class:`~torch.nn.BatchNorm2d`.
         encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
             If ``True``, forward method returns the output of each layer block. avgpool and fc are not initialised.
@@ -323,7 +322,7 @@ class ResNet(MinervaModel, ABC):
             x (~torch.Tensor): Input data to network.
 
         Returns:
-            ~torch.Tensor | Tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
+            ~torch.Tensor | tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
             initialised as an encoder, returns a tuple of outputs from each ``layer`` 1-4. Else,
             returns :class:`~torch.Tensor` of the likelihoods the network places on the
             input ``x`` being of each class.
@@ -336,22 +335,23 @@ class _ResNetX(MinervaModel):
     by stripping classification layers away.
 
     Attributes:
-        block_type (Union[BasicBlock, Bottleneck]): Type of the *block* used to construct the :class:`ResNet` layers.
-        layer_struct (List[int]): Number of layers per block in the :class:`ResNet`.
+        block_type (~torchvision.models.resnet.BasicBlock | ~torchvision.models.resnet.Bottleneck): Type of the *block*
+            used to construct the :class:`ResNet` layers.
+        layer_struct (list[int]): Number of layers per block in the :class:`ResNet`.
         weights_name (str): Name of the :mod:`torch` pre-trained weights to use if ``torch_weights==True``.
         network (ResNet): :class:`ResNet` network.
 
     Args:
-        criterion: PyTorch loss function model will use.
+        criterion: :mod:`torch` loss function model will use.
         input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
-        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
+        zero_init_residual (bool): Optional; If ``True``, zero-initialise the last BN in each residual branch,
             so that the residual branch starts with zeros, and each residual block behaves like an identity.
         replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates whether
             to replace the ``2x2`` stride with a dilated convolution instead. Must be a three element tuple of bools.
-        norm_layer (Callable[..., Module]): Optional; Normalisation layer to use in each block.
-            Typically ``torch.nn.BatchNorm2d``.
+        norm_layer (~typing.Callable[..., ~torch.nn.Module]): Optional; Normalisation layer to use in each block.
+            Typically :class:`~torch.nn.BatchNorm2d`.
         encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
             If ``True``, forward method returns the output of each layer block.
             ``avgpool`` and ``fc`` are not initialised.
