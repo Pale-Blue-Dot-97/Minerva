@@ -39,6 +39,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import abc
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 import torch
@@ -382,6 +383,7 @@ class ResNetX(MinervaModel):
         smaller than ``224x224`` with the randomly initialised ``conv1`` that is appropiate for ``input_size``.
     """
 
+    __metaclass__ = abc.ABCMeta
     block_type: Union[Type[BasicBlock], Type[Bottleneck]] = BasicBlock
     layer_struct: List[int] = [2, 2, 2, 2]
     weights_name = "ResNet18_Weights.IMAGENET1K_V1"

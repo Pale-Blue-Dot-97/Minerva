@@ -44,6 +44,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import abc
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 import torch
@@ -337,6 +338,7 @@ class UNetR(MinervaModel):
         backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
+    __metaclass__ = abc.ABCMeta
     backbone_name = "ResNet18"
 
     def __init__(
