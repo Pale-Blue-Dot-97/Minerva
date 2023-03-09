@@ -189,7 +189,8 @@ class MinervaCompose:
     This transform does not support torchscript. Please, see the note below.
 
     Args:
-        transforms (list of ``Transform`` objects): list of transforms to compose.
+        transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
+            List of transforms to compose.
 
     Example:
         >>> transforms.Compose([
@@ -304,10 +305,10 @@ class SwapKeys:
         """Sets the ``to_key`` of ``sample`` to the ``from_key`` and returns.
 
         Args:
-            sample (dict[str, Any]): Sample dict from :mod:`torchgeo` containing ``from_key``.
+            sample (dict[str, ~typing.Any]): Sample dict from :mod:`torchgeo` containing ``from_key``.
 
         Returns:
-            dict[str, Any]: Sample with ``to_key`` set to the value of ``from_key``.
+            dict[str, ~typing.Any]: Sample with ``to_key`` set to the value of ``from_key``.
         """
         sample[self.to_key] = sample[self.from_key]
         return sample
