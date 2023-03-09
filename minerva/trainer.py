@@ -80,7 +80,7 @@ class Trainer:
     """Helper class to handle the entire fitting and evaluation of a model.
 
     Attributes:
-        params (dict[str, Any]): Dictionary describing all the parameters that define how the model will be
+        params (dict[str, ~typing.Any]): Dictionary describing all the parameters that define how the model will be
             constructed, trained and evaluated. These should be defined via config ``YAML`` files.
         model (MinervaModel): Model to be fitted of a class contained within :mod:`~minerva.models`.
         max_epochs (int): Number of epochs to train the model for.
@@ -89,25 +89,25 @@ class Trainer:
             :class:`~torch.utils.data.DataLoader` (s) for each dataset.
         n_batches (dict[str, int]): Dictionary of the number of batches to supply to the model for train,
             validation and testing.
-        metrics (dict[str, Any]): Dictionary to hold the loss and accuracy results from training,
+        metrics (dict[str, ~typing.Any]): Dictionary to hold the loss and accuracy results from training,
             validation and testing.
         device: The CUDA device on which to fit the model.
         gpu (int): CUDA GPU device number this process is running on.
         verbose (bool): Provides more prints to stdout if ``True``.
         fine_tune (bool): Assumes this is a fine-tuning job if ``True``. Will attempt to load model weights
             from cache.
-        class_dist (Any): Distribution of classes within the data.
+        class_dist (~typing.Any): Distribution of classes within the data.
         exp_name (~pathlib.Path): :class:`~pathlib.Path` to the unique results directory for this experiment.
         sample_pairs (bool): Whether samples are paired together for Siamese learning.
         modes (tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run | None): The *writer*
             to perform logging for this experiment. For use with either :mod:`tensorboard` or :mod:`wandb`.
-        stopper (EarlyStopper | None): Early stopping function.
+        stopper (~pytorchtools.EarlyStopping | None): Early stopping function.
         early_stop (bool): Whether early stopping has been triggered. Will end model training if ``True``.
         n_samples (dict[str, int]): Number of samples in each mode of model fitting.
         metric_logger (~logger.MinervaLogger): Object to calculate and log metrics to track the performance
             of the model.
-        modelio_func (Callable[..., Any]): Function to handle the input/ output to the model.
+        modelio_func (~typing.Callable[..., ~typing.Any]): Function to handle the input/ output to the model.
         steps (dict[str, int]): :class:`dict` to hold the global step number for each mode of model fitting.
         model_type (str): Type of the model that determines how to handle IO, metric calculations etc.
 
@@ -117,7 +117,7 @@ class Trainer:
         world_size (int): Optional; The total number of processes across the distributed run.
         verbose (bool): Turns messages to stdout off/on.
         wandb_run (~wandb.sdk.wandb_run.Run | RunDisabled): Optional; Run object for Weights and Biases.
-        params (dict[str, Any]): Dictionary describing all the parameters that define how the model will be
+        params (dict[str, ~typing.Any]): Dictionary describing all the parameters that define how the model will be
             constructed, trained and evaluated. These should be defined via config ``YAML`` files.
 
     Keyword Args:
@@ -126,37 +126,39 @@ class Trainer:
             still run from ``0`` to ``n-1`` classes where ``n`` is the reduced number of classes.
             :mod:`minerva` ensures that labels are converted between the old and new schemes seamlessly.
         model_type (str): Defines the type of the model. If ``siamese``, ensures inappropiate functionality is not used.
-        dir (dict[str, Any]): Dictionary providing the paths to directories needed. Must include the ``data`` path.
-        loader_params (dict[str, Any]): Parameters for the :class:`~torch.utils.data.DataLoader`.
+        dir (dict[str, ~typing.Any]): Dictionary providing the paths to directories needed.
+            Must include the ``data`` path.
+        loader_params (dict[str, ~typing.Any]): Parameters for the :class:`~torch.utils.data.DataLoader`.
             Unlike the other ``x_params`` dicts, parameters are placed at the immediate ``loader_params`` level
             (not in a ``params`` key).
-        dataset_params (dict[str, Any]): Parameters to construct each dataset. See documentation on structure of these.
-        sampler_params (dict[str, Any]): Parameters to construct the samplers for each mode of model fitting.
-        transform_params (dict[str, Any]): Parameters to construct the transforms for each dataset.
+        dataset_params (dict[str, ~typing.Any]): Parameters to construct each dataset.
+            See documentation on structure of these.
+        sampler_params (dict[str, ~typing.Any]): Parameters to construct the samplers for each mode of model fitting.
+        transform_params (dict[str, ~typing.Any]): Parameters to construct the transforms for each dataset.
             See documentation for the structure of these.
-        collator (dict[str, Any]): Defines the collator to use that will collate samples together into batches.
+        collator (dict[str, ~typing.Any]): Defines the collator to use that will collate samples together into batches.
             Contains the ``module`` key to define the import path and the ``name`` key
             for name of the collation function.
         sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
         model_name (str): Name of the model to be used in filenames of results.
-        model_params (dict[str, Any]): Parameters parsed to the model class to initiate it.
+        model_params (dict[str, ~typing.Any]): Parameters parsed to the model class to initiate it.
         max_epochs (int): Number of epochs to train the model for.
         val_freq (int): Perform a validation epoch with KNN for every ``val_freq``
             training epochs for SSL or Siamese models.
         knn_k (int): Top-k most similar images used to predict the image for KNN validation.
         fine_tune (bool): Activate fine-tuning mode.
         wandb_log (bool): Activates :mod:`wandb` logging.
-        stopping (dict[str, Any]): Dictionary to hold the parameters defining the early stopping functionality.
+        stopping (dict[str, ~typing.Any]): Dictionary to hold the parameters defining the early stopping functionality.
             If no dictionary is given, it is assumed that there will be no early stopping.
         pre_train_name (str): Name of the pre-trained model to use.
         reload (bool): Reloads the weights in the cache matching ``pre_train_name`` to continue model fitting.
         loss_func (str): Name of the loss function to use.
         optim_func (str): Name of the optimiser function to use.
         lr (float): Learning rate of optimiser.
-        optim_params (dict[str, Any]): :class:`dict` to hold any additional parameters for the optimiser,
+        optim_params (dict[str, ~typing.Any]): :class:`dict` to hold any additional parameters for the optimiser,
             other than the already handled learning rate -- ``lr``. Place them in the ``params`` key.
             If using a non-torch optimiser, use the ``module`` key to specify the import path to the optimiser function.
-        loss_params (dict[str, Any]): :class:`dict` to hold any additional parameters for the loss function
+        loss_params (dict[str, ~typing.Any]): :class:`dict` to hold any additional parameters for the loss function
             in the ``params`` key. If using a non-torch loss function, you need to specify the import path
             with the ``module`` key.
         balance (bool): Activates class balancing. For ``model_type="scene_classifer"`` or ``model_type="mlp"``,
@@ -174,15 +176,15 @@ class Trainer:
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
-        plots (dict[str, bool]): :class:`dict` that defines which plots to make from the results of testing
-            using bools for each plot. Possible plot types are:
-                * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs.
-                * CM: Plots a confusion matrix of the predictions against ground truth.
-                * Pred: Plots a pie chart of the relative sizes of the classes within the predictions from the model.
-                * ROC: Plots a *Receiver over Operator Curve* (ROC) including *Area Under Curve* (AUC) scores.
-                * micro: Only used with ``ROC=True``. ROC plot includes micro-average ROC.
-                * macro: Only used with ``ROC=True``. ROC plot includes macro-average ROC.
-                * Mask: Plots a comparison of predicted segmentation masks, ground truth and original RGB imagery.
+        plots (dict[str, bool]): :class:`dict` to define plots to make from results of testing. Possible plot types are:
+
+            * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs.
+            * CM: Plots a confusion matrix of the predictions against ground truth.
+            * Pred: Plots a pie chart of the relative sizes of the classes within the predictions from the model.
+            * ROC: Plots a *Receiver over Operator Curve* (ROC) including *Area Under Curve* (AUC) scores.
+            * micro: Only used with ``ROC=True``. ROC plot includes micro-average ROC.
+            * macro: Only used with ``ROC=True``. ROC plot includes macro-average ROC.
+            * Mask: Plots a comparison of predicted segmentation masks, ground truth and original RGB imagery.
         plot_last_epoch (bool): Plot the results from the final validation epoch.
         save (bool): Save plots created to file or not.
         show (bool): Show plots created in a window or not.
@@ -454,7 +456,7 @@ class Trainer:
         """Creates a :mod:`torch` loss function based on config parameters.
 
         Returns:
-            Any: Initialised :mod:`torch` loss function specified by config parameters.
+            ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
         loss_params: Dict[str, Any] = self.params["loss_params"].copy()
@@ -529,7 +531,8 @@ class Trainer:
         """Creates an object to log the results from each step of model fitting during an epoch.
 
         Returns:
-            Callable[..., Any]: The constructor of :class:`~logger.MinervaLogger` to be intialised within the epoch.
+            ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logger.MinervaLogger`
+            to be intialised within the epoch.
         """
         logger: Callable[..., Any] = utils.func_by_str(
             "minerva.logger", self.params["logger"]
@@ -540,7 +543,7 @@ class Trainer:
         """Fetches a func to handle IO for the type of model used in the experiment.
 
         Returns:
-            Callable[..., Any]: Model IO function requested from parameters.
+            ~typing.Callable[..., ~typing.Any]: Model IO function requested from parameters.
         """
         io_func: Callable[..., Any] = utils.func_by_str(
             "minerva.modelio", self.params["model_io"]
@@ -563,7 +566,7 @@ class Trainer:
             record_float (bool): Optional; Whether to record the floating point results i.e. class probabilities.
 
         Returns:
-            dict[str, Any] | None: If ``record_int=True`` or ``record_float=True``, returns the predicted
+            dict[str, ~typing.Any] | None: If ``record_int=True`` or ``record_float=True``, returns the predicted
             and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
         """
         batch_size = self.batch_size
@@ -908,7 +911,7 @@ class Trainer:
                 This may result in memory issues on large amounts of data! Defaults to False.
 
         Returns:
-            dict[str, Any] | None: Results dictionary from the epoch logger if ``record_int``
+            dict[str, ~typing.Any] | None: Results dictionary from the epoch logger if ``record_int``
             or ``record_float`` are ``True``.
         """
 
@@ -1120,8 +1123,8 @@ class Trainer:
         """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
 
         Args:
-            predictions (ArrayLike[int]): List of predicted labels.
-            labels (ArrayLike[int]): List of corresponding ground truth label masks.
+            predictions (~typing.Sequence[int]): List of predicted labels.
+            labels (~typing.Sequence[int]): List of corresponding ground truth label masks.
         """
         # Ensures predictions and labels are flattened.
         preds: NDArray[Any, Int] = utils.batch_flatten(predictions)

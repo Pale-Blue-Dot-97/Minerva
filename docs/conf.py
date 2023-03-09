@@ -16,7 +16,7 @@ import sys
 
 sys.path.insert(0, os.path.abspath("../minerva/"))
 
-import minerva
+import minerva  # noqa: E402
 
 # -- Project information -----------------------------------------------------
 
