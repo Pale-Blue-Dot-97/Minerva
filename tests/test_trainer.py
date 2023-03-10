@@ -111,3 +111,33 @@ def test_ssl_trainer() -> None:
     trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
 
     trainer.tsne_cluster()
+
+
+def test_third_party_model() -> None:
+    params = CONFIG.copy()
+
+    params["model_name"] = "ResNetGenerator-R9"
+
+    model_params = params["model_params"]["params"]
+    model_params["name"] = "resnet-9"
+    model_params["num_classes"] = model_params["n_classes"]
+    model_params["input_size"] = (
+        3,
+        model_params["input_size"][1],
+        model_params["input_size"][2],
+    )
+
+    params["model_params"] = {
+        "module": "lightly.models",
+        "params": model_params,
+    }
+
+    transform_params = {"ToRGB": {"module": "minerva.transforms"}}
+    params["transform_params"]["train"]["image"] = {"images_1": transform_params}
+    params["transform_params"]["train"]["image"] = {"image2": transform_params}
+    params["transform_params"]["val"]["image"] = transform_params
+    params["transform_params"]["test"]["image"] = transform_params
+
+    trainer = Trainer(0, **params)
+
+    trainer.fit()
