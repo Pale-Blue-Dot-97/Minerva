@@ -252,6 +252,8 @@ class STGLogger(MinervaLogger):
             record_float,
             writer,
         )
+        if type(out_shape) == int:
+            out_shape = (out_shape,)
 
         self.logs: Dict[str, Any] = {
             "batch_num": 0,
