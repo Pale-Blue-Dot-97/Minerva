@@ -40,6 +40,7 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overlo
 
 import torch
 from torch import LongTensor, Tensor
+from torchgeo.samplers.utils import _to_tuple
 from torchvision.transforms import ColorJitter
 from torchvision.transforms import functional_tensor as ft
 
@@ -181,6 +182,59 @@ class DetachedColorJitter(ColorJitter):
 
     def __repr__(self) -> Any:
         return super().__repr__()
+
+
+class ToRGB:
+    """Reduces the number of channels down to RGB.
+
+    Attributes:
+        channels (tuple[int, int, int]): Optional; Tuple defining which channels in expected input images
+            contain the RGB bands. If ``None``, it is assumed that the RGB bands are in the first 3 channels.
+
+    Args:
+        channels (tuple[int, int, int]): Optional; Tuple defining which channels in expected input images
+            contain the RGB bands. If ``None``, it is assumed that the RGB bands are in the first 3 channels.
+
+    """
+
+    def __init__(self, channels: Optional[Tuple[int, int, int]] = None) -> None:
+        self.channels = channels
+
+    def __call__(self, img: Tensor) -> Tensor:
+        return self.forward(img)
+
+    def __repr__(self) -> str:
+        if self.channels:
+            return f"{self.__class__.__name__}(channels --> [{self.channels}])"
+        else:
+            return f"{self.__class__.__name__}(channels --> [0:3])"
+
+    def forward(self, img: Tensor) -> Tensor:
+        """Performs a forward pass of the transform, returning an RGB image.
+
+        Args:
+            img (~torch.Tensor): Image to convert to RGB.
+
+        Returns:
+            ~torch.Tensor: Image of only the RGB channels of ``img``.
+
+        Raises:
+            ValueError: If ``img`` has less channels than specified in :attr:`~ToRGB.channels`.
+            ValueError: If ``img`` has less than 3 channels and :attr:`~ToRGB.channels` is ``None``.
+        """
+        # If a tuple defining the RGB channels was provided, select and concat together.
+        if self.channels:
+            if len(img) < len(self.channels):
+                raise ValueError("Image has less channels that trying to reduce to!")
+
+            return torch.concat((img[channel] for channel in self.channels))
+
+        # If no channels were provided, assume that that the first 3 channels are the RGB channels.
+        else:
+            if len(img) < 3:
+                raise ValueError("Image has less than 3 channels! Cannot be RGB!")
+
+            return img[:3]
 
 
 class MinervaCompose:
