@@ -40,7 +40,6 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overlo
 
 import torch
 from torch import LongTensor, Tensor
-from torchgeo.samplers.utils import _to_tuple
 from torchvision.transforms import ColorJitter
 from torchvision.transforms import functional_tensor as ft
 
