@@ -229,7 +229,7 @@ class MinervaWrapper(MinervaModel):
         self.model = model_cls(*args, **kwargs)
 
     def __call__(self, *input) -> Any:
-        return self.model.forward(*input)
+        return self.forward(*input)
 
     def __getattr__(self, name):
         try:
@@ -239,6 +239,9 @@ class MinervaWrapper(MinervaModel):
 
     def __repr__(self) -> Any:
         return self.model.__repr__()
+
+    def forward(self, *input) -> Any:
+        return self.model.forward(*input)
 
 
 class MinervaBackbone(MinervaModel):
@@ -409,7 +412,7 @@ def get_output_shape(
     model: Module,
     image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
-) -> Union[int, Sequence[int]]:
+) -> Sequence[int]:
     """Gets the output shape of a model.
 
     Args:
@@ -419,7 +422,7 @@ def get_output_shape(
             Will send a paired sample through the model.
 
     Returns:
-        int | ~typing.Sequence[int]: The shape of the output data from the model.
+        ~typing.Sequence[int]: The shape of the output data from the model.
     """
     _image_dim: Union[Sequence[int], int] = image_dim
     try:
@@ -443,7 +446,7 @@ def get_output_shape(
     output: Tensor = model(random_input)
 
     if len(output[0].data.shape) == 1:
-        return output[0].data.shape[0]
+        return output[0].data.shape
 
     else:
         return output[0].data.shape[1:]
