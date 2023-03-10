@@ -49,8 +49,10 @@ val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    input_size: *input_size
-    # any other params...
+    module:
+    params:
+        input_size: *input_size
+        # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:

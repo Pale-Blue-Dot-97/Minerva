@@ -44,10 +44,12 @@ optim_func: SGD                        # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    input_size: *input_size
-    n_classes: *n_classes
-    backbone_kwargs:
-        torch_weights: true
+    module:
+    params:
+        input_size: *input_size
+        n_classes: *n_classes
+        backbone_kwargs:
+            torch_weights: true
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
