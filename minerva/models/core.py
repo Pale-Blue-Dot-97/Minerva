@@ -29,6 +29,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
     "MinervaModel",
+    "MinervaWrapper",
     "MinervaDataParallel",
     "MinervaBackbone",
     "MinervaOnnxModel",
@@ -79,16 +80,16 @@ class MinervaModel(Module, ABC):
 
     Attributes:
         criterion (~torch.nn.Module): :mod:`torch` loss function model will use.
-        input_shape (tuple[int, int, int] or list[int]): The shape of the input data in order of
-            number of channels, image width, image height.
+        input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
+            number of channels, image width, image height but may vary dependant on model specs.
         n_classes (int): Number of classes in input data.
         output_shape: The shape of the output of the network. Determined and set by :meth:`determine_output_dim`.
         optimiser: :mod:`torch` optimiser model will use, to be initialised with inherited model's parameters.
 
     Args:
         criterion (~torch.nn.Module): Optional; :mod:`torch` loss function model will use.
-        input_shape (tuple[int, int, int] or list[int]): Optional; Defines the shape of the input data in order of
-            number of channels, image width, image height.
+        input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
+            number of channels, image width, image height but may vary dependant on model specs.
         n_classes (int): Optional; Number of classes in input data.
     """
 
@@ -196,6 +197,48 @@ class MinervaModel(Module, ABC):
             self.optimiser.step()
 
         return loss, z
+
+
+class MinervaWrapper(MinervaModel):
+    """Wraps a :mod:`torch` model class in :class:`MinervaModel` so it can be used in :mod:`minerva`.
+
+    Attributes:
+        model (~torch.nn.Module): The wrapped :mod:`torch` model that is now compatible with :mod:`minerva`.
+
+    Args:
+        model_cls (~typing.Callable[..., ~torch.nn.Module]): The :mod:`torch` model class to wrap, initialise
+            and place in :attr:`~MinervaWrapper.model`.
+        criterion (~torch.nn.Module): Optional; :mod:`torch` loss function model will use.
+        input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
+            number of channels, image width, image height but may vary dependant on model specs.
+        n_classes (int): Optional; Number of classes in input data.
+
+    """
+
+    def __init__(
+        self,
+        model_cls: Callable[..., Module],
+        criterion: Optional[Module] = None,
+        input_size: Optional[Tuple[int, ...]] = None,
+        n_classes: Optional[int] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(criterion, input_size, n_classes)
+
+        self.model = model_cls(*args, **kwargs)
+
+    def __call__(self, *input) -> Any:
+        return self.model.forward(*input)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.model, name)
+
+    def __repr__(self) -> Any:
+        return self.model.__repr__()
 
 
 class MinervaBackbone(MinervaModel):
