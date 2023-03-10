@@ -446,7 +446,7 @@ def get_output_shape(
     output: Tensor = model(random_input)
 
     if len(output[0].data.shape) == 1:
-        return output[0].data.shape
+        return output[0].data.shape[0]
 
     else:
         return output[0].data.shape[1:]
