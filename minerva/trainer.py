@@ -62,6 +62,7 @@ from minerva.models import (
     MinervaModel,
     MinervaOnnxModel,
     MinervaSiamese,
+    MinervaWrapper,
 )
 from minerva.pytorchtools import EarlyStopping
 from minerva.utils import AUX_CONFIGS, universal_path, utils, visutils
@@ -249,6 +250,7 @@ class Trainer:
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
+        self.sample_pairs: bool = self.params.get("sample_pairs", False)
 
         # Sets the max number of epochs of fitting.
         self.max_epochs = self.params.get("max_epochs", 25)
@@ -294,7 +296,7 @@ class Trainer:
             self.model = self.make_model()
 
         # Determines the output shape of the model.
-        sample_pairs: Union[bool, Any] = self.params.get("sample_pairs", False)
+        sample_pairs: Union[bool, Any] = self.sample_pairs
         if type(sample_pairs) != bool:
             sample_pairs = False
             self.params["sample_pairs"] = False
@@ -416,11 +418,15 @@ class Trainer:
         Returns:
             MinervaModel: Initialised model.
         """
-        model_params = self.params["model_params"]
+        model_params: Dict[str, Any] = self.params["model_params"]
+
+        module = model_params.get("module", "minerva.models")
+        is_minerva = True if module == "minerva.models" else False
 
         # Gets the model requested by config parameters.
         _model = utils.func_by_str(
-            "minerva.models", self.params["model_name"].split("-")[0]
+            model_params.get("module", "minerva.models"),
+            self.params["model_name"].split("-")[0],
         )
 
         if self.fine_tune:
@@ -428,7 +434,13 @@ class Trainer:
             model_params["backbone_weight_path"] = f"{self.get_weights_path()}.pt"
 
         # Initialise model.
-        model: MinervaModel = _model(self.make_criterion(), **model_params)
+        model: MinervaModel
+        if is_minerva:
+            model = _model(self.make_criterion(), **model_params.get("params", {}))
+        else:
+            model = MinervaWrapper(
+                _model, self.make_criterion(), **model_params.get("params", {})
+            )
 
         if self.params.get("reload", False):
             model.load_state_dict(
@@ -522,7 +534,7 @@ class Trainer:
             batch_size=self.batch_size,
             data_size=data_size,
             model_type=self.model_type,
-            sample_pairs=self.params["sample_pairs"],
+            sample_pairs=self.sample_pairs,
         )
 
         return metric_logger
@@ -586,8 +598,8 @@ class Trainer:
             self.model.n_classes,
             record_int=record_int,
             record_float=record_float,
-            collapse_level=self.params["sample_pairs"],
-            euclidean=self.params["sample_pairs"],
+            collapse_level=self.sample_pairs,
+            euclidean=self.sample_pairs,
             model_type=self.model_type,
             writer=self.writer,
         )
