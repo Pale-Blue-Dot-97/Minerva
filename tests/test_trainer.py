@@ -133,8 +133,10 @@ def test_third_party_model() -> None:
     }
 
     transform_params = {"ToRGB": {"module": "minerva.transforms"}}
-    params["transform_params"]["train"]["image"] = {"images_1": transform_params}
-    params["transform_params"]["train"]["image"] = {"image2": transform_params}
+    params["transform_params"]["train"]["image"] = {
+        "images_1": transform_params,
+        "image2": transform_params,
+    }
     params["transform_params"]["val"]["image"] = transform_params
     params["transform_params"]["test"]["image"] = transform_params
 
