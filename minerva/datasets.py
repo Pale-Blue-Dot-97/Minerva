@@ -383,15 +383,30 @@ def make_dataset(
 
         return _sub_dataset, sub_dataset_root
 
-    def create_transforms(this_transform_params: Any, key: str) -> Optional[Any]:
-        # Construct transforms for samples returned from this sub-dataset -- if found.
+    def create_transforms(
+        this_transform_params: Any, key: str, type_key: Optional[str] = None
+    ) -> Optional[Any]:
+        """Construct transforms for samples returned from this sub-dataset -- if found.
+
+        Args:
+            this_transform_params (~typing.Any): Parameters defining the transforms for the dataset for the
+                whole mode of fitting.
+            key (str): The key for the transforms for this particular subdataset.
+            type_key (str): Optional; The type of data the transform is acting on. Most likely ``"image"`` or ``"mask"``.
+                This may differ from ``key`` if using unionisation of datasets. If ``None``, defaults to ``key``.
+
+        Returns:
+            ~typing.Any | None: The transformatins for this subdataset or ``None`` if no parameters found.
+        """
+        type_key = key if type_key is None else type_key
+
         _transformations: Optional[Any] = None
         if type(this_transform_params) == dict:
             assert this_transform_params is not None
             try:
                 if this_transform_params[key]:
                     _transformations = make_transformations(
-                        this_transform_params[key], key=key
+                        this_transform_params[key], key=type_key
                     )
             except (KeyError, TypeError):
                 pass
@@ -445,7 +460,9 @@ def make_dataset(
                     assert transform_params
                     if transform_params[type_key]:
                         transformations = create_transforms(
-                            transform_params[type_key], area_key
+                            transform_params[type_key],
+                            area_key,
+                            type_key,
                         )
                 except (KeyError, TypeError, AssertionError):
                     pass
