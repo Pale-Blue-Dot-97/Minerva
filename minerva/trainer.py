@@ -420,26 +420,32 @@ class Trainer:
         """
         model_params: Dict[str, Any] = self.params["model_params"]
 
-        module = model_params.get("module", "minerva.models")
+        module = model_params.pop("module", "minerva.models")
+        if not module:
+            module = "minerva.models"
         is_minerva = True if module == "minerva.models" else False
 
         # Gets the model requested by config parameters.
-        _model = utils.func_by_str(
-            model_params.get("module", "minerva.models"),
-            self.params["model_name"].split("-")[0],
-        )
+        _model = utils.func_by_str(module, self.params["model_name"].split("-")[0])
 
         if self.fine_tune:
             # Add the path to the pre-trained weights to the model params.
             model_params["backbone_weight_path"] = f"{self.get_weights_path()}.pt"
 
+        params = model_params.get("params", {})
+        if "n_classes" in params.keys():
+            # Updates the number of classes in case it has been altered by class balancing.
+            params["n_classes"] = self.params["n_classes"]
+
         # Initialise model.
         model: MinervaModel
         if is_minerva:
-            model = _model(self.make_criterion(), **model_params.get("params", {}))
+            model = _model(self.make_criterion(), **params)
         else:
             model = MinervaWrapper(
-                _model, self.make_criterion(), **model_params.get("params", {})
+                _model,
+                self.make_criterion(),
+                **params,
             )
 
         if self.params.get("reload", False):
@@ -457,7 +463,7 @@ class Trainer:
         Returns:
             MinervaModel: Loaded model ready for use.
         """
-        model_params = self.params["model_params"]
+        model_params = self.params["model_params"].get("params", {})
 
         onnx_model = convert(f"{self.get_weights_path()}.onnx")
         model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
