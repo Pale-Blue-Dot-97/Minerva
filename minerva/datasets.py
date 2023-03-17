@@ -828,7 +828,9 @@ def make_loaders(
             utils.print_class_dist(class_dist)
 
         params["n_classes"] = len(new_classes)
-        params["model_params"]["n_classes"] = len(new_classes)
+        model_params_params = params["model_params"].get("params", {})
+        model_params_params["n_classes"] = len(new_classes)
+        params["model_params"]["params"] = model_params_params
         params["classes"] = new_classes
         params["colours"] = new_colours
 
