@@ -43,7 +43,7 @@ from torch import LongTensor, Tensor
 from torchvision.transforms import ColorJitter
 from torchvision.transforms import functional_tensor as ft
 
-from minerva.utils.utils import mask_transform
+from minerva.utils.utils import find_tensor_mode, mask_transform
 
 
 # =====================================================================================================================
@@ -234,6 +234,46 @@ class ToRGB:
                 raise ValueError("Image has less than 3 channels! Cannot be RGB!")
 
             return img[:3]
+
+
+class SingleLabel:
+    """Reduces a mask to a single label using transform mode provided.
+
+    Attributes:
+        mode (str): Mode of operation.
+
+    Args:
+        mode (str): Mode of operation. Currently only supports ``"modal"``.
+
+    .. versionadded:: 0.22
+
+    """
+
+    def __init__(self, mode: str = "modal") -> None:
+        self.mode = mode
+
+    def __call__(self, mask: LongTensor) -> LongTensor:
+        return self.forward(mask)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(mode={self.mode})"
+
+    def forward(self, mask: LongTensor) -> LongTensor:
+        """Forward pass of the transform, reducing the input mask to a single label.
+
+        Args:
+            mask (~torch.LongTensor): Input mask to reduce to a single label.
+
+        Raises:
+            NotImplementedError: If :attr:`~SingleLabel.mode` is not ``"modal"``.
+
+        Returns:
+            ~torch.LongTensor: The single label as a 0D, 1-element tensor.
+        """
+        if self.mode == "modal":
+            return LongTensor([find_tensor_mode(mask)])
+        else:
+            raise NotImplementedError
 
 
 class MinervaCompose:
