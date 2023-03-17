@@ -437,6 +437,10 @@ class Trainer:
             # Updates the number of classes in case it has been altered by class balancing.
             params["n_classes"] = self.params["n_classes"]
 
+        if "num_classes" in params.keys():
+            # Updates the number of classes in case it has been altered by class balancing.
+            params["num_classes"] = self.params["n_classes"]
+
         # Initialise model.
         model: MinervaModel
         if is_minerva:
