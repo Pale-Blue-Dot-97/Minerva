@@ -114,32 +114,11 @@ def test_ssl_trainer() -> None:
 
 
 def test_third_party_model() -> None:
-    params = CONFIG.copy()
+    cfg_path = Path(__file__).parent.parent / "inbuilt_cfgs" / "example_3rd_party.yml"
 
-    params["model_name"] = "ResNetGenerator-R9"
+    with config_load.ToDefaultConfDir():
+        cfg, _ = config_load.load_configs(cfg_path)
 
-    model_params = params["model_params"]["params"]
-    model_params["name"] = "resnet-9"
-    model_params["num_classes"] = model_params["n_classes"]
-    model_params["input_size"] = (
-        3,
-        model_params["input_size"][1],
-        model_params["input_size"][2],
-    )
-
-    params["model_params"] = {
-        "module": "lightly.models",
-        "params": model_params,
-    }
-
-    transform_params = {"ToRGB": {"module": "minerva.transforms"}}
-    params["transform_params"]["train"]["image"] = {
-        "images_1": transform_params,
-        "image2": transform_params,
-    }
-    params["transform_params"]["val"]["image"] = transform_params
-    params["transform_params"]["test"]["image"] = transform_params
-
-    trainer = Trainer(0, **params)
+    trainer = Trainer(0, **cfg)
 
     trainer.fit()
