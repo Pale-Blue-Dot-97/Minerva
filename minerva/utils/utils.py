@@ -765,6 +765,18 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         return ""
 
 
+def find_tensor_mode(mask: LongTensor) -> LongTensor:
+    """Finds the mode value in a :class:`~torch.LongTensor`.
+
+    Args:
+        mask (~torch.LongTensor): Tensor to find modal value in.
+
+    Returns:
+        ~torch.LongTensor: A 0D, 1-element tensor containing the modal value.
+    """
+    return torch.mode(torch.flatten(mask)).values
+
+
 def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
     """Convert an iterable of indices to one-hot encoded (:term:`OHE`) labels.
 
