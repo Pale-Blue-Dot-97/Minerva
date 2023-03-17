@@ -1,0 +1,237 @@
+---
+#       *       *    __  ________   ____________ _    _____
+#   *        *      /  |/  /  _/ | / / ____/ __ \ |  / /   |  *           *
+#       *          / /|_/ // //  |/ / __/ / /_/ / | / / /| |     *
+#   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
+#    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
+#
+#             EXAMPLE MASTER CONFIG FILE FOR THIRD PARTY MODELS
+#
+# === PATHS ===================================================================
+dir:
+    data: tests/tmp/data
+    configs:
+        data_config: Chesapeake7.yml
+        imagery_config: NAIP.yml
+    results: tests/tmp/results
+    cache: tests/tmp/cache
+
+# === HYPERPARAMETERS =========================================================
+# ---+ Model Specification +---------------------------------------------------
+# Name of model. Substring before hyphen is model class.
+model_name: ResNetGenerator-R9
+
+# Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
+model_type: scene classifier
+
+# ---+ Sizing +----------------------------------------------------------------
+batch_size: 8                         # Number of samples in each batch.
+patch_size: &patch_size [32, 32]      # 2D tuple or float.
+input_size: &input_size [3, 32, 32]   # patch_size plus leading channel dim.
+n_classes: &n_classes 8               # Number of classes in dataset.
+
+# ---+ Experiment Execution +--------------------------------------------------
+max_epochs: 3                         # Maximum number of training epochs.
+pre_train: false                      # Activate pre-training mode.
+fine_tune: false                      # Activate fine-tuning mode.
+elim: false                           # Eliminates empty classes from schema.
+balance: false                        # Balances dataset classes.
+
+# ---+ Loss and Optimisers +---------------------------------------------------
+loss_func: CrossEntropyLoss           # Name of the loss function to use.
+lr: 1.0E-2                            # Learning rate of optimiser.
+optim_func: SGD                       # Name of the optimiser function.
+
+# ---+ Model Parameters +------------------------------------------------------
+model_params:
+    module: lightly.models
+    params:
+        input_size: *input_size
+        n_classes: *n_classes
+        num_classes: *n_classes
+        name: resnet-9
+
+# ---+ Optimiser Parameters +--------------------------------------------------
+optim_params:
+    params:
+
+# ---+ Loss Function Parameters +----------------------------------------------
+loss_params:
+    params:
+
+# ---+ Dataloader Parameters +-------------------------------------------------
+loader_params:
+    num_workers: 1
+    pin_memory: true
+
+# === MODEL IO & LOGGING ======================================================
+# ---+ wandb Logging +---------------------------------------------------------
+wandb_log: true              # Activates wandb logging.
+project: pytest              # Define the project name for wandb.
+wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
+
+# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
+logger: STGLogger
+metrics: SPMetrics
+model_io: sup_tg
+
+record_int: true    # Store integer results in memory.
+record_float: true  # Store floating point results too. Beware memory overload!
+
+# ---+ Collator +--------------------------------------------------------------
+collator:
+    module: torchgeo.datasets
+    name: stack_samples
+
+# === DATASET PARAMETERS ======================================================
+dataset_params:
+    # Training Dataset
+    train:
+        image:
+            images_1:
+                module: minerva.datasets
+                name: TstImgDataset
+                root: test_images
+                params:
+                    res: 1.0
+
+            image2:
+                module: minerva.datasets
+                name: TstImgDataset
+                root: test_images
+                params:
+                    res: 1.0
+
+        mask:
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
+            params:
+                res: 1.0
+
+    # Validation Dataset
+    val:
+        image:
+            module: minerva.datasets
+            name: TstImgDataset
+            root: test_images
+            params:
+                res: 1.0
+
+        mask:
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
+            params:
+                res: 1.0
+
+    # Test Dataset
+    test:
+        image:
+            module: minerva.datasets
+            name: TstImgDataset
+            root: test_images
+            params:
+                res: 1.0
+
+        mask:
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
+            params:
+                res: 1.0
+
+# === SAMPLER PARAMETERS ======================================================
+sampler_params:
+    # Training Dataset Sampler
+    train:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: *patch_size
+            length: 120
+
+    # Validation Dataset Sampler
+    val:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: *patch_size
+            length: 32
+
+    # Test Dataset Sampler
+    test:
+        module: torchgeo.samplers
+        name: RandomGeoSampler
+        roi: false
+        params:
+            size: *patch_size
+            length: 32
+
+# === TRANSFORM PARAMETERS ====================================================
+transform_params:
+    # Training Dataset Transforms
+    train:
+        image:
+            images_1:
+                ToRGB:
+                    module: minerva.transforms
+            image2:
+                ToRGB:
+                    module: minerva.transforms
+        mask:
+            SingleLabel:
+                module: minerva.transforms
+
+    # Validation Dataset Transforms
+    val:
+        image:
+            ToRGB:
+                module: minerva.transforms
+        mask:
+            SingleLabel:
+                module: minerva.transforms
+
+    # Test Dataset Transforms
+    test:
+        image:
+            ToRGB:
+                module: minerva.transforms
+        mask:
+            SingleLabel:
+                module: minerva.transforms
+
+# === PLOTTING OPTIONS ========================================================
+plots:
+    History: true   # Plot of the training and validation metrics over epochs.
+    CM: true        # Confusion matrix.
+    Pred: true      # Pie chart of the distribution of the predicted classes.
+    ROC: true       # Receiver Operator Characteristics for each class.
+    micro: true     # Include micro averaging in ROC plot.
+    macro: true     # Include macro averaging in ROC plot.
+    Mask: true      # Plot predicted masks against ground truth and imagery.
+
+# === MISCELLANEOUS OPTIONS ===================================================
+# ---+ Early Stopping +--------------------------------------------------------
+stopping:
+    patience: 2    # No. of val epochs with increasing loss before stopping.
+    verbose: true  # Verbosity of early stopping prints to stdout.
+
+# ---+ Verbosity and Saving +--------------------------------------------------
+verbose: true           # Verbosity of Trainer print statements to stdout.
+save: true              # Saves created figures to file.
+show: false             # Shows created figures in a pop-up window.
+p_dist: true            # Shows the distribution of classes to stdout.
+plot_last_epoch: true   # Plot the results of the last training and val epochs.
+
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+save_model: true
+
+# ---+ Other +-----------------------------------------------------------------
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+run_tensorboard: false
+calc_norm: false
