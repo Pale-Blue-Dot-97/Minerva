@@ -11,6 +11,7 @@ from minerva.transforms import (
     MinervaCompose,
     Normalise,
     PairCreate,
+    ToRGB,
 )
 from minerva.utils import utils
 
@@ -193,3 +194,15 @@ def test_tg_to_torch(simple_mask) -> None:
         transform_1(input_4)  # type: ignore[type]
 
     assert repr(transform_1) == repr(Normalise(255))
+
+
+def test_torgb(random_rgbi_tensor):
+    transform_1 = ToRGB()
+
+    assert_array_equal(transform_1(random_rgbi_tensor), random_rgbi_tensor[:3])
+    assert repr(transform_1) == "ToRGB(channels --> [0:3])"
+
+    transform_2 = ToRGB((1, 2, 3))
+
+    assert_array_equal(transform_2(random_rgbi_tensor), random_rgbi_tensor[1:])
+    assert repr(transform_2) == "ToRGB(channels --> [(1, 2, 3)])"
