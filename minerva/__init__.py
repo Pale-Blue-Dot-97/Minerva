@@ -42,7 +42,7 @@ Run the testing epoch and output results.
     Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019)
 """
 
-__version__ = "0.21.1"
+__version__ = "0.22.0"
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU LGPLv3"
