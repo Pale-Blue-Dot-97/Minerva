@@ -204,10 +204,20 @@ def test_to_rgb(random_rgbi_tensor) -> None:
     assert_array_equal(transform_1(random_rgbi_tensor), random_rgbi_tensor[:3])
     assert repr(transform_1) == "ToRGB(channels --> [0:3])"
 
+    with pytest.raises(
+        ValueError, match="Image has less than 3 channels! Cannot be RGB!"
+    ):
+        _ = transform_1(random_rgbi_tensor[:2])
+
     transform_2 = ToRGB((1, 2, 3))
 
     assert_array_equal(transform_2(random_rgbi_tensor), random_rgbi_tensor[1:])
     assert repr(transform_2) == "ToRGB(channels --> [(1, 2, 3)])"
+
+    with pytest.raises(
+        ValueError, match="Image has less channels that trying to reduce to!"
+    ):
+        _ = transform_2(random_rgbi_tensor[:2])
 
 
 def test_single_label(random_tensor_mask) -> None:
