@@ -9,7 +9,7 @@ import pytest
 import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
-from torch import LongTensor
+from torch import LongTensor, Tensor
 from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
 
@@ -96,6 +96,16 @@ def random_mask() -> NDArray[Shape["32, 32"], Int]:
 @pytest.fixture
 def random_image() -> NDArray[Shape["32, 32, 3"], Float]:
     return np.random.rand(32, 32, 3)
+
+
+@pytest.fixture
+def random_rgbi_image() -> NDArray[Shape["32, 32, 4"], Float]:
+    return np.random.rand(32, 32, 4)
+
+
+@pytest.fixture
+def random_rgbi_tensor(rgbi_input_size) -> Tensor:
+    return torch.rand(rgbi_input_size)
 
 
 @pytest.fixture
