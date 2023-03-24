@@ -130,6 +130,14 @@ Contributions also provided by:
 I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
+Includes two small ``.tiff`` exercpts from the [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) dataset used for testing.
+
+Credit for the data goes to:
+
+> Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N.
+Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data.
+Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019)
+
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ## Project Status 🔴🟡🟢
