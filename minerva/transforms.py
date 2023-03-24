@@ -275,7 +275,9 @@ class SingleLabel:
         if self.mode == "modal":
             return LongTensor([find_tensor_mode(mask)])
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"{self.mode} is not a recognised operating mode!"
+            )
 
 
 class MinervaCompose:
