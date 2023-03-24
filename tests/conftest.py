@@ -109,6 +109,11 @@ def random_rgbi_tensor(rgbi_input_size) -> Tensor:
 
 
 @pytest.fixture
+def random_tensor_mask() -> LongTensor:
+    return torch.randint(0, 7, size=(32, 32))
+
+
+@pytest.fixture
 def bounds_for_test_img() -> BoundingBox:
     return BoundingBox(
         -1.4153283567520825,
