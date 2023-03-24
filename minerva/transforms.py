@@ -30,7 +30,10 @@ __all__ = [
     "PairCreate",
     "Normalise",
     "DetachedColorJitter",
+    "SingleLabel",
+    "ToRGB",
     "MinervaCompose",
+    "SwapKeys",
 ]
 
 # =====================================================================================================================
@@ -386,6 +389,8 @@ class SwapKeys:
     Args:
         from_key (str): Key for the value to set to ``to_key``.
         to_key (str): Key to set the value from ``from_key`` to.
+
+    .. versionadded:: 0.22
     """
 
     def __init__(self, from_key: str, to_key: str) -> None:
