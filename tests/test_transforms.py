@@ -11,6 +11,7 @@ from minerva.transforms import (
     MinervaCompose,
     Normalise,
     PairCreate,
+    SingleLabel,
     ToRGB,
 )
 from minerva.utils import utils
@@ -196,7 +197,7 @@ def test_tg_to_torch(simple_mask) -> None:
     assert repr(transform_1) == repr(Normalise(255))
 
 
-def test_torgb(random_rgbi_tensor):
+def test_to_rgb(random_rgbi_tensor) -> None:
     transform_1 = ToRGB()
 
     assert_array_equal(transform_1(random_rgbi_tensor), random_rgbi_tensor[:3])
@@ -206,3 +207,20 @@ def test_torgb(random_rgbi_tensor):
 
     assert_array_equal(transform_2(random_rgbi_tensor), random_rgbi_tensor[1:])
     assert repr(transform_2) == "ToRGB(channels --> [(1, 2, 3)])"
+
+
+def test_single_label(random_tensor_mask) -> None:
+    transform_1 = SingleLabel()
+
+    assert_array_equal(
+        transform_1(random_tensor_mask),
+        LongTensor([utils.find_tensor_mode(random_tensor_mask)]),
+    )
+
+    assert repr(transform_1) == "SingleLabel(mode=modal)"
+
+    with pytest.raises(
+        NotImplementedError, match="wrong mode is not a recognised operating mode!"
+    ):
+        transform_2 = SingleLabel("wrong mode")
+        _ = transform_2(random_tensor_mask)
