@@ -194,6 +194,8 @@ class ToRGB:
         channels (tuple[int, int, int]): Optional; Tuple defining which channels in expected input images
             contain the RGB bands. If ``None``, it is assumed that the RGB bands are in the first 3 channels.
 
+    .. versionadded:: 0.22
+
     """
 
     def __init__(self, channels: Optional[Tuple[int, int, int]] = None) -> None:
@@ -226,7 +228,7 @@ class ToRGB:
             if len(img) < len(self.channels):
                 raise ValueError("Image has less channels that trying to reduce to!")
 
-            return torch.concat((img[channel] for channel in self.channels))
+            return torch.stack([img[channel] for channel in self.channels])
 
         # If no channels were provided, assume that that the first 3 channels are the RGB channels.
         else:
