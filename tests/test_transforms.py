@@ -12,6 +12,7 @@ from minerva.transforms import (
     Normalise,
     PairCreate,
     SingleLabel,
+    SwapKeys,
     ToRGB,
 )
 from minerva.utils import utils
@@ -224,3 +225,17 @@ def test_single_label(random_tensor_mask) -> None:
     ):
         transform_2 = SingleLabel("wrong mode")
         _ = transform_2(random_tensor_mask)
+
+
+def test_swap_keys(random_rgbi_tensor, random_tensor_mask) -> None:
+    transform_1 = SwapKeys("mask", "image")
+
+    in_sample = {"image": random_rgbi_tensor, "mask": random_tensor_mask}
+
+    correct_out_sample = {"image": random_tensor_mask, "mask": random_tensor_mask}
+
+    out_sample = transform_1(in_sample)
+
+    assert_array_equal(out_sample["image"], correct_out_sample["image"])
+    assert_array_equal(out_sample["mask"], correct_out_sample["mask"])
+    assert repr(transform_1) == "SwapKeys(mask -> image)"
