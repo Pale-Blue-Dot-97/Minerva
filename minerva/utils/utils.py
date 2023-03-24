@@ -70,6 +70,7 @@ __all__ = [
     "dec2deg",
     "get_centre_loc",
     "lat_lon_to_loc",
+    "find_tensor_mode",
     "labels_to_ohe",
     "class_weighting",
     "find_empty_classes",
@@ -773,6 +774,8 @@ def find_tensor_mode(mask: LongTensor) -> LongTensor:
 
     Returns:
         ~torch.LongTensor: A 0D, 1-element tensor containing the modal value.
+
+    .. versionadded:: 0.22
     """
     return torch.mode(torch.flatten(mask)).values
 
