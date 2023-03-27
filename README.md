@@ -5,13 +5,11 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="200">
+  <a href="https://github.com/Pale-Blue-Dot-97/Minerva">
+    <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> Minerva 0.22-beta</b>
-    <br />
-    Framework for machine learning in remote sensing
+    <b style="font-size:26px;"> v0.22-beta</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
@@ -130,9 +128,7 @@ Contributions also provided by:
 I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
-Includes two small ``.tiff`` exercpts from the [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) dataset used for testing.
-
-Credit for the data goes to:
+This repositry also contains two small ``.tiff`` exercpts from the [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) dataset used for unit testing purposes. Credit for this data goes to:
 
 > Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N.
 Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data.
