@@ -46,7 +46,7 @@ class LARS(Optimizer):
     Source: https://github.com/noahgolmant/pytorch-lars/blob/master/lars.py
 
     Args:
-        params (iterable | dict): Iterable of parameters to optimize or dicts defining
+        params (~typing.Iterable | dict): Iterable of parameters to optimize or dicts defining
             parameter groups
         lr (float): base learning rate (\gamma_0)
         momentum (float, optional): momentum factor (default: 0) ("m")

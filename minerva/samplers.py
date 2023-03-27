@@ -2,16 +2,16 @@
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
 #
@@ -23,7 +23,7 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "RandomPairGeoSampler",
@@ -211,14 +211,14 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
 def get_greater_bbox(
     bbox: BoundingBox, r: float, size: Union[float, int, Sequence[float]]
 ) -> BoundingBox:
-    """Return a bounding box at ``max_r`` distance around the first box.
+    """Return a bounding box at ``r`` distance around the first box.
 
     Args:
         bbox (~torchgeo.datasets.utils.BoundingBox): Bounding box of the original sample.
         r (float): Distance in pixels to extend the original bounding box by
             to get a new greater bounds to sample from.
-        size (float | Sequence[float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
-            represents in pixels. Will only use size[0] if a :class:`Sequence`.
+        size (float | ~typing.Sequence[float]): The (``x``, ``y``) size of the :term:`patch` that ``bbox``
+            represents in pixels. Will only use size[0] if a :class:`~typing.Sequence`.
 
     Returns:
         ~torchgeo.datasets.utils.BoundingBox: Greater bounds around original bounding box to sample from.

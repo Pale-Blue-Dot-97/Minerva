@@ -2,16 +2,16 @@
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
 #
@@ -23,14 +23,17 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "ClassTransform",
     "PairCreate",
     "Normalise",
     "DetachedColorJitter",
+    "SingleLabel",
+    "ToRGB",
     "MinervaCompose",
+    "SwapKeys",
 ]
 
 # =====================================================================================================================
@@ -43,7 +46,7 @@ from torch import LongTensor, Tensor
 from torchvision.transforms import ColorJitter
 from torchvision.transforms import functional_tensor as ft
 
-from minerva.utils.utils import mask_transform
+from minerva.utils.utils import find_tensor_mode, mask_transform
 
 
 # =====================================================================================================================
@@ -98,10 +101,10 @@ class PairCreate:
         """Takes a sample and returns it and a copy as a :class:`tuple` pair.
 
         Args:
-            sample (Any): Sample to duplicate.
+            sample (~typing.Any): Sample to duplicate.
 
         Returns:
-            tuple[Any, Any]: :class:`tuple` of two copies of the sample.
+            tuple[~typing.Any, ~typing.Any]: :class:`tuple` of two copies of the sample.
         """
         return sample, sample
 
@@ -183,13 +186,111 @@ class DetachedColorJitter(ColorJitter):
         return super().__repr__()
 
 
+class ToRGB:
+    """Reduces the number of channels down to RGB.
+
+    Attributes:
+        channels (tuple[int, int, int]): Optional; Tuple defining which channels in expected input images
+            contain the RGB bands. If ``None``, it is assumed that the RGB bands are in the first 3 channels.
+
+    Args:
+        channels (tuple[int, int, int]): Optional; Tuple defining which channels in expected input images
+            contain the RGB bands. If ``None``, it is assumed that the RGB bands are in the first 3 channels.
+
+    .. versionadded:: 0.22
+
+    """
+
+    def __init__(self, channels: Optional[Tuple[int, int, int]] = None) -> None:
+        self.channels = channels
+
+    def __call__(self, img: Tensor) -> Tensor:
+        return self.forward(img)
+
+    def __repr__(self) -> str:
+        if self.channels:
+            return f"{self.__class__.__name__}(channels --> [{self.channels}])"
+        else:
+            return f"{self.__class__.__name__}(channels --> [0:3])"
+
+    def forward(self, img: Tensor) -> Tensor:
+        """Performs a forward pass of the transform, returning an RGB image.
+
+        Args:
+            img (~torch.Tensor): Image to convert to RGB.
+
+        Returns:
+            ~torch.Tensor: Image of only the RGB channels of ``img``.
+
+        Raises:
+            ValueError: If ``img`` has less channels than specified in :attr:`~ToRGB.channels`.
+            ValueError: If ``img`` has less than 3 channels and :attr:`~ToRGB.channels` is ``None``.
+        """
+        # If a tuple defining the RGB channels was provided, select and concat together.
+        if self.channels:
+            if len(img) < len(self.channels):
+                raise ValueError("Image has less channels that trying to reduce to!")
+
+            return torch.stack([img[channel] for channel in self.channels])
+
+        # If no channels were provided, assume that that the first 3 channels are the RGB channels.
+        else:
+            if len(img) < 3:
+                raise ValueError("Image has less than 3 channels! Cannot be RGB!")
+
+            return img[:3]
+
+
+class SingleLabel:
+    """Reduces a mask to a single label using transform mode provided.
+
+    Attributes:
+        mode (str): Mode of operation.
+
+    Args:
+        mode (str): Mode of operation. Currently only supports ``"modal"``.
+
+    .. versionadded:: 0.22
+
+    """
+
+    def __init__(self, mode: str = "modal") -> None:
+        self.mode = mode
+
+    def __call__(self, mask: LongTensor) -> LongTensor:
+        return self.forward(mask)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(mode={self.mode})"
+
+    def forward(self, mask: LongTensor) -> LongTensor:
+        """Forward pass of the transform, reducing the input mask to a single label.
+
+        Args:
+            mask (~torch.LongTensor): Input mask to reduce to a single label.
+
+        Raises:
+            NotImplementedError: If :attr:`~SingleLabel.mode` is not ``"modal"``.
+
+        Returns:
+            ~torch.LongTensor: The single label as a 0D, 1-element tensor.
+        """
+        if self.mode == "modal":
+            return LongTensor([find_tensor_mode(mask)])
+        else:
+            raise NotImplementedError(
+                f"{self.mode} is not a recognised operating mode!"
+            )
+
+
 class MinervaCompose:
     """Extension of :class:`torchvision.transforms.Compose`. Composes several transforms together.
 
     This transform does not support torchscript. Please, see the note below.
 
     Args:
-        transforms (list of ``Transform`` objects): list of transforms to compose.
+        transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
+            List of transforms to compose.
 
     Example:
         >>> transforms.Compose([
@@ -274,3 +375,42 @@ class MinervaCompose:
         format_string += "\n)"
 
         return format_string
+
+
+class SwapKeys:
+    """Transform to set one key in a :mod:`torchgeo` sample :class:`dict` to another.
+
+    Useful for testing autoencoders to predict their input.
+
+    Attributes:
+        from_key (str): Key for the value to set to ``to_key``.
+        to_key (str): Key to set the value from ``from_key`` to.
+
+    Args:
+        from_key (str): Key for the value to set to ``to_key``.
+        to_key (str): Key to set the value from ``from_key`` to.
+
+    .. versionadded:: 0.22
+    """
+
+    def __init__(self, from_key: str, to_key: str) -> None:
+        self.from_key = from_key
+        self.to_key = to_key
+
+    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        return self.forward(sample)
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.from_key} -> {self.to_key})"
+
+    def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+        """Sets the ``to_key`` of ``sample`` to the ``from_key`` and returns.
+
+        Args:
+            sample (dict[str, ~typing.Any]): Sample dict from :mod:`torchgeo` containing ``from_key``.
+
+        Returns:
+            dict[str, ~typing.Any]: Sample with ``to_key`` set to the value of ``from_key``.
+        """
+        sample[self.to_key] = sample[self.from_key]
+        return sample

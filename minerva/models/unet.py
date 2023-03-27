@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2023 Harry Baker
-
+#
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
-
+#
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
@@ -24,7 +24,7 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
@@ -44,6 +44,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import abc
 from typing import Any, Dict, Optional, Sequence, Tuple
 
 import torch
@@ -59,7 +60,7 @@ from .core import MinervaModel, get_model
 #                                                     CLASSES
 # =====================================================================================================================
 class DoubleConv(Module):
-    """Applies a double convolution to the input (convolution => [BN] => ReLU) * 2
+    """Applies a double convolution to the input ``(convolution => [BN] => ReLU) * 2``
 
     Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
 
@@ -108,7 +109,8 @@ class Down(Module):
     Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
 
     Attributes:
-        maxpool_conv (Module): :class:`~torch.nn.Sequential` of :class:`MaxPool2d` then :class:`DoubleConv`.
+        maxpool_conv (~torch.nn.Module): :class:`~torch.nn.Sequential` of :class:`~torch.nn.MaxPool2d`
+            then :class:`DoubleConv`.
 
     Args:
         in_channels (int): Number of input channels.
@@ -229,7 +231,7 @@ class OutConv(Module):
 
 
 class UNet(MinervaModel):
-    """UNet.
+    """UNet model. Good for segmentation problems.
 
     Adapted from https://github.com/milesial/Pytorch-UNet for use in :mod:`minerva`.
 
@@ -281,7 +283,7 @@ class UNet(MinervaModel):
         self.outc = OutConv(64, n_classes)
 
     def forward(self, x: Tensor) -> Tensor:
-        """Performs a forward pass of the UNet.
+        """Performs a forward pass of the :class:`UNet`.
 
         Adapted from https://github.com/milesial/Pytorch-UNet for :mod:`minerva`.
 
@@ -310,7 +312,7 @@ class UNet(MinervaModel):
 
 
 class UNetR(MinervaModel):
-    """UNet model which incorporates a :class:`ResNet` as the encoder.
+    """UNet model which incorporates a :class:`~models.resnet.ResNet` as the encoder.
 
     Attributes:
         backbone_name (str): Name of the backbone class.
@@ -333,9 +335,10 @@ class UNetR(MinervaModel):
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
             if using a pre-trained backbone.
-        backbone_kwargs (dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
+    __metaclass__ = abc.ABCMeta
     backbone_name = "ResNet18"
 
     def __init__(
@@ -406,10 +409,10 @@ class UNetR(MinervaModel):
         an output with the same spatial size as the input size.
 
         Args:
-            x (~torch.Tensor): Input tensor to the UNet.
+            x (~torch.Tensor): Input tensor to the :class:`UNetR`.
 
         Returns:
-            ~torch.Tensor: Output from the UNet.
+            ~torch.Tensor: Output from the :class:`UNetR`.
         """
         # Output tensors from the residual blocks of the resnet.
         x4, x3, x2, x1, x0 = self.backbone(x)

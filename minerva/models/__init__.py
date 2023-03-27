@@ -3,16 +3,16 @@
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
 #
@@ -24,7 +24,7 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 # =====================================================================================================================
@@ -36,6 +36,7 @@ from .core import MinervaBackbone as MinervaBackbone
 from .core import MinervaDataParallel as MinervaDataParallel
 from .core import MinervaModel as MinervaModel
 from .core import MinervaOnnxModel as MinervaOnnxModel
+from .core import MinervaWrapper as MinervaWrapper
 from .core import bilinear_init as bilinear_init
 from .core import get_output_shape as get_output_shape
 from .core import get_torch_weights as get_torch_weights

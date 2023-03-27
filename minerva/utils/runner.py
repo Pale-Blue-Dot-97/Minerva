@@ -3,16 +3,16 @@
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
 #
@@ -29,7 +29,7 @@ Attributes:
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "GENERIC_PARSER",
@@ -332,12 +332,12 @@ def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
 def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisabled]]:
     """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
 
-    .. note::
+    Note:
         ``args`` must contain these keys:
 
         * ``wandb_log`` (bool): Activate :mod:`wandb` logging.
-        * ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
-            Only log on master process if ``False``.
+        * | ``log_all`` (bool): :mod:`wandb` logging on every process if ``True``.
+          | Only log on master process if ``False``.
         * ``entity`` (str): :mod:`wandb` entity where to send runs to.
         * ``project`` (str): Name of the :mod:`wandb` project this experiment belongs to.
         * ``world_size`` (int): Total number of processes across the experiment.
@@ -348,7 +348,7 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
 
     Returns:
         ~wandb.sdk.wandb_run.Run | ~wandb.sdk.lib.RunDisabled | None: The :mod:`wandb` run object
-            for this process or ``None`` if ``log_all=False`` and ``rank!=0``.
+        for this process or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
     run: Optional[Union[Run, RunDisabled]] = None
     if CONFIG.get("wandb_log", False) or CONFIG.get("project", None):
@@ -524,7 +524,7 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         configured using :func:`config_env_vars` or :func:`config_args`.
 
     Args:
-        run (Callable[[int, ~argparse.Namespace], Any]): Function to run with distributed computing.
+        run (~typing.Callable[[int, ~argparse.Namespace], ~typing.Any]): Function to run with distributed computing.
         args (~argparse.Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
     if args.world_size <= 1:

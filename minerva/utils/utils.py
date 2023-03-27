@@ -2,16 +2,16 @@
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
 #
@@ -22,25 +22,26 @@
 """Module to handle all utility functions for training, testing and evaluation of a model.
 
 Attributes:
-    IMAGERY_CONFIG_PATH (Union[str, Sequence[str]]): Path to the imagery config ``YAML`` file.
-    DATA_CONFIG_PATH (Union[str, Sequence[str]]): Path to the data config ``YAML`` file.
-    IMAGERY_CONFIG (Dict[str, Any]): Config defining the properties of the imagery used in the experiment.
-    DATA_CONFIG (Dict[str, Any]): Config defining the properties of the data used in the experiment.
+    IMAGERY_CONFIG_PATH (str | ~typing.Sequence[str]): Path to the imagery config ``YAML`` file.
+    DATA_CONFIG_PATH (str | ~typing.Sequence[str]): Path to the data config ``YAML`` file.
+    IMAGERY_CONFIG (dict[str, ~typing.Any]): Config defining the properties of the imagery used in the experiment.
+    DATA_CONFIG (dict[str, ~typing.Any]): Config defining the properties of the data used in the experiment.
     DATA_DIR (str): Path to directory holding dataset.
     CACHE_DIR (str): Path to cache directory.
     RESULTS_DIR (str): Path to directory to output plots to.
-    BAND_IDS (Union[List[int], Tuple[int, ...], Dict[str, Any]]): Band IDs and position in sample image.
-    IAMGE_SIZE (Union[int, Tuple[int, int], List[int]]): Defines the shape of the images.
-    CLASSES (Dict[str, Any]): Mapping of class labels to class names.
-    CMAP_DICT (Dict[str, Any]): Mapping of class labels to colours.
-    WGS84 (CRS): WGS84 co-ordinate reference system acting as a default :class:`rasterio.crs.CRS` for transformations.
+    BAND_IDS (list[int] | tuple[int, ...] | dict[str, ~typing.Any]): Band IDs and position in sample image.
+    IAMGE_SIZE (int | tuple[int, int] | list[int]): Defines the shape of the images.
+    CLASSES (dict[str, ~typing.Any]): Mapping of class labels to class names.
+    CMAP_DICT (dict[str, ~typing.Any]): Mapping of class labels to colours.
+    WGS84 (~rasterio.crs.CRS): WGS84 co-ordinate reference system acting as a default :class:`~rasterio.crs.CRS`
+        for transformations.
 """
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "IMAGERY_CONFIG_PATH",
@@ -69,6 +70,7 @@ __all__ = [
     "dec2deg",
     "get_centre_loc",
     "lat_lon_to_loc",
+    "find_tensor_mode",
     "labels_to_ohe",
     "class_weighting",
     "find_empty_classes",
@@ -222,14 +224,14 @@ def return_updated_kwargs(
     """Decorator that allows the `kwargs` supplied to the wrapped function to be returned with updated values.
 
     Assumes that the wrapped function returns a :class:`dict` in the last position of the
-    :class:`tuple` of returns with keys in `kwargs` that have new values.
+    :class:`tuple` of returns with keys in ``kwargs`` that have new values.
 
     Args:
-        func (Callable[..., tuple[Any, ...]): Function to be wrapped. Must take `kwargs` and return a :class:`dict`
-            with updated `kwargs` in the last position of the :class:`tuple`.
+        func (~typing.Callable[..., tuple[~typing.Any, ...]): Function to be wrapped. Must take `kwargs` and return
+            a :class:`dict` with updated ``kwargs`` in the last position of the :class:`tuple`.
 
     Returns:
-        Callable[..., tuple[Any, ...]: Wrapped function.
+        ~typing.Callable[..., tuple[~typing.Any, ...]: Wrapped function.
     """
 
     @functools.wraps(func)
@@ -250,10 +252,10 @@ def pair_collate(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
         for :func:`~torchgeo.datasets.utils.stack_samples`.
 
     Args:
-        func (Callable[[Any], Any]): Collator function to be wrapped.
+        func (~typing.Callable[[~typing.Any], ~typing.Any]): Collator function to be wrapped.
 
     Returns:
-        Callable[[Any], Any]: Wrapped collator function.
+        ~typing.Callable[[~typing.Any], ~typing.Any]: Wrapped collator function.
     """
 
     @functools.wraps(func)
@@ -291,8 +293,8 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
         This functionality is now handled within :class:`~minerva.transforms.MinervaCompose`.
 
     Args:
-        keys (Optional[Sequence[str]], optional): Keys to fields within :class:`dict` inputs to transform values in.
-            Defaults to ``None``.
+        keys (~typing.Optional[~typing.Sequence[str]]): Keys to fields within :class:`dict` inputs
+            to transform values in. Defaults to ``None``.
 
     Raises:
         TypeError: If input is not a :class:`dict` or :class:`~torch.Tensor`.
@@ -380,7 +382,7 @@ def print_banner(print_func: Callable[..., None] = print) -> None:
     """Prints the :mod:`minerva` banner to ``stdout``.
 
     Args:
-        print_func (Callable[..., None]): Function to use to print the banner. Defaults to inbuilt print.
+        print_func (~typing.Callable[..., None]): Function to use to print the banner. Defaults to :func:`print`.
 
     Raises:
         FileNotFoundError: If ``banner.txt`` cannot be found.
@@ -475,8 +477,8 @@ def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
     """Checks if a key exists in a dictionary and if it is ``None`` or ``False``.
 
     Args:
-        dictionary (dict[Any, Any]): Dictionary to check key for.
-        key (Any): Key to be checked.
+        dictionary (dict[~typing.Any, ~typing.Any]): Dictionary to check key for.
+        key (~typing.Any): Key to be checked.
 
     Returns:
         bool: ``True`` if key exists and is not ``None`` or ``False``. ``False`` if else.
@@ -510,7 +512,7 @@ def get_dataset_name() -> Optional[Union[str, Any]]:
     """Gets the name of the dataset to be used from the config name.
 
     Returns:
-        Optional[str | Any]: Name of dataset as string.
+        ~typing.Optional[str | ~typing.Any]: Name of dataset as string.
     """
     data_config_fn: str = ""
     try:
@@ -578,15 +580,16 @@ def transform_coordinates(
     """Transforms co-ordinates from one :class:`~rasterio.crs.CRS` to another.
 
     Args:
-        x (Sequence[float] | float): The x co-ordinate(s).
-        y (Sequence[float] | float): The y co-ordinate(s).
+        x (~typing.Sequence[float] | float): The x co-ordinate(s).
+        y (~typing.Sequence[float] | float): The y co-ordinate(s).
         src_crs (~rasterio.crs.CRS): The source co-orinates reference system (CRS).
         new_crs (~rasterio.crs.CRS): Optional; The new CRS to transform co-ordinates to.
             Defaults to ``wgs_84``.
 
     Returns:
-        tuple[Sequence[float], Sequence[float] | tuple[float, float]: The transformed co-ordinates.
-        A tuple if only one `x` and `y` were provided, sequence of tuples if sequence of `x` and `y` provided.
+        tuple[~typing.Sequence[float], ~typing.Sequence[float] | tuple[float, float]: The transformed co-ordinates.
+        A :class:`tuple` if only one ``x`` and ``y`` were provided,
+        sequence of tuples if sequence of ``x`` and ``y`` provided.
     """
     single = False
 
@@ -763,15 +766,29 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         return ""
 
 
-def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
-    """Convert an iterable of indices to one-hot encoded labels.
+def find_tensor_mode(mask: LongTensor) -> LongTensor:
+    """Finds the mode value in a :class:`~torch.LongTensor`.
 
     Args:
-        labels (Sequence[int]): Sequence of class number labels to be converted to OHE.
-        n_classes (int): Number of classes to determine length of OHE label.
+        mask (~torch.LongTensor): Tensor to find modal value in.
 
     Returns:
-        ~numpy.ndarray[Any]: Labels in OHE form.
+        ~torch.LongTensor: A 0D, 1-element tensor containing the modal value.
+
+    .. versionadded:: 0.22
+    """
+    return torch.mode(torch.flatten(mask)).values
+
+
+def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
+    """Convert an iterable of indices to one-hot encoded (:term:`OHE`) labels.
+
+    Args:
+        labels (~typing.Sequence[int]): Sequence of class number labels to be converted to :term:`OHE`.
+        n_classes (int): Number of classes to determine length of :term:`OHE` label.
+
+    Returns:
+        ~numpy.ndarray[~typing.Any]: Labels in OHE form.
     """
     targets: NDArray[Any, Any] = np.array(labels).reshape(-1)
     ohe_labels = np.eye(n_classes)[targets]
@@ -987,8 +1004,8 @@ def check_test_empty(
     Returns corrected and re-ordered predictions, labels and class labels.
 
     Args:
-        pred (Sequence[int] | ~numpy.ndarray[int]): List of predicted labels.
-        labels (Sequence[int] | ~numpy.ndarray[int]): List of corresponding ground truth labels.
+        pred (~typing.Sequence[int] | ~numpy.ndarray[int]): List of predicted labels.
+        labels (~typing.Sequence[int] | ~numpy.ndarray[int]): List of corresponding ground truth labels.
         class_labels (dict[int, str]): Dictionary mapping class labels to class names.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
@@ -1074,7 +1091,7 @@ def cloud_cover(scene: NDArray[Any, Any]) -> Any:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
     Args:
-        scene (~numpy.ndarray[Any]): Cloud cover mask for a particular scene.
+        scene (~numpy.ndarray[~typing.Any]): Cloud cover mask for a particular scene.
 
     Returns:
         float: Percentage cloud cover of scene.
@@ -1109,7 +1126,7 @@ def find_best_of(
         patch_id (str): Unique patch ID.
         manifest (~pandas.DataFrame): :class:`~pandas.DataFrame` outlining cloud cover percentages
             for all scenes in the patches desired.
-        selector (Callable[[~pandas.DataFrame], List[str]]): Optional; Function to use to select scenes.
+        selector (~typing.Callable[[~pandas.DataFrame], list[str]]): Optional; Function to use to select scenes.
             Must take an appropriately constructed :class:`~pandas.DataFrame`.
         **kwargs: Kwargs for func.
 
@@ -1215,7 +1232,7 @@ def func_by_str(module_path: str, func: str) -> Callable[..., Any]:
         func (str): Name of function or class desired.
 
     Returns:
-        Callable[[Any], Any]: Pointer to the constructor or function requested.
+        ~typing.Callable[[~typing.Any], ~typing.Any]: Pointer to the constructor or function requested.
     """
     # Gets module found from the path/ name supplied.
     module = importlib.import_module(module_path)
@@ -1230,11 +1247,11 @@ def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
     """Checks the length of one object against a comparator object.
 
     Args:
-        param (Any): Object to have length checked.
-        comparator (Any): Object to compare length of param to.
+        param (~typing.Any): Object to have length checked.
+        comparator (~typing.Any): Object to compare length of param to.
 
     Returns:
-        Any | Sequence[Any]:
+        ~typing.Any | ~typing.Sequence[~typing.Any]:
         * ``param`` if length of param == comparator,
         * *or* :class:`list` with ``param[0]`` elements of length comparator if param =! comparator,
         * *or* :class:`list` with param elements of length comparator if param does not have ``__len__``.
@@ -1336,10 +1353,10 @@ def batch_flatten(
     """Flattens the supplied array with :func:`numpy`.
 
     Args:
-        x (~numpy.ndarray[Any] | ~nptyping.ArrayLike]): Array to be flattened.
+        x (~numpy.ndarray[~typing.Any] | ~nptyping.ArrayLike]): Array to be flattened.
 
     Returns:
-        ~numpy.ndarray[Any]: Flattened :class:`~numpy.ndarray`.
+        ~numpy.ndarray[~typing.Any]: Flattened :class:`~numpy.ndarray`.
     """
     if isinstance(x, np.ndarray):
         x = x.flatten()
@@ -1547,7 +1564,7 @@ def compute_roc_curves(
         macro (bool): Optional; Whether to compute the macro average ROC curves.
 
     Returns:
-        tuple[dict[Any, float], dict[Any, float], dict[Any, float]]: :class:`tuple` of:
+        tuple[dict[~typing.Any, float], dict[~typing.Any, float], dict[~typing.Any, float]]: :class:`tuple` of:
             * Dictionary of false-positive rates for each class and micro and macro averages.
             * Dictionary of true-positive rates for each class and micro and macro averages.
             * Dictionary of AUCs for each class and micro and macro averages.
@@ -1664,7 +1681,7 @@ def print_config(conf: Optional[Dict[Any, Any]] = None) -> None:
     """Print function for the configuration file using ``YAML`` dump.
 
     Args:
-        conf (dict[str, Any]]): Optional; Config file to print. If ``None``, uses the ``global`` config.
+        conf (dict[str, ~typing.Any]]): Optional; Config file to print. If ``None``, uses the ``global`` config.
     """
     if conf is None:
         conf = CONFIG
@@ -1683,7 +1700,7 @@ def tsne_cluster(
     """Trains a TSNE algorithm on the embeddings passed.
 
     Args:
-        embeddings (~numpy.ndarray[Any]): Embeddings outputted from the model.
+        embeddings (~numpy.ndarray[~typing.Any]): Embeddings outputted from the model.
         n_dim (int, optional): Number of dimensions to reduce embeddings to. Defaults to 2.
         lr (str, optional): Learning rate. Defaults to "auto".
         n_iter (int, optional): Number of iterations. Defaults to 1000.
@@ -1692,7 +1709,7 @@ def tsne_cluster(
             Must be less than the length of ``embeddings``.
 
     Returns:
-        Any: Embeddings transformed to ``n_dim`` dimensions using TSNE.
+        ~typing.Any: Embeddings transformed to ``n_dim`` dimensions using TSNE.
     """
 
     if len(embeddings) < perplexity:
@@ -1717,11 +1734,11 @@ def calc_norm_euc_dist(
     """Calculates the normalised Euclidean distance between two vectors.
 
     Args:
-        a (Sequence[int] | ~numpy.ndarray[int]): Vector `A`.
-        b (Sequence[int] | ~numpy.ndarray[int]): Vector `B`.
+        a (~typing.Sequence[int] | ~numpy.ndarray[int]): Vector ``A``.
+        b (~typing.Sequence[int] | ~numpy.ndarray[int]): Vector ``B``.
 
     Returns:
-        float: Normalised Euclidean distance between vectors `A` and `B`.
+        float: Normalised Euclidean distance between vectors ``A`` and ``B``.
     """
     assert len(a) == len(b)
     euc_dist: float = distance.euclidean(a, b) / float(len(a))

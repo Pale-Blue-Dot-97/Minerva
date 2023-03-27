@@ -1,33 +1,34 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2023 Harry Baker
-
+#
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
-
+#
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-"""Module containing neural network model classes."""
+"""Module containing ResNets adapted for use in :mod:`minerva`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "ResNet",
+    "ResNetX",
     "ResNet18",
     "ResNet34",
     "ResNet50",
@@ -38,7 +39,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from abc import ABC
+import abc
 from typing import Any, Callable, List, Optional, Tuple, Type, Union
 
 import torch
@@ -54,7 +55,7 @@ from .core import MinervaModel, get_torch_weights
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class ResNet(MinervaModel, ABC):
+class ResNet(MinervaModel):
     """Modified version of the ResNet network to handle multi-spectral inputs and cross-entropy.
 
     Attributes:
@@ -102,7 +103,7 @@ class ResNet(MinervaModel, ABC):
         replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates
             whether to replace the ``2x2`` stride with a dilated convolution instead.
             Must be a three element tuple of bools.
-        norm_layer (function): Optional; Normalisation layer to use in each block.
+        norm_layer (~typing.Callable[..., ~torch.nn.Module]): Optional; Normalisation layer to use in each block.
             Typically, :class:`~torch.nn.BatchNorm2d`.
         encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
             If ``True``, forward method returns the output of each layer block. avgpool and fc are not initialised.
@@ -323,7 +324,7 @@ class ResNet(MinervaModel, ABC):
             x (~torch.Tensor): Input data to network.
 
         Returns:
-            ~torch.Tensor | Tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
+            ~torch.Tensor | tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
             initialised as an encoder, returns a tuple of outputs from each ``layer`` 1-4. Else,
             returns :class:`~torch.Tensor` of the likelihoods the network places on the
             input ``x`` being of each class.
@@ -331,27 +332,44 @@ class ResNet(MinervaModel, ABC):
         return self._forward_impl(x)
 
 
-class _ResNetX(MinervaModel):
-    """Base ResNet class modified from source to have customisable number of input channels and to be used as a backbone
-    by stripping classification layers away.
+class ResNetX(MinervaModel):
+    """Helper class to allow for easy creation of ResNet variant classes of the base :class:`ResNet` class.
+
+    Example:
+        To build a :class:`ResNet` variant class, just simply set the appropiate attributes in the definition of
+        your new variant class that inherits from :class:`ResNetX`.
+
+        >>> from minerva.models import ResNetX
+        >>> from torchvision.models.resnet import Bottleneck
+        >>>
+        >>> class ResNet101(ResNetX):
+        >>>     layer_struct = [3, 4, 23, 3]
+        >>>     block_type = BottleNeck
+        >>>     weights_name = "ResNet101_Weights.IMAGENET1K_V1"
+
+        You can then construct an instance of your new class like any other :class:`ResNet` with the added bonus
+        of being able to use pre-trained torch weights:
+
+        >>> model = ResNet101(*args, **kwargs, torch_weights=True)
 
     Attributes:
-        block_type (Union[BasicBlock, Bottleneck]): Type of the *block* used to construct the :class:`ResNet` layers.
-        layer_struct (List[int]): Number of layers per block in the :class:`ResNet`.
+        block_type (~torchvision.models.resnet.BasicBlock | ~torchvision.models.resnet.Bottleneck): Type of the *block*
+            used to construct the :class:`ResNet` layers.
+        layer_struct (list[int]): Number of layers per block in the :class:`ResNet`.
         weights_name (str): Name of the :mod:`torch` pre-trained weights to use if ``torch_weights==True``.
         network (ResNet): :class:`ResNet` network.
 
     Args:
-        criterion: PyTorch loss function model will use.
+        criterion: :mod:`torch` loss function model will use.
         input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
         n_classes (int): Optional; Number of classes in data to be classified.
-        zero_init_residual (bool): Optional; If True, zero-initialise the last BN in each residual branch,
+        zero_init_residual (bool): Optional; If ``True``, zero-initialise the last BN in each residual branch,
             so that the residual branch starts with zeros, and each residual block behaves like an identity.
         replace_stride_with_dilation (tuple[bool, bool, bool]): Optional; Each element in the tuple indicates whether
             to replace the ``2x2`` stride with a dilated convolution instead. Must be a three element tuple of bools.
-        norm_layer (Callable[..., Module]): Optional; Normalisation layer to use in each block.
-            Typically ``torch.nn.BatchNorm2d``.
+        norm_layer (~typing.Callable[..., ~torch.nn.Module]): Optional; Normalisation layer to use in each block.
+            Typically :class:`~torch.nn.BatchNorm2d`.
         encoder (bool): Optional; Whether to initialise the :class:`ResNet` as an encoder or end-to-end classifier.
             If ``True``, forward method returns the output of each layer block.
             ``avgpool`` and ``fc`` are not initialised.
@@ -365,6 +383,7 @@ class _ResNetX(MinervaModel):
         smaller than ``224x224`` with the randomly initialised ``conv1`` that is appropiate for ``input_size``.
     """
 
+    __metaclass__ = abc.ABCMeta
     block_type: Union[Type[BasicBlock], Type[Bottleneck]] = BasicBlock
     layer_struct: List[int] = [2, 2, 2, 2]
     weights_name = "ResNet18_Weights.IMAGENET1K_V1"
@@ -382,7 +401,7 @@ class _ResNetX(MinervaModel):
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-        super(_ResNetX, self).__init__(
+        super(ResNetX, self).__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
@@ -416,7 +435,7 @@ class _ResNetX(MinervaModel):
             x (~torch.Tensor): Input data to network.
 
         Returns:
-            torch.Tensor | tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
+            ~torch.Tensor | tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: If
             initialised as an encoder, returns a tuple of outputs from each ``layer`` 1-4. Else, returns
             :class:`~torch.Tensor` of the likelihoods the network places on the input ``x`` being of each class.
         """
@@ -430,7 +449,7 @@ class _ResNetX(MinervaModel):
             return z
 
 
-class ResNet18(_ResNetX):
+class ResNet18(ResNetX):
     """ResNet18 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
@@ -439,7 +458,7 @@ class ResNet18(_ResNetX):
     weights_name = "ResNet18_Weights.IMAGENET1K_V1"
 
 
-class ResNet34(_ResNetX):
+class ResNet34(ResNetX):
     """ResNet34 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
@@ -448,7 +467,7 @@ class ResNet34(_ResNetX):
     weights_name = "ResNet34_Weights.IMAGENET1K_V1"
 
 
-class ResNet50(_ResNetX):
+class ResNet50(ResNetX):
     """ResNet50 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
@@ -458,7 +477,7 @@ class ResNet50(_ResNetX):
     weights_name = "ResNet50_Weights.IMAGENET1K_V1"
 
 
-class ResNet101(_ResNetX):
+class ResNet101(ResNetX):
     """ResNet101 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """
@@ -468,7 +487,7 @@ class ResNet101(_ResNetX):
     weights_name = "ResNet101_Weights.IMAGENET1K_V1"
 
 
-class ResNet152(_ResNetX):
+class ResNet152(ResNetX):
     """ResNet152 modified from source to have customisable number of input channels and to be used as a backbone
     by stripping classification layers away.
     """

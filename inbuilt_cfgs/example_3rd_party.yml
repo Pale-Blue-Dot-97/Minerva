@@ -5,7 +5,7 @@
 #   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
 #    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
 #
-#               EXAMPLE MASTER CONFIG FILE FOR A UNETR18 MODEL
+#             EXAMPLE MASTER CONFIG FILE FOR THIRD PARTY MODELS
 #
 # === PATHS ===================================================================
 dir:
@@ -19,37 +19,37 @@ dir:
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: UNetR18-MkI
+model_name: ResNetGenerator-R9
 
-# Type of model. Can be mlp, scene_classifier, segmentation, ssl or siamese.
-model_type: segmentation
+# Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
+model_type: scene classifier
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 8                          # Number of samples in each batch.
-patch_size: &patch_size [224, 224]     # 2D tuple or float.
-input_size: &input_size [4, 224, 224]  # patch_size plus leading channel dim.
-n_classes: &n_classes 8                # Number of classes in dataset.
+batch_size: 8                         # Number of samples in each batch.
+patch_size: &patch_size [32, 32]      # 2D tuple or float.
+input_size: &input_size [3, 32, 32]   # patch_size plus leading channel dim.
+n_classes: &n_classes 8               # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 5                          # Maximum number of training epochs.
-elim: true                            # Eliminates empty classes from schema.
-balance: true                         # Balances dataset classes.
+max_epochs: 3                         # Maximum number of training epochs.
 pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
+elim: false                           # Eliminates empty classes from schema.
+balance: false                        # Balances dataset classes.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: CrossEntropyLoss            # Name of the loss function to use.
-lr: 1.0E-3                             # Learning rate of optimiser.
-optim_func: SGD                        # Name of the optimiser function.
+loss_func: CrossEntropyLoss           # Name of the loss function to use.
+lr: 1.0E-2                            # Learning rate of optimiser.
+optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
+    module: lightly.models
     params:
         input_size: *input_size
         n_classes: *n_classes
-        backbone_kwargs:
-            torch_weights: true
+        num_classes: *n_classes
+        name: resnet-9
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
@@ -61,22 +61,22 @@ loss_params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    num_workers: 2
+    num_workers: 1
     pin_memory: true
 
-# === WANDB LOGGING ===========================================================
+# === MODEL IO & LOGGING ======================================================
+# ---+ wandb Logging +---------------------------------------------------------
 wandb_log: true              # Activates wandb logging.
 project: pytest              # Define the project name for wandb.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
-# === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
 logger: STGLogger
 metrics: SPMetrics
 model_io: sup_tg
 
-record_int: true     # Store integer results in memory.
-record_float: false  # Store floating point results too. Beware memory overload!
+record_int: true    # Store integer results in memory.
+record_float: true  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
 collator:
@@ -88,45 +88,56 @@ dataset_params:
     # Training Dataset
     train:
         image:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Train
-            params:
-                res: 1.0
+            images_1:
+                module: minerva.datasets
+                name: TstImgDataset
+                root: test_images
+                params:
+                    res: 1.0
+
+            image2:
+                module: minerva.datasets
+                name: TstImgDataset
+                root: test_images
+                params:
+                    res: 1.0
+
         mask:
-            module: torchgeo.datasets
-            name: Chesapeake7
-            root: Chesapeake7
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
             params:
                 res: 1.0
 
     # Validation Dataset
     val:
         image:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Validation
+            module: minerva.datasets
+            name: TstImgDataset
+            root: test_images
             params:
                 res: 1.0
+
         mask:
-            module: torchgeo.datasets
-            name: Chesapeake7
-            root: Chesapeake7
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
             params:
                 res: 1.0
 
     # Test Dataset
     test:
         image:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Test
+            module: minerva.datasets
+            name: TstImgDataset
+            root: test_images
             params:
                 res: 1.0
+
         mask:
-            module: torchgeo.datasets
-            name: Chesapeake7
-            root: Chesapeake7
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
             params:
                 res: 1.0
 
@@ -139,7 +150,7 @@ sampler_params:
         roi: false
         params:
             size: *patch_size
-            length: 320
+            length: 120
 
     # Validation Dataset Sampler
     val:
@@ -148,7 +159,7 @@ sampler_params:
         roi: false
         params:
             size: *patch_size
-            length: 80
+            length: 32
 
     # Test Dataset Sampler
     test:
@@ -157,34 +168,40 @@ sampler_params:
         roi: false
         params:
             size: *patch_size
-            length: 160
-
+            length: 32
 
 # === TRANSFORM PARAMETERS ====================================================
 transform_params:
     # Training Dataset Transforms
     train:
         image:
-            Normalise:
+            images_1:
+                ToRGB:
+                    module: minerva.transforms
+            image2:
+                ToRGB:
+                    module: minerva.transforms
+        mask:
+            SingleLabel:
                 module: minerva.transforms
-                norm_value: 255
-        mask: false
 
     # Validation Dataset Transforms
     val:
         image:
-            Normalise:
+            ToRGB:
                 module: minerva.transforms
-                norm_value: 255
-        mask: false
+        mask:
+            SingleLabel:
+                module: minerva.transforms
 
     # Test Dataset Transforms
     test:
         image:
-            Normalise:
+            ToRGB:
                 module: minerva.transforms
-                norm_value: 255
-        mask: false
+        mask:
+            SingleLabel:
+                module: minerva.transforms
 
 # === PLOTTING OPTIONS ========================================================
 plots:
@@ -192,7 +209,7 @@ plots:
     CM: true        # Confusion matrix.
     Pred: true      # Pie chart of the distribution of the predicted classes.
     ROC: true       # Receiver Operator Characteristics for each class.
-    micro: false    # Include micro averaging in ROC plot.
+    micro: true     # Include micro averaging in ROC plot.
     macro: true     # Include macro averaging in ROC plot.
     Mask: true      # Plot predicted masks against ground truth and imagery.
 
@@ -206,12 +223,12 @@ stopping:
 verbose: true           # Verbosity of Trainer print statements to stdout.
 save: true              # Saves created figures to file.
 show: false             # Shows created figures in a pop-up window.
-p_dist: false           # Shows the distribution of classes to stdout.
-plot_last_epoch: false  # Plot the results of the last training and val epochs.
+p_dist: true            # Shows the distribution of classes to stdout.
+plot_last_epoch: true   # Plot the results of the last training and val epochs.
 
 # opt to ask at runtime; auto or True to automatically do so; or False,
 # None etc to not
-save_model: false
+save_model: true
 
 # ---+ Other +-----------------------------------------------------------------
 # opt to ask at runtime; auto or True to automatically do so; or False,
