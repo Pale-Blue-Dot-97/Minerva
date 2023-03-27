@@ -342,7 +342,7 @@ class ResNetX(MinervaModel):
         >>> from minerva.models import ResNetX
         >>> from torchvision.models.resnet import Bottleneck
         >>>
-        >>> class ResNet101(ResNetX):
+        >>> class MyResNet101(ResNetX):
         >>>     layer_struct = [3, 4, 23, 3]
         >>>     block_type = BottleNeck
         >>>     weights_name = "ResNet101_Weights.IMAGENET1K_V1"
