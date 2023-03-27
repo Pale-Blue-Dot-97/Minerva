@@ -5,13 +5,14 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-  <a>
-    <img src="images/Minerva_logo.png" alt="Logo" width="" height="200">
+  <a href="https://github.com/Pale-Blue-Dot-97/Minerva">
+    <img src="images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> Minerva 0.21-beta</b>
+    <b style="font-size:26px;"> v0.22-beta</b>
     <br />
-    Framework for machine learning in remote sensing
+    <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
+    <br />
     <br />
     <a href="https://github.com/Pale-Blue-Dot-97/Minerva/issues">Report Bug</a>
     ·
@@ -105,7 +106,7 @@ Don't forget to give the project a star! Thanks again!
 
 ## License 🔏
 
-Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/licenses/gpl-3.0/).
+Minerva is distributed under a [GNU LGPLv3 License](https://choosealicense.com/licenses/lgpl-3.0/).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -126,6 +127,12 @@ Contributions also provided by:
 
 I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
 Dr Isabel Sargent towards this work.
+
+This repositry also contains two small ``.tiff`` exercpts from the [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) dataset used for unit testing purposes. Credit for this data goes to:
+
+> Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N.
+Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data.
+Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
