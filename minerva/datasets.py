@@ -384,7 +384,7 @@ def make_dataset(
         return _sub_dataset, sub_dataset_root
 
     def create_transforms(
-        this_transform_params: Any, key: str, type_key: Optional[str] = None
+        this_transform_params: Any, key: str, data_type_key: Optional[str] = None
     ) -> Optional[Any]:
         """Construct transforms for samples returned from this sub-dataset -- if found.
 
@@ -392,13 +392,13 @@ def make_dataset(
             this_transform_params (~typing.Any): Parameters defining the transforms for the dataset for the
                 whole mode of fitting.
             key (str): The key for the transforms for this particular subdataset.
-            type_key (str): Optional; The type of data the transform is acting on. Most likely ``"image"`` or ``"mask"``.
+            data_type_key (str): Optional; The type of data the transform is acting on. Most likely ``"image"`` or ``"mask"``.
                 This may differ from ``key`` if using unionisation of datasets. If ``None``, defaults to ``key``.
 
         Returns:
             ~typing.Any | None: The transformatins for this subdataset or ``None`` if no parameters found.
         """
-        type_key = key if type_key is None else type_key
+        data_type_key = key if data_type_key is None else data_type_key
 
         _transformations: Optional[Any] = None
         if type(this_transform_params) == dict:
@@ -406,7 +406,7 @@ def make_dataset(
             try:
                 if this_transform_params[key]:
                     _transformations = make_transformations(
-                        this_transform_params[key], key=type_key
+                        this_transform_params[key], key=data_type_key
                     )
             except (KeyError, TypeError):
                 pass
