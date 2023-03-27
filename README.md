@@ -9,7 +9,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="200">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> Minerva 0.21-beta</b>
+    <b style="font-size:26px;"> Minerva 0.22-beta</b>
     <br />
     Framework for machine learning in remote sensing
     <br />
@@ -108,7 +108,7 @@ Don't forget to give the project a star! Thanks again!
 
 ## License 🔏
 
-Minerva is distributed under a [GNU GPLv3 License](https://choosealicense.com/licenses/gpl-3.0/).
+Minerva is distributed under a [GNU LGPLv3 License](https://choosealicense.com/licenses/lgpl-3.0/).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -129,6 +129,14 @@ Contributions also provided by:
 
 I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
 Dr Isabel Sargent towards this work.
+
+Includes two small ``.tiff`` exercpts from the [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) dataset used for testing.
+
+Credit for the data goes to:
+
+> Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N.
+Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data.
+Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

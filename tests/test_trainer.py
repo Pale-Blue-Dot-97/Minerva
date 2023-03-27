@@ -111,3 +111,14 @@ def test_ssl_trainer() -> None:
     trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
 
     trainer.tsne_cluster()
+
+
+def test_third_party_model() -> None:
+    cfg_path = Path(__file__).parent.parent / "inbuilt_cfgs" / "example_3rd_party.yml"
+
+    with config_load.ToDefaultConfDir():
+        cfg, _ = config_load.load_configs(cfg_path)
+
+    trainer = Trainer(0, **cfg)
+
+    trainer.fit()

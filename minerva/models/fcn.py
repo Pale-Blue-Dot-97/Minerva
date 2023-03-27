@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2023 Harry Baker
-
+#
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
-
+#
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
@@ -24,7 +24,7 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
@@ -84,7 +84,7 @@ class FCN(MinervaBackbone):
         backbone_weight_path (str): Optional; Path to pre-trained weights for the backbone to be loaded.
         freeze_backbone (bool): Freezes the weights on the backbone to prevent end-to-end training
             if using a pre-trained backbone.
-        backbone_kwargs (dict[str, Any]): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the backbone packed up into a dict.
     """
 
     backbone_name: str = "ResNet18"
@@ -132,7 +132,8 @@ class FCN(MinervaBackbone):
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
         feeding its output into the forward for the decoder.
 
-        Can be called directly as a method (e.g. ``model.forward()``) or when data is parsed to model (e.g. ``model()``).
+        Can be called directly as a method (e.g. ``model.forward()``)
+        or when data is parsed to model (e.g. ``model()``).
 
         Args:
             x (~torch.Tensor): Input data to network.
@@ -154,8 +155,8 @@ class DCN(MinervaModel):
     Based on the example found here: https://github.com/haoran1062/FCN-pytorch/blob/master/FCN.py
 
     Attributes:
-        variant (str): Defines which DCN variant this object is, altering the layers constructed
-            and the computational graph. Will be either ``'32'``, ``'16'`` or ``'8'``.
+        variant (~typing.Literal['32', '16', '8']): Defines which DCN variant this object is, altering the
+            layers constructed and the computational graph. Will be either ``'32'``, ``'16'`` or ``'8'``.
             See the FCN paper for details on these variants.
         n_classes (int): Number of classes in dataset. Defines number of output classification channels.
         relu (~torch.nn.ReLU): Rectified Linear Unit (ReLU) activation layer to be used throughout the network.
@@ -181,7 +182,7 @@ class DCN(MinervaModel):
         in_channel (int): Optional; Number of channels in the input layer of the network.
             Should match the number of output channels (likely feature maps) from the encoder.
         n_classes (int): Optional; Number of classes in dataset. Defines number of output classification channels.
-        variant (str): Optional; Flag for which DCN variant to construct.
+        variant (~typing.Literal['32', '16', '8']): Optional; Flag for which DCN variant to construct.
             Must be either ``'32'``, ``'16'`` or ``'8'``. See the FCN paper for details on these variants.
 
     Raises:
@@ -279,7 +280,8 @@ class DCN(MinervaModel):
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
 
-        Can be called directly as a method (e.g. ``model.forward()``) or when data is parsed to model (e.g. ``model()``).
+        Can be called directly as a method (e.g. ``model.forward()``)
+        or when data is parsed to model (e.g. ``model()``).
 
         Args:
             x (tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]): Input data to network.

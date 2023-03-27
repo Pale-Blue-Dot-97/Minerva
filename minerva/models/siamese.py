@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2023 Harry Baker
-
+#
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
-
+#
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
@@ -24,13 +24,15 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "MinervaSiamese",
+    "SimCLR",
     "SimCLR18",
     "SimCLR34",
     "SimCLR50",
+    "SimSiam",
     "SimSiam18",
     "SimSiam34",
     "SimSiam50",
@@ -59,7 +61,8 @@ class MinervaSiamese(MinervaBackbone):
 
     Attributes:
         backbone (MinervaModel): The backbone encoder for the Siamese model.
-        proj_head (~torch.nn.Module): The projection head for re-projecting the outputs from the ``backbone``.
+        proj_head (~torch.nn.Module): The projection head for re-projecting the outputs
+            from the :attr:`~MinervaSiamese.backbone`.
     """
 
     __metaclass__ = abc.ABCMeta
@@ -74,7 +77,8 @@ class MinervaSiamese(MinervaBackbone):
         """Performs a forward pass of the network by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
-        Can be called directly as a method (e.g. model.forward()) or when data is parsed to model (e.g. model()).
+        Can be called directly as a method (e.g. ``model.forward()``) or when
+        data is parsed to model (e.g. ``model()``).
 
         Args:
             x (~torch.Tensor): Pair of batches of input data to the network.
@@ -82,10 +86,10 @@ class MinervaSiamese(MinervaBackbone):
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~torch.Tensor]: Tuple of:
                 * Ouput feature vectors concated together.
-                * Output feature vector A.
-                * Output feature vector B.
-                * Detached embedding, A, from the backbone.
-                * Detached embedding, B, from the backbone.
+                * Output feature vector ``A``.
+                * Output feature vector ``B``.
+                * Detached embedding, ``A``, from the :attr:`~MinervaSiamese.backbone`.
+                * Detached embedding, ``B``, from the :attr:`~MinervaSiamese.backbone`.
         """
         return self.forward_pair(x)
 
@@ -119,7 +123,7 @@ class MinervaSiamese(MinervaBackbone):
         and feeding its output into the projection heads.
 
         Args:
-            x (~torch.Tensor): (Unpaired) Batch of input data to the network.
+            x (~torch.Tensor): Batch of unpaired input data to the network.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the projection head
@@ -128,25 +132,27 @@ class MinervaSiamese(MinervaBackbone):
         raise NotImplementedError  # pragma: no cover
 
 
-class _SimCLR(MinervaSiamese):
+class SimCLR(MinervaSiamese):
     """Base SimCLR class to be subclassed by SimCLR variants.
 
-    Subclasses :class:`MinervaSiamse`.
+    Subclasses :class:`MinervaSiamese`.
 
     Attributes:
-        backbone_name (str): Name of the backbone within this module to use.
-        backbone (Module): Backbone of SimCLR that takes the imagery input and
+        backbone_name (str): Name of the :attr:`~SimCLR.backbone` within this module to use.
+        backbone (~torch.nn.Module): Backbone of SimCLR that takes the imagery input and
             extracts learned representations.
-        proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
+        proj_head (~torch.nn.Module): Projection head that takes the learned representations from
+            the :attr:`~SimCLR.backbone` encoder.
 
     Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
-
-        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the :attr:`~SimCLR.backbone`
+            packed up into a dict.
     """
 
+    __metaclass__ = abc.ABCMeta
     backbone_name = "ResNet18"
 
     def __init__(
@@ -156,7 +162,7 @@ class _SimCLR(MinervaSiamese):
         feature_dim: int = 128,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(_SimCLR, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimCLR, self).__init__(criterion=criterion, input_size=input_size)
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
@@ -175,15 +181,17 @@ class _SimCLR(MinervaSiamese):
         )
 
     def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
-        """Performs a forward pass of a single head of the network by using the forward methods of the backbone
-        and feeding its output into the projection heads.
+        """Performs a forward pass of a single head of the network by using the forward methods of the
+        :attr:`~SimCLR.backbone` and feeding its output into the :attr:`~SimCLR.proj_head`.
+
+        Overwrites :meth:`MinervaSiamese.forward_single`
 
         Args:
-            x (~torch.Tensor): (Unpaired) Batch of input data to the network.
+            x (~torch.Tensor): Batch of unpaired input data to the network.
 
         Returns:
-            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the projection head
-            and the detached embedding vector from the backbone.
+            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the
+            :attr:`~SimCLR.proj_head` and the detached embedding vector from the :attr:`~SimCLR.backbone`.
         """
         f: Tensor = torch.flatten(self.backbone(x)[0], start_dim=1)
         g: Tensor = self.proj_head(f)
@@ -191,16 +199,17 @@ class _SimCLR(MinervaSiamese):
         return g, f
 
     def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
-        """Overwrites :class:`MinervaModel` to account for paired logits.
+        """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
 
         Raises:
-            NotImplementedError: If ``self.optimiser`` is None.
+            NotImplementedError: If :attr:`~models.core.MinervaModel.optimiser` is ``None``.
 
         Args:
             x (~torch.Tensor): Batch of input data to network.
-            train (bool): Sets whether this shall be a training step or not. True for training step which will then
-                clear the optimiser, and perform a backward pass of the network then update the optimiser.
-                If False for a validation or testing step, these actions are not taken.
+            train (bool): Sets whether this shall be a training step or not. ``True`` for training step which will then
+                clear the :attr:`~models.core.MinervaModel.optimiser`, and perform a backward pass of the network then
+                update the :attr:`~models.core.MinervaModel.optimiser`. If ``False`` for a validation or testing step,
+                these actions are not taken.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
@@ -230,43 +239,45 @@ class _SimCLR(MinervaSiamese):
         return loss, z
 
 
-class SimCLR18(_SimCLR):
-    """SimCLR network using a ResNet18 backbone."""
+class SimCLR18(SimCLR):
+    """:class:`SimCLR` network using a :class:`~models.resnet.ResNet18` :attr:`~SimCLR.backbone`."""
 
     backbone_name = "ResNet18"
 
 
-class SimCLR34(_SimCLR):
-    """SimCLR network using a ResNet32 backbone."""
+class SimCLR34(SimCLR):
+    """:class:`SimCLR` network using a :class:`~models.resnet.ResNet32` :attr:`~SimCLR.backbone`."""
 
     backbone_name = "ResNet34"
 
 
-class SimCLR50(_SimCLR):
-    """SimCLR network using a ResNet50 backbone."""
+class SimCLR50(SimCLR):
+    """:class:`SimCLR` network using a :class:`~models.resnet.ResNet50` :attr:`~SimCLR.backbone`."""
 
     backbone_name = "ResNet50"
 
 
-class _SimSiam(MinervaSiamese):
+class SimSiam(MinervaSiamese):
     """Base SimSiam class to be subclassed by SimSiam variants.
 
     Subclasses :class:`MinervaSiamese`.
 
     Attributes:
-        backbone_name (str): Name of the backbone within this module to use.
-        backbone (Module): Backbone of SimSiam that takes the imagery input and
+        backbone_name (str): Name of the :attr:`~SimSiam.backbone` within this module to use.
+        backbone (~torch.nn.Module): Backbone of SimSiam that takes the imagery input and
             extracts learned representations.
-        proj_head (Module): Projection head that takes the learned representations from the backbone encoder.
+        proj_head (~torch.nn.Module): Projection head that takes the learned representations from the backbone encoder.
 
     Args:
-        criterion: PyTorch loss function model will use.
-        input_size (tuple[int] or list[int]): Optional; Defines the shape of the input data in
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
             order of number of channels, image width, image height.
 
-        backbone_kwargs (dict): Optional; Keyword arguments for the backbone packed up into a dict.
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the :attr:`~SimSiam.backbone`
+            packed up into a dict.
     """
 
+    __metaclass__ = abc.ABCMeta
     backbone_name = "ResNet18"
 
     def __init__(
@@ -277,7 +288,7 @@ class _SimSiam(MinervaSiamese):
         pred_dim: int = 512,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(_SimSiam, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimSiam, self).__init__(criterion=criterion, input_size=input_size)
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
@@ -311,15 +322,15 @@ class _SimSiam(MinervaSiamese):
         )  # output layer
 
     def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
-        """Performs a forward pass of a single head of :class:`_SimSiam` by using the forward methods of the backbone
-        and feeding its output into the projection heads.
+        """Performs a forward pass of a single head of :class:`SimSiam` by using the forward methods of the backbone
+        and feeding its output into the :attr:`~SimSiam.proj_head`.
 
         Args:
-            x (~torch.Tensor): (Unpaired) Batch of input data to the network.
+            x (~torch.Tensor): Batch of unpaired input data to the network.
 
         Returns:
-            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the projection head
-            and the detached embedding vector from the backbone.
+            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from :attr:`~SimSiam.proj_head`
+            and the detached embedding vector from the :attr:`~SimSiam.backbone`.
         """
         z: Tensor = self.proj_head(torch.flatten(self.backbone(x)[0], start_dim=1))  # type: ignore[attr-defined]
 
@@ -328,16 +339,17 @@ class _SimSiam(MinervaSiamese):
         return p, z.detach()
 
     def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
-        """Overwrites :class:`MinervaModel` to account for paired logits.
+        """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
 
         Raises:
-            NotImplementedError: If ``self.optimiser`` is None.
+            NotImplementedError: If :attr:`~models.core.MinervaModel.optimiser` is ``None``.
 
         Args:
             x (~torch.Tensor): Batch of input data to network.
-            train (bool): Sets whether this shall be a training step or not. True for training step which will then
-                clear the optimiser, and perform a backward pass of the network then update the optimiser.
-                If False for a validation or testing step, these actions are not taken.
+            train (bool): Sets whether this shall be a training step or not. ``True`` for training step which will then
+                clear the :attr:`~models.core.MinervaModel.optimiser`, and perform a backward pass of the network then
+                update the :attr:`~models.core.MinervaModel.optimiser`. If ``False`` for a validation or testing step,
+                these actions are not taken.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
@@ -367,19 +379,19 @@ class _SimSiam(MinervaSiamese):
         return loss, p
 
 
-class SimSiam18(_SimSiam):
-    """SimSiam network using a :class:`ResNet18` backbone."""
+class SimSiam18(SimSiam):
+    """:class:`SimSiam` network using a :class:`~models.resnet.ResNet18` :attr:`~SimSiam.backbone`."""
 
     backbone_name = "ResNet18"
 
 
-class SimSiam34(_SimSiam):
-    """SimSiam network using a :class:`ResNet34` backbone."""
+class SimSiam34(SimSiam):
+    """:class:`SimSiam` network using a :class:`~models.resnet.ResNet34` :attr:`~SimSiam.backbone`."""
 
     backbone_name = "ResNet34"
 
 
-class SimSiam50(_SimSiam):
-    """SimSiam network using a :class:`ResNet50` backbone."""
+class SimSiam50(SimSiam):
+    """:class:`SimSiam` network using a :class:`~models.resnet.ResNet50` :attr:`~SimSiam.backbone`."""
 
     backbone_name = "ResNet50"

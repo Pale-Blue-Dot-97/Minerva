@@ -11,6 +11,9 @@ from minerva.transforms import (
     MinervaCompose,
     Normalise,
     PairCreate,
+    SingleLabel,
+    SwapKeys,
+    ToRGB,
 )
 from minerva.utils import utils
 
@@ -193,3 +196,56 @@ def test_tg_to_torch(simple_mask) -> None:
         transform_1(input_4)  # type: ignore[type]
 
     assert repr(transform_1) == repr(Normalise(255))
+
+
+def test_to_rgb(random_rgbi_tensor) -> None:
+    transform_1 = ToRGB()
+
+    assert_array_equal(transform_1(random_rgbi_tensor), random_rgbi_tensor[:3])
+    assert repr(transform_1) == "ToRGB(channels --> [0:3])"
+
+    with pytest.raises(
+        ValueError, match="Image has less than 3 channels! Cannot be RGB!"
+    ):
+        _ = transform_1(random_rgbi_tensor[:2])
+
+    transform_2 = ToRGB((1, 2, 3))
+
+    assert_array_equal(transform_2(random_rgbi_tensor), random_rgbi_tensor[1:])
+    assert repr(transform_2) == "ToRGB(channels --> [(1, 2, 3)])"
+
+    with pytest.raises(
+        ValueError, match="Image has less channels that trying to reduce to!"
+    ):
+        _ = transform_2(random_rgbi_tensor[:2])
+
+
+def test_single_label(random_tensor_mask) -> None:
+    transform_1 = SingleLabel()
+
+    assert_array_equal(
+        transform_1(random_tensor_mask),
+        LongTensor([utils.find_tensor_mode(random_tensor_mask)]),
+    )
+
+    assert repr(transform_1) == "SingleLabel(mode=modal)"
+
+    with pytest.raises(
+        NotImplementedError, match="wrong mode is not a recognised operating mode!"
+    ):
+        transform_2 = SingleLabel("wrong mode")
+        _ = transform_2(random_tensor_mask)
+
+
+def test_swap_keys(random_rgbi_tensor, random_tensor_mask) -> None:
+    transform_1 = SwapKeys("mask", "image")
+
+    in_sample = {"image": random_rgbi_tensor, "mask": random_tensor_mask}
+
+    correct_out_sample = {"image": random_tensor_mask, "mask": random_tensor_mask}
+
+    out_sample = transform_1(in_sample)
+
+    assert_array_equal(out_sample["image"], correct_out_sample["image"])
+    assert_array_equal(out_sample["mask"], correct_out_sample["mask"])
+    assert repr(transform_1) == "SwapKeys(mask -> image)"

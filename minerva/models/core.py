@@ -1,34 +1,35 @@
 # -*- coding: utf-8 -*-
 # Copyright (C) 2023 Harry Baker
-
+#
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
-
+#
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-
-# You should have received a copy of the GNU General Public License
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
-
+#
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-"""Module containing core utility functions and abstract classes for models."""
+"""Module containing core utility functions and abstract classes for :mod:`models`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
     "MinervaModel",
+    "MinervaWrapper",
     "MinervaDataParallel",
     "MinervaBackbone",
     "MinervaOnnxModel",
@@ -79,16 +80,16 @@ class MinervaModel(Module, ABC):
 
     Attributes:
         criterion (~torch.nn.Module): :mod:`torch` loss function model will use.
-        input_shape (tuple[int, int, int] or list[int]): The shape of the input data in order of
-            number of channels, image width, image height.
+        input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
+            number of channels, image width, image height but may vary dependant on model specs.
         n_classes (int): Number of classes in input data.
         output_shape: The shape of the output of the network. Determined and set by :meth:`determine_output_dim`.
         optimiser: :mod:`torch` optimiser model will use, to be initialised with inherited model's parameters.
 
     Args:
         criterion (~torch.nn.Module): Optional; :mod:`torch` loss function model will use.
-        input_shape (tuple[int, int, int] or list[int]): Optional; Defines the shape of the input data in order of
-            number of channels, image width, image height.
+        input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
+            number of channels, image width, image height but may vary dependant on model specs.
         n_classes (int): Optional; Number of classes in input data.
     """
 
@@ -158,15 +159,16 @@ class MinervaModel(Module, ABC):
         """Generic step of model fitting using a batch of data.
 
         Raises:
-            NotImplementedError: If ``self.optimiser`` is None.
-            NotImplementedError: If ``self.criterion`` is None.
+            NotImplementedError: If :attr:`~MinervaModel.optimiser` is ``None``.
+            NotImplementedError: If :attr:`~MinervaModel.criterion` is ``None``.
 
         Args:
             x (~torch.Tensor): Batch of input data to network.
             y (~torch.Tensor): Either a batch of ground truth labels or generated labels/ pairs.
             train (bool): Sets whether this shall be a training step or not. ``True`` for training step
-                which will then clear the optimiser, and perform a backward pass of the network then
-                update the optimiser. If ``False`` for a validation or testing step, these actions are not taken.
+                which will then clear the :attr:`~MinervaModel.optimiser`, and perform a backward pass of the
+                network then update the :attr:`~MinervaModel.optimiser`. If ``False`` for a validation or testing step,
+                these actions are not taken.
 
         Returns:
             tuple[~torch.Tensor, ~torch.Tensor | tuple[~torch.Tensor, ...]]: :class:`tuple` of the loss computed
@@ -197,6 +199,51 @@ class MinervaModel(Module, ABC):
         return loss, z
 
 
+class MinervaWrapper(MinervaModel):
+    """Wraps a :mod:`torch` model class in :class:`MinervaModel` so it can be used in :mod:`minerva`.
+
+    Attributes:
+        model (~torch.nn.Module): The wrapped :mod:`torch` model that is now compatible with :mod:`minerva`.
+
+    Args:
+        model_cls (~typing.Callable[..., ~torch.nn.Module]): The :mod:`torch` model class to wrap, initialise
+            and place in :attr:`~MinervaWrapper.model`.
+        criterion (~torch.nn.Module): Optional; :mod:`torch` loss function model will use.
+        input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
+            number of channels, image width, image height but may vary dependant on model specs.
+        n_classes (int): Optional; Number of classes in input data.
+
+    """
+
+    def __init__(
+        self,
+        model_cls: Callable[..., Module],
+        criterion: Optional[Module] = None,
+        input_size: Optional[Tuple[int, ...]] = None,
+        n_classes: Optional[int] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        super().__init__(criterion, input_size, n_classes)
+
+        self.model = model_cls(*args, **kwargs)
+
+    def __call__(self, *input) -> Any:
+        return self.forward(*input)
+
+    def __getattr__(self, name):
+        try:
+            return super().__getattr__(name)
+        except AttributeError:
+            return getattr(self.model, name)
+
+    def __repr__(self) -> Any:
+        return self.model.__repr__()
+
+    def forward(self, *input) -> Any:
+        return self.model.forward(*input)
+
+
 class MinervaBackbone(MinervaModel):
     """Abstract class to mark a model for use as a backbone."""
 
@@ -208,27 +255,30 @@ class MinervaBackbone(MinervaModel):
         self.backbone: MinervaModel
 
     def get_backbone(self) -> Module:
-        """Gets the backbone network of the model.
+        """Gets the :attr:`~MinervaBackbone.backbone` network of the model.
 
         Returns:
-            ~torch.nn.Module: The backbone of the model.
+            ~torch.nn.Module: The :attr:`~MinervaModel.backbone` of the model.
         """
         return self.backbone
 
 
 class MinervaDataParallel(Module):  # pragma: no cover
-    """Wrapper for :class:`~torch.nn.parallel.DataParallel` or :class:`~torch.nn.parallel.DistributedDataParallel`
-    that automatically fetches the attributes of the wrapped model.
+    """Wrapper for :class:`~torch.nn.parallel.data_parallel.DataParallel` or
+    :class:`~torch.nn.parallel.DistributedDataParallel` that automatically fetches the
+    attributes of the wrapped model.
 
     Attributes:
-        model (~torch.nn.Module): :mod:`torch` model to be wrapped by :class:`~torch.nn.parallel.DataParallel`
-            or :class:`~torch.nn.parallel.DistributedDataParallel`.
-        paralleliser (~torch.nn.parallel.DataParallel | ~torch.nn.parallel.DistributedDataParallel): The paralleliser to
-            wrap the model in.
+        model (~torch.nn.Module): :mod:`torch` model to be wrapped by
+            :class:`~torch.nn.parallel.data_parallel.DataParallel` or
+            :class:`~torch.nn.parallel.DistributedDataParallel`.
+        paralleliser (~torch.nn.parallel.data_parallel.DataParallel | ~torch.nn.parallel.DistributedDataParallel):
+            The paralleliser to wrap the :attr:`~MinervaDataParallel.model` in.
 
     Args:
-        model (~torch.nn.Module): :mod:`torch` model to be wrapped by :class:`~torch.nn.parallel.DataParallel`
-            or :class:`~torch.nn.parallel.DistributedDataParallel`.
+        model (~torch.nn.Module): :mod:`torch` model to be wrapped by
+            :class:`~torch.nn.parallel.data_parallel.DataParallel` or
+            :class:`~torch.nn.parallel.DistributedDataParallel`.
     """
 
     def __init__(
@@ -245,17 +295,18 @@ class MinervaDataParallel(Module):  # pragma: no cover
         """Ensures a forward call to the model goes to the actual wrapped model.
 
         Args:
-            input (tuple[~torch.Tensor, ...]): Input of tensors to be parsed to the model forward.
+            input (tuple[~torch.Tensor, ...]): Input of tensors to be parsed to the
+                :attr:`~MinervaDataParallel.model` forward.
 
         Returns:
-            tuple[~torch.Tensor, ...]: Output of model.
+            tuple[~torch.Tensor, ...]: Output of :attr:`~MinervaDataParallel.model`.
         """
         z = self.model(*input)
         assert isinstance(z, tuple) and list(map(type, z)) == [Tensor] * len(z)
         return z
 
-    def __call__(self, *input):
-        return self.model(*input)
+    def __call__(self, *input) -> Tuple[Tensor, ...]:
+        return self.forward(*input)
 
     def __getattr__(self, name):
         try:
@@ -295,13 +346,13 @@ class MinervaOnnxModel(MinervaModel):
         return self.model.__repr__()
 
     def forward(self, *input: Any) -> Any:
-        """Performs a forward pass of the ``model`` within.
+        """Performs a forward pass of the :attr:`~MinervaOnnxModel.model` within.
 
         Args:
-            input (Any): Input to be parsed to ``model.forward``.
+            input (~typing.Any): Input to be parsed to the ``.forward`` method of :attr:`~MinervaOnnxModel.model`.
 
         Returns:
-            Any: Output of model.
+            ~typing.Any: Output of :attr:`~MinervaOnnxModel.model`.
         """
         return self.model.forward(*input)
 
@@ -316,7 +367,7 @@ def get_model(model_name: str) -> Callable[..., MinervaModel]:
         model_name (str): Name of the model to get.
 
     Returns:
-        Callable[..., MinervaModel]: Constructor of the model requested.
+        ~typing.Callable[..., MinervaModel]: Constructor of the model requested.
     """
     model: Callable[..., MinervaModel] = func_by_str("minerva.models", model_name)
     return model
@@ -326,10 +377,13 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
     """Loads pre-trained model weights from :mod:`torchvision` via Torch Hub API.
 
     Args:
-        weights_name (str): Name of model weights. See ... for a list of possible pre-trained weights.
+        weights_name (str): Name of model weights. See
+            https://pytorch.org/vision/stable/models.html#table-of-all-available-classification-weights
+            for a list of possible pre-trained weights.
 
     Returns:
-        Optional[WeightsEnum]: API query for the specified weights. None if query cannot be found. See note on use:
+        torchvision.models._api.WeightsEnum | None: API query for the specified weights.
+        ``None`` if query cannot be found. See note on use:
 
     Note:
         This function only returns a query for the API of the weights. To actually use them, you need to call
@@ -358,17 +412,17 @@ def get_output_shape(
     model: Module,
     image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
-) -> Union[int, Sequence[int]]:
+) -> Sequence[int]:
     """Gets the output shape of a model.
 
     Args:
         model (~torch.nn.Module): Model for which the shape of the output needs to be found.
-        image_dim (Sequence[int] | int]): Expected shape of the input data to the model.
+        image_dim (~typing.Sequence[int] | int]): Expected shape of the input data to the model.
         sample_pairs (bool): Optional; Flag for if paired sampling is active.
             Will send a paired sample through the model.
 
     Returns:
-        int | Sequence[int]: The shape of the output data from the model.
+        ~typing.Sequence[int]: The shape of the output data from the model.
     """
     _image_dim: Union[Sequence[int], int] = image_dim
     try:

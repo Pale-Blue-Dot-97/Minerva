@@ -2,16 +2,16 @@
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
 #
@@ -28,7 +28,7 @@ Attributes:
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "DEFAULT_CONF_DIR_PATH",
@@ -78,10 +78,10 @@ class ToDefaultConfDir:
 #                                                     METHODS
 # =====================================================================================================================
 def universal_path(path: Any) -> Path:
-    """Creates a :class:`~pathlib.Path` object from :class:`str` or :class:`Iterable` inputs.
+    """Creates a :class:`~pathlib.Path` object from :class:`str` or :class:`~typing.Iterable` inputs.
 
     Args:
-        path (Any): Representation of a path to convert to :class:`~pathlib.Path` object.
+        path (~typing.Any): Representation of a path to convert to :class:`~pathlib.Path` object.
 
     Returns:
         ~pathlib.Path: :class:`~pathlib.Path` object of the input ``path``.
@@ -104,8 +104,8 @@ def check_paths(
         use_default_conf_dir (bool): Assumes that ``config`` is in the default config directory if ``True``.
 
     Returns:
-        tuple[str, Optional[str], Optional[~pathlib.Path]]: Tuple of the path for :func:`load_configs` to use,
-        the config name and path to config.
+        tuple[str, ~typing.Optional[str], ~typing.Optional[~pathlib.Path]]: Tuple of the path for
+        :func:`load_configs` to use, the config name and path to config.
     """
 
     config_name: Optional[str] = None
@@ -170,19 +170,19 @@ def chdir_to_default(config_name: Optional[str] = None) -> str:
 
 
 def load_configs(master_config_path: Union[str, Path]) -> Tuple[Dict[str, Any], ...]:
-    """Loads the master config from YAML. Finds other config paths within and loads them.
+    """Loads the master config from ``YAML``. Finds other config paths within and loads them.
 
     Args:
         master_config_path (str): Path to the master config ``YAML`` file.
 
     Returns:
-        tuple[dict[str, Any], ...]: Master config and any other configs found from paths in the master config.
+        tuple[dict[str, ~typing.Any], ...]: Master config and any other configs found from paths in the master config.
     """
 
     def yaml_load(path: Union[str, Path]) -> Any:
-        """Loads YAML file from path as dict.
+        """Loads ``YAML`` file from path as dict.
         Args:
-            path(str): Path to YAML file.
+            path(str | ~pathlib.Path): Path to ``YAML`` file.
 
         Returns:
             yml_file (dict): YAML file loaded as dict.
@@ -197,7 +197,7 @@ def load_configs(master_config_path: Union[str, Path]) -> Tuple[Dict[str, Any], 
             paths (dict[str, str]): Dictionary mapping config names to paths to their ``YAML`` files.
 
         Returns:
-            dict[str, dict[str, Any]]: Config dictionaries loaded from ``YAML`` from paths.
+            dict[str, dict[str, ~typing.Any]]: Config dictionaries loaded from ``YAML`` from paths.
         """
         configs = {}
         for _config_name in paths.keys():

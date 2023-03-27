@@ -22,3 +22,8 @@ Glossary
     MIoU
         Mean Intersection over Union. Measure of the colloration between predicted and ground truth labels
         in segmentation masks.
+
+    OHE
+        One-hot-encoding. A method of encoding information in vectors of length ``N`` where ``N`` is the number
+        of possible classes. A label for class ``n`` is represented by a ``1`` placed in the ``n-th`` dimension
+        of the vector, with all other dimensions being ``0``.

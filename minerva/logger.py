@@ -2,16 +2,16 @@
 # Copyright (C) 2023 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
+# it under the terms of the GNU Lesser General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.
 #
 # This program is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
+# GNU Lesser General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
+# You should have received a copy of the GNU Lesser General Public License
 # along with this program in LICENSE.txt. If not,
 # see <https://www.gnu.org/licenses/>.
 #
@@ -23,7 +23,7 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "MinervaLogger",
@@ -65,9 +65,9 @@ class MinervaLogger(ABC):
         n_batches (int): Number of batches in the epoch.
         batch_size (int): Size of the batch.
         n_samples (int): Total number of samples in the epoch.
-        logs (dict[str, Any]): Dictionary to hold the logs from the epoch.
+        logs (dict[str, ~typing.Any]): Dictionary to hold the logs from the epoch.
             Logs should be more lightweight than ``results``.
-        results (dict[str, Any]): Dictionary to hold the results from the epoch.
+        results (dict[str, ~typing.Any]): Dictionary to hold the results from the epoch.
 
     Args:
         n_batches (int): Number of batches in the epoch.
@@ -177,7 +177,7 @@ class MinervaLogger(ABC):
         """Gets the logs dictionary.
 
         Returns:
-            dict[str, Any]: Log dictionary of the logger.
+            dict[str, ~typing.Any]: Log dictionary of the logger.
         """
         return self.logs
 
@@ -186,7 +186,7 @@ class MinervaLogger(ABC):
         """Gets the results dictionary.
 
         Returns:
-            dict[str, Any]: Results dictionary of the logger.
+            dict[str, ~typing.Any]: Results dictionary of the logger.
         """
         return self.results
 
@@ -195,14 +195,14 @@ class STGLogger(MinervaLogger):
     """Logger designed for supervised learning using :mod:`torchgeo` datasets.
 
     Attributes:
-        logs (dict[str, Any]): The main logs from the KNN with these metrics:
+        logs (dict[str, ~typing.Any]): The main logs from the KNN with these metrics:
 
             * ``batch_num``
             * ``total_loss``
             * ``total_correct``
             * ``total_top5``
 
-        results (dict[str, Any]): Hold these additional, full results from the KNN:
+        results (dict[str, ~typing.Any]): Hold these additional, full results from the KNN:
 
             * ``y``
             * ``z``
@@ -252,6 +252,8 @@ class STGLogger(MinervaLogger):
             record_float,
             writer,
         )
+        if type(out_shape) == int:
+            out_shape = (out_shape,)
 
         self.logs: Dict[str, Any] = {
             "batch_num": 0,
@@ -387,14 +389,14 @@ class KNNLogger(MinervaLogger):
     :meth:`trainer.Trainer.weighted_knn_validation`.
 
     Attributes:
-        logs (dict[str, Any]): The main logs from the KNN with these metrics:
+        logs (dict[str, ~typing.Any]): The main logs from the KNN with these metrics:
 
             * ``batch_num``
             * ``total_loss``
             * ``total_correct``
             * ``total_top5``
 
-        results (dict[str, Any]): Hold these additional, full results from the KNN:
+        results (dict[str, ~typing.Any]): Hold these additional, full results from the KNN:
 
             * ``y``
             * ``z``
@@ -484,7 +486,7 @@ class SSLLogger(MinervaLogger):
     """Logger designed for self-supervised learning.
 
     Attributes:
-        logs (dict[str, Any]): Dictionary to hold these logged metrics:
+        logs (dict[str, ~typing.Any]): Dictionary to hold these logged metrics:
 
             * ``batch_num``
             * ``total_loss``
