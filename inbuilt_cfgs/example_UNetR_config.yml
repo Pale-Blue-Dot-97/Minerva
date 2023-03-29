@@ -19,7 +19,7 @@ dir:
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: UNetR18-MkI
+model_name: UNetR18-test
 
 # Type of model. Can be mlp, scene_classifier, segmentation, ssl or siamese.
 model_type: segmentation
