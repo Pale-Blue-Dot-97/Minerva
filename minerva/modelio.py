@@ -56,7 +56,8 @@ def sup_tg(
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
 
     Args:
-        batch (dict[~typing.Any, ~typing.Any]): Batch of data in a dict. Must have 'image', 'mask' and 'bbox' keys.
+        batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
+            Must have ``"image"``, ``"mask"`` and ``"bbox"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
         mode (str): Mode of model fitting to use.
@@ -85,6 +86,79 @@ def sup_tg(
     # Transfer to GPU.
     x: Tensor = x_batch.to(device)
     y: Tensor = y_batch.to(device)
+
+    # Runs a training epoch.
+    if mode == "train":
+        loss, z = model.step(x, y, train=True)
+
+    # Runs a validation or test epoch.
+    else:
+        loss, z = model.step(x, y, train=False)
+
+    bbox: Sequence[BoundingBox] = batch["bbox"]
+    assert isinstance(bbox, Sequence)
+    return loss, z, y, bbox
+
+
+def autoencoder_io(
+    batch: Dict[Any, Any],
+    model: MinervaModel,
+    device: torch.device,  # type: ignore[name-defined]
+    mode: str,
+    **kwargs,
+) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
+    """Provides IO functionality for an autoencoder using :mod:`torchgeo` datasets by only using the same data
+    for input and ground truth.
+
+    Args:
+        batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
+            Must have ``"image"``, ``"mask"`` and ``"bbox"`` keys.
+        model (MinervaModel): Model being fitted.
+        device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
+        mode (str): Mode of model fitting to use.
+
+    Keyword args:
+        key (str): Key of the data type in the sample dict to use for both input and ground truth.
+            Must be either ``"mask"`` or ``"image"``.
+
+    Returns:
+        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]:
+        The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
+        of the input images supplied.
+
+    Raises:
+        ValueError: If the value given for ``key`` is not ``"mask"`` or ``"image"``.
+
+    .. versionadded:: 0.22.1
+    """
+    x: Tensor
+    y: Tensor
+    key = kwargs.get("key")
+
+    if key == "mask":
+        # Extracts the mask batch from the dict.
+        masks: Tensor = batch["mask"]
+
+        # Squeeze out axis 1 if only 1 element wide.
+        if masks.shape[1] == 1:
+            masks = np.squeeze(masks.detach().cpu().numpy(), axis=1)
+
+        if isinstance(masks, Tensor):
+            masks = masks.detach().cpu().numpy()
+
+        # Transfer to GPU.
+        x = torch.tensor(masks, dtype=torch.long).to(device)
+        y = torch.tensor(masks, dtype=torch.long).to(device)
+
+    elif key == "image":
+        # Extract the images from the batch, set to float, transfer to GPU and make x and y.
+        x = batch["image"].to(torch.float).to(device)
+        y = batch["image"].to(torch.float).to(device)
+
+    else:
+        raise ValueError(
+            f"The value of {key=} is not understood. Must be either 'mask' or 'image'"
+        )
 
     # Runs a training epoch.
     if mode == "train":
