@@ -653,6 +653,35 @@ def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., 
         raise TypeError(f"Transform has type {type(transform)}, not a callable!")
 
 
+def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
+    p = random_params.pop("p", 0.5)
+
+    random_transforms = []
+    for ran_name in random_params:
+        random_transforms.append(get_transform(ran_name, random_params[ran_name]))
+
+    return RandomApply(random_transforms, p=p)
+
+
+def _manual_compose(
+    manual_params: Dict[str, Any],
+    key: str,
+    other_transforms: Optional[List[Any]] = None,
+) -> MinervaCompose:
+    swap_key = manual_params.pop("swap_key", False)
+    to_key = manual_params.pop("to_key", None)
+
+    manual_transforms = []
+
+    for manual_name in manual_params:
+        manual_transforms.append(get_transform(manual_name, manual_params[manual_name]))
+
+    if other_transforms:
+        manual_transforms = manual_transforms + other_transforms
+
+    return MinervaCompose(manual_transforms, key=key, swap_keys=swap_key, to_key=to_key)
+
+
 def make_transformations(
     transform_params: Union[Dict[str, Any], Literal[False]], key: Optional[str] = None
 ) -> Optional[Any]:
@@ -683,25 +712,29 @@ def make_transformations(
     if not transform_params:
         return None
 
+    manual_compose = False
+
     # Get each transform.
     for name in transform_params:
-        if name == "RandomApply":
-            random_transforms = []
+        if name == "MinervaCompose":
+            manual_compose = True
+
+        elif name == "RandomApply":
             random_params = transform_params[name].copy()
-            p = random_params.pop("p", 0.5)
-
-            for ran_name in random_params:
-                random_transforms.append(
-                    get_transform(ran_name, random_params[ran_name])
-                )
-
-            transformations.append(RandomApply(random_transforms, p=p))
+            transformations.append(_construct_random_transforms(random_params))
 
         else:
             transformations.append(get_transform(name, transform_params[name]))
 
     # Compose transforms together and return.
-    return MinervaCompose(transformations, key)
+    if manual_compose:
+        return _manual_compose(
+            transform_params["MinervaCompose"].copy(),
+            key=key,
+            other_transforms=transformations,
+        )
+    else:
+        return MinervaCompose(transformations, key)
 
 
 @utils.return_updated_kwargs
