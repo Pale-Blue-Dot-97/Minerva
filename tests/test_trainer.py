@@ -54,16 +54,6 @@ def test_trainer_1() -> None:
 
             # Run the specified main with distributed computing and the arguments provided.
             runner.distributed_run(run_trainer, args)
-            # Assumes distributed tests are single node
-
-            # args.rank = 0
-            # args.dist_url = "tcp://localhost:58472"
-            # args.world_size = torch.cuda.device_count()
-            # args.ngpus_per_node = args.world_size
-            # args.distributed = True
-
-            # args.jobid = None
-            # runner.distributed_run(run_trainer, args)
 
         else:
             args.gpu = 0
@@ -115,6 +105,19 @@ def test_ssl_trainer() -> None:
 
 def test_third_party_model() -> None:
     cfg_path = Path(__file__).parent.parent / "inbuilt_cfgs" / "example_3rd_party.yml"
+
+    with config_load.ToDefaultConfDir():
+        cfg, _ = config_load.load_configs(cfg_path)
+
+    trainer = Trainer(0, **cfg)
+
+    trainer.fit()
+
+
+def test_autoencoder() -> None:
+    cfg_path = (
+        Path(__file__).parent.parent / "inbuilt_cfgs" / "example_autoencoder_config.yml"
+    )
 
     with config_load.ToDefaultConfDir():
         cfg, _ = config_load.load_configs(cfg_path)

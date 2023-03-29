@@ -14,7 +14,7 @@ except (OSError, NewConnectionError, MaxRetryError):
 from numpy.testing import assert_array_equal
 from torch import Tensor
 
-from minerva.modelio import ssl_pair_tg, sup_tg
+from minerva.modelio import autoencoder_io, ssl_pair_tg, sup_tg
 from minerva.models import FCN32ResNet18, SimCLR34
 
 input_size = (4, 64, 64)
@@ -80,3 +80,29 @@ def test_ssl_pair_tg(simple_bbox) -> None:
         assert isinstance(batch_1["bbox"], list)
         assert isinstance(batch_2["bbox"], list)
         assert results[3] == batch_1["bbox"] + batch_2["bbox"]
+
+
+def test_autoencoder_io(simple_bbox) -> None:
+    criterion = nn.CrossEntropyLoss()
+    model = FCN32ResNet18(criterion, input_size=input_size)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+    model.set_optimiser(optimiser)
+
+    for mode in ("train", "val", "test"):
+        images = torch.rand(size=(batch_size, *input_size))
+        masks = torch.randint(0, n_classes, (batch_size, *input_size[1:]))  # type: ignore[attr-defined]
+        bboxes = [simple_bbox] * batch_size
+        batch: Dict[str, Union[Tensor, List[Any]]] = {
+            "image": images,
+            "mask": masks,
+            "bbox": bboxes,
+        }
+
+        print(masks.size())
+        results = autoencoder_io(batch, model, device, mode, key="mask")
+
+        assert isinstance(results[0], Tensor)
+        assert isinstance(results[1], Tensor)
+        assert results[1].size() == (batch_size, n_classes, *input_size[1:])
+        assert_array_equal(results[2], batch["mask"])
+        assert results[3] == batch["bbox"]

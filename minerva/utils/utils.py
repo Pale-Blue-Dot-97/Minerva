@@ -796,6 +796,13 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
     return ohe_labels
 
 
+def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor:
+    if not n_classes:
+        n_classes = len(CLASSES)
+
+    return F.one_hot(mask, num_classes=n_classes)
+
+
 def class_weighting(
     class_dist: List[Tuple[int, int]], normalise: bool = False
 ) -> Dict[int, float]:
