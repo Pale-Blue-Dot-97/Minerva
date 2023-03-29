@@ -137,11 +137,14 @@ def autoencoder_io(
 
     if key == "mask":
         # Extracts the mask batch from the dict.
-        masks: Tensor = batch["mask"]
+        input_masks: Tensor = batch["mask"]
+        output_masks: Tensor = batch["mask"]
+
+        input_masks = input_masks
 
         # Squeeze out axis 1 if only 1 element wide.
-        if masks.shape[1] == 1:
-            masks = np.squeeze(masks.detach().cpu().numpy(), axis=1)
+        if output_masks.shape[1] == 1:
+            output_masks = np.squeeze(masks.detach().cpu().numpy(), axis=1)
 
         if isinstance(masks, Tensor):
             masks = masks.detach().cpu().numpy()
