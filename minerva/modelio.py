@@ -37,10 +37,11 @@ from typing import Any, Dict, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from torch import Tensor
+from torch import LongTensor, Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
+from minerva.utils.utils import mask_to_ohe
 
 
 # =====================================================================================================================
@@ -118,7 +119,7 @@ def autoencoder_io(
         mode (str): Mode of model fitting to use.
 
     Keyword args:
-        key (str): Key of the data type in the sample dict to use for both input and ground truth.
+        autoencoder_data_key (str): Key of the data type in the sample dict to use for both input and ground truth.
             Must be either ``"mask"`` or ``"image"``.
 
     Returns:
@@ -133,30 +134,38 @@ def autoencoder_io(
     """
     x: Tensor
     y: Tensor
-    key = kwargs.get("key")
+    key = kwargs.get("autoencoder_data_key")
+
+    # Extracts the images and masks from the batch sample dict.
+    images: Tensor = batch["image"]
+    masks: LongTensor = batch["mask"]
 
     if key == "mask":
-        # Extracts the mask batch from the dict.
-        input_masks: Tensor = batch["mask"]
-        output_masks: Tensor = batch["mask"]
-
-        input_masks = input_masks
-
         # Squeeze out axis 1 if only 1 element wide.
-        if output_masks.shape[1] == 1:
-            output_masks = np.squeeze(masks.detach().cpu().numpy(), axis=1)
+        if masks.shape[1] == 1:
+            masks = torch.tensor(
+                np.squeeze(masks.detach().cpu().numpy(), axis=1), dtype=torch.long
+            )
 
-        if isinstance(masks, Tensor):
-            masks = masks.detach().cpu().numpy()
+        input_masks: Tensor = torch.stack(
+            tuple([mask_to_ohe(mask, kwargs.get("n_classes", None)) for mask in masks])
+        )
+        output_masks: LongTensor = masks
 
-        # Transfer to GPU.
-        x = torch.tensor(masks, dtype=torch.long).to(device)
-        y = torch.tensor(masks, dtype=torch.long).to(device)
+        if isinstance(input_masks, Tensor):
+            input_masks = input_masks.detach().cpu().numpy()
+
+        if isinstance(output_masks, Tensor):
+            output_masks = output_masks.detach().cpu().numpy()
+
+        # Transfer to GPU and cast to correct dtypes.
+        x = torch.tensor(input_masks, dtype=torch.float, device=device)
+        y = torch.tensor(output_masks, dtype=torch.long, device=device)
 
     elif key == "image":
         # Extract the images from the batch, set to float, transfer to GPU and make x and y.
-        x = batch["image"].to(torch.float).to(device)
-        y = batch["image"].to(torch.float).to(device)
+        x = images.to(dtype=torch.float, device=device)
+        y = images.to(dtype=torch.float, device=device)
 
     else:
         raise ValueError(
