@@ -797,10 +797,29 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
 
 
 def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor:
+    """Converts a segmentation mask to one-hot-encoding (OHE).
+
+    Args:
+        mask (LongTensor): Segmentation mask to convert.
+        n_classes (int): Optional; Number of classes in total across dataset.
+            If not provided, the number of classes is infered from those found in
+            ``mask``.
+
+    Note:
+        It is advised that one provides ``n_classes`` as there is a fair chance that
+        not all possible classes are in ``mask``. Infering from the classes present in ``mask``
+        therefore is likely to result in shaping issues between masks in a batch.
+
+    Returns:
+        LongTensor: ``mask`` converted to OHE. The one-hot-encoding is placed in the leading
+        dimension. (CxHxW) where C is the number of classes.
+
+    .. versionadded:: 0.22.1
+    """
     if not n_classes:
         n_classes = len(CLASSES)
 
-    return F.one_hot(mask, num_classes=n_classes)
+    return torch.movedim(F.one_hot(mask, num_classes=n_classes), 2, 0)
 
 
 def class_weighting(
