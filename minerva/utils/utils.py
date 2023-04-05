@@ -814,7 +814,7 @@ def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor
         LongTensor: ``mask`` converted to OHE. The one-hot-encoding is placed in the leading
         dimension. (CxHxW) where C is the number of classes.
 
-    .. versionadded:: 0.22.1
+    .. versionadded:: 0.23
     """
     if not n_classes:
         n_classes = len(CLASSES)
