@@ -130,7 +130,7 @@ def autoencoder_io(
     Raises:
         ValueError: If the value given for ``key`` is not ``"mask"`` or ``"image"``.
 
-    .. versionadded:: 0.22.1
+    .. versionadded:: 0.23
     """
     x: Tensor
     y: Tensor
