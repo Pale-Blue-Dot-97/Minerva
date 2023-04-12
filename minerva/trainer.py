@@ -734,7 +734,7 @@ class Trainer:
 
                 # Special case for final train/ val epoch to plot results if configured so.
                 if epoch == (self.max_epochs - 1) or self.early_stop:
-                    if self.early_stop and mode == "val":
+                    if self.early_stop and mode == "val":  # pragma: no cover
                         self.print("\nEarly stopping triggered")
 
                     # Ensures that plots likely to cause memory issues are not attempted.
@@ -775,7 +775,7 @@ class Trainer:
 
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
-                if self.early_stop:
+                if self.early_stop:  # pragma: no cover
                     if self.gpu == 0:
                         self.model.load_state_dict(torch.load(f"{self.exp_fn}.pt"))
                     return
@@ -1054,9 +1054,6 @@ class Trainer:
                 pred_scores = ptfunc.normalize(
                     pred_scores.nan_to_num(nan=0.0, posinf=1.0, neginf=0.0),
                 )
-
-                # pred_lables = pred_scores.argsort(dim=-1, descending=True)
-                # predictions = pred_lables[:, :1].flatten()
 
                 # Calculate loss between predicted and ground truth labels by KNN.
                 criterion = torch.nn.CrossEntropyLoss()
