@@ -82,7 +82,7 @@ def test_ssl_pair_tg(simple_bbox) -> None:
         assert results[3] == batch_1["bbox"] + batch_2["bbox"]
 
 
-def test_autoencoder_io(simple_bbox) -> None:
+def test_mask_autoencoder_io(simple_bbox) -> None:
     criterion = nn.CrossEntropyLoss()
     model = FCN32ResNet18(criterion, input_size=(8, *input_size[1:]))
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
@@ -106,4 +106,31 @@ def test_autoencoder_io(simple_bbox) -> None:
         assert isinstance(results[1], Tensor)
         assert results[1].size() == (batch_size, n_classes, *input_size[1:])
         assert_array_equal(results[2], batch["mask"])
+        assert results[3] == batch["bbox"]
+
+
+def test_image_autoencoder_io(simple_bbox) -> None:
+    criterion = nn.CrossEntropyLoss()
+    model = FCN32ResNet18(criterion, input_size=input_size, n_classes=4)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+    model.set_optimiser(optimiser)
+
+    for mode in ("train", "val", "test"):
+        images = torch.rand(size=(batch_size, *input_size))
+        masks = torch.randint(0, 8, (batch_size, *input_size[1:]))  # type: ignore[attr-defined]
+        bboxes = [simple_bbox] * batch_size
+        batch: Dict[str, Union[Tensor, List[Any]]] = {
+            "image": images,
+            "mask": masks,
+            "bbox": bboxes,
+        }
+
+        results = autoencoder_io(
+            batch, model, device, mode, autoencoder_data_key="image"
+        )
+
+        assert isinstance(results[0], Tensor)
+        assert isinstance(results[1], Tensor)
+        assert results[1].size() == (batch_size, *input_size)
+        assert_array_equal(results[2], batch["image"])
         assert results[3] == batch["bbox"]
