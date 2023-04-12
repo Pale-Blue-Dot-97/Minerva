@@ -12,11 +12,21 @@ try:
     from lightly.loss import NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
     NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
-from torch import Tensor
+try:
+    from lightly.models import ResNetGenerator
+except (OSError, NewConnectionError, MaxRetryError):
+    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
+from torch import LongTensor, Tensor
 from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum
 
-from minerva.models import SimCLR18, bilinear_init, get_output_shape, get_torch_weights
+from minerva.models import (
+    MinervaWrapper,
+    SimCLR18,
+    bilinear_init,
+    get_output_shape,
+    get_torch_weights,
+)
 from minerva.models.__depreciated import MLP
 
 
@@ -61,6 +71,41 @@ def test_minerva_backbone() -> None:
     model = SimCLR18(loss_func, input_size=input_size)
 
     assert isinstance(model.get_backbone(), Module)
+
+
+def test_minerva_wrapper(x_entropy_loss) -> None:
+    input_size = (3, 32, 32)
+    n_classes = 8
+    model = MinervaWrapper(
+        ResNetGenerator,
+        x_entropy_loss,
+        input_size=input_size,
+        n_classes=n_classes,
+        num_classes=n_classes,
+        name="resnet-9",
+    )
+
+    assert isinstance(repr(model), str)
+
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+
+    model.set_optimiser(optimiser)
+
+    model.determine_output_dim()
+    assert model.output_shape is model.n_classes
+
+    x = torch.rand(6, *input_size)
+    y = LongTensor(np.random.randint(0, 8, size=6))
+
+    for mode in ("train", "val", "test"):
+        if mode == "train":
+            loss, z = model.step(x, y, train=True)
+        else:
+            loss, z = model.step(x, y, train=False)
+
+        assert type(loss.item()) is float
+        assert isinstance(z, Tensor)
+        assert z.size() == (6, 8)
 
 
 def test_get_torch_weights() -> None:
