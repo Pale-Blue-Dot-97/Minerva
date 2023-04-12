@@ -11,6 +11,7 @@ try:
     from lightly.loss import NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
     NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
+import pytest
 from numpy.testing import assert_array_equal
 from torch import Tensor
 
@@ -97,6 +98,12 @@ def test_mask_autoencoder_io(simple_bbox) -> None:
             "mask": masks,
             "bbox": bboxes,
         }
+
+        with pytest.raises(
+            ValueError,
+            match="The value of key='wrong' is not understood. Must be either 'mask' or 'image'",
+        ):
+            autoencoder_io(batch, model, device, mode, autoencoder_data_key="wrong")
 
         results = autoencoder_io(
             batch, model, device, mode, autoencoder_data_key="mask"
