@@ -315,7 +315,7 @@ def test_make_transformations() -> None:
     transforms_2 = mdt.make_transformations(transform_params_2)
     assert callable(transforms_2)
 
-    transforms_3 = mdt.make_transformations(transform_params_3)
+    transforms_3 = mdt.make_transformations(transform_params_3, key="image")
     assert callable(transforms_3)
 
     assert mdt.make_transformations(False) is None
