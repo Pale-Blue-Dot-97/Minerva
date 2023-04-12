@@ -706,9 +706,13 @@ class Trainer:
                         "ssl",
                         "siamese",
                     ):
-                        self.weighted_knn_validation(k=self.params.get("knn_k", None))
+                        self.weighted_knn_validation(
+                            k=self.params.get("knn_k", None),
+                            record_int=False,
+                            record_float=False,
+                        )
                     else:
-                        self.epoch(mode)
+                        self.epoch(mode, record_int=False, record_float=False)
 
                 # Add epoch number to metrics.
                 self.metric_logger.log_epoch_number(mode, epoch)

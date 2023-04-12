@@ -76,6 +76,7 @@ def test_trainer_2() -> None:
     params2["sample_pairs"] = "false"
     params2["plot_last_epoch"] = False
     params2["wandb_log"] = False
+    params2["project"] = False
 
     trainer2 = Trainer(0, **params2)
     assert isinstance(trainer2.model, MinervaOnnxModel)
@@ -101,6 +102,21 @@ def test_ssl_trainer() -> None:
     trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
 
     trainer.tsne_cluster()
+
+
+def test_ssl_trainer_2() -> None:
+    ssl_cfg_path = (
+        Path(__file__).parent.parent / "inbuilt_cfgs" / "example_GeoCLR_config.yml"
+    )
+
+    with config_load.ToDefaultConfDir():
+        ssl_cfg, _ = config_load.load_configs(ssl_cfg_path)
+
+    ssl_cfg["plot_last_epoch"] = False
+
+    trainer = Trainer(0, **ssl_cfg)
+
+    trainer.fit()
 
 
 def test_third_party_model() -> None:
