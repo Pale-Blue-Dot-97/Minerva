@@ -143,9 +143,11 @@ def autoencoder_io(
     if key == "mask":
         # Squeeze out axis 1 if only 1 element wide.
         if masks.shape[1] == 1:
-            masks = torch.tensor(
+            _masks = torch.tensor(
                 np.squeeze(masks.detach().cpu().numpy(), axis=1), dtype=torch.long
             )
+            assert isinstance(_masks, LongTensor)
+            masks = _masks
 
         input_masks: Tensor = torch.stack(
             tuple([mask_to_ohe(mask, kwargs.get("n_classes", None)) for mask in masks])

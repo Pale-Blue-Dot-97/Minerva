@@ -217,7 +217,7 @@ class STGLogger(MinervaLogger):
         n_batches (int): Number of batches in the epoch.
         batch_size (int): Size of the batch.
         n_samples (int): Total number of samples in the epoch.
-        out_shape (tuple[int, ...]): Shape of the model output.
+        out_shape (int | tuple[int, ...]): Shape of the model output.
         n_classes (int): Number of classes in dataset.
         record_int (bool): Optional; Whether to record the integer values from an epoch of model fitting.
             Defaults to ``True``.
@@ -237,7 +237,7 @@ class STGLogger(MinervaLogger):
         n_batches: int,
         batch_size: int,
         n_samples: int,
-        out_shape: Tuple[int, ...],
+        out_shape: Union[int, Tuple[int, ...]],
         n_classes: int,
         record_int: bool = True,
         record_float: bool = False,
@@ -252,8 +252,12 @@ class STGLogger(MinervaLogger):
             record_float,
             writer,
         )
-        if type(out_shape) == int:
-            out_shape = (out_shape,)
+        _out_shape: Tuple[int, ...]
+
+        if isinstance(out_shape, int):
+            _out_shape = (out_shape,)
+        else:
+            _out_shape = out_shape
 
         self.logs: Dict[str, Any] = {
             "batch_num": 0,
@@ -276,17 +280,17 @@ class STGLogger(MinervaLogger):
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
             self.results["y"] = np.empty(
-                (self.n_batches, self.batch_size, *out_shape), dtype=np.uint8
+                (self.n_batches, self.batch_size, *_out_shape), dtype=np.uint8
             )
             self.results["z"] = np.empty(
-                (self.n_batches, self.batch_size, *out_shape), dtype=np.uint8
+                (self.n_batches, self.batch_size, *_out_shape), dtype=np.uint8
             )
 
         # Allocate memory for the floating point values to be recorded.
         if self.record_float:
             try:
                 self.results["probs"] = np.empty(
-                    (self.n_batches, self.batch_size, n_classes, *out_shape),
+                    (self.n_batches, self.batch_size, n_classes, *_out_shape),
                     dtype=np.float16,
                 )
             except MemoryError:  # pragma: no cover

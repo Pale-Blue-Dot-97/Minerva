@@ -392,8 +392,9 @@ def make_dataset(
             this_transform_params (~typing.Any): Parameters defining the transforms for the dataset for the
                 whole mode of fitting.
             key (str): The key for the transforms for this particular subdataset.
-            data_type_key (str): Optional; The type of data the transform is acting on. Most likely ``"image"`` or ``"mask"``.
-                This may differ from ``key`` if using unionisation of datasets. If ``None``, defaults to ``key``.
+            data_type_key (str): Optional; The type of data the transform is acting on.
+                Most likely ``"image"`` or ``"mask"``. This may differ from ``key`` if using unionisation of datasets.
+                If ``None``, defaults to ``key``.
 
         Returns:
             ~typing.Any | None: The transformatins for this subdataset or ``None`` if no parameters found.
@@ -728,6 +729,7 @@ def make_transformations(
 
     # Compose transforms together and return.
     if manual_compose:
+        assert key is not None
         return _manual_compose(
             transform_params["MinervaCompose"].copy(),
             key=key,
