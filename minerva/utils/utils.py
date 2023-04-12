@@ -777,7 +777,9 @@ def find_tensor_mode(mask: LongTensor) -> LongTensor:
 
     .. versionadded:: 0.22
     """
-    return torch.mode(torch.flatten(mask)).values
+    mode = torch.mode(torch.flatten(mask)).values
+    assert isinstance(mode, LongTensor)
+    return mode
 
 
 def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
@@ -819,7 +821,9 @@ def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor
     if not n_classes:
         n_classes = len(CLASSES)
 
-    return torch.movedim(F.one_hot(mask, num_classes=n_classes), 2, 0)
+    ohe_mask = torch.movedim(F.one_hot(mask, num_classes=n_classes), 2, 0)
+    assert isinstance(ohe_mask, LongTensor)
+    return ohe_mask
 
 
 def class_weighting(

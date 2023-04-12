@@ -412,7 +412,7 @@ def get_output_shape(
     model: Module,
     image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
-) -> Sequence[int]:
+) -> Union[int, Sequence[int]]:
     """Gets the output shape of a model.
 
     Args:
@@ -422,7 +422,7 @@ def get_output_shape(
             Will send a paired sample through the model.
 
     Returns:
-        ~typing.Sequence[int]: The shape of the output data from the model.
+        int | ~typing.Sequence[int]: The shape of the output data from the model.
     """
     _image_dim: Union[Sequence[int], int] = image_dim
     try:
