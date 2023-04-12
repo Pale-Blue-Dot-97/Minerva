@@ -800,7 +800,7 @@ def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor
     """Converts a segmentation mask to one-hot-encoding (OHE).
 
     Args:
-        mask (LongTensor): Segmentation mask to convert.
+        mask (~torch.LongTensor): Segmentation mask to convert.
         n_classes (int): Optional; Number of classes in total across dataset.
             If not provided, the number of classes is infered from those found in
             ``mask``.
@@ -811,7 +811,7 @@ def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor
         therefore is likely to result in shaping issues between masks in a batch.
 
     Returns:
-        LongTensor: ``mask`` converted to OHE. The one-hot-encoding is placed in the leading
+        ~torch.LongTensor: ``mask`` converted to OHE. The one-hot-encoding is placed in the leading
         dimension. (CxHxW) where C is the number of classes.
 
     .. versionadded:: 0.23

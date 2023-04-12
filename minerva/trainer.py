@@ -494,8 +494,12 @@ class Trainer:
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
-            for i in range(len(weights_dict)):
-                weights.append(weights_dict[i])
+            if self.params.get("elim", False):
+                for i in range(len(weights_dict)):
+                    weights.append(weights_dict[i])
+            else:
+                for i in range(self.params["n_classes"]):
+                    weights.append(weights_dict.get(i, 0.0))
 
             loss_params["params"]["weight"] = Tensor(weights)
 
