@@ -392,7 +392,7 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
     weights: Optional[WeightsEnum] = None
     try:
         weights = torch.hub.load("pytorch/vision", "get_weight", name=weights_name)
-    except OSError:
+    except OSError:  # pragma: no cover
         th_dir = os.environ.get("TORCH_HUB", Path("~/.cache/torch/hub").expanduser())
         try:
             weights = torch.hub.load(
