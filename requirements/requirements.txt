@@ -24,7 +24,7 @@ scikit-learn==1.2.1
 seaborn==0.12.2
 setuptools==65.5.1
 tabulate==0.9.0
-tensorflow==2.12.0rc0
+tensorflow==2.12.0
 torchgeo==0.4.0
 torchinfo==1.7.2
 tqdm==4.65.0
