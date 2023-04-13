@@ -279,20 +279,30 @@ class STGLogger(MinervaLogger):
 
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
-            self.results["y"] = np.empty(
-                (self.n_batches, self.batch_size, *_out_shape), dtype=np.uint8
-            )
-            self.results["z"] = np.empty(
-                (self.n_batches, self.batch_size, *_out_shape), dtype=np.uint8
-            )
+            int_log_shape: Tuple[int, ...]
+            if kwargs.get("model_type") == "scene classifier":
+                int_log_shape = (self.n_batches, self.batch_size)
+            else:
+                int_log_shape = (self.n_batches, self.batch_size, *_out_shape)
+
+            self.results["z"] = np.empty(int_log_shape, dtype=np.uint8)
+            self.results["y"] = np.empty(int_log_shape, dtype=np.uint8)
 
         # Allocate memory for the floating point values to be recorded.
         if self.record_float:
-            try:
-                self.results["probs"] = np.empty(
-                    (self.n_batches, self.batch_size, n_classes, *_out_shape),
-                    dtype=np.float16,
+            float_log_shape: Tuple[int, ...]
+            if kwargs.get("model_type") == "scene classifier":
+                float_log_shape = (self.n_batches, self.batch_size, n_classes)
+            else:
+                float_log_shape = (
+                    self.n_batches,
+                    self.batch_size,
+                    n_classes,
+                    *_out_shape,
                 )
+
+            try:
+                self.results["probs"] = np.empty(float_log_shape, dtype=np.float16)
             except MemoryError:  # pragma: no cover
                 raise MemoryError(
                     "Dataset too large to record probabilities of predicted classes!"
