@@ -99,6 +99,7 @@ def test_trainer_3() -> None:
     params2["fine_tune"] = True
     # params2["reload"] = True
     params2["max_epochs"] = 2
+    params2["elim"] = False
 
     trainer2 = Trainer(0, **params2)
     trainer2.fit()
