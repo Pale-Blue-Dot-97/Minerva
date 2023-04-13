@@ -104,6 +104,18 @@ def test_trainer_3() -> None:
     trainer2.fit()
 
 
+def test_cnn_train() -> None:
+    cfg_path = Path(__file__).parent.parent / "inbuilt_cfgs" / "example_CNN_config.yml"
+
+    with config_load.ToDefaultConfDir():
+        cfg, _ = config_load.load_configs(cfg_path)
+
+    trainer = Trainer(0, **cfg)
+
+    trainer.fit()
+    trainer.test()
+
+
 def test_ssl_trainer() -> None:
     ssl_cfg_path = (
         Path(__file__).parent.parent / "inbuilt_cfgs" / "example_GeoCLR_config.yml"
