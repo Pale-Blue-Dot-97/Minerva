@@ -77,6 +77,7 @@ def test_trainer_2() -> None:
     params2["plot_last_epoch"] = False
     params2["wandb_log"] = False
     params2["project"] = False
+    params2["max_epochs"] = 2
 
     trainer2 = Trainer(0, **params2)
     assert isinstance(trainer2.model, MinervaOnnxModel)
@@ -85,6 +86,22 @@ def test_trainer_2() -> None:
     trainer2.test()
 
     assert type(repr(trainer2.model)) is str
+
+
+def test_trainer_3() -> None:
+    params1 = CONFIG.copy()
+
+    trainer1 = Trainer(0, **params1)
+    trainer1.save_model(fn=trainer1.get_model_cache_path())
+
+    params2 = CONFIG.copy()
+    params2["pre_train_name"] = params1["model_name"]
+    params2["fine_tune"] = True
+    # params2["reload"] = True
+    params2["max_epochs"] = 2
+
+    trainer2 = Trainer(0, **params2)
+    trainer2.fit()
 
 
 def test_ssl_trainer() -> None:
