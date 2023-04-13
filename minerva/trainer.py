@@ -162,7 +162,7 @@ class Trainer:
         loss_params (dict[str, ~typing.Any]): :class:`dict` to hold any additional parameters for the loss function
             in the ``params`` key. If using a non-torch loss function, you need to specify the import path
             with the ``module`` key.
-        balance (bool): Activates class balancing. For ``model_type="scene_classifer"`` or ``model_type="mlp"``,
+        balance (bool): Activates class balancing. For ``model_type="scene classifer"`` or ``model_type="mlp"``,
             over and under sampling will be used. For ``model_type="segmentation"``, class weighting will be
             used on the loss function.
         patch_size (tuple[float, float]): Defines the shape of the patches in the dataset.
