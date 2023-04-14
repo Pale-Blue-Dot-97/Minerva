@@ -201,7 +201,7 @@ plots:
     CM: true        # Confusion matrix.
     Pred: true      # Pie chart of the distribution of the predicted classes.
     ROC: true       # Receiver Operator Characteristics for each class.
-    micro: false    # Include micro averaging in ROC plot.
+    micro: true     # Include micro averaging in ROC plot.
     macro: true     # Include macro averaging in ROC plot.
     Mask: true      # Plot predicted masks against ground truth and imagery.
 
