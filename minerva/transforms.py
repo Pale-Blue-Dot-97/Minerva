@@ -321,8 +321,6 @@ class MinervaCompose:
         self,
         transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
         key: Optional[str] = None,
-        swap_keys: bool = False,
-        to_key: Optional[str] = None,
     ) -> None:
         self.transforms = transforms
         self.key = key
