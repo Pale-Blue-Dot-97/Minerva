@@ -1611,19 +1611,36 @@ def compute_roc_curves(
     tpr: Dict[Any, Any] = {}
     roc_auc: Dict[Any, Any] = {}
 
+    # Holds a list of the classes that were in the targets supplied to the model.
+    # Avoids warnings about empty targets from sklearn!
+    populated_classes: List[int] = []
+
     # Initialises a progress bar.
     with alive_bar(len(class_labels), bar="blocks") as bar:
         # Compute ROC curve and ROC AUC for each class.
         print("Computing class ROC curves")
         for key in class_labels:
-            try:
-                fpr[key], tpr[key], _ = roc_curve(
-                    targets[:, key], probs[:, key], pos_label=1
-                )
-                roc_auc[key] = auc(fpr[key], tpr[key])
-                bar()
-            except UndefinedMetricWarning:  # pragma: no cover
-                bar("Class empty!")
+            # Checks if this class was actually in the targets supplied to the model.
+            if 1 in targets[:, key]:
+                try:
+                    # Calculates the true-positive and false-positive rate for this class.
+                    fpr[key], tpr[key], _ = roc_curve(
+                        targets[:, key], probs[:, key], pos_label=1
+                    )
+
+                    # Calculates the AUC for this class from TPR and FPR.
+                    roc_auc[key] = auc(fpr[key], tpr[key])
+
+                    # Adds the class to the list of populated classes.
+                    populated_classes.append(key)
+
+                    # Step on progress bar.
+                    bar()
+
+                except UndefinedMetricWarning:  # pragma: no cover
+                    bar("Class empty!")
+            else:
+                print(f"Class {key} empty!")
 
     if micro:
         # Get the current memory utilisation of the system.
@@ -1639,7 +1656,7 @@ def compute_roc_curves(
                 roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
             except MemoryError as err:  # pragma: no cover
                 print(err)
-                pass
+
         else:  # pragma: no cover
             try:
                 raise MemoryError(
@@ -1652,7 +1669,7 @@ def compute_roc_curves(
     if macro:
         # Aggregate all false positive rates.
         all_fpr: NDArray[Any, Any] = np.unique(
-            np.concatenate([fpr[key] for key in class_labels])
+            np.concatenate([fpr[key] for key in populated_classes])
         )
 
         # Then interpolate all ROC curves at these points.
@@ -1660,13 +1677,13 @@ def compute_roc_curves(
         mean_tpr = np.zeros_like(all_fpr)
 
         # Initialises a progress bar.
-        with alive_bar(len(class_labels), bar="blocks") as bar:
-            for key in class_labels:
+        with alive_bar(len(populated_classes), bar="blocks") as bar:
+            for key in populated_classes:
                 mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
                 bar()
 
         # Finally, average it and compute AUC
-        mean_tpr /= len(class_labels)
+        mean_tpr /= len(populated_classes)
 
         # Add macro FPR, TPR and AUCs to dicts.
         fpr["macro"] = all_fpr
