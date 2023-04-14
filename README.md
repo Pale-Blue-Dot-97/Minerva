@@ -9,7 +9,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> v0.22-beta</b>
+    <b style="font-size:26px;"> v0.23-beta</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
@@ -32,7 +32,7 @@ compilation of the required C-based libraries.
 
 ### Installation ⬇
 
-`minerva` is currently not included in any distribution. The recommended install is therefore to install the latest pre-release version from `GitHub`.
+`minerva` is currently not included in any distribution. The recommended install is therefore to install the latest version from `GitHub`.
 
 ```shell
 pip install git+https://github.com/Pale-Blue-Dot-97/Minerva.git
@@ -47,9 +47,9 @@ You will be required to provide your `GitHub` credentials that have valid access
 `minerva` now supports the use of [torchgeo](https://torchgeo.readthedocs.io/en/latest/)
 datasets with upcoming support for [torchvision](https://pytorch.org/vision/stable/index.html) datasets.
 
-Required Python modules for `minerva` are stated in `requirements.txt`.
+Required Python modules for `minerva` are stated in the `setup.cfg`.
 
-`minerva` currently only supports `python` 3.8 -- 3.10.
+`minerva` currently only supports `python` 3.8 -- 3.11.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
