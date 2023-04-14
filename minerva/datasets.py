@@ -669,9 +669,6 @@ def _manual_compose(
     key: str,
     other_transforms: Optional[List[Any]] = None,
 ) -> MinervaCompose:
-    swap_key = manual_params.pop("swap_key", False)
-    to_key = manual_params.pop("to_key", None)
-
     manual_transforms = []
 
     for manual_name in manual_params:
@@ -680,7 +677,7 @@ def _manual_compose(
     if other_transforms:
         manual_transforms = manual_transforms + other_transforms
 
-    return MinervaCompose(manual_transforms, key=key, swap_keys=swap_key, to_key=to_key)
+    return MinervaCompose(manual_transforms, key=key)
 
 
 def make_transformations(
