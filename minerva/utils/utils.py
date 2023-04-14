@@ -72,6 +72,7 @@ __all__ = [
     "lat_lon_to_loc",
     "find_tensor_mode",
     "labels_to_ohe",
+    "mask_to_ohe",
     "class_weighting",
     "find_empty_classes",
     "eliminate_classes",
