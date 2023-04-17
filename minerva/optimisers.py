@@ -105,7 +105,7 @@ class LARS(Optimizer):
                    if None, uses self.epoch and increments it.
         """
         loss = None
-        if closure is not None:
+        if closure is not None:  # pragma: no cover
             loss = closure()
 
         if epoch is None:
@@ -120,7 +120,7 @@ class LARS(Optimizer):
             max_epoch = group["max_epoch"]
 
             for p in group["params"]:
-                if p.grad is None:
+                if p.grad is None:  # pragma: no cover
                     continue
 
                 param_state = self.state[p]

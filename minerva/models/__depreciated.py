@@ -214,7 +214,7 @@ class CNN(MinervaModel):
         # and getting the shape of the output.
         out_shape = get_output_shape(self.conv_net, self.input_size)
 
-        if type(out_shape) is int:
+        if type(out_shape) is int:  # pragma: no cover
             self.flattened_size = out_shape
         elif isinstance(out_shape, Iterable):
             # Calculate the flattened size of the output from the convolutional network.

@@ -110,7 +110,9 @@ def random_rgbi_tensor(rgbi_input_size) -> Tensor:
 
 @pytest.fixture
 def random_tensor_mask() -> LongTensor:
-    return torch.randint(0, 7, size=(32, 32))
+    mask = torch.randint(0, 7, size=(32, 32), dtype=torch.long)
+    assert isinstance(mask, LongTensor)
+    return mask
 
 
 @pytest.fixture

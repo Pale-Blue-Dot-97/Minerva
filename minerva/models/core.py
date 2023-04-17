@@ -392,7 +392,7 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
     weights: Optional[WeightsEnum] = None
     try:
         weights = torch.hub.load("pytorch/vision", "get_weight", name=weights_name)
-    except OSError:
+    except OSError:  # pragma: no cover
         th_dir = os.environ.get("TORCH_HUB", Path("~/.cache/torch/hub").expanduser())
         try:
             weights = torch.hub.load(
@@ -412,7 +412,7 @@ def get_output_shape(
     model: Module,
     image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
-) -> Sequence[int]:
+) -> Union[int, Sequence[int]]:
     """Gets the output shape of a model.
 
     Args:
@@ -422,7 +422,7 @@ def get_output_shape(
             Will send a paired sample through the model.
 
     Returns:
-        ~typing.Sequence[int]: The shape of the output data from the model.
+        int | ~typing.Sequence[int]: The shape of the output data from the model.
     """
     _image_dim: Union[Sequence[int], int] = image_dim
     try:

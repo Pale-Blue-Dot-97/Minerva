@@ -162,7 +162,7 @@ class Trainer:
         loss_params (dict[str, ~typing.Any]): :class:`dict` to hold any additional parameters for the loss function
             in the ``params`` key. If using a non-torch loss function, you need to specify the import path
             with the ``module`` key.
-        balance (bool): Activates class balancing. For ``model_type="scene_classifer"`` or ``model_type="mlp"``,
+        balance (bool): Activates class balancing. For ``model_type="scene classifer"`` or ``model_type="mlp"``,
             over and under sampling will be used. For ``model_type="segmentation"``, class weighting will be
             used on the loss function.
         patch_size (tuple[float, float]): Defines the shape of the patches in the dataset.
@@ -494,8 +494,12 @@ class Trainer:
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
-            for i in range(len(weights_dict)):
-                weights.append(weights_dict[i])
+            if self.params.get("elim", False):
+                for i in range(len(weights_dict)):
+                    weights.append(weights_dict[i])
+            else:
+                for i in range(self.params["n_classes"]):
+                    weights.append(weights_dict.get(i, 0.0))
 
             loss_params["params"]["weight"] = Tensor(weights)
 
@@ -702,9 +706,13 @@ class Trainer:
                         "ssl",
                         "siamese",
                     ):
-                        self.weighted_knn_validation(k=self.params.get("knn_k", None))
+                        self.weighted_knn_validation(
+                            k=self.params.get("knn_k", None),
+                            record_int=False,
+                            record_float=False,
+                        )
                     else:
-                        self.epoch(mode)
+                        self.epoch(mode, record_int=False, record_float=False)
 
                 # Add epoch number to metrics.
                 self.metric_logger.log_epoch_number(mode, epoch)
@@ -730,7 +738,7 @@ class Trainer:
 
                 # Special case for final train/ val epoch to plot results if configured so.
                 if epoch == (self.max_epochs - 1) or self.early_stop:
-                    if self.early_stop and mode == "val":
+                    if self.early_stop and mode == "val":  # pragma: no cover
                         self.print("\nEarly stopping triggered")
 
                     # Ensures that plots likely to cause memory issues are not attempted.
@@ -771,7 +779,7 @@ class Trainer:
 
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
-                if self.early_stop:
+                if self.early_stop:  # pragma: no cover
                     if self.gpu == 0:
                         self.model.load_state_dict(torch.load(f"{self.exp_fn}.pt"))
                     return
@@ -1050,9 +1058,6 @@ class Trainer:
                 pred_scores = ptfunc.normalize(
                     pred_scores.nan_to_num(nan=0.0, posinf=1.0, neginf=0.0),
                 )
-
-                # pred_lables = pred_scores.argsort(dim=-1, descending=True)
-                # predictions = pred_lables[:, :1].flatten()
 
                 # Calculate loss between predicted and ground truth labels by KNN.
                 criterion = torch.nn.CrossEntropyLoss()
