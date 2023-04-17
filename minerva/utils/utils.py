@@ -140,7 +140,7 @@ import torch
 import yaml
 from alive_progress import alive_bar
 from geopy.exc import GeocoderUnavailable
-from geopy.geocoders import Nominatim, Photon
+from geopy.geocoders import Photon
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
 from pandas import DataFrame
@@ -156,6 +156,7 @@ from torch.nn import functional as F
 from torch.nn.modules import Module
 from torch.types import _device
 from torchgeo.datasets.utils import BoundingBox
+from urllib3.exceptions import NewConnectionError
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, visutils
@@ -723,17 +724,22 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
     """
     try:
         # Creates a geolocator object to query the server.
-        # geolocator = Nominatim(user_agent="geoapiExercises")
         geolocator = Photon(user_agent="geoapiExercises")
 
         # Query to server with lat-lon co-ordinates.
         query = geolocator.reverse(f"{lat},{lon}")
 
+    # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
+    except (GeocoderUnavailable, NewConnectionError):
+        print("\nGeocoder unavailable")
+        return ""
+
+    else:
         if query is None:
             print("No location found!")
             return ""
 
-        location = query.raw["address"]  # type: ignore
+        location = query.raw["properties"]  # type: ignore
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
         locs: List[str] = []
@@ -759,13 +765,8 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         elif len(locs) == 1:
             return locs[0]
         # If no fields found for query, return empty string.
-        else:
+        else:  # pragma: no cover
             return ""
-
-    # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
-    except GeocoderUnavailable:
-        print("\nGeocoder unavailable")
-        return ""
 
 
 def find_tensor_mode(mask: LongTensor) -> LongTensor:
