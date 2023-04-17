@@ -140,7 +140,7 @@ import torch
 import yaml
 from alive_progress import alive_bar
 from geopy.exc import GeocoderUnavailable
-from geopy.geocoders import Nominatim
+from geopy.geocoders import Nominatim, Photon
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
 from pandas import DataFrame
@@ -723,7 +723,8 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
     """
     try:
         # Creates a geolocator object to query the server.
-        geolocator = Nominatim(user_agent="geoapiExercises")
+        # geolocator = Nominatim(user_agent="geoapiExercises")
+        geolocator = Photon(user_agent="geoapiExercises")
 
         # Query to server with lat-lon co-ordinates.
         query = geolocator.reverse(f"{lat},{lon}")
