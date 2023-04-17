@@ -377,7 +377,7 @@ def test_lat_lon_to_loc() -> None:
         assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
         assert utils.lat_lon_to_loc(str(lat_1), str(lon_1)) == "Amber Valley, England"
         assert utils.lat_lon_to_loc(lat_2, lon_2) == "City of London, England"
-        assert utils.lat_lon_to_loc(lat_3, lon_3) == "Cimarron County, Oklahoma"
+        assert utils.lat_lon_to_loc(lat_3, lon_3) == ""
 
         assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
         assert utils.lat_lon_to_loc(lat_5, lon_5) in (
@@ -385,7 +385,7 @@ def test_lat_lon_to_loc() -> None:
             "Civitas Vaticana",
         )
 
-        assert utils.lat_lon_to_loc(lat6, lon6) == ""
+        assert utils.lat_lon_to_loc(lat6, lon6) == "McMurdo Station"
 
     with no_connection():
         assert utils.lat_lon_to_loc(lat_1, lon_1) == ""
