@@ -5,54 +5,49 @@
 #   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
 #    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
 #
-#                     EXAMPLE GeoCLR MASTER CONFIG FILE
+#                   EXAMPLE MASTER CONFIG FILE FOR A CNN
 #
 # === PATHS ===================================================================
 dir:
     data: tests/tmp/data
     configs:
-        imagery_config: NAIP.yml
         data_config: Chesapeake7.yml
+        imagery_config: NAIP.yml
     results: tests/tmp/results
     cache: tests/tmp/cache
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: SimCLR18-test
+model_name: CNN-test
 
 # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
-model_type: siamese
+model_type: scene classifier
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 8                         # Number of samples in each batch.
-patch_size: &patch_size [32, 32]      # 2D tuple or float.
-input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
+batch_size: 8                          # Number of samples in each batch.
+patch_size: &patch_size [32, 32]       # 2D tuple or float.
+input_size: &input_size [4, 32, 32]    # patch_size plus leading channel dim.
+n_classes: &n_classes 8                # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 4                         # Maximum number of training epochs.
-elim: false                           # Eliminates empty classes from schema.
-balance: false                        # Balances dataset classes.
-pre_train: true                       # Activate pre-training mode.
+max_epochs: 3                         # Maximum number of training epochs.
+elim: true                            # Eliminates empty classes from schema.
+balance: true                         # Balances dataset classes.
+pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: NTXentLoss                 # Name of the loss function to use.
-lr: 1.0E-2                            # Learning rate of optimiser.
-optim_func: SGD                       # Name of the optimiser function.
-
-# ---+ SSL/ Siamese Options +--------------------------------------------------
-sample_pairs: true                    # Activates Siamese paired sampling.
-max_r: &max_r 56  # Max distance between patches within a Siamese pair.
-knn_k: 5          # Top-k most similar images used to predict image for KNN val
-val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
+loss_func: CrossEntropyLoss            # Name of the loss function to use.
+lr: 1.0E-3                             # Learning rate of optimiser.
+optim_func: SGD                        # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
     module:
     params:
         input_size: *input_size
-        # any other params...
+        n_classes: *n_classes
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
@@ -60,13 +55,11 @@ optim_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    module: lightly.loss
     params:
-        temperature: 0.5
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    num_workers: 1
+    num_workers: 2
     pin_memory: true
 
 # === WANDB LOGGING ===========================================================
@@ -76,12 +69,12 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-logger: SSLLogger
-metrics: SSLMetrics
-model_io: ssl_pair_tg
+logger: STGLogger
+metrics: SPMetrics
+model_io: sup_tg
 
-record_int: true    # Store integer results in memory.
-record_float: true  # Store floating point results too. Beware memory overload!
+record_int: true     # Store integer results in memory.
+record_float: false  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
 collator:
@@ -96,6 +89,12 @@ dataset_params:
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
+            params:
+                res: 1.0
+        mask:
+            module: minerva.datasets
+            name: TstMaskDataset
+            root: test_lc
             params:
                 res: 1.0
 
@@ -135,13 +134,12 @@ dataset_params:
 sampler_params:
     # Training Dataset Sampler
     train:
-        module: minerva.samplers
-        name: RandomPairGeoSampler
+        module: torchgeo.samplers
+        name: RandomGeoSampler
         roi: false
         params:
             size: *patch_size
-            length: 120
-            max_r: *max_r
+            length: 320
 
     # Validation Dataset Sampler
     val:
@@ -150,7 +148,7 @@ sampler_params:
         roi: false
         params:
             size: *patch_size
-            length: 32
+            length: 80
 
     # Test Dataset Sampler
     test:
@@ -159,7 +157,8 @@ sampler_params:
         roi: false
         params:
             size: *patch_size
-            length: 32
+            length: 160
+
 
 # === TRANSFORM PARAMETERS ====================================================
 transform_params:
@@ -169,43 +168,42 @@ transform_params:
             Normalise:
                 module: minerva.transforms
                 norm_value: 255
-            RandomApply:
-                p: 0.25
-                RandomResizedCrop:
-                    module: torchvision.transforms
-                    size: *patch_size
-            DetachedColorJitter:
+        mask:
+            SingleLabel:
                 module: minerva.transforms
-                brightness: 0.8
-                contrast: 0.8
-                saturation: 0.8
-                hue: 0.2
-            RandomHorizontalFlip:
-                module: torchvision.transforms
-            RandomVerticalFlip:
-                module: torchvision.transforms
-            GaussianBlur:
-                module: torchvision.transforms
-                kernel_size: 25
+                mode: modal
 
     # Validation Dataset Transforms
     val:
-        image: false
-        mask: false
+        image:
+            Normalise:
+                module: minerva.transforms
+                norm_value: 255
+        mask:
+            SingleLabel:
+                module: minerva.transforms
+                mode: modal
 
+    # Test Dataset Transforms
     test:
-        image: false
-        mask: false
+        image:
+            Normalise:
+                module: minerva.transforms
+                norm_value: 255
+        mask:
+            SingleLabel:
+                module: minerva.transforms
+                mode: modal
 
 # === PLOTTING OPTIONS ========================================================
 plots:
     History: true   # Plot of the training and validation metrics over epochs.
-    CM: false       # Confusion matrix.
-    Pred: false     # Pie chart of the distribution of the predicted classes.
-    ROC: false      # Receiver Operator Characteristics for each class.
-    micro: false    # Include micro averaging in ROC plot.
-    macro: false    # Include macro averaging in ROC plot.
-    Mask: false     # Plot predicted masks against ground truth and imagery.
+    CM: true        # Confusion matrix.
+    Pred: true      # Pie chart of the distribution of the predicted classes.
+    ROC: true       # Receiver Operator Characteristics for each class.
+    micro: true     # Include micro averaging in ROC plot.
+    macro: true     # Include macro averaging in ROC plot.
+    Mask: true      # Plot predicted masks against ground truth and imagery.
 
 # === MISCELLANEOUS OPTIONS ===================================================
 # ---+ Early Stopping +--------------------------------------------------------
@@ -217,8 +215,8 @@ stopping:
 verbose: true           # Verbosity of Trainer print statements to stdout.
 save: true              # Saves created figures to file.
 show: false             # Shows created figures in a pop-up window.
-p_dist: true            # Shows the distribution of classes to stdout.
-plot_last_epoch: true   # Plot the results of the last training and val epochs.
+p_dist: false           # Shows the distribution of classes to stdout.
+plot_last_epoch: false  # Plot the results of the last training and val epochs.
 
 # opt to ask at runtime; auto or True to automatically do so; or False,
 # None etc to not

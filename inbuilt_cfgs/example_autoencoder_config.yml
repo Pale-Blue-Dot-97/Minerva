@@ -21,21 +21,22 @@ dir:
 # Name of model. Substring before hyphen is model class.
 model_name: UNetR18-test
 
-# Type of model. Can be mlp, scene_classifier, segmentation, ssl or siamese.
+# Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
 model_type: segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 8                          # Number of samples in each batch.
+batch_size: 6                          # Number of samples in each batch.
 patch_size: &patch_size [224, 224]     # 2D tuple or float.
-input_size: &input_size [4, 224, 224]  # patch_size plus leading channel dim.
+input_size: &input_size [8, 224, 224]  # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 5                          # Maximum number of training epochs.
+max_epochs: 2                          # Maximum number of training epochs.
 elim: false                            # Eliminates empty classes from schema.
 balance: false                         # Balances dataset classes.
 pre_train: false                       # Activate pre-training mode.
 fine_tune: false                       # Activate fine-tuning mode.
+autoencoder_data_key: mask
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: CrossEntropyLoss            # Name of the loss function to use.
@@ -73,7 +74,7 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
 logger: STGLogger
 metrics: SPMetrics
-model_io: sup_tg
+model_io: autoencoder_io
 
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
@@ -142,7 +143,7 @@ sampler_params:
         roi: false
         params:
             size: *patch_size
-            length: 320
+            length: 32
 
     # Validation Dataset Sampler
     val:
@@ -151,7 +152,7 @@ sampler_params:
         roi: false
         params:
             size: *patch_size
-            length: 80
+            length: 16
 
     # Test Dataset Sampler
     test:
@@ -160,7 +161,7 @@ sampler_params:
         roi: false
         params:
             size: *patch_size
-            length: 160
+            length: 16
 
 
 # === TRANSFORM PARAMETERS ====================================================

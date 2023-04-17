@@ -72,6 +72,7 @@ __all__ = [
     "lat_lon_to_loc",
     "find_tensor_mode",
     "labels_to_ohe",
+    "mask_to_ohe",
     "class_weighting",
     "find_empty_classes",
     "eliminate_classes",
@@ -139,7 +140,7 @@ import torch
 import yaml
 from alive_progress import alive_bar
 from geopy.exc import GeocoderUnavailable
-from geopy.geocoders import Nominatim
+from geopy.geocoders import Photon
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
 from pandas import DataFrame
@@ -155,6 +156,7 @@ from torch.nn import functional as F
 from torch.nn.modules import Module
 from torch.types import _device
 from torchgeo.datasets.utils import BoundingBox
+from urllib3.exceptions import NewConnectionError
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, visutils
@@ -722,16 +724,22 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
     """
     try:
         # Creates a geolocator object to query the server.
-        geolocator = Nominatim(user_agent="geoapiExercises")
+        geolocator = Photon(user_agent="geoapiExercises")
 
         # Query to server with lat-lon co-ordinates.
         query = geolocator.reverse(f"{lat},{lon}")
 
+    # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
+    except (GeocoderUnavailable, NewConnectionError):
+        print("\nGeocoder unavailable")
+        return ""
+
+    else:
         if query is None:
             print("No location found!")
             return ""
 
-        location = query.raw["address"]  # type: ignore
+        location = query.raw["properties"]  # type: ignore
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
         locs: List[str] = []
@@ -757,13 +765,8 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         elif len(locs) == 1:
             return locs[0]
         # If no fields found for query, return empty string.
-        else:
+        else:  # pragma: no cover
             return ""
-
-    # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
-    except GeocoderUnavailable:
-        print("\nGeocoder unavailable")
-        return ""
 
 
 def find_tensor_mode(mask: LongTensor) -> LongTensor:
@@ -777,7 +780,9 @@ def find_tensor_mode(mask: LongTensor) -> LongTensor:
 
     .. versionadded:: 0.22
     """
-    return torch.mode(torch.flatten(mask)).values
+    mode = torch.mode(torch.flatten(mask)).values
+    assert isinstance(mode, LongTensor)
+    return mode
 
 
 def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
@@ -797,10 +802,31 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
 
 
 def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor:
+    """Converts a segmentation mask to one-hot-encoding (OHE).
+
+    Args:
+        mask (~torch.LongTensor): Segmentation mask to convert.
+        n_classes (int): Optional; Number of classes in total across dataset.
+            If not provided, the number of classes is infered from those found in
+            ``mask``.
+
+    Note:
+        It is advised that one provides ``n_classes`` as there is a fair chance that
+        not all possible classes are in ``mask``. Infering from the classes present in ``mask``
+        therefore is likely to result in shaping issues between masks in a batch.
+
+    Returns:
+        ~torch.LongTensor: ``mask`` converted to OHE. The one-hot-encoding is placed in the leading
+        dimension. (CxHxW) where C is the number of classes.
+
+    .. versionadded:: 0.23
+    """
     if not n_classes:
         n_classes = len(CLASSES)
 
-    return F.one_hot(mask, num_classes=n_classes)
+    ohe_mask = torch.movedim(F.one_hot(mask, num_classes=n_classes), 2, 0)
+    assert isinstance(ohe_mask, LongTensor)
+    return ohe_mask
 
 
 def class_weighting(
@@ -1588,19 +1614,36 @@ def compute_roc_curves(
     tpr: Dict[Any, Any] = {}
     roc_auc: Dict[Any, Any] = {}
 
+    # Holds a list of the classes that were in the targets supplied to the model.
+    # Avoids warnings about empty targets from sklearn!
+    populated_classes: List[int] = []
+
     # Initialises a progress bar.
     with alive_bar(len(class_labels), bar="blocks") as bar:
         # Compute ROC curve and ROC AUC for each class.
         print("Computing class ROC curves")
         for key in class_labels:
-            try:
-                fpr[key], tpr[key], _ = roc_curve(
-                    targets[:, key], probs[:, key], pos_label=1
-                )
-                roc_auc[key] = auc(fpr[key], tpr[key])
-                bar()
-            except UndefinedMetricWarning:  # pragma: no cover
-                bar("Class empty!")
+            # Checks if this class was actually in the targets supplied to the model.
+            if 1 in targets[:, key]:
+                try:
+                    # Calculates the true-positive and false-positive rate for this class.
+                    fpr[key], tpr[key], _ = roc_curve(
+                        targets[:, key], probs[:, key], pos_label=1
+                    )
+
+                    # Calculates the AUC for this class from TPR and FPR.
+                    roc_auc[key] = auc(fpr[key], tpr[key])
+
+                    # Adds the class to the list of populated classes.
+                    populated_classes.append(key)
+
+                    # Step on progress bar.
+                    bar()
+
+                except UndefinedMetricWarning:  # pragma: no cover
+                    bar("Class empty!")
+            else:
+                print(f"Class {key} empty!")
 
     if micro:
         # Get the current memory utilisation of the system.
@@ -1616,7 +1659,7 @@ def compute_roc_curves(
                 roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
             except MemoryError as err:  # pragma: no cover
                 print(err)
-                pass
+
         else:  # pragma: no cover
             try:
                 raise MemoryError(
@@ -1629,7 +1672,7 @@ def compute_roc_curves(
     if macro:
         # Aggregate all false positive rates.
         all_fpr: NDArray[Any, Any] = np.unique(
-            np.concatenate([fpr[key] for key in class_labels])
+            np.concatenate([fpr[key] for key in populated_classes])
         )
 
         # Then interpolate all ROC curves at these points.
@@ -1637,13 +1680,13 @@ def compute_roc_curves(
         mean_tpr = np.zeros_like(all_fpr)
 
         # Initialises a progress bar.
-        with alive_bar(len(class_labels), bar="blocks") as bar:
-            for key in class_labels:
+        with alive_bar(len(populated_classes), bar="blocks") as bar:
+            for key in populated_classes:
                 mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
                 bar()
 
         # Finally, average it and compute AUC
-        mean_tpr /= len(class_labels)
+        mean_tpr /= len(populated_classes)
 
         # Add macro FPR, TPR and AUCs to dicts.
         fpr["macro"] = all_fpr

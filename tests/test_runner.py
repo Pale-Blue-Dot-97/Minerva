@@ -91,5 +91,3 @@ def test_distributed_run() -> None:
     args = runner.config_args(args)
 
     runner.distributed_run(_run, args)
-
-    # TODO: Simulate multiprocessing runs.

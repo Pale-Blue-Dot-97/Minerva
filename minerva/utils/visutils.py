@@ -1071,12 +1071,15 @@ def make_roc_curves(
 
     # Plot all class ROC curves.
     for key in class_labels:
-        plt.plot(
-            fpr[key],
-            tpr[key],
-            color=colours[key],
-            label=f"{class_names[key]} " + "(AUC = {:.2f})".format(roc_auc[key]),
-        )
+        try:
+            plt.plot(
+                fpr[key],
+                tpr[key],
+                color=colours[key],
+                label=f"{class_names[key]} " + "(AUC = {:.2f})".format(roc_auc[key]),
+            )
+        except KeyError:
+            pass
 
     # Plot random classifier diagonal.
     plt.plot([0, 1], [0, 1], "k--")

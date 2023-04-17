@@ -295,10 +295,6 @@ class MinervaCompose:
             List of transforms to compose.
         key (str): Optional; For use with :mod:`torchgeo` samples and must be assigned a value if using.
             The key of the data type in the sample dict to transform.
-        swap_keys (bool): Activates key swapping. Will set the value of ``to_key`` to the transformed
-            output of ``key``. Useful for autoencoding applications.
-        to_key (str): Optional; Key to set the transformed value of ``key``.
-            Cannot be ``None`` if ``swap_keys==True``.
 
     Example:
         >>> transforms.MinervaCompose([
@@ -325,13 +321,9 @@ class MinervaCompose:
         self,
         transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
         key: Optional[str] = None,
-        swap_keys: bool = False,
-        to_key: Optional[str] = None,
     ) -> None:
         self.transforms = transforms
         self.key = key
-        self.swap_keys = swap_keys
-        self.to_key = to_key
 
     @overload
     def __call__(self, sample: Tensor) -> Tensor:
@@ -348,11 +340,7 @@ class MinervaCompose:
             return self._transform_input(sample)
         elif isinstance(sample, dict):
             assert self.key is not None
-            if self.swap_keys:
-                assert self.to_key is not None
-                sample[self.to_key] = self._transform_input(sample[self.key])
-            else:
-                sample[self.key] = self._transform_input(sample[self.key])
+            sample[self.key] = self._transform_input(sample[self.key])
             return sample
         else:
             raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
