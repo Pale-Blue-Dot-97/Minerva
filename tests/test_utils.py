@@ -765,3 +765,18 @@ def test_calc_norm_euc_dist() -> None:
 
     with pytest.raises(AssertionError):
         utils.calc_norm_euc_dist(a1, b2)
+
+
+def test_calc_mean_std() -> None:
+    data = np.random.rand(16, 32, 32, 3)
+
+    correct_mean = np.mean(data, axis=0)
+    correct_std = np.std(data, axis=0)
+
+    mean, std = utils.calc_mean_std(data)
+
+    print(mean)
+    print(std)
+
+    assert correct_mean == mean
+    assert correct_std == std
