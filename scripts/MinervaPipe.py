@@ -53,9 +53,8 @@ def main(config_path: str):
         )
 
         try:
-            exit_code = subprocess.Popen(  # nosec B602
-                f"python MinervaExp.py -c {config[key]}",
-                shell=True,
+            exit_code = subprocess.Popen(  # nosec B607
+                ["python", "MinervaExp.py", "-c", config[key]]
             ).wait()
 
             if exit_code != 0:
