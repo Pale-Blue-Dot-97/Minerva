@@ -1800,14 +1800,11 @@ def calc_mean_std(data: NDArray[Shape["*"], Any]) -> Tuple[float, float]:
     """Calculate the mean and standard deviation of the data.
 
     Args:
-        data (~numpy.ndarray): Array of data (of shape N x H x W x C) to find mean and std of.
+        data (~numpy.ndarray): Array of data to find mean and std of.
 
     Returns:
         Tuple[float, float]: Tuple of the mean and standard deviation.
     """
-    data = np.reshape(
-        data, (data.shape[0], data.shape[1] * data.shape[2], data.shape[3])
-    )
     mean = np.mean(data, axis=0)
     std = np.std(data, axis=0)
 
