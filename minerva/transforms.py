@@ -286,7 +286,7 @@ class SingleLabel:
 class MinervaCompose:
     """Extension of :class:`torchvision.transforms.Compose`. Composes several transforms together.
 
-    Designed to work with both :class:`~torch.Tensor` and :mod:`torchgeo` sample :class:`dict`s.
+    Designed to work with both :class:`~torch.Tensor` and :mod:`torchgeo` sample :class:`dict`.
 
     This transform does not support torchscript. Please, see the note below.
 
