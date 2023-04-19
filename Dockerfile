@@ -1,4 +1,4 @@
-FROM python:3.10.9 as base
+FROM python:3.11.3 as base
 
 # Update package listings, install git and OpenCV.
 RUN apt-get -y update && apt-get install git && apt-get install -y python3-opencv -y
