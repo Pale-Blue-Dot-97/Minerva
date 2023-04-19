@@ -1794,18 +1794,3 @@ def calc_norm_euc_dist(
     euc_dist: float = distance.euclidean(a, b) / float(len(a))
 
     return euc_dist
-
-
-def calc_mean_std(data: NDArray[Shape["*"], Any]) -> Tuple[float, float]:
-    """Calculate the mean and standard deviation of the data.
-
-    Args:
-        data (~numpy.ndarray): Array of data to find mean and std of.
-
-    Returns:
-        Tuple[float, float]: Tuple of the mean and standard deviation.
-    """
-    mean = np.mean(data, axis=0)
-    std = np.std(data, axis=0)
-
-    return mean, std
