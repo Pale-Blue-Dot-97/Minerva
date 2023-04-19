@@ -1668,7 +1668,7 @@ def run_tensorboard(
     os.chdir(_path)
 
     # Activates the correct Conda environment.
-    subprocess.Popen(f"conda activate {env_name}", shell=True).wait()  # nosec B602
+    subprocess.Popen(["conda", "activate", env_name]).wait()  # nosec B607
 
     if _testing:
         os.chdir(cwd)
@@ -1676,7 +1676,7 @@ def run_tensorboard(
 
     else:  # pragma: no cover
         # Runs TensorBoard log.
-        subprocess.Popen(f"tensorboard --logdir={exp_name}", shell=True)  # nosec B602
+        subprocess.Popen(["tensorboard", "--logdir", exp_name])  # nosec B607
 
         # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
         webbrowser.open(f"localhost:{host_num}")
