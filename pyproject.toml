@@ -22,6 +22,63 @@ classifiers = [
         "Natural Language :: English",
 ]
 
+dependencies = [
+    "alive_progress",
+    "argcomplete",
+    "catalyst",
+    "geopy",
+    "imageio",
+    "inputimeout",
+    "lightly",
+    "matplotlib",
+    "mlflow",
+    "nptyping",
+    "numba>=0.57.0rc1; python_version>='3.11'",
+    "numpy",
+    "overload",
+    "pandas",
+    "psutil",
+    "pyyaml",
+    "requests",
+    "scikit-learn",
+    "seaborn",
+    "tabulate",
+    "tensorflow",
+    "torchgeo>=0.4.0",
+    "torchinfo",
+    "tqdm",
+    "types-PyYAML",
+    "types-requests",
+    "types-tabulate",
+    "wandb",
+]
+
+[project.optional-dependencies]
+test = [
+    "internet-sabotage3",
+    "flake8",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "tox",
+]
+
+docs = [
+    "myst_parser",
+    "sphinx",
+    "sphinx-rtd-theme",
+]
+
+dev = [
+    "pre-commit",
+    "build",
+    "pipenv",
+]
+
+onnx = [
+    "onnx2torch",
+]
+
 [project.urls]
 "Homepage" = "https://github.com/Pale-Blue-Dot-97/Minerva"
 "Bug Tracker" = "https://github.com/Pale-Blue-Dot-97/Minerva/issues"
