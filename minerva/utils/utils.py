@@ -380,6 +380,19 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def _optional_import(module: str, name: str = None, package: str = None):
+    import importlib
+
+    try:
+        module = importlib.import_module(module)
+        return module if name is None else getattr(module, name)
+    except ImportError as e:
+        if package is None:
+            package = module
+        msg = f"install the '{package}' package to make use of this feature"
+        raise ValueError(msg) from e
+
+
 def print_banner(print_func: Callable[..., None] = print) -> None:
     """Prints the :mod:`minerva` banner to ``stdout``.
 
