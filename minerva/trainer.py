@@ -43,7 +43,6 @@ import yaml
 from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
-from onnx2torch import convert
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -467,6 +466,7 @@ class Trainer:
         Returns:
             MinervaModel: Loaded model ready for use.
         """
+        convert = utils._optional_import("onnx2torch", "convert", "onnx2torch")
         model_params = self.params["model_params"].get("params", {})
 
         onnx_model = convert(f"{self.get_weights_path()}.onnx")
