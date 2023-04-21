@@ -380,12 +380,12 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def _optional_import(module: str, name: str = None, package: str = None):
-    import importlib
-
+def _optional_import(
+    module: str, name: Optional[str] = None, package: Optional[str] = None
+):
     try:
-        module = importlib.import_module(module)
-        return module if name is None else getattr(module, name)
+        _module = importlib.import_module(module)
+        return _module if name is None else getattr(_module, name)
     except ImportError as e:
         if package is None:
             package = module
