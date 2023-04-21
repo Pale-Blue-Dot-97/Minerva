@@ -117,6 +117,7 @@ import webbrowser
 from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Callable
 from typing import Counter as CounterType
 from typing import (
@@ -380,17 +381,39 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+@overload
+def _optional_import(
+    module: str, name: None, package: Optional[str] = None
+) -> ModuleType:
+    ...
+
+
+@overload
+def _optional_import(
+    module: str, name: str, package: Optional[str] = None
+) -> Callable[..., Any]:
+    ...
+
+
 def _optional_import(
     module: str, name: Optional[str] = None, package: Optional[str] = None
-):
+) -> Union[ModuleType, Callable[..., Any]]:
     try:
-        _module = importlib.import_module(module)
+        _module: ModuleType = importlib.import_module(module)
         return _module if name is None else getattr(_module, name)
-    except ImportError as e:
+    except (ImportError, AttributeError) as e:
         if package is None:
             package = module
         msg = f"install the '{package}' package to make use of this feature"
-        raise ValueError(msg) from e
+        raise ImportError(msg) from e
+
+
+def check_optional_import_exist(module: str) -> bool:
+    try:
+        importlib.import_module(module)
+        return True
+    except ImportError:
+        return False
 
 
 def print_banner(print_func: Callable[..., None] = print) -> None:
