@@ -21,6 +21,8 @@
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
+from __future__ import annotations
+
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU LGPLv3"
@@ -33,7 +35,17 @@ __all__ = ["Trainer"]
 import os
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import pandas as pd
 import torch
@@ -47,7 +59,10 @@ from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard.writer import SummaryWriter
+
+if TYPE_CHECKING:
+    from torch.utils.tensorboard.writer import SummaryWriter
+
 from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
@@ -71,6 +86,21 @@ from minerva.utils import AUX_CONFIGS, universal_path, utils, visutils
 # =====================================================================================================================
 # Default time till timeout waiting for a user input in seconds.
 _timeout = 30
+_tensorflow_exist = utils.check_optional_import_exist("tensorflow")
+TENSORBOARD_WRITER: Optional[Callable[..., Any]]
+try:
+    TENSORBOARD_WRITER = utils._optional_import(
+        "torch.utils.tensorboard.writer",
+        name="SummaryWriter",
+        package="tensorflow",
+    )
+except ImportError as err:
+    print(err)
+    print("Disabling TensorBoard logging")
+    TENSORBOARD_WRITER = None
+
+print(_tensorflow_exist)
+print(TENSORBOARD_WRITER)
 
 
 # =====================================================================================================================
@@ -283,8 +313,12 @@ class Trainer:
             self.writer = wandb_run
             self.init_wandb_metrics()
         else:
-            # Initialise TensorBoard logger
-            self.writer = SummaryWriter(results_dir)
+            if _tensorflow_exist:
+                assert TENSORBOARD_WRITER
+                # Initialise TensorBoard logger.
+                self.writer = TENSORBOARD_WRITER(results_dir)
+            else:
+                self.writer = None
 
         self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
@@ -343,20 +377,24 @@ class Trainer:
                 # Print model summary.
                 summary(self.model, input_size=input_size)
 
-            if (
-                torch.cuda.device_count() == 1 or self.device == torch.device("cpu")
-            ) and isinstance(
-                self.writer, SummaryWriter
-            ):  # type: ignore[attr-defined]
-                # Adds a graphical layout of the model to the TensorBoard logger.
-                try:
-                    self.writer.add_graph(
-                        self.model,
-                        input_to_model=torch.rand(*input_size, device=self.device),
+            if _tensorflow_exist:
+                if (
+                    (
+                        torch.cuda.device_count() == 1
+                        or self.device == torch.device("cpu")
                     )
-                except RuntimeError as err:  # pragma: no cover
-                    print(err)
-                    print("ABORT adding graph to writer")
+                    and isinstance(self.writer, type(TENSORBOARD_WRITER))
+                    and self.writer
+                ):  # type: ignore[attr-defined]
+                    # Adds a graphical layout of the model to the TensorBoard logger.
+                    try:
+                        self.writer.add_graph(  # type: ignore[union-attr]
+                            self.model,
+                            input_to_model=torch.rand(*input_size, device=self.device),
+                        )
+                    except RuntimeError as err:  # pragma: no cover
+                        print(err)
+                        print("ABORT adding graph to writer")
 
         # If writer is `wandb`, `watch` the model to log gradients.
         if isinstance(self.writer, Run):
@@ -1088,10 +1126,11 @@ class Trainer:
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
-        if isinstance(self.writer, SummaryWriter):
-            # Ensure the TensorBoard logger is closed.
-            self.writer.close()
-        elif isinstance(self.writer, Run):
+        if _tensorflow_exist:
+            if isinstance(self.writer, type(TENSORBOARD_WRITER)) and self.writer:
+                # Ensure the TensorBoard logger is closed.
+                self.writer.close()  # type: ignore[union-attr]
+        if isinstance(self.writer, Run):
             # Ensures all the `wandb` runs finish and sync.
             self.writer.finish()
 
