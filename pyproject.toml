@@ -41,7 +41,6 @@ dependencies = [
     "pyyaml",
     "requests",
     "scikit-learn",
-    "seaborn",
     "tabulate",
     "tensorflow",
     "torchgeo>=0.4.0",
