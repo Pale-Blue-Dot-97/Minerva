@@ -21,16 +21,16 @@ classes:
 
 # Custom colour mapping specified by ESRI
 colours:
-    0: '#000000'  # Transparent
-    1: '#00c5ff'  # Light Blue
-    2: '#00a884'  # Teal
-    3: '#267300'  # Dark green
-    4: '#4ce600'  # Light green
-    5: '#a3ff73'  # v. Light green
-    6: '#ffaa00'  # Orange
-    7: '#ff0000'  # Red
-    8: '#9c9c9c'  # Light grey
-    9: '#000000'  # Black
+    0: '#000000'   # Transparent
+    1: '#00c5ff'   # Light Blue
+    2: '#00a884'   # Teal
+    3: '#267300'   # Dark green
+    4: '#4ce600'   # Light green
+    5: '#a3ff73'   # v. Light green
+    6: '#ffaa00'   # Orange
+    7: '#ff0000'   # Red
+    8: '#9c9c9c'   # Light grey
+    9: '#000000'   # Black
     10: '#737300'  # Yellow-Green
     11: '#e6e600'  # Yellow
     12: '#ffff73'  # Light yellow
@@ -45,5 +45,5 @@ co_sys:
     name: WGS84_26918
 
 fig_sizes:
-    CM: [9, 8]
+    CM: [10, 8]
     Mask: [12, 10]
