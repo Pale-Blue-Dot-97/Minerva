@@ -21,6 +21,8 @@
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
+from __future__ import annotations
+
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU LGPLv3"
@@ -38,18 +40,46 @@ __all__ = [
 import abc
 import math
 from abc import ABC
-from typing import Any, Dict, Optional, SupportsFloat, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    SupportsFloat,
+    Tuple,
+    Union,
+)
 
 import mlflow
 import numpy as np
 import torch
 from sklearn.metrics import jaccard_score
 from torch import Tensor
-from torch.utils.tensorboard.writer import SummaryWriter
+
+if TYPE_CHECKING:  # pragma: no cover
+    from torch.utils.tensorboard.writer import SummaryWriter
+
 from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
 from minerva.utils import utils
+
+# =====================================================================================================================
+#                                                     GLOBALS
+# =====================================================================================================================
+_tensorflow_exist = utils.check_optional_import_exist("tensorflow")
+TENSORBOARD_WRITER: Optional[Callable[..., Any]]
+try:
+    TENSORBOARD_WRITER = utils._optional_import(
+        "torch.utils.tensorboard.writer",
+        name="SummaryWriter",
+        package="tensorflow",
+    )
+except ImportError as err:  # pragma: no cover
+    print(err)
+    print("Disabling TensorBoard logging")
+    TENSORBOARD_WRITER = None
 
 
 # =====================================================================================================================
@@ -158,13 +188,19 @@ class MinervaLogger(ABC):
         """
         # TODO: Are values being reduced across nodes / logged from rank 0?
         if self.writer:
-            if isinstance(self.writer, SummaryWriter):
-                self.writer.add_scalar(
-                    tag=f"{mode}_{key}",
-                    scalar_value=value,  # type: ignore[attr-defined]
-                    global_step=step_num,
-                )
-            elif isinstance(self.writer, Run):
+            if _tensorflow_exist:
+                if (
+                    isinstance(
+                        self.writer, utils.extract_class_type(TENSORBOARD_WRITER)
+                    )
+                    and self.writer
+                ):
+                    self.writer.add_scalar(  # type: ignore[attr-defined]
+                        tag=f"{mode}_{key}",
+                        scalar_value=value,  # type: ignore[attr-defined]
+                        global_step=step_num,
+                    )
+            if isinstance(self.writer, Run):
                 self.writer.log({f"{mode}/step": step_num, f"{mode}/{key}": value})
 
         if mlflow.active_run():

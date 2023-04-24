@@ -76,9 +76,6 @@ import imageio
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import seaborn as sns
-import tensorflow as tf
 from alive_progress import alive_bar
 from matplotlib import offsetbox
 from matplotlib.colors import Colormap, ListedColormap
@@ -90,6 +87,7 @@ from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
 from rasterio.crs import CRS
 from scipy import stats
+from sklearn.metrics import ConfusionMatrixDisplay
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
@@ -951,49 +949,33 @@ def make_confusion_matrix(
     """
     _pred, _labels, new_classes = utils.check_test_empty(pred, labels, classes)
 
-    # Creates the confusion matrix based on these predictions and the corresponding ground truth labels.
-    cm_norm: Any = None
-    try:
-        cm = tf.math.confusion_matrix(
-            labels=_labels, predictions=_pred, dtype=np.uint16  # type: ignore
-        ).numpy()  # type: ignore
-
-        # Normalises confusion matrix.
-        cm_norm = np.around(
-            cm.astype(np.float16) / cm.sum(axis=1)[:, np.newaxis], decimals=2
-        )
-
-    except RuntimeWarning as err:  # pragma: no cover
-        print("\n", err)
-        print("At least one class had no ground truth or no predicted labels!")
-
-    np.nan_to_num(cm_norm, copy=False)
-
     # Extract class names from dict in numeric order to ensure labels match matrix.
     class_names = [new_classes[key] for key in range(len(new_classes.keys()))]
-
-    # Converts confusion matrix to Pandas.DataFrame.
-    cm_df = pd.DataFrame(cm_norm, index=class_names, columns=class_names)
 
     if DATA_CONFIG is not None:
         figsize = DATA_CONFIG["fig_sizes"]["CM"]
     else:  # pragma: no cover
         figsize = None
 
-    # Plots figure.
-    plt.figure(figsize=figsize)
+    # Creates the figure to plot onto.
+    ax = plt.figure(figsize=figsize).gca()
 
+    # Get a matplotlib colourmap based on the style specified to use for the confusion matrix.
     cmap = get_mlp_cmap(cmap_style)
-    sns.heatmap(
-        cm_df,
-        annot=True,
-        square=True,
+
+    # Creates, plots and normalises the confusion matrix.
+    cm = ConfusionMatrixDisplay.from_predictions(
+        _labels,
+        _pred,
+        labels=list(new_classes.keys()),
+        normalize="all",
+        display_labels=class_names,
         cmap=cmap,
-        vmin=0.0,
-        vmax=1.0,
+        ax=ax,
     )
-    plt.ylabel("Ground Truth")
-    plt.xlabel("Predicted")
+
+    # Normalises the colourbar to between [0, 1] for consistent clarity.
+    cm.ax_.get_images()[0].set_clim(0, 1)
 
     # Shows and/or saves plot.
     if show:
