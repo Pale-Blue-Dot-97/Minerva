@@ -504,7 +504,9 @@ class Trainer:
         Returns:
             MinervaModel: Loaded model ready for use.
         """
-        convert = utils._optional_import("onnx2torch", "convert", "onnx2torch")
+        convert = utils._optional_import(
+            "onnx2torch", name="convert", package="onnx2torch"
+        )
         model_params = self.params["model_params"].get("params", {})
 
         onnx_model = convert(f"{self.get_weights_path()}.onnx")
