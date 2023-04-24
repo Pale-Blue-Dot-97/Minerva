@@ -382,6 +382,23 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def _print_banner(print_func: Callable[..., None] = print) -> None:
+    """Prints the :mod:`minerva` banner to ``stdout``.
+
+    Args:
+        print_func (~typing.Callable[..., None]): Function to use to print the banner. Defaults to :func:`print`.
+
+    Raises:
+        FileNotFoundError: If ``banner.txt`` cannot be found.
+    """
+    banner_path = Path(__file__).parent.parent.parent / "banner.txt"
+    if banner_path.exists():
+        with open(banner_path, "r") as f:
+            print_func(f.read())
+    else:  # pragma: no cover
+        raise FileNotFoundError("Cannot find the banner.txt file")
+
+
 @overload
 def _optional_import(
     module: str,
@@ -474,23 +491,6 @@ def extract_class_type(var: Any) -> type:
         return var
     else:
         return type(var)
-
-
-def print_banner(print_func: Callable[..., None] = print) -> None:
-    """Prints the :mod:`minerva` banner to ``stdout``.
-
-    Args:
-        print_func (~typing.Callable[..., None]): Function to use to print the banner. Defaults to :func:`print`.
-
-    Raises:
-        FileNotFoundError: If ``banner.txt`` cannot be found.
-    """
-    banner_path = Path(__file__).parent.parent.parent / "banner.txt"
-    if banner_path.exists():
-        with open(banner_path, "r") as f:
-            print_func(f.read())
-    else:  # pragma: no cover
-        raise FileNotFoundError("Cannot find the banner.txt file")
 
 
 def is_notebook() -> bool:

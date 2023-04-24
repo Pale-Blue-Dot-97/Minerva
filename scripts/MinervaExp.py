@@ -81,7 +81,7 @@ if __name__ == "__main__":
     cli_args = parser.parse_args()
 
     # Print Minerva banner.
-    utils.print_banner()
+    utils._print_banner()
 
     with runner.WandbConnectionManager():
         # Configure the arguments and environment variables.
