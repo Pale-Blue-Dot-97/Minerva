@@ -107,6 +107,7 @@ __all__ = [
 import cmath
 import functools
 import importlib
+import inspect
 import math
 import os
 import random
@@ -385,14 +386,14 @@ def pair_return(cls):
 def _optional_import(
     module: str, name: None, package: Optional[str] = None
 ) -> ModuleType:
-    ...
+    ...  # pragma: no cover
 
 
 @overload
 def _optional_import(
     module: str, name: str, package: Optional[str] = None
 ) -> Callable[..., Any]:
-    ...
+    ...  # pragma: no cover
 
 
 def _optional_import(
@@ -401,7 +402,7 @@ def _optional_import(
     try:
         _module: ModuleType = importlib.import_module(module)
         return _module if name is None else getattr(_module, name)
-    except (ImportError, AttributeError) as e:
+    except (ImportError, AttributeError) as e:  # pragma: no cover
         if package is None:
             package = module
         msg = f"install the '{package}' package to make use of this feature"
@@ -410,10 +411,17 @@ def _optional_import(
 
 def check_optional_import_exist(module: str) -> bool:
     try:
-        importlib.import_module(module)
+        _ = importlib.metadata.version(module)
         return True
-    except ImportError:
+    except ImportError:  # pragma: no cover
         return False
+
+
+def extract_class_type(var: Any) -> type:
+    if inspect.isclass(var):
+        return var
+    else:
+        return type(var)
 
 
 def print_banner(print_func: Callable[..., None] = print) -> None:

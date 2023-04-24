@@ -57,7 +57,7 @@ import torch
 from sklearn.metrics import jaccard_score
 from torch import Tensor
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
 from torchgeo.datasets.utils import BoundingBox
@@ -76,7 +76,7 @@ try:
         name="SummaryWriter",
         package="tensorflow",
     )
-except ImportError as err:
+except ImportError as err:  # pragma: no cover
     print(err)
     print("Disabling TensorBoard logging")
     TENSORBOARD_WRITER = None
@@ -189,8 +189,13 @@ class MinervaLogger(ABC):
         # TODO: Are values being reduced across nodes / logged from rank 0?
         if self.writer:
             if _tensorflow_exist:
-                if isinstance(self.writer, type(TENSORBOARD_WRITER)) and self.writer:
-                    self.writer.add_scalar(  # type: ignore[union-attr]
+                if (
+                    isinstance(
+                        self.writer, utils.extract_class_type(TENSORBOARD_WRITER)
+                    )
+                    and self.writer
+                ):
+                    self.writer.add_scalar(  # type: ignore[attr-defined]
                         tag=f"{mode}_{key}",
                         scalar_value=value,  # type: ignore[attr-defined]
                         global_step=step_num,
