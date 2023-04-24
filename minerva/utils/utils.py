@@ -57,6 +57,7 @@ __all__ = [
     "tg_to_torch",
     "pair_return",
     "check_optional_import_exist",
+    "extract_class_type",
     "is_notebook",
     "get_cuda_device",
     "set_seeds",
