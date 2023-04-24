@@ -18,11 +18,11 @@ except (OSError, NewConnectionError, MaxRetryError):
 from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
 from torch import Tensor
-from torch.utils.tensorboard.writer import SummaryWriter
 
 from minerva.logger import SSLLogger, STGLogger
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN16ResNet18, SimCLR18
+from minerva.utils import utils
 
 device = torch.device("cpu")  # type: ignore[attr-defined]
 n_batches = 2
@@ -39,7 +39,15 @@ def test_STGLogger(simple_bbox):
     if not path.exists():
         path.mkdir()
 
-    writer = SummaryWriter(log_dir=path)
+    try:
+        tensorboard_writer = utils._optional_import(
+            "torch.utils.tensorboard.writer", name="SummaryWriter", package="tensorflow"
+        )
+    except ImportError as err:
+        print(err)
+        writer = None
+    else:
+        writer = tensorboard_writer(log_dir=path)
 
     model = FCN16ResNet18(criterion, input_size=(4, *patch_size))
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
@@ -111,7 +119,15 @@ def test_SSLLogger(simple_bbox):
     if not path.exists():
         path.mkdir()
 
-    writer = SummaryWriter(log_dir=path)
+    try:
+        tensorboard_writer = utils._optional_import(
+            "torch.utils.tensorboard.writer", name="SummaryWriter", package="tensorflow"
+        )
+    except ImportError as err:
+        print(err)
+        writer = None
+    else:
+        writer = tensorboard_writer(log_dir=path)
 
     model = SimCLR18(criterion, input_size=(4, *patch_size))
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)

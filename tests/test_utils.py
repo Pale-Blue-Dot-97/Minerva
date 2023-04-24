@@ -27,7 +27,13 @@ from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
 
 
 def test_print_banner() -> None:
-    utils.print_banner()
+    utils._print_banner()
+
+
+def test_extract_class_type() -> None:
+    assert utils.extract_class_type(1) == int
+    assert utils.extract_class_type("we want a shrubery...") == str
+    assert utils.extract_class_type(str) == str
 
 
 def test_is_notebook() -> None:

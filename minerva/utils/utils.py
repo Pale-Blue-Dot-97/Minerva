@@ -56,6 +56,8 @@ __all__ = [
     "dublicator",
     "tg_to_torch",
     "pair_return",
+    "check_optional_import_exist",
+    "extract_class_type",
     "is_notebook",
     "get_cuda_device",
     "set_seeds",
@@ -107,6 +109,7 @@ __all__ = [
 import cmath
 import functools
 import importlib
+import inspect
 import math
 import os
 import random
@@ -117,6 +120,7 @@ import webbrowser
 from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Callable
 from typing import Counter as CounterType
 from typing import (
@@ -380,7 +384,7 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def print_banner(print_func: Callable[..., None] = print) -> None:
+def _print_banner(print_func: Callable[..., None] = print) -> None:
     """Prints the :mod:`minerva` banner to ``stdout``.
 
     Args:
@@ -395,6 +399,108 @@ def print_banner(print_func: Callable[..., None] = print) -> None:
             print_func(f.read())
     else:  # pragma: no cover
         raise FileNotFoundError("Cannot find the banner.txt file")
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: None,
+    package: str,
+) -> ModuleType:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: str,
+    package: str,
+) -> Callable[..., Any]:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: None,
+    package: None,
+) -> ModuleType:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: str,
+    package: None,
+) -> Callable[..., Any]:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: str,
+) -> Callable[..., Any]:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    package: str,
+) -> ModuleType:
+    ...  # pragma: no cover
+
+
+def _optional_import(
+    module: str, *, name: Optional[str] = None, package: Optional[str] = None
+) -> Union[ModuleType, Callable[..., Any]]:
+    try:
+        _module: ModuleType = importlib.import_module(module)
+        return _module if name is None else getattr(_module, name)
+    except (ImportError, AttributeError) as e:  # pragma: no cover
+        if package is None:
+            package = module
+        msg = f"install the '{package}' package to make use of this feature"
+        raise ImportError(msg) from e
+
+
+def check_optional_import_exist(package: str) -> bool:
+    """Checks if a package is installed. Useful for optional dependencies.
+
+    Args:
+        package (str): Name of the package to check if installed.
+
+    Returns:
+        bool: ``True`` if package installed, ``False`` if not.
+    """
+    try:
+        _ = importlib.metadata.version(package)
+        return True
+    except ImportError:  # pragma: no cover
+        return False
+
+
+def extract_class_type(var: Any) -> type:
+    """Ensures that a class type is returned from a variable whether it is one already or not.
+
+    Args:
+        var (Any): Variable to get class type from. May already be a class type.
+
+    Returns:
+        type: Class type of ``var``.
+    """
+    if inspect.isclass(var):
+        return var
+    else:
+        return type(var)
 
 
 def is_notebook() -> bool:

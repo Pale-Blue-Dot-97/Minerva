@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "minerva"
-version = "0.23.1"
+version = "0.23.2"
 description = "Package to build, train and test neural network models on geospatial data"
 readme = "README.md"
 authors = [
@@ -16,10 +16,70 @@ classifiers = [
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (GPLv3)",
         "Development Status :: 4 - Beta",
         "Operating System :: POSIX :: Linux",
         "Natural Language :: English",
+]
+
+dependencies = [
+    "alive_progress",
+    "argcomplete",
+    "catalyst",
+    "geopy",
+    "imageio",
+    "inputimeout",
+    "lightly",
+    "matplotlib",
+    "mlflow",
+    "nptyping",
+    "numba>=0.57.0rc1; python_version>='3.11'",
+    "numpy",
+    "overload",
+    "pandas",
+    "psutil",
+    "pyyaml",
+    "requests",
+    "scikit-learn",
+    "tabulate",
+    "torchgeo>=0.4.0",
+    "torchinfo",
+    "tqdm",
+    "types-PyYAML",
+    "types-requests",
+    "types-tabulate",
+    "wandb",
+]
+
+[project.optional-dependencies]
+test = [
+    "internet-sabotage3",
+    "flake8",
+    "mypy",
+    "pytest",
+    "pytest-cov",
+    "tox",
+]
+
+docs = [
+    "myst_parser",
+    "sphinx",
+    "sphinx-rtd-theme",
+]
+
+dev = [
+    "pre-commit",
+    "build",
+    "pipenv",
+]
+
+onnx = [
+    "onnx2torch",
+]
+
+tensorflow = [
+    "tensorflow",
 ]
 
 [project.urls]
