@@ -384,20 +384,64 @@ def pair_return(cls):
 # =====================================================================================================================
 @overload
 def _optional_import(
-    module: str, name: None, package: Optional[str] = None
+    module: str,
+    *,
+    name: None,
+    package: str,
 ) -> ModuleType:
     ...  # pragma: no cover
 
 
 @overload
 def _optional_import(
-    module: str, name: str, package: Optional[str] = None
+    module: str,
+    *,
+    name: str,
+    package: str,
 ) -> Callable[..., Any]:
     ...  # pragma: no cover
 
 
+@overload
 def _optional_import(
-    module: str, name: Optional[str] = None, package: Optional[str] = None
+    module: str,
+    *,
+    name: None,
+    package: None,
+) -> ModuleType:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: str,
+    package: None,
+) -> Callable[..., Any]:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: str,
+) -> Callable[..., Any]:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    package: str,
+) -> ModuleType:
+    ...  # pragma: no cover
+
+
+def _optional_import(
+    module: str, *, name: Optional[str] = None, package: Optional[str] = None
 ) -> Union[ModuleType, Callable[..., Any]]:
     try:
         _module: ModuleType = importlib.import_module(module)
