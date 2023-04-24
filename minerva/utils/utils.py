@@ -409,9 +409,17 @@ def _optional_import(
         raise ImportError(msg) from e
 
 
-def check_optional_import_exist(module: str) -> bool:
+def check_optional_import_exist(package: str) -> bool:
+    """Checks if a package is installed. Useful for optional dependencies.
+
+    Args:
+        module (str): Name of the package to check if installed.
+
+    Returns:
+        bool: ``True`` if package installed, ``False`` if not.
+    """
     try:
-        _ = importlib.metadata.version(module)
+        _ = importlib.metadata.version(package)
         return True
     except ImportError:  # pragma: no cover
         return False
