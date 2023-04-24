@@ -476,7 +476,7 @@ def check_optional_import_exist(package: str) -> bool:
     """Checks if a package is installed. Useful for optional dependencies.
 
     Args:
-        module (str): Name of the package to check if installed.
+        package (str): Name of the package to check if installed.
 
     Returns:
         bool: ``True`` if package installed, ``False`` if not.
