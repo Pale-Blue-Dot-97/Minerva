@@ -489,6 +489,14 @@ def check_optional_import_exist(package: str) -> bool:
 
 
 def extract_class_type(var: Any) -> type:
+    """Ensures that a class type is returned from a variable whether it is one already or not.
+
+    Args:
+        var (Any): Variable to get class type from. May already be a class type.
+
+    Returns:
+        type: Class type of ``var``.
+    """
     if inspect.isclass(var):
         return var
     else:
