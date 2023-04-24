@@ -42,7 +42,6 @@ dependencies = [
     "requests",
     "scikit-learn",
     "tabulate",
-    "tensorflow",
     "torchgeo>=0.4.0",
     "torchinfo",
     "tqdm",
@@ -76,6 +75,10 @@ dev = [
 
 onnx = [
     "onnx2torch",
+]
+
+tensorflow = [
+    "tensorflow",
 ]
 
 [project.urls]
