@@ -60,7 +60,7 @@ from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
 from torchinfo import summary
@@ -94,13 +94,10 @@ try:
         name="SummaryWriter",
         package="tensorflow",
     )
-except ImportError as err:
+except ImportError as err:  # pragma: no cover
     print(err)
     print("Disabling TensorBoard logging")
     TENSORBOARD_WRITER = None
-
-print(_tensorflow_exist)
-print(TENSORBOARD_WRITER)
 
 
 # =====================================================================================================================
@@ -315,9 +312,10 @@ class Trainer:
         else:
             if _tensorflow_exist:
                 assert TENSORBOARD_WRITER
+
                 # Initialise TensorBoard logger.
                 self.writer = TENSORBOARD_WRITER(results_dir)
-            else:
+            else:  # pragma: no cover
                 self.writer = None
 
         self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
@@ -383,12 +381,14 @@ class Trainer:
                         torch.cuda.device_count() == 1
                         or self.device == torch.device("cpu")
                     )
-                    and isinstance(self.writer, type(TENSORBOARD_WRITER))
+                    and isinstance(
+                        self.writer, utils.extract_class_type(TENSORBOARD_WRITER)
+                    )
                     and self.writer
-                ):  # type: ignore[attr-defined]
+                ):
                     # Adds a graphical layout of the model to the TensorBoard logger.
                     try:
-                        self.writer.add_graph(  # type: ignore[union-attr]
+                        self.writer.add_graph(  # type: ignore[attr-defined]
                             self.model,
                             input_to_model=torch.rand(*input_size, device=self.device),
                         )
@@ -1127,9 +1127,12 @@ class Trainer:
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
         if _tensorflow_exist:
-            if isinstance(self.writer, type(TENSORBOARD_WRITER)) and self.writer:
+            if (
+                isinstance(self.writer, utils.extract_class_type(TENSORBOARD_WRITER))
+                and self.writer
+            ):
                 # Ensure the TensorBoard logger is closed.
-                self.writer.close()  # type: ignore[union-attr]
+                self.writer.close()  # type: ignore[attr-defined]
         if isinstance(self.writer, Run):
             # Ensures all the `wandb` runs finish and sync.
             self.writer.finish()
