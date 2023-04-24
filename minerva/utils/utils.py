@@ -56,6 +56,7 @@ __all__ = [
     "dublicator",
     "tg_to_torch",
     "pair_return",
+    "check_optional_import_exist",
     "is_notebook",
     "get_cuda_device",
     "set_seeds",
