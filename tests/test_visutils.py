@@ -271,13 +271,13 @@ def test_format_names() -> None:
     names = visutils.format_plot_names(model_name, timestamp, path)
 
     filenames = {
-        "History": f"test/path/{model_name}_{timestamp}_MH.png",
-        "Pred": f"test/path/{model_name}_{timestamp}_TP.png",
-        "CM": f"test/path/{model_name}_{timestamp}_CM.png",
-        "ROC": f"test/path/{model_name}_{timestamp}_ROC.png",
-        "Mask": f"test/path/Masks/{model_name}_{timestamp}_Mask",
-        "PvT": f"test/path/PvTs/{model_name}_{timestamp}_PvT",
-        "TSNE": f"test/path/{model_name}_{timestamp}_TSNE.png",
+        "History": Path(f"test/path/{model_name}_{timestamp}_MH.png"),
+        "Pred": Path(f"test/path/{model_name}_{timestamp}_TP.png"),
+        "CM": Path(f"test/path/{model_name}_{timestamp}_CM.png"),
+        "ROC": Path(f"test/path/{model_name}_{timestamp}_ROC.png"),
+        "Mask": Path(f"test/path/Masks/{model_name}_{timestamp}_Mask"),
+        "PvT": Path(f"test/path/PvTs/{model_name}_{timestamp}_PvT"),
+        "TSNE": Path(f"test/path/{model_name}_{timestamp}_TSNE.png"),
     }
 
     assert filenames == names
