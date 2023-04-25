@@ -22,7 +22,7 @@ def test_universal_path():
 
 
 def test_config_path(config_root, config_here):
-    assert "tmp/config" in str(config_root)
+    assert str(Path("tmp/config")) in str(config_root)
 
     # Still works because we are relative to inbuilt_cfgs here
     base, aux = load_configs(config_root / "exp_mf_config.yml")
