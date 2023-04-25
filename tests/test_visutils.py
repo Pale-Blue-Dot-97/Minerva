@@ -130,8 +130,7 @@ def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> N
         cmap_style=cmap,
     )
 
-    correct_fn = str(Path(path, f"{name}_RGBHM.png"))
-
+    correct_fn = Path(path, f"{name}_RGBHM.png")
     assert fn == correct_fn
 
 

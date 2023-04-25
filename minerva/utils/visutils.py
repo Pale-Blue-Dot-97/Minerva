@@ -358,7 +358,7 @@ def labelled_rgb_image(
     show: bool = True,
     save: bool = True,
     figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32),
-) -> str:
+) -> Path:
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
@@ -431,9 +431,6 @@ def labelled_rgb_image(
     ax2.set_xticks(lon_extent)
     ax2.set_yticks(lat_extent)
 
-    print(f"{lat_extent=}")
-    print(f"{lon_extent=}")
-
     # Sets the limits of the secondary axis, so they should align with the primary.
     ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
@@ -475,7 +472,7 @@ def labelled_rgb_image(
         plt.show(block=False)
 
     # Path and file name of figure.
-    fn = f"{path}/{name}_RGBHM.png"
+    fn = Path(f"{path}/{name}_RGBHM.png")
 
     # If true, save file to fn.
     if save:
