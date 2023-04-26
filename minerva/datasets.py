@@ -53,6 +53,7 @@ __all__ = [
 # =====================================================================================================================
 import inspect
 import os
+import platform
 import re
 from pathlib import Path
 from typing import (
@@ -67,7 +68,6 @@ from typing import (
     Tuple,
     Union,
 )
-import platform
 
 import matplotlib.pyplot as plt
 import numpy as np
