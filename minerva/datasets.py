@@ -59,6 +59,7 @@ __all__ = [
 # =====================================================================================================================
 import inspect
 import os
+import platform
 import re
 from pathlib import Path
 from typing import (
@@ -584,10 +585,11 @@ def construct_dataloader(
         _dataloader_params["batch_size"] = per_device_batch_size
 
     if sample_pairs:
-        if not torch.cuda.device_count() > 1:
+        if not torch.cuda.device_count() > 1 and platform.system() != "Windows":
             collator = utils.pair_collate(collator)
 
         # Can't wrap functions in distributed runs due to pickling error.
+        # This also seems to occur on Windows systems, even when not multiprocessing?
         # Therefore, the collator is set to `stack_sample_pairs` automatically.
         else:  # pragma: no cover
             collator = stack_sample_pairs
