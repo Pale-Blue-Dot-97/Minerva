@@ -376,6 +376,10 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
                 "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.",
                 "\nOr if not using wandb, safely ignore this message.",
             )
+            CONFIG["wandb_log"] = False
+        except wandb.errors.Error as err:  # type: ignore[attr-defined]  # pragma: no cover
+            print(err)
+            CONFIG["wandb_log"] = False
     else:
         print("Weights and Biases logging OFF")
 
@@ -407,7 +411,7 @@ def config_env_vars(args: Namespace) -> Namespace:
     if "SLURM_JOB_ID" in os.environ:  # pragma: no cover
         # Single-node and multi-node distributed training on SLURM cluster.
         # Requeue job on SLURM preemption.
-        signal.signal(signal.SIGUSR1, _handle_sigusr1)
+        signal.signal(signal.SIGUSR1, _handle_sigusr1)  # type: ignore[attr-defined]
         signal.signal(signal.SIGTERM, _handle_sigterm)
 
         # Get SLURM variables.
