@@ -526,6 +526,9 @@ def make_gif(
     Returns:
         None
     """
+    # Changes to `imagio` now mean we need the duration of the GIF and not the `fps`.
+    duration = len(dates) / fps
+
     # Initialise progress bar.
     with alive_bar(len(dates), bar="blocks") as bar:
         # List to hold filenames and paths of images created.
@@ -566,7 +569,7 @@ def make_gif(
         bar.text("MAKING PATCH GIF")
 
         # Create GIF.
-        imageio.mimwrite(gif_name, frames, format=".gif", fps=fps)  # type: ignore
+        imageio.mimwrite(gif_name, frames, format=".gif", duration=duration)  # type: ignore
 
 
 def prediction_plot(
