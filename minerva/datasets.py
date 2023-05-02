@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -53,6 +59,7 @@ __all__ = [
 # =====================================================================================================================
 import inspect
 import os
+import platform
 import re
 from pathlib import Path
 from typing import (
@@ -578,10 +585,11 @@ def construct_dataloader(
         _dataloader_params["batch_size"] = per_device_batch_size
 
     if sample_pairs:
-        if not torch.cuda.device_count() > 1:
+        if not torch.cuda.device_count() > 1 and platform.system() != "Windows":
             collator = utils.pair_collate(collator)
 
         # Can't wrap functions in distributed runs due to pickling error.
+        # This also seems to occur on Windows systems, even when not multiprocessing?
         # Therefore, the collator is set to `stack_sample_pairs` automatically.
         else:  # pragma: no cover
             collator = stack_sample_pairs

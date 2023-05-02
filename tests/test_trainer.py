@@ -6,10 +6,9 @@ from pathlib import Path
 import pytest
 import torch
 
-from minerva.models import MinervaOnnxModel
+from minerva.models import MinervaModel, MinervaOnnxModel
 from minerva.trainer import Trainer
-from minerva.utils import config_load, runner
-from minerva.utils.utils import CONFIG
+from minerva.utils import CONFIG, config_load, runner, utils
 
 
 def run_trainer(gpu: int, args: argparse.Namespace):
@@ -69,10 +68,16 @@ def test_trainer_2() -> None:
     with pytest.raises(ValueError):
         trainer1.save_model(format="unkown")
 
-    trainer1.save_model(fn=trainer1.get_model_cache_path(), format="onnx")
+    suffix = "onnx"
+    try:
+        utils._optional_import("onnx2torch", package="onnx2torch")
+    except ValueError:
+        suffix = "pt"
+
+    trainer1.save_model(fn=trainer1.get_model_cache_path(), format=suffix)
 
     params2 = CONFIG.copy()
-    params2["pre_train_name"] = f"{params1['model_name'].split('-')[0]}.onnx"
+    params2["pre_train_name"] = f"{params1['model_name'].split('-')[0]}.{suffix}"
     params2["sample_pairs"] = "false"
     params2["plot_last_epoch"] = False
     params2["wandb_log"] = False
@@ -80,7 +85,10 @@ def test_trainer_2() -> None:
     params2["max_epochs"] = 2
 
     trainer2 = Trainer(0, **params2)
-    assert isinstance(trainer2.model, MinervaOnnxModel)
+    if suffix == "onnx":
+        assert isinstance(trainer2.model, MinervaOnnxModel)
+    else:
+        assert isinstance(trainer2.model, MinervaModel)
 
     trainer2.fit()
     trainer2.test()

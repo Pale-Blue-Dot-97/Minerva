@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -21,6 +27,8 @@
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
+from __future__ import annotations
+
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU LGPLv3"
@@ -33,7 +41,17 @@ __all__ = ["Trainer"]
 import os
 from contextlib import nullcontext
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import pandas as pd
 import torch
@@ -43,12 +61,14 @@ import yaml
 from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
-from onnx2torch import convert
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
-from torch.utils.tensorboard.writer import SummaryWriter
+
+if TYPE_CHECKING:  # pragma: no cover
+    from torch.utils.tensorboard.writer import SummaryWriter
+
 from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
@@ -72,6 +92,18 @@ from minerva.utils import AUX_CONFIGS, universal_path, utils, visutils
 # =====================================================================================================================
 # Default time till timeout waiting for a user input in seconds.
 _timeout = 30
+_tensorflow_exist = utils.check_optional_import_exist("tensorflow")
+TENSORBOARD_WRITER: Optional[Callable[..., Any]]
+try:
+    TENSORBOARD_WRITER = utils._optional_import(
+        "torch.utils.tensorboard.writer",
+        name="SummaryWriter",
+        package="tensorflow",
+    )
+except ImportError as err:  # pragma: no cover
+    print(err)
+    print("Disabling TensorBoard logging")
+    TENSORBOARD_WRITER = None
 
 
 # =====================================================================================================================
@@ -284,8 +316,13 @@ class Trainer:
             self.writer = wandb_run
             self.init_wandb_metrics()
         else:
-            # Initialise TensorBoard logger
-            self.writer = SummaryWriter(results_dir)
+            if _tensorflow_exist:
+                assert TENSORBOARD_WRITER
+
+                # Initialise TensorBoard logger.
+                self.writer = TENSORBOARD_WRITER(results_dir)
+            else:  # pragma: no cover
+                self.writer = None
 
         self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
@@ -344,20 +381,26 @@ class Trainer:
                 # Print model summary.
                 summary(self.model, input_size=input_size)
 
-            if (
-                torch.cuda.device_count() == 1 or self.device == torch.device("cpu")
-            ) and isinstance(
-                self.writer, SummaryWriter
-            ):  # type: ignore[attr-defined]
-                # Adds a graphical layout of the model to the TensorBoard logger.
-                try:
-                    self.writer.add_graph(
-                        self.model,
-                        input_to_model=torch.rand(*input_size, device=self.device),
+            if _tensorflow_exist:
+                if (
+                    (
+                        torch.cuda.device_count() == 1
+                        or self.device == torch.device("cpu")
                     )
-                except RuntimeError as err:  # pragma: no cover
-                    print(err)
-                    print("ABORT adding graph to writer")
+                    and isinstance(
+                        self.writer, utils.extract_class_type(TENSORBOARD_WRITER)
+                    )
+                    and self.writer
+                ):
+                    # Adds a graphical layout of the model to the TensorBoard logger.
+                    try:
+                        self.writer.add_graph(  # type: ignore[attr-defined]
+                            self.model,
+                            input_to_model=torch.rand(*input_size, device=self.device),
+                        )
+                    except RuntimeError as err:  # pragma: no cover
+                        print(err)
+                        print("ABORT adding graph to writer")
 
         # If writer is `wandb`, `watch` the model to log gradients.
         if isinstance(self.writer, Run):
@@ -467,9 +510,20 @@ class Trainer:
         Returns:
             MinervaModel: Loaded model ready for use.
         """
+        onnx_load = utils._optional_import(
+            "onnx",
+            name="load",
+            package="onnx",
+        )
+        convert = utils._optional_import(
+            "onnx2torch",
+            name="convert",
+            package="onnx2torch",
+        )
+
         model_params = self.params["model_params"].get("params", {})
 
-        onnx_model = convert(f"{self.get_weights_path()}.onnx")
+        onnx_model = convert(onnx_load(f"{self.get_weights_path()}.onnx"))
         model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
         assert isinstance(model, MinervaModel)
         return model
@@ -1088,10 +1142,14 @@ class Trainer:
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
-        if isinstance(self.writer, SummaryWriter):
-            # Ensure the TensorBoard logger is closed.
-            self.writer.close()
-        elif isinstance(self.writer, Run):
+        if _tensorflow_exist:
+            if (
+                isinstance(self.writer, utils.extract_class_type(TENSORBOARD_WRITER))
+                and self.writer
+            ):
+                # Ensure the TensorBoard logger is closed.
+                self.writer.close()  # type: ignore[attr-defined]
+        if isinstance(self.writer, Run):
             # Ensures all the `wandb` runs finish and sync.
             self.writer.finish()
 

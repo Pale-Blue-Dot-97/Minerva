@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -376,6 +382,10 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
                 "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.",
                 "\nOr if not using wandb, safely ignore this message.",
             )
+            CONFIG["wandb_log"] = False
+        except wandb.errors.Error as err:  # type: ignore[attr-defined]  # pragma: no cover
+            print(err)
+            CONFIG["wandb_log"] = False
     else:
         print("Weights and Biases logging OFF")
 
@@ -407,7 +417,7 @@ def config_env_vars(args: Namespace) -> Namespace:
     if "SLURM_JOB_ID" in os.environ:  # pragma: no cover
         # Single-node and multi-node distributed training on SLURM cluster.
         # Requeue job on SLURM preemption.
-        signal.signal(signal.SIGUSR1, _handle_sigusr1)
+        signal.signal(signal.SIGUSR1, _handle_sigusr1)  # type: ignore[attr-defined]
         signal.signal(signal.SIGTERM, _handle_sigterm)
 
         # Get SLURM variables.

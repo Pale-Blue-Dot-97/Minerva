@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -56,6 +62,8 @@ __all__ = [
     "dublicator",
     "tg_to_torch",
     "pair_return",
+    "check_optional_import_exist",
+    "extract_class_type",
     "is_notebook",
     "get_cuda_device",
     "set_seeds",
@@ -107,6 +115,7 @@ __all__ = [
 import cmath
 import functools
 import importlib
+import inspect
 import math
 import os
 import random
@@ -117,6 +126,7 @@ import webbrowser
 from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
+from types import ModuleType
 from typing import Any, Callable
 from typing import Counter as CounterType
 from typing import (
@@ -380,7 +390,7 @@ def pair_return(cls):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def print_banner(print_func: Callable[..., None] = print) -> None:
+def _print_banner(print_func: Callable[..., None] = print) -> None:
     """Prints the :mod:`minerva` banner to ``stdout``.
 
     Args:
@@ -395,6 +405,108 @@ def print_banner(print_func: Callable[..., None] = print) -> None:
             print_func(f.read())
     else:  # pragma: no cover
         raise FileNotFoundError("Cannot find the banner.txt file")
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: None,
+    package: str,
+) -> ModuleType:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: str,
+    package: str,
+) -> Callable[..., Any]:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: None,
+    package: None,
+) -> ModuleType:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: str,
+    package: None,
+) -> Callable[..., Any]:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    name: str,
+) -> Callable[..., Any]:
+    ...  # pragma: no cover
+
+
+@overload
+def _optional_import(
+    module: str,
+    *,
+    package: str,
+) -> ModuleType:
+    ...  # pragma: no cover
+
+
+def _optional_import(
+    module: str, *, name: Optional[str] = None, package: Optional[str] = None
+) -> Union[ModuleType, Callable[..., Any]]:
+    try:
+        _module: ModuleType = importlib.import_module(module)
+        return _module if name is None else getattr(_module, name)
+    except (ImportError, AttributeError) as e:  # pragma: no cover
+        if package is None:
+            package = module
+        msg = f"install the '{package}' package to make use of this feature"
+        raise ImportError(msg) from e
+
+
+def check_optional_import_exist(package: str) -> bool:
+    """Checks if a package is installed. Useful for optional dependencies.
+
+    Args:
+        package (str): Name of the package to check if installed.
+
+    Returns:
+        bool: ``True`` if package installed, ``False`` if not.
+    """
+    try:
+        _ = importlib.metadata.version(package)
+        return True
+    except ImportError:  # pragma: no cover
+        return False
+
+
+def extract_class_type(var: Any) -> type:
+    """Ensures that a class type is returned from a variable whether it is one already or not.
+
+    Args:
+        var (Any): Variable to get class type from. May already be a class type.
+
+    Returns:
+        type: Class type of ``var``.
+    """
+    if inspect.isclass(var):
+        return var
+    else:
+        return type(var)
 
 
 def is_notebook() -> bool:

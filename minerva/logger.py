@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -21,6 +27,8 @@
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
+from __future__ import annotations
+
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "GNU LGPLv3"
@@ -38,18 +46,46 @@ __all__ = [
 import abc
 import math
 from abc import ABC
-from typing import Any, Dict, Optional, SupportsFloat, Tuple, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    Dict,
+    Optional,
+    SupportsFloat,
+    Tuple,
+    Union,
+)
 
 import mlflow
 import numpy as np
 import torch
 from sklearn.metrics import jaccard_score
 from torch import Tensor
-from torch.utils.tensorboard.writer import SummaryWriter
+
+if TYPE_CHECKING:  # pragma: no cover
+    from torch.utils.tensorboard.writer import SummaryWriter
+
 from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
 from minerva.utils import utils
+
+# =====================================================================================================================
+#                                                     GLOBALS
+# =====================================================================================================================
+_tensorflow_exist = utils.check_optional_import_exist("tensorflow")
+TENSORBOARD_WRITER: Optional[Callable[..., Any]]
+try:
+    TENSORBOARD_WRITER = utils._optional_import(
+        "torch.utils.tensorboard.writer",
+        name="SummaryWriter",
+        package="tensorflow",
+    )
+except ImportError as err:  # pragma: no cover
+    print(err)
+    print("Disabling TensorBoard logging")
+    TENSORBOARD_WRITER = None
 
 
 # =====================================================================================================================
@@ -158,13 +194,19 @@ class MinervaLogger(ABC):
         """
         # TODO: Are values being reduced across nodes / logged from rank 0?
         if self.writer:
-            if isinstance(self.writer, SummaryWriter):
-                self.writer.add_scalar(
-                    tag=f"{mode}_{key}",
-                    scalar_value=value,  # type: ignore[attr-defined]
-                    global_step=step_num,
-                )
-            elif isinstance(self.writer, Run):
+            if _tensorflow_exist:
+                if (
+                    isinstance(
+                        self.writer, utils.extract_class_type(TENSORBOARD_WRITER)
+                    )
+                    and self.writer
+                ):
+                    self.writer.add_scalar(  # type: ignore[attr-defined]
+                        tag=f"{mode}_{key}",
+                        scalar_value=value,  # type: ignore[attr-defined]
+                        global_step=step_num,
+                    )
+            if isinstance(self.writer, Run):
                 self.writer.log({f"{mode}/step": step_num, f"{mode}/{key}": value})
 
         if mlflow.active_run():

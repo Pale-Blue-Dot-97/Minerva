@@ -759,6 +759,9 @@
             "version": "==1.3.3"
         },
         "fsspec": {
+            "extras": [
+                "http"
+            ],
             "hashes": [
                 "sha256:bf064186cd8808f0b2f6517273339ba0a0c8fb1b7048991c28bc67f58b8b67cd",
                 "sha256:f398de9b49b14e9d84d2c2d11b7b67121bc072fe97b930c4e5668ac3917d8307"
@@ -2630,14 +2633,6 @@
             ],
             "markers": "python_version < '3.12' and python_version >= '3.8'",
             "version": "==1.10.1"
-        },
-        "seaborn": {
-            "hashes": [
-                "sha256:374645f36509d0dcab895cba5b47daf0586f77bfe3b36c97c607db7da5be0139",
-                "sha256:ebf15355a4dba46037dfd65b7350f014ceb1f13c05e814eda2c9f5fd731afc08"
-            ],
-            "index": "pypi",
-            "version": "==0.12.2"
         },
         "segmentation-models-pytorch": {
             "hashes": [
