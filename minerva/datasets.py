@@ -249,49 +249,15 @@ class PairedUnionDataset(UnionDataset):
         and cause a :class:`TypeError`.
     """
 
-    def __init__(
-        self,
-        dataset1: GeoDataset,
-        dataset2: GeoDataset,
-        collate_fn: Callable[
-            [Sequence[dict[str, Any]]], dict[str, Any]
-        ] = merge_samples,
-        transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
-    ) -> None:
-        super().__init__(transforms)
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
 
-        if isinstance(dataset1, PairedDataset):
-            dataset1 = dataset1.dataset
+        new_datasets = []
+        for _dataset in self.datasets:
+            if isinstance(_dataset, PairedDataset):
+                new_datasets.append(_dataset.dataset)
 
-        if isinstance(dataset2, PairedDataset):
-            dataset2 = dataset2.dataset
-
-        self.datasets = [dataset1, dataset2]
-        self.collate_fn = collate_fn
-
-        for ds in self.datasets:
-            if not isinstance(ds, GeoDataset):
-                raise ValueError("UnionDataset only supports GeoDatasets")
-
-        self._crs = dataset1.crs
-        self.res = dataset1.res
-
-        # Force dataset2 to have the same CRS/res as dataset1
-        if dataset1.crs != dataset2.crs:
-            print(
-                f"Converting {dataset2.__class__.__name__} CRS from "
-                f"{dataset2.crs} to {dataset1.crs}"
-            )
-            dataset2.crs = dataset1.crs
-        if dataset1.res != dataset2.res:
-            print(
-                f"Converting {dataset2.__class__.__name__} resolution from "
-                f"{dataset2.res} to {dataset1.res}"
-            )
-            dataset2.res = dataset1.res
-
-        # Merge dataset indices into a single index
-        self._merge_dataset_indices()
+        self.datasets = new_datasets
 
     def __getitem__(
         self, query: Tuple[BoundingBox, BoundingBox]
@@ -406,9 +372,7 @@ def unionise_datasets(
 
     def unionise_pair_datasets(a: GeoDataset, b: GeoDataset) -> UnionDataset:
         if sample_pairs:
-            return PairedUnionDataset(
-                a, b, collate_fn=utils.pair_collate(concat_samples)
-            )
+            return PairedUnionDataset(a, b)
         else:
             return a | b
 
