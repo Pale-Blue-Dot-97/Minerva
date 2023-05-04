@@ -413,7 +413,9 @@ def unionise_datasets(
 
     def unionise_pair_datasets(a: GeoDataset, b: GeoDataset) -> UnionDataset:
         if sample_pairs:
-            return UnionDataset(a, b, collate_fn=utils.pair_collate(concat_samples))
+            return PairedUnionDataset(
+                a, b, collate_fn=utils.pair_collate(concat_samples)
+            )
         else:
             return a | b
 
