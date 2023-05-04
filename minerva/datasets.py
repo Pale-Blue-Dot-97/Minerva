@@ -242,6 +242,36 @@ class PairedDataset(RasterDataset):
         return self.plot(sample, show_titles, suptitle)
 
 
+class PairedUnionDataset(UnionDataset):
+    """Adapted form of :class:`~torchgeo.datasets.UnionDataset` to handle paired samples.
+
+    ..warning::
+
+        Do not use with :class:`PairedDataset` as this will essentially account for paired sampling twice
+        and cause a :class:`TypeError`.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def __getitem__(
+        self, query: Tuple[BoundingBox, BoundingBox]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Retrieve image and metadata indexed by query.
+
+        Uses :meth:`torchgeo.datasets.UnionDataset.__getitem__` to send each query of the pair off to get a
+        sample for each and returns as a tuple.
+
+        Args:
+            query (tuple[~torchgeo.datasets.utils.BoundingBox, ~torchgeo.datasets.utils.BoundingBox]): Coordinates
+                to index in the form (minx, maxx, miny, maxy, mint, maxt).
+
+        Returns:
+            tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]: Sample of data/labels and metadata at that index.
+        """
+        return super().__getitem__(query[0]), super().__getitem__(query[1])
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
