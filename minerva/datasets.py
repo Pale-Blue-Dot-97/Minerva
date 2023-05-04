@@ -85,7 +85,12 @@ from torchgeo.datasets import (
     RasterDataset,
     UnionDataset,
 )
-from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
+from torchgeo.datasets.utils import (
+    BoundingBox,
+    concat_samples,
+    merge_samples,
+    stack_samples,
+)
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import get_random_bounding_box
 from torchvision.transforms import RandomApply
@@ -244,8 +249,49 @@ class PairedUnionDataset(UnionDataset):
         and cause a :class:`TypeError`.
     """
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        dataset1: GeoDataset,
+        dataset2: GeoDataset,
+        collate_fn: Callable[
+            [Sequence[dict[str, Any]]], dict[str, Any]
+        ] = merge_samples,
+        transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+    ) -> None:
+        super().__init__(transforms)
+
+        if isinstance(dataset1, PairedDataset):
+            dataset1 = dataset1.dataset
+
+        if isinstance(dataset2, PairedDataset):
+            dataset2 = dataset2.dataset
+
+        self.datasets = [dataset1, dataset2]
+        self.collate_fn = collate_fn
+
+        for ds in self.datasets:
+            if not isinstance(ds, GeoDataset):
+                raise ValueError("UnionDataset only supports GeoDatasets")
+
+        self._crs = dataset1.crs
+        self.res = dataset1.res
+
+        # Force dataset2 to have the same CRS/res as dataset1
+        if dataset1.crs != dataset2.crs:
+            print(
+                f"Converting {dataset2.__class__.__name__} CRS from "
+                f"{dataset2.crs} to {dataset1.crs}"
+            )
+            dataset2.crs = dataset1.crs
+        if dataset1.res != dataset2.res:
+            print(
+                f"Converting {dataset2.__class__.__name__} resolution from "
+                f"{dataset2.res} to {dataset1.res}"
+            )
+            dataset2.res = dataset1.res
+
+        # Merge dataset indices into a single index
+        self._merge_dataset_indices()
 
     def __getitem__(
         self, query: Tuple[BoundingBox, BoundingBox]
