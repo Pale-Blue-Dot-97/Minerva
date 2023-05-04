@@ -32,6 +32,7 @@ __license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "PairedDataset",
+    "PairedUnionDataset",
     "construct_dataloader",
     "get_collator",
     "get_manifest",
@@ -235,6 +236,43 @@ class PairedDataset(RasterDataset):
         return self.plot(sample, show_titles, suptitle)
 
 
+class PairedUnionDataset(UnionDataset):
+    """Adapted form of :class:`~torchgeo.datasets.UnionDataset` to handle paired samples.
+
+    ..warning::
+
+        Do not use with :class:`PairedDataset` as this will essentially account for paired sampling twice
+        and cause a :class:`TypeError`.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        new_datasets = []
+        for _dataset in self.datasets:
+            if isinstance(_dataset, PairedDataset):
+                new_datasets.append(_dataset.dataset)
+
+        self.datasets = new_datasets
+
+    def __getitem__(
+        self, query: Tuple[BoundingBox, BoundingBox]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Retrieve image and metadata indexed by query.
+
+        Uses :meth:`torchgeo.datasets.UnionDataset.__getitem__` to send each query of the pair off to get a
+        sample for each and returns as a tuple.
+
+        Args:
+            query (tuple[~torchgeo.datasets.utils.BoundingBox, ~torchgeo.datasets.utils.BoundingBox]): Coordinates
+                to index in the form (minx, maxx, miny, maxy, mint, maxt).
+
+        Returns:
+            tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]: Sample of data/labels and metadata at that index.
+        """
+        return super().__getitem__(query[0]), super().__getitem__(query[1])
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
@@ -330,7 +368,7 @@ def unionise_datasets(
 
     def unionise_pair_datasets(a: GeoDataset, b: GeoDataset) -> UnionDataset:
         if sample_pairs:
-            return UnionDataset(a, b, collate_fn=utils.pair_collate(concat_samples))
+            return PairedUnionDataset(a, b)
         else:
             return a | b
 
