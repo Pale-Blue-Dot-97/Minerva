@@ -38,6 +38,7 @@ __license__ = "GNU LGPLv3"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "PairedDataset",
+    "PairedUnionDataset",
     "construct_dataloader",
     "get_collator",
     "get_manifest",
@@ -92,12 +93,7 @@ from torchgeo.datasets import (
     RasterDataset,
     UnionDataset,
 )
-from torchgeo.datasets.utils import (
-    BoundingBox,
-    concat_samples,
-    merge_samples,
-    stack_samples,
-)
+from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import get_random_bounding_box
 from torchvision.transforms import RandomApply
