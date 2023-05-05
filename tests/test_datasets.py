@@ -93,9 +93,10 @@ def test_paired_union_datasets() -> None:
     dataset1 = TstImgDataset(img_root)
     dataset2 = TstImgDataset(img_root)
     dataset3 = PairedDataset(TstImgDataset, img_root)
+    dataset4 = PairedDataset(TstImgDataset, img_root)
 
     union_dataset1 = PairedUnionDataset(dataset1, dataset2)
-    union_dataset2 = PairedUnionDataset(dataset1, dataset3)
+    union_dataset2 = dataset3 | dataset4
 
     for dataset in (union_dataset1, union_dataset2):
         dataset_test(dataset)
