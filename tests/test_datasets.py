@@ -57,6 +57,13 @@ def test_tinydataset() -> None:
 
 def test_paired_dataset() -> None:
     dataset = PairedDataset(TstImgDataset, img_root)
+    dataset2 = TstImgDataset(img_root)
+
+    with pytest.raises(
+        ValueError,
+        match=f"Intersecting a dataset of {type(dataset2)} and a PairedDataset is not supported!",
+    ):
+        _ = dataset & dataset2
 
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -94,6 +101,12 @@ def test_paired_union_datasets() -> None:
     dataset2 = TstImgDataset(img_root)
     dataset3 = PairedDataset(TstImgDataset, img_root)
     dataset4 = PairedDataset(TstImgDataset, img_root)
+
+    with pytest.raises(
+        ValueError,
+        match=f"Unionising a dataset of {type(dataset2)} and a PairedDataset is not supported!",
+    ):
+        _ = dataset3 | dataset2
 
     union_dataset1 = PairedUnionDataset(dataset1, dataset2)
     union_dataset2 = dataset3 | dataset4
