@@ -443,11 +443,10 @@ def make_dataset(
         )
 
         # Construct the root to the sub-dataset's files.
-        sub_dataset_root = str(
-            universal_path(data_directory) / sub_dataset_params["root"]
-        )
+        sub_dataset_root: Path = universal_path(data_directory) / sub_dataset_params["root"]
+        sub_dataset_root = sub_dataset_root.absolute()
 
-        return _sub_dataset, sub_dataset_root
+        return _sub_dataset, str(sub_dataset_root)
 
     def create_transforms(
         this_transform_params: Any, key: str, data_type_key: Optional[str] = None
