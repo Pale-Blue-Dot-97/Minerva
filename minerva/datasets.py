@@ -363,35 +363,21 @@ def stack_sample_pairs(
     return stack_samples(a), stack_samples(b)
 
 
-def intersect_datasets(
-    datasets: Sequence[GeoDataset], sample_pairs: bool = False
-) -> IntersectionDataset:
+def intersect_datasets(datasets: Sequence[GeoDataset]) -> IntersectionDataset:
     r"""
     Intersects a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
     Args:
         datasets (list[~torchgeo.datasets.GeoDataset]): List of datasets to intersect together.
             Should have some geospatial overlap.
-        sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function
-            for paired samples.
 
     Returns:
         ~torchgeo.datasets.IntersectionDataset: Final dataset object representing an intersection
         of all the parsed datasets.
     """
-
-    # def intersect_pair_datasets(a: GeoDataset, b: GeoDataset) -> IntersectionDataset:
-    #     if sample_pairs:
-    #         return IntersectionDataset(
-    #             a, b, collate_fn=utils.pair_collate(concat_samples)
-    #         )
-    #     else:
-    #         return a & b
-
     master_dataset: Union[GeoDataset, IntersectionDataset] = datasets[0]
 
     for i in range(len(datasets) - 1):
-        # master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
         master_dataset = master_dataset & datasets[i + 1]
 
     assert isinstance(master_dataset, IntersectionDataset)
@@ -564,7 +550,7 @@ def make_dataset(
     # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
-        dataset = intersect_datasets(sub_datasets, sample_pairs=sample_pairs)
+        dataset = intersect_datasets(sub_datasets)
 
     return dataset, sub_datasets
 
