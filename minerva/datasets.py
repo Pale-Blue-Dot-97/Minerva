@@ -160,18 +160,49 @@ class PairedDataset(RasterDataset):
             queries[1]
         )
 
-    def __or__(self, other: GeoDataset) -> "PairedUnionDataset":
-        """Take the union of two GeoDatasets, extended for :class:`PairedDataset`.
+    def __and__(self, other: "PairedDataset") -> IntersectionDataset:
+        """Take the intersection of two :class:`PairedDataset`.
 
         Args:
-            other (~torchgeo.datasets.GeoDataset): Another dataset.
+            other (PairedDataset): Another dataset.
+
+        Returns:
+            IntersectionDataset: A single dataset.
+
+        Raises:
+            ValueError: If other is not a :class:`PairedDataset`
+
+        .. versionadded:: 0.24
+        """
+        print("paired intersect")
+        if not isinstance(other, PairedDataset):
+            raise ValueError(
+                f"Intersecting a dataset of {type(other)} and a PairedDataset is not supported!"
+            )
+
+        return IntersectionDataset(
+            self, other, collate_fn=utils.pair_collate(concat_samples)
+        )
+
+    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":
+        """Take the union of two :class:`PairedDataset`.
+
+        Args:
+            other (PairedDataset): Another dataset.
 
         Returns:
             PairedUnionDataset: A single dataset.
 
         Raises:
-            ValueError: If ``other`` is not a :class:`GeoDataset`
+            ValueError: If ``other`` is not a :class:`PairedDataset`
+
+        .. versionadded:: 0.24
         """
+        if not isinstance(other, PairedDataset):
+            raise ValueError(
+                f"Unionising a dataset of {type(other)} and a PairedDataset is not supported!"
+            )
+
         return PairedUnionDataset(self, other)
 
     def __getattr__(self, item):
@@ -349,18 +380,19 @@ def intersect_datasets(
         of all the parsed datasets.
     """
 
-    def intersect_pair_datasets(a: GeoDataset, b: GeoDataset) -> IntersectionDataset:
-        if sample_pairs:
-            return IntersectionDataset(
-                a, b, collate_fn=utils.pair_collate(concat_samples)
-            )
-        else:
-            return a & b
+    # def intersect_pair_datasets(a: GeoDataset, b: GeoDataset) -> IntersectionDataset:
+    #     if sample_pairs:
+    #         return IntersectionDataset(
+    #             a, b, collate_fn=utils.pair_collate(concat_samples)
+    #         )
+    #     else:
+    #         return a & b
 
     master_dataset: Union[GeoDataset, IntersectionDataset] = datasets[0]
 
     for i in range(len(datasets) - 1):
-        master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
+        # master_dataset = intersect_pair_datasets(master_dataset, datasets[i + 1])
+        master_dataset = master_dataset & datasets[i + 1]
 
     assert isinstance(master_dataset, IntersectionDataset)
     return master_dataset
@@ -519,7 +551,7 @@ def make_dataset(
                 )
 
         if multi_datasets_exist:
-            sub_datasets.append(unionise_datasets(type_subdatasets, sample_pairs))
+            sub_datasets.append(unionise_datasets(type_subdatasets))
         else:
             sub_datasets.append(
                 create_subdataset(
