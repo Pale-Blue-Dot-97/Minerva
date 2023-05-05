@@ -164,10 +164,7 @@ def test_intersect_datasets() -> None:
     imagery = PairedDataset(TstImgDataset, img_root)
     labels = PairedDataset(TstMaskDataset, lc_root)
 
-    assert isinstance(
-        mdt.intersect_datasets([imagery, labels], sample_pairs=True),
-        IntersectionDataset,
-    )
+    assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
 
 
 def test_make_dataset() -> None:
