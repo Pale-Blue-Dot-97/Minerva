@@ -167,6 +167,20 @@ class PairedDataset(RasterDataset):
             queries[1]
         )
 
+    def __or__(self, other: GeoDataset) -> "PairedUnionDataset":
+        """Take the union of two GeoDatasets, extended for :class:`PairedDataset`.
+
+        Args:
+            other (~torchgeo.datasets.GeoDataset): Another dataset.
+
+        Returns:
+            PairedUnionDataset: A single dataset.
+
+        Raises:
+            ValueError: If ``other`` is not a :class:`GeoDataset`
+        """
+        return PairedUnionDataset(self, other)
+
     def __getattr__(self, item):
         if item in self.dataset.__dict__:
             return getattr(self.dataset, item)  # pragma: no cover
@@ -359,30 +373,19 @@ def intersect_datasets(
     return master_dataset
 
 
-def unionise_datasets(
-    datasets: Sequence[GeoDataset], sample_pairs: bool = False
-) -> UnionDataset:
+def unionise_datasets(datasets: Sequence[GeoDataset]) -> UnionDataset:
     """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
     Args:
         datasets (list[~torchgeo.datasets.GeoDataset]): List of datasets to unionise together.
-        sample_pairs (bool): Optional; Activates paired sampling.
-            This will wrap the collation function for paired samples.
 
     Returns:
         ~torchgeo.datasets.UnionDataset: Final dataset object representing an union of all the parsed datasets.
     """
-
-    def unionise_pair_datasets(a: GeoDataset, b: GeoDataset) -> UnionDataset:
-        if sample_pairs:
-            return PairedUnionDataset(a, b)
-        else:
-            return a | b
-
     master_dataset: Union[GeoDataset, UnionDataset] = datasets[0]
 
     for i in range(len(datasets) - 1):
-        master_dataset = unionise_pair_datasets(master_dataset, datasets[i + 1])
+        master_dataset = master_dataset | datasets[i + 1]
 
     assert isinstance(master_dataset, UnionDataset)
     return master_dataset
