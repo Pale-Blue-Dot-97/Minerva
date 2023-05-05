@@ -191,7 +191,7 @@ def test_seg_plot(data_root, default_dataset: GeoDataset, monkeypatch) -> None:
     ids = []
 
     for i in range(n_batches):
-        ids.append([f"{i}.{j}" for j in range(batch_size)])
+        ids.append([f"{i}-{j}" for j in range(batch_size)])
 
     bboxes = [bbox] * int(n_batches * batch_size)
 
