@@ -713,7 +713,7 @@ def prediction_plot(
         fn_prefix = str(path / f"{exp_id}_{utils.timestamp_now()}_Mask")
 
     # Path and file name of figure.
-    fn = f"{fn_prefix}_{sample_id}.png"
+    fn = Path(f"{fn_prefix}_{sample_id}.png").absolute()
 
     # If true, save file to fn.
     if save:
