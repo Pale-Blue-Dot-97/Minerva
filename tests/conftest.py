@@ -26,6 +26,9 @@ def set_seeds():
 @pytest.fixture(scope="session", autouse=True)
 def results_dir():
     path = Path(__file__).parent / "tmp" / "results"
+    if not path.exists():
+        path.mkdir(parents=True)
+
     yield path
     if path.exists():
         shutil.rmtree(path, ignore_errors=True)
@@ -152,6 +155,7 @@ def simple_bbox():
 
 @pytest.fixture
 def default_dataset() -> GeoDataset:
+    print(os.getcwd())
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
     assert isinstance(dataset, GeoDataset)
     return dataset
