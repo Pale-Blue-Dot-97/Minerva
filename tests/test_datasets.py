@@ -16,7 +16,12 @@ from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 
 from minerva import datasets as mdt
-from minerva.datasets import PairedDataset, TstImgDataset, TstMaskDataset
+from minerva.datasets import (
+    PairedDataset,
+    PairedUnionDataset,
+    TstImgDataset,
+    TstMaskDataset,
+)
 from minerva.utils.utils import CONFIG
 
 data_root = Path("tests", "tmp")
@@ -50,8 +55,15 @@ def test_tinydataset() -> None:
     assert isinstance(dataset, IntersectionDataset)
 
 
-def test_paired_datasets() -> None:
+def test_paired_dataset() -> None:
     dataset = PairedDataset(TstImgDataset, img_root)
+    dataset2 = TstImgDataset(img_root)
+
+    with pytest.raises(
+        ValueError,
+        match=f"Intersecting a dataset of {type(dataset2)} and a PairedDataset is not supported!",
+    ):
+        _ = dataset & dataset2
 
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -74,6 +86,33 @@ def test_paired_datasets() -> None:
     assert isinstance(
         dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure
     )
+
+
+def test_paired_union_datasets() -> None:
+    def dataset_test(_dataset) -> None:
+        query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
+        query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
+        sample_1, sample_2 = _dataset[(query_1, query_2)]
+
+        assert type(sample_1) == dict
+        assert type(sample_2) == dict
+
+    dataset1 = TstImgDataset(img_root)
+    dataset2 = TstImgDataset(img_root)
+    dataset3 = PairedDataset(TstImgDataset, img_root)
+    dataset4 = PairedDataset(TstImgDataset, img_root)
+
+    with pytest.raises(
+        ValueError,
+        match=f"Unionising a dataset of {type(dataset2)} and a PairedDataset is not supported!",
+    ):
+        _ = dataset3 | dataset2
+
+    union_dataset1 = PairedUnionDataset(dataset1, dataset2)
+    union_dataset2 = dataset3 | dataset4
+
+    for dataset in (union_dataset1, union_dataset2):
+        dataset_test(dataset)
 
 
 def test_get_collator() -> None:
@@ -125,10 +164,7 @@ def test_intersect_datasets() -> None:
     imagery = PairedDataset(TstImgDataset, img_root)
     labels = PairedDataset(TstMaskDataset, lc_root)
 
-    assert isinstance(
-        mdt.intersect_datasets([imagery, labels], sample_pairs=True),
-        IntersectionDataset,
-    )
+    assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
 
 
 def test_make_dataset() -> None:
