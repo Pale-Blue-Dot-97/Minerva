@@ -33,6 +33,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
+import shlex
 import subprocess
 import sys
 from typing import Any, Dict
@@ -54,7 +55,8 @@ def main(config_path: str):
 
         try:
             exit_code = subprocess.Popen(  # nosec B607
-                ["python", "MinervaExp.py", "-c", config[key]]
+                shlex.split(f"python MinervaExp.py -c {config[key]}"),
+                shell=True,
             ).wait()
 
             if exit_code != 0:
