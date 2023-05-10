@@ -45,15 +45,11 @@ from minerva.samplers import (
     get_greater_bbox,
 )
 
-data_root = Path("tests", "tmp")
-img_root = str(data_root / "data" / "test_images")
-lc_root = str(data_root / "data" / "test_lc")
-
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_randompairgeosampler() -> None:
+def test_randompairgeosampler(img_root: Path) -> None:
     dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
 
     sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
@@ -69,7 +65,7 @@ def test_randompairgeosampler() -> None:
     assert len(batch[1]["image"]) == 8
 
 
-def test_randompairbatchgeosampler() -> None:
+def test_randompairbatchgeosampler(img_root: Path) -> None:
     dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
 
     sampler = RandomPairBatchGeoSampler(
@@ -96,6 +92,6 @@ def test_randompairbatchgeosampler() -> None:
         )
 
 
-def test_get_greater_bbox(simple_bbox) -> None:
+def test_get_greater_bbox(simple_bbox: BoundingBox) -> None:
     new_bbox = get_greater_bbox(simple_bbox, 1.0, 1.0)
     assert new_bbox == BoundingBox(-1.0, 2.0, -1.0, 2.0, 0.0, 1.0)

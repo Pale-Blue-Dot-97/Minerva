@@ -58,10 +58,6 @@ from minerva.utils.utils import CONFIG
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-data_root = Path("tests", "tmp")
-img_root = str(data_root / "data" / "test_images")
-lc_root = str(data_root / "data" / "test_lc")
-
 bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
 
 
@@ -82,7 +78,7 @@ def test_make_bounding_box() -> None:
         _ = mdt.make_bounding_box(True)
 
 
-def test_tinydataset() -> None:
+def test_tinydataset(img_root: Path, lc_root: Path) -> None:
     """Source of TIFF: https://github.com/mommermi/geotiff_sample"""
 
     imagery = TstImgDataset(img_root)
@@ -92,7 +88,7 @@ def test_tinydataset() -> None:
     assert isinstance(dataset, IntersectionDataset)
 
 
-def test_paired_dataset() -> None:
+def test_paired_datasets(img_root: Path) -> None:
     dataset = PairedDataset(TstImgDataset, img_root)
     dataset2 = TstImgDataset(img_root)
 
@@ -197,7 +193,7 @@ def test_stack_sample_pairs() -> None:
             assert_array_equal(stacked_samples_2[key][i], sample_2[key])
 
 
-def test_intersect_datasets() -> None:
+def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
     imagery = PairedDataset(TstImgDataset, img_root)
     labels = PairedDataset(TstMaskDataset, lc_root)
 
