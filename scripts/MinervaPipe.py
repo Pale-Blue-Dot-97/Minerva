@@ -25,7 +25,7 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 
@@ -54,7 +54,7 @@ def main(config_path: str):
         )
 
         try:
-            exit_code = subprocess.Popen(  # nosec B607
+            exit_code = subprocess.Popen(  # nosec B607, B602
                 shlex.split(f"python MinervaExp.py -c {config[key]}"),
                 shell=True,
             ).wait()

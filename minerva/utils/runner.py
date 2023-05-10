@@ -35,7 +35,7 @@ Attributes:
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU LGPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "GENERIC_PARSER",
@@ -51,8 +51,8 @@ __all__ = [
 # =====================================================================================================================
 import argparse
 import os
-import signal
 import shlex
+import signal
 import subprocess
 from argparse import Namespace
 from typing import Any, Callable, Optional, Union

@@ -105,7 +105,7 @@ Don't forget to give the project a star! Thanks again!
 
 ## License 🔏
 
-Minerva is distributed under a [GNU LGPLv3 License](https://choosealicense.com/licenses/lgpl-3.0/).
+Minerva is distributed under a [MIT License](https://choosealicense.com/licenses/mit/).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

@@ -47,7 +47,7 @@ Attributes:
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU LGPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "IMAGERY_CONFIG_PATH",
@@ -121,12 +121,12 @@ import os
 import random
 import re as regex
 import shlex
-from subprocess import Popen
 import sys
 import webbrowser
 from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
+from subprocess import Popen
 from types import ModuleType
 from typing import Any, Callable
 from typing import Counter as CounterType
@@ -1669,7 +1669,9 @@ def run_tensorboard(
     os.chdir(_path)
 
     # Activates the correct Conda environment.
-    Popen(shlex.split(f"conda activate {env_name}"), shell=True).wait()  # nosec B607
+    Popen(  # nosec B607, B602
+        shlex.split(f"conda activate {env_name}"), shell=True
+    ).wait()
 
     if _testing:
         os.chdir(cwd)
@@ -1677,7 +1679,9 @@ def run_tensorboard(
 
     else:  # pragma: no cover
         # Runs TensorBoard log.
-        Popen(shlex.split(f"tensorboard --logdir {exp_name}"), shell=True)  # nosec B607
+        Popen(  # nosec B607, B602
+            shlex.split(f"tensorboard --logdir {exp_name}"), shell=True
+        )
 
         # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
         webbrowser.open(f"localhost:{host_num}")
