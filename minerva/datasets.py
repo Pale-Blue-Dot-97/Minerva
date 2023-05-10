@@ -34,7 +34,7 @@ Attributes:
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU LGPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "PairedDataset",
@@ -384,7 +384,9 @@ def make_dataset(
         )
 
         # Construct the root to the sub-dataset's files.
-        sub_dataset_root: Path = universal_path(data_directory) / sub_dataset_params["root"]
+        sub_dataset_root: Path = (
+            universal_path(data_directory) / sub_dataset_params["root"]
+        )
         sub_dataset_root = sub_dataset_root.absolute()
 
         return _sub_dataset, str(sub_dataset_root)
