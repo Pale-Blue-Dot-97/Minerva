@@ -137,6 +137,11 @@ def x_entropy_loss():
 
 
 @pytest.fixture
+def small_patch_size() -> Tuple[int, int]:
+    return (32, 32)
+
+
+@pytest.fixture
 def rgbi_input_size() -> Tuple[int, int, int]:
     return (4, 64, 64)
 
@@ -152,18 +157,18 @@ def exp_cnn(x_entropy_loss, rgbi_input_size) -> MinervaModel:
 
 
 @pytest.fixture
-def random_mask() -> NDArray[Shape["32, 32"], Int]:
-    return np.random.randint(0, 7, size=(32, 32))
+def random_mask(small_patch_size, std_n_classes) -> NDArray[Shape["32, 32"], Int]:
+    return np.random.randint(0, std_n_classes - 1, size=small_patch_size)
 
 
 @pytest.fixture
-def random_image() -> NDArray[Shape["32, 32, 3"], Float]:
-    return np.random.rand(32, 32, 3)
+def random_image(small_patch_size) -> NDArray[Shape["32, 32, 3"], Float]:
+    return np.random.rand((*small_patch_size, 3))
 
 
 @pytest.fixture
-def random_rgbi_image() -> NDArray[Shape["32, 32, 4"], Float]:
-    return np.random.rand(32, 32, 4)
+def random_rgbi_image(small_patch_size) -> NDArray[Shape["32, 32, 4"], Float]:
+    return np.random.rand((*small_patch_size, 4))
 
 
 @pytest.fixture
@@ -179,8 +184,8 @@ def random_rgbi_batch(
 
 
 @pytest.fixture
-def random_tensor_mask(std_n_classes: int) -> LongTensor:
-    mask = torch.randint(0, std_n_classes - 1, size=(32, 32), dtype=torch.long)
+def random_tensor_mask(std_n_classes: int, small_patch_size) -> LongTensor:
+    mask = torch.randint(0, std_n_classes - 1, size=small_patch_size, dtype=torch.long)
     assert isinstance(mask, LongTensor)
     return mask
 
@@ -197,6 +202,11 @@ def random_mask_batch(
     )
     assert isinstance(mask, LongTensor)
     return mask
+
+
+@pytest.fixture
+def random_scene_classification_batch(std_batch_size, std_n_classes) -> LongTensor:
+    return torch.randint(0, std_n_classes - 1, size=(std_batch_size,))
 
 
 @pytest.fixture
