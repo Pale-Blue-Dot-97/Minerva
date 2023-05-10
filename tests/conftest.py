@@ -70,13 +70,18 @@ def results_dir():
 
 
 @pytest.fixture
-def data_root():
+def data_root() -> Path:
     return Path(__file__).parent / "tmp" / "results"
 
 
 @pytest.fixture
-def img_root(data_root: Path):
+def img_root(data_root: Path) -> Path:
     return data_root.parent / "data" / "test_images"
+
+
+@pytest.fixture
+def lc_root(data_root: Path) -> Path:
+    return data_root.parent / "data" / "test_lc"
 
 
 @pytest.fixture
