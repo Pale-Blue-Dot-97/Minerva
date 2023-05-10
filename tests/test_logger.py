@@ -1,4 +1,35 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2023 Harry Baker
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+#
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
+r"""Tests for :mod:`minerva.logger`.
+"""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "MIT License"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+# =====================================================================================================================
+#                                                      IMPORTS
+# =====================================================================================================================
 import importlib
 import shutil
 import tempfile
@@ -24,6 +55,9 @@ from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN16ResNet18, SimCLR18
 from minerva.utils import utils
 
+# =====================================================================================================================
+#                                                     GLOBALS
+# =====================================================================================================================
 device = torch.device("cpu")  # type: ignore[attr-defined]
 n_batches = 2
 batch_size = 3
@@ -31,6 +65,9 @@ patch_size = (32, 32)
 n_classes = 8
 
 
+# =====================================================================================================================
+#                                                       TESTS
+# =====================================================================================================================
 def test_STGLogger(simple_bbox):
     criterion = nn.CrossEntropyLoss()
 
