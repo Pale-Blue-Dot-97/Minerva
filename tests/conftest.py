@@ -112,6 +112,26 @@ def config_here():
 
 
 @pytest.fixture
+def default_device() -> torch.device:
+    return utils.get_cuda_device()
+
+
+@pytest.fixture
+def std_batch_size() -> int:
+    return 3
+
+
+@pytest.fixture
+def std_n_classes() -> int:
+    return 8
+
+
+@pytest.fixture
+def std_n_batches() -> int:
+    return 2
+
+
+@pytest.fixture
 def x_entropy_loss():
     return nn.CrossEntropyLoss()
 
@@ -147,13 +167,34 @@ def random_rgbi_image() -> NDArray[Shape["32, 32, 4"], Float]:
 
 
 @pytest.fixture
-def random_rgbi_tensor(rgbi_input_size) -> Tensor:
+def random_rgbi_tensor(rgbi_input_size: Tuple[int, int, int]) -> Tensor:
     return torch.rand(rgbi_input_size)
 
 
 @pytest.fixture
-def random_tensor_mask() -> LongTensor:
-    mask = torch.randint(0, 7, size=(32, 32), dtype=torch.long)
+def random_rgbi_batch(
+    rgbi_input_size: Tuple[int, int, int], std_batch_size: int
+) -> Tensor:
+    return torch.rand((std_batch_size, *rgbi_input_size))
+
+
+@pytest.fixture
+def random_tensor_mask(std_n_classes: int) -> LongTensor:
+    mask = torch.randint(0, std_n_classes - 1, size=(32, 32), dtype=torch.long)
+    assert isinstance(mask, LongTensor)
+    return mask
+
+
+@pytest.fixture
+def random_mask_batch(
+    std_batch_size: int, std_n_classes: int, rgbi_input_size: Tuple[int, int, int]
+) -> LongTensor:
+    mask = torch.randint(
+        0,
+        std_n_classes - 1,
+        size=(std_batch_size, *rgbi_input_size[1:]),
+        dtype=torch.long,
+    )
     assert isinstance(mask, LongTensor)
     return mask
 
