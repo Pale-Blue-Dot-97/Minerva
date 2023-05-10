@@ -1063,7 +1063,9 @@ class Trainer:
             for batch in test_bar:
                 test_data: Tensor = batch["image"].to(self.device, non_blocking=True)
                 test_target: Tensor = torch.mode(
-                    torch.flatten(batch["mask"], start_dim=1)
+                    torch.flatten(
+                        batch["mask"].to(self.device, non_blocking=True), start_dim=1
+                    )
                 ).values
 
                 # Get features from passing the input data through the model.
