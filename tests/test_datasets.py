@@ -50,11 +50,6 @@ from minerva import datasets as mdt
 from minerva.datasets import PairedDataset, TstImgDataset, TstMaskDataset
 from minerva.utils.utils import CONFIG
 
-# =====================================================================================================================
-#                                                     GLOBALS
-# =====================================================================================================================
-bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
-
 
 # =====================================================================================================================
 #                                                       TESTS
@@ -86,6 +81,7 @@ def test_tinydataset(img_root: Path, lc_root: Path) -> None:
 def test_paired_datasets(img_root: Path) -> None:
     dataset = PairedDataset(TstImgDataset, img_root)
 
+    bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
 
