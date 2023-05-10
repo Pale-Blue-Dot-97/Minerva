@@ -163,12 +163,12 @@ def random_mask(small_patch_size, std_n_classes) -> NDArray[Shape["32, 32"], Int
 
 @pytest.fixture
 def random_image(small_patch_size) -> NDArray[Shape["32, 32, 3"], Float]:
-    return np.random.rand((*small_patch_size, 3))
+    return np.random.rand(*small_patch_size, 3)
 
 
 @pytest.fixture
 def random_rgbi_image(small_patch_size) -> NDArray[Shape["32, 32, 4"], Float]:
-    return np.random.rand((*small_patch_size, 4))
+    return np.random.rand(*small_patch_size, 4)
 
 
 @pytest.fixture
