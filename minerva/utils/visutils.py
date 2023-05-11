@@ -1126,7 +1126,7 @@ def plot_embedding(
 
     # Initialises a progress bar for the epoch.
     with alive_bar(len(x), bar="blocks") as bar:
-
+        # Extracts the images and targets from the dataset using the bboxes supplied.
         # Extracts the images and targets from the dataset using the bboxes supplied.
         for i in range(len(x)):
             sample = dataset[bounds[i]]
@@ -1158,10 +1158,13 @@ def plot_embedding(
     if hasattr(offsetbox, "AnnotationBbox"):
         # Only print thumbnails with matplotlib > 1.0.
         shown_images: NDArray[Any, Any] = np.array([[1.0, 1.0]])  # Just something big.
+        # Only print thumbnails with matplotlib > 1.0.
+        shown_images: NDArray[Any, Any] = np.array([[1.0, 1.0]])  # Just something big.
 
         for i in range(len(images)):
             dist = np.sum((x[i] - shown_images) ** 2, 1)
             if np.min(dist) < 4e-3:
+                # Don’t show points that are too close.
                 # Don’t show points that are too close.
                 continue
 
@@ -1172,6 +1175,8 @@ def plot_embedding(
 
             ax.add_artist(imagebox)
 
+    # Hides the axes.
+    plt.axis("off")
     # Hides the axes.
     plt.axis("off")
 

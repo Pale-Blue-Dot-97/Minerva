@@ -49,7 +49,6 @@ from typing import (
 
 import pandas as pd
 import torch
-from torch import Tensor
 import torch.distributed as dist
 import torch.nn.functional as ptfunc
 import yaml
@@ -337,6 +336,7 @@ class Trainer:
         self.sample_pairs = sample_pairs
         self.model.determine_output_dim(sample_pairs=sample_pairs)
 
+        # Transfer to GPU.
         # Transfer to GPU.
         self.model.to(self.device)
 
