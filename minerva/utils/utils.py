@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -41,7 +47,7 @@ Attributes:
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU LGPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "IMAGERY_CONFIG_PATH",
@@ -114,12 +120,13 @@ import math
 import os
 import random
 import re as regex
-import subprocess
+import shlex
 import sys
 import webbrowser
 from collections import Counter, OrderedDict
 from datetime import datetime
 from pathlib import Path
+from subprocess import Popen
 from types import ModuleType
 from typing import Any, Callable
 from typing import Counter as CounterType
@@ -1662,7 +1669,9 @@ def run_tensorboard(
     os.chdir(_path)
 
     # Activates the correct Conda environment.
-    subprocess.Popen(f"conda activate {env_name}", shell=True).wait()  # nosec B602
+    Popen(  # nosec B607, B602
+        shlex.split(f"conda activate {env_name}"), shell=True
+    ).wait()
 
     if _testing:
         os.chdir(cwd)
@@ -1670,7 +1679,9 @@ def run_tensorboard(
 
     else:  # pragma: no cover
         # Runs TensorBoard log.
-        subprocess.Popen(f"tensorboard --logdir={exp_name}", shell=True)  # nosec B602
+        Popen(  # nosec B607, B602
+            shlex.split(f"tensorboard --logdir {exp_name}"), shell=True
+        )
 
         # Opens the TensorBoard log in a locally hosted webpage of the default system browser.
         webbrowser.open(f"localhost:{host_num}")

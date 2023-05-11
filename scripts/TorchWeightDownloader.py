@@ -29,7 +29,7 @@ Attributes:
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU GPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 

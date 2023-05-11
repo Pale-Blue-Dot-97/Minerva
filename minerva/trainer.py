@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -25,7 +31,7 @@ from __future__ import annotations
 
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU LGPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = ["Trainer"]
 
@@ -33,6 +39,7 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+import warnings
 from contextlib import nullcontext
 from pathlib import Path
 from typing import (
@@ -55,6 +62,7 @@ import yaml
 from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
+from packaging.version import Version
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -408,6 +416,16 @@ class Trainer:
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
 
+        # Wraps the model in `torch.compile` to speed up computation time.
+        # Python 3.11+ is not yet supported though, hence the exception clause.
+        if Version(torch.__version__) > Version("2.0.0"):  # pragma: no cover
+            try:
+                _compiled_model = torch.compile(self.model)
+                assert isinstance(_compiled_model, (MinervaModel, MinervaDataParallel))
+                self.model = _compiled_model
+            except RuntimeError as err:
+                warnings.warn(str(err))
+
     def init_wandb_metrics(self) -> None:
         """Setups up separate step counters for :mod:`wandb` logging of train, val, etc."""
         if isinstance(self.writer, Run):
@@ -504,12 +522,20 @@ class Trainer:
         Returns:
             MinervaModel: Loaded model ready for use.
         """
-        convert = utils._optional_import(
-            "onnx2torch", name="convert", package="onnx2torch"
+        onnx_load = utils._optional_import(
+            "onnx",
+            name="load",
+            package="onnx",
         )
+        convert = utils._optional_import(
+            "onnx2torch",
+            name="convert",
+            package="onnx2torch",
+        )
+
         model_params = self.params["model_params"].get("params", {})
 
-        onnx_model = convert(f"{self.get_weights_path()}.onnx")
+        onnx_model = convert(onnx_load(f"{self.get_weights_path()}.onnx"))
         model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
         assert isinstance(model, MinervaModel)
         return model
@@ -1049,7 +1075,9 @@ class Trainer:
             for batch in test_bar:
                 test_data: Tensor = batch["image"].to(self.device, non_blocking=True)
                 test_target: Tensor = torch.mode(
-                    torch.flatten(batch["mask"], start_dim=1)
+                    torch.flatten(
+                        batch["mask"].to(self.device, non_blocking=True), start_dim=1
+                    )
                 ).values
 
                 # Get features from passing the input data through the model.

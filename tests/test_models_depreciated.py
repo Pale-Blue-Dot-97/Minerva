@@ -1,4 +1,35 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2023 Harry Baker
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+#
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
+r"""Tests for :mod:`minerva.models._depreciated`.
+"""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "MIT License"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+# =====================================================================================================================
+#                                                      IMPORTS
+# =====================================================================================================================
 import numpy as np
 import torch
 from torch import Tensor
@@ -6,6 +37,9 @@ from torch import Tensor
 from minerva.models.__depreciated import CNN, MLP
 
 
+# =====================================================================================================================
+#                                                       TESTS
+# =====================================================================================================================
 def test_mlp(x_entropy_loss) -> None:
     model = MLP(x_entropy_loss, hidden_sizes=128)
 

@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -36,7 +42,7 @@ Attributes:
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU LGPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "DATA_CONFIG",
@@ -358,7 +364,7 @@ def labelled_rgb_image(
     show: bool = True,
     save: bool = True,
     figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32),
-) -> str:
+) -> Path:
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
     Args:
@@ -431,9 +437,6 @@ def labelled_rgb_image(
     ax2.set_xticks(lon_extent)
     ax2.set_yticks(lat_extent)
 
-    print(f"{lat_extent=}")
-    print(f"{lon_extent=}")
-
     # Sets the limits of the secondary axis, so they should align with the primary.
     ax2.set_xlim(left=lon_extent[0], right=lon_extent[-1])
     ax2.set_ylim(top=lat_extent[-1], bottom=lat_extent[0])
@@ -475,7 +478,7 @@ def labelled_rgb_image(
         plt.show(block=False)
 
     # Path and file name of figure.
-    fn = f"{path}/{name}_RGBHM.png"
+    fn = Path(f"{path}/{name}_RGBHM.png")
 
     # If true, save file to fn.
     if save:
@@ -529,6 +532,9 @@ def make_gif(
     Returns:
         None
     """
+    # Changes to `imagio` now mean we need the duration of the GIF and not the `fps`.
+    duration = len(dates) / fps
+
     # Initialise progress bar.
     with alive_bar(len(dates), bar="blocks") as bar:
         # List to hold filenames and paths of images created.
@@ -569,7 +575,7 @@ def make_gif(
         bar.text("MAKING PATCH GIF")
 
         # Create GIF.
-        imageio.mimwrite(gif_name, frames, format=".gif", fps=fps)  # type: ignore
+        imageio.mimwrite(gif_name, frames, format=".gif", duration=duration)  # type: ignore
 
 
 def prediction_plot(
@@ -584,7 +590,7 @@ def prediction_plot(
     block_size: int = 32,
     show: bool = True,
     save: bool = True,
-    fn_prefix: Optional[str] = None,
+    fn_prefix: Optional[Union[str, Path]] = None,
 ) -> None:
     """
     Produces a figure containing subplots of the predicted label mask, the ground truth label mask
@@ -603,8 +609,8 @@ def prediction_plot(
         show (bool): Optional; Show the figure when plotted.
         save (bool): Optional; Save the figure to file to ``fn_prefix``.
         fig_dim (tuple[float, float]): Optional; Figure (height, width) in inches.
-        fn_prefix (str): Optional; Common filename prefix (including path to file) for all plots of this type
-            from this experiment. Appended with the sample ID to give the filename to save the plot to.
+        fn_prefix (str | ~pathlib.Path): Optional; Common filename prefix (including path to file) for all plots of
+            this type from this experiment. Appended with the sample ID to give the filename to save the plot to.
 
     Returns:
         None
@@ -707,7 +713,7 @@ def prediction_plot(
         fn_prefix = str(path / f"{exp_id}_{utils.timestamp_now()}_Mask")
 
     # Path and file name of figure.
-    fn = f"{fn_prefix}_{sample_id}.png"
+    fn = Path(f"{fn_prefix}_{sample_id}.png").absolute()
 
     # If true, save file to fn.
     if save:
@@ -729,7 +735,7 @@ def seg_plot(
     mode: str,
     classes: Dict[int, str],
     colours: Dict[int, str],
-    fn_prefix: str,
+    fn_prefix: Union[str, Path],
     frac: float = 0.05,
     fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = (9.3, 10.5),
 ) -> None:
@@ -745,7 +751,7 @@ def seg_plot(
         mode (str): Mode samples are from. Must be ``'train'``, ``'val'`` or ``'test'``.
         classes (dict[int, str]): Dictionary mapping class labels to class names.
         colours (dict[int, str]): Dictionary mapping class labels to colours.
-        fn_prefix (str): Common filename prefix (including path to file) for all plots of this type
+        fn_prefix (str | ~pathlib.Path): Common filename prefix (including path to file) for all plots of this type
             from this experiment to use.
         frac (float): Optional; Fraction of patch samples to plot.
         fig_dim (tuple[float, float]): Optional; Figure (height, width) in inches.
@@ -992,7 +998,7 @@ def make_roc_curves(
     colours: Dict[int, str],
     micro: bool = True,
     macro: bool = True,
-    filename: Optional[str] = None,
+    filename: Optional[Union[str, Path]] = None,
     show: bool = False,
     save: bool = True,
 ) -> None:
@@ -1009,7 +1015,7 @@ def make_roc_curves(
         colours (dict[int, str]): Dictionary mapping class labels to colours.
         micro (bool): Optional; Whether to compute and plot the micro average ROC curves.
         macro (bool): Optional; Whether to compute and plot the macro average ROC curves.
-        filename (str): Optional; Name of file to save plot to.
+        filename (str | ~pathlib.Path): Optional; Name of file to save plot to.
         save (bool): Optional; Whether to save the plots to file.
         show (bool): Optional; Whether to show the plots.
 
@@ -1190,17 +1196,17 @@ def plot_embedding(
 
 def format_plot_names(
     model_name: str, timestamp: str, path: Union[Sequence[str], str, Path]
-) -> Dict[str, str]:
+) -> Dict[str, Path]:
     """Creates unique filenames of plots in a standardised format.
 
     Args:
-        model_name (str): Name of model. e.g. MLP-MkVI.
+        model_name (str): Name of model. e.g. ``"MLP-MkVI"``.
         timestamp (str): Time and date to be used to identify experiment.
-        path (list[str] | str | ~pathlib.Path]): Path to the directory for storing plots as a list
+        path (list[str] | str | ~pathlib.Path]): Path to the directory for storing plots as a :class:`list`
             of strings for each level.
 
     Returns:
-        filenames (dict[str, str]): Formatted filenames for plots.
+        filenames (dict[str, ~pathlib.Path]): Formatted filenames for plots.
     """
 
     def standard_format(plot_type: str, *sub_dir) -> str:
@@ -1217,13 +1223,13 @@ def format_plot_names(
         return str(universal_path(path) / universal_path(sub_dir) / filename)
 
     filenames = {
-        "History": standard_format("MH") + ".png",
-        "Pred": standard_format("TP") + ".png",
-        "CM": standard_format("CM") + ".png",
-        "ROC": standard_format("ROC" + ".png"),
-        "Mask": standard_format("Mask", "Masks"),
-        "PvT": standard_format("PvT", "PvTs"),
-        "TSNE": standard_format("TSNE") + ".png",
+        "History": Path(standard_format("MH") + ".png"),
+        "Pred": Path(standard_format("TP") + ".png"),
+        "CM": Path(standard_format("CM") + ".png"),
+        "ROC": Path(standard_format("ROC" + ".png")),
+        "Mask": Path(standard_format("Mask", "Masks")),
+        "PvT": Path(standard_format("PvT", "PvTs")),
+        "TSNE": Path(standard_format("TSNE") + ".png"),
     }
 
     return filenames
