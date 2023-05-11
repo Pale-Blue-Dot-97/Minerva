@@ -48,7 +48,7 @@ def main(gpu: int, args) -> None:
 
     weights_path = universal_path(CONFIG["dir"]["cache"]) / CONFIG["pre_train_name"]
 
-    trainer.save_model(fn=weights_path, format="onnx")
+    trainer.save_model(fn=weights_path, fmt="onnx")
 
     print(f"Model saved to --> {weights_path}.onnx")
 

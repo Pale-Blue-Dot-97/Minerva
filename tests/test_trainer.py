@@ -66,7 +66,7 @@ def test_trainer_2() -> None:
     trainer1 = Trainer(0, **params1)
 
     with pytest.raises(ValueError):
-        trainer1.save_model(format="unkown")
+        trainer1.save_model(fmt="unkown")
 
     suffix = "onnx"
     try:
@@ -74,7 +74,7 @@ def test_trainer_2() -> None:
     except ValueError:
         suffix = "pt"
 
-    trainer1.save_model(fn=trainer1.get_model_cache_path(), format=suffix)
+    trainer1.save_model(fn=trainer1.get_model_cache_path(), fmt=suffix)
 
     params2 = CONFIG.copy()
     params2["pre_train_name"] = f"{params1['model_name'].split('-')[0]}.{suffix}"
