@@ -122,6 +122,8 @@ Contributions also provided by:
 - [Isabel Sargent](https://github.com/PenguinJunk)
 - [Steve Coupland](https://github.com/scoupland-os)
 - [Joe Guyatt](https://github.com/joeguyatt97)
+- [Ben Dickens](https://github.com/BenDickens)
+- [Kitty Varghese](https://github.com/kittyvarghese)
 
 ## Acknowledgments 📢
 
