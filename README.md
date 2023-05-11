@@ -130,6 +130,12 @@ Contributions also provided by:
 I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
 Dr Isabel Sargent towards this work.
 
+The following modules are adapted from open source third-parites:
+| Module | Original Author | License | Link |
+|:-------|:----------------|:--------|:-----|
+| `pytorchtools` | [Noah Golmant](https://github.com/noahgolmant) | MIT | https://github.com/noahgolmant/pytorch-lars/blob/master/lars.py |
+| `optimisers` | [Bjarte Mehus Sunde](https://github.com/Bjarten) | MIT | https://github.com/Bjarten/early-stopping-pytorch |
+
 This repositry also contains two small ``.tiff`` exercpts from the [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) dataset used for unit testing purposes. Credit for this data goes to:
 
 > Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N.
