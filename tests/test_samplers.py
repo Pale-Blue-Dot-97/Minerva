@@ -1,4 +1,35 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2023 Harry Baker
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+#
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
+r"""Tests for :mod:`minerva.samplers`.
+"""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "MIT License"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+# =====================================================================================================================
+#                                                      IMPORTS
+# =====================================================================================================================
 from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict
@@ -14,12 +45,11 @@ from minerva.samplers import (
     get_greater_bbox,
 )
 
-data_root = Path("tests", "tmp")
-img_root = str(data_root / "data" / "test_images")
-lc_root = str(data_root / "data" / "test_lc")
 
-
-def test_randompairgeosampler() -> None:
+# =====================================================================================================================
+#                                                       TESTS
+# =====================================================================================================================
+def test_randompairgeosampler(img_root: Path) -> None:
     dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
 
     sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
@@ -35,7 +65,7 @@ def test_randompairgeosampler() -> None:
     assert len(batch[1]["image"]) == 8
 
 
-def test_randompairbatchgeosampler() -> None:
+def test_randompairbatchgeosampler(img_root: Path) -> None:
     dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
 
     sampler = RandomPairBatchGeoSampler(
@@ -62,6 +92,6 @@ def test_randompairbatchgeosampler() -> None:
         )
 
 
-def test_get_greater_bbox(simple_bbox) -> None:
+def test_get_greater_bbox(simple_bbox: BoundingBox) -> None:
     new_bbox = get_greater_bbox(simple_bbox, 1.0, 1.0)
     assert new_bbox == BoundingBox(-1.0, 2.0, -1.0, 2.0, 0.0, 1.0)

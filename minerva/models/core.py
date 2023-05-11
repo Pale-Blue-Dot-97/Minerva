@@ -30,7 +30,7 @@
 # =====================================================================================================================
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
-__license__ = "GNU LGPLv3"
+__license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
 __all__ = [
@@ -449,7 +449,7 @@ def get_output_shape(
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([4, *_image_dim])
 
-    output: Tensor = model(random_input)
+    output: Tensor = model(random_input.to(next(model.parameters()).device))
 
     if len(output[0].data.shape) == 1:
         return output[0].data.shape[0]

@@ -1,4 +1,36 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2023 Harry Baker
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+#
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
+r""":mod:`pytest` fixtures for :mod:`minerva` CI/CD.
+"""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "MIT License"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
+
+# =====================================================================================================================
+#                                                     IMPORTS
+# =====================================================================================================================
 import os
 import shutil
 from pathlib import Path
@@ -18,6 +50,9 @@ from minerva.models import CNN, MLP, MinervaModel
 from minerva.utils import CONFIG, utils
 
 
+# =====================================================================================================================
+#                                                     FIXTURES
+# =====================================================================================================================
 @pytest.fixture(scope="session", autouse=True)
 def set_seeds():
     utils.set_seeds(42)
@@ -35,13 +70,18 @@ def results_dir():
 
 
 @pytest.fixture
-def data_root():
+def data_root() -> Path:
     return Path(__file__).parent / "tmp" / "results"
 
 
 @pytest.fixture
-def img_root(data_root: Path):
+def img_root(data_root: Path) -> Path:
     return data_root.parent / "data" / "test_images"
+
+
+@pytest.fixture
+def lc_root(data_root: Path) -> Path:
+    return data_root.parent / "data" / "test_lc"
 
 
 @pytest.fixture
@@ -72,8 +112,33 @@ def config_here():
 
 
 @pytest.fixture
+def default_device() -> torch.device:
+    return utils.get_cuda_device()
+
+
+@pytest.fixture
+def std_batch_size() -> int:
+    return 3
+
+
+@pytest.fixture
+def std_n_classes() -> int:
+    return 8
+
+
+@pytest.fixture
+def std_n_batches() -> int:
+    return 2
+
+
+@pytest.fixture
 def x_entropy_loss():
     return nn.CrossEntropyLoss()
+
+
+@pytest.fixture
+def small_patch_size() -> Tuple[int, int]:
+    return (32, 32)
 
 
 @pytest.fixture
@@ -92,30 +157,56 @@ def exp_cnn(x_entropy_loss, rgbi_input_size) -> MinervaModel:
 
 
 @pytest.fixture
-def random_mask() -> NDArray[Shape["32, 32"], Int]:
-    return np.random.randint(0, 7, size=(32, 32))
+def random_mask(small_patch_size, std_n_classes) -> NDArray[Shape["32, 32"], Int]:
+    return np.random.randint(0, std_n_classes - 1, size=small_patch_size)
 
 
 @pytest.fixture
-def random_image() -> NDArray[Shape["32, 32, 3"], Float]:
-    return np.random.rand(32, 32, 3)
+def random_image(small_patch_size) -> NDArray[Shape["32, 32, 3"], Float]:
+    return np.random.rand(*small_patch_size, 3)
 
 
 @pytest.fixture
-def random_rgbi_image() -> NDArray[Shape["32, 32, 4"], Float]:
-    return np.random.rand(32, 32, 4)
+def random_rgbi_image(small_patch_size) -> NDArray[Shape["32, 32, 4"], Float]:
+    return np.random.rand(*small_patch_size, 4)
 
 
 @pytest.fixture
-def random_rgbi_tensor(rgbi_input_size) -> Tensor:
+def random_rgbi_tensor(rgbi_input_size: Tuple[int, int, int]) -> Tensor:
     return torch.rand(rgbi_input_size)
 
 
 @pytest.fixture
-def random_tensor_mask() -> LongTensor:
-    mask = torch.randint(0, 7, size=(32, 32), dtype=torch.long)
+def random_rgbi_batch(
+    rgbi_input_size: Tuple[int, int, int], std_batch_size: int
+) -> Tensor:
+    return torch.rand((std_batch_size, *rgbi_input_size))
+
+
+@pytest.fixture
+def random_tensor_mask(std_n_classes: int, small_patch_size) -> LongTensor:
+    mask = torch.randint(0, std_n_classes - 1, size=small_patch_size, dtype=torch.long)
     assert isinstance(mask, LongTensor)
     return mask
+
+
+@pytest.fixture
+def random_mask_batch(
+    std_batch_size: int, std_n_classes: int, rgbi_input_size: Tuple[int, int, int]
+) -> LongTensor:
+    mask = torch.randint(
+        0,
+        std_n_classes - 1,
+        size=(std_batch_size, *rgbi_input_size[1:]),
+        dtype=torch.long,
+    )
+    assert isinstance(mask, LongTensor)
+    return mask
+
+
+@pytest.fixture
+def random_scene_classification_batch(std_batch_size, std_n_classes) -> LongTensor:
+    return torch.randint(0, std_n_classes - 1, size=(std_batch_size,))
 
 
 @pytest.fixture

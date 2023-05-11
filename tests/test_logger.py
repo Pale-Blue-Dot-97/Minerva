@@ -1,9 +1,41 @@
 # -*- coding: utf-8 -*-
+# Copyright (C) 2023 Harry Baker
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program in LICENSE.txt. If not,
+# see <https://www.gnu.org/licenses/>.
+#
+# @org: University of Southampton
+# Created under a project funded by the Ordnance Survey Ltd.
+r"""Tests for :mod:`minerva.logger`.
+"""
+# =====================================================================================================================
+#                                                    METADATA
+# =====================================================================================================================
+__author__ = "Harry Baker"
+__contact__ = "hjb1d20@soton.ac.uk"
+__license__ = "MIT License"
+__copyright__ = "Copyright (C) 2023 Harry Baker"
+
 import importlib
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, List, Union
+
+# =====================================================================================================================
+#                                                      IMPORTS
+# =====================================================================================================================
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
@@ -18,22 +50,26 @@ except (OSError, NewConnectionError, MaxRetryError):
 from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
 from torch import Tensor
+from torchgeo.datasets.utils import BoundingBox
 
 from minerva.logger import SSLLogger, STGLogger
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN16ResNet18, SimCLR18
 from minerva.utils import utils
 
-device = torch.device("cpu")  # type: ignore[attr-defined]
-n_batches = 2
-batch_size = 3
-patch_size = (32, 32)
-n_classes = 8
 
-
-def test_STGLogger(simple_bbox):
-    criterion = nn.CrossEntropyLoss()
-
+# =====================================================================================================================
+#                                                       TESTS
+# =====================================================================================================================
+def test_STGLogger(
+    simple_bbox: BoundingBox,
+    x_entropy_loss,
+    std_n_batches: int,
+    std_n_classes: int,
+    std_batch_size: int,
+    small_patch_size: Tuple[int, int],
+    default_device: torch.device,
+) -> None:
     path = Path(tempfile.gettempdir(), "exp1")
 
     if not path.exists():
@@ -49,7 +85,9 @@ def test_STGLogger(simple_bbox):
     else:
         writer = tensorboard_writer(log_dir=path)
 
-    model = FCN16ResNet18(criterion, input_size=(4, *patch_size))
+    model = FCN16ResNet18(x_entropy_loss, input_size=(4, *small_patch_size)).to(
+        default_device
+    )
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
     model.determine_output_dim()
@@ -60,21 +98,24 @@ def test_STGLogger(simple_bbox):
     for mode in ("train", "val", "test"):
         for model_type in ("scene_classifier", "segmentation"):
             logger = STGLogger(
-                n_batches=n_batches,
-                batch_size=batch_size,
-                n_samples=n_batches * batch_size * patch_size[0] * patch_size[1],
+                n_batches=std_n_batches,
+                batch_size=std_batch_size,
+                n_samples=std_n_batches
+                * std_batch_size
+                * small_patch_size[0]
+                * small_patch_size[1],
                 out_shape=output_shape,
-                n_classes=n_classes,
+                n_classes=std_n_classes,
                 record_int=True,
                 record_float=True,
                 model_type=model_type,
                 writer=writer,
             )
             data: List[Dict[str, Union[Tensor, List[Any]]]] = []
-            for i in range(n_batches):
-                images = torch.rand(size=(batch_size, 4, *patch_size))
-                masks = torch.randint(0, n_classes, (batch_size, *patch_size))  # type: ignore[attr-defined]
-                bboxes = [simple_bbox] * batch_size
+            for i in range(std_n_batches):
+                images = torch.rand(size=(std_batch_size, 4, *small_patch_size))
+                masks = torch.randint(0, std_n_classes, (std_batch_size, *small_patch_size))  # type: ignore[attr-defined]
+                bboxes = [simple_bbox] * std_batch_size
                 batch: Dict[str, Union[Tensor, List[Any]]] = {
                     "image": images,
                     "mask": masks,
@@ -82,10 +123,10 @@ def test_STGLogger(simple_bbox):
                 }
                 data.append(batch)
 
-                logger(mode, i, *sup_tg(batch, model, device=device, mode=mode))
+                logger(mode, i, *sup_tg(batch, model, device=default_device, mode=mode))
 
             logs = logger.get_logs
-            assert logs["batch_num"] == n_batches
+            assert logs["batch_num"] == std_n_batches
             assert type(logs["total_loss"]) is float
             assert type(logs["total_correct"]) is float
 
@@ -93,15 +134,23 @@ def test_STGLogger(simple_bbox):
                 assert type(logs["total_miou"]) is float
 
             results = logger.get_results
-            assert results["z"].shape == (n_batches, batch_size, *patch_size)
-            assert results["y"].shape == (n_batches, batch_size, *patch_size)
-            assert np.array(results["ids"]).shape == (n_batches, batch_size)
-
-            shape = f"{n_batches}, {batch_size}, {patch_size[0]}, {patch_size[1]}"
-            y: NDArray[Shape[shape], Any] = np.empty(
-                (n_batches, batch_size, *output_shape), dtype=np.uint8
+            assert results["z"].shape == (
+                std_n_batches,
+                std_batch_size,
+                *small_patch_size,
             )
-            for i in range(n_batches):
+            assert results["y"].shape == (
+                std_n_batches,
+                std_batch_size,
+                *small_patch_size,
+            )
+            assert np.array(results["ids"]).shape == (std_n_batches, std_batch_size)
+
+            shape = f"{std_n_batches}, {std_batch_size}, {small_patch_size[0]}, {small_patch_size[1]}"
+            y: NDArray[Shape[shape], Any] = np.empty(
+                (std_n_batches, std_batch_size, *output_shape), dtype=np.uint8
+            )
+            for i in range(std_n_batches):
                 mask: Union[Tensor, List[Any]] = data[i]["mask"]
                 assert isinstance(mask, Tensor)
                 y[i] = mask.cpu().numpy()
@@ -111,7 +160,13 @@ def test_STGLogger(simple_bbox):
     shutil.rmtree(path, ignore_errors=True)
 
 
-def test_SSLLogger(simple_bbox):
+def test_SSLLogger(
+    simple_bbox: BoundingBox,
+    std_n_batches: int,
+    std_batch_size: int,
+    small_patch_size: Tuple[int, int],
+    default_device: torch.device,
+) -> None:
     criterion = NTXentLoss(0.5)
 
     path = Path(tempfile.gettempdir(), "exp2")
@@ -129,16 +184,16 @@ def test_SSLLogger(simple_bbox):
     else:
         writer = tensorboard_writer(log_dir=path)
 
-    model = SimCLR18(criterion, input_size=(4, *patch_size))
+    model = SimCLR18(criterion, input_size=(4, *small_patch_size)).to(default_device)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
     for mode in ("train", "val", "test"):
         for extra_metrics in (True, False):
             logger = SSLLogger(
-                n_batches=n_batches,
-                batch_size=batch_size,
-                n_samples=n_batches * batch_size,
+                n_batches=std_n_batches,
+                batch_size=std_batch_size,
+                n_samples=std_n_batches * std_batch_size,
                 record_int=True,
                 record_float=True,
                 collapse_level=extra_metrics,
@@ -146,9 +201,9 @@ def test_SSLLogger(simple_bbox):
                 writer=writer,
             )
             data = []
-            for i in range(n_batches):
-                images = torch.rand(size=(batch_size, 4, *patch_size))
-                bboxes = [simple_bbox] * batch_size
+            for i in range(std_n_batches):
+                images = torch.rand(size=(std_batch_size, 4, *small_patch_size))
+                bboxes = [simple_bbox] * std_batch_size
                 batch = {
                     "image": images,
                     "bbox": bboxes,
@@ -158,11 +213,13 @@ def test_SSLLogger(simple_bbox):
                 logger(
                     mode,
                     i,
-                    *ssl_pair_tg((batch, batch), model, device=device, mode=mode),
+                    *ssl_pair_tg(
+                        (batch, batch), model, device=default_device, mode=mode
+                    ),
                 )
 
             logs = logger.get_logs
-            assert logs["batch_num"] == n_batches
+            assert logs["batch_num"] == std_n_batches
             assert type(logs["total_loss"]) is float
             assert type(logs["total_correct"]) is float
             assert type(logs["total_top5"]) is float
