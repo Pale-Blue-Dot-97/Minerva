@@ -127,8 +127,8 @@ Contributions also provided by:
 
 ## Acknowledgments 📢
 
-I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
-Dr Isabel Sargent towards this work.
+I'd like to acknowledge the invaluable supervision and contributions of [Prof Jonathon Hare](https://github.com/jonhare) and
+[Dr Isabel Sargent](https://github.com/PenguinJunk) towards this work.
 
 The following modules are adapted from open source third-parites:
 | Module | Original Author | License | Link |
