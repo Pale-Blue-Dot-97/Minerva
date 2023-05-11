@@ -22,8 +22,7 @@
 
 ## About 🔎
 
-Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial
-rasterised land cover data.
+Minerva is a package to aid in the building, fitting and testing of neural network models on multi-spectral geo-spatial data.
 
 ## Getting Started ▶
 
