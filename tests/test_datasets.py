@@ -117,7 +117,7 @@ def test_paired_datasets(img_root: Path) -> None:
     )
 
 
-def test_paired_union_datasets() -> None:
+def test_paired_union_datasets(img_root: Path) -> None:
     def dataset_test(_dataset) -> None:
         query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
         query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -125,6 +125,8 @@ def test_paired_union_datasets() -> None:
 
         assert type(sample_1) == dict
         assert type(sample_2) == dict
+
+    bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
 
     dataset1 = TstImgDataset(img_root)
     dataset2 = TstImgDataset(img_root)
