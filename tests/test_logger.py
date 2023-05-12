@@ -45,7 +45,6 @@ from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import torch
-import torch.nn.modules as nn
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 
 # Needed to avoid connection error when importing lightly.
@@ -120,7 +119,9 @@ def test_STGLogger(
             data: List[Dict[str, Union[Tensor, List[Any]]]] = []
             for i in range(std_n_batches):
                 images = torch.rand(size=(std_batch_size, 4, *small_patch_size))
-                masks = torch.randint(0, std_n_classes, (std_batch_size, *small_patch_size))  # type: ignore[attr-defined]
+                masks = torch.randint(  # type: ignore[attr-defined]
+                    0, std_n_classes, (std_batch_size, *small_patch_size)
+                )
                 bboxes = [simple_bbox] * std_batch_size
                 batch: Dict[str, Union[Tensor, List[Any]]] = {
                     "image": images,
