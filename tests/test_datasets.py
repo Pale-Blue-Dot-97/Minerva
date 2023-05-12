@@ -76,8 +76,8 @@ def test_make_bounding_box() -> None:
 def test_tinydataset(img_root: Path, lc_root: Path) -> None:
     """Source of TIFF: https://github.com/mommermi/geotiff_sample"""
 
-    imagery = TstImgDataset(img_root)
-    labels = TstMaskDataset(lc_root)
+    imagery = TstImgDataset(str(img_root))
+    labels = TstMaskDataset(str(lc_root))
 
     dataset = imagery & labels
     assert isinstance(dataset, IntersectionDataset)
@@ -85,13 +85,13 @@ def test_tinydataset(img_root: Path, lc_root: Path) -> None:
 
 def test_paired_datasets(img_root: Path) -> None:
     dataset = PairedDataset(TstImgDataset, img_root)
-    dataset2 = TstImgDataset(img_root)
+    dataset2 = TstImgDataset(str(img_root))
 
     with pytest.raises(
         ValueError,
         match=f"Intersecting a dataset of {type(dataset2)} and a PairedDataset is not supported!",
     ):
-        _ = dataset & dataset2
+        _ = dataset & dataset2  # type: ignore[operator]
 
     bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -113,7 +113,7 @@ def test_paired_datasets(img_root: Path) -> None:
     assert type(dataset.__repr__()) == str
 
     assert isinstance(
-        dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure
+        dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure  # type: ignore[attr-defined]
     )
 
 
@@ -128,8 +128,8 @@ def test_paired_union_datasets(img_root: Path) -> None:
 
     bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
 
-    dataset1 = TstImgDataset(img_root)
-    dataset2 = TstImgDataset(img_root)
+    dataset1 = TstImgDataset(str(img_root))
+    dataset2 = TstImgDataset(str(img_root))
     dataset3 = PairedDataset(TstImgDataset, img_root)
     dataset4 = PairedDataset(TstImgDataset, img_root)
 
@@ -137,7 +137,7 @@ def test_paired_union_datasets(img_root: Path) -> None:
         ValueError,
         match=f"Unionising a dataset of {type(dataset2)} and a PairedDataset is not supported!",
     ):
-        _ = dataset3 | dataset2
+        _ = dataset3 | dataset2  # type: ignore[operator]
 
     union_dataset1 = PairedUnionDataset(dataset1, dataset2)
     union_dataset2 = dataset3 | dataset4

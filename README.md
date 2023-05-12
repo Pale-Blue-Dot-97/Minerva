@@ -22,8 +22,7 @@
 
 ## About 🔎
 
-Minerva is a package to aid in the building, fitting and testing of neural network models on geo-spatial
-rasterised land cover data.
+Minerva is a package to aid in the building, fitting and testing of neural network models on multi-spectral geo-spatial data.
 
 ## Getting Started ▶
 
@@ -122,11 +121,19 @@ Contributions also provided by:
 - [Isabel Sargent](https://github.com/PenguinJunk)
 - [Steve Coupland](https://github.com/scoupland-os)
 - [Joe Guyatt](https://github.com/joeguyatt97)
+- [Ben Dickens](https://github.com/BenDickens)
+- [Kitty Varghese](https://github.com/kittyvarghese)
 
 ## Acknowledgments 📢
 
-I'd like to acknowledge the invaluable supervision and contributions of Prof Jonathon Hare and
-Dr Isabel Sargent towards this work.
+I'd like to acknowledge the invaluable supervision and contributions of [Prof Jonathon Hare](https://github.com/jonhare) and
+[Dr Isabel Sargent](https://github.com/PenguinJunk) towards this work.
+
+The following modules are adapted from open source third-parites:
+| Module | Original Author | License | Link |
+|:-------|:----------------|:--------|:-----|
+| `pytorchtools` | [Noah Golmant](https://github.com/noahgolmant) | MIT | https://github.com/noahgolmant/pytorch-lars/blob/master/lars.py |
+| `optimisers` | [Bjarte Mehus Sunde](https://github.com/Bjarten) | MIT | https://github.com/Bjarten/early-stopping-pytorch |
 
 This repositry also contains two small ``.tiff`` exercpts from the [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) dataset used for unit testing purposes. Credit for this data goes to:
 

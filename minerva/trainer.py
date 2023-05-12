@@ -1267,13 +1267,13 @@ class Trainer:
         torch.save(model.state_dict(), f"{fn}.pt")
 
     def save_model(
-        self, fn: Optional[Union[Path, str]] = None, format: str = "pt"
+        self, fn: Optional[Union[Path, str]] = None, fmt: str = "pt"
     ) -> None:
         """Saves the model object itself to :mod:`torch` file.
 
         Args:
             fn (~pathlib.Path | str): Optional; Filename and path (excluding extension) to save model to.
-            format (str): Optional; Format to save model to. ``pt`` for :mod:`torch`, or :mod:`onnx` for ONNX.
+            fmt (str): Optional; Format to save model to. ``pt`` for :mod:`torch`, or :mod:`onnx` for ONNX.
 
         Raises:
             ValueError: If format is not recognised.
@@ -1283,13 +1283,13 @@ class Trainer:
         if fn is None:
             fn = str(self.exp_fn)
 
-        if format == "pt":
+        if fmt == "pt":
             torch.save(model, f"{fn}.pt")
-        elif format == "onnx":
+        elif fmt == "onnx":
             x = torch.rand(*self.get_input_size(), device=self.device)
             torch.onnx.export(model, (x,), f"{fn}.onnx")
         else:
-            raise ValueError(f"format {format} unrecognised!")
+            raise ValueError(f"format {fmt} unrecognised!")
 
     def save_backbone(self) -> None:
         """Readies the model for use in downstream tasks and saves to file."""
