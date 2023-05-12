@@ -234,8 +234,8 @@ class MinervaWrapper(MinervaModel):
 
         self.model = model_cls(*args, **kwargs)
 
-    def __call__(self, *input) -> Any:
-        return self.forward(*input)
+    def __call__(self, *inputs) -> Any:
+        return self.forward(*inputs)
 
     def __getattr__(self, name):
         try:
@@ -246,8 +246,8 @@ class MinervaWrapper(MinervaModel):
     def __repr__(self) -> Any:
         return self.model.__repr__()
 
-    def forward(self, *input) -> Any:
-        return self.model.forward(*input)
+    def forward(self, *inputs) -> Any:
+        return self.model.forward(*inputs)
 
 
 class MinervaBackbone(MinervaModel):
@@ -297,22 +297,22 @@ class MinervaDataParallel(Module):  # pragma: no cover
         super(MinervaDataParallel, self).__init__()
         self.model = paralleliser(model, *args, **kwargs).cuda()
 
-    def forward(self, *input: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
+    def forward(self, *inputs: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
         """Ensures a forward call to the model goes to the actual wrapped model.
 
         Args:
-            input (tuple[~torch.Tensor, ...]): Input of tensors to be parsed to the
+            inputs (tuple[~torch.Tensor, ...]): Input of tensors to be parsed to the
                 :attr:`~MinervaDataParallel.model` forward.
 
         Returns:
             tuple[~torch.Tensor, ...]: Output of :attr:`~MinervaDataParallel.model`.
         """
-        z = self.model(*input)
+        z = self.model(*inputs)
         assert isinstance(z, tuple) and list(map(type, z)) == [Tensor] * len(z)
         return z
 
-    def __call__(self, *input) -> Tuple[Tensor, ...]:
-        return self.forward(*input)
+    def __call__(self, *inputs) -> Tuple[Tensor, ...]:
+        return self.forward(*inputs)
 
     def __getattr__(self, name):
         try:
@@ -339,8 +339,8 @@ class MinervaOnnxModel(MinervaModel):
 
         self.model = model
 
-    def __call__(self, *input) -> Any:
-        return self.model.forward(*input)
+    def __call__(self, *inputs) -> Any:
+        return self.model.forward(*inputs)
 
     def __getattr__(self, name) -> Any:
         try:
@@ -351,16 +351,16 @@ class MinervaOnnxModel(MinervaModel):
     def __repr__(self) -> Any:
         return self.model.__repr__()
 
-    def forward(self, *input: Any) -> Any:
+    def forward(self, *inputs: Any) -> Any:
         """Performs a forward pass of the :attr:`~MinervaOnnxModel.model` within.
 
         Args:
-            input (~typing.Any): Input to be parsed to the ``.forward`` method of :attr:`~MinervaOnnxModel.model`.
+            inputs (~typing.Any): Input to be parsed to the ``.forward`` method of :attr:`~MinervaOnnxModel.model`.
 
         Returns:
             ~typing.Any: Output of :attr:`~MinervaOnnxModel.model`.
         """
-        return self.model.forward(*input)
+        return self.model.forward(*inputs)
 
 
 # =====================================================================================================================
