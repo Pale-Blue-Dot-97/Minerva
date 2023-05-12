@@ -9,7 +9,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> v0.23-beta</b>
+    <b style="font-size:26px;"> v0.24</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
@@ -145,6 +145,6 @@ Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (C
 
 ## Project Status 🔴🟡🟢
 
-This project is in a *beta* state. Expect bugs and breaking changes in future versions.
+This project is now in release *beta* state. Still expect some bugs and there may be breaking changes in future versions.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
