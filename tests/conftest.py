@@ -164,7 +164,9 @@ def exp_cnn(x_entropy_loss, rgbi_input_size) -> MinervaModel:
 
 @pytest.fixture
 def random_mask(small_patch_size, std_n_classes) -> NDArray[Shape["32, 32"], Int]:
-    return np.random.randint(0, std_n_classes - 1, size=small_patch_size)
+    mask = np.random.randint(0, std_n_classes - 1, size=small_patch_size)
+    assert isinstance(mask, np.ndarray)
+    return mask
 
 
 @pytest.fixture
@@ -212,7 +214,9 @@ def random_mask_batch(
 
 @pytest.fixture
 def random_scene_classification_batch(std_batch_size, std_n_classes) -> LongTensor:
-    return torch.randint(0, std_n_classes - 1, size=(std_batch_size,))
+    batch = torch.randint(0, std_n_classes - 1, size=(std_batch_size,))
+    assert isinstance(batch, LongTensor)
+    return batch
 
 
 @pytest.fixture

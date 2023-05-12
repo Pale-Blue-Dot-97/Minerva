@@ -420,7 +420,7 @@ class Trainer:
         # Python 3.11+ is not yet supported though, hence the exception clause.
         if Version(torch.__version__) > Version("2.0.0"):  # pragma: no cover
             try:
-                _compiled_model = torch.compile(self.model)
+                _compiled_model = torch.compile(self.model)  # type: ignore[attr-defined]
                 assert isinstance(_compiled_model, (MinervaModel, MinervaDataParallel))
                 self.model = _compiled_model
             except RuntimeError as err:

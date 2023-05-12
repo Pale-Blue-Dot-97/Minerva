@@ -91,7 +91,7 @@ def test_sup_tg(
             std_n_classes,
             *rgbi_input_size[1:],
         )
-        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())
+        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())  # type: ignore[union-attr]
         assert results[3] == batch["bbox"]
 
 
@@ -177,7 +177,7 @@ def test_mask_autoencoder_io(
             std_n_classes,
             *rgbi_input_size[1:],
         )
-        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())
+        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())  # type: ignore[union-attr]
         assert results[3] == batch["bbox"]
 
 
@@ -211,5 +211,5 @@ def test_image_autoencoder_io(
         assert isinstance(results[0], Tensor)
         assert isinstance(results[1], Tensor)
         assert results[1].size() == (std_batch_size, *rgbi_input_size)
-        assert_array_equal(results[2].detach().cpu(), batch["image"].detach().cpu())
+        assert_array_equal(results[2].detach().cpu(), batch["image"].detach().cpu())  # type: ignore[union-attr]
         assert results[3] == batch["bbox"]
