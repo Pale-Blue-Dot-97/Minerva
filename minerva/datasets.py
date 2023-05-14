@@ -167,7 +167,7 @@ class PairedDataset(RasterDataset):
             queries[1]
         )
 
-    def __and__(self, other: "PairedDataset") -> IntersectionDataset:
+    def __and__(self, other: "PairedDataset") -> IntersectionDataset:  # type: ignore[override]
         """Take the intersection of two :class:`PairedDataset`.
 
         Args:
@@ -191,7 +191,7 @@ class PairedDataset(RasterDataset):
             self, other, collate_fn=utils.pair_collate(concat_samples)
         )
 
-    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":
+    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":  # type: ignore[override]
         """Take the union of two :class:`PairedDataset`.
 
         Args:
@@ -307,7 +307,7 @@ class PairedUnionDataset(UnionDataset):
 
         self.datasets = new_datasets
 
-    def __getitem__(
+    def __getitem__(  # type: ignore[override]
         self, query: Tuple[BoundingBox, BoundingBox]
     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Retrieve image and metadata indexed by query.

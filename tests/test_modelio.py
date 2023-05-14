@@ -1,19 +1,25 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with this program in LICENSE.txt. If not,
-# see <https://www.gnu.org/licenses/>.
+# MIT License
+
+# Copyright (c) 2023 Harry Baker
+
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
@@ -85,7 +91,7 @@ def test_sup_tg(
             std_n_classes,
             *rgbi_input_size[1:],
         )
-        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())
+        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())  # type: ignore[union-attr]
         assert results[3] == batch["bbox"]
 
 
@@ -171,7 +177,7 @@ def test_mask_autoencoder_io(
             std_n_classes,
             *rgbi_input_size[1:],
         )
-        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())
+        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())  # type: ignore[union-attr]
         assert results[3] == batch["bbox"]
 
 
@@ -205,5 +211,5 @@ def test_image_autoencoder_io(
         assert isinstance(results[0], Tensor)
         assert isinstance(results[1], Tensor)
         assert results[1].size() == (std_batch_size, *rgbi_input_size)
-        assert_array_equal(results[2].detach().cpu(), batch["image"].detach().cpu())
+        assert_array_equal(results[2].detach().cpu(), batch["image"].detach().cpu())  # type: ignore[union-attr]
         assert results[3] == batch["bbox"]

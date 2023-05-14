@@ -39,7 +39,6 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
-import warnings
 from contextlib import nullcontext
 from pathlib import Path
 from typing import (
@@ -62,7 +61,6 @@ import yaml
 from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
-from packaging.version import Version
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -415,16 +413,6 @@ class Trainer:
                 self.model
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
-
-        # Wraps the model in `torch.compile` to speed up computation time.
-        # Python 3.11+ is not yet supported though, hence the exception clause.
-        if Version(torch.__version__) > Version("2.0.0"):  # pragma: no cover
-            try:
-                _compiled_model = torch.compile(self.model)
-                assert isinstance(_compiled_model, (MinervaModel, MinervaDataParallel))
-                self.model = _compiled_model
-            except RuntimeError as err:
-                warnings.warn(str(err))
 
     def init_wandb_metrics(self) -> None:
         """Setups up separate step counters for :mod:`wandb` logging of train, val, etc."""
