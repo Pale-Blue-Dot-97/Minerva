@@ -37,6 +37,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                      IMPORTS
 # =====================================================================================================================
 import argparse
+import multiprocessing
 import shutil
 from pathlib import Path
 
@@ -46,6 +47,13 @@ import torch
 from minerva.models import MinervaModel, MinervaOnnxModel
 from minerva.trainer import Trainer
 from minerva.utils import CONFIG, config_load, runner, utils
+
+# =====================================================================================================================
+#                                                      GLOBALS
+# =====================================================================================================================
+multiprocessing.set_start_method(
+    "fork"
+)  # Workaround for pickling issues from multiprocessing.
 
 
 # =====================================================================================================================
