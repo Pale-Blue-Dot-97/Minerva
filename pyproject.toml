@@ -35,7 +35,7 @@ dependencies = [
     "matplotlib",
     "mlflow",
     "nptyping",
-    "numba>=0.57.0rc1; python_version>='3.11'",
+    "numba>=0.57.0; python_version>='3.11'",
     "numpy",
     "overload",
     "pandas",
