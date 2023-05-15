@@ -1003,7 +1003,12 @@ class Trainer:
         self.model.eval()
 
         # Get the number of classes from the data config.
-        n_classes = len(AUX_CONFIGS["data_config"]["classes"])
+        try:
+            n_classes = len(AUX_CONFIGS["data_config"]["classes"])
+        except KeyError as err:
+            # Fall back to a reasonable default if we don't have a class list
+            print("No class list defined in `data_config`")
+            n_classes = 10
 
         batch_size = self.batch_size
 
