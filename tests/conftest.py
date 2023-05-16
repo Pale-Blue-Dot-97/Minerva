@@ -41,7 +41,7 @@ import multiprocessing
 import os
 import shutil
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Generator, Tuple
 
 import numpy as np
 import pytest
@@ -76,7 +76,7 @@ def set_multiprocessing_to_fork():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def results_dir() -> Path:
+def results_dir() -> Generator[Path, None, None]:
     path = Path(__file__).parent / "tmp" / "results"
     if not path.exists():
         path.mkdir(parents=True)
@@ -102,7 +102,7 @@ def lc_root(data_root: Path) -> Path:
 
 
 @pytest.fixture
-def config_root(data_root: Path) -> Path:
+def config_root(data_root: Path) -> Generator[Path, None, None]:
     config_path = data_root.parent / "config"
 
     # Make a temporary copy of a config manifest example
@@ -117,7 +117,7 @@ def config_root(data_root: Path) -> Path:
 
 
 @pytest.fixture
-def config_here() -> Path:
+def config_here() -> Generator[Path, None, None]:
     here = Path(__file__).parent.parent
 
     # Make a temporary copy where we're running from
@@ -274,6 +274,6 @@ def default_dataset() -> GeoDataset:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def wandb_offline() -> None:
+def wandb_offline() -> Generator[int, None, None]:
     yield os.system("wandb offline")  # nosec B605, B607
     os.system("wandb online")  # nosec B605, B607
