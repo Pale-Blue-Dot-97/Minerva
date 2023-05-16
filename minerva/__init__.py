@@ -46,3 +46,10 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
+
+try:
+    from ._version import version as __version__
+    from ._version import version_tuple as version_tuple
+except ImportError:
+    __version__ = "unknown version"
+    version_tuple = (0, 0, "unknown version")  # type: ignore[assignment]

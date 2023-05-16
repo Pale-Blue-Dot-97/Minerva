@@ -114,3 +114,4 @@ profile = "black"
 skips = ["B101", "B311", "B404", "B603"]
 
 [tool.setuptools_scm]
+write_to = "minerva/_version.py"
