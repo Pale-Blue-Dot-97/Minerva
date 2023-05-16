@@ -37,6 +37,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import multiprocessing
 import os
 import shutil
 from pathlib import Path
@@ -60,12 +61,22 @@ from minerva.utils import CONFIG, utils
 #                                                     FIXTURES
 # =====================================================================================================================
 @pytest.fixture(scope="session", autouse=True)
-def set_seeds():
+def set_seeds() -> None:
     utils.set_seeds(42)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def results_dir():
+def set_multiprocessing_to_fork():
+    # Workaround for pickling issues from multiprocessing on Mac OS.
+    try:
+        multiprocessing.set_start_method("fork")
+    except ValueError:
+        # Raises ValueError on Windows so just bypass this.
+        pass
+
+
+@pytest.fixture(scope="session", autouse=True)
+def results_dir() -> Path:
     path = Path(__file__).parent / "tmp" / "results"
     if not path.exists():
         path.mkdir(parents=True)
@@ -91,7 +102,7 @@ def lc_root(data_root: Path) -> Path:
 
 
 @pytest.fixture
-def config_root(data_root: Path):
+def config_root(data_root: Path) -> Path:
     config_path = data_root.parent / "config"
 
     # Make a temporary copy of a config manifest example
@@ -106,7 +117,7 @@ def config_root(data_root: Path):
 
 
 @pytest.fixture
-def config_here():
+def config_here() -> Path:
     here = Path(__file__).parent.parent
 
     # Make a temporary copy where we're running from
@@ -250,7 +261,7 @@ def example_matrix() -> Dict[int, int]:
 
 
 @pytest.fixture
-def simple_bbox():
+def simple_bbox() -> BoundingBox:
     return BoundingBox(0, 1, 0, 1, 0, 1)
 
 
@@ -263,6 +274,6 @@ def default_dataset() -> GeoDataset:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def wandb_offline():
+def wandb_offline() -> None:
     yield os.system("wandb offline")  # nosec B605, B607
     os.system("wandb online")  # nosec B605, B607
