@@ -59,7 +59,7 @@ import yaml
 #                                                     GLOBALS
 # =====================================================================================================================
 # Default values for the path to the config directory and config name.
-DEFAULT_CONF_DIR_PATH = Path("../../inbuilt_cfgs/")
+DEFAULT_CONF_DIR_PATH = Path("../inbuilt_cfgs/")
 DEFAULT_CONFIG_NAME: str = "example_config.yml"
 
 
