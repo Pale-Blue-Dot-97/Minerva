@@ -102,14 +102,12 @@ def lc_root(data_root: Path) -> Path:
 
 
 @pytest.fixture
-def config_root(data_root: Path) -> Generator[Path, None, None]:
+def config_root(inbuilt_cfg_root: Path, data_root: Path) -> Generator[Path, None, None]:
     config_path = data_root.parent / "config"
 
     # Make a temporary copy of a config manifest example
     os.makedirs(config_path, exist_ok=True)
-    shutil.copy(
-        Path(__file__).parent.parent / "inbuilt_cfgs" / "exp_mf_config.yml", config_path
-    )
+    shutil.copy(inbuilt_cfg_root / "exp_mf_config.yml", config_path)
     yield config_path
 
     # Delete it afterwards
@@ -117,15 +115,20 @@ def config_root(data_root: Path) -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def config_here() -> Generator[Path, None, None]:
+def config_here(inbuilt_cfg_root: Path) -> Generator[Path, None, None]:
     here = Path(__file__).parent.parent
 
     # Make a temporary copy where we're running from
-    shutil.copy(here / "inbuilt_cfgs" / "exp_mf_config.yml", here)
+    shutil.copy(inbuilt_cfg_root / "exp_mf_config.yml", here)
 
     yield here
 
     os.unlink(here / "exp_mf_config.yml")
+
+
+@pytest.fixture
+def inbuilt_cfg_root() -> Path:
+    return (Path(__file__).parent.parent / "minerva" / "inbuilt_cfgs").resolve()
 
 
 @pytest.fixture
