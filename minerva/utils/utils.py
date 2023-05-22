@@ -150,6 +150,7 @@ import rasterio as rt
 import torch
 import yaml
 from alive_progress import alive_bar
+from geopy.adapters import AdapterHTTPError
 from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Photon
 from nptyping import Float, Int, NDArray, Shape
@@ -843,7 +844,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         query = geolocator.reverse(f"{lat},{lon}")
 
     # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
-    except (GeocoderUnavailable, NewConnectionError):
+    except (GeocoderUnavailable, NewConnectionError, AdapterHTTPError):
         print("\nGeocoder unavailable")
         return ""
 
