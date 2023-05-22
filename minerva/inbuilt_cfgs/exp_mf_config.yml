@@ -8,7 +8,7 @@ dir:
         - tmp
         - data
     configs:
-        data_config: inbuilt_cfgs/Chesapeake7.yml
+        data_config: minerva/inbuilt_cfgs/Chesapeake7.yml
     output:
         - tests
         - tmp

@@ -108,14 +108,13 @@ def test_check_paths(config_root: Path):
     os.chdir(cwd)
 
 
-def test_chdir_to_default():
+def test_chdir_to_default(inbuilt_cfg_root):
     def run_chdir(input, output):
         assert output == chdir_to_default(input)
-        assert Path(os.getcwd()) == this_abs_path
+        assert Path(os.getcwd()) == inbuilt_cfg_root
         os.chdir(cwd)
 
     cwd = os.getcwd()
-    this_abs_path = (Path(__file__).parent / ".." / "inbuilt_cfgs").resolve()
 
     config_name1 = "example_GeoCLR_config.yml"
 

@@ -50,6 +50,6 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 try:
     from ._version import version as __version__
     from ._version import version_tuple as version_tuple
-except ImportError:
+except ImportError:  # pragma: no cover
     __version__ = "unknown version"
     version_tuple = (0, 0, "unknown version")  # type: ignore[assignment]

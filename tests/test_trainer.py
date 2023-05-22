@@ -144,7 +144,6 @@ def test_trainer_3() -> None:
     params2 = CONFIG.copy()
     params2["pre_train_name"] = params1["model_name"]
     params2["fine_tune"] = True
-    # params2["reload"] = True
     params2["max_epochs"] = 2
     params2["elim"] = False
 
@@ -152,8 +151,8 @@ def test_trainer_3() -> None:
     trainer2.fit()
 
 
-def test_cnn_train() -> None:
-    cfg_path = Path(__file__).parent.parent / "inbuilt_cfgs" / "example_CNN_config.yml"
+def test_cnn_train(inbuilt_cfg_root: Path) -> None:
+    cfg_path = inbuilt_cfg_root / "example_CNN_config.yml"
 
     with config_load.ToDefaultConfDir():
         cfg, _ = config_load.load_configs(cfg_path)
@@ -164,10 +163,8 @@ def test_cnn_train() -> None:
     trainer.test()
 
 
-def test_ssl_trainer() -> None:
-    ssl_cfg_path = (
-        Path(__file__).parent.parent / "inbuilt_cfgs" / "example_GeoCLR_config.yml"
-    )
+def test_ssl_trainer(inbuilt_cfg_root: Path) -> None:
+    ssl_cfg_path = inbuilt_cfg_root / "example_GeoCLR_config.yml"
 
     with config_load.ToDefaultConfDir():
         ssl_cfg, _ = config_load.load_configs(ssl_cfg_path)
@@ -181,10 +178,8 @@ def test_ssl_trainer() -> None:
     trainer.tsne_cluster()
 
 
-def test_ssl_trainer_2() -> None:
-    ssl_cfg_path = (
-        Path(__file__).parent.parent / "inbuilt_cfgs" / "example_GeoCLR_config.yml"
-    )
+def test_ssl_trainer_2(inbuilt_cfg_root: Path) -> None:
+    ssl_cfg_path = inbuilt_cfg_root / "example_GeoCLR_config.yml"
 
     with config_load.ToDefaultConfDir():
         ssl_cfg, _ = config_load.load_configs(ssl_cfg_path)
@@ -196,8 +191,8 @@ def test_ssl_trainer_2() -> None:
     trainer.fit()
 
 
-def test_third_party_model() -> None:
-    cfg_path = Path(__file__).parent.parent / "inbuilt_cfgs" / "example_3rd_party.yml"
+def test_third_party_model(inbuilt_cfg_root: Path) -> None:
+    cfg_path = inbuilt_cfg_root / "example_3rd_party.yml"
 
     with config_load.ToDefaultConfDir():
         cfg, _ = config_load.load_configs(cfg_path)
@@ -207,10 +202,8 @@ def test_third_party_model() -> None:
     trainer.fit()
 
 
-def test_autoencoder() -> None:
-    cfg_path = (
-        Path(__file__).parent.parent / "inbuilt_cfgs" / "example_autoencoder_config.yml"
-    )
+def test_autoencoder(inbuilt_cfg_root: Path) -> None:
+    cfg_path = inbuilt_cfg_root / "example_autoencoder_config.yml"
 
     with config_load.ToDefaultConfDir():
         cfg, _ = config_load.load_configs(cfg_path)
