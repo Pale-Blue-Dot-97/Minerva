@@ -12,6 +12,17 @@ jobs:
               with:
                   fetch-depth: 0
             - name: Qodana Scan
-              uses: JetBrains/qodana-action@v2023.1.0
+              uses: JetBrains/qodana-action@v2023.2.0
               with:
                   args: --baseline,qodana.sarif.json
+                  results-dir: /home/runner/work/_temp/qodana/results
+                  cache-dir: /home/runner/work/_temp/qodana/caches
+                  use-caches: true
+                  primary-cache-key: qodana-2023.2-refs/pull/180/merge-844f05322e9c5e8f22c1118ad417fae764964353
+                  additional-cache-key: qodana-2023.2-refs/pull/180/merge
+                  additional-cache-hash: 844f05322e9c5e8f22c1118ad417fae764964353
+                  cache-default-branch-only: false
+                  upload-result: true
+                  artifact-name: qodana-report
+                  use-annotations: true
+                  pr-mode: true
