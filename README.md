@@ -37,8 +37,6 @@ compilation of the required C-based libraries.
 pip install git+https://github.com/Pale-Blue-Dot-97/Minerva.git
 ```
 
-You will be required to provide your `GitHub` credentials that have valid access to `minerva`.
-
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### Requirements 📌
@@ -79,7 +77,7 @@ See `scripts\MinervaExp.py` as an example script implementing `minerva`.
 
 ### Config Structure ⚙
 
-See `inbuilt_cfgs\example_config.yml` as an example config file.
+See `minerva\inbuilt_cfgs\example_config.yml` as an example config file.
 
 ### Creating a Manifest for your Dataset 📑
 
