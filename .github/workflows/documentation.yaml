@@ -4,7 +4,6 @@ on:
     push:
         branches:
             - main
-    workflow_dispatch:
     release:
 permissions:
     contents: write
@@ -23,7 +22,6 @@ jobs:
                   sphinx-build docs _build
             - name: Deploy 🚀
               uses: peaceiris/actions-gh-pages@v3
-              if: ${{ github.event_name == 'release' && github.ref == 'refs/heads/main' }}
               with:
                   publish_branch: gh-pages
                   github_token: ${{ secrets.GITHUB_TOKEN }}
