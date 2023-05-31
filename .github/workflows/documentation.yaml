@@ -9,13 +9,13 @@ jobs:
         steps:
             - uses: actions/checkout@v3
             - uses: actions/setup-python@v3
-            - name: Install dependencies
+            - name: Install dependencies 🛒
               run: |
                   pip install sphinx sphinx_rtd_theme
-            - name: Sphinx build
+            - name: Sphinx build 🛠
               run: |
                   sphinx-build doc _build
-            - name: Deploy
+            - name: Deploy 🚀
               uses: peaceiris/actions-gh-pages@v3
               if: ${{ github.event_name == 'release' && github.ref == 'refs/heads/main' }}
               with:
