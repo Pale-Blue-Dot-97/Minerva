@@ -1,0 +1,30 @@
+---
+name: Docs
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+    release:
+permissions:
+    contents: write
+jobs:
+    docs:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - uses: actions/setup-python@v3
+            - name: Install dependencies 🛒
+              run: |
+                  pip install sphinx sphinx_rtd_theme
+            - name: Sphinx build 🛠
+              run: |
+                  sphinx-build docs _build
+            - name: Deploy 🚀
+              uses: peaceiris/actions-gh-pages@v3
+              if: ${{ github.event_name == 'release' && github.ref == 'refs/heads/main' }}
+              with:
+                  publish_branch: gh-pages
+                  github_token: ${{ secrets.GITHUB_TOKEN }}
+                  publish_dir: _build/
+                  force_orphan: true
