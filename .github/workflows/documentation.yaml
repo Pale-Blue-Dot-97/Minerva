@@ -1,5 +1,5 @@
 ---
-name: Docs 🗃
+name: docs 🗃
 on:
     push:
         branches:
