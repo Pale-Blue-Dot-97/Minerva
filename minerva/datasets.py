@@ -509,6 +509,8 @@ def make_dataset(
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
+        if type_key == "sampler":
+            continue
         type_dataset_params = dataset_params[type_key]
 
         type_subdatasets = []
@@ -853,7 +855,7 @@ def make_loaders(
     # Gets out the parameters for the DataLoaders from params.
     dataloader_params: Dict[Any, Any] = params["loader_params"]
     dataset_params: Dict[str, Any] = params["dataset_params"]
-    sampler_params: Dict[str, Any] = params["sampler_params"]
+
     transform_params: Dict[str, Any] = params["transform_params"]
     batch_size: int = params["batch_size"]
 
@@ -899,15 +901,17 @@ def make_loaders(
                     "transform": forwards,
                 }
 
+        sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
+
         # Calculates number of batches.
-        n_batches[mode] = int(sampler_params[mode]["params"]["length"] / batch_size)
+        n_batches[mode] = int(sampler_params["params"]["length"] / batch_size)
 
         # --+ MAKE DATASETS +=========================================================================================+
         print(f"CREATING {mode} DATASET")
         loaders[mode] = construct_dataloader(
             params["dir"]["data"],
             dataset_params[mode],
-            sampler_params[mode],
+            sampler_params,
             dataloader_params,
             batch_size,
             collator_params=params["collator"],
@@ -1007,15 +1011,18 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     batch_size = mf_config["batch_size"]
     dataloader_params = mf_config["dataloader_params"]
     dataset_params = mf_config["dataset_params"]
-    sampler_params = mf_config["sampler_params"]
+
     collator_params = mf_config["collator"]
 
     keys = list(dataset_params.keys())
     print("CONSTRUCTING DATASET")
+
+    sampler_params = dataset_params[keys[0]]["sampler"]
+
     loader = construct_dataloader(
         mf_config["dir"]["data"],
         dataset_params[keys[0]],
-        sampler_params[keys[0]],
+        sampler_params,
         dataloader_params,
         batch_size,
         collator_params=collator_params,

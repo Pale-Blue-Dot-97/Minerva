@@ -92,6 +92,15 @@ collator:
 dataset_params:
     # Training Dataset
     train:
+        sampler:
+            module: minerva.samplers
+            name: RandomPairGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 120
+                max_r: *max_r
+
         image:
             image1:
                 module: minerva.datasets
@@ -108,6 +117,14 @@ dataset_params:
 
     # Validation Dataset
     val:
+        sampler:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 32
+
         image:
             module: minerva.datasets
             name: TstImgDataset
@@ -124,6 +141,14 @@ dataset_params:
 
     # Test Dataset
     test:
+        sampler:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 32
+
         image:
             module: minerva.datasets
             name: TstImgDataset
@@ -138,35 +163,6 @@ dataset_params:
             params:
                 res: 1.0
 
-# === SAMPLER PARAMETERS ======================================================
-sampler_params:
-    # Training Dataset Sampler
-    train:
-        module: minerva.samplers
-        name: RandomPairGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 120
-            max_r: *max_r
-
-    # Validation Dataset Sampler
-    val:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 32
-
-    # Test Dataset Sampler
-    test:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 32
 
 # === TRANSFORM PARAMETERS ====================================================
 transform_params:
