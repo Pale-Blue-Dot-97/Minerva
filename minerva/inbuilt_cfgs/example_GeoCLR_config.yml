@@ -102,6 +102,29 @@ dataset_params:
                 max_r: *max_r
 
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
+                RandomApply:
+                    p: 0.25
+                    RandomResizedCrop:
+                        module: torchvision.transforms
+                        size: *patch_size
+                DetachedColorJitter:
+                    module: minerva.transforms
+                    brightness: 0.8
+                    contrast: 0.8
+                    saturation: 0.8
+                    hue: 0.2
+                RandomHorizontalFlip:
+                    module: torchvision.transforms
+                RandomVerticalFlip:
+                    module: torchvision.transforms
+                GaussianBlur:
+                    module: torchvision.transforms
+                    kernel_size: 25
+
             image1:
                 module: minerva.datasets
                 name: TstImgDataset
@@ -162,43 +185,6 @@ dataset_params:
             root: test_lc
             params:
                 res: 1.0
-
-
-# === TRANSFORM PARAMETERS ====================================================
-transform_params:
-    # Training Dataset Transforms
-    train:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-            RandomApply:
-                p: 0.25
-                RandomResizedCrop:
-                    module: torchvision.transforms
-                    size: *patch_size
-            DetachedColorJitter:
-                module: minerva.transforms
-                brightness: 0.8
-                contrast: 0.8
-                saturation: 0.8
-                hue: 0.2
-            RandomHorizontalFlip:
-                module: torchvision.transforms
-            RandomVerticalFlip:
-                module: torchvision.transforms
-            GaussianBlur:
-                module: torchvision.transforms
-                kernel_size: 25
-
-    # Validation Dataset Transforms
-    val:
-        image: false
-        mask: false
-
-    test:
-        image: false
-        mask: false
 
 # === PLOTTING OPTIONS ========================================================
 plots:

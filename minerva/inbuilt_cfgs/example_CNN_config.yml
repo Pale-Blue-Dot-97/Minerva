@@ -94,12 +94,20 @@ dataset_params:
                 length: 320
 
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
             params:
                 res: 1.0
         mask:
+            transforms:
+                SingleLabel:
+                    module: minerva.transforms
+                    mode: modal
             module: minerva.datasets
             name: TstMaskDataset
             root: test_lc
@@ -117,6 +125,10 @@ dataset_params:
                 length: 80
 
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
@@ -124,6 +136,10 @@ dataset_params:
                 res: 1.0
 
         mask:
+            transforms:
+                SingleLabel:
+                    module: minerva.transforms
+                    mode: modal
             module: minerva.datasets
             name: TstMaskDataset
             root: test_lc
@@ -141,6 +157,10 @@ dataset_params:
                 length: 160
 
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
@@ -148,47 +168,15 @@ dataset_params:
                 res: 1.0
 
         mask:
+            transforms:
+                SingleLabel:
+                    module: minerva.transforms
+                    mode: modal
             module: minerva.datasets
             name: TstMaskDataset
             root: test_lc
             params:
                 res: 1.0
-
-
-# === TRANSFORM PARAMETERS ====================================================
-transform_params:
-    # Training Dataset Transforms
-    train:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask:
-            SingleLabel:
-                module: minerva.transforms
-                mode: modal
-
-    # Validation Dataset Transforms
-    val:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask:
-            SingleLabel:
-                module: minerva.transforms
-                mode: modal
-
-    # Test Dataset Transforms
-    test:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask:
-            SingleLabel:
-                module: minerva.transforms
-                mode: modal
 
 # === PLOTTING OPTIONS ========================================================
 plots:

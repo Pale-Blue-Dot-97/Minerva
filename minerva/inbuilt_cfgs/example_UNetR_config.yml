@@ -96,6 +96,10 @@ dataset_params:
                 length: 320
 
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: torchgeo.datasets
             name: NAIP
             root: NAIP 2013/Train
@@ -119,6 +123,10 @@ dataset_params:
                 length: 80
 
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: torchgeo.datasets
             name: NAIP
             root: NAIP 2013/Validation
@@ -141,6 +149,10 @@ dataset_params:
                 size: *patch_size
                 length: 160
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: torchgeo.datasets
             name: NAIP
             root: NAIP 2013/Test
@@ -152,33 +164,6 @@ dataset_params:
             root: Chesapeake7
             params:
                 res: 1.0
-
-
-# === TRANSFORM PARAMETERS ====================================================
-transform_params:
-    # Training Dataset Transforms
-    train:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask: false
-
-    # Validation Dataset Transforms
-    val:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask: false
-
-    # Test Dataset Transforms
-    test:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask: false
 
 # === PLOTTING OPTIONS ========================================================
 plots:

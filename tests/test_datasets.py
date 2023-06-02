@@ -209,15 +209,14 @@ def test_make_dataset() -> None:
 
     dataset_params = {
         "image": {
+            "transforms": {
+                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
+            },
             "module": "minerva.datasets",
             "name": "TstImgDataset",
             "root": "test_images",
             "params": {"res": 10.0},
         }
-    }
-
-    transform_params = {
-        "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
     }
 
     dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
@@ -226,7 +225,9 @@ def test_make_dataset() -> None:
     assert isinstance(dataset_1, TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
-        data_dir, dataset_params, transform_params, sample_pairs=True
+        data_dir,
+        dataset_params,
+        sample_pairs=True,
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
@@ -250,24 +251,14 @@ def test_make_dataset() -> None:
         },
     }
 
-    dataset_3, subdatasets_3 = mdt.make_dataset(
-        data_dir, dataset_params2, transform_params
-    )
+    dataset_3, subdatasets_3 = mdt.make_dataset(data_dir, dataset_params2)
     assert isinstance(dataset_3, IntersectionDataset)
     assert isinstance(subdatasets_3[0], UnionDataset)
     assert isinstance(subdatasets_3[1], UnionDataset)
 
-    transform_params_3 = {
-        "image": {
-            "image_1": transform_params["image"],
-            "image_2": transform_params["image"],
-        }
-    }
-
     dataset_4, subdatasets_4 = mdt.make_dataset(
         data_dir,
         dataset_params2,
-        transform_params_3,
         sample_pairs=True,
     )
     assert isinstance(dataset_4, IntersectionDataset)
@@ -282,6 +273,9 @@ def test_construct_dataloader() -> None:
 
     dataset_params = {
         "image": {
+            "transforms": {
+                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
+            },
             "module": "minerva.datasets",
             "name": "TstImgDataset",
             "root": "test_images",
@@ -309,10 +303,6 @@ def test_construct_dataloader() -> None:
         },
     }
 
-    transform_params = {
-        "image": {"Normalise": {"module": "minerva.transforms", "norm_value": 255}}
-    }
-
     dataloader_params = {"num_workers": 2, "pin_memory": True}
 
     dataloader_1 = mdt.construct_dataloader(
@@ -328,7 +318,6 @@ def test_construct_dataloader() -> None:
         sampler_params_2,
         dataloader_params,
         batch_size,
-        transform_params=transform_params,
         sample_pairs=True,
     )
     dataloader_3 = mdt.construct_dataloader(
