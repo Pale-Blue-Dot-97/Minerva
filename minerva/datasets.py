@@ -457,39 +457,6 @@ def make_dataset(
 
         return _sub_dataset, str(sub_dataset_root)
 
-    def create_transforms(
-        this_transform_params: Any, key: str, data_type_key: Optional[str] = None
-    ) -> Optional[Any]:
-        """Construct transforms for samples returned from this sub-dataset -- if found.
-
-        Args:
-            this_transform_params (~typing.Any): Parameters defining the transforms for the dataset for the
-                whole mode of fitting.
-            key (str): The key for the transforms for this particular subdataset.
-            data_type_key (str): Optional; The type of data the transform is acting on.
-                Most likely ``"image"`` or ``"mask"``. This may differ from ``key`` if using unionisation of datasets.
-                If ``None``, defaults to ``key``.
-
-        Returns:
-            ~typing.Any | None: The transformatins for this subdataset or ``None`` if no parameters found.
-        """
-        data_type_key = key if data_type_key is None else data_type_key
-
-        _transformations: Optional[Any] = None
-        if type(this_transform_params) == dict:
-            assert this_transform_params is not None
-            try:
-                if this_transform_params[key]:
-                    _transformations = make_transformations(
-                        this_transform_params[key], key=data_type_key
-                    )
-            except (KeyError, TypeError):
-                pass
-        else:
-            pass
-
-        return _transformations
-
     def create_subdataset(
         dataset_class: Callable[..., GeoDataset],
         root: str,
