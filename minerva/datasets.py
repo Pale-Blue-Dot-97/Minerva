@@ -499,6 +499,7 @@ def make_dataset(
                 master_transforms = make_transformations(
                     type_dataset_params[area_key], type_key
                 )
+                print(master_transforms)
             else:
                 multi_datasets_exist = True
                 _subdataset, subdataset_root = get_subdataset(
@@ -845,6 +846,8 @@ def make_loaders(
         new_classes, forwards, new_colours = utils.load_data_specs(
             class_dist=class_dist, elim=params.get("elim", False)
         )
+
+    print(forwards)
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
