@@ -181,7 +181,6 @@ class PairedDataset(RasterDataset):
 
         .. versionadded:: 0.24
         """
-        print("paired intersect")
         if not isinstance(other, PairedDataset):
             raise ValueError(
                 f"Intersecting a dataset of {type(other)} and a PairedDataset is not supported!"
@@ -499,7 +498,6 @@ def make_dataset(
                 master_transforms = make_transformations(
                     type_dataset_params[area_key], type_key
                 )
-                print(master_transforms)
             else:
                 multi_datasets_exist = True
                 _subdataset, subdataset_root = get_subdataset(
@@ -841,16 +839,11 @@ def make_loaders(
         manifest = get_manifest(get_manifest_path())
         class_dist = utils.modes_from_manifest(manifest)
 
-        print("manifest: ", manifest)
-        print("class dist: ", class_dist)
-
         # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
         # and new colours.
         new_classes, forwards, new_colours = utils.load_data_specs(
             class_dist=class_dist, elim=params.get("elim", False)
         )
-
-    print(forwards)
 
     # Inits dicts to hold the variables and lists for train, validation and test.
     n_batches = {}
@@ -978,11 +971,18 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
-    batch_size = mf_config["batch_size"]
-    dataloader_params = mf_config["dataloader_params"]
-    dataset_params = mf_config["dataset_params"]
+    batch_size: int = mf_config["batch_size"]
+    dataloader_params: Dict[str, Any] = mf_config["dataloader_params"]
+    dataset_params: Dict[str, Any] = mf_config["dataset_params"]
+    collator_params: Dict[str, Any] = mf_config["collator"]
 
-    collator_params = mf_config["collator"]
+    # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
+    # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
+    # sample the dataset. We need the original, un-transformed labels.
+    for mode in dataset_params.keys():
+        if "transforms" in dataset_params[mode]["mask"]:
+            if "ClassTransform" in dataset_params[mode]["mask"]["transforms"]:
+                del dataset_params[mode]["mask"]["transforms"]["ClassTransform"]
 
     keys = list(dataset_params.keys())
     print("CONSTRUCTING DATASET")
