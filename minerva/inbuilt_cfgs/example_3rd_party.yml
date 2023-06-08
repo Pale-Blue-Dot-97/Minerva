@@ -87,7 +87,19 @@ collator:
 dataset_params:
     # Training Dataset
     train:
+        sampler:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 120
+
         image:
+            transforms:
+                ToRGB:
+                    module: minerva.transforms
+
             images_1:
                 module: minerva.datasets
                 name: TstImgDataset
@@ -103,6 +115,9 @@ dataset_params:
                     res: 1.0
 
         mask:
+            transforms:
+                SingleLabel:
+                    module: minerva.transforms
             module: minerva.datasets
             name: TstMaskDataset
             root: test_lc
@@ -111,7 +126,18 @@ dataset_params:
 
     # Validation Dataset
     val:
+        sampler:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 32
+
         image:
+            transforms:
+                ToRGB:
+                    module: minerva.transforms
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
@@ -119,6 +145,9 @@ dataset_params:
                 res: 1.0
 
         mask:
+            transforms:
+                SingleLabel:
+                    module: minerva.transforms
             module: minerva.datasets
             name: TstMaskDataset
             root: test_lc
@@ -127,7 +156,18 @@ dataset_params:
 
     # Test Dataset
     test:
+        sampler:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 32
+
         image:
+            transforms:
+                ToRGB:
+                    module: minerva.transforms
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
@@ -135,73 +175,14 @@ dataset_params:
                 res: 1.0
 
         mask:
+            transforms:
+                SingleLabel:
+                    module: minerva.transforms
             module: minerva.datasets
             name: TstMaskDataset
             root: test_lc
             params:
                 res: 1.0
-
-# === SAMPLER PARAMETERS ======================================================
-sampler_params:
-    # Training Dataset Sampler
-    train:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 120
-
-    # Validation Dataset Sampler
-    val:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 32
-
-    # Test Dataset Sampler
-    test:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 32
-
-# === TRANSFORM PARAMETERS ====================================================
-transform_params:
-    # Training Dataset Transforms
-    train:
-        image:
-            images_1:
-                ToRGB:
-                    module: minerva.transforms
-            image2:
-                ToRGB:
-                    module: minerva.transforms
-        mask:
-            SingleLabel:
-                module: minerva.transforms
-
-    # Validation Dataset Transforms
-    val:
-        image:
-            ToRGB:
-                module: minerva.transforms
-        mask:
-            SingleLabel:
-                module: minerva.transforms
-
-    # Test Dataset Transforms
-    test:
-        image:
-            ToRGB:
-                module: minerva.transforms
-        mask:
-            SingleLabel:
-                module: minerva.transforms
 
 # === PLOTTING OPTIONS ========================================================
 plots:

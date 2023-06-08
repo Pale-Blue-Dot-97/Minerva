@@ -342,6 +342,7 @@ class Trainer:
         self.sample_pairs = sample_pairs
         self.model.determine_output_dim(sample_pairs=sample_pairs)
 
+        print(self.device)
         # Transfer to GPU.
         self.model.to(self.device)
 
