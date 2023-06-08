@@ -981,8 +981,9 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     # sample the dataset. We need the original, un-transformed labels.
     for mode in dataset_params.keys():
         if "transforms" in dataset_params[mode]["mask"]:
-            if "ClassTransform" in dataset_params[mode]["mask"]["transforms"]:
-                del dataset_params[mode]["mask"]["transforms"]["ClassTransform"]
+            if type(dataset_params[mode]["mask"]["transforms"]) == dict:
+                if "ClassTransform" in dataset_params[mode]["mask"]["transforms"]:
+                    del dataset_params[mode]["mask"]["transforms"]["ClassTransform"]
 
     keys = list(dataset_params.keys())
     print("CONSTRUCTING DATASET")
