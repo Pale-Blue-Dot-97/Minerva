@@ -88,6 +88,7 @@ from nptyping import NDArray
 from pandas import DataFrame
 from torch.utils.data import DataLoader
 from torchgeo.datasets import (
+    NAIP,
     GeoDataset,
     IntersectionDataset,
     RasterDataset,
@@ -133,6 +134,18 @@ class TstMaskDataset(RasterDataset):
 
     filename_glob = "*_lc.tif"
     is_image = False
+
+
+class NAIPChesapeakeCVPR(NAIP):
+    filename_glob = "m_*_naip-*.tif"
+    filename_regex = r"""
+        ^m
+        _(?P<quadrangle>\d+)
+        _(?P<quarter_quad>[a-z]+)
+        _(?P<utm_zone>\d+)
+        _(?P<resolution>\d+)
+        \..*$
+    """
 
 
 class PairedDataset(RasterDataset):
