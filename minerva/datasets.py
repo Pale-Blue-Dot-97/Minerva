@@ -138,7 +138,8 @@ class TstMaskDataset(RasterDataset):
 
 class NAIPChesapeakeCVPR(NAIP):
     filename_glob = "m_*_naip-*.tif"
-    filename_regex = r"""
+    filename_regex = ""
+    r"""
         ^m
         _(?P<quadrangle>\d+)
         _(?P<quarter_quad>[a-z]+)
