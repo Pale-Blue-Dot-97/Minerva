@@ -41,7 +41,7 @@ import multiprocessing
 import os
 import shutil
 from pathlib import Path
-from typing import Dict, Generator, Tuple
+from typing import Any, Dict, Generator, Tuple
 
 import numpy as np
 import pytest
@@ -274,6 +274,21 @@ def default_dataset() -> GeoDataset:
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
     assert isinstance(dataset, GeoDataset)
     return dataset
+
+
+@pytest.fixture
+def exp_dataset_params() -> Dict[str, Any]:
+    return {
+        "image": {
+            "transforms": {
+                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
+            },
+            "module": "minerva.datasets",
+            "name": "TstImgDataset",
+            "root": "test_images",
+            "params": {"res": 10.0},
+        }
+    }
 
 
 @pytest.fixture(scope="session", autouse=True)
