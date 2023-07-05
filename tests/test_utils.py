@@ -318,14 +318,16 @@ def test_find_geo_similar() -> None:
     assert type(utils.find_geo_similar(bbox, max_r)) is BoundingBox
 
 
-def test_batch_flatten() -> None:
-    a = np.random.rand(256, 256)
-    b = np.random.rand(16, 128, 128)
-    c = list(a)
-
-    assert len(utils.batch_flatten(a)) == 256 * 256
-    assert len(utils.batch_flatten(b)) == 16 * 128 * 128
-    assert len(utils.batch_flatten(c)) == 256 * 256
+@pytest.mark.parametrize(
+    ["input", "exp_len"],
+    [
+        (np.random.rand(256, 256), 256 * 256),
+        (np.random.rand(16, 128, 128), 16 * 128 * 128),
+        (list(np.random.rand(256, 256)), 256 * 256),
+    ],
+)
+def test_batch_flatten(input, exp_len: int) -> None:
+    assert len(utils.batch_flatten(input)) == exp_len
 
 
 def test_transform_coordinates() -> None:
