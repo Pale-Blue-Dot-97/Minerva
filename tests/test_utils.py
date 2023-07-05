@@ -270,11 +270,17 @@ def test_class_transform(input: int, output: int) -> None:
     assert utils.class_transform(input, matrix) == output
 
 
-def test_check_len() -> None:
-    assert utils.check_len([0, 0, 0], [0, 0, 0]) == [0, 0, 0]
-    assert utils.check_len([0, 0], [0, 0, 0]) == [0, 0, 0]
-    assert utils.check_len(0, [0, 1, 0]) == [0, 0, 0]
-    assert utils.check_len(1, [3, 4, 2]) == [1, 1, 1]
+@pytest.mark.parametrize(
+    ["param", "comparator", "expect"],
+    [
+        ([0, 0, 0], [0, 0, 0], [0, 0, 0]),
+        ([0, 0], [0, 0, 0], [0, 0, 0]),
+        (0, [0, 1, 0], [0, 0, 0]),
+        (1, [3, 4, 2], [1, 1, 1]),
+    ],
+)
+def test_check_len(param: Any, comparator: Any, expect: Any) -> None:
+    assert utils.check_len(param, comparator) == expect
 
 
 def test_func_by_str() -> None:
