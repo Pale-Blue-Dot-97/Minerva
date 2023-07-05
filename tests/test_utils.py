@@ -291,14 +291,11 @@ def test_func_by_str(func: str, module: str) -> None:
     assert callable(utils.func_by_str(func, module))
 
 
-def test_timestamp_now() -> None:
-    assert utils.timestamp_now("%d-%m-%Y_%H%M") == datetime.now().strftime(
-        "%d-%m-%Y_%H%M"
-    )
-    assert utils.timestamp_now("%d-%m-%Y") == datetime.now().strftime("%d-%m-%Y")
-    assert utils.timestamp_now("%Y-%m-%d") == datetime.now().strftime("%Y-%m-%d")
-    assert utils.timestamp_now("%H%M") == datetime.now().strftime("%H%M")
-    assert utils.timestamp_now("%H:%M") == datetime.now().strftime("%H:%M")
+@pytest.mark.parametrize(
+    "fmt", ["%d-%m-%Y_%H%M", "%d-%m-%Y", "%Y-%m-%d", "%H%M", "%H:%M"]
+)
+def test_timestamp_now(fmt: str) -> None:
+    assert utils.timestamp_now(fmt) == datetime.now().strftime(fmt)
 
 
 def test_find_geo_similar() -> None:
