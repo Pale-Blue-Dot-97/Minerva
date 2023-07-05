@@ -410,51 +410,38 @@ def test_get_centre_loc() -> None:
     assert pytest.approx(centre[1]) == 3.0
 
 
-def test_lat_lon_to_loc() -> None:
-    # Belper, UK.
-    lat_1 = 53.02324371916741
-    lon_1 = -1.482418942412615
-
-    # City of London.
-    lat_2 = 51.51331165954196
-    lon_2 = -0.08889921085815589
-
-    # Random point in Ohio.
-    lat_3 = 36.53849331792166
-    lon_3 = -102.65475905788739
-
-    # Bermuda Triangle.
-    lat_4 = 30.45028570174185
-    lon_4 = -76.49581035362436
-
-    # Vatican City.
-    lat_5 = 41.90204312927206
-    lon_5 = 12.45644780021287
-
-    # McMurdo Station, Antartica
-    lat6 = -77.844504
-    lon6 = 166.707506
-
+@pytest.mark.parametrize(
+    ["lat", "lon", "loc"],
+    [
+        (53.02324371916741, -1.482418942412615, "Amber Valley, England"),  # Belper, UK.
+        (
+            str(53.02324371916741),
+            str(-1.482418942412615),
+            "Amber Valley, England",
+        ),  # Belper, UK.
+        (
+            51.51331165954196,
+            -0.08889921085815589,
+            "City of London, England",
+        ),  # City of London.
+        (36.53849331792166, -102.65475905788739, ""),  # Random point in Ohio.
+        (30.45028570174185, -76.49581035362436, ""),  # Bermuda Triangle.
+        (41.90204312927206, 12.45644780021287, "Civitas Vaticana"),  # Vatican City.
+        (-77.844504, 166.707506, "McMurdo Station"),  # McMurdo Station, Antartica.
+    ],
+)
+def test_lat_lon_to_loc(
+    lat: Union[float, str], lon: Union[float, str], loc: str
+) -> None:
     try:
         requests.head("http://www.google.com/", timeout=1.0)
     except (requests.ConnectionError, requests.ReadTimeout):
         pass
     else:
-        assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
-        assert utils.lat_lon_to_loc(str(lat_1), str(lon_1)) == "Amber Valley, England"
-        assert utils.lat_lon_to_loc(lat_2, lon_2) == "City of London, England"
-        assert utils.lat_lon_to_loc(lat_3, lon_3) == ""
-
-        assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
-        assert utils.lat_lon_to_loc(lat_5, lon_5) in (
-            "Civitas Vaticana - Città del Vaticano",
-            "Civitas Vaticana",
-        )
-
-        assert utils.lat_lon_to_loc(lat6, lon6) == "McMurdo Station"
+        assert utils.lat_lon_to_loc(lat, lon) == loc
 
     with no_connection():
-        assert utils.lat_lon_to_loc(lat_1, lon_1) == ""
+        assert utils.lat_lon_to_loc(lat, lon) == ""
 
 
 def test_class_weighting() -> None:
