@@ -674,7 +674,17 @@ def test_compute_roc_curves() -> None:
     shutil.rmtree(path)
 
 
-def test_check_dict_key() -> None:
+@pytest.mark.parametrize(
+    ["key", "outcome"],
+    [
+        ("does_not_exist", False),
+        ("exist_none", False),
+        ("exist_false", False),
+        ("exist_true", True),
+        ("exist_value", True),
+    ],
+)
+def test_check_dict_key(key: str, outcome: bool) -> None:
     dictionary = {
         "exist_none": None,
         "exist_false": False,
@@ -682,11 +692,7 @@ def test_check_dict_key() -> None:
         "exist_value": 42,
     }
 
-    assert utils.check_dict_key(dictionary, "does_not_exist") is False
-    assert utils.check_dict_key(dictionary, "exist_none") is False
-    assert utils.check_dict_key(dictionary, "exist_false") is False
-    assert utils.check_dict_key(dictionary, "exist_true")
-    assert utils.check_dict_key(dictionary, "exist_value")
+    assert utils.check_dict_key(dictionary, key) is outcome
 
 
 def test_load_data_specs() -> None:
