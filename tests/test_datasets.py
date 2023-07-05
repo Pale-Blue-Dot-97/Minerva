@@ -266,72 +266,69 @@ def test_make_dataset() -> None:
     assert isinstance(subdatasets_4[1], UnionDataset)
 
 
-def test_construct_dataloader() -> None:
+@pytest.mark.parametrize(
+    ["sampler_params", "kwargs"],
+    [
+        (
+            {
+                "module": "torchgeo.samplers",
+                "name": "RandomBatchGeoSampler",
+                "roi": False,
+                "params": {
+                    "size": 224,
+                    "length": 4096,
+                },
+            },
+            {},
+        ),
+        (
+            {
+                "module": "minerva.samplers",
+                "name": "RandomPairGeoSampler",
+                "roi": False,
+                "params": {
+                    "size": 224,
+                    "length": 4096,
+                },
+            },
+            {"sample_pairs": True},
+        ),
+        (
+            {
+                "module": "torchgeo.samplers",
+                "name": "RandomBatchGeoSampler",
+                "roi": False,
+                "params": {
+                    "size": 224,
+                    "length": 4096,
+                },
+            },
+            {"world_size": 2},
+        ),
+    ],
+)
+def test_construct_dataloader(
+    exp_dataset_params: Dict[str, Any],
+    sampler_params: Dict[str, Any],
+    kwargs: Dict[str, Any],
+) -> None:
     data_dir = ["tests", "tmp", "data"]
 
     batch_size = 256
 
-    dataset_params = {
-        "image": {
-            "transforms": {
-                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
-            },
-            "module": "minerva.datasets",
-            "name": "TstImgDataset",
-            "root": "test_images",
-            "params": {"res": 10.0},
-        }
-    }
-
-    sampler_params_1 = {
-        "module": "torchgeo.samplers",
-        "name": "RandomBatchGeoSampler",
-        "roi": False,
-        "params": {
-            "size": 224,
-            "length": 4096,
-        },
-    }
-
-    sampler_params_2 = {
-        "module": "minerva.samplers",
-        "name": "RandomPairGeoSampler",
-        "roi": False,
-        "params": {
-            "size": 224,
-            "length": 4096,
-        },
-    }
-
     dataloader_params = {"num_workers": 2, "pin_memory": True}
 
-    dataloader_1 = mdt.construct_dataloader(
+    dataloader = mdt.construct_dataloader(
         data_dir,
-        dataset_params,
-        sampler_params_1,
+        exp_dataset_params,
+        sampler_params,
         dataloader_params,
         batch_size,
-    )
-    dataloader_2 = mdt.construct_dataloader(
-        data_dir,
-        dataset_params,
-        sampler_params_2,
-        dataloader_params,
-        batch_size,
-        sample_pairs=True,
-    )
-    dataloader_3 = mdt.construct_dataloader(
-        data_dir,
-        dataset_params,
-        sampler_params_1,
-        dataloader_params,
-        batch_size,
-        world_size=2,
+        sample_pairs=kwargs.get("sample_pairs", False),
+        world_size=kwargs.get("world_size", 1),
     )
 
-    assert isinstance(dataloader_1, DataLoader)
-    assert isinstance(dataloader_2, DataLoader)
-    assert isinstance(dataloader_3, DataLoader)
+    assert isinstance(dataloader, DataLoader)
 
 
 def test_get_transform() -> None:
