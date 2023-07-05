@@ -45,7 +45,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -73,7 +73,7 @@ def test_print_banner() -> None:
 @pytest.mark.parametrize(
     ["input", "expected"], [(1, int), ("we want a shrubery...", str), (str, str)]
 )
-def test_extract_class_type(input, expected) -> None:
+def test_extract_class_type(input: Any, expected: type) -> None:
     assert utils.extract_class_type(input) == expected
 
 
@@ -181,12 +181,12 @@ def test_ohe_labels() -> None:
     assert_array_equal(correct_targets, targets)
 
 
-def test_empty_classes(exp_classes) -> None:
+def test_empty_classes(exp_classes: Dict[int, str]) -> None:
     labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
     assert utils.find_empty_classes(labels, exp_classes) == [0, 2]
 
 
-def test_eliminate_classes(exp_classes) -> None:
+def test_eliminate_classes(exp_classes: Dict[int, str]) -> None:
     empty = [0, 2]
     old_cmap = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
@@ -202,36 +202,45 @@ def test_eliminate_classes(exp_classes) -> None:
     assert new_cmap == results[2]
 
 
-def test_check_test_empty(exp_classes) -> None:
-    new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
-    old_labels_1 = [1, 1, 3, 5, 1, 4, 1, 5, 3]
-    new_labels = [1, 1, 3, 0, 1, 2, 1, 0, 3]
-    old_pred_1 = [1, 4, 1, 5, 1, 4, 1, 5, 1]
-    new_pred = [1, 2, 1, 0, 1, 2, 1, 0, 1]
+@pytest.mark.parametrize(
+    ["in_labels", "in_pred", "out_labels", "out_pred", "out_classes"],
+    [
+        (
+            [1, 1, 3, 5, 1, 4, 1, 5, 3],
+            [1, 4, 1, 5, 1, 4, 1, 5, 1],
+            [1, 1, 3, 0, 1, 2, 1, 0, 3],
+            [1, 2, 1, 0, 1, 2, 1, 0, 1],
+            {0: "5", 1: "1", 2: "4", 3: "3"},
+        ),
+        (
+            [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
+            [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
+            [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
+            [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
+            None,
+        ),
+    ],
+)
+def test_check_test_empty(
+    exp_classes: Dict[int, str],
+    in_labels: List[int],
+    in_pred: List[int],
+    out_labels: List[int],
+    out_pred: List[int],
+    out_classes: Optional[Dict[int, str]],
+) -> None:
+    if not out_classes:
+        out_classes = exp_classes
 
-    results_1 = utils.check_test_empty(old_pred_1, old_labels_1, exp_classes)
+    results = utils.check_test_empty(in_pred, in_labels, exp_classes)
 
-    assert_array_equal(results_1[0], new_pred)
-    assert_array_equal(results_1[1], new_labels)
-    assert results_1[2] == new_classes
+    assert_array_equal(results[0], out_pred)
+    assert_array_equal(results[1], out_labels)
+    assert results[2] == out_classes
 
-    old_labels_2 = [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1]
-    old_pred_2 = [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1]
-
-    results_2 = utils.check_test_empty(old_pred_2, old_labels_2, exp_classes)
-
-    assert_array_equal(results_2[0], old_pred_2)
-    assert_array_equal(results_2[1], old_labels_2)
-    assert results_2[2] == exp_classes
-
-    old_labels_3: NDArray[Shape["11"], Int] = np.array(old_labels_2)
-    old_pred_3: NDArray[Shape["11"], Int] = np.array(old_pred_2)
-
-    results_3 = utils.check_test_empty(old_pred_3, old_labels_3, exp_classes)
-
-    assert_array_equal(results_3[0], old_pred_3)
-    assert_array_equal(results_3[1], old_labels_3)
-    assert results_3[2] == exp_classes
+    assert_array_equal(np.array(results[0]), np.array(out_pred))
+    assert_array_equal(np.array(results[1]), np.array(out_labels))
+    assert np.array(results[2]) == np.array(out_classes)
 
 
 def test_find_modes(exp_classes) -> None:
