@@ -283,10 +283,12 @@ def test_check_len(param: Any, comparator: Any, expect: Any) -> None:
     assert utils.check_len(param, comparator) == expect
 
 
-def test_func_by_str() -> None:
-    assert callable(utils.func_by_str("typing", "Union"))
-    assert callable(utils.func_by_str("datetime", "datetime"))
-    assert callable(utils.func_by_str("torch.utils.data", "DataLoader"))
+@pytest.mark.parametrize(
+    ["func", "module"],
+    [("typing", "Union"), ("datetime", "datetime"), ("torch.utils.data", "DataLoader")],
+)
+def test_func_by_str(func: str, module: str) -> None:
+    assert callable(utils.func_by_str(func, module))
 
 
 def test_timestamp_now() -> None:
