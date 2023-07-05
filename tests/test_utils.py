@@ -45,7 +45,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -330,37 +330,40 @@ def test_batch_flatten(input, exp_len: int) -> None:
     assert len(utils.batch_flatten(input)) == exp_len
 
 
-def test_transform_coordinates() -> None:
-    x_1 = [-1.3958972757520531]
-    y_1 = 50.936371897509154
+@pytest.mark.parametrize(
+    ["x", "y", "src_crs", "dest_crs", "exp_x", "exp_y"],
+    [
+        (
+            [-1.3958972757520531],
+            50.936371897509154,
+            utils.WGS84,
+            CRS.from_epsg(3857),
+            [-155390.57],
+            [6610046.36],
+        ),
+        (
+            [-1.3958972757520531, 0.0],
+            [50.936371897509154, 51.47687968807581],
+            utils.WGS84,
+            CRS.from_epsg(3857),
+            [-155390.57, 0.0],
+            [6610046.36, 6706085.70],
+        ),
+        (0.0, 6706085.70, CRS.from_epsg(3857), utils.WGS84, 0.0, 51.47687968807581),
+    ],
+)
+def test_transform_coordinates(
+    x: Union[List[float], float],
+    y: Union[List[float], float],
+    src_crs: CRS,
+    dest_crs: CRS,
+    exp_x: Union[List[float], float],
+    exp_y: Union[List[float], float],
+) -> None:
+    out_x, out_y = utils.transform_coordinates(x, y, src_crs, dest_crs)
 
-    x_2 = [-1.3958972757520531, 0.0]
-    y_2 = [50.936371897509154, 51.47687968807581]
-
-    x_3 = 0.0
-    y_3 = 6706085.70
-
-    src_crs = utils.WGS84
-    new_crs = CRS.from_epsg(3857)
-
-    new_x_1 = [-155390.57]
-    new_y_1 = [6610046.36]
-
-    new_x_2 = [-155390.57, 0.0]
-    new_y_2 = [6610046.36, 6706085.70]
-
-    new_y_3 = 51.47687968807581
-
-    results_1 = utils.transform_coordinates(x_1, y_1, src_crs, new_crs)
-    results_2 = utils.transform_coordinates(x_2, y_2, src_crs, new_crs)
-    results_3 = utils.transform_coordinates(x_3, y_3, new_crs, src_crs)
-
-    assert results_1[0] == pytest.approx(new_x_1)
-    assert results_1[1] == pytest.approx(new_y_1)
-    assert results_2[0] == pytest.approx(new_x_2)
-    assert results_2[1] == pytest.approx(new_y_2)
-    assert results_3[0] == pytest.approx(0.0)
-    assert results_3[1] == pytest.approx(new_y_3)
+    assert out_x == pytest.approx(exp_x)
+    assert out_y == pytest.approx(exp_y)
 
 
 def test_check_within_bounds() -> None:
