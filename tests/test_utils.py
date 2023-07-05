@@ -366,24 +366,26 @@ def test_transform_coordinates(
     assert out_y == pytest.approx(exp_y)
 
 
-def test_check_within_bounds() -> None:
+@pytest.mark.parametrize(
+    ["bbox", "expected"],
+    [
+        (
+            BoundingBox(1.0, 2.0, 1.0, 2.0, 1.0, 2.0),
+            BoundingBox(1.0, 2.0, 1.0, 2.0, 1.0, 2.0),
+        ),
+        (
+            BoundingBox(1.0, 4.0, 1.0, 2.0, 1.0, 2.0),
+            BoundingBox(1.0, 3.0, 1.0, 2.0, 1.0, 2.0),
+        ),
+        (
+            BoundingBox(-1.0, 1.0, -1.0, 4.0, 0.0, 4.0),
+            BoundingBox(0.0, 1.0, 0.0, 3.0, 0.0, 4.0),
+        ),
+    ],
+)
+def test_check_within_bounds(bbox: BoundingBox, expected: BoundingBox) -> None:
     bounds = BoundingBox(0.0, 3.0, 0.0, 3.0, 0.0, 3.0)
-
-    bbox_1 = BoundingBox(1.0, 2.0, 1.0, 2.0, 1.0, 2.0)
-    bbox_2 = BoundingBox(1.0, 4.0, 1.0, 2.0, 1.0, 2.0)
-    bbox_3 = BoundingBox(-1.0, 1.0, -1.0, 4.0, 0.0, 4.0)
-
-    correct_2 = BoundingBox(1.0, 3.0, 1.0, 2.0, 1.0, 2.0)
-    correct_3 = BoundingBox(0.0, 1.0, 0.0, 3.0, 0.0, 4.0)
-
-    new_bbox_2 = utils.check_within_bounds(bbox_2, bounds)
-    new_bbox_3 = utils.check_within_bounds(bbox_3, bounds)
-
-    assert utils.check_within_bounds(bbox_1, bounds) == bbox_1
-    assert new_bbox_2 != bbox_2
-    assert new_bbox_2 == correct_2
-    assert new_bbox_3 != bbox_3
-    assert new_bbox_3 == correct_3
+    assert utils.check_within_bounds(bbox, bounds) == expected
 
 
 def test_dec2deg() -> None:
