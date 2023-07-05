@@ -342,42 +342,51 @@ def test_get_transform() -> None:
         _ = mdt.get_transform("DataFrame", {"module": "pandas"})
 
 
-def test_make_transformations() -> None:
-    transform_params_1 = {
-        "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-        "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-    }
-
-    transform_params_2 = {
-        "RandomApply": {
-            "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-            "p": 0.3,
-        },
-        "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-    }
-
-    transform_params_3 = {
-        "MinervaCompose": {
-            "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-            "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-        },
-        "RandomApply": {
-            "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-            "p": 0.3,
-        },
-        "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-    }
-
-    transforms_1 = mdt.make_transformations(transform_params_1)
-    assert callable(transforms_1)
-
-    transforms_2 = mdt.make_transformations(transform_params_2)
-    assert callable(transforms_2)
-
-    transforms_3 = mdt.make_transformations(transform_params_3, key="image")
-    assert callable(transforms_3)
-
-    assert mdt.make_transformations(False) is None
+@pytest.mark.parametrize(
+    ["params", "key"],
+    [
+        (
+            {
+                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            None,
+        ),
+        (
+            {
+                "RandomApply": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "p": 0.3,
+                },
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            None,
+        ),
+        (
+            {
+                "MinervaCompose": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "RandomHorizontalFlip": {
+                        "module": "torchvision.transforms",
+                        "p": 0.7,
+                    },
+                },
+                "RandomApply": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "p": 0.3,
+                },
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            "image",
+        ),
+    ],
+)
+def test_make_transformations(params: Dict[str, Any], key: str) -> None:
+    if params:
+        transforms = mdt.make_transformations(params, key)
+        assert callable(transforms)
+    else:
+        assert mdt.make_transformations(False) is None
 
 
 def test_make_loaders() -> None:
