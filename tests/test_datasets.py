@@ -204,36 +204,24 @@ def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
     assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
 
 
-def test_make_dataset() -> None:
+def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
     data_dir = ["tests", "tmp", "data"]
 
-    dataset_params = {
-        "image": {
-            "transforms": {
-                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
-            },
-            "module": "minerva.datasets",
-            "name": "TstImgDataset",
-            "root": "test_images",
-            "params": {"res": 10.0},
-        }
-    }
-
-    dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
+    dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, exp_dataset_params)
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
         data_dir,
-        dataset_params,
+        exp_dataset_params,
         sample_pairs=True,
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
     assert isinstance(dataset_2, PairedDataset)
 
-    dataset_params["mask"] = {
+    exp_dataset_params["mask"] = {
         "module": "minerva.datasets",
         "name": "TstMaskDataset",
         "root": "test_lc",
@@ -242,12 +230,12 @@ def test_make_dataset() -> None:
 
     dataset_params2 = {
         "image": {
-            "image_1": dataset_params["image"],
-            "image_2": dataset_params["image"],
+            "image_1": exp_dataset_params["image"],
+            "image_2": exp_dataset_params["image"],
         },
         "mask": {
-            "mask_1": dataset_params["mask"],
-            "mask_2": dataset_params["mask"],
+            "mask_1": exp_dataset_params["mask"],
+            "mask_2": exp_dataset_params["mask"],
         },
     }
 
