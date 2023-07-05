@@ -263,13 +263,11 @@ def test_file_check() -> None:
     assert fn.exists() is False
 
 
-def test_class_transform() -> None:
+@pytest.mark.parametrize(["input", "output"], [(1, 1), (5, 0), (3, 3), (4, 2)])
+def test_class_transform(input: int, output: int) -> None:
     matrix = {1: 1, 3: 3, 4: 2, 5: 0}
 
-    assert utils.class_transform(1, matrix) == 1
-    assert utils.class_transform(5, matrix) == 0
-    assert utils.class_transform(3, matrix) == 3
-    assert utils.class_transform(4, matrix) == 2
+    assert utils.class_transform(input, matrix) == output
 
 
 def test_check_len() -> None:
