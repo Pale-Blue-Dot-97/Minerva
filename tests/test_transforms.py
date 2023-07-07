@@ -86,23 +86,23 @@ def test_pair_create(simple_mask, example_matrix) -> None:
     assert repr(transform) == "PairCreate()"
 
 
-def test_normalise(simple_mask) -> None:
-    transform_1 = Normalise(255)
-    transform_2 = Normalise(65535)
+@pytest.mark.parametrize("normalisation", (255, 65535))
+@pytest.mark.parametrize(
+    "mask",
+    (
+        None,
+        torch.tensor(
+            [[1023.0, 3.890, 557.0], [478.0, 5.788, 10009.0], [1.0, 10240.857, 1458.7]]
+        ),
+    ),
+)
+def test_normalise(simple_mask, normalisation: int, mask) -> None:
+    transform = Normalise(normalisation)
 
-    input_1 = simple_mask.type(torch.FloatTensor)
+    mask = simple_mask if mask is None else mask
 
-    input_2 = torch.tensor(  # type: ignore[attr-defined]
-        [[1023.0, 3.890, 557.0], [478.0, 5.788, 10009.0], [1.0, 10240.857, 1458.7]]
-    )
-
-    assert_array_equal(transform_1(input_1), input_1 / 255)
-    assert_array_equal(transform_1(input_2), input_2 / 255)
-    assert_array_equal(transform_2(input_1), input_1 / 65535)
-    assert_array_equal(transform_2(input_2), input_2 / 65535)
-
-    assert repr(transform_1) == "Normalise(norm_value=255)"
-    assert repr(transform_2) == "Normalise(norm_value=65535)"
+    assert_array_equal(transform(mask), mask / normalisation)
+    assert repr(transform) == f"Normalise(norm_value={normalisation})"
 
 
 def test_compose(simple_mask) -> None:
