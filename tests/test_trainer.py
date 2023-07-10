@@ -173,10 +173,10 @@ def test_trainer_4(
     with config_load.ToDefaultConfDir():
         cfg, _ = config_load.load_configs(cfg_path)
 
-    trainer = Trainer(0, **cfg)
-
     for key in cfg_args.keys():
         cfg[key] = cfg_args[key]
+
+    trainer = Trainer(0, **cfg)
 
     trainer.fit()
 
