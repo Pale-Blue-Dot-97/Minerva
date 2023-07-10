@@ -36,13 +36,13 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
 import pytest
 import torch
 from numpy.testing import assert_array_equal
 from pytest_lazyfixture import lazy_fixture
-from torch import LongTensor
+from torch import FloatTensor, LongTensor
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
 
 from minerva.transforms import (
@@ -95,22 +95,19 @@ def test_pair_create(sample: Any) -> None:
 @pytest.mark.parametrize(
     "mask",
     (
-        None,
+        lazy_fixture("simple_mask"),
         torch.tensor(
             [[1023.0, 3.890, 557.0], [478.0, 5.788, 10009.0], [1.0, 10240.857, 1458.7]]
         ),
     ),
 )
-def test_normalise(simple_mask, normalisation: int, mask) -> None:
+def test_normalise(normalisation: int, mask) -> None:
     transform = Normalise(normalisation)
-
-    mask = simple_mask if mask is None else mask
-
     assert_array_equal(transform(mask), mask / normalisation)
     assert repr(transform) == f"Normalise(norm_value={normalisation})"
 
 
-def test_compose(simple_mask) -> None:
+def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     transform_1 = Normalise(255)
     compose_1 = MinervaCompose(transform_1)
 
@@ -131,15 +128,11 @@ def test_compose(simple_mask) -> None:
     with pytest.raises(TypeError):
         _ = str(wrong_compose)
 
-    input_2 = torch.tensor(  # type: ignore[attr-defined]
-        [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
-    )
-
     output_1 = input_1 / 255
     output_2 = torch.tensor([[0.8, 1.0, 0.7], [0.3, 0.5, 0.4], [0.5, 0.0, 1.0]])  # type: ignore[attr-defined]
 
     input_3 = {"image": input_1}
-    input_4 = {"image": input_2}
+    input_4 = {"image": simple_rgb_img}
 
     compose_3 = MinervaCompose(transform_1, key="image")
     compose_4 = MinervaCompose(
@@ -150,7 +143,7 @@ def test_compose(simple_mask) -> None:
     output_4 = {"image": output_2}
 
     assert_array_equal(compose_1(input_1), output_1)
-    assert_array_equal(compose_2(input_2), output_2)
+    assert_array_equal(compose_2(simple_rgb_img), output_2)
     assert_array_equal(compose_3(input_3)["image"], output_3["image"])
     assert_array_equal(compose_4(input_4)["image"], output_4["image"])
 
@@ -166,8 +159,8 @@ def test_compose(simple_mask) -> None:
 
 
 def test_detachedcolorjitter() -> None:
-    transform_1 = DetachedColorJitter(0.8, 0.8, 0.8, 0.2)
-    colorjitter_1 = ColorJitter(0.8, 0.8, 0.8, 0.2)  # type: ignore[type]
+    transform = DetachedColorJitter(0.8, 0.8, 0.8, 0.2)
+    colorjitter = ColorJitter(0.8, 0.8, 0.8, 0.2)  # type: ignore[type]
 
     img = torch.rand(4, 224, 224)
     img_rgb = img[:3]
@@ -175,36 +168,34 @@ def test_detachedcolorjitter() -> None:
 
     err_img = torch.rand(2, 224, 224)
 
-    manual_detach = torch.cat((colorjitter_1(img_rgb), img_nir), 0)  # type: ignore[attr-defined]
+    manual_detach = torch.cat((colorjitter(img_rgb), img_nir), 0)  # type: ignore[attr-defined]
 
-    assert_array_equal(transform_1(img).size(), manual_detach.size())
-    assert_array_equal(transform_1(img_rgb).size(), img_rgb.size())
-    assert_array_equal(transform_1(img_nir).size(), img_nir.size())
+    assert_array_equal(transform(img).size(), manual_detach.size())
+    assert_array_equal(transform(img_rgb).size(), img_rgb.size())
+    assert_array_equal(transform(img_nir).size(), img_nir.size())
 
     with pytest.raises(ValueError, match=r"\d channel images are not supported!"):
-        transform_1(err_img)
+        transform(err_img)
 
-    assert repr(transform_1) == f"Detached{repr(colorjitter_1)}"
+    assert repr(transform) == f"Detached{repr(colorjitter)}"
 
 
-def test_dublicator(simple_mask) -> None:
-    transform_1 = (utils.dublicator(Normalise))(255)
+def test_dublicator(
+    simple_mask: LongTensor,
+    simple_rgb_img: FloatTensor,
+    norm_simple_rgb_img: FloatTensor,
+) -> None:
+    transform = (utils.dublicator(Normalise))(255)
 
     input_1 = simple_mask.type(torch.FloatTensor)
-
-    input_2 = torch.tensor(  # type: ignore[attr-defined]
-        [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
-    )
-
     output_1 = input_1 / 255
-    output_2 = input_2 / 255
 
-    result_1, result_2 = transform_1((input_1, input_2))
+    result_1, result_2 = transform((input_1, simple_rgb_img))
 
     assert_array_equal(result_1, output_1)
-    assert_array_equal(result_2, output_2)
+    assert_array_equal(result_2, norm_simple_rgb_img)
 
-    assert repr(transform_1) == f"dublicator({repr(Normalise(255))})"
+    assert repr(transform) == f"dublicator({repr(Normalise(255))})"
 
 
 @pytest.mark.parametrize(
@@ -233,7 +224,9 @@ def test_dublicator(simple_mask) -> None:
         ),
     ],
 )
-def test_tg_to_torch(transform, keys, args, in_img, expected) -> None:
+def test_tg_to_torch(
+    transform, keys: Optional[List[str]], args: Any, in_img, expected
+) -> None:
     transformation = (utils.tg_to_torch(transform, keys=keys))(args)
 
     if keys and len(keys) > 1:
@@ -290,14 +283,14 @@ def test_single_label(random_tensor_mask) -> None:
 
 
 def test_swap_keys(random_rgbi_tensor, random_tensor_mask) -> None:
-    transform_1 = SwapKeys("mask", "image")
+    transform = SwapKeys("mask", "image")
 
     in_sample = {"image": random_rgbi_tensor, "mask": random_tensor_mask}
 
     correct_out_sample = {"image": random_tensor_mask, "mask": random_tensor_mask}
 
-    out_sample = transform_1(in_sample)
+    out_sample = transform(in_sample)
 
     assert_array_equal(out_sample["image"], correct_out_sample["image"])
     assert_array_equal(out_sample["mask"], correct_out_sample["mask"])
-    assert repr(transform_1) == "SwapKeys(mask -> image)"
+    assert repr(transform) == "SwapKeys(mask -> image)"
