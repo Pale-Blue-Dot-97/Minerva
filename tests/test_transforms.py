@@ -207,40 +207,47 @@ def test_dublicator(simple_mask) -> None:
     assert repr(transform_1) == f"dublicator({repr(Normalise(255))})"
 
 
-def test_tg_to_torch(simple_mask) -> None:
-    transform_1 = (utils.tg_to_torch(Normalise))(255)
+@pytest.mark.parametrize(
+    ["transform", "keys", "args", "in_img", "expected"],
+    [
+        (
+            Normalise,
+            None,
+            255,
+            lazy_fixture("simple_rgb_img"),
+            lazy_fixture("norm_simple_rgb_img"),
+        ),
+        (
+            Normalise,
+            ["image"],
+            255,
+            lazy_fixture("simple_rgb_img"),
+            lazy_fixture("norm_simple_rgb_img"),
+        ),
+        (
+            RandomHorizontalFlip,
+            ["image", "mask"],
+            1.0,
+            lazy_fixture("simple_sample"),
+            lazy_fixture("flipped_simple_sample"),
+        ),
+    ],
+)
+def test_tg_to_torch(transform, keys, args, in_img, expected) -> None:
+    transformation = (utils.tg_to_torch(transform, keys=keys))(args)
 
-    transform_2 = (utils.tg_to_torch(Normalise, keys=["image"]))(255)
-
-    transform_3 = (utils.tg_to_torch(RandomHorizontalFlip, keys=["image", "mask"]))(1.0)
-
-    img = torch.tensor(  # type: ignore[attr-defined]
-        [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
-    )
-
-    out_img = torch.tensor(  # type: ignore[attr-defined]
-        [[127.5, 0.0, 255.0], [76.5, 127.5, 102.0], [204.0, 255.0, 178.5]]
-    )
-
-    out_mask = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])  # type: ignore[attr-defined]
-
-    input_3 = {"image": img, "mask": simple_mask}
-    output_3 = {"image": out_img, "mask": out_mask}
-
-    result_2 = transform_2({"image": img})
-    result_3 = transform_3(input_3)
-
-    assert_array_equal(transform_1(img), img / 255)  # type: ignore[type]
-    assert_array_equal(result_2["image"], img / 255)
-    assert_array_equal(result_3["image"], output_3["image"])
-    assert_array_equal(result_3["mask"], output_3["mask"])
-
-    input_4 = ["wrongisimo!"]
+    if keys and len(keys) > 1:
+        img = in_img.copy()
+        result = transformation(img)
+        for key in keys:
+            assert_array_equal(result[key], expected[key])
+    else:
+        assert_array_equal(transformation(in_img), expected)
 
     with pytest.raises(TypeError):
-        transform_1(input_4)  # type: ignore[type]
+        transformation(["wrongisimo!"])  # type: ignore[type]
 
-    assert repr(transform_1) == repr(Normalise(255))
+    assert repr(transformation) == repr(transform(args))
 
 
 def test_to_rgb(random_rgbi_tensor) -> None:
