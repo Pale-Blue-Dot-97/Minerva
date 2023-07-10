@@ -36,7 +36,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Any
+from typing import Any, Dict
 
 import pytest
 import torch
@@ -61,19 +61,22 @@ from minerva.utils import utils
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_class_transform(simple_mask, example_matrix) -> None:
+@pytest.mark.parametrize(
+    ["input_mask", "output"],
+    [
+        (lazy_fixture("simple_mask"), torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])),
+        (
+            torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long),
+            torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]]),
+        ),
+    ],
+)
+def test_class_transform(
+    example_matrix: Dict[int, int], input_mask: LongTensor, output: LongTensor
+) -> None:
     transform = ClassTransform(example_matrix)
 
-    output_1 = torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])  # type: ignore[attr-defined]
-
-    input_2: LongTensor = torch.tensor(  # type: ignore[attr-defined, assignment]
-        [[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long  # type: ignore[attr-defined]
-    )
-
-    output_2 = torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]])  # type: ignore[attr-defined]
-
-    assert_array_equal(output_1.numpy(), transform(simple_mask).numpy())
-    assert_array_equal(output_2.numpy(), transform(input_2).numpy())
+    assert_array_equal(output.numpy(), transform(input_mask).numpy())
 
     assert repr(transform) == f"ClassTransform(transform={example_matrix})"
 
