@@ -36,9 +36,12 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
+from typing import Any
+
 import pytest
 import torch
 from numpy.testing import assert_array_equal
+from pytest_lazyfixture import lazy_fixture
 from torch import LongTensor
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
 
@@ -75,14 +78,13 @@ def test_class_transform(simple_mask, example_matrix) -> None:
     assert repr(transform) == f"ClassTransform(transform={example_matrix})"
 
 
-def test_pair_create(simple_mask, example_matrix) -> None:
+@pytest.mark.parametrize(
+    "sample", (42, lazy_fixture("simple_mask"), lazy_fixture("example_matrix"))
+)
+def test_pair_create(sample: Any) -> None:
     transform = PairCreate()
-    sample_1 = 42
 
-    assert transform(sample_1) == (sample_1, sample_1)
-    assert transform(simple_mask) == (simple_mask, simple_mask)
-    assert transform(example_matrix) == (example_matrix, example_matrix)
-
+    assert transform(sample) == (sample, sample)
     assert repr(transform) == "PairCreate()"
 
 
