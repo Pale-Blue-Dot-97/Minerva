@@ -55,6 +55,7 @@ import torch
 from internet_sabotage import no_connection
 from nptyping import Float, Int, NDArray, Shape
 from numpy.testing import assert_array_equal
+from pytest_lazyfixture import lazy_fixture
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
@@ -217,7 +218,7 @@ def test_eliminate_classes(exp_classes: Dict[int, str]) -> None:
             [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
             [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
             [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
-            None,
+            lazy_fixture("exp_classes"),
         ),
     ],
 )
@@ -227,11 +228,8 @@ def test_check_test_empty(
     in_pred: List[int],
     out_labels: List[int],
     out_pred: List[int],
-    out_classes: Optional[Dict[int, str]],
+    out_classes: Dict[int, str],
 ) -> None:
-    if not out_classes:
-        out_classes = exp_classes
-
     results = utils.check_test_empty(in_pred, in_labels, exp_classes)
 
     assert_array_equal(results[0], out_pred)
@@ -243,7 +241,7 @@ def test_check_test_empty(
     assert np.array(results[2]) == np.array(out_classes)
 
 
-def test_find_modes(exp_classes) -> None:
+def test_find_modes(exp_classes: Dict[int, str]) -> None:
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
     class_dist = utils.find_modes(labels, plot=True)
