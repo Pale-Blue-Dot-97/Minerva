@@ -397,16 +397,13 @@ def _print_banner(print_func: Callable[..., None] = print) -> None:
 
     Args:
         print_func (~typing.Callable[..., None]): Function to use to print the banner. Defaults to :func:`print`.
-
-    Raises:
-        FileNotFoundError: If ``banner.txt`` cannot be found.
     """
     banner_path = Path(__file__).parent.parent.parent / "banner.txt"
     if banner_path.exists():
         with open(banner_path, "r") as f:
             print_func(f.read())
     else:  # pragma: no cover
-        raise FileNotFoundError("Cannot find the banner.txt file")
+        print(f"Cannot find the banner.txt file at: {banner_path}")
 
 
 @overload
@@ -845,8 +842,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
 
     # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
     except (GeocoderUnavailable, NewConnectionError, AdapterHTTPError):
-        print("\nGeocoder unavailable")
-        return ""
+        raise GeocoderUnavailable("\nGeocoder unavailable")
 
     else:
         if query is None:

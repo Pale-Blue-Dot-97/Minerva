@@ -88,6 +88,7 @@ from nptyping import NDArray
 from pandas import DataFrame
 from torch.utils.data import DataLoader
 from torchgeo.datasets import (
+    NAIP,
     GeoDataset,
     IntersectionDataset,
     RasterDataset,
@@ -133,6 +134,19 @@ class TstMaskDataset(RasterDataset):
 
     filename_glob = "*_lc.tif"
     is_image = False
+
+
+class NAIPChesapeakeCVPR(NAIP):
+    filename_glob = "m_*_naip-*.tif"
+    filename_regex = ""
+    r"""
+        ^m
+        _(?P<quadrangle>\d+)
+        _(?P<quarter_quad>[a-z]+)
+        _(?P<utm_zone>\d+)
+        _(?P<resolution>\d+)
+        \..*$
+    """
 
 
 class PairedDataset(RasterDataset):
@@ -181,7 +195,6 @@ class PairedDataset(RasterDataset):
 
         .. versionadded:: 0.24
         """
-        print("paired intersect")
         if not isinstance(other, PairedDataset):
             raise ValueError(
                 f"Intersecting a dataset of {type(other)} and a PairedDataset is not supported!"
@@ -391,11 +404,20 @@ def intersect_datasets(datasets: Sequence[GeoDataset]) -> IntersectionDataset:
     return master_dataset
 
 
-def unionise_datasets(datasets: Sequence[GeoDataset]) -> UnionDataset:
+def unionise_datasets(
+    datasets: Sequence[GeoDataset],
+    transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+) -> UnionDataset:
     """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
     Args:
         datasets (list[~torchgeo.datasets.GeoDataset]): List of datasets to unionise together.
+        transforms (): Optional; Function that will transform any sample yielded from the union.
+
+    .. note::
+        The transforms of ``transforms`` will be applied to the sample after any transforms applied to it by
+        the constituent dataset of the union the dataset came from. Therefore, ``transforms`` needs to compatible
+        with all possible samples of the union.
 
     Returns:
         ~torchgeo.datasets.UnionDataset: Final dataset object representing an union of all the parsed datasets.
@@ -405,6 +427,7 @@ def unionise_datasets(datasets: Sequence[GeoDataset]) -> UnionDataset:
     for i in range(len(datasets) - 1):
         master_dataset = master_dataset | datasets[i + 1]
 
+    master_dataset.transforms = transforms
     assert isinstance(master_dataset, UnionDataset)
     return master_dataset
 
@@ -412,7 +435,6 @@ def unionise_datasets(datasets: Sequence[GeoDataset]) -> UnionDataset:
 def make_dataset(
     data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
-    transform_params: Optional[Dict[Any, Any]] = None,
     sample_pairs: bool = False,
 ) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from ``n`` sub-datasets given by the parameters supplied.
@@ -421,8 +443,6 @@ def make_dataset(
         data_directory (~typing.Iterable[str] | str | ~pathlib.Path]): List defining the path to the directory
             containing the data.
         dataset_params (dict[~typing.Any, ~typing.Any]): Dictionary of parameters defining each sub-datasets to be used.
-        transform_params: Optional; Dictionary defining the parameters of the transforms to perform
-            when sampling from the dataset.
         sample_pairs (bool): Optional; ``True`` if paired sampling. This will ensure paired samples are handled
             correctly in the datasets.
 
@@ -450,39 +470,6 @@ def make_dataset(
 
         return _sub_dataset, str(sub_dataset_root)
 
-    def create_transforms(
-        this_transform_params: Any, key: str, data_type_key: Optional[str] = None
-    ) -> Optional[Any]:
-        """Construct transforms for samples returned from this sub-dataset -- if found.
-
-        Args:
-            this_transform_params (~typing.Any): Parameters defining the transforms for the dataset for the
-                whole mode of fitting.
-            key (str): The key for the transforms for this particular subdataset.
-            data_type_key (str): Optional; The type of data the transform is acting on.
-                Most likely ``"image"`` or ``"mask"``. This may differ from ``key`` if using unionisation of datasets.
-                If ``None``, defaults to ``key``.
-
-        Returns:
-            ~typing.Any | None: The transformatins for this subdataset or ``None`` if no parameters found.
-        """
-        data_type_key = key if data_type_key is None else data_type_key
-
-        _transformations: Optional[Any] = None
-        if type(this_transform_params) == dict:
-            assert this_transform_params is not None
-            try:
-                if this_transform_params[key]:
-                    _transformations = make_transformations(
-                        this_transform_params[key], key=data_type_key
-                    )
-            except (KeyError, TypeError):
-                pass
-        else:
-            pass
-
-        return _transformations
-
     def create_subdataset(
         dataset_class: Callable[..., GeoDataset],
         root: str,
@@ -509,32 +496,30 @@ def make_dataset(
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
+        if type_key == "sampler":
+            continue
         type_dataset_params = dataset_params[type_key]
 
         type_subdatasets = []
 
         multi_datasets_exist = False
+        master_transforms: Optional[Any] = None
         for area_key in type_dataset_params.keys():
             if area_key in ("module", "name", "params", "root"):
                 multi_datasets_exist = False
                 continue
+            elif area_key == "transforms":
+                master_transforms = make_transformations(
+                    type_dataset_params[area_key], type_key
+                )
             else:
                 multi_datasets_exist = True
                 _subdataset, subdataset_root = get_subdataset(
                     type_dataset_params, area_key
                 )
-                transformations: Optional[Any] = None
-                try:
-                    assert transform_params
-                    if transform_params[type_key]:
-                        transformations = create_transforms(
-                            transform_params[type_key],
-                            area_key,
-                            type_key,
-                        )
-                except (KeyError, TypeError, AssertionError):
-                    pass
-
+                transformations = make_transformations(
+                    type_dataset_params[area_key].get("transforms", False), type_key
+                )
                 type_subdatasets.append(
                     create_subdataset(
                         _subdataset,
@@ -545,13 +530,13 @@ def make_dataset(
                 )
 
         if multi_datasets_exist:
-            sub_datasets.append(unionise_datasets(type_subdatasets))
+            sub_datasets.append(unionise_datasets(type_subdatasets, master_transforms))
         else:
             sub_datasets.append(
                 create_subdataset(
                     *get_subdataset(dataset_params, type_key),
                     type_dataset_params,
-                    create_transforms(transform_params, type_key),
+                    master_transforms,
                 )
             )
 
@@ -570,7 +555,6 @@ def construct_dataloader(
     dataloader_params: Dict[str, Any],
     batch_size: int,
     collator_params: Optional[Dict[str, Any]] = None,
-    transform_params: Optional[Dict[str, Any]] = None,
     rank: int = 0,
     world_size: int = 1,
     sample_pairs: bool = False,
@@ -588,8 +572,6 @@ def construct_dataloader(
         batch_size (int): Number of samples per (global) batch.
         collator_params (dict[str, ~typing.Any]): Optional; Dictionary of parameters defining the function to collate
             and stack samples from the sampler.
-        transform_params (dict[str, ~typing.Any]): Optional; Dictionary defining the parameters of the transforms
-            to perform when sampling from the dataset.
         rank (int): Optional; The rank of this process for distributed computing.
         world_size (int): Optional; The total number of processes within a distributed run.
         sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function
@@ -599,7 +581,7 @@ def construct_dataloader(
         ~torch.utils.data.DataLoader: Object to handle the returning of batched samples from the dataset.
     """
     dataset, subdatasets = make_dataset(
-        data_directory, dataset_params, transform_params, sample_pairs=sample_pairs
+        data_directory, dataset_params, sample_pairs=sample_pairs
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
@@ -853,8 +835,6 @@ def make_loaders(
     # Gets out the parameters for the DataLoaders from params.
     dataloader_params: Dict[Any, Any] = params["loader_params"]
     dataset_params: Dict[str, Any] = params["dataset_params"]
-    sampler_params: Dict[str, Any] = params["sampler_params"]
-    transform_params: Dict[str, Any] = params["transform_params"]
     batch_size: int = params["batch_size"]
 
     model_type = params["model_type"]
@@ -884,34 +864,35 @@ def make_loaders(
     loaders = {}
 
     for mode in dataset_params.keys():
-        this_transform_params = transform_params[mode]
         if params.get("elim", False) and model_type != "siamese":
-            if type(this_transform_params["mask"]) != dict:
-                this_transform_params["mask"] = {
-                    "ClassTransform": {
-                        "module": "minerva.transforms",
-                        "transform": forwards,
-                    }
-                }
-            else:
-                this_transform_params["mask"]["ClassTransform"] = {
+            class_transform = {
+                "ClassTransform": {
                     "module": "minerva.transforms",
                     "transform": forwards,
                 }
+            }
+
+            if type(dataset_params[mode]["mask"].get("transforms")) != dict:
+                dataset_params[mode]["mask"]["transforms"] = class_transform
+            else:
+                dataset_params[mode]["mask"]["transforms"][
+                    "ClassTransform"
+                ] = class_transform["ClassTransform"]
+
+        sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
 
         # Calculates number of batches.
-        n_batches[mode] = int(sampler_params[mode]["params"]["length"] / batch_size)
+        n_batches[mode] = int(sampler_params["params"]["length"] / batch_size)
 
         # --+ MAKE DATASETS +=========================================================================================+
         print(f"CREATING {mode} DATASET")
         loaders[mode] = construct_dataloader(
             params["dir"]["data"],
             dataset_params[mode],
-            sampler_params[mode],
+            sampler_params,
             dataloader_params,
             batch_size,
             collator_params=params["collator"],
-            transform_params=this_transform_params,
             rank=rank,
             world_size=world_size,
             sample_pairs=sample_pairs if mode == "train" else False,
@@ -1004,18 +985,29 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
-    batch_size = mf_config["batch_size"]
-    dataloader_params = mf_config["dataloader_params"]
-    dataset_params = mf_config["dataset_params"]
-    sampler_params = mf_config["sampler_params"]
-    collator_params = mf_config["collator"]
+    batch_size: int = mf_config["batch_size"]
+    dataloader_params: Dict[str, Any] = mf_config["dataloader_params"]
+    dataset_params: Dict[str, Any] = mf_config["dataset_params"]
+    collator_params: Dict[str, Any] = mf_config["collator"]
+
+    # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
+    # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
+    # sample the dataset. We need the original, un-transformed labels.
+    for mode in dataset_params.keys():
+        if "transforms" in dataset_params[mode]["mask"]:
+            if type(dataset_params[mode]["mask"]["transforms"]) == dict:
+                if "ClassTransform" in dataset_params[mode]["mask"]["transforms"]:
+                    del dataset_params[mode]["mask"]["transforms"]["ClassTransform"]
 
     keys = list(dataset_params.keys())
     print("CONSTRUCTING DATASET")
+
+    sampler_params = dataset_params[keys[0]]["sampler"]
+
     loader = construct_dataloader(
         mf_config["dir"]["data"],
         dataset_params[keys[0]],
-        sampler_params[keys[0]],
+        sampler_params,
         dataloader_params,
         batch_size,
         collator_params=collator_params,

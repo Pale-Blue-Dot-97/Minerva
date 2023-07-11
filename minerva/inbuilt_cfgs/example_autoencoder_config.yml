@@ -88,7 +88,19 @@ collator:
 dataset_params:
     # Training Dataset
     train:
+        sampler:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 32
+
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
@@ -104,7 +116,19 @@ dataset_params:
 
     # Validation Dataset
     val:
+        sampler:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 16
+
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
@@ -120,7 +144,19 @@ dataset_params:
 
     # Test Dataset
     test:
+        sampler:
+            module: torchgeo.samplers
+            name: RandomGeoSampler
+            roi: false
+            params:
+                size: *patch_size
+                length: 16
+
         image:
+            transforms:
+                Normalise:
+                    module: minerva.transforms
+                    norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
             root: test_images
@@ -133,62 +169,6 @@ dataset_params:
             root: test_lc
             params:
                 res: 1.0
-
-# === SAMPLER PARAMETERS ======================================================
-sampler_params:
-    # Training Dataset Sampler
-    train:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 32
-
-    # Validation Dataset Sampler
-    val:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 16
-
-    # Test Dataset Sampler
-    test:
-        module: torchgeo.samplers
-        name: RandomGeoSampler
-        roi: false
-        params:
-            size: *patch_size
-            length: 16
-
-
-# === TRANSFORM PARAMETERS ====================================================
-transform_params:
-    # Training Dataset Transforms
-    train:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask: false
-
-    # Validation Dataset Transforms
-    val:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask: false
-
-    # Test Dataset Transforms
-    test:
-        image:
-            Normalise:
-                module: minerva.transforms
-                norm_value: 255
-        mask: false
 
 # === PLOTTING OPTIONS ========================================================
 plots:

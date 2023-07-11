@@ -83,8 +83,11 @@ import matplotlib as mlp
 import matplotlib.pyplot as plt
 import numpy as np
 from alive_progress import alive_bar
+from geopy.exc import GeocoderUnavailable
 from matplotlib import offsetbox
+from matplotlib.axes import Axes
 from matplotlib.colors import Colormap, ListedColormap
+from matplotlib.figure import Figure
 from matplotlib.gridspec import GridSpec
 from matplotlib.image import AxesImage
 from matplotlib.ticker import MaxNLocator
@@ -630,11 +633,11 @@ def prediction_plot(
     )
 
     # Initialises a figure.
-    fig = plt.figure(figsize=fig_dim)
+    fig: Figure = plt.figure(figsize=fig_dim)
 
     gs = GridSpec(nrows=2, ncols=2, figure=fig)
 
-    axes: NDArray[Shape["3"], Any] = np.array(
+    axes: NDArray[Shape["3"], Axes] = np.array(
         [
             fig.add_subplot(gs[0, 0]),
             fig.add_subplot(gs[0, 1]),
@@ -688,8 +691,14 @@ def prediction_plot(
     clb.ax.set_xticklabels(classes.values(), fontsize=9)
 
     # Set figure title and subplot titles.
+    loc: str
+    try:
+        loc = utils.lat_lon_to_loc(lat=str(centre[1]), lon=str(centre[0]))
+    except GeocoderUnavailable:  # pragma: no cover
+        loc = ""
+
     fig.suptitle(
-        f"{sample_id}: {utils.lat_lon_to_loc(lat=str(centre[1]), lon=str(centre[0]))}",
+        f"{sample_id}: {loc}",
         fontsize=15,
     )
     axes[0].set_title("Predicted", fontsize=13)
