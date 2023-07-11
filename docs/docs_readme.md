@@ -1,6 +1,18 @@
 # Minerva
 
-![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva?) ![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva?) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/minerva) ![GitHub contributors](https://img.shields.io/github/contributors/Pale-Blue-Dot-97/Minerva?) [![CodeFactor](https://www.codefactor.io/repository/github/pale-blue-dot-97/minerva/badge)](https://www.codefactor.io/repository/github/pale-blue-dot-97/minerva) [![Known Vulnerabilities](https://snyk.io/test/github/Pale-Blue-Dot-97/Minerva/badge.svg?targetFile=requirements/requirements_dev.txt)](https://snyk.io/test/github/Pale-Blue-Dot-97/Minerva) ![tests](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/tests.yml/badge.svg) [![Read the Docs](https://img.shields.io/readthedocs/smp?)](https://pale-blue-dot-97.github.io/Minerva/) [![Qodana](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/code_quality.yml/badge.svg)](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/code_quality.yml) [![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pale-Blue-Dot-97/Minerva/tree/main.svg?style=svg&circle-token=7c738d256a0d8df674b2682daeb2f4b52381ced4)](https://dl.circleci.com/status-badge/redirect/gh/Pale-Blue-Dot-97/Minerva/tree/main) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Coverage Status](https://coveralls.io/repos/github/Pale-Blue-Dot-97/Minerva/badge.svg?t=ZycdOW)](https://coveralls.io/github/Pale-Blue-Dot-97/Minerva) [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit) [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Pale-Blue-Dot-97/Minerva/main.svg)](https://results.pre-commit.ci/latest/github/Pale-Blue-Dot-97/Minerva/main)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/Pale-Blue-Dot-97/Minerva?)
+![GitHub](https://img.shields.io/github/license/Pale-Blue-Dot-97/Minerva?)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/minerva)
+![GitHub contributors](https://img.shields.io/github/contributors/Pale-Blue-Dot-97/Minerva?)
+[![CodeFactor](https://www.codefactor.io/repository/github/pale-blue-dot-97/minerva/badge)](https://www.codefactor.io/repository/github/pale-blue-dot-97/minerva)
+![tests](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/tests.yml/badge.svg)
+[![Read the Docs](https://img.shields.io/readthedocs/smp?)](https://pale-blue-dot-97.github.io/Minerva/)
+[![Qodana](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/code_quality.yml/badge.svg)](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/code_quality.yml)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pale-Blue-Dot-97/Minerva/tree/main.svg?style=svg&circle-token=7c738d256a0d8df674b2682daeb2f4b52381ced4)](https://dl.circleci.com/status-badge/redirect/gh/Pale-Blue-Dot-97/Minerva/tree/main)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Coverage Status](https://coveralls.io/repos/github/Pale-Blue-Dot-97/Minerva/badge.svg?t=ZycdOW)](https://coveralls.io/github/Pale-Blue-Dot-97/Minerva)
+[![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Pale-Blue-Dot-97/Minerva/main.svg)](https://results.pre-commit.ci/latest/github/Pale-Blue-Dot-97/Minerva/main)
 
 <!-- PROJECT LOGO -->
 <br />
@@ -9,7 +21,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> v0.24</b>
+    <b style="font-size:26px;"> v0.25</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
