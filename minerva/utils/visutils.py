@@ -694,7 +694,7 @@ def prediction_plot(
     loc: str
     try:
         loc = utils.lat_lon_to_loc(lat=str(centre[1]), lon=str(centre[0]))
-    except GeocoderUnavailable:
+    except GeocoderUnavailable:  # pragma: no cover
         loc = ""
 
     fig.suptitle(
