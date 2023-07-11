@@ -52,6 +52,7 @@ import pandas as pd
 import pytest
 import requests
 import torch
+from geopy.exc import GeocoderUnavailable
 from internet_sabotage import no_connection
 from nptyping import Float, NDArray, Shape
 from numpy.testing import assert_array_equal
@@ -436,10 +437,15 @@ def test_lat_lon_to_loc(
     except (requests.ConnectionError, requests.ReadTimeout):
         pass
     else:
-        assert utils.lat_lon_to_loc(lat, lon) == loc
+        try:
+            assert utils.lat_lon_to_loc(lat, lon) == loc
+        except GeocoderUnavailable:
+            pass
 
-    with no_connection():
-        assert utils.lat_lon_to_loc(lat, lon) == ""
+    with no_connection(), pytest.raises(
+        GeocoderUnavailable, match="Geocoder unavailable"
+    ):
+        _ = utils.lat_lon_to_loc(lat, lon)
 
 
 def test_class_weighting() -> None:
