@@ -45,7 +45,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
@@ -53,7 +53,7 @@ import pytest
 import requests
 import torch
 from internet_sabotage import no_connection
-from nptyping import Float, Int, NDArray, Shape
+from nptyping import Float, NDArray, Shape
 from numpy.testing import assert_array_equal
 from pytest_lazyfixture import lazy_fixture
 from rasterio.crs import CRS

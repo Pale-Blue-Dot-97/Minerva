@@ -39,7 +39,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 import argparse
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import pytest
 import torch
