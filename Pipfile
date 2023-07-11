@@ -53,6 +53,7 @@ myst_parser= "==1.0.0"
 pre-commit = "==3.3.1"
 pytest = "==7.3.1"
 pytest-cov = "==4.0.0"
+pytest-lazy-fixture= "==0.6.3"
 pygments = ">=2.7.4" # not directly required, pinned by Snyk to avoid a vulnerability
 sphinx-rtd-theme = "==1.2.0"
 sphinx = "==6.2.1"

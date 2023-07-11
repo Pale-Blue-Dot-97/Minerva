@@ -842,8 +842,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
 
     # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
     except (GeocoderUnavailable, NewConnectionError, AdapterHTTPError):
-        print("\nGeocoder unavailable")
-        return ""
+        raise GeocoderUnavailable("\nGeocoder unavailable")
 
     else:
         if query is None:

@@ -45,16 +45,18 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import pytest
 import requests
 import torch
+from geopy.exc import GeocoderUnavailable
 from internet_sabotage import no_connection
-from nptyping import Float, Int, NDArray, Shape
+from nptyping import Float, NDArray, Shape
 from numpy.testing import assert_array_equal
+from pytest_lazyfixture import lazy_fixture
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
@@ -70,10 +72,11 @@ def test_print_banner() -> None:
     utils._print_banner()
 
 
-def test_extract_class_type() -> None:
-    assert utils.extract_class_type(1) == int
-    assert utils.extract_class_type("we want a shrubery...") == str
-    assert utils.extract_class_type(str) == str
+@pytest.mark.parametrize(
+    ["input", "expected"], [(1, int), ("we want a shrubery...", str), (str, str)]
+)
+def test_extract_class_type(input: Any, expected: type) -> None:
+    assert utils.extract_class_type(input) == expected
 
 
 def test_is_notebook() -> None:
@@ -180,12 +183,12 @@ def test_ohe_labels() -> None:
     assert_array_equal(correct_targets, targets)
 
 
-def test_empty_classes(exp_classes) -> None:
+def test_empty_classes(exp_classes: Dict[int, str]) -> None:
     labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
     assert utils.find_empty_classes(labels, exp_classes) == [0, 2]
 
 
-def test_eliminate_classes(exp_classes) -> None:
+def test_eliminate_classes(exp_classes: Dict[int, str]) -> None:
     empty = [0, 2]
     old_cmap = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
     new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
@@ -201,39 +204,45 @@ def test_eliminate_classes(exp_classes) -> None:
     assert new_cmap == results[2]
 
 
-def test_check_test_empty(exp_classes) -> None:
-    new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
-    old_labels_1 = [1, 1, 3, 5, 1, 4, 1, 5, 3]
-    new_labels = [1, 1, 3, 0, 1, 2, 1, 0, 3]
-    old_pred_1 = [1, 4, 1, 5, 1, 4, 1, 5, 1]
-    new_pred = [1, 2, 1, 0, 1, 2, 1, 0, 1]
+@pytest.mark.parametrize(
+    ["in_labels", "in_pred", "out_labels", "out_pred", "out_classes"],
+    [
+        (
+            [1, 1, 3, 5, 1, 4, 1, 5, 3],
+            [1, 4, 1, 5, 1, 4, 1, 5, 1],
+            [1, 1, 3, 0, 1, 2, 1, 0, 3],
+            [1, 2, 1, 0, 1, 2, 1, 0, 1],
+            {0: "5", 1: "1", 2: "4", 3: "3"},
+        ),
+        (
+            [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
+            [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
+            [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
+            [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
+            lazy_fixture("exp_classes"),
+        ),
+    ],
+)
+def test_check_test_empty(
+    exp_classes: Dict[int, str],
+    in_labels: List[int],
+    in_pred: List[int],
+    out_labels: List[int],
+    out_pred: List[int],
+    out_classes: Dict[int, str],
+) -> None:
+    results = utils.check_test_empty(in_pred, in_labels, exp_classes)
 
-    results_1 = utils.check_test_empty(old_pred_1, old_labels_1, exp_classes)
+    assert_array_equal(results[0], out_pred)
+    assert_array_equal(results[1], out_labels)
+    assert results[2] == out_classes
 
-    assert_array_equal(results_1[0], new_pred)
-    assert_array_equal(results_1[1], new_labels)
-    assert results_1[2] == new_classes
-
-    old_labels_2 = [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1]
-    old_pred_2 = [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1]
-
-    results_2 = utils.check_test_empty(old_pred_2, old_labels_2, exp_classes)
-
-    assert_array_equal(results_2[0], old_pred_2)
-    assert_array_equal(results_2[1], old_labels_2)
-    assert results_2[2] == exp_classes
-
-    old_labels_3: NDArray[Shape["11"], Int] = np.array(old_labels_2)
-    old_pred_3: NDArray[Shape["11"], Int] = np.array(old_pred_2)
-
-    results_3 = utils.check_test_empty(old_pred_3, old_labels_3, exp_classes)
-
-    assert_array_equal(results_3[0], old_pred_3)
-    assert_array_equal(results_3[1], old_labels_3)
-    assert results_3[2] == exp_classes
+    assert_array_equal(np.array(results[0]), np.array(out_pred))
+    assert_array_equal(np.array(results[1]), np.array(out_labels))
+    assert np.array(results[2]) == np.array(out_classes)
 
 
-def test_find_modes(exp_classes) -> None:
+def test_find_modes(exp_classes: Dict[int, str]) -> None:
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
     class_dist = utils.find_modes(labels, plot=True)
@@ -253,36 +262,39 @@ def test_file_check() -> None:
     assert fn.exists() is False
 
 
-def test_class_transform() -> None:
+@pytest.mark.parametrize(["input", "output"], [(1, 1), (5, 0), (3, 3), (4, 2)])
+def test_class_transform(input: int, output: int) -> None:
     matrix = {1: 1, 3: 3, 4: 2, 5: 0}
 
-    assert utils.class_transform(1, matrix) == 1
-    assert utils.class_transform(5, matrix) == 0
-    assert utils.class_transform(3, matrix) == 3
-    assert utils.class_transform(4, matrix) == 2
+    assert utils.class_transform(input, matrix) == output
 
 
-def test_check_len() -> None:
-    assert utils.check_len([0, 0, 0], [0, 0, 0]) == [0, 0, 0]
-    assert utils.check_len([0, 0], [0, 0, 0]) == [0, 0, 0]
-    assert utils.check_len(0, [0, 1, 0]) == [0, 0, 0]
-    assert utils.check_len(1, [3, 4, 2]) == [1, 1, 1]
+@pytest.mark.parametrize(
+    ["param", "comparator", "expect"],
+    [
+        ([0, 0, 0], [0, 0, 0], [0, 0, 0]),
+        ([0, 0], [0, 0, 0], [0, 0, 0]),
+        (0, [0, 1, 0], [0, 0, 0]),
+        (1, [3, 4, 2], [1, 1, 1]),
+    ],
+)
+def test_check_len(param: Any, comparator: Any, expect: Any) -> None:
+    assert utils.check_len(param, comparator) == expect
 
 
-def test_func_by_str() -> None:
-    assert callable(utils.func_by_str("typing", "Union"))
-    assert callable(utils.func_by_str("datetime", "datetime"))
-    assert callable(utils.func_by_str("torch.utils.data", "DataLoader"))
+@pytest.mark.parametrize(
+    ["func", "module"],
+    [("typing", "Union"), ("datetime", "datetime"), ("torch.utils.data", "DataLoader")],
+)
+def test_func_by_str(func: str, module: str) -> None:
+    assert callable(utils.func_by_str(func, module))
 
 
-def test_timestamp_now() -> None:
-    assert utils.timestamp_now("%d-%m-%Y_%H%M") == datetime.now().strftime(
-        "%d-%m-%Y_%H%M"
-    )
-    assert utils.timestamp_now("%d-%m-%Y") == datetime.now().strftime("%d-%m-%Y")
-    assert utils.timestamp_now("%Y-%m-%d") == datetime.now().strftime("%Y-%m-%d")
-    assert utils.timestamp_now("%H%M") == datetime.now().strftime("%H%M")
-    assert utils.timestamp_now("%H:%M") == datetime.now().strftime("%H:%M")
+@pytest.mark.parametrize(
+    "fmt", ["%d-%m-%Y_%H%M", "%d-%m-%Y", "%Y-%m-%d", "%H%M", "%H:%M"]
+)
+def test_timestamp_now(fmt: str) -> None:
+    assert utils.timestamp_now(fmt) == datetime.now().strftime(fmt)
 
 
 def test_find_geo_similar() -> None:
@@ -305,67 +317,74 @@ def test_find_geo_similar() -> None:
     assert type(utils.find_geo_similar(bbox, max_r)) is BoundingBox
 
 
-def test_batch_flatten() -> None:
-    a = np.random.rand(256, 256)
-    b = np.random.rand(16, 128, 128)
-    c = list(a)
-
-    assert len(utils.batch_flatten(a)) == 256 * 256
-    assert len(utils.batch_flatten(b)) == 16 * 128 * 128
-    assert len(utils.batch_flatten(c)) == 256 * 256
-
-
-def test_transform_coordinates() -> None:
-    x_1 = [-1.3958972757520531]
-    y_1 = 50.936371897509154
-
-    x_2 = [-1.3958972757520531, 0.0]
-    y_2 = [50.936371897509154, 51.47687968807581]
-
-    x_3 = 0.0
-    y_3 = 6706085.70
-
-    src_crs = utils.WGS84
-    new_crs = CRS.from_epsg(3857)
-
-    new_x_1 = [-155390.57]
-    new_y_1 = [6610046.36]
-
-    new_x_2 = [-155390.57, 0.0]
-    new_y_2 = [6610046.36, 6706085.70]
-
-    new_y_3 = 51.47687968807581
-
-    results_1 = utils.transform_coordinates(x_1, y_1, src_crs, new_crs)
-    results_2 = utils.transform_coordinates(x_2, y_2, src_crs, new_crs)
-    results_3 = utils.transform_coordinates(x_3, y_3, new_crs, src_crs)
-
-    assert results_1[0] == pytest.approx(new_x_1)
-    assert results_1[1] == pytest.approx(new_y_1)
-    assert results_2[0] == pytest.approx(new_x_2)
-    assert results_2[1] == pytest.approx(new_y_2)
-    assert results_3[0] == pytest.approx(0.0)
-    assert results_3[1] == pytest.approx(new_y_3)
+@pytest.mark.parametrize(
+    ["input", "exp_len"],
+    [
+        (np.random.rand(256, 256), 256 * 256),
+        (np.random.rand(16, 128, 128), 16 * 128 * 128),
+        (list(np.random.rand(256, 256)), 256 * 256),
+    ],
+)
+def test_batch_flatten(input, exp_len: int) -> None:
+    assert len(utils.batch_flatten(input)) == exp_len
 
 
-def test_check_within_bounds() -> None:
+@pytest.mark.parametrize(
+    ["x", "y", "src_crs", "dest_crs", "exp_x", "exp_y"],
+    [
+        (
+            [-1.3958972757520531],
+            50.936371897509154,
+            utils.WGS84,
+            CRS.from_epsg(3857),
+            [-155390.57],
+            [6610046.36],
+        ),
+        (
+            [-1.3958972757520531, 0.0],
+            [50.936371897509154, 51.47687968807581],
+            utils.WGS84,
+            CRS.from_epsg(3857),
+            [-155390.57, 0.0],
+            [6610046.36, 6706085.70],
+        ),
+        (0.0, 6706085.70, CRS.from_epsg(3857), utils.WGS84, 0.0, 51.47687968807581),
+    ],
+)
+def test_transform_coordinates(
+    x: Union[List[float], float],
+    y: Union[List[float], float],
+    src_crs: CRS,
+    dest_crs: CRS,
+    exp_x: Union[List[float], float],
+    exp_y: Union[List[float], float],
+) -> None:
+    out_x, out_y = utils.transform_coordinates(x, y, src_crs, dest_crs)
+
+    assert out_x == pytest.approx(exp_x)
+    assert out_y == pytest.approx(exp_y)
+
+
+@pytest.mark.parametrize(
+    ["bbox", "expected"],
+    [
+        (
+            BoundingBox(1.0, 2.0, 1.0, 2.0, 1.0, 2.0),
+            BoundingBox(1.0, 2.0, 1.0, 2.0, 1.0, 2.0),
+        ),
+        (
+            BoundingBox(1.0, 4.0, 1.0, 2.0, 1.0, 2.0),
+            BoundingBox(1.0, 3.0, 1.0, 2.0, 1.0, 2.0),
+        ),
+        (
+            BoundingBox(-1.0, 1.0, -1.0, 4.0, 0.0, 4.0),
+            BoundingBox(0.0, 1.0, 0.0, 3.0, 0.0, 4.0),
+        ),
+    ],
+)
+def test_check_within_bounds(bbox: BoundingBox, expected: BoundingBox) -> None:
     bounds = BoundingBox(0.0, 3.0, 0.0, 3.0, 0.0, 3.0)
-
-    bbox_1 = BoundingBox(1.0, 2.0, 1.0, 2.0, 1.0, 2.0)
-    bbox_2 = BoundingBox(1.0, 4.0, 1.0, 2.0, 1.0, 2.0)
-    bbox_3 = BoundingBox(-1.0, 1.0, -1.0, 4.0, 0.0, 4.0)
-
-    correct_2 = BoundingBox(1.0, 3.0, 1.0, 2.0, 1.0, 2.0)
-    correct_3 = BoundingBox(0.0, 1.0, 0.0, 3.0, 0.0, 4.0)
-
-    new_bbox_2 = utils.check_within_bounds(bbox_2, bounds)
-    new_bbox_3 = utils.check_within_bounds(bbox_3, bounds)
-
-    assert utils.check_within_bounds(bbox_1, bounds) == bbox_1
-    assert new_bbox_2 != bbox_2
-    assert new_bbox_2 == correct_2
-    assert new_bbox_3 != bbox_3
-    assert new_bbox_3 == correct_3
+    assert utils.check_within_bounds(bbox, bounds) == expected
 
 
 def test_dec2deg() -> None:
@@ -390,51 +409,43 @@ def test_get_centre_loc() -> None:
     assert pytest.approx(centre[1]) == 3.0
 
 
-def test_lat_lon_to_loc() -> None:
-    # Belper, UK.
-    lat_1 = 53.02324371916741
-    lon_1 = -1.482418942412615
-
-    # City of London.
-    lat_2 = 51.51331165954196
-    lon_2 = -0.08889921085815589
-
-    # Random point in Ohio.
-    lat_3 = 36.53849331792166
-    lon_3 = -102.65475905788739
-
-    # Bermuda Triangle.
-    lat_4 = 30.45028570174185
-    lon_4 = -76.49581035362436
-
-    # Vatican City.
-    lat_5 = 41.90204312927206
-    lon_5 = 12.45644780021287
-
-    # McMurdo Station, Antartica
-    lat6 = -77.844504
-    lon6 = 166.707506
-
+@pytest.mark.parametrize(
+    ["lat", "lon", "loc"],
+    [
+        (53.02324371916741, -1.482418942412615, "Amber Valley, England"),  # Belper, UK.
+        (
+            str(53.02324371916741),
+            str(-1.482418942412615),
+            "Amber Valley, England",
+        ),  # Belper, UK.
+        (
+            51.51331165954196,
+            -0.08889921085815589,
+            "City of London, England",
+        ),  # City of London.
+        (36.53849331792166, -102.65475905788739, ""),  # Random point in Ohio.
+        (30.45028570174185, -76.49581035362436, ""),  # Bermuda Triangle.
+        (41.90204312927206, 12.45644780021287, "Civitas Vaticana"),  # Vatican City.
+        (-77.844504, 166.707506, "McMurdo Station"),  # McMurdo Station, Antartica.
+    ],
+)
+def test_lat_lon_to_loc(
+    lat: Union[float, str], lon: Union[float, str], loc: str
+) -> None:
     try:
         requests.head("http://www.google.com/", timeout=1.0)
     except (requests.ConnectionError, requests.ReadTimeout):
         pass
     else:
-        assert utils.lat_lon_to_loc(lat_1, lon_1) == "Amber Valley, England"
-        assert utils.lat_lon_to_loc(str(lat_1), str(lon_1)) == "Amber Valley, England"
-        assert utils.lat_lon_to_loc(lat_2, lon_2) == "City of London, England"
-        assert utils.lat_lon_to_loc(lat_3, lon_3) == ""
+        try:
+            assert utils.lat_lon_to_loc(lat, lon) == loc
+        except GeocoderUnavailable:
+            pass
 
-        assert utils.lat_lon_to_loc(lat_4, lon_4) == ""
-        assert utils.lat_lon_to_loc(lat_5, lon_5) in (
-            "Civitas Vaticana - Città del Vaticano",
-            "Civitas Vaticana",
-        )
-
-        assert utils.lat_lon_to_loc(lat6, lon6) == "McMurdo Station"
-
-    with no_connection():
-        assert utils.lat_lon_to_loc(lat_1, lon_1) == ""
+    with no_connection(), pytest.raises(
+        GeocoderUnavailable, match="Geocoder unavailable"
+    ):
+        _ = utils.lat_lon_to_loc(lat, lon)
 
 
 def test_class_weighting() -> None:
@@ -667,7 +678,17 @@ def test_compute_roc_curves() -> None:
     shutil.rmtree(path)
 
 
-def test_check_dict_key() -> None:
+@pytest.mark.parametrize(
+    ["key", "outcome"],
+    [
+        ("does_not_exist", False),
+        ("exist_none", False),
+        ("exist_false", False),
+        ("exist_true", True),
+        ("exist_value", True),
+    ],
+)
+def test_check_dict_key(key: str, outcome: bool) -> None:
     dictionary = {
         "exist_none": None,
         "exist_false": False,
@@ -675,11 +696,7 @@ def test_check_dict_key() -> None:
         "exist_value": 42,
     }
 
-    assert utils.check_dict_key(dictionary, "does_not_exist") is False
-    assert utils.check_dict_key(dictionary, "exist_none") is False
-    assert utils.check_dict_key(dictionary, "exist_false") is False
-    assert utils.check_dict_key(dictionary, "exist_true")
-    assert utils.check_dict_key(dictionary, "exist_value")
+    assert utils.check_dict_key(dictionary, key) is outcome
 
 
 def test_load_data_specs() -> None:

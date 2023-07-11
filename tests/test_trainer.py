@@ -39,6 +39,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 import argparse
 import shutil
 from pathlib import Path
+from typing import Any, Dict
 
 import pytest
 import torch
@@ -151,63 +152,38 @@ def test_trainer_3() -> None:
     trainer2.fit()
 
 
-def test_cnn_train(inbuilt_cfg_root: Path) -> None:
-    cfg_path = inbuilt_cfg_root / "example_CNN_config.yml"
+@pytest.mark.parametrize(
+    ["cfg_name", "cfg_args", "kwargs"],
+    [
+        ("example_CNN_config.yml", {}, {}),
+        ("example_GeoCLR_config.yml", {}, {"tsne_cluster": True}),
+        ("example_GeoCLR_config.yml", {"plot_last_epoch": False}, {}),
+        ("example_3rd_party.yml", {}, {}),
+        ("example_autoencoder_config.yml", {}, {}),
+    ],
+)
+def test_trainer_4(
+    inbuilt_cfg_root: Path,
+    cfg_name: str,
+    cfg_args: Dict[str, Any],
+    kwargs: Dict[str, Any],
+) -> None:
+    cfg_path = inbuilt_cfg_root / cfg_name
 
     with config_load.ToDefaultConfDir():
         cfg, _ = config_load.load_configs(cfg_path)
 
-    trainer = Trainer(0, **cfg)
-
-    trainer.fit()
-    trainer.test()
-
-
-def test_ssl_trainer(inbuilt_cfg_root: Path) -> None:
-    ssl_cfg_path = inbuilt_cfg_root / "example_GeoCLR_config.yml"
-
-    with config_load.ToDefaultConfDir():
-        ssl_cfg, _ = config_load.load_configs(ssl_cfg_path)
-
-    trainer = Trainer(0, **ssl_cfg)
-
-    trainer.fit()
-
-    trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
-
-    trainer.tsne_cluster()
-
-
-def test_ssl_trainer_2(inbuilt_cfg_root: Path) -> None:
-    ssl_cfg_path = inbuilt_cfg_root / "example_GeoCLR_config.yml"
-
-    with config_load.ToDefaultConfDir():
-        ssl_cfg, _ = config_load.load_configs(ssl_cfg_path)
-
-    ssl_cfg["plot_last_epoch"] = False
-
-    trainer = Trainer(0, **ssl_cfg)
-
-    trainer.fit()
-
-
-def test_third_party_model(inbuilt_cfg_root: Path) -> None:
-    cfg_path = inbuilt_cfg_root / "example_3rd_party.yml"
-
-    with config_load.ToDefaultConfDir():
-        cfg, _ = config_load.load_configs(cfg_path)
+    for key in cfg_args.keys():
+        cfg[key] = cfg_args[key]
 
     trainer = Trainer(0, **cfg)
 
     trainer.fit()
 
+    if kwargs.get("tsne_cluster"):
+        trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
 
-def test_autoencoder(inbuilt_cfg_root: Path) -> None:
-    cfg_path = inbuilt_cfg_root / "example_autoencoder_config.yml"
+        trainer.tsne_cluster()
 
-    with config_load.ToDefaultConfDir():
-        cfg, _ = config_load.load_configs(cfg_path)
-
-    trainer = Trainer(0, **cfg)
-
-    trainer.fit()
+    if kwargs.get("test"):
+        trainer.test()

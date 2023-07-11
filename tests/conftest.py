@@ -41,7 +41,7 @@ import multiprocessing
 import os
 import shutil
 from pathlib import Path
-from typing import Dict, Generator, Tuple
+from typing import Any, Dict, Generator, Tuple
 
 import numpy as np
 import pytest
@@ -199,6 +199,39 @@ def random_rgbi_tensor(rgbi_input_size: Tuple[int, int, int]) -> Tensor:
 
 
 @pytest.fixture
+def simple_rgb_img() -> Tensor:
+    img: Tensor = torch.tensor(  # type: ignore[attr-defined]
+        [[255.0, 0.0, 127.5], [102.0, 127.5, 76.5], [178.5, 255.0, 204.0]]
+    )
+    assert isinstance(img, Tensor)
+    return img
+
+
+@pytest.fixture
+def norm_simple_rgb_img(simple_rgb_img) -> Tensor:
+    return simple_rgb_img / 255
+
+
+@pytest.fixture
+def flipped_rgb_img() -> Tensor:
+    img: Tensor = torch.tensor(  # type: ignore[attr-defined]
+        [[127.5, 0.0, 255.0], [76.5, 127.5, 102.0], [204.0, 255.0, 178.5]]
+    )
+    assert isinstance(img, Tensor)
+    return img
+
+
+@pytest.fixture
+def simple_sample(simple_rgb_img, simple_mask) -> Dict[str, Tensor]:
+    return {"image": simple_rgb_img, "mask": simple_mask}
+
+
+@pytest.fixture
+def flipped_simple_sample(flipped_rgb_img, flipped_simple_mask) -> Dict[str, Tensor]:
+    return {"image": flipped_rgb_img, "mask": flipped_simple_mask}
+
+
+@pytest.fixture
 def random_rgbi_batch(
     rgbi_input_size: Tuple[int, int, int], std_batch_size: int
 ) -> Tensor:
@@ -259,6 +292,12 @@ def simple_mask() -> LongTensor:
 
 
 @pytest.fixture
+def flipped_simple_mask() -> LongTensor:
+    mask: LongTensor = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])  # type: ignore[attr-defined]
+    return mask
+
+
+@pytest.fixture
 def example_matrix() -> Dict[int, int]:
     return {1: 1, 3: 3, 4: 2, 5: 0}
 
@@ -274,6 +313,21 @@ def default_dataset() -> GeoDataset:
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
     assert isinstance(dataset, GeoDataset)
     return dataset
+
+
+@pytest.fixture
+def exp_dataset_params() -> Dict[str, Any]:
+    return {
+        "image": {
+            "transforms": {
+                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
+            },
+            "module": "minerva.datasets",
+            "name": "TstImgDataset",
+            "root": "test_images",
+            "params": {"res": 10.0},
+        }
+    }
 
 
 @pytest.fixture(scope="session", autouse=True)

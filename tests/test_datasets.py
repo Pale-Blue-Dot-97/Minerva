@@ -204,36 +204,24 @@ def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
     assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
 
 
-def test_make_dataset() -> None:
+def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
     data_dir = ["tests", "tmp", "data"]
 
-    dataset_params = {
-        "image": {
-            "transforms": {
-                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
-            },
-            "module": "minerva.datasets",
-            "name": "TstImgDataset",
-            "root": "test_images",
-            "params": {"res": 10.0},
-        }
-    }
-
-    dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, dataset_params)
+    dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, exp_dataset_params)
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
         data_dir,
-        dataset_params,
+        exp_dataset_params,
         sample_pairs=True,
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
     assert isinstance(dataset_2, PairedDataset)
 
-    dataset_params["mask"] = {
+    exp_dataset_params["mask"] = {
         "module": "minerva.datasets",
         "name": "TstMaskDataset",
         "root": "test_lc",
@@ -242,12 +230,12 @@ def test_make_dataset() -> None:
 
     dataset_params2 = {
         "image": {
-            "image_1": dataset_params["image"],
-            "image_2": dataset_params["image"],
+            "image_1": exp_dataset_params["image"],
+            "image_2": exp_dataset_params["image"],
         },
         "mask": {
-            "mask_1": dataset_params["mask"],
-            "mask_2": dataset_params["mask"],
+            "mask_1": exp_dataset_params["mask"],
+            "mask_2": exp_dataset_params["mask"],
         },
     }
 
@@ -266,72 +254,69 @@ def test_make_dataset() -> None:
     assert isinstance(subdatasets_4[1], UnionDataset)
 
 
-def test_construct_dataloader() -> None:
+@pytest.mark.parametrize(
+    ["sampler_params", "kwargs"],
+    [
+        (
+            {
+                "module": "torchgeo.samplers",
+                "name": "RandomBatchGeoSampler",
+                "roi": False,
+                "params": {
+                    "size": 224,
+                    "length": 4096,
+                },
+            },
+            {},
+        ),
+        (
+            {
+                "module": "minerva.samplers",
+                "name": "RandomPairGeoSampler",
+                "roi": False,
+                "params": {
+                    "size": 224,
+                    "length": 4096,
+                },
+            },
+            {"sample_pairs": True},
+        ),
+        (
+            {
+                "module": "torchgeo.samplers",
+                "name": "RandomBatchGeoSampler",
+                "roi": False,
+                "params": {
+                    "size": 224,
+                    "length": 4096,
+                },
+            },
+            {"world_size": 2},
+        ),
+    ],
+)
+def test_construct_dataloader(
+    exp_dataset_params: Dict[str, Any],
+    sampler_params: Dict[str, Any],
+    kwargs: Dict[str, Any],
+) -> None:
     data_dir = ["tests", "tmp", "data"]
 
     batch_size = 256
 
-    dataset_params = {
-        "image": {
-            "transforms": {
-                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
-            },
-            "module": "minerva.datasets",
-            "name": "TstImgDataset",
-            "root": "test_images",
-            "params": {"res": 10.0},
-        }
-    }
-
-    sampler_params_1 = {
-        "module": "torchgeo.samplers",
-        "name": "RandomBatchGeoSampler",
-        "roi": False,
-        "params": {
-            "size": 224,
-            "length": 4096,
-        },
-    }
-
-    sampler_params_2 = {
-        "module": "minerva.samplers",
-        "name": "RandomPairGeoSampler",
-        "roi": False,
-        "params": {
-            "size": 224,
-            "length": 4096,
-        },
-    }
-
     dataloader_params = {"num_workers": 2, "pin_memory": True}
 
-    dataloader_1 = mdt.construct_dataloader(
+    dataloader = mdt.construct_dataloader(
         data_dir,
-        dataset_params,
-        sampler_params_1,
+        exp_dataset_params,
+        sampler_params,
         dataloader_params,
         batch_size,
-    )
-    dataloader_2 = mdt.construct_dataloader(
-        data_dir,
-        dataset_params,
-        sampler_params_2,
-        dataloader_params,
-        batch_size,
-        sample_pairs=True,
-    )
-    dataloader_3 = mdt.construct_dataloader(
-        data_dir,
-        dataset_params,
-        sampler_params_1,
-        dataloader_params,
-        batch_size,
-        world_size=2,
+        sample_pairs=kwargs.get("sample_pairs", False),
+        world_size=kwargs.get("world_size", 1),
     )
 
-    assert isinstance(dataloader_1, DataLoader)
-    assert isinstance(dataloader_2, DataLoader)
-    assert isinstance(dataloader_3, DataLoader)
+    assert isinstance(dataloader, DataLoader)
 
 
 def test_get_transform() -> None:
@@ -345,42 +330,51 @@ def test_get_transform() -> None:
         _ = mdt.get_transform("DataFrame", {"module": "pandas"})
 
 
-def test_make_transformations() -> None:
-    transform_params_1 = {
-        "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-        "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-    }
-
-    transform_params_2 = {
-        "RandomApply": {
-            "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-            "p": 0.3,
-        },
-        "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-    }
-
-    transform_params_3 = {
-        "MinervaCompose": {
-            "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-            "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-        },
-        "RandomApply": {
-            "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-            "p": 0.3,
-        },
-        "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-    }
-
-    transforms_1 = mdt.make_transformations(transform_params_1)
-    assert callable(transforms_1)
-
-    transforms_2 = mdt.make_transformations(transform_params_2)
-    assert callable(transforms_2)
-
-    transforms_3 = mdt.make_transformations(transform_params_3, key="image")
-    assert callable(transforms_3)
-
-    assert mdt.make_transformations(False) is None
+@pytest.mark.parametrize(
+    ["params", "key"],
+    [
+        (
+            {
+                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            None,
+        ),
+        (
+            {
+                "RandomApply": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "p": 0.3,
+                },
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            None,
+        ),
+        (
+            {
+                "MinervaCompose": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "RandomHorizontalFlip": {
+                        "module": "torchvision.transforms",
+                        "p": 0.7,
+                    },
+                },
+                "RandomApply": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "p": 0.3,
+                },
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            "image",
+        ),
+    ],
+)
+def test_make_transformations(params: Dict[str, Any], key: str) -> None:
+    if params:
+        transforms = mdt.make_transformations(params, key)
+        assert callable(transforms)
+    else:
+        assert mdt.make_transformations(False) is None
 
 
 def test_make_loaders() -> None:
