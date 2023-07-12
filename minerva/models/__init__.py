@@ -66,6 +66,7 @@ from .siamese import MinervaSiamese as MinervaSiamese
 from .siamese import SimCLR18 as SimCLR18
 from .siamese import SimCLR34 as SimCLR34
 from .siamese import SimCLR50 as SimCLR50
+from .siamese import SimConv as SimConv
 from .siamese import SimSiam18 as SimSiam18
 from .siamese import SimSiam34 as SimSiam34
 from .siamese import SimSiam50 as SimSiam50

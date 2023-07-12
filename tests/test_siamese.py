@@ -51,7 +51,16 @@ except (OSError, NewConnectionError, MaxRetryError):
     )
     NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 
-from minerva.models import SimCLR18, SimCLR34, SimCLR50, SimSiam18, SimSiam34, SimSiam50
+from minerva.models import (
+    MinervaSiamese,
+    SimCLR18,
+    SimCLR34,
+    SimCLR50,
+    SimConv,
+    SimSiam18,
+    SimSiam34,
+    SimSiam50,
+)
 
 
 # =====================================================================================================================
@@ -119,3 +128,26 @@ def test_simsiam() -> None:
 
     with pytest.raises(NotImplementedError, match="Optimiser has not been set!"):
         _ = model.step(x, train=True)
+
+
+def test_simconv() -> None:
+    loss_func = NTXentLoss(0.3)
+
+    input_size = (4, 32, 32)
+
+    x = torch.rand((3, *input_size))
+
+    x = torch.stack([x, x])
+
+    model: MinervaSiamese = SimConv(loss_func, input_size=input_size)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+
+    model.set_optimiser(optimiser)
+
+    model.determine_output_dim(sample_pairs=True)
+    assert model.output_shape == (128,)
+
+    loss, z = model.step(x, train=True)
+
+    assert type(loss.item()) is float
+    assert z.size() == (6, 128)
