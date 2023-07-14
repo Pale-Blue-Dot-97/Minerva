@@ -51,6 +51,7 @@ except (OSError, NewConnectionError, MaxRetryError):
     )
     NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 
+from minerva.loss import SegBarlowTwinsLoss
 from minerva.models import (
     MinervaSiamese,
     SimCLR18,
@@ -131,7 +132,7 @@ def test_simsiam() -> None:
 
 
 def test_simconv() -> None:
-    loss_func = NTXentLoss(0.3)
+    loss_func = SegBarlowTwinsLoss()  # NTXentLoss(0.3)
 
     input_size = (4, 32, 32)
 
