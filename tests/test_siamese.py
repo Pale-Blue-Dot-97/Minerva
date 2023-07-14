@@ -145,7 +145,7 @@ def test_simconv() -> None:
     model.set_optimiser(optimiser)
 
     model.determine_output_dim(sample_pairs=True)
-    assert model.output_shape == (128,)
+    assert model.output_shape == (128, input_size[1], input_size[2])
 
     loss, z = model.step(x, train=True)
 

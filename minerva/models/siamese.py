@@ -52,13 +52,13 @@ import abc
 from typing import Any, Dict, Sequence, Tuple
 
 import numpy as np
-import segmentation_models_pytorch as smp
 import torch
 import torch.nn.modules as nn
 from torch import Tensor
 from torch.nn.modules import Module
 
-from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
+from .core import MinervaBackbone, MinervaModel, get_model
+from .psp import PSPEncoder
 
 
 # =====================================================================================================================
@@ -442,20 +442,22 @@ class SimConv(MinervaSiamese):
             "psp_out_channels": feature_dim,
             "in_channels": input_size[0],
         }
-        self.backbone: MinervaModel = MinervaWrapper(
-            smp.PSPNet, input_size=input_size, **kwargs
-        )
+
+        self.backbone = PSPEncoder(**kwargs)
 
         self.proj_head = nn.Sequential(
-            nn.Conv2d(feature_dim, 512, 1, padding=0),
-            nn.BatchNorm1d(512),
+            nn.Conv2d(feature_dim, 512, 3, 2, padding=0),  # 3x3 Conv
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.UpsamplingBilinear2d(scale_factor=4),
             nn.ReLU(inplace=True),
             nn.Conv2d(512, 256, 1, padding=0),
-            nn.BatchNorm1d(256),
+            nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
             nn.Conv2d(256, 128, 1, padding=0),
-            nn.BatchNorm1d(128),
+            nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
+            nn.UpsamplingBilinear2d(scale_factor=8),
         )
 
     def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
@@ -471,14 +473,6 @@ class SimConv(MinervaSiamese):
             tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the
             :attr:`~SimCLR.proj_head` and the detached embedding vector from the :attr:`~SimCLR.backbone`.
         """
-        x2 = self.backbone.encoder(x)
-        for t in x2:
-            print(t.shape)
-        x3 = self.backbone.decoder(*x2)
-        print(x3.shape)
-        x4 = self.backbone.segmentation_head(x3)
-        print(x4.shape)
-
         f: Tensor = self.backbone(x)
         print(f.shape)
         g: Tensor = self.proj_head(f)
