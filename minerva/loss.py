@@ -75,6 +75,9 @@ class SegBarlowTwinsLoss(BarlowTwinsLoss):
 
         device = z_a.device
 
+        z_a = z_a.reshape(z_a.size()[0] * z_a.size()[1], z_a.size()[2], z_a.size()[3])
+        z_b = z_b.reshape(z_b.size()[0] * z_b.size()[1], z_b.size()[2], z_b.size()[3])
+
         # normalize repr. along the batch dimension
         z_a_norm = (z_a - z_a.mean(0)) / z_a.std(0)  # NxD
         z_b_norm = (z_b - z_b.mean(0)) / z_b.std(0)  # NxD
@@ -82,8 +85,14 @@ class SegBarlowTwinsLoss(BarlowTwinsLoss):
         N = z_a.size(0)
         D = z_a.size(1)
 
+        print(N)
+        print(D)
+
+        print(z_a_norm.T.size())
+
         # cross-correlation matrix
-        c = torch.mm(z_a_norm.T, z_b_norm) / N  # DxD
+        c = z_a_norm.T @ z_b_norm / N
+        # c = torch.mm(z_a_norm.T, z_b_norm) / N  # DxD
 
         # sum cross-correlation matrix between multiple gpus
         if self.gather_distributed and dist.is_initialized():
