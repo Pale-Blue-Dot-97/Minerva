@@ -137,16 +137,14 @@ class TstMaskDataset(RasterDataset):
 
 
 class NAIPChesapeakeCVPR(NAIP):
-    filename_glob = "m_*_naip-*.tif"
-    filename_regex = ""
-    r"""
-        ^m
-        _(?P<quadrangle>\d+)
-        _(?P<quarter_quad>[a-z]+)
-        _(?P<utm_zone>\d+)
-        _(?P<resolution>\d+)
-        \..*$
+    """Adapted version of :class:~`torchgeo.datasets.NAIP` that works with the NAIP tiles that are
+    packaged with the ChesapeakeCVPR dataset.
+
+    Attributes:
+        filename_glob (str): Pattern for mask tiff files within dataset root to construct dataset from.
     """
+
+    filename_glob = "m_*_naip-*.tif"
 
 
 class PairedDataset(RasterDataset):
