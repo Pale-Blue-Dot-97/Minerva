@@ -92,6 +92,7 @@ from torchgeo.datasets import (
     GeoDataset,
     IntersectionDataset,
     RasterDataset,
+    Sentinel2,
     UnionDataset,
 )
 from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
@@ -141,10 +142,23 @@ class NAIPChesapeakeCVPR(NAIP):
     packaged with the ChesapeakeCVPR dataset.
 
     Attributes:
-        filename_glob (str): Pattern for mask tiff files within dataset root to construct dataset from.
+        filename_glob (str): Pattern for tiff files within dataset root to construct dataset from.
     """
 
     filename_glob = "m_*_naip-*.tif"
+    filename_regex = ""
+
+
+class SSL4EOS12Sentinel2(Sentinel2):
+    """Adapted version of :class:~`torchgeo.datasets.Sentinel2` that works .
+
+    Attributes:
+        filename_glob (str): Pattern for tiff files within dataset root to construct dataset from.
+    """
+
+    filename_glob = "T*_*_{}*.*"
+    filename_regex = ""
+    date_format = ""
 
 
 class PairedDataset(RasterDataset):
