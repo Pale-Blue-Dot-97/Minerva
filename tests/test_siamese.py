@@ -132,7 +132,7 @@ def test_simsiam() -> None:
 
 
 def test_simconv() -> None:
-    loss_func = SegBarlowTwinsLoss()  # NTXentLoss(0.3)
+    loss_func = SegBarlowTwinsLoss()
 
     input_size = (4, 32, 32)
 
@@ -151,4 +151,4 @@ def test_simconv() -> None:
     loss, z = model.step(x, train=True)
 
     assert type(loss.item()) is float
-    assert z.size() == (6, 128)
+    assert z.size() == (6, 128, input_size[1], input_size[2])
