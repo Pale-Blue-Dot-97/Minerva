@@ -156,7 +156,7 @@ class SSL4EOS12Sentinel2(Sentinel2):
         filename_glob (str): Pattern for tiff files within dataset root to construct dataset from.
     """
 
-    filename_glob = "T*_*_{}*.*"
+    filename_glob = "{}.*"
     filename_regex = ""
     date_format = ""
 
