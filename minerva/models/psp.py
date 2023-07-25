@@ -43,13 +43,11 @@ import segmentation_models_pytorch as smp
 # =====================================================================================================================
 from torch import Tensor
 
-from .core import MinervaBackbone
-
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class PSPEncoder(smp.PSPNet, MinervaBackbone):
+class PSPEncoder(smp.PSPNet):
     def forward(self, x: Tensor) -> Tensor:
         f = self.encoder(x)
         z = self.decoder(*f)

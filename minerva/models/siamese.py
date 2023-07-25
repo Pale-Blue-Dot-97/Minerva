@@ -57,7 +57,7 @@ import torch.nn.modules as nn
 from torch import Tensor
 from torch.nn.modules import Module
 
-from .core import MinervaBackbone, MinervaModel, get_model
+from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
 from .psp import PSPEncoder
 
 
@@ -443,7 +443,7 @@ class SimConv(MinervaSiamese):
             "in_channels": input_size[0],
         }
 
-        self.backbone = PSPEncoder(**kwargs)
+        self.backbone = MinervaWrapper(PSPEncoder, input_size=input_size, **kwargs)
 
         self.proj_head = nn.Sequential(
             nn.Conv2d(feature_dim, 512, 3, 2, padding=0),  # 3x3 Conv
