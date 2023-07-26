@@ -426,7 +426,7 @@ class SimConv(MinervaSiamese):
     """
 
     __metaclass__ = abc.ABCMeta
-    backbone_name = "ResNet18"
+    backbone_name = "resnet18"
 
     def __init__(
         self,
@@ -437,11 +437,15 @@ class SimConv(MinervaSiamese):
     ) -> None:
         super(SimConv, self).__init__(criterion=criterion, input_size=input_size)
 
-        kwargs = {
-            "encoder_name": "resnet18",
+        # Set of required kwargs for the `PSPNet` adapted from `minerva` style kwargs.
+        new_kwargs = {
+            "encoder_name": self.backbone_name,
             "psp_out_channels": feature_dim,
             "in_channels": input_size[0],
         }
+
+        # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
+        kwargs = backbone_kwargs.update(new_kwargs)
 
         self.backbone = MinervaWrapper(PSPEncoder, input_size=input_size, **kwargs)
 
