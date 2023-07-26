@@ -152,6 +152,16 @@ def test_paired_union_datasets(img_root: Path) -> None:
         dataset_test(dataset)
 
 
+def test_join_paired_union_datasets(img_root: Path) -> None:
+    dataset1 = TstImgDataset(str(img_root))
+    dataset2 = TstImgDataset(str(img_root))
+    dataset3 = PairedDataset(TstImgDataset, img_root)
+
+    union_dataset1 = PairedUnionDataset(dataset1, dataset2)
+    union_dataset2 = union_dataset1 | dataset3
+    assert isinstance(union_dataset2, PairedUnionDataset)
+
+
 def test_get_collator() -> None:
     collator_params_1 = {"module": "torchgeo.datasets.utils", "name": "stack_samples"}
     collator_params_2 = {"name": "stack_sample_pairs"}
