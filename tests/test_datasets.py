@@ -161,6 +161,12 @@ def test_join_paired_union_datasets(img_root: Path) -> None:
     union_dataset2 = union_dataset1 | dataset3
     assert isinstance(union_dataset2, PairedUnionDataset)
 
+    with pytest.raises(
+        ValueError,
+        match=f"Unionising a dataset of {type(dataset2)} and a PairedUnionDataset is not supported!",
+    ):
+        _ = union_dataset1 | dataset2  # type: ignore[operator]
+
 
 def test_get_collator() -> None:
     collator_params_1 = {"module": "torchgeo.datasets.utils", "name": "stack_samples"}
