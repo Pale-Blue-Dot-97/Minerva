@@ -337,6 +337,27 @@ class PairedUnionDataset(UnionDataset):
         """
         return super().__getitem__(query[0]), super().__getitem__(query[1])
 
+    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":  # type: ignore[override]
+        """Take the union of a PairedUnionDataset and a :class:`PairedDataset`.
+
+        Args:
+            other (PairedDataset): Another dataset.
+
+        Returns:
+            PairedUnionDataset: A single dataset.
+
+        Raises:
+            ValueError: If ``other`` is not a :class:`PairedDataset`
+
+        .. versionadded:: 0.24
+        """
+        if not isinstance(other, PairedDataset):
+            raise ValueError(
+                f"Unionising a dataset of {type(other)} and a PairedUnionDataset is not supported!"
+            )
+
+        return PairedUnionDataset(self, other)
+
 
 # =====================================================================================================================
 #                                                     METHODS
