@@ -480,7 +480,6 @@ class SimConv(MinervaSiamese):
             :attr:`~SimCLR.proj_head` and the detached embedding vector from the :attr:`~SimCLR.backbone`.
         """
         f: Tensor = self.backbone(x)
-        print(f.shape)
         g: Tensor = self.proj_head(f)
 
         return g, f
