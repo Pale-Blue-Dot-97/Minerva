@@ -445,9 +445,11 @@ class SimConv(MinervaSiamese):
         }
 
         # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
-        kwargs = backbone_kwargs.update(new_kwargs)
+        backbone_kwargs.update(new_kwargs)
 
-        self.backbone = MinervaWrapper(PSPEncoder, input_size=input_size, **kwargs)
+        self.backbone = MinervaWrapper(
+            PSPEncoder, input_size=input_size, **backbone_kwargs
+        )
 
         self.proj_head = nn.Sequential(
             nn.Conv2d(feature_dim, 512, 3, 2, padding=0),  # 3x3 Conv
