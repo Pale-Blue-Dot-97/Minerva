@@ -446,7 +446,8 @@ class SimConv(MinervaSiamese):
         }
 
         # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
-        new_kwargs.update(backbone_kwargs)
+        if backbone_kwargs is not None:
+            new_kwargs.update(backbone_kwargs)
 
         self.backbone = MinervaWrapper(PSPEncoder, input_size=input_size, **new_kwargs)
 
