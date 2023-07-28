@@ -455,7 +455,7 @@ class SimConv(MinervaSiamese):
             nn.Conv2d(feature_dim, 512, 3, 2, padding=1),  # 3x3 Conv
             nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
-            nn.UpsamplingBilinear2d(scale_factor=2),
+            nn.UpsamplingBilinear2d(scale_factor=4),
             nn.ReLU(inplace=True),
             nn.Conv2d(512, 256, 1, padding=0),
             nn.BatchNorm2d(256),
@@ -463,7 +463,7 @@ class SimConv(MinervaSiamese):
             nn.Conv2d(256, 128, 1, padding=0),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.UpsamplingBilinear2d(scale_factor=7),
+            nn.UpsamplingBilinear2d(scale_factor=4),
         )
 
     def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
