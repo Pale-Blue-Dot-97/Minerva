@@ -52,7 +52,6 @@ from typing import (
     Tuple,
     Union,
 )
-import csv
 
 import pandas as pd
 import torch
@@ -66,6 +65,7 @@ from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data import DataLoader
+from geojson import Polygon, Feature, FeatureCollection, dump
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -1215,12 +1215,21 @@ class Trainer:
                 self.print("\nSAVING MODEL PARAMETERS TO FILE")
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
-            if self.params.get("record_bbox", False):
-                with open(f"{self.exp_fn}_bboxs.csv", 'w') as file:
-                    writer = csv.writer(file)
-                    writer.writerows(self.sample_pairs_bboxs)
-                    file.close()
 
+            if self.params.get("record_bbox", False):
+                features = []
+                for epoch_bboxs in self.sample_pairs_bboxs:
+                    for bbox in epoch_bboxs:
+                        features.append(Feature(geometry = Polygon([[(bbox.minx, bbox.miny), (bbox.minx, bbox.maxy), 
+                                                                     (bbox.maxx, bbox.maxy), (bbox.maxx, bbox.miny),
+                                                                     (bbox.minx, bbox.miny)]])))
+
+                Features = FeatureCollection(features, crs = {"type": "name",
+                                                    "properties": {
+                                                    "name": "EPSG:26918"}})
+                    
+                with open(f"{self.exp_fn}_bboxs.geojson", 'w') as f:
+                    dump(Features, f)
 
 
     def compute_classification_report(
