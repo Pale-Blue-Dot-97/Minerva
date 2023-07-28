@@ -452,7 +452,7 @@ class SimConv(MinervaSiamese):
         self.backbone = MinervaWrapper(PSPEncoder, input_size=input_size, **new_kwargs)
 
         self.proj_head = nn.Sequential(
-            nn.Conv2d(feature_dim, 512, 3, 2, padding=0),  # 3x3 Conv
+            nn.Conv2d(feature_dim, 512, 3, 2, padding=1),  # 3x3 Conv
             nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
@@ -463,7 +463,7 @@ class SimConv(MinervaSiamese):
             nn.Conv2d(256, 128, 1, padding=0),
             nn.BatchNorm2d(128),
             nn.ReLU(inplace=True),
-            nn.UpsamplingBilinear2d(scale_factor=8),
+            nn.UpsamplingBilinear2d(scale_factor=4),
         )
 
     def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
