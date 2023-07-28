@@ -126,12 +126,14 @@ class MinervaLogger(ABC):
         n_samples: int,
         record_int: bool = True,
         record_float: bool = False,
+        record_bbox: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
         super(MinervaLogger, self).__init__()
         self.record_int = record_int
         self.record_float = record_float
+        self.record_bbox = record_bbox
         self.n_batches = n_batches
         self.batch_size = batch_size
         self.n_samples = n_samples
@@ -283,6 +285,7 @@ class STGLogger(MinervaLogger):
         n_classes: int,
         record_int: bool = True,
         record_float: bool = False,
+        record_bbox: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
@@ -292,6 +295,7 @@ class STGLogger(MinervaLogger):
             n_samples,
             record_int,
             record_float,
+            record_bbox,
             writer,
         )
         _out_shape: Tuple[int, ...]
@@ -479,11 +483,12 @@ class KNNLogger(MinervaLogger):
         n_samples: int,
         record_int: bool = True,
         record_float: bool = False,
+        record_bbox: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
         super().__init__(
-            n_batches, batch_size, n_samples, record_int, record_float, writer, **kwargs
+            n_batches, batch_size, n_samples, record_int, record_float, record_bbox, writer, **kwargs
         )
 
         self.logs: Dict[str, Any] = {
@@ -550,6 +555,8 @@ class SSLLogger(MinervaLogger):
             * ``total_top5``
             * ``avg_loss``
             * ``avg_output_std``
+        
+        bbox (dict[str, ~typing])
 
         collapse_level (bool): Adds calculation and logging of the :term:`collapse level` to the metrics.
             Only to be used with Siamese type models.
@@ -566,6 +573,7 @@ class SSLLogger(MinervaLogger):
             Defaults to ``True``.
         record_float (bool): Optional; Whether to record the floating point values from an epoch of model fitting.
             Defaults to ``False``.
+        record_bbox (bool): Optional 
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wand_run.Run): Optional; Writer object
             from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
     """
@@ -579,6 +587,7 @@ class SSLLogger(MinervaLogger):
         n_classes: Optional[int] = None,
         record_int: bool = True,
         record_float: bool = False,
+        record_bbox: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
@@ -588,6 +597,7 @@ class SSLLogger(MinervaLogger):
             n_samples,
             record_int,
             record_float=record_float,
+            record_bbox = record_bbox,
             writer=writer,
         )
 
@@ -598,6 +608,10 @@ class SSLLogger(MinervaLogger):
             "total_top5": 0.0,
             "avg_loss": 0.0,
             "avg_output_std": 0.0,
+        }
+
+        self.results: Dict[str, Any] = {
+            "bounds": []
         }
 
         self.collapse_level = kwargs.get("collapse_level", False)
@@ -634,6 +648,9 @@ class SSLLogger(MinervaLogger):
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
+        
+        if self.record_bbox:
+            self.results["bounds"] = bbox
 
         # Compute the TOP1 and TOP5 accuracies.
         sim_argsort = utils.calc_contrastive_acc(z)

@@ -52,6 +52,7 @@ from typing import (
     Tuple,
     Union,
 )
+import csv
 
 import pandas as pd
 import torch
@@ -261,7 +262,7 @@ class Trainer:
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
-
+     
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
 
@@ -364,6 +365,7 @@ class Trainer:
         # Initialise the metric logger and model IO for the experiment.
         self.metric_logger = self.make_metric_logger()
         self.modelio_func = self.get_io_func()
+        self.sample_pairs_bboxs = []
 
         # Stores the step number for that mode of fitting. To be used for logging.
         self.step_num = {mode: 0 for mode in self.modes}
@@ -636,6 +638,7 @@ class Trainer:
         mode: str,
         record_int: bool = False,
         record_float: bool = False,
+        record_bbox: bool = False,
     ) -> Optional[Dict[str, Any]]:
         """All encompassing function for any type of epoch, be that train, validation or testing.
 
@@ -667,6 +670,7 @@ class Trainer:
             self.model.n_classes,
             record_int=record_int,
             record_float=record_float,
+            record_bbox=record_bbox,
             collapse_level=self.sample_pairs,
             euclidean=self.sample_pairs,
             model_type=self.model_type,
@@ -704,10 +708,14 @@ class Trainer:
 
         # Updates metrics with epoch results.
         self.metric_logger(mode, epoch_logger.get_logs)
+        
 
         # If configured to do so, calculates the grad norms.
         if self.params.get("calc_norm", False):
             _ = utils.calc_grad(self.model)
+        
+        if record_bbox:
+            self.sample_pairs_bboxs.append(epoch_logger.get_results['bounds'])
 
         # Returns the results of the epoch if configured to do so. Else, returns None.
         if record_int or record_float:
@@ -715,6 +723,8 @@ class Trainer:
             return epoch_results
         else:
             return None
+        
+        
 
     def fit(self) -> None:
         """Fits the model by running ``max_epochs`` number of training and validation epochs."""
@@ -752,6 +762,7 @@ class Trainer:
                             mode,
                             record_int=True,
                             record_float=self.params.get("record_float", False),
+                            record_bbox=self.params.get("record_bbox", False),
                         )
                     assert result is not None
                     results = result
@@ -856,7 +867,7 @@ class Trainer:
         # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
         # and the IDs of the samples supplied.
         results: Optional[Dict[str, Any]] = self.epoch(
-            "test", record_int=True, record_float=True
+            "test", record_int=True, record_float=True, record_bbox=False
         )
         assert results is not None
 
@@ -1204,6 +1215,13 @@ class Trainer:
                 self.print("\nSAVING MODEL PARAMETERS TO FILE")
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
+            if self.params.get("record_bbox", False):
+                with open(f"{self.exp_fn}_bboxs.csv", 'w') as file:
+                    writer = csv.writer(file)
+                    writer.writerows(self.sample_pairs_bboxs)
+                    file.close()
+
+
 
     def compute_classification_report(
         self, predictions: Sequence[int], labels: Sequence[int]
