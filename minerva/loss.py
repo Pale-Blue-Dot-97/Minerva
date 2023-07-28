@@ -36,8 +36,18 @@ __all__ = ["SegBarlowTwinsLoss"]
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import importlib
+
 import torch
-from lightly.loss import BarlowTwinsLoss
+from urllib3.exceptions import MaxRetryError, NewConnectionError
+
+# Needed to avoid connection error when importing lightly.
+try:
+    from lightly.loss import BarlowTwinsLoss
+except (OSError, NewConnectionError, MaxRetryError):
+    BarlowTwinsLoss = getattr(
+        importlib.import_module("lightly.loss"), "BarlowTwinsLoss"
+    )
 
 
 # =====================================================================================================================
