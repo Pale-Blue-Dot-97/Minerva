@@ -545,7 +545,7 @@ class Trainer:
         if not utils.check_dict_key(loss_params, "params"):
             loss_params["params"] = {}
 
-        if self.params.get("balance", False) and "segmentation" in self.model_type:
+        if self.params.get("balance", False) and self.model_type == "segmentation":
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
