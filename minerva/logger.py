@@ -368,7 +368,6 @@ class STGLogger(MinervaLogger):
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
         *args,
-        **kwargs,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
@@ -510,7 +509,6 @@ class KNNLogger(MinervaLogger):
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
         *args,
-        **kwargs,
     ) -> None:
         assert isinstance(z, Tensor)
         assert isinstance(y, Tensor)
@@ -603,6 +601,8 @@ class SSLLogger(MinervaLogger):
         self.collapse_level = kwargs.get("collapse_level", False)
         self.euclidean = kwargs.get("euclidean", False)
 
+        self.model_type = kwargs.get("model_type", "")
+
         if self.collapse_level:
             self.logs["collapse_level"] = 0
         if self.euclidean:
@@ -617,7 +617,6 @@ class SSLLogger(MinervaLogger):
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
         *args,
-        **kwargs,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
@@ -630,6 +629,9 @@ class SSLLogger(MinervaLogger):
             bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
         """
         assert z is not None
+
+        if "segmentation" in self.model_type:
+            z = z.flatten(1, -1)
 
         # Adds the loss for this step to the logs.
         ls = loss.item()
