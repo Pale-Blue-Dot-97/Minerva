@@ -729,7 +729,7 @@ class Trainer:
                 if (
                     mode == "val"
                     and utils.check_substrings_in_string(
-                        self.model_type, ("ssl", "siamese")
+                        self.model_type, "ssl", "siamese"
                     )
                     and (epoch + 1) % self.val_freq != 0
                 ):
@@ -741,7 +741,7 @@ class Trainer:
                 if self.params.get("plot_last_epoch", False):
                     result: Optional[Dict[str, Any]]
                     if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, ("ssl", "siamese")
+                        self.model_type, "ssl", "siamese"
                     ):
                         result = self.weighted_knn_validation(
                             k=self.params.get("knn_k", None),
@@ -759,7 +759,7 @@ class Trainer:
 
                 else:
                     if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, ("ssl", "siamese")
+                        self.model_type, "ssl", "siamese"
                     ):
                         self.weighted_knn_validation(
                             k=self.params.get("knn_k", None),
@@ -775,7 +775,7 @@ class Trainer:
                 # Print epoch results.
                 if self.gpu == 0:
                     if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, ("ssl", "siamese")
+                        self.model_type, "ssl", "siamese"
                     ):
                         epoch_no = epoch // self.val_freq
                     else:
@@ -785,7 +785,7 @@ class Trainer:
                 # Sends validation loss to the stopper and updates early stop bool.
                 if mode == "val" and self.stopper is not None:
                     if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, ("ssl", "siamese")
+                        self.model_type, "ssl", "siamese"
                     ):
                         epoch_no = epoch // self.val_freq
                     else:
@@ -815,7 +815,9 @@ class Trainer:
                     sub_metrics = self.metric_logger.get_sub_metrics()
 
                     # Ensures masks are not plotted for model types that do not yield such outputs.
-                    if self.model_type in ("scene classifier", "mlp", "MLP"):
+                    if utils.check_substrings_in_string(
+                        self.model_type, "scene classifier", "mlp", "MLP"
+                    ):
                         plots["Mask"] = False
 
                     # Amends the results' directory to add a new level for train or validation.
@@ -885,7 +887,9 @@ class Trainer:
             # Ensure history is not plotted again.
             plots["History"] = False
 
-            if self.model_type in ("scene classifier", "mlp", "MLP"):
+            if utils.check_substrings_in_string(
+                self.model_type, "scene classifier", "mlp", "MLP"
+            ):
                 plots["Mask"] = False
 
             # Amends the results' directory to add a new level for test results.
@@ -1044,7 +1048,7 @@ class Trainer:
                 )
 
                 # Get features from passing the input data through the model.
-                if "siamese" in self.model_type:
+                if utils.check_substrings_in_string(self.model_type, "siamese"):
                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
                     assert isinstance(self.model, MinervaSiamese)
 
@@ -1074,7 +1078,7 @@ class Trainer:
                 ).values
 
                 # Get features from passing the input data through the model.
-                if "siamese" in self.model_type:
+                if utils.check_substrings_in_string(self.model_type, "siamese"):
                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
                     assert isinstance(self.model, MinervaSiamese)
 
