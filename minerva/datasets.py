@@ -860,7 +860,7 @@ def make_loaders(
     if type(sample_pairs) != bool:
         sample_pairs = False
 
-    if model_type != "siamese":
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         # Load manifest from cache for this dataset.
         manifest = get_manifest(get_manifest_path())
         class_dist = utils.modes_from_manifest(manifest)
@@ -876,7 +876,9 @@ def make_loaders(
     loaders = {}
 
     for mode in dataset_params.keys():
-        if params.get("elim", False) and model_type != "siamese":
+        if params.get("elim", False) and not utils.check_substrings_in_string(
+            model_type, "siamese"
+        ):
             class_transform = {
                 "ClassTransform": {
                     "module": "minerva.transforms",
@@ -911,7 +913,7 @@ def make_loaders(
         )
         print("DONE")
 
-    if model_type != "siamese":
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
         if params.get("elim", False):
             class_dist = utils.class_dist_transform(class_dist, forwards)
