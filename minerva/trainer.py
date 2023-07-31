@@ -545,7 +545,7 @@ class Trainer:
         if not utils.check_dict_key(loss_params, "params"):
             loss_params["params"] = {}
 
-        if self.params.get("balance", False) and self.model_type == "segmentation":
+        if self.params.get("balance", False) and "segmentation" in self.model_type:
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
@@ -728,7 +728,9 @@ class Trainer:
                 # Only run a KNN validation epoch at set frequency of epochs. Goes to next epoch if not.
                 if (
                     mode == "val"
-                    and self.model_type in ("ssl", "siamese")
+                    and utils.check_substrings_in_string(
+                        self.model_type, ("ssl", "siamese")
+                    )
                     and (epoch + 1) % self.val_freq != 0
                 ):
                     break
@@ -738,9 +740,8 @@ class Trainer:
                 # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
                 if self.params.get("plot_last_epoch", False):
                     result: Optional[Dict[str, Any]]
-                    if mode == "val" and self.model_type in (
-                        "ssl",
-                        "siamese",
+                    if mode == "val" and utils.check_substrings_in_string(
+                        self.model_type, ("ssl", "siamese")
                     ):
                         result = self.weighted_knn_validation(
                             k=self.params.get("knn_k", None),
@@ -757,9 +758,8 @@ class Trainer:
                     results = result
 
                 else:
-                    if mode == "val" and self.model_type in (
-                        "ssl",
-                        "siamese",
+                    if mode == "val" and utils.check_substrings_in_string(
+                        self.model_type, ("ssl", "siamese")
                     ):
                         self.weighted_knn_validation(
                             k=self.params.get("knn_k", None),
@@ -774,7 +774,9 @@ class Trainer:
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    if mode == "val" and self.model_type in ("ssl", "siamese"):
+                    if mode == "val" and utils.check_substrings_in_string(
+                        self.model_type, ("ssl", "siamese")
+                    ):
                         epoch_no = epoch // self.val_freq
                     else:
                         epoch_no = epoch
@@ -782,7 +784,9 @@ class Trainer:
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if mode == "val" and self.stopper is not None:
-                    if mode == "val" and self.model_type in ("ssl", "siamese"):
+                    if mode == "val" and utils.check_substrings_in_string(
+                        self.model_type, ("ssl", "siamese")
+                    ):
                         epoch_no = epoch // self.val_freq
                     else:
                         epoch_no = epoch
@@ -1040,7 +1044,7 @@ class Trainer:
                 )
 
                 # Get features from passing the input data through the model.
-                if self.model_type == "siamese":
+                if "siamese" in self.model_type:
                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
                     assert isinstance(self.model, MinervaSiamese)
 
@@ -1070,7 +1074,7 @@ class Trainer:
                 ).values
 
                 # Get features from passing the input data through the model.
-                if self.model_type == "siamese":
+                if "siamese" in self.model_type:
                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
                     assert isinstance(self.model, MinervaSiamese)
 
