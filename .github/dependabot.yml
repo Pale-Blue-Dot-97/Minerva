@@ -17,3 +17,9 @@ updates:
       directory: /
       schedule:
           interval: weekly
+
+    # Maintain pipenv Pipfile and lock file
+    - package-ecosystem: pip
+      directory: /
+      schedule:
+          interval: weekly
