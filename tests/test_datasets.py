@@ -233,16 +233,12 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
             "image_1": exp_dataset_params["image"],
             "image_2": exp_dataset_params["image"],
         },
-        "mask": {
-            "mask_1": exp_dataset_params["mask"],
-            "mask_2": exp_dataset_params["mask"],
-        },
+        "mask": exp_dataset_params["mask"],
     }
 
     dataset_3, subdatasets_3 = mdt.make_dataset(data_dir, dataset_params2)
     assert isinstance(dataset_3, IntersectionDataset)
     assert isinstance(subdatasets_3[0], UnionDataset)
-    assert isinstance(subdatasets_3[1], UnionDataset)
 
     dataset_4, subdatasets_4 = mdt.make_dataset(
         data_dir,
@@ -251,7 +247,6 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
     )
     assert isinstance(dataset_4, IntersectionDataset)
     assert isinstance(subdatasets_4[0], UnionDataset)
-    assert isinstance(subdatasets_4[1], UnionDataset)
 
 
 @pytest.mark.parametrize(
