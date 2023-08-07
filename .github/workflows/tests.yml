@@ -19,7 +19,7 @@ jobs:
 
         steps:
             - name: Support longpaths
-              run: git config --system core.longpaths true
+              run: git config --local core.longpaths true
             - uses: actions/checkout@v3
             - name: Test Py ${{ matrix.python-version }} 🧪
               uses: collective/tox-action@main
