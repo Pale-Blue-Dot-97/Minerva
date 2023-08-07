@@ -6,7 +6,7 @@ fiona>=1.9.1
 geopy==2.3.0
 imageio==2.30.0
 inputimeout==1.0.4
-ipykernel==6.23.1
+ipykernel==6.25.1
 lightly==1.4.6
 matplotlib==3.7.1
 mlflow==2.5.0
