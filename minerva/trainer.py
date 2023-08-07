@@ -1057,6 +1057,10 @@ class Trainer:
                 else:
                     feature, _ = self.model(val_data)
 
+                # The masks from segmentation models will need to be flattened.
+                if utils.check_substrings_in_string(self.model_type, "segmentation"):
+                    feature = feature.flatten(1, -1)
+
                 feature_list.append(feature)
 
             # [D, N]
@@ -1086,6 +1090,10 @@ class Trainer:
                     feature, _ = self.model.forward_single(test_data)
                 else:
                     feature, _ = self.model(test_data)
+
+                # The masks from segmentation models will need to be flattened.
+                if utils.check_substrings_in_string(self.model_type, "segmentation"):
+                    feature = feature.flatten(1, -1)
 
                 total_num += batch_size
 
