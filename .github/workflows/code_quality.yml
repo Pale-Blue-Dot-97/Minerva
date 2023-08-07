@@ -15,3 +15,4 @@ jobs:
               uses: JetBrains/qodana-action@v2023.2.1
               with:
                   args: --baseline,qodana.sarif.json
+                  upload-result: true
