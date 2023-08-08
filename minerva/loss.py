@@ -38,7 +38,6 @@ __all__ = ["SegBarlowTwinsLoss"]
 # =====================================================================================================================
 import importlib
 
-import torch
 from torch import Tensor
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 
