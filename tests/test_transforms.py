@@ -118,7 +118,7 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
         [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]
     )
 
-    input_1 = simple_mask.type(torch.FloatTensor)
+    input_1 = simple_mask.type(torch.float)
 
     wrong_compose = MinervaCompose(transforms=42)  # type: ignore[arg-type]
 
@@ -187,7 +187,7 @@ def test_dublicator(
 ) -> None:
     transform = (utils.dublicator(Normalise))(255)
 
-    input_1 = simple_mask.type(torch.FloatTensor)
+    input_1 = simple_mask.type(torch.float)
     output_1 = input_1 / 255
 
     result_1, result_2 = transform((input_1, simple_rgb_img))

@@ -151,4 +151,5 @@ def test_simconv() -> None:
     loss, z = model.step(x, train=True)
 
     assert type(loss.item()) is float
+    assert isinstance(z, torch.Tensor)
     assert z.size() == (6, 128, input_size[1], input_size[2])

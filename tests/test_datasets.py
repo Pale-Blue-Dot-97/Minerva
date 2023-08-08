@@ -106,7 +106,7 @@ def test_paired_datasets(img_root: Path) -> None:
         ValueError,
         match=f"``dataset`` is of unsupported type {type(non_dataset)} not GeoDataset",
     ):
-        _ = PairedDataset(42)
+        _ = PairedDataset(42)  # type: ignore[call-overload]
 
     bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
