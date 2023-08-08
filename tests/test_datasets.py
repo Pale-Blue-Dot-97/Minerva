@@ -105,18 +105,18 @@ def test_paired_datasets(img_root: Path) -> None:
 
     sample_1, sample_2 = dataset[(query_1, query_2)]
 
-    assert type(sample_1) == dict
-    assert type(sample_2) == dict
+    assert isinstance(sample_1, dict)
+    assert isinstance(sample_2, dict)
 
-    assert type(dataset.crs) == CRS
-    assert type(getattr(dataset, "crs")) == CRS
-    assert type(dataset.dataset) == TstImgDataset
-    assert type(dataset.__getattr__("dataset")) == TstImgDataset
+    assert isinstance(dataset.crs, CRS)
+    assert isinstance(getattr(dataset, "crs"), CRS)
+    assert isinstance(dataset.dataset, TstImgDataset)
+    assert isinstance(dataset.__getattr__("dataset"), TstImgDataset)
 
     with pytest.raises(AttributeError):
         dataset.roi
 
-    assert type(dataset.__repr__()) == str
+    assert isinstance(dataset.__repr__(), str)
 
     assert isinstance(
         dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure  # type: ignore[attr-defined]
@@ -129,8 +129,8 @@ def test_paired_union_datasets(img_root: Path) -> None:
         query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
         sample_1, sample_2 = _dataset[(query_1, query_2)]
 
-        assert type(sample_1) == dict
-        assert type(sample_2) == dict
+        assert isinstance(sample_1, dict)
+        assert isinstance(sample_2, dict)
 
     bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
 
@@ -204,8 +204,8 @@ def test_stack_sample_pairs() -> None:
 
     stacked_samples_1, stacked_samples_2 = mdt.stack_sample_pairs(samples)
 
-    assert type(stacked_samples_1) == defaultdict
-    assert type(stacked_samples_2) == defaultdict
+    assert isinstance(stacked_samples_1, defaultdict)
+    assert isinstance(stacked_samples_2, defaultdict)
 
     for key in ("image", "mask", "bbox"):
         for i in range(6):
@@ -420,7 +420,7 @@ def test_make_loaders() -> None:
         assert isinstance(loaders[mode], DataLoader)
         assert type(n_batches[mode]) is int
         assert type(class_dist) is list
-        assert type(params) == dict
+        assert isinstance(params, dict)
 
 
 def test_get_manifest_path() -> None:

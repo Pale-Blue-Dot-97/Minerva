@@ -24,7 +24,6 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-# TODO: Add exception handling where appropriate.
 """Module to handle all utility functions for training, testing and evaluation of a model.
 
 Attributes:
@@ -1253,7 +1252,7 @@ def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
         list[str]: List of strings representing dates of the selected scenes in ``YY_MM_DD`` format.
     """
     dates = df.loc[df["COVER"] < thres]["DATE"].tolist()
-    assert type(dates) == list
+    assert isinstance(dates, list)
     return dates
 
 

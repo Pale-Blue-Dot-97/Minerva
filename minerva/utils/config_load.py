@@ -94,7 +94,7 @@ def universal_path(path: Any) -> Path:
     """
     if isinstance(path, Path):
         return path
-    elif type(path) == str:
+    elif isinstance(path, str):
         return Path(path)
     else:
         return Path(*path)
