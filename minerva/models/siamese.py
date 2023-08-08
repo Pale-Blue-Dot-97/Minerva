@@ -450,7 +450,13 @@ class SimConv(MinervaSiamese):
         if backbone_kwargs is not None:
             new_kwargs.update(backbone_kwargs)
 
-        self.backbone = MinervaWrapper(PSPEncoder, input_size=input_size, **new_kwargs)
+        self.backbone = MinervaWrapper(
+            PSPEncoder,
+            input_size=input_size,
+            criterion=None,
+            n_classes=None,
+            **new_kwargs,
+        )
 
         self.proj_head = nn.Sequential(
             nn.Conv2d(feature_dim, 512, 3, 2, padding=1),  # 3x3 Conv
