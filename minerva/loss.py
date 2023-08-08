@@ -45,7 +45,7 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 # Needed to avoid connection error when importing lightly.
 try:
     from lightly.loss import BarlowTwinsLoss
-except (OSError, NewConnectionError, MaxRetryError):
+except (OSError, NewConnectionError, MaxRetryError):  # pragma: no cover
     BarlowTwinsLoss = getattr(
         importlib.import_module("lightly.loss"), "BarlowTwinsLoss"
     )
