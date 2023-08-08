@@ -23,7 +23,7 @@ import minerva  # noqa: E402
 project = "minerva"
 copyright = "2023, Harry Baker"
 author = minerva.__author__
-version = minerva.__version__
+version = minerva.__version__  # type: ignore[attr-defined]
 
 
 # -- General configuration ---------------------------------------------------
