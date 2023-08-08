@@ -194,7 +194,7 @@ class PairedDataset(RasterDataset):
             :class:`~torchgeo.datasets.RasterDataset` to be wrapped for paired sampling.
     """
 
-    def __new__(
+    def __new__(  # type: ignore[misc]
         cls,
         dataset: Union[Callable[..., GeoDataset], GeoDataset],
         *args,
