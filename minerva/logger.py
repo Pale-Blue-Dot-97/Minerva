@@ -368,6 +368,7 @@ class STGLogger(MinervaLogger):
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
         *args,
+        **kwargs,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
@@ -509,6 +510,7 @@ class KNNLogger(MinervaLogger):
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
         *args,
+        **kwargs,
     ) -> None:
         assert isinstance(z, Tensor)
         assert isinstance(y, Tensor)
@@ -617,6 +619,7 @@ class SSLLogger(MinervaLogger):
         y: Optional[Tensor] = None,
         bbox: Optional[BoundingBox] = None,
         *args,
+        **kwargs,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
