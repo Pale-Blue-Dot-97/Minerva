@@ -24,7 +24,6 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-# TODO: Add exception handling where appropriate.
 """Module to handle all utility functions for training, testing and evaluation of a model.
 
 Attributes:
