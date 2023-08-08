@@ -39,6 +39,7 @@ __all__ = ["SegBarlowTwinsLoss"]
 import importlib
 
 import torch
+from torch import Tensor
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 
 # Needed to avoid connection error when importing lightly.
@@ -56,10 +57,21 @@ except (OSError, NewConnectionError, MaxRetryError):
 class SegBarlowTwinsLoss(BarlowTwinsLoss):
     """Adaptation of :class:`lightly.loss.BarlowTwinsLoss` for segmented Siamese network."""
 
-    def forward(self, z_a: torch.Tensor, z_b: torch.Tensor) -> torch.Tensor:
+    def forward(self, z_a: Tensor, z_b: Tensor) -> Tensor:
+        """Computes the Barlow Twins Loss between projection A and B but accounts for the segmentation mask shapes.
+
+        Args:
+            z_a (~torch.Tensor): Projection A from the Segmentation Barlow Twins network.
+            z_b (~torch.Tensor): Projection B from the Segmentation Barlow Twins network.
+
+        Returns:
+            Tensor: The loss computed between A and B.
+        """
         # Reshapes the A and B representations from the convolutional projector from [B, C, H, W] to [B * C, H * W].
         z_a = z_a.reshape(z_a.size()[0] * z_a.size()[1], z_a.size()[2] * z_a.size()[3])
         z_b = z_b.reshape(z_b.size()[0] * z_b.size()[1], z_b.size()[2] * z_b.size()[3])
 
         # Then just use the standard ``BarlowTwinsLoss.forward`` with the reshaped representations.
-        return super().forward(z_a, z_b)
+        loss = super().forward(z_a, z_b)
+        assert isinstance(loss, Tensor)
+        return loss
