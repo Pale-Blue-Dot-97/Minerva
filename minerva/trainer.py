@@ -334,7 +334,7 @@ class Trainer:
 
         # Determines the output shape of the model.
         sample_pairs: Union[bool, Any] = self.sample_pairs
-        if type(sample_pairs) != bool:
+        if not isinstance(sample_pairs, bool):
             sample_pairs = False
             self.params["sample_pairs"] = False
 
