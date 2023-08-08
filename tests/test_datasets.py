@@ -152,8 +152,8 @@ def test_paired_union_datasets(img_root: Path) -> None:
     union_dataset1 = PairedDataset(dataset1 | dataset2)
     union_dataset2 = dataset3 | dataset4
     union_dataset3 = union_dataset1 | dataset3
-    union_dataset4 = union_dataset1 | dataset2
-    union_dataset5 = dataset3 | dataset2
+    union_dataset4 = union_dataset1 | dataset2  # type: ignore[operator]
+    union_dataset5 = dataset3 | dataset2  # type: ignore[operator]
 
     for dataset in (
         union_dataset1,
