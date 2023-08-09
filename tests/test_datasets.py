@@ -90,37 +90,47 @@ def test_tinydataset(img_root: Path, lc_root: Path) -> None:
 
 
 def test_paired_datasets(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, img_root)
+    dataset1 = PairedDataset(TstImgDataset, img_root)
     dataset2 = TstImgDataset(str(img_root))
 
     with pytest.raises(
         ValueError,
         match=f"Intersecting a dataset of {type(dataset2)} and a PairedDataset is not supported!",
     ):
-        _ = dataset & dataset2  # type: ignore[operator]
+        _ = dataset1 & dataset2  # type: ignore[operator]
+
+    dataset3 = PairedDataset(dataset2)
+
+    non_dataset = 42
+    with pytest.raises(
+        ValueError,
+        match=f"``dataset`` is of unsupported type {type(non_dataset)} not GeoDataset",
+    ):
+        _ = PairedDataset(42)  # type: ignore[call-overload]
 
     bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
 
-    sample_1, sample_2 = dataset[(query_1, query_2)]
+    for dataset in (dataset1, dataset3):
+        sample_1, sample_2 = dataset[(query_1, query_2)]
 
-    assert type(sample_1) == dict
-    assert type(sample_2) == dict
+        assert type(sample_1) == dict
+        assert type(sample_2) == dict
 
-    assert type(dataset.crs) == CRS
-    assert type(getattr(dataset, "crs")) == CRS
-    assert type(dataset.dataset) == TstImgDataset
-    assert type(dataset.__getattr__("dataset")) == TstImgDataset
+        assert type(dataset.crs) == CRS
+        assert type(getattr(dataset, "crs")) == CRS
+        assert type(dataset.dataset) == TstImgDataset
+        assert type(dataset.__getattr__("dataset")) == TstImgDataset
 
-    with pytest.raises(AttributeError):
-        dataset.roi
+        with pytest.raises(AttributeError):
+            dataset.roi
 
-    assert type(dataset.__repr__()) == str
+        assert type(dataset.__repr__()) == str
 
-    assert isinstance(
-        dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure  # type: ignore[attr-defined]
-    )
+        assert isinstance(
+            dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure  # type: ignore[attr-defined]
+        )
 
 
 def test_paired_union_datasets(img_root: Path) -> None:
@@ -139,33 +149,21 @@ def test_paired_union_datasets(img_root: Path) -> None:
     dataset3 = PairedDataset(TstImgDataset, img_root)
     dataset4 = PairedDataset(TstImgDataset, img_root)
 
-    with pytest.raises(
-        ValueError,
-        match=f"Unionising a dataset of {type(dataset2)} and a PairedDataset is not supported!",
-    ):
-        _ = dataset3 | dataset2  # type: ignore[operator]
-
-    union_dataset1 = PairedUnionDataset(dataset1, dataset2)
+    union_dataset1 = PairedDataset(dataset1 | dataset2)
     union_dataset2 = dataset3 | dataset4
+    union_dataset3 = union_dataset1 | dataset3
+    union_dataset4 = union_dataset1 | dataset2  # type: ignore[operator]
+    union_dataset5 = dataset3 | dataset2  # type: ignore[operator]
 
-    for dataset in (union_dataset1, union_dataset2):
-        dataset_test(dataset)
-
-
-def test_join_paired_union_datasets(img_root: Path) -> None:
-    dataset1 = TstImgDataset(str(img_root))
-    dataset2 = TstImgDataset(str(img_root))
-    dataset3 = PairedDataset(TstImgDataset, img_root)
-
-    union_dataset1 = PairedUnionDataset(dataset1, dataset2)
-    union_dataset2 = union_dataset1 | dataset3
-    assert isinstance(union_dataset2, PairedUnionDataset)
-
-    with pytest.raises(
-        ValueError,
-        match=f"Unionising a dataset of {type(dataset2)} and a PairedUnionDataset is not supported!",
+    for dataset in (
+        union_dataset1,
+        union_dataset2,
+        union_dataset3,
+        union_dataset4,
+        union_dataset5,
     ):
-        _ = union_dataset1 | dataset2  # type: ignore[operator]
+        assert isinstance(dataset, PairedUnionDataset)
+        dataset_test(dataset)
 
 
 def test_get_collator() -> None:
@@ -249,16 +247,12 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
             "image_1": exp_dataset_params["image"],
             "image_2": exp_dataset_params["image"],
         },
-        "mask": {
-            "mask_1": exp_dataset_params["mask"],
-            "mask_2": exp_dataset_params["mask"],
-        },
+        "mask": exp_dataset_params["mask"],
     }
 
     dataset_3, subdatasets_3 = mdt.make_dataset(data_dir, dataset_params2)
     assert isinstance(dataset_3, IntersectionDataset)
     assert isinstance(subdatasets_3[0], UnionDataset)
-    assert isinstance(subdatasets_3[1], UnionDataset)
 
     dataset_4, subdatasets_4 = mdt.make_dataset(
         data_dir,
@@ -267,7 +261,6 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
     )
     assert isinstance(dataset_4, IntersectionDataset)
     assert isinstance(subdatasets_4[0], UnionDataset)
-    assert isinstance(subdatasets_4[1], UnionDataset)
 
 
 @pytest.mark.parametrize(

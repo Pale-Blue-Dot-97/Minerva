@@ -43,6 +43,7 @@ __all__ = [
     "SimSiam18",
     "SimSiam34",
     "SimSiam50",
+    "SimConv",
 ]
 
 # =====================================================================================================================
@@ -57,7 +58,8 @@ import torch.nn.modules as nn
 from torch import Tensor
 from torch.nn.modules import Module
 
-from .core import MinervaBackbone, MinervaModel, get_model
+from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
+from .psp import PSPEncoder
 
 
 # =====================================================================================================================
@@ -402,3 +404,129 @@ class SimSiam50(SimSiam):
     """:class:`SimSiam` network using a :class:`~models.resnet.ResNet50` :attr:`~SimSiam.backbone`."""
 
     backbone_name = "ResNet50"
+
+
+class SimConv(MinervaSiamese):
+    """Base SimConv class.
+
+    Subclasses :class:`MinervaSiamese`.
+
+    Attributes:
+        backbone_name (str): Name of the :attr:`~SimCLR.backbone` within this module to use.
+        backbone (~torch.nn.Module): Backbone of SimCLR that takes the imagery input and
+            extracts learned representations.
+        proj_head (~torch.nn.Module): Projection head that takes the learned representations from
+            the :attr:`~SimCLR.backbone` encoder.
+
+    Args:
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the :attr:`~SimCLR.backbone`
+            packed up into a dict.
+    """
+
+    __metaclass__ = abc.ABCMeta
+    backbone_name = "resnet18"
+
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: Tuple[int, int, int] = (4, 256, 256),
+        feature_dim: int = 2048,
+        backbone_kwargs: Dict[str, Any] = {},
+    ) -> None:
+        super(SimConv, self).__init__(criterion=criterion, input_size=input_size)
+
+        # Set of required kwargs for the `PSPNet` adapted from `minerva` style kwargs.
+        new_kwargs = {
+            "encoder_name": self.backbone_name,
+            "psp_out_channels": feature_dim,
+            "in_channels": input_size[0],
+            "encoder_weights": None,
+        }
+
+        # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
+        if backbone_kwargs is not None:
+            new_kwargs.update(backbone_kwargs)
+
+        self.backbone = MinervaWrapper(
+            PSPEncoder,
+            input_size=input_size,
+            criterion=None,
+            n_classes=None,
+            **new_kwargs,
+        )
+
+        self.proj_head = nn.Sequential(
+            nn.Conv2d(feature_dim, 512, 3, 2, padding=1),  # 3x3 Conv
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.UpsamplingBilinear2d(scale_factor=4),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 1, padding=0),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, 512, 1, padding=0),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.UpsamplingBilinear2d(scale_factor=4),
+        )
+
+    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        """Performs a forward pass of a single head of the network by using the forward methods of the
+        :attr:`~SimCLR.backbone` and feeding its output into the :attr:`~SimCLR.proj_head`.
+
+        Overwrites :meth:`MinervaSiamese.forward_single`
+
+        Args:
+            x (~torch.Tensor): Batch of unpaired input data to the network.
+
+        Returns:
+            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the
+            :attr:`~SimCLR.proj_head` and the detached embedding vector from the :attr:`~SimCLR.backbone`.
+        """
+        f: Tensor = self.backbone(x)
+        g: Tensor = self.proj_head(f)
+
+        return g, f
+
+    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
+        """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
+
+        Raises:
+            NotImplementedError: If :attr:`~models.core.MinervaModel.optimiser` is ``None``.
+
+        Args:
+            x (~torch.Tensor): Batch of input data to network.
+            train (bool): Sets whether this shall be a training step or not. ``True`` for training step which will then
+                clear the :attr:`~models.core.MinervaModel.optimiser`, and perform a backward pass of the network then
+                update the :attr:`~models.core.MinervaModel.optimiser`. If ``False`` for a validation or testing step,
+                these actions are not taken.
+
+        Returns:
+            tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
+            with both projection's logits.
+        """
+
+        if self.optimiser is None:
+            raise NotImplementedError("Optimiser has not been set!")
+
+        assert self.criterion
+
+        # Resets the optimiser's gradients if this is a training step.
+        if train:
+            self.optimiser.zero_grad()
+
+        # Forward pass.
+        z, z_a, z_b, _, _ = self.forward(x)
+
+        # Compute Loss.
+        loss: Tensor = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+
+        # Performs a backward pass if this is a training step.
+        if train:
+            loss.backward()
+            self.optimiser.step()
+
+        return loss, z

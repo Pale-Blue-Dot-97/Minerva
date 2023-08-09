@@ -74,6 +74,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    overload,
 )
 
 import matplotlib.pyplot as plt
@@ -92,9 +93,15 @@ from torchgeo.datasets import (
     GeoDataset,
     IntersectionDataset,
     RasterDataset,
+    Sentinel2,
     UnionDataset,
 )
-from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
+from torchgeo.datasets.utils import (
+    BoundingBox,
+    concat_samples,
+    merge_samples,
+    stack_samples,
+)
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import get_random_bounding_box
 from torchvision.transforms import RandomApply
@@ -137,16 +144,43 @@ class TstMaskDataset(RasterDataset):
 
 
 class NAIPChesapeakeCVPR(NAIP):
+    """Adapted version of :class:~`torchgeo.datasets.NAIP` that works with the NAIP tiles that are
+    packaged with the ChesapeakeCVPR dataset.
+
+    Attributes:
+        filename_glob (str): Pattern for tiff files within dataset root to construct dataset from.
+    """
+
     filename_glob = "m_*_naip-*.tif"
     filename_regex = ""
-    r"""
-        ^m
-        _(?P<quadrangle>\d+)
-        _(?P<quarter_quad>[a-z]+)
-        _(?P<utm_zone>\d+)
-        _(?P<resolution>\d+)
-        \..*$
+
+
+class SSL4EOS12Sentinel2(Sentinel2):
+    """Adapted version of :class:~`torchgeo.datasets.Sentinel2` that works .
+
+    Attributes:
+        filename_glob (str): Pattern for tiff files within dataset root to construct dataset from.
     """
+
+    filename_glob = "{}.*"
+    filename_regex = ""
+    date_format = ""
+    all_bands = [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "B8A",
+        "B9",
+        "B10",
+        "B11",
+        "B12",
+    ]
+    rgb_bands = ["B4", "B3", "B2"]
 
 
 class PairedDataset(RasterDataset):
@@ -160,19 +194,49 @@ class PairedDataset(RasterDataset):
             :class:`~torchgeo.datasets.RasterDataset` to be wrapped for paired sampling.
     """
 
+    def __new__(  # type: ignore[misc]
+        cls,
+        dataset: Union[Callable[..., GeoDataset], GeoDataset],
+        *args,
+        **kwargs,
+    ) -> Union["PairedDataset", "PairedUnionDataset"]:
+        if isinstance(dataset, UnionDataset):
+            return PairedUnionDataset(
+                dataset.datasets[0], dataset.datasets[1], *args, **kwargs
+            )
+        else:
+            return super(PairedDataset, cls).__new__(cls)
+
+    @overload
+    def __init__(self, dataset: Callable[..., GeoDataset], *args, **kwargs) -> None:
+        ...  # pragma: no cover
+
+    @overload
+    def __init__(self, dataset: GeoDataset, *args, **kwargs) -> None:
+        ...  # pragma: no cover
+
     def __init__(
         self,
-        dataset_cls: Callable[..., GeoDataset],
+        dataset: Union[Callable[..., GeoDataset], GeoDataset],
         *args,
         **kwargs,
     ) -> None:
-        super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
-        super_kwargs = {
-            key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
-        }
+        if isinstance(dataset, GeoDataset):
+            self.dataset = dataset
 
-        super().__init__(*args, **super_kwargs)
-        self.dataset = dataset_cls(*args, **kwargs)
+        elif callable(dataset):
+            super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
+            super_kwargs = {
+                key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
+            }
+
+            super().__init__(*args, **super_kwargs)
+            self.dataset = dataset(*args, **kwargs)
+
+        else:
+            raise ValueError(
+                f"``dataset`` is of unsupported type {type(dataset)} not GeoDataset"
+            )
 
     def __getitem__(  # type: ignore[override]
         self, queries: Tuple[BoundingBox, BoundingBox]
@@ -213,16 +277,8 @@ class PairedDataset(RasterDataset):
         Returns:
             PairedUnionDataset: A single dataset.
 
-        Raises:
-            ValueError: If ``other`` is not a :class:`PairedDataset`
-
         .. versionadded:: 0.24
         """
-        if not isinstance(other, PairedDataset):
-            raise ValueError(
-                f"Unionising a dataset of {type(other)} and a PairedDataset is not supported!"
-            )
-
         return PairedUnionDataset(self, other)
 
     def __getattr__(self, item):
@@ -310,13 +366,25 @@ class PairedUnionDataset(UnionDataset):
         and cause a :class:`TypeError`.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        dataset1: GeoDataset,
+        dataset2: GeoDataset,
+        collate_fn: Callable[
+            [Sequence[dict[str, Any]]], dict[str, Any]
+        ] = merge_samples,
+        transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+    ) -> None:
+        super().__init__(dataset1, dataset2, collate_fn, transforms)
 
         new_datasets = []
         for _dataset in self.datasets:
             if isinstance(_dataset, PairedDataset):
                 new_datasets.append(_dataset.dataset)
+            elif isinstance(_dataset, PairedUnionDataset):
+                new_datasets.append(_dataset.datasets[0] | _dataset.datasets[1])
+            else:
+                new_datasets.append(_dataset)
 
         self.datasets = new_datasets
 
@@ -346,16 +414,8 @@ class PairedUnionDataset(UnionDataset):
         Returns:
             PairedUnionDataset: A single dataset.
 
-        Raises:
-            ValueError: If ``other`` is not a :class:`PairedDataset`
-
         .. versionadded:: 0.24
         """
-        if not isinstance(other, PairedDataset):
-            raise ValueError(
-                f"Unionising a dataset of {type(other)} and a PairedUnionDataset is not supported!"
-            )
-
         return PairedUnionDataset(self, other)
 
 
@@ -869,7 +929,7 @@ def make_loaders(
     if type(sample_pairs) != bool:
         sample_pairs = False
 
-    if model_type != "siamese":
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         # Load manifest from cache for this dataset.
         manifest = get_manifest(get_manifest_path())
         class_dist = utils.modes_from_manifest(manifest)
@@ -885,7 +945,9 @@ def make_loaders(
     loaders = {}
 
     for mode in dataset_params.keys():
-        if params.get("elim", False) and model_type != "siamese":
+        if params.get("elim", False) and not utils.check_substrings_in_string(
+            model_type, "siamese"
+        ):
             class_transform = {
                 "ClassTransform": {
                     "module": "minerva.transforms",
@@ -920,7 +982,7 @@ def make_loaders(
         )
         print("DONE")
 
-    if model_type != "siamese":
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
         if params.get("elim", False):
             class_dist = utils.class_dist_transform(class_dist, forwards)

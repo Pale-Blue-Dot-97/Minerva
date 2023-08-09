@@ -209,7 +209,9 @@ def simple_rgb_img() -> Tensor:
 
 @pytest.fixture
 def norm_simple_rgb_img(simple_rgb_img) -> Tensor:
-    return simple_rgb_img / 255
+    norm_img = simple_rgb_img / 255
+    assert isinstance(norm_img, Tensor)
+    return norm_img
 
 
 @pytest.fixture
@@ -293,7 +295,8 @@ def simple_mask() -> LongTensor:
 
 @pytest.fixture
 def flipped_simple_mask() -> LongTensor:
-    mask: LongTensor = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])  # type: ignore[attr-defined]
+    mask: LongTensor = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]], dtype=torch.long)  # type: ignore[assignment]
+    assert isinstance(mask, LongTensor)
     return mask
 
 
