@@ -66,9 +66,11 @@ class SegBarlowTwinsLoss(BarlowTwinsLoss):
         Returns:
             Tensor: The loss computed between A and B.
         """
-        # Reshapes the A and B representations from the convolutional projector from [B, C, H, W] to [B * C, H * W].
-        z_a = z_a.reshape(z_a.size()[0] * z_a.size()[1], z_a.size()[2] * z_a.size()[3])
-        z_b = z_b.reshape(z_b.size()[0] * z_b.size()[1], z_b.size()[2] * z_b.size()[3])
+
+        ch = z_a.shape()
+        # Reshapes the A and B representations from the convolutional projector from [B, C, H, W] to [B, H, W, C]
+        z_a = z_a.permute(0, 2, 3, 1).reshape(-1, ch)
+        z_b = z_b.permute(0, 2, 3, 1).reshape(-1, ch)
 
         # Then just use the standard ``BarlowTwinsLoss.forward`` with the reshaped representations.
         loss = super().forward(z_a, z_b)
