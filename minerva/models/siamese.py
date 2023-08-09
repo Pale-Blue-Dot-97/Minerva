@@ -433,7 +433,7 @@ class SimConv(MinervaSiamese):
         self,
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
-        feature_dim: int = 512,
+        feature_dim: int = 2048,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(SimConv, self).__init__(criterion=criterion, input_size=input_size)
@@ -464,11 +464,11 @@ class SimConv(MinervaSiamese):
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 256, 1, padding=0),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(512, 512, 1, padding=0),
+            nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, 128, 1, padding=0),
-            nn.BatchNorm2d(128),
+            nn.Conv2d(512, 512, 1, padding=0),
+            nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
         )
