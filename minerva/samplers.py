@@ -44,9 +44,10 @@ __all__ = [
 import random
 from typing import Iterator, List, Optional, Sequence, Tuple, Union
 
+import torch
 from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
-from torchgeo.samplers import BatchGeoSampler, GeoSampler
+from torchgeo.samplers import BatchGeoSampler, RandomGeoSampler, Units
 from torchgeo.samplers.utils import _to_tuple, get_random_bounding_box
 
 from minerva.utils import utils
@@ -55,7 +56,7 @@ from minerva.utils import utils
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class RandomPairGeoSampler(GeoSampler):
+class RandomPairGeoSampler(RandomGeoSampler):
     """Samples geo-close pairs of elements from a region of interest randomly.
 
     An extension to :class:`~torchgeo.samplers.RandomGeoSampler` that supports paired sampling (i.e for GeoCLR).
@@ -74,6 +75,7 @@ class RandomPairGeoSampler(GeoSampler):
         length (int): number of random samples to draw per epoch.
         roi (~torchgeo.datasets.utils.BoundingBox): Optional; Region of interest to sample from
             (``minx``, ``maxx``, ``miny``, ``maxy``, ``mint``, ``maxt``). (defaults to the bounds of ``dataset.index``).
+        units (~torchgeo.samplers.Units): Optional; Defines whether ``size`` is in pixel or CRS units.
         max_r (float): Optional; Maximum geo-spatial distance (from centre to centre)
             to sample matching sample from.
     """
@@ -84,20 +86,11 @@ class RandomPairGeoSampler(GeoSampler):
         size: Union[Tuple[float, float], float],
         length: int,
         roi: Optional[BoundingBox] = None,
+        units: Optional[Units] = Units.PIXELS,
         max_r: float = 256.0,
     ) -> None:
-        super().__init__(dataset, roi)
-        self.size = _to_tuple(size)
-        self.length = length
+        super().__init__(dataset, size, length, roi, units)
         self.max_r = max_r
-        self.hits = []
-        for hit in self.index.intersection(tuple(self.roi), objects=True):
-            bounds = BoundingBox(*hit.bounds)  # type: ignore
-            if (
-                bounds.maxx - bounds.minx > self.size[1]
-                and bounds.maxy - bounds.miny > self.size[0]
-            ):
-                self.hits.append(hit)
 
     def __iter__(self) -> Iterator[Tuple[BoundingBox, BoundingBox]]:  # type: ignore[override]
         """Return a pair of :class:`~torchgeo.datasets.utils.BoundingBox` indices of a dataset
@@ -108,21 +101,14 @@ class RandomPairGeoSampler(GeoSampler):
             bounding boxes to index a dataset.
         """
         for _ in range(len(self)):
-            # Choose a random tile.
-            hit = random.choice(self.hits)
+            # Choose a random tile, weighted by area
+            idx = torch.multinomial(self.areas, 1)
+            hit = self.hits[idx]
             bounds = BoundingBox(*hit.bounds)
 
             bbox_a, bbox_b = get_pair_bboxes(bounds, self.size, self.res, self.max_r)
 
             yield bbox_a, bbox_b
-
-    def __len__(self) -> int:
-        """Return the number of samples in a single epoch.
-
-        Returns:
-            int: Length of the epoch.
-        """
-        return self.length
 
 
 class RandomPairBatchGeoSampler(BatchGeoSampler):
