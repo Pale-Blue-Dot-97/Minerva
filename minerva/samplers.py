@@ -86,7 +86,7 @@ class RandomPairGeoSampler(RandomGeoSampler):
         size: Union[Tuple[float, float], float],
         length: int,
         roi: Optional[BoundingBox] = None,
-        units: Optional[Units] = Units.PIXELS,
+        units: Units = Units.PIXELS,
         max_r: float = 256.0,
     ) -> None:
         super().__init__(dataset, size, length, roi, units)
