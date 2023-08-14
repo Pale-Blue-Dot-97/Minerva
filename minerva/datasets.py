@@ -231,7 +231,8 @@ class PairedDataset(RasterDataset):
             }
 
             # Special case to prevent bands kwarg going to RasterDataset due to torchgeo exception logic.
-            del super_kwargs["bands"]
+            if super_kwargs.get("bands"):
+                del super_kwargs["bands"]
 
             super().__init__(*args, **super_kwargs)
             self.dataset = dataset(*args, **kwargs)
