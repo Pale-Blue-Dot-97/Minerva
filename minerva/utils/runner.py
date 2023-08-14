@@ -61,10 +61,10 @@ import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.utils import CONFIG, MASTER_PARSER, utils
 
 # =====================================================================================================================
