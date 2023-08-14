@@ -74,12 +74,14 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    cast,
     overload,
 )
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import rasterio
 import torch
 import torch.distributed as dist
 from alive_progress import alive_it
@@ -1154,3 +1156,64 @@ def get_random_sample(
         dict[str, ~typing.Any]: Random sample from the dataset.
     """
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]
+
+
+def get_meta_mean_std(self: RasterDataset, query: BoundingBox):
+    hits = self.index.intersection(tuple(query), objects=True)
+    filepaths = cast(list[str], [hit.object for hit in hits])
+
+    if not filepaths:
+        raise IndexError(
+            f"query: {query} not found in index with bounds: {self.bounds}"
+        )
+
+    if self.separate_files:
+        data_list = []
+        filename_regex = re.compile(self.filename_regex, re.VERBOSE)
+        for band in self.bands:
+            band_filepaths = []
+            for filepath in filepaths:
+                filename = os.path.basename(filepath)
+                directory = os.path.dirname(filepath)
+                match = re.match(filename_regex, filename)
+                if match:
+                    if "band" in match.groupdict():
+                        start = match.start("band")
+                        end = match.end("band")
+                        filename = filename[:start] + band + filename[end:]
+                filepath = os.path.join(directory, filename)
+                band_filepaths.append(filepath)
+            data_list.append(self._merge_files(band_filepaths, query))
+        data = torch.cat(data_list)
+    else:
+        data = self._merge_files(filepaths, query, self.band_indexes)
+
+
+def get_image_mean_std(filepaths, query, cache):
+    if cache:
+        vrt_fhs = [get_band_meta_mean_std(fp) for fp in filepaths]
+    else:
+        vrt_fhs = [get_band_meta_mean_std(fp) for fp in filepaths]
+
+    bounds = (query.minx, query.miny, query.maxx, query.maxy)
+    dest, _ = rasterio.merge.merge(vrt_fhs, bounds, self.res, indexes=band_indexes)
+
+    # fix numpy dtypes which are not supported by pytorch tensors
+    if dest.dtype == np.uint16:
+        dest = dest.astype(np.int32)
+    elif dest.dtype == np.uint32:
+        dest = dest.astype(np.int64)
+
+    tensor = torch.tensor(dest)
+    return tensor
+
+
+def get_band_meta_mean_std(filepath):
+    # Open the Tiff file and get the statistics from the meta (min, max, mean, std).
+    stats = rasterio.open(filepath).statistics()
+
+    mean, std = stats.mean, stats.std
+
+    stats.close()
+
+    return mean, std
