@@ -1167,8 +1167,9 @@ def get_meta_mean_std(self: RasterDataset, query: BoundingBox):
             f"query: {query} not found in index with bounds: {self.bounds}"
         )
 
+    means = []
+    stds = []
     if self.separate_files:
-        data_list = []
         filename_regex = re.compile(self.filename_regex, re.VERBOSE)
         for band in self.bands:
             band_filepaths = []
@@ -1183,32 +1184,29 @@ def get_meta_mean_std(self: RasterDataset, query: BoundingBox):
                         filename = filename[:start] + band + filename[end:]
                 filepath = os.path.join(directory, filename)
                 band_filepaths.append(filepath)
-            data_list.append(self._merge_files(band_filepaths, query))
-        data = torch.cat(data_list)
+            mean, std = get_image_mean_std(band_filepaths)
+        means.append(mean)
+        stds.append(std)
+        # data = torch.cat(data_list)
     else:
-        data = self._merge_files(filepaths, query, self.band_indexes)
+        means, stds = get_image_mean_std(filepaths)
+
+    return means, stds
 
 
-def get_image_mean_std(filepaths, query, cache):
+def get_image_mean_std(filepaths, cache: bool = True) -> List[Tuple[float, float]]:
     if cache:
-        vrt_fhs = [get_band_meta_mean_std(fp) for fp in filepaths]
+        stats = [get_band_meta_mean_std(fp) for fp in filepaths]
     else:
-        vrt_fhs = [get_band_meta_mean_std(fp) for fp in filepaths]
+        stats = [get_band_meta_mean_std(fp) for fp in filepaths]
 
-    bounds = (query.minx, query.miny, query.maxx, query.maxy)
-    dest, _ = rasterio.merge.merge(vrt_fhs, bounds, self.res, indexes=band_indexes)
+    means = [stat[0] for stat in stats]
+    stds = [stat[1] for stat in stats]
 
-    # fix numpy dtypes which are not supported by pytorch tensors
-    if dest.dtype == np.uint16:
-        dest = dest.astype(np.int32)
-    elif dest.dtype == np.uint32:
-        dest = dest.astype(np.int64)
-
-    tensor = torch.tensor(dest)
-    return tensor
+    return means, stds
 
 
-def get_band_meta_mean_std(filepath):
+def get_band_meta_mean_std(filepath) -> Tuple[float, float]:
     # Open the Tiff file and get the statistics from the meta (min, max, mean, std).
     stats = rasterio.open(filepath).statistics()
 
