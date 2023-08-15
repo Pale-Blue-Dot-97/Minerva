@@ -58,6 +58,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import functools
 import inspect
 import os
 import platform
@@ -1184,21 +1185,23 @@ def get_meta_mean_std(self: RasterDataset, query: BoundingBox):
                         filename = filename[:start] + band + filename[end:]
                 filepath = os.path.join(directory, filename)
                 band_filepaths.append(filepath)
-            mean, std = get_image_mean_std(band_filepaths)
+            mean, std = get_image_mean_std(band_filepaths, self.cache)
         means.append(mean)
         stds.append(std)
         # data = torch.cat(data_list)
     else:
-        means, stds = get_image_mean_std(filepaths)
+        means, stds = get_image_mean_std(filepaths, self.cache)
 
     return means, stds
 
 
-def get_image_mean_std(filepaths, cache: bool = True) -> List[Tuple[float, float]]:
+def get_image_mean_std(
+    filepaths, cache: bool = True
+) -> Tuple[List[float], List[float]]:
     if cache:
-        stats = [get_band_meta_mean_std(fp) for fp in filepaths]
+        stats = [_cached_get_band_meta_mean_std(fp) for fp in filepaths]
     else:
-        stats = [get_band_meta_mean_std(fp) for fp in filepaths]
+        stats = [_get_band_meta_mean_std(fp) for fp in filepaths]
 
     means = [stat[0] for stat in stats]
     stds = [stat[1] for stat in stats]
@@ -1206,7 +1209,12 @@ def get_image_mean_std(filepaths, cache: bool = True) -> List[Tuple[float, float
     return means, stds
 
 
-def get_band_meta_mean_std(filepath) -> Tuple[float, float]:
+@functools.lru_cache(maxsize=128)
+def _cached_get_band_meta_mean_std(filepath) -> Tuple[float, float]:
+    return _get_band_meta_mean_std(filepath)
+
+
+def _get_band_meta_mean_std(filepath) -> Tuple[float, float]:
     # Open the Tiff file and get the statistics from the meta (min, max, mean, std).
     stats = rasterio.open(filepath).statistics()
 
