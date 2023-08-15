@@ -45,11 +45,29 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
+import functools
+import re
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
+import numpy as np
+import rasterio
 import torch
 from torch import LongTensor, Tensor
-from torchvision.transforms import ColorJitter
+from torchgeo.datasets import BoundingBox, RasterDataset
+from torchgeo.samplers import RandomGeoSampler
+from torchvision.transforms import ColorJitter, Normalize
 from torchvision.transforms import functional_tensor as ft
 
 from minerva.utils.utils import find_tensor_mode, mask_transform
@@ -145,6 +163,117 @@ class Normalise:
             ~torch.Tensor: Input image tensor normalised by ``norm_value``.
         """
         return img / self.norm_value
+
+
+class AutoNorm(Normalize):
+    def __init__(self, dataset: RasterDataset, length: int = 128, inplace=False):
+        self.dataset = dataset
+        self.sampler = RandomGeoSampler(dataset, 32, length)
+
+        mean, std = self._calc_mean_std()
+        print(mean, std)
+
+        super().__init__(mean, std, inplace)
+
+    def _calc_mean_std(self):
+        per_img_means = []
+        per_img_stds = []
+        for query in self.sampler:
+            mean, std = self._get_tile_mean_std(query)
+            per_img_means.append(mean)
+            per_img_stds.append(std)
+
+        per_band_means = list(zip(*per_img_means))
+        per_band_stds = list(zip(*per_img_stds))
+
+        per_band_mean = [np.mean(band) for band in per_band_means]
+        per_band_std = [np.mean(band) for band in per_band_stds]
+
+        return per_band_mean, per_band_std
+
+    def _get_tile_mean_std(self, query: BoundingBox):
+        hits = self.dataset.index.intersection(tuple(query), objects=True)
+        filepaths = cast(list[str], [hit.object for hit in hits])
+
+        if not filepaths:
+            raise IndexError(
+                f"query: {query} not found in index with bounds: {self.dataset.bounds}"
+            )
+
+        means = []
+        stds = []
+        if self.dataset.separate_files:
+            filename_regex = re.compile(self.dataset.filename_regex, re.VERBOSE)
+            for band in self.dataset.bands:
+                band_filepaths = []
+                for filepath in filepaths:
+                    filename = Path(filepath).stem
+                    directory = Path(filepath).parent
+                    match = re.match(filename_regex, filename)
+                    if match:
+                        if "band" in match.groupdict():
+                            start = match.start("band")
+                            end = match.end("band")
+                            filename = filename[:start] + band + filename[end:]
+                    filepath = str(directory / filename)
+                    band_filepaths.append(filepath)
+                mean, std = self._get_image_mean_std(band_filepaths)
+            means.append(mean)
+            stds.append(std)
+            # data = torch.cat(data_list)
+        else:
+            means, stds = self._get_image_mean_std(filepaths, self.dataset.band_indexes)
+
+        return means, stds
+
+    def _get_image_mean_std(
+        self,
+        filepaths: List[str],
+        band_indexes: Optional[Sequence[int]] = None,
+    ) -> Tuple[List[float], List[float]]:
+        # stats = []
+        # if self.dataset.cache:
+        #    for fp in filepaths:
+        #        stats.append(self._cached_get_meta_mean_std(fp, band_indexes))
+        # stats = [ for fp in filepaths]
+        # else:
+        stats = [self._get_meta_mean_std(fp, band_indexes) for fp in filepaths]
+
+        means = list(np.mean([stat[0] for stat in stats], axis=0))
+        stds = list(np.mean([stat[1] for stat in stats], axis=0))
+
+        return means, stds
+
+    @functools.lru_cache(maxsize=128)
+    def _cached_get_meta_mean_std(
+        self, filepath, band_indexes: Optional[Sequence[int]] = None
+    ) -> Tuple[List[float], List[float]]:
+        return self._get_band_meta_mean_std(filepath, band_indexes)
+
+    def _get_meta_mean_std(
+        self, filepath, band_indexes: Optional[Sequence[int]] = None
+    ) -> Tuple[List[float], List[float]]:
+        # Open the Tiff file and get the statistics from the meta (min, max, mean, std).
+        means = []
+        stds = []
+        data = rasterio.open(filepath)
+        if band_indexes:
+            for band in band_indexes:
+                mean, std = self._extract_meta(data, band)
+                means.append(mean)
+                stds.append(std)
+        else:
+            mean, std = self._extract_meta(data, 1)
+            means, stds = [mean], [std]
+        data.close()
+
+        return means, stds
+
+    def _extract_meta(self, data, band_index):
+        stats = data.statistics(band_index)
+        mean, std = stats.mean, stats.std
+
+        return mean, std
 
 
 class DetachedColorJitter(ColorJitter):
