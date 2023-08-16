@@ -166,7 +166,29 @@ class Normalise:
 
 
 class AutoNorm(Normalize):
-    def __init__(self, dataset: RasterDataset, length: int = 128, inplace=False):
+    """Transform that will automatically calculate the mean and standard deviation of the dataset
+    to normalise the data with.
+
+    Uses :class:`torchvision.transforms.Normalize` for the normalisation.
+
+    Attributes:
+        dataset (RasterDataset): Dataset to calculate the mean and standard deviation of.
+        sampler (RandomGeoSampler): Sampler used to create valid queries for the dataset to find data files.
+
+    Args:
+        dataset (RasterDataset): Dataset to calculate the mean and standard deviation of.
+        length (int): Optional; Number of samples from the dataset to calculate the mean and standard deviation of.
+        roi (BoundingBox): Optional; Region of interest for sampler to sample from.
+        inplace (bool): Optional; Performs the normalisation transform inplace on the tensor. Default False.
+    """
+
+    def __init__(
+        self,
+        dataset: RasterDataset,
+        length: int = 128,
+        roi: Optional[BoundingBox] = None,
+        inplace=False,
+    ):
         self.dataset = dataset
         self.sampler = RandomGeoSampler(dataset, 32, length)
 
