@@ -166,7 +166,7 @@ class SSL4EOS12Sentinel2(Sentinel2):
     """
 
     filename_glob = "{}.*"
-    filename_regex = ""
+    filename_regex = r"""(?P<band>B[^[0-1]?[0-9]|B[^[1]?[0-9][\dA])\..*$"""
     date_format = ""
     all_bands = [
         "B1",
