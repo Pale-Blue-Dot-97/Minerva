@@ -224,8 +224,8 @@ class AutoNorm(Normalize):
                 f"query: {query} not found in index with bounds: {self.dataset.bounds}"
             )
 
-        means = []
-        stds = []
+        means: List[List[float]] = []
+        stds: List[List[float]] = []
         if self.dataset.separate_files:
             filename_regex = re.compile(self.dataset.filename_regex, re.VERBOSE)
             for band in self.dataset.bands:
@@ -253,25 +253,13 @@ class AutoNorm(Normalize):
         self,
         filepaths: List[str],
         band_indexes: Optional[Sequence[int]] = None,
-    ) -> Tuple[List[float], List[float]]:
-        # stats = []
-        # if self.dataset.cache:
-        #    for fp in filepaths:
-        #        stats.append(self._cached_get_meta_mean_std(fp, band_indexes))
-        # stats = [ for fp in filepaths]
-        # else:
+    ) -> Tuple[List[List[float]], List[List[float]]]:
         stats = [self._get_meta_mean_std(fp, band_indexes) for fp in filepaths]
 
         means = list(np.mean([stat[0] for stat in stats], axis=0))
         stds = list(np.mean([stat[1] for stat in stats], axis=0))
 
         return means, stds
-
-    @functools.lru_cache(maxsize=128)
-    def _cached_get_meta_mean_std(
-        self, filepath, band_indexes: Optional[Sequence[int]] = None
-    ) -> Tuple[List[float], List[float]]:
-        return self._get_band_meta_mean_std(filepath, band_indexes)
 
     def _get_meta_mean_std(
         self, filepath, band_indexes: Optional[Sequence[int]] = None
