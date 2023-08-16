@@ -192,7 +192,7 @@ class AutoNorm(Normalize):
         inplace=False,
     ):
         self.dataset = dataset
-        self.sampler = RandomGeoSampler(dataset, 32, length)
+        self.sampler = RandomGeoSampler(dataset, 32, length, roi)
 
         mean, std = self._calc_mean_std()
         print(mean, std)
@@ -231,7 +231,7 @@ class AutoNorm(Normalize):
             for band in self.dataset.bands:
                 band_filepaths = []
                 for filepath in filepaths:
-                    filename = Path(filepath).stem
+                    filename = Path(filepath).name
                     directory = Path(filepath).parent
                     match = re.match(filename_regex, filename)
                     if match:
@@ -242,9 +242,8 @@ class AutoNorm(Normalize):
                     filepath = str(directory / filename)
                     band_filepaths.append(filepath)
                 mean, std = self._get_image_mean_std(band_filepaths)
-            means.append(mean)
-            stds.append(std)
-            # data = torch.cat(data_list)
+                means.append(mean)
+                stds.append(std)
         else:
             means, stds = self._get_image_mean_std(filepaths, self.dataset.band_indexes)
 
