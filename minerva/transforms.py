@@ -180,6 +180,8 @@ class AutoNorm(Normalize):
         length (int): Optional; Number of samples from the dataset to calculate the mean and standard deviation of.
         roi (BoundingBox): Optional; Region of interest for sampler to sample from.
         inplace (bool): Optional; Performs the normalisation transform inplace on the tensor. Default False.
+
+    .. versionadded:: 0.26
     """
 
     def __init__(
@@ -441,11 +443,11 @@ class SingleLabel:
 
 
 class MinervaCompose:
-    """Extension of :class:`torchvision.transforms.Compose`. Composes several transforms together.
+    """Adaption of :class:`torchvision.transforms.Compose`. Composes several transforms together.
 
     Designed to work with both :class:`~torch.Tensor` and :mod:`torchgeo` sample :class:`dict`.
 
-    This transform does not support torchscript. Please, see the note below.
+    This transform does not support torchscript.
 
     Args:
         transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
@@ -459,19 +461,6 @@ class MinervaCompose:
         >>>     transforms.PILToTensor(),
         >>>     transforms.ConvertImageDtype(torch.float),
         >>> ])
-
-    .. note::
-        In order to script the transformations, please use :class:`torch.nn.Sequential` as below.
-
-        >>> transforms = torch.nn.Sequential(
-        >>>     transforms.CenterCrop(10),
-        >>>     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        >>> )
-        >>> scripted_transforms = torch.jit.script(transforms)
-
-        Make sure to use only scriptable transformations, i.e. that work with :class:`torch.Tensor`,
-        does not require ``lambda`` functions or :class:`pillow.Image`.
-
     """
 
     def __init__(
