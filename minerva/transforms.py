@@ -195,11 +195,10 @@ class AutoNorm(Normalize):
         self.sampler = RandomGeoSampler(dataset, 32, length, roi)
 
         mean, std = self._calc_mean_std()
-        print(mean, std)
 
         super().__init__(mean, std, inplace)
 
-    def _calc_mean_std(self):
+    def _calc_mean_std(self) -> Tuple[List[float], List[float]]:
         per_img_means = []
         per_img_stds = []
         for query in self.sampler:
@@ -215,7 +214,7 @@ class AutoNorm(Normalize):
 
         return per_band_mean, per_band_std
 
-    def _get_tile_mean_std(self, query: BoundingBox):
+    def _get_tile_mean_std(self, query: BoundingBox) -> Tuple[List[float], List[float]]:
         hits = self.dataset.index.intersection(tuple(query), objects=True)
         filepaths = cast(list[str], [hit.object for hit in hits])
 
@@ -224,10 +223,13 @@ class AutoNorm(Normalize):
                 f"query: {query} not found in index with bounds: {self.dataset.bounds}"
             )
 
-        means: List[List[float]] = []
-        stds: List[List[float]] = []
+        means: List[float]
+        stds: List[float]
         if self.dataset.separate_files:
             filename_regex = re.compile(self.dataset.filename_regex, re.VERBOSE)
+
+            band_means = []
+            band_stds = []
             for band in self.dataset.bands:
                 band_filepaths = []
                 for filepath in filepaths:
@@ -242,8 +244,10 @@ class AutoNorm(Normalize):
                     filepath = str(directory / filename)
                     band_filepaths.append(filepath)
                 mean, std = self._get_image_mean_std(band_filepaths)
-                means.append(mean)
-                stds.append(std)
+                band_means.append(mean)
+                band_stds.append(std)
+            means = [np.mean(band) for band in band_means]  # type:ignore[misc]
+            stds = [np.mean(band) for band in band_stds]  # type:ignore[misc]
         else:
             means, stds = self._get_image_mean_std(filepaths, self.dataset.band_indexes)
 
@@ -253,7 +257,7 @@ class AutoNorm(Normalize):
         self,
         filepaths: List[str],
         band_indexes: Optional[Sequence[int]] = None,
-    ) -> Tuple[List[List[float]], List[List[float]]]:
+    ) -> Tuple[List[float], List[float]]:
         stats = [self._get_meta_mean_std(fp, band_indexes) for fp in filepaths]
 
         means = list(np.mean([stat[0] for stat in stats], axis=0))
