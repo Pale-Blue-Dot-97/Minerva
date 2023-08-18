@@ -494,10 +494,11 @@ class MinervaCompose:
             raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
 
     def _transform_input(self, img: Tensor) -> Tensor:
-        for t in self.transforms:
-            img = t(img)
+        if isinstance(self.transforms, Sequence):
+            for t in self.transforms:
+                img = t(img)
 
-        if not isinstance(self.transforms, Sequence):
+        else:
             raise TypeError(
                 f"`transforms` has type {type(self.transforms)}, not sequence of callables"
             )
@@ -516,15 +517,15 @@ class MinervaCompose:
 
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
+        if hasattr(self.transforms, "__len__"):
+            if len(self.transforms) > 1:
+                for t in self.transforms:
+                    format_string += "\n"
+                    format_string += "    {0}".format(t)
 
-        if len(self.transforms) > 1:
-            for t in self.transforms:
-                format_string += "\n"
-                format_string += "    {0}".format(t)
-
-        elif len(self.transforms) == 1:
-            format_string += "{0})".format(self.transforms[0])
-            return format_string
+            else:
+                format_string += "{0})".format(self.transforms[0])
+                return format_string
 
         else:
             raise TypeError(
