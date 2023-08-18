@@ -35,6 +35,7 @@ __all__ = [
     "ClassTransform",
     "PairCreate",
     "Normalise",
+    "AutoNorm",
     "DetachedColorJitter",
     "SingleLabel",
     "ToRGB",
