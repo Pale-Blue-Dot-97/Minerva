@@ -123,10 +123,14 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     wrong_compose = MinervaCompose(transform_1)
     wrong_compose.transforms = 42  # type: ignore[assignment]
 
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        TypeError, match=f"`transforms` has type {type(42)}, not sequence of callables"
+    ):
         _ = wrong_compose(input_1)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        TypeError, match=f"`transforms` has type {type(42)}, not sequence of callables"
+    ):
         _ = str(wrong_compose)
 
     output_1 = input_1 / 255
@@ -161,6 +165,12 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     # Check that __add__ works.
     compose_4 + RandomHorizontalFlip(0.7)
     compose_4 + [RandomHorizontalFlip(0.3), RandomVerticalFlip(0.8)]
+
+    with pytest.raises(
+        TypeError,
+        match=f"`new_transform` has type {type(42)}, not callable or sequence of callables",
+    ):
+        _ = compose_4 + 42
 
     assert (
         repr(compose_4)
