@@ -440,6 +440,10 @@ class MinervaCompose:
 
     This transform does not support torchscript.
 
+    Attributes:
+        transforms (list[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
+            List of composed transforms.
+        key (str): The key of the data type in the sample dict to transform for use with :mod:`torchgeo` samples.
     Args:
         transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
             List of transforms to compose.
@@ -459,7 +463,14 @@ class MinervaCompose:
         transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
         key: Optional[str] = None,
     ) -> None:
-        self.transforms = transforms
+        if isinstance(transforms, Sequence):
+            self.transforms = list(transforms)
+        elif callable(transforms):
+            self.transforms = [transforms]
+        else:
+            raise TypeError(
+                f"`transforms` has type {type(transforms)}, not callable or sequence of callables"
+            )
         self.key = key
 
     @overload
@@ -483,15 +494,12 @@ class MinervaCompose:
             raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
 
     def _transform_input(self, img: Tensor) -> Tensor:
-        if isinstance(self.transforms, Sequence):
-            for t in self.transforms:
-                img = t(img)
-        elif callable(self.transforms):
-            img = self.transforms(img)
+        for t in self.transforms:
+            img = t(img)
 
-        else:
+        if not isinstance(self.transforms, Sequence):
             raise TypeError(
-                f"`transforms` has type {type(self.transforms)}, not callable"
+                f"`transforms` has type {type(self.transforms)}, not sequence of callables"
             )
 
         return img
@@ -499,18 +507,18 @@ class MinervaCompose:
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
 
-        if isinstance(self.transforms, Sequence):
+        if len(self.transforms) > 1:
             for t in self.transforms:
                 format_string += "\n"
                 format_string += "    {0}".format(t)
 
-        elif callable(self.transforms):
-            format_string += "{0})".format(self.transforms)
+        elif len(self.transforms) == 1:
+            format_string += "{0})".format(self.transforms[0])
             return format_string
 
         else:
             raise TypeError(
-                f"`transforms` has type {type(self.transforms)}, not callable"
+                f"`transforms` has type {type(self.transforms)}, not sequence of callables"
             )
 
         format_string += "\n)"
