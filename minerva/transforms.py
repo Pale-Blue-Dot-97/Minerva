@@ -504,6 +504,16 @@ class MinervaCompose:
 
         return img
 
+    def __add__(self, new_transform):
+        if isinstance(new_transform, Sequence):
+            self.transforms.extend(new_transform)
+        elif callable(new_transform):
+            self.transforms.append(new_transform)
+        else:
+            raise TypeError(
+                f"`new_transform` has type {type(new_transform)}, not callable or sequence of callables"
+            )
+
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
 

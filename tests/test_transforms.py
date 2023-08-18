@@ -120,7 +120,8 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
 
     input_1 = simple_mask.type(torch.float)
 
-    wrong_compose = MinervaCompose(transforms=42)  # type: ignore[arg-type]
+    wrong_compose = MinervaCompose(transform_1)
+    wrong_compose.transforms = 42  # type: ignore[assignment]
 
     with pytest.raises(TypeError):
         _ = wrong_compose(input_1)
@@ -154,6 +155,22 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
         + "\n    Normalise(norm_value=255)"
         + "\n    {0}".format(RandomHorizontalFlip(1.0))
         + "\n    {0}".format(RandomVerticalFlip(1.0))
+        + "\n)"
+    )
+
+    # Check that __add__ works.
+    compose_4 + RandomHorizontalFlip(0.7)
+    compose_4 + [RandomHorizontalFlip(0.3), RandomVerticalFlip(0.8)]
+
+    assert (
+        repr(compose_4)
+        == "MinervaCompose("
+        + "\n    Normalise(norm_value=255)"
+        + "\n    {0}".format(RandomHorizontalFlip(1.0))
+        + "\n    {0}".format(RandomVerticalFlip(1.0))
+        + "\n    {0}".format(RandomHorizontalFlip(0.7))
+        + "\n    {0}".format(RandomHorizontalFlip(0.3))
+        + "\n    {0}".format(RandomVerticalFlip(0.8))
         + "\n)"
     )
 
