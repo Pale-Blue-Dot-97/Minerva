@@ -169,17 +169,27 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     )
 
     # Check that __add__ works.
-    compose_4 + RandomHorizontalFlip(0.7)
-    compose_4 + [RandomHorizontalFlip(0.3), RandomVerticalFlip(0.8)]
+    compose_4 += RandomHorizontalFlip(0.7)
+    new_compose = compose_4 + [RandomHorizontalFlip(0.3), RandomVerticalFlip(0.8)]
 
     with pytest.raises(
         TypeError,
         match=f"`new_transform` has type {type(42)}, not callable or sequence of callables",
     ):
-        _ = compose_4 + 42
+        _ = compose_4 + 42  # type: ignore [operator]
 
     assert (
         repr(compose_4)
+        == "MinervaCompose("
+        + "\n    Normalise(norm_value=255)"
+        + "\n    {0}".format(RandomHorizontalFlip(1.0))
+        + "\n    {0}".format(RandomVerticalFlip(1.0))
+        + "\n    {0}".format(RandomHorizontalFlip(0.7))
+        + "\n)"
+    )
+
+    assert (
+        repr(new_compose)
         == "MinervaCompose("
         + "\n    Normalise(norm_value=255)"
         + "\n    {0}".format(RandomHorizontalFlip(1.0))

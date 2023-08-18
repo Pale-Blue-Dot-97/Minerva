@@ -42,11 +42,12 @@ __all__ = [
     "SwapKeys",
 ]
 
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import functools
 import re
+from copy import deepcopy
 from pathlib import Path
 from typing import (
     Any,
@@ -505,15 +506,33 @@ class MinervaCompose:
 
         return img
 
-    def __add__(self, new_transform):
+    def _add(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> List[Callable[..., Any]]:
+        _transforms = deepcopy(self.transforms)
         if isinstance(new_transform, Sequence):
-            self.transforms.extend(new_transform)
+            _transforms.extend(new_transform)
+            return _transforms
         elif callable(new_transform):
-            self.transforms.append(new_transform)
+            _transforms.append(new_transform)
+            return _transforms
         else:
             raise TypeError(
                 f"`new_transform` has type {type(new_transform)}, not callable or sequence of callables"
             )
+
+    def __add__(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> "MinervaCompose":
+        new_compose = deepcopy(self)
+        new_compose.transforms = self._add(new_transform)
+        return new_compose
+
+    def __iadd__(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> "MinervaCompose":
+        self.transforms = self._add(new_transform)
+        return self
 
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
