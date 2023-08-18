@@ -111,8 +111,14 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     transform_1 = Normalise(255)
     compose_1 = MinervaCompose(transform_1)
 
+    with pytest.raises(
+        TypeError,
+        match=f"`transforms` has type {type(42)}, not callable or sequence of callables",
+    ):
+        _ = MinervaCompose(42)  # type: ignore[arg-type]
+
     with pytest.raises(TypeError):
-        _ = compose_1(42)  # type: ignore[arg-type, call-overload]
+        _ = compose_1(42)  # type: ignore[call-overload]
 
     compose_2 = MinervaCompose(
         [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]
