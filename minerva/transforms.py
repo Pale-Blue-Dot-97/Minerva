@@ -286,7 +286,8 @@ class AutoNorm(Normalize):
 
         return means, stds
 
-    def _extract_meta(self, data, band_index):
+    @staticmethod
+    def _extract_meta(data, band_index):
         stats = data.statistics(band_index)
         mean, std = stats.mean, stats.std
 
