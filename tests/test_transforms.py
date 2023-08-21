@@ -43,9 +43,11 @@ import torch
 from numpy.testing import assert_array_equal
 from pytest_lazyfixture import lazy_fixture
 from torch import FloatTensor, LongTensor
+from torchgeo.datasets import RasterDataset
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
 
 from minerva.transforms import (
+    AutoNorm,
     ClassTransform,
     DetachedColorJitter,
     MinervaCompose,
@@ -111,21 +113,32 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     transform_1 = Normalise(255)
     compose_1 = MinervaCompose(transform_1)
 
+    with pytest.raises(
+        TypeError,
+        match=f"`transforms` has type {type(42)}, not callable or sequence of callables",
+    ):
+        _ = MinervaCompose(42)  # type: ignore[arg-type]
+
     with pytest.raises(TypeError):
-        _ = compose_1(42)  # type: ignore[arg-type, call-overload]
+        _ = compose_1(42)  # type: ignore[call-overload]
 
     compose_2 = MinervaCompose(
         [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]
     )
 
-    input_1 = simple_mask.type(torch.FloatTensor)
+    input_1 = simple_mask.type(torch.float)
 
-    wrong_compose = MinervaCompose(transforms=42)  # type: ignore[arg-type]
+    wrong_compose = MinervaCompose(transform_1)
+    wrong_compose.transforms = 42  # type: ignore[assignment]
 
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        TypeError, match=f"`transforms` has type {type(42)}, not sequence of callables"
+    ):
         _ = wrong_compose(input_1)
 
-    with pytest.raises(TypeError):
+    with pytest.raises(
+        TypeError, match=f"`transforms` has type {type(42)}, not sequence of callables"
+    ):
         _ = str(wrong_compose)
 
     output_1 = input_1 / 255
@@ -154,6 +167,38 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
         + "\n    Normalise(norm_value=255)"
         + "\n    {0}".format(RandomHorizontalFlip(1.0))
         + "\n    {0}".format(RandomVerticalFlip(1.0))
+        + "\n)"
+    )
+
+    # Check that __add__ works.
+    compose_4 += RandomHorizontalFlip(0.7)
+    new_compose = compose_4 + [RandomHorizontalFlip(0.3), RandomVerticalFlip(0.8)]
+
+    with pytest.raises(
+        TypeError,
+        match=f"`new_transform` has type {type(42)}, not callable or sequence of callables",
+    ):
+        _ = compose_4 + 42  # type: ignore [operator]
+
+    assert (
+        repr(compose_4)
+        == "MinervaCompose("
+        + "\n    Normalise(norm_value=255)"
+        + "\n    {0}".format(RandomHorizontalFlip(1.0))
+        + "\n    {0}".format(RandomVerticalFlip(1.0))
+        + "\n    {0}".format(RandomHorizontalFlip(0.7))
+        + "\n)"
+    )
+
+    assert (
+        repr(new_compose)
+        == "MinervaCompose("
+        + "\n    Normalise(norm_value=255)"
+        + "\n    {0}".format(RandomHorizontalFlip(1.0))
+        + "\n    {0}".format(RandomVerticalFlip(1.0))
+        + "\n    {0}".format(RandomHorizontalFlip(0.7))
+        + "\n    {0}".format(RandomHorizontalFlip(0.3))
+        + "\n    {0}".format(RandomVerticalFlip(0.8))
         + "\n)"
     )
 
@@ -187,7 +232,7 @@ def test_dublicator(
 ) -> None:
     transform = (utils.dublicator(Normalise))(255)
 
-    input_1 = simple_mask.type(torch.FloatTensor)
+    input_1 = simple_mask.type(torch.float)
     output_1 = input_1 / 255
 
     result_1, result_2 = transform((input_1, simple_rgb_img))
@@ -294,3 +339,12 @@ def test_swap_keys(random_rgbi_tensor, random_tensor_mask) -> None:
     assert_array_equal(out_sample["image"], correct_out_sample["image"])
     assert_array_equal(out_sample["mask"], correct_out_sample["mask"])
     assert repr(transform) == "SwapKeys(mask -> image)"
+
+
+@pytest.mark.parametrize(
+    "dataset",
+    [lazy_fixture("default_image_dataset"), lazy_fixture("ssl4eo_s12_dataset")],
+)
+def test_auto_norm(dataset: RasterDataset, random_rgbi_tensor):
+    auto_norm = AutoNorm(dataset, 12)
+    assert isinstance(auto_norm(random_rgbi_tensor), FloatTensor)

@@ -218,7 +218,7 @@ def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None
     visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
 
 
-def test_seg_plot(data_root, default_dataset: GeoDataset, monkeypatch) -> None:
+def test_seg_plot(results_root, default_dataset: GeoDataset, monkeypatch) -> None:
     batch_size = 2
     n_batches = 2
 
@@ -235,7 +235,7 @@ def test_seg_plot(data_root, default_dataset: GeoDataset, monkeypatch) -> None:
 
     bboxes = [bbox] * int(n_batches * batch_size)
 
-    fn_prefix = data_root / "seg_plot"
+    fn_prefix = results_root / "seg_plot"
 
     monkeypatch.setattr(visutils, "_MAX_SAMPLES", 3)
     visutils.seg_plot(
@@ -376,7 +376,7 @@ def test_plot_results(default_dataset: GeoDataset) -> None:
     )
 
 
-def test_plot_embeddings(data_root: Path, default_dataset: GeoDataset) -> None:
+def test_plot_embeddings(results_root: Path, default_dataset: GeoDataset) -> None:
     embeddings = torch.rand([4, 152])
     bounds = [
         get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)
@@ -387,6 +387,6 @@ def test_plot_embeddings(data_root: Path, default_dataset: GeoDataset) -> None:
         bounds,
         "test",
         show=True,
-        filename=data_root / "tsne_cluster_vis.png",
+        filename=results_root / "tsne_cluster_vis.png",
         title="test_plot",
     )

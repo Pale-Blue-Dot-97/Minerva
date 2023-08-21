@@ -5,51 +5,55 @@
 #   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
 #    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
 #
-#             EXAMPLE MASTER CONFIG FILE FOR THIRD PARTY MODELS
+#                 EXAMPLE GeoSimConvNet MASTER CONFIG FILE
 #
 # === PATHS ===================================================================
 dir:
     data: tests/fixtures/data
     configs:
-        data_config: Chesapeake7.yml
         imagery_config: NAIP.yml
+        data_config: Chesapeake7.yml
     results: tests/tmp/results
     cache: tests/tmp/cache
+    wandb_dir: &wandb_dir /test/tmp/wandb
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: ResNetGenerator-R9
+model_name: SimConv-test
 
-# Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
-model_type: scene classifier
+# Type of model. Can be mlp, scene_classifier, segmentation, ssl or siamese.
+model_type: siamese-segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 8                         # Number of samples in each batch.
-patch_size: &patch_size [32, 32]      # 2D tuple or float.
-input_size: &input_size [3, 32, 32]   # patch_size plus leading channel dim.
-n_classes: &n_classes 8               # Number of classes in dataset.
+batch_size: 2                         # Number of samples in each batch.
+patch_size: &patch_size [32, 32]     # 2D tuple or float.
+input_size: &input_size [4, 32, 32]  # patch_size plus leading channel dim.
+n_classes: &n_classes 8                # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 3                         # Maximum number of training epochs.
-pre_train: false                      # Activate pre-training mode.
-fine_tune: false                      # Activate fine-tuning mode.
+max_epochs: 4                         # Maximum number of training epochs.
 elim: false                           # Eliminates empty classes from schema.
 balance: false                        # Balances dataset classes.
+pre_train: true                       # Activate pre-training mode.
+fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: CrossEntropyLoss           # Name of the loss function to use.
-lr: 1.0E-2                            # Learning rate of optimiser.
-optim_func: SGD                       # Name of the optimiser function.
+loss_func: SegBarlowTwinsLoss          # Name of the loss function to use.
+lr: 1.0E-3                             # Learning rate of optimiser.
+optim_func: SGD                        # Name of the optimiser function.
+
+# ---+ SSL/ Siamese Options +--------------------------------------------------
+sample_pairs: true                    # Activates Siamese paired sampling.
+max_r: &max_r 56  # Max distance between patches within a Siamese pair.
+knn_k: 5          # Top-k most similar images used to predict image for KNN val
+val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module: lightly.models
+    module:
     params:
         input_size: *input_size
-        n_classes: *n_classes
-        num_classes: *n_classes
-        name: resnet-9
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
@@ -57,6 +61,7 @@ optim_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
+    module: minerva.loss
     params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
@@ -64,19 +69,19 @@ loader_params:
     num_workers: 1
     pin_memory: true
 
+# === WANDB LOGGING ===========================================================
+wandb_log: true        # Activates wandb logging.
+project: pytest        # Define the project name for wandb.
+wandb_dir: *wandb_dir
+
 # === MODEL IO & LOGGING ======================================================
-# ---+ wandb Logging +---------------------------------------------------------
-wandb_log: true              # Activates wandb logging.
-project: pytest              # Define the project name for wandb.
-wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
-
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-logger: STGLogger
-metrics: SPMetrics
-model_io: sup_tg
+logger: SSLLogger
+metrics: SSLMetrics
+model_io: ssl_pair_tg
 
-record_int: true    # Store integer results in memory.
-record_float: true  # Store floating point results too. Beware memory overload!
+record_int: true     # Store integer results in memory.
+record_float: false  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
 collator:
@@ -88,41 +93,50 @@ dataset_params:
     # Training Dataset
     train:
         sampler:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
+            module: minerva.samplers
+            name: RandomPairGeoSampler
             roi: false
             params:
                 size: *patch_size
                 length: 120
+                max_r: *max_r
 
         image:
             transforms:
-                ToRGB:
+                Normalise:
                     module: minerva.transforms
+                    norm_value: 255
+                RandomApply:
+                    p: 0.25
+                    RandomResizedCrop:
+                        module: torchvision.transforms
+                        size: *patch_size
+                DetachedColorJitter:
+                    module: minerva.transforms
+                    brightness: 0.8
+                    contrast: 0.8
+                    saturation: 0.8
+                    hue: 0.2
+                RandomHorizontalFlip:
+                    module: torchvision.transforms
+                RandomVerticalFlip:
+                    module: torchvision.transforms
+                GaussianBlur:
+                    module: torchvision.transforms
+                    kernel_size: 25
 
-            images_1:
+            image1:
                 module: minerva.datasets
                 name: TstImgDataset
                 root: NAIP
                 params:
                     res: 1.0
-
             image2:
                 module: minerva.datasets
                 name: TstImgDataset
                 root: NAIP
                 params:
                     res: 1.0
-
-        mask:
-            transforms:
-                SingleLabel:
-                    module: minerva.transforms
-            module: minerva.datasets
-            name: TstMaskDataset
-            root: Chesapeake7
-            params:
-                res: 1.0
 
     # Validation Dataset
     val:
@@ -135,9 +149,6 @@ dataset_params:
                 length: 32
 
         image:
-            transforms:
-                ToRGB:
-                    module: minerva.transforms
             module: minerva.datasets
             name: TstImgDataset
             root: NAIP
@@ -145,9 +156,6 @@ dataset_params:
                 res: 1.0
 
         mask:
-            transforms:
-                SingleLabel:
-                    module: minerva.transforms
             module: minerva.datasets
             name: TstMaskDataset
             root: Chesapeake7
@@ -165,9 +173,6 @@ dataset_params:
                 length: 32
 
         image:
-            transforms:
-                ToRGB:
-                    module: minerva.transforms
             module: minerva.datasets
             name: TstImgDataset
             root: NAIP
@@ -175,9 +180,6 @@ dataset_params:
                 res: 1.0
 
         mask:
-            transforms:
-                SingleLabel:
-                    module: minerva.transforms
             module: minerva.datasets
             name: TstMaskDataset
             root: Chesapeake7
@@ -187,12 +189,12 @@ dataset_params:
 # === PLOTTING OPTIONS ========================================================
 plots:
     History: true   # Plot of the training and validation metrics over epochs.
-    CM: true        # Confusion matrix.
-    Pred: true      # Pie chart of the distribution of the predicted classes.
-    ROC: true       # Receiver Operator Characteristics for each class.
-    micro: true     # Include micro averaging in ROC plot.
-    macro: true     # Include macro averaging in ROC plot.
-    Mask: true      # Plot predicted masks against ground truth and imagery.
+    CM: false        # Confusion matrix.
+    Pred: false      # Pie chart of the distribution of the predicted classes.
+    ROC: false       # Receiver Operator Characteristics for each class.
+    micro: false    # Include micro averaging in ROC plot.
+    macro: false     # Include macro averaging in ROC plot.
+    Mask: false      # Plot predicted masks against ground truth and imagery.
 
 # === MISCELLANEOUS OPTIONS ===================================================
 # ---+ Early Stopping +--------------------------------------------------------
@@ -204,12 +206,12 @@ stopping:
 verbose: true           # Verbosity of Trainer print statements to stdout.
 save: true              # Saves created figures to file.
 show: false             # Shows created figures in a pop-up window.
-p_dist: true            # Shows the distribution of classes to stdout.
-plot_last_epoch: true   # Plot the results of the last training and val epochs.
+p_dist: false           # Shows the distribution of classes to stdout.
+plot_last_epoch: false  # Plot the results of the last training and val epochs.
 
 # opt to ask at runtime; auto or True to automatically do so; or False,
 # None etc to not
-save_model: true
+save_model: false
 
 # ---+ Other +-----------------------------------------------------------------
 # opt to ask at runtime; auto or True to automatically do so; or False,

@@ -74,6 +74,7 @@ from typing import (
     Sequence,
     Tuple,
     Union,
+    overload,
 )
 
 import matplotlib.pyplot as plt
@@ -86,20 +87,27 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from matplotlib.figure import Figure
 from nptyping import NDArray
 from pandas import DataFrame
+from rasterio.crs import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datasets import (
     NAIP,
     GeoDataset,
     IntersectionDataset,
     RasterDataset,
+    Sentinel2,
     UnionDataset,
 )
-from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
+from torchgeo.datasets.utils import (
+    BoundingBox,
+    concat_samples,
+    merge_samples,
+    stack_samples,
+)
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import get_random_bounding_box
 from torchvision.transforms import RandomApply
 
-from minerva.transforms import MinervaCompose
+from minerva.transforms import AutoNorm, MinervaCompose
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
 # =====================================================================================================================
@@ -137,16 +145,43 @@ class TstMaskDataset(RasterDataset):
 
 
 class NAIPChesapeakeCVPR(NAIP):
+    """Adapted version of :class:~`torchgeo.datasets.NAIP` that works with the NAIP tiles that are
+    packaged with the ChesapeakeCVPR dataset.
+
+    Attributes:
+        filename_glob (str): Pattern for tiff files within dataset root to construct dataset from.
+    """
+
     filename_glob = "m_*_naip-*.tif"
     filename_regex = ""
-    r"""
-        ^m
-        _(?P<quadrangle>\d+)
-        _(?P<quarter_quad>[a-z]+)
-        _(?P<utm_zone>\d+)
-        _(?P<resolution>\d+)
-        \..*$
+
+
+class SSL4EOS12Sentinel2(Sentinel2):
+    """Adapted version of :class:~`torchgeo.datasets.Sentinel2` that works .
+
+    Attributes:
+        filename_glob (str): Pattern for tiff files within dataset root to construct dataset from.
     """
+
+    filename_glob = "{}.*"
+    filename_regex = r"""(?P<band>B[^[0-1]?[0-9]|B[^[1]?[0-9][\dA])\..*$"""
+    date_format = ""
+    all_bands = [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "B8A",
+        "B9",
+        "B10",
+        "B11",
+        "B12",
+    ]
+    rgb_bands = ["B4", "B3", "B2"]
 
 
 class PairedDataset(RasterDataset):
@@ -160,19 +195,54 @@ class PairedDataset(RasterDataset):
             :class:`~torchgeo.datasets.RasterDataset` to be wrapped for paired sampling.
     """
 
+    def __new__(  # type: ignore[misc]
+        cls,
+        dataset: Union[Callable[..., GeoDataset], GeoDataset],
+        *args,
+        **kwargs,
+    ) -> Union["PairedDataset", "PairedUnionDataset"]:
+        if isinstance(dataset, UnionDataset):
+            return PairedUnionDataset(
+                dataset.datasets[0], dataset.datasets[1], *args, **kwargs
+            )
+        else:
+            return super(PairedDataset, cls).__new__(cls)
+
+    @overload
+    def __init__(self, dataset: Callable[..., GeoDataset], *args, **kwargs) -> None:
+        ...  # pragma: no cover
+
+    @overload
+    def __init__(self, dataset: GeoDataset, *args, **kwargs) -> None:
+        ...  # pragma: no cover
+
     def __init__(
         self,
-        dataset_cls: Callable[..., GeoDataset],
+        dataset: Union[Callable[..., GeoDataset], GeoDataset],
         *args,
         **kwargs,
     ) -> None:
-        super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
-        super_kwargs = {
-            key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
-        }
+        if isinstance(dataset, GeoDataset):
+            self.dataset = dataset
 
-        super().__init__(*args, **super_kwargs)
-        self.dataset = dataset_cls(*args, **kwargs)
+        elif callable(dataset):
+            super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
+            super_kwargs = {
+                key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
+            }
+
+            if issubclass(dataset, RasterDataset):  # type: ignore[arg-type]
+                # This is very sketchy but an unavoidable workaround due to TorchGeo's behaviour.
+                RasterDataset.filename_glob = dataset.filename_glob  # type: ignore[attr-defined]
+                RasterDataset.filename_regex = dataset.filename_regex  # type: ignore[attr-defined]
+
+            super().__init__(*args, **super_kwargs)
+            self.dataset = dataset(*args, **kwargs)
+
+        else:
+            raise ValueError(
+                f"``dataset`` is of unsupported type {type(dataset)} not GeoDataset"
+            )
 
     def __getitem__(  # type: ignore[override]
         self, queries: Tuple[BoundingBox, BoundingBox]
@@ -213,16 +283,8 @@ class PairedDataset(RasterDataset):
         Returns:
             PairedUnionDataset: A single dataset.
 
-        Raises:
-            ValueError: If ``other`` is not a :class:`PairedDataset`
-
         .. versionadded:: 0.24
         """
-        if not isinstance(other, PairedDataset):
-            raise ValueError(
-                f"Unionising a dataset of {type(other)} and a PairedDataset is not supported!"
-            )
-
         return PairedUnionDataset(self, other)
 
     def __getattr__(self, item):
@@ -310,13 +372,25 @@ class PairedUnionDataset(UnionDataset):
         and cause a :class:`TypeError`.
     """
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        dataset1: GeoDataset,
+        dataset2: GeoDataset,
+        collate_fn: Callable[
+            [Sequence[dict[str, Any]]], dict[str, Any]
+        ] = merge_samples,
+        transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+    ) -> None:
+        super().__init__(dataset1, dataset2, collate_fn, transforms)
 
         new_datasets = []
         for _dataset in self.datasets:
             if isinstance(_dataset, PairedDataset):
                 new_datasets.append(_dataset.dataset)
+            elif isinstance(_dataset, PairedUnionDataset):
+                new_datasets.append(_dataset.datasets[0] | _dataset.datasets[1])
+            else:
+                new_datasets.append(_dataset)
 
         self.datasets = new_datasets
 
@@ -346,16 +420,8 @@ class PairedUnionDataset(UnionDataset):
         Returns:
             PairedUnionDataset: A single dataset.
 
-        Raises:
-            ValueError: If ``other`` is not a :class:`PairedDataset`
-
         .. versionadded:: 0.24
         """
-        if not isinstance(other, PairedDataset):
-            raise ValueError(
-                f"Unionising a dataset of {type(other)} and a PairedUnionDataset is not supported!"
-            )
-
         return PairedUnionDataset(self, other)
 
 
@@ -453,6 +519,39 @@ def unionise_datasets(
     return master_dataset
 
 
+def init_auto_norm(dataset: RasterDataset, params: Dict[str, Any]) -> RasterDataset:
+    """Uses :class:~`minerva.transforms.AutoNorm` to automatically find the mean and standard deviation of `dataset`
+    to create a normalisation transform that is then added to the existing transforms of `dataset`.
+
+    Args:
+        dataset (RasterDataset): Dataset to find and apply the normalisation conditions to.
+        params (Dict[str, Any]): Parameters for :class:~`minerva.transforms.AutoNorm`.
+
+    Returns:
+        RasterDataset: `dataset` with an additional :class:~`minerva.transforms.AutoNorm` transform
+        added to it's :attr:~`torchgeo.datasets.RasterDataset.transforms` attribute.
+    """
+    # Creates the AutoNorm transform by sampling `dataset` for its mean and standard deviation stats.
+    auto_norm = AutoNorm(dataset, **params)
+
+    if dataset.transforms is None:
+        dataset.transforms = MinervaCompose(auto_norm)
+    else:
+        # If the existing transforms are already `MinervaCompose`, we can just add the AutoNorm transform on.
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += auto_norm
+
+        # If existing transforms are a callable, place in a list with AutoNorm and make in `MinervaCompose`.
+        elif callable(dataset.transforms):
+            dataset.transforms = MinervaCompose([dataset.transforms, auto_norm])
+        else:
+            raise TypeError(
+                f"The type of datset.transforms, {type(dataset.transforms)}, is not supported"
+            )
+
+    return dataset
+
+
 def make_dataset(
     data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
@@ -497,6 +596,10 @@ def make_dataset(
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
         _transformations: Optional[Any],
     ) -> GeoDataset:
+        if "crs" in subdataset_params["params"]:
+            subdataset_params["params"]["crs"] = CRS.from_epsg(
+                subdataset_params["params"]["crs"]
+            )
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
@@ -524,44 +627,94 @@ def make_dataset(
         type_subdatasets = []
 
         multi_datasets_exist = False
+
+        auto_norm = None
         master_transforms: Optional[Any] = None
         for area_key in type_dataset_params.keys():
+            # If any of these keys are present, this must be a parameter set for a singular dataset at this level.
             if area_key in ("module", "name", "params", "root"):
                 multi_datasets_exist = False
                 continue
+
+            # If there are transforms specified, make them. These could cover a single dataset or many.
             elif area_key == "transforms":
-                master_transforms = make_transformations(
-                    type_dataset_params[area_key], type_key
-                )
+                if isinstance(type_dataset_params[area_key], dict):
+                    transform_params = type_dataset_params[area_key]
+                    auto_norm = transform_params.get("AutoNorm")
+                else:
+                    transform_params = False
+
+                master_transforms = make_transformations(transform_params, type_key)
+
+            # Assuming that these keys are names of datasets.
             else:
                 multi_datasets_exist = True
+
                 _subdataset, subdataset_root = get_subdataset(
                     type_dataset_params, area_key
                 )
-                transformations = make_transformations(
-                    type_dataset_params[area_key].get("transforms", False), type_key
-                )
-                type_subdatasets.append(
-                    create_subdataset(
-                        _subdataset,
-                        subdataset_root,
-                        type_dataset_params[area_key],
-                        transformations,
-                    )
+
+                if isinstance(type_dataset_params[area_key].get("transforms"), dict):
+                    transform_params = type_dataset_params[area_key]["transforms"]
+                    auto_norm = transform_params.get("AutoNorm")
+                else:
+                    transform_params = False
+
+                transformations = make_transformations(transform_params, type_key)
+
+                # Send the params for this area key back through this function to make the sub-dataset.
+                sub_dataset = create_subdataset(
+                    _subdataset,
+                    subdataset_root,
+                    type_dataset_params[area_key],
+                    transformations,
                 )
 
+                # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
+                # to make a transform, then adds the transform to the dataset's existing transforms.
+                if auto_norm:
+                    if isinstance(sub_dataset, RasterDataset):
+                        init_auto_norm(sub_dataset, auto_norm)
+                    else:
+                        raise TypeError(  # pragma: no cover
+                            "AutoNorm only supports normalisation of data "
+                            + f"from RasterDatasets, not {type(sub_dataset)}!"
+                        )
+
+                    # Reset back to None.
+                    auto_norm = None
+
+                type_subdatasets.append(sub_dataset)
+
+        # Unionise all the sub-datsets of this modality together.
         if multi_datasets_exist:
             sub_datasets.append(unionise_datasets(type_subdatasets, master_transforms))
+
+        # Add the subdataset of this modality to the list.
         else:
-            sub_datasets.append(
-                create_subdataset(
-                    *get_subdataset(dataset_params, type_key),
-                    type_dataset_params,
-                    master_transforms,
-                )
+            sub_dataset = create_subdataset(
+                *get_subdataset(dataset_params, type_key),
+                type_dataset_params,
+                master_transforms,
             )
 
-    # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
+            # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
+            # to make a transform, then adds the transform to the dataset's existing transforms.
+            if auto_norm:
+                if isinstance(sub_dataset, RasterDataset):
+                    init_auto_norm(sub_dataset, auto_norm)
+
+                    # Reset back to None.
+                    auto_norm = None
+                else:
+                    raise TypeError(  # pragma: no cover
+                        f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
+                    )
+
+            sub_datasets.append(sub_dataset)
+
+    # Intersect sub-datasets of differing modalities together to form single dataset
+    # if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
         dataset = intersect_datasets(sub_datasets)
@@ -570,7 +723,7 @@ def make_dataset(
 
 
 def construct_dataloader(
-    data_directory: Iterable[str],
+    data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[str, Any],
     sampler_params: Dict[str, Any],
     dataloader_params: Dict[str, Any],
@@ -792,6 +945,10 @@ def make_transformations(
             random_params = transform_params[name].copy()
             transformations.append(_construct_random_transforms(random_params))
 
+        # AutoNorm needs to be handled separately.
+        elif name == "AutoNorm":
+            continue
+
         else:
             transformations.append(get_transform(name, transform_params[name]))
 
@@ -869,7 +1026,7 @@ def make_loaders(
     if not isinstance(sample_pairs, bool):
         sample_pairs = False
 
-    if model_type != "siamese":
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         # Load manifest from cache for this dataset.
         manifest = get_manifest(get_manifest_path())
         class_dist = utils.modes_from_manifest(manifest)
@@ -885,7 +1042,9 @@ def make_loaders(
     loaders = {}
 
     for mode in dataset_params.keys():
-        if params.get("elim", False) and model_type != "siamese":
+        if params.get("elim", False) and not utils.check_substrings_in_string(
+            model_type, "siamese"
+        ):
             class_transform = {
                 "ClassTransform": {
                     "module": "minerva.transforms",
@@ -920,7 +1079,7 @@ def make_loaders(
         )
         print("DONE")
 
-    if model_type != "siamese":
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
         if params.get("elim", False):
             class_dist = utils.class_dist_transform(class_dist, forwards)

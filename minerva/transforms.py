@@ -35,6 +35,7 @@ __all__ = [
     "ClassTransform",
     "PairCreate",
     "Normalise",
+    "AutoNorm",
     "DetachedColorJitter",
     "SingleLabel",
     "ToRGB",
@@ -42,14 +43,33 @@ __all__ = [
     "SwapKeys",
 ]
 
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
+import re
+from copy import deepcopy
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
+import numpy as np
+import rasterio
 import torch
 from torch import LongTensor, Tensor
-from torchvision.transforms import ColorJitter
+from torchgeo.datasets import BoundingBox, RasterDataset
+from torchgeo.samplers import RandomGeoSampler
+from torchvision.transforms import ColorJitter, Normalize
 from torchvision.transforms import functional_tensor as ft
 
 from minerva.utils.utils import find_tensor_mode, mask_transform
@@ -145,6 +165,133 @@ class Normalise:
             ~torch.Tensor: Input image tensor normalised by ``norm_value``.
         """
         return img / self.norm_value
+
+
+class AutoNorm(Normalize):
+    """Transform that will automatically calculate the mean and standard deviation of the dataset
+    to normalise the data with.
+
+    Uses :class:`torchvision.transforms.Normalize` for the normalisation.
+
+    Attributes:
+        dataset (RasterDataset): Dataset to calculate the mean and standard deviation of.
+        sampler (RandomGeoSampler): Sampler used to create valid queries for the dataset to find data files.
+
+    Args:
+        dataset (RasterDataset): Dataset to calculate the mean and standard deviation of.
+        length (int): Optional; Number of samples from the dataset to calculate the mean and standard deviation of.
+        roi (BoundingBox): Optional; Region of interest for sampler to sample from.
+        inplace (bool): Optional; Performs the normalisation transform inplace on the tensor. Default False.
+
+    .. versionadded:: 0.26
+    """
+
+    def __init__(
+        self,
+        dataset: RasterDataset,
+        length: int = 128,
+        roi: Optional[BoundingBox] = None,
+        inplace=False,
+    ):
+        self.dataset = dataset
+        self.sampler = RandomGeoSampler(dataset, 32, length, roi)
+
+        mean, std = self._calc_mean_std()
+
+        super().__init__(mean, std, inplace)
+
+    def _calc_mean_std(self) -> Tuple[List[float], List[float]]:
+        per_img_means = []
+        per_img_stds = []
+        for query in self.sampler:
+            mean, std = self._get_tile_mean_std(query)
+            per_img_means.append(mean)
+            per_img_stds.append(std)
+
+        per_band_means = list(zip(*per_img_means))
+        per_band_stds = list(zip(*per_img_stds))
+
+        per_band_mean = [np.mean(band) for band in per_band_means]
+        per_band_std = [np.mean(band) for band in per_band_stds]
+
+        return per_band_mean, per_band_std
+
+    def _get_tile_mean_std(self, query: BoundingBox) -> Tuple[List[float], List[float]]:
+        hits = self.dataset.index.intersection(tuple(query), objects=True)
+        filepaths = cast(list[str], [hit.object for hit in hits])
+
+        if not filepaths:  # pragma: no cover
+            raise IndexError(
+                f"query: {query} not found in index with bounds: {self.dataset.bounds}"
+            )
+
+        means: List[float]
+        stds: List[float]
+        if self.dataset.separate_files:
+            filename_regex = re.compile(self.dataset.filename_regex, re.VERBOSE)
+
+            band_means = []
+            band_stds = []
+            for band in self.dataset.bands:
+                band_filepaths = []
+                for filepath in filepaths:
+                    filename = Path(filepath).name
+                    directory = Path(filepath).parent
+                    match = re.match(filename_regex, filename)
+                    if match:
+                        if "band" in match.groupdict():
+                            start = match.start("band")
+                            end = match.end("band")
+                            filename = filename[:start] + band + filename[end:]
+                    filepath = str(directory / filename)
+                    band_filepaths.append(filepath)
+                mean, std = self._get_image_mean_std(band_filepaths)
+                band_means.append(mean)
+                band_stds.append(std)
+            means = [np.mean(band) for band in band_means]  # type:ignore[misc]
+            stds = [np.mean(band) for band in band_stds]  # type:ignore[misc]
+        else:
+            means, stds = self._get_image_mean_std(filepaths, self.dataset.band_indexes)
+
+        return means, stds
+
+    def _get_image_mean_std(
+        self,
+        filepaths: List[str],
+        band_indexes: Optional[Sequence[int]] = None,
+    ) -> Tuple[List[float], List[float]]:
+        stats = [self._get_meta_mean_std(fp, band_indexes) for fp in filepaths]
+
+        means = list(np.mean([stat[0] for stat in stats], axis=0))
+        stds = list(np.mean([stat[1] for stat in stats], axis=0))
+
+        return means, stds
+
+    def _get_meta_mean_std(
+        self, filepath, band_indexes: Optional[Sequence[int]] = None
+    ) -> Tuple[List[float], List[float]]:
+        # Open the Tiff file and get the statistics from the meta (min, max, mean, std).
+        means = []
+        stds = []
+        data = rasterio.open(filepath)
+        if band_indexes:
+            for band in band_indexes:
+                mean, std = self._extract_meta(data, band)
+                means.append(mean)
+                stds.append(std)
+        else:
+            mean, std = self._extract_meta(data, 1)
+            means, stds = [mean], [std]
+        data.close()
+
+        return means, stds
+
+    @staticmethod
+    def _extract_meta(data, band_index):
+        stats = data.statistics(band_index)
+        mean, std = stats.mean, stats.std
+
+        return mean, std
 
 
 class DetachedColorJitter(ColorJitter):
@@ -290,12 +437,16 @@ class SingleLabel:
 
 
 class MinervaCompose:
-    """Extension of :class:`torchvision.transforms.Compose`. Composes several transforms together.
+    """Adaption of :class:`torchvision.transforms.Compose`. Composes several transforms together.
 
     Designed to work with both :class:`~torch.Tensor` and :mod:`torchgeo` sample :class:`dict`.
 
-    This transform does not support torchscript. Please, see the note below.
+    This transform does not support torchscript.
 
+    Attributes:
+        transforms (list[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
+            List of composed transforms.
+        key (str): The key of the data type in the sample dict to transform for use with :mod:`torchgeo` samples.
     Args:
         transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
             List of transforms to compose.
@@ -308,19 +459,6 @@ class MinervaCompose:
         >>>     transforms.PILToTensor(),
         >>>     transforms.ConvertImageDtype(torch.float),
         >>> ])
-
-    .. note::
-        In order to script the transformations, please use :class:`torch.nn.Sequential` as below.
-
-        >>> transforms = torch.nn.Sequential(
-        >>>     transforms.CenterCrop(10),
-        >>>     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        >>> )
-        >>> scripted_transforms = torch.jit.script(transforms)
-
-        Make sure to use only scriptable transformations, i.e. that work with :class:`torch.Tensor`,
-        does not require ``lambda`` functions or :class:`pillow.Image`.
-
     """
 
     def __init__(
@@ -328,7 +466,14 @@ class MinervaCompose:
         transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
         key: Optional[str] = None,
     ) -> None:
-        self.transforms = transforms
+        if isinstance(transforms, Sequence):
+            self.transforms = list(transforms)
+        elif callable(transforms):
+            self.transforms = [transforms]
+        else:
+            raise TypeError(
+                f"`transforms` has type {type(transforms)}, not callable or sequence of callables"
+            )
         self.key = key
 
     @overload
@@ -355,31 +500,57 @@ class MinervaCompose:
         if isinstance(self.transforms, Sequence):
             for t in self.transforms:
                 img = t(img)
-        elif callable(self.transforms):
-            img = self.transforms(img)
 
         else:
             raise TypeError(
-                f"`transforms` has type {type(self.transforms)}, not callable"
+                f"`transforms` has type {type(self.transforms)}, not sequence of callables"
             )
 
         return img
 
+    def _add(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> List[Callable[..., Any]]:
+        _transforms = deepcopy(self.transforms)
+        if isinstance(new_transform, Sequence):
+            _transforms.extend(new_transform)
+            return _transforms
+        elif callable(new_transform):
+            _transforms.append(new_transform)
+            return _transforms
+        else:
+            raise TypeError(
+                f"`new_transform` has type {type(new_transform)}, not callable or sequence of callables"
+            )
+
+    def __add__(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> "MinervaCompose":
+        new_compose = deepcopy(self)
+        new_compose.transforms = self._add(new_transform)
+        return new_compose
+
+    def __iadd__(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> "MinervaCompose":
+        self.transforms = self._add(new_transform)
+        return self
+
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
+        if hasattr(self.transforms, "__len__"):
+            if len(self.transforms) > 1:
+                for t in self.transforms:
+                    format_string += "\n"
+                    format_string += "    {0}".format(t)
 
-        if isinstance(self.transforms, Sequence):
-            for t in self.transforms:
-                format_string += "\n"
-                format_string += "    {0}".format(t)
-
-        elif callable(self.transforms):
-            format_string += "{0})".format(self.transforms)
-            return format_string
+            else:
+                format_string += "{0})".format(self.transforms[0])
+                return format_string
 
         else:
             raise TypeError(
-                f"`transforms` has type {type(self.transforms)}, not callable"
+                f"`transforms` has type {type(self.transforms)}, not sequence of callables"
             )
 
         format_string += "\n)"

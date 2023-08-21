@@ -48,11 +48,12 @@ import pytest
 import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
+from rasterio.crs import CRS
 from torch import LongTensor, Tensor
-from torchgeo.datasets import GeoDataset
+from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.datasets import make_dataset
+from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
 from minerva.models import CNN, MLP, MinervaModel
 from minerva.utils import CONFIG, utils
 
@@ -87,23 +88,30 @@ def results_dir() -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def data_root() -> Path:
+def results_root() -> Path:
     return Path(__file__).parent / "tmp" / "results"
 
 
 @pytest.fixture
+def data_root() -> Path:
+    return Path(__file__).parent / "fixtures" / "data"
+
+
+@pytest.fixture
 def img_root(data_root: Path) -> Path:
-    return data_root.parent / "data" / "test_images"
+    return data_root / "NAIP"
 
 
 @pytest.fixture
 def lc_root(data_root: Path) -> Path:
-    return data_root.parent / "data" / "test_lc"
+    return data_root / "Chesapeake7"
 
 
 @pytest.fixture
-def config_root(inbuilt_cfg_root: Path, data_root: Path) -> Generator[Path, None, None]:
-    config_path = data_root.parent / "config"
+def config_root(
+    inbuilt_cfg_root: Path, results_root: Path
+) -> Generator[Path, None, None]:
+    config_path = results_root.parent / "config"
 
     # Make a temporary copy of a config manifest example
     os.makedirs(config_path, exist_ok=True)
@@ -209,7 +217,9 @@ def simple_rgb_img() -> Tensor:
 
 @pytest.fixture
 def norm_simple_rgb_img(simple_rgb_img) -> Tensor:
-    return simple_rgb_img / 255
+    norm_img = simple_rgb_img / 255
+    assert isinstance(norm_img, Tensor)
+    return norm_img
 
 
 @pytest.fixture
@@ -293,7 +303,8 @@ def simple_mask() -> LongTensor:
 
 @pytest.fixture
 def flipped_simple_mask() -> LongTensor:
-    mask: LongTensor = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]])  # type: ignore[attr-defined]
+    mask: LongTensor = torch.tensor([[5, 3, 1], [1, 5, 4], [1, 1, 1]], dtype=torch.long)  # type: ignore[assignment]
+    assert isinstance(mask, LongTensor)
     return mask
 
 
@@ -308,29 +319,45 @@ def simple_bbox() -> BoundingBox:
 
 
 @pytest.fixture
-def default_dataset() -> GeoDataset:
-    print(os.getcwd())
+def exp_dataset_params() -> Dict[str, Any]:
+    return {
+        "image": {
+            "transforms": {"AutoNorm": {"length": 12}},
+            "module": "minerva.datasets",
+            "name": "TstImgDataset",
+            "root": "NAIP",
+            "params": {"res": 1.0},
+        }
+    }
+
+
+@pytest.fixture
+def default_dataset() -> IntersectionDataset:
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
-    assert isinstance(dataset, GeoDataset)
+    assert isinstance(dataset, IntersectionDataset)
     return dataset
 
 
 @pytest.fixture
-def exp_dataset_params() -> Dict[str, Any]:
-    return {
-        "image": {
-            "transforms": {
-                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
-            },
-            "module": "minerva.datasets",
-            "name": "TstImgDataset",
-            "root": "test_images",
-            "params": {"res": 10.0},
-        }
-    }
+def default_image_dataset(exp_dataset_params: Dict[str, Any]) -> RasterDataset:
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], exp_dataset_params)
+    assert isinstance(dataset, RasterDataset)
+    return dataset
+
+
+@pytest.fixture
+def ssl4eo_s12_dataset(data_root: Path, epsg3857: CRS) -> RasterDataset:
+    return SSL4EOS12Sentinel2(
+        str(data_root / "SSL4EO-S12"), epsg3857, 10.0, bands=["B2", "B3", "B4", "B8"]
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
 def wandb_offline() -> Generator[int, None, None]:
     yield os.system("wandb offline")  # nosec B605, B607
     os.system("wandb online")  # nosec B605, B607
+
+
+@pytest.fixture
+def epsg3857() -> CRS:
+    return CRS.from_epsg("3857")

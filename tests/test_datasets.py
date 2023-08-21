@@ -48,9 +48,10 @@ from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 from torch import Tensor
 from torch.utils.data import DataLoader
-from torchgeo.datasets import IntersectionDataset, UnionDataset
+from torchgeo.datasets import IntersectionDataset, RasterDataset, UnionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
+from torchvision.transforms import RandomHorizontalFlip
 
 from minerva import datasets as mdt
 from minerva.datasets import (
@@ -59,6 +60,7 @@ from minerva.datasets import (
     TstImgDataset,
     TstMaskDataset,
 )
+from minerva.transforms import AutoNorm, MinervaCompose
 from minerva.utils.utils import CONFIG
 
 
@@ -90,37 +92,47 @@ def test_tinydataset(img_root: Path, lc_root: Path) -> None:
 
 
 def test_paired_datasets(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, img_root)
+    dataset1 = PairedDataset(TstImgDataset, img_root)
     dataset2 = TstImgDataset(str(img_root))
 
     with pytest.raises(
         ValueError,
         match=f"Intersecting a dataset of {type(dataset2)} and a PairedDataset is not supported!",
     ):
-        _ = dataset & dataset2  # type: ignore[operator]
+        _ = dataset1 & dataset2  # type: ignore[operator]
+
+    dataset3 = PairedDataset(dataset2)
+
+    non_dataset = 42
+    with pytest.raises(
+        ValueError,
+        match=f"``dataset`` is of unsupported type {type(non_dataset)} not GeoDataset",
+    ):
+        _ = PairedDataset(42)  # type: ignore[call-overload]
 
     bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
     query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
 
-    sample_1, sample_2 = dataset[(query_1, query_2)]
+    for dataset in (dataset1, dataset3):
+        sample_1, sample_2 = dataset[(query_1, query_2)]
 
-    assert isinstance(sample_1, dict)
-    assert isinstance(sample_2, dict)
+        assert isinstance(sample_1, dict)
+        assert isinstance(sample_2, dict)
 
-    assert isinstance(dataset.crs, CRS)
-    assert isinstance(getattr(dataset, "crs"), CRS)
-    assert isinstance(dataset.dataset, TstImgDataset)
-    assert isinstance(dataset.__getattr__("dataset"), TstImgDataset)
+        assert isinstance(dataset.crs, CRS)
+        assert isinstance(getattr(dataset, "crs"), CRS)
+        assert isinstance(dataset.dataset, TstImgDataset)
+        assert isinstance(dataset.__getattr__("dataset"), TstImgDataset)
 
-    with pytest.raises(AttributeError):
-        dataset.roi
+        with pytest.raises(AttributeError):
+            dataset.roi
 
-    assert isinstance(dataset.__repr__(), str)
+        assert isinstance(dataset.__repr__(), str)
 
-    assert isinstance(
-        dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure  # type: ignore[attr-defined]
-    )
+        assert isinstance(
+            dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure  # type: ignore[attr-defined]
+        )
 
 
 def test_paired_union_datasets(img_root: Path) -> None:
@@ -139,33 +151,21 @@ def test_paired_union_datasets(img_root: Path) -> None:
     dataset3 = PairedDataset(TstImgDataset, img_root)
     dataset4 = PairedDataset(TstImgDataset, img_root)
 
-    with pytest.raises(
-        ValueError,
-        match=f"Unionising a dataset of {type(dataset2)} and a PairedDataset is not supported!",
-    ):
-        _ = dataset3 | dataset2  # type: ignore[operator]
-
-    union_dataset1 = PairedUnionDataset(dataset1, dataset2)
+    union_dataset1 = PairedDataset(dataset1 | dataset2)
     union_dataset2 = dataset3 | dataset4
+    union_dataset3 = union_dataset1 | dataset3
+    union_dataset4 = union_dataset1 | dataset2  # type: ignore[operator]
+    union_dataset5 = dataset3 | dataset2  # type: ignore[operator]
 
-    for dataset in (union_dataset1, union_dataset2):
-        dataset_test(dataset)
-
-
-def test_join_paired_union_datasets(img_root: Path) -> None:
-    dataset1 = TstImgDataset(str(img_root))
-    dataset2 = TstImgDataset(str(img_root))
-    dataset3 = PairedDataset(TstImgDataset, img_root)
-
-    union_dataset1 = PairedUnionDataset(dataset1, dataset2)
-    union_dataset2 = union_dataset1 | dataset3
-    assert isinstance(union_dataset2, PairedUnionDataset)
-
-    with pytest.raises(
-        ValueError,
-        match=f"Unionising a dataset of {type(dataset2)} and a PairedUnionDataset is not supported!",
+    for dataset in (
+        union_dataset1,
+        union_dataset2,
+        union_dataset3,
+        union_dataset4,
+        union_dataset5,
     ):
-        _ = union_dataset1 | dataset2  # type: ignore[operator]
+        assert isinstance(dataset, PairedUnionDataset)
+        dataset_test(dataset)
 
 
 def test_get_collator() -> None:
@@ -220,16 +220,14 @@ def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
     assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
 
 
-def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
-    data_dir = ["tests", "tmp", "data"]
-
-    dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, exp_dataset_params)
+def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> None:
+    dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params)
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
-        data_dir,
+        data_root,
         exp_dataset_params,
         sample_pairs=True,
     )
@@ -240,8 +238,8 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
     exp_dataset_params["mask"] = {
         "module": "minerva.datasets",
         "name": "TstMaskDataset",
-        "root": "test_lc",
-        "params": {"res": 10.0},
+        "root": "Chesapeake7",
+        "params": {"res": 1.0},
     }
 
     dataset_params2 = {
@@ -249,25 +247,57 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
             "image_1": exp_dataset_params["image"],
             "image_2": exp_dataset_params["image"],
         },
-        "mask": {
-            "mask_1": exp_dataset_params["mask"],
-            "mask_2": exp_dataset_params["mask"],
-        },
+        "mask": exp_dataset_params["mask"],
     }
 
-    dataset_3, subdatasets_3 = mdt.make_dataset(data_dir, dataset_params2)
+    dataset_3, subdatasets_3 = mdt.make_dataset(data_root, dataset_params2)
     assert isinstance(dataset_3, IntersectionDataset)
     assert isinstance(subdatasets_3[0], UnionDataset)
-    assert isinstance(subdatasets_3[1], UnionDataset)
 
     dataset_4, subdatasets_4 = mdt.make_dataset(
-        data_dir,
+        data_root,
         dataset_params2,
         sample_pairs=True,
     )
     assert isinstance(dataset_4, IntersectionDataset)
     assert isinstance(subdatasets_4[0], UnionDataset)
-    assert isinstance(subdatasets_4[1], UnionDataset)
+
+    dataset_params3 = dataset_params2
+    dataset_params3["image"]["image_1"]["transforms"] = {"AutoNorm": {"length": 12}}
+    dataset_params3["image"]["image_2"]["transforms"] = {"AutoNorm": {"length": 12}}
+    dataset_params3["image"]["transforms"] = {"AutoNorm": {"length": 12}}
+
+    dataset_5, subdatasets_5 = mdt.make_dataset(data_root, dataset_params3)
+
+    assert isinstance(dataset_5, IntersectionDataset)
+    assert isinstance(subdatasets_5[0], UnionDataset)
+
+
+@pytest.mark.parametrize(
+    "transforms",
+    [
+        None,
+        MinervaCompose(RandomHorizontalFlip()),
+        RandomHorizontalFlip(),
+        [RandomHorizontalFlip()],
+    ],
+)
+def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> None:
+    params = {"length": 12}
+
+    default_image_dataset.transforms = transforms
+
+    if (
+        not isinstance(transforms, MinervaCompose)
+        and not callable(transforms)
+        and transforms is not None
+    ):
+        with pytest.raises(TypeError):
+            _ = mdt.init_auto_norm(default_image_dataset, params)
+    else:
+        dataset = mdt.init_auto_norm(default_image_dataset, params)
+        assert isinstance(dataset, RasterDataset)
+        assert isinstance(dataset.transforms.transforms[-1], AutoNorm)  # type: ignore[union-attr]
 
 
 @pytest.mark.parametrize(
@@ -313,17 +343,16 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
 )
 def test_construct_dataloader(
     exp_dataset_params: Dict[str, Any],
+    data_root: Path,
     sampler_params: Dict[str, Any],
     kwargs: Dict[str, Any],
 ) -> None:
-    data_dir = ["tests", "tmp", "data"]
-
     batch_size = 256
 
     dataloader_params = {"num_workers": 2, "pin_memory": True}
 
     dataloader = mdt.construct_dataloader(
-        data_dir,
+        data_root,
         exp_dataset_params,
         sampler_params,
         dataloader_params,
