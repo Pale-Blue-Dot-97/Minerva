@@ -533,13 +533,21 @@ def init_auto_norm(dataset: RasterDataset, params: Dict[str, Any]) -> RasterData
     # Creates the AutoNorm transform by sampling `dataset` for its mean and standard deviation stats.
     auto_norm = AutoNorm(dataset, **params)
 
-    # If the existing transforms are already `MinervaCompose`, we can just add the AutoNorm transform on.
-    if isinstance(dataset.transforms, MinervaCompose):
-        dataset.transforms += auto_norm
-
-    # Else, take the existing transforms list, add AutoNorm, making into `MinervaCompose` and set back to `dataset`.
+    if dataset.transforms is None:
+        dataset.transforms = MinervaCompose(auto_norm)
     else:
-        dataset.transforms = MinervaCompose(dataset.transforms + auto_norm)
+        # If the existing transforms are already `MinervaCompose`, we can just add the AutoNorm transform on.
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += auto_norm
+
+        # If existing transforms are a callable, place in a list with AutoNorm and make in `MinervaCompose`.
+        elif callable(dataset.transforms):
+            dataset.transforms = MinervaCompose([dataset.transforms, auto_norm])
+        else:
+            raise TypeError(
+                f"The type of datset.transforms, {type(dataset.transforms)}, is not supported"
+            )
+
     return dataset
 
 
@@ -626,9 +634,8 @@ def make_dataset(
             # If there are transforms specified, make them. These could cover a single dataset or many.
             elif area_key == "transforms":
                 if isinstance(type_dataset_params[area_key], dict):
-                    transform_params = type_dataset_params[area_key].copy()
-                    if "AutoNorm" in transform_params.keys():
-                        auto_norm = transform_params.pop("AutoNorm")
+                    transform_params = type_dataset_params[area_key]
+                    auto_norm = transform_params.get("AutoNorm")
                 else:
                     transform_params = False
 
@@ -642,9 +649,13 @@ def make_dataset(
                     type_dataset_params, area_key
                 )
 
-                transformations = make_transformations(
-                    type_dataset_params[area_key].get("transforms", False), type_key
-                )
+                if isinstance(type_dataset_params[area_key].get("transforms"), dict):
+                    transform_params = type_dataset_params[area_key]["transforms"]
+                    auto_norm = transform_params.get("AutoNorm")
+                else:
+                    transform_params = False
+
+                transformations = make_transformations(transform_params, type_key)
 
                 # Send the params for this area key back through this function to make the sub-dataset.
                 sub_dataset = create_subdataset(
@@ -696,7 +707,7 @@ def make_dataset(
 
             sub_datasets.append(sub_dataset)
 
-    # Intersect sub-datasets of dithering modailities together to form single dataset if more than one sub-dataset exists.
+    # Intersect sub-datasets of differing modalities together to form single dataset if more than one sub-dataset exists.
     # Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
