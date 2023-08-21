@@ -671,7 +671,7 @@ def make_dataset(
                     if isinstance(sub_dataset, RasterDataset):
                         init_auto_norm(sub_dataset, auto_norm)
                     else:
-                        raise TypeError(
+                        raise TypeError(  # pragma: no cover
                             f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
                         )
 
@@ -698,7 +698,7 @@ def make_dataset(
                 if isinstance(sub_dataset, RasterDataset):
                     init_auto_norm(sub_dataset, auto_norm)
                 else:
-                    raise TypeError(
+                    raise TypeError(  # pragma: no cover
                         f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
                     )
 
