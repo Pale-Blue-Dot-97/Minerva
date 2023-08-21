@@ -328,9 +328,7 @@ def default_image_dataset(exp_dataset_params: Dict[str, Any]) -> RasterDataset:
 def exp_dataset_params() -> Dict[str, Any]:
     return {
         "image": {
-            "transforms": {
-                "Normalise": {"module": "minerva.transforms", "norm_value": 255}
-            },
+            "transforms": {"AutoNorm": {"length": 12}},
             "module": "minerva.datasets",
             "name": "TstImgDataset",
             "root": "test_images",
