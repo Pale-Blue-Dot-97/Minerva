@@ -697,13 +697,13 @@ def make_dataset(
             if auto_norm:
                 if isinstance(sub_dataset, RasterDataset):
                     init_auto_norm(sub_dataset, auto_norm)
+
+                    # Reset back to None.
+                    auto_norm = None
                 else:
                     raise TypeError(  # pragma: no cover
                         f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
                     )
-
-                # Reset back to None.
-                auto_norm = None
 
             sub_datasets.append(sub_dataset)
 
