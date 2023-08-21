@@ -88,6 +88,7 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from matplotlib.figure import Figure
 from nptyping import NDArray
 from pandas import DataFrame
+from rasterio.crs import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datasets import (
     NAIP,
