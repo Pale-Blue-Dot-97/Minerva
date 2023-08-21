@@ -87,6 +87,7 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from matplotlib.figure import Figure
 from nptyping import NDArray
 from pandas import DataFrame
+from rasterio.crs import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datasets import (
     NAIP,
@@ -96,7 +97,6 @@ from torchgeo.datasets import (
     Sentinel2,
     UnionDataset,
 )
-from rasterio.crs import CRS
 from torchgeo.datasets.utils import (
     BoundingBox,
     concat_samples,
@@ -107,7 +107,7 @@ from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import get_random_bounding_box
 from torchvision.transforms import RandomApply
 
-from minerva.transforms import MinervaCompose
+from minerva.transforms import AutoNorm, MinervaCompose
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
 # =====================================================================================================================
@@ -164,7 +164,7 @@ class SSL4EOS12Sentinel2(Sentinel2):
     """
 
     filename_glob = "{}.*"
-    filename_regex = ""
+    filename_regex = r"""(?P<band>B[^[0-1]?[0-9]|B[^[1]?[0-9][\dA])\..*$"""
     date_format = ""
     all_bands = [
         "B1",
@@ -231,12 +231,11 @@ class PairedDataset(RasterDataset):
                 key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
             }
 
-            # Special case to prevent bands kwarg going to RasterDataset due to torchgeo exception logic.
-            if super_kwargs.get("bands"):
-                del super_kwargs["bands"]
+            if issubclass(dataset, RasterDataset):  # type: ignore[arg-type]
+                # This is very sketchy but an unavoidable workaround due to TorchGeo's behaviour.
+                RasterDataset.filename_glob = dataset.filename_glob  # type: ignore[attr-defined]
+                RasterDataset.filename_regex = dataset.filename_regex  # type: ignore[attr-defined]
 
-            RasterDataset.filename_glob = dataset.filename_glob
-            RasterDataset.filename_regex = dataset.filename_regex
             super().__init__(*args, **super_kwargs)
             self.dataset = dataset(*args, **kwargs)
 
@@ -520,6 +519,39 @@ def unionise_datasets(
     return master_dataset
 
 
+def init_auto_norm(dataset: RasterDataset, params: Dict[str, Any]) -> RasterDataset:
+    """Uses :class:~`minerva.transforms.AutoNorm` to automatically find the mean and standard deviation of `dataset`
+    to create a normalisation transform that is then added to the existing transforms of `dataset`.
+
+    Args:
+        dataset (RasterDataset): Dataset to find and apply the normalisation conditions to.
+        params (Dict[str, Any]): Parameters for :class:~`minerva.transforms.AutoNorm`.
+
+    Returns:
+        RasterDataset: `dataset` with an additional :class:~`minerva.transforms.AutoNorm` transform
+        added to it's :attr:~`torchgeo.datasets.RasterDataset.transforms` attribute.
+    """
+    # Creates the AutoNorm transform by sampling `dataset` for its mean and standard deviation stats.
+    auto_norm = AutoNorm(dataset, **params)
+
+    if dataset.transforms is None:
+        dataset.transforms = MinervaCompose(auto_norm)
+    else:
+        # If the existing transforms are already `MinervaCompose`, we can just add the AutoNorm transform on.
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += auto_norm
+
+        # If existing transforms are a callable, place in a list with AutoNorm and make in `MinervaCompose`.
+        elif callable(dataset.transforms):
+            dataset.transforms = MinervaCompose([dataset.transforms, auto_norm])
+        else:
+            raise TypeError(
+                f"The type of datset.transforms, {type(dataset.transforms)}, is not supported"
+            )
+
+    return dataset
+
+
 def make_dataset(
     data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
@@ -595,44 +627,94 @@ def make_dataset(
         type_subdatasets = []
 
         multi_datasets_exist = False
+
+        auto_norm = None
         master_transforms: Optional[Any] = None
         for area_key in type_dataset_params.keys():
+            # If any of these keys are present, this must be a parameter set for a singular dataset at this level.
             if area_key in ("module", "name", "params", "root"):
                 multi_datasets_exist = False
                 continue
+
+            # If there are transforms specified, make them. These could cover a single dataset or many.
             elif area_key == "transforms":
-                master_transforms = make_transformations(
-                    type_dataset_params[area_key], type_key
-                )
+                if isinstance(type_dataset_params[area_key], dict):
+                    transform_params = type_dataset_params[area_key]
+                    auto_norm = transform_params.get("AutoNorm")
+                else:
+                    transform_params = False
+
+                master_transforms = make_transformations(transform_params, type_key)
+
+            # Assuming that these keys are names of datasets.
             else:
                 multi_datasets_exist = True
+
                 _subdataset, subdataset_root = get_subdataset(
                     type_dataset_params, area_key
                 )
-                transformations = make_transformations(
-                    type_dataset_params[area_key].get("transforms", False), type_key
-                )
-                type_subdatasets.append(
-                    create_subdataset(
-                        _subdataset,
-                        subdataset_root,
-                        type_dataset_params[area_key],
-                        transformations,
-                    )
+
+                if isinstance(type_dataset_params[area_key].get("transforms"), dict):
+                    transform_params = type_dataset_params[area_key]["transforms"]
+                    auto_norm = transform_params.get("AutoNorm")
+                else:
+                    transform_params = False
+
+                transformations = make_transformations(transform_params, type_key)
+
+                # Send the params for this area key back through this function to make the sub-dataset.
+                sub_dataset = create_subdataset(
+                    _subdataset,
+                    subdataset_root,
+                    type_dataset_params[area_key],
+                    transformations,
                 )
 
+                # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
+                # to make a transform, then adds the transform to the dataset's existing transforms.
+                if auto_norm:
+                    if isinstance(sub_dataset, RasterDataset):
+                        init_auto_norm(sub_dataset, auto_norm)
+                    else:
+                        raise TypeError(  # pragma: no cover
+                            "AutoNorm only supports normalisation of data "
+                            + f"from RasterDatasets, not {type(sub_dataset)}!"
+                        )
+
+                    # Reset back to None.
+                    auto_norm = None
+
+                type_subdatasets.append(sub_dataset)
+
+        # Unionise all the sub-datsets of this modality together.
         if multi_datasets_exist:
             sub_datasets.append(unionise_datasets(type_subdatasets, master_transforms))
+
+        # Add the subdataset of this modality to the list.
         else:
-            sub_datasets.append(
-                create_subdataset(
-                    *get_subdataset(dataset_params, type_key),
-                    type_dataset_params,
-                    master_transforms,
-                )
+            sub_dataset = create_subdataset(
+                *get_subdataset(dataset_params, type_key),
+                type_dataset_params,
+                master_transforms,
             )
 
-    # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
+            # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
+            # to make a transform, then adds the transform to the dataset's existing transforms.
+            if auto_norm:
+                if isinstance(sub_dataset, RasterDataset):
+                    init_auto_norm(sub_dataset, auto_norm)
+
+                    # Reset back to None.
+                    auto_norm = None
+                else:
+                    raise TypeError(  # pragma: no cover
+                        f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
+                    )
+
+            sub_datasets.append(sub_dataset)
+
+    # Intersect sub-datasets of differing modalities together to form single dataset
+    # if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
         dataset = intersect_datasets(sub_datasets)
@@ -641,7 +723,7 @@ def make_dataset(
 
 
 def construct_dataloader(
-    data_directory: Iterable[str],
+    data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[str, Any],
     sampler_params: Dict[str, Any],
     dataloader_params: Dict[str, Any],
@@ -862,6 +944,10 @@ def make_transformations(
         elif name == "RandomApply":
             random_params = transform_params[name].copy()
             transformations.append(_construct_random_transforms(random_params))
+
+        # AutoNorm needs to be handled separately.
+        elif name == "AutoNorm":
+            continue
 
         else:
             transformations.append(get_transform(name, transform_params[name]))
