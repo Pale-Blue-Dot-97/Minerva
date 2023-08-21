@@ -98,7 +98,6 @@ from torchgeo.datasets import (
     Sentinel2,
     UnionDataset,
 )
-from rasterio.crs import CRS
 from torchgeo.datasets.utils import (
     BoundingBox,
     concat_samples,
