@@ -98,6 +98,7 @@ from torchgeo.datasets import (
     Sentinel2,
     UnionDataset,
 )
+from rasterio.crs import CRS
 from torchgeo.datasets.utils import (
     BoundingBox,
     concat_samples,
@@ -236,6 +237,8 @@ class PairedDataset(RasterDataset):
             if super_kwargs.get("bands"):
                 del super_kwargs["bands"]
 
+            RasterDataset.filename_glob = dataset.filename_glob
+            RasterDataset.filename_regex = dataset.filename_regex
             super().__init__(*args, **super_kwargs)
             self.dataset = dataset(*args, **kwargs)
 
@@ -596,6 +599,10 @@ def make_dataset(
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
         _transformations: Optional[Any],
     ) -> GeoDataset:
+        if "crs" in subdataset_params["params"]:
+            subdataset_params["params"]["crs"] = CRS.from_epsg(
+                subdataset_params["params"]["crs"]
+            )
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
