@@ -1273,7 +1273,7 @@ def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
         list[str]: List of strings representing dates of the selected scenes in ``YY_MM_DD`` format.
     """
     dates = df.loc[df["COVER"] < thres]["DATE"].tolist()
-    assert type(dates) == list
+    assert isinstance(dates, list)
     return dates
 
 

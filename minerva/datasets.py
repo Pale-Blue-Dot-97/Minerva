@@ -1023,7 +1023,7 @@ def make_loaders(
     forwards: Dict[int, int] = {}
 
     sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
-    if type(sample_pairs) != bool:
+    if not isinstance(sample_pairs, bool):
         sample_pairs = False
 
     if not utils.check_substrings_in_string(model_type, "siamese"):
@@ -1175,7 +1175,7 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     # sample the dataset. We need the original, un-transformed labels.
     for mode in dataset_params.keys():
         if "transforms" in dataset_params[mode]["mask"]:
-            if type(dataset_params[mode]["mask"]["transforms"]) == dict:
+            if isinstance(dataset_params[mode]["mask"]["transforms"], dict):
                 if "ClassTransform" in dataset_params[mode]["mask"]["transforms"]:
                     del dataset_params[mode]["mask"]["transforms"]["ClassTransform"]
 
