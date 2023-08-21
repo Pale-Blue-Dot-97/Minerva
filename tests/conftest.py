@@ -312,18 +312,14 @@ def simple_bbox() -> BoundingBox:
 
 @pytest.fixture
 def default_dataset() -> IntersectionDataset:
-    print(os.getcwd())
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
     assert isinstance(dataset, IntersectionDataset)
     return dataset
 
 
 @pytest.fixture
-def default_image_dataset() -> RasterDataset:
-    print(os.getcwd())
-    params = CONFIG.copy()
-    del params["dataset_params"]["test"]["mask"]
-    dataset, _ = make_dataset(params["dir"]["data"], params["dataset_params"]["test"])
+def default_image_dataset(exp_dataset_params: Dict[str, Any]) -> RasterDataset:
+    dataset, _ = make_dataset(CONFIG["dir"]["data"], exp_dataset_params)
     assert isinstance(dataset, RasterDataset)
     return dataset
 
