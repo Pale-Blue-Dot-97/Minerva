@@ -717,7 +717,7 @@ def make_dataset(
 
 
 def construct_dataloader(
-    data_directory: Iterable[str],
+    data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[str, Any],
     sampler_params: Dict[str, Any],
     dataloader_params: Dict[str, Any],

@@ -220,16 +220,14 @@ def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
     assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
 
 
-def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
-    data_dir = ["tests", "tmp", "data"]
-
-    dataset_1, subdatasets_1 = mdt.make_dataset(data_dir, exp_dataset_params)
+def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> None:
+    dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params)
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, TstImgDataset)
 
     dataset_2, subdatasets_2 = mdt.make_dataset(
-        data_dir,
+        data_root,
         exp_dataset_params,
         sample_pairs=True,
     )
@@ -240,8 +238,8 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
     exp_dataset_params["mask"] = {
         "module": "minerva.datasets",
         "name": "TstMaskDataset",
-        "root": "test_lc",
-        "params": {"res": 10.0},
+        "root": "Chesapeake7",
+        "params": {"res": 1.0},
     }
 
     dataset_params2 = {
@@ -252,12 +250,12 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
         "mask": exp_dataset_params["mask"],
     }
 
-    dataset_3, subdatasets_3 = mdt.make_dataset(data_dir, dataset_params2)
+    dataset_3, subdatasets_3 = mdt.make_dataset(data_root, dataset_params2)
     assert isinstance(dataset_3, IntersectionDataset)
     assert isinstance(subdatasets_3[0], UnionDataset)
 
     dataset_4, subdatasets_4 = mdt.make_dataset(
-        data_dir,
+        data_root,
         dataset_params2,
         sample_pairs=True,
     )
@@ -269,7 +267,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
     dataset_params3["image"]["image_2"]["transforms"] = {"AutoNorm": {"length": 12}}
     dataset_params3["image"]["transforms"] = {"AutoNorm": {"length": 12}}
 
-    dataset_5, subdatasets_5 = mdt.make_dataset(data_dir, dataset_params3)
+    dataset_5, subdatasets_5 = mdt.make_dataset(data_root, dataset_params3)
 
     assert isinstance(dataset_5, IntersectionDataset)
     assert isinstance(subdatasets_5[0], UnionDataset)
@@ -345,17 +343,16 @@ def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> Non
 )
 def test_construct_dataloader(
     exp_dataset_params: Dict[str, Any],
+    data_root: Path,
     sampler_params: Dict[str, Any],
     kwargs: Dict[str, Any],
 ) -> None:
-    data_dir = ["tests", "tmp", "data"]
-
     batch_size = 256
 
     dataloader_params = {"num_workers": 2, "pin_memory": True}
 
     dataloader = mdt.construct_dataloader(
-        data_dir,
+        data_root,
         exp_dataset_params,
         sampler_params,
         dataloader_params,

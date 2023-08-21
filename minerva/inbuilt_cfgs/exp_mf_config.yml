@@ -5,7 +5,7 @@
 dir:
     data:
         - tests
-        - tmp
+        - fixtures
         - data
     configs:
         data_config: minerva/inbuilt_cfgs/Chesapeake7.yml
@@ -20,15 +20,15 @@ dataset_params:
         image:
             module: minerva.datasets
             name: TestImgDataset
-            root: test_images
+            root: NAIP
             params:
-                res: 10.0
+                res: 1.0
         mask:
             module: minerva.datasets
             name: TestMaskDataset
-            root: test_lc
+            root: Chesapeake7
             params:
-                res: 10.0
+                res: 1.0
 
 
 # === SAMPLER PARAMETERS ======================================================

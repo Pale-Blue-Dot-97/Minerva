@@ -9,7 +9,7 @@
 #
 # === PATHS ===================================================================
 dir:
-    data: tests/tmp/data
+    data: tests/fixtures/data
     configs:
         data_config: Chesapeake7.yml
         imagery_config: NAIP.yml
@@ -100,7 +100,7 @@ dataset_params:
                     norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
-            root: test_images
+            root: NAIP
             params:
                 res: 1.0
         mask:
@@ -110,7 +110,7 @@ dataset_params:
                     mode: modal
             module: minerva.datasets
             name: TstMaskDataset
-            root: test_lc
+            root: Chesapeake7
             params:
                 res: 1.0
 
@@ -131,7 +131,7 @@ dataset_params:
                     norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
-            root: test_images
+            root: NAIP
             params:
                 res: 1.0
 
@@ -142,7 +142,7 @@ dataset_params:
                     mode: modal
             module: minerva.datasets
             name: TstMaskDataset
-            root: test_lc
+            root: Chesapeake7
             params:
                 res: 1.0
 
@@ -163,7 +163,7 @@ dataset_params:
                     norm_value: 255
             module: minerva.datasets
             name: TstImgDataset
-            root: test_images
+            root: NAIP
             params:
                 res: 1.0
 
@@ -174,7 +174,7 @@ dataset_params:
                     mode: modal
             module: minerva.datasets
             name: TstMaskDataset
-            root: test_lc
+            root: Chesapeake7
             params:
                 res: 1.0
 

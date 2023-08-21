@@ -87,23 +87,30 @@ def results_dir() -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def data_root() -> Path:
+def results_root() -> Path:
     return Path(__file__).parent / "tmp" / "results"
 
 
 @pytest.fixture
+def data_root() -> Path:
+    return Path(__file__).parent / "fixtures" / "data"
+
+
+@pytest.fixture
 def img_root(data_root: Path) -> Path:
-    return data_root.parent / "data" / "test_images"
+    return data_root / "NAIP"
 
 
 @pytest.fixture
 def lc_root(data_root: Path) -> Path:
-    return data_root.parent / "data" / "test_lc"
+    return data_root / "Chesapeake7"
 
 
 @pytest.fixture
-def config_root(inbuilt_cfg_root: Path, data_root: Path) -> Generator[Path, None, None]:
-    config_path = data_root.parent / "config"
+def config_root(
+    inbuilt_cfg_root: Path, results_root: Path
+) -> Generator[Path, None, None]:
+    config_path = results_root.parent / "config"
 
     # Make a temporary copy of a config manifest example
     os.makedirs(config_path, exist_ok=True)
@@ -331,8 +338,8 @@ def exp_dataset_params() -> Dict[str, Any]:
             "transforms": {"AutoNorm": {"length": 12}},
             "module": "minerva.datasets",
             "name": "TstImgDataset",
-            "root": "test_images",
-            "params": {"res": 10.0},
+            "root": "NAIP",
+            "params": {"res": 1.0},
         }
     }
 
