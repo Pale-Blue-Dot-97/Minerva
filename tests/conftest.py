@@ -49,7 +49,7 @@ import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
 from torch import LongTensor, Tensor
-from torchgeo.datasets import GeoDataset
+from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.datasets import make_dataset
@@ -311,10 +311,20 @@ def simple_bbox() -> BoundingBox:
 
 
 @pytest.fixture
-def default_dataset() -> GeoDataset:
+def default_dataset() -> IntersectionDataset:
     print(os.getcwd())
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
-    assert isinstance(dataset, GeoDataset)
+    assert isinstance(dataset, IntersectionDataset)
+    return dataset
+
+
+@pytest.fixture
+def default_image_dataset() -> RasterDataset:
+    print(os.getcwd())
+    params = CONFIG.copy()
+    del params["dataset_params"]["test"]["mask"]
+    dataset, _ = make_dataset(params["dir"]["data"], params["dataset_params"]["test"])
+    assert isinstance(dataset, RasterDataset)
     return dataset
 
 
