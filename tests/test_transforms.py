@@ -43,9 +43,11 @@ import torch
 from numpy.testing import assert_array_equal
 from pytest_lazyfixture import lazy_fixture
 from torch import FloatTensor, LongTensor
+from torchgeo.datasets import RasterDataset
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
 
 from minerva.transforms import (
+    AutoNorm,
     ClassTransform,
     DetachedColorJitter,
     MinervaCompose,
@@ -337,3 +339,8 @@ def test_swap_keys(random_rgbi_tensor, random_tensor_mask) -> None:
     assert_array_equal(out_sample["image"], correct_out_sample["image"])
     assert_array_equal(out_sample["mask"], correct_out_sample["mask"])
     assert repr(transform) == "SwapKeys(mask -> image)"
+
+
+def test_auto_norm(default_image_dataset: RasterDataset, random_rgbi_tensor):
+    auto_norm = AutoNorm(default_image_dataset, 12)
+    assert isinstance(auto_norm(random_rgbi_tensor), FloatTensor)

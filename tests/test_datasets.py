@@ -262,6 +262,16 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
     assert isinstance(dataset_4, IntersectionDataset)
     assert isinstance(subdatasets_4[0], UnionDataset)
 
+    dataset_params3 = dataset_params2
+    dataset_params3["image"]["image_1"]["transforms"] = {"AutoNorm": {"length": 12}}
+    dataset_params3["image"]["image_2"]["transforms"] = {"AutoNorm": {"length": 12}}
+    dataset_params3["image"]["transforms"] = {"AutoNorm": {"length": 12}}
+
+    dataset_5, subdatasets_5 = mdt.make_dataset(data_dir, dataset_params3)
+
+    assert isinstance(dataset_5, IntersectionDataset)
+    assert isinstance(subdatasets_5[0], UnionDataset)
+
 
 @pytest.mark.parametrize(
     ["sampler_params", "kwargs"],
