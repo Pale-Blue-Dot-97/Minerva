@@ -88,6 +88,7 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from matplotlib.figure import Figure
 from nptyping import NDArray
 from pandas import DataFrame
+from rasterio.crs import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datasets import (
     NAIP,
@@ -235,6 +236,8 @@ class PairedDataset(RasterDataset):
             if super_kwargs.get("bands"):
                 del super_kwargs["bands"]
 
+            RasterDataset.filename_glob = dataset.filename_glob
+            RasterDataset.filename_regex = dataset.filename_regex
             super().__init__(*args, **super_kwargs)
             self.dataset = dataset(*args, **kwargs)
 
@@ -595,6 +598,10 @@ def make_dataset(
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
         _transformations: Optional[Any],
     ) -> GeoDataset:
+        if "crs" in subdataset_params["params"]:
+            subdataset_params["params"]["crs"] = CRS.from_epsg(
+                subdataset_params["params"]["crs"]
+            )
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
