@@ -290,7 +290,7 @@ def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> Non
     if (
         not isinstance(transforms, MinervaCompose)
         and not callable(transforms)
-        and not transforms is None
+        and transforms is not None
     ):
         with pytest.raises(TypeError):
             _ = mdt.init_auto_norm(default_image_dataset, params)

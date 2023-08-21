@@ -74,7 +74,6 @@ from typing import (
     Sequence,
     Tuple,
     Union,
-    cast,
     overload,
 )
 
@@ -232,7 +231,7 @@ class PairedDataset(RasterDataset):
                 key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
             }
 
-            if dataset == RasterDataset:
+            if issubclass(dataset, RasterDataset):  # type: ignore[arg-type]
                 # This is very sketchy but an unavoidable workaround due to TorchGeo's behaviour.
                 RasterDataset.filename_glob = dataset.filename_glob  # type: ignore[attr-defined]
                 RasterDataset.filename_regex = dataset.filename_regex  # type: ignore[attr-defined]
@@ -671,14 +670,15 @@ def make_dataset(
                     transformations,
                 )
 
-                # Performs an auto-normalisation initialisation which finds the mean and std of the dataset to make a transform,
-                # then adds the transform to the dataset's existing transforms.
+                # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
+                # to make a transform, then adds the transform to the dataset's existing transforms.
                 if auto_norm:
                     if isinstance(sub_dataset, RasterDataset):
                         init_auto_norm(sub_dataset, auto_norm)
                     else:
                         raise TypeError(  # pragma: no cover
-                            f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
+                            "AutoNorm only supports normalisation of data "
+                            + f"from RasterDatasets, not {type(sub_dataset)}!"
                         )
 
                     # Reset back to None.
@@ -698,8 +698,8 @@ def make_dataset(
                 master_transforms,
             )
 
-            # Performs an auto-normalisation initialisation which finds the mean and std of the dataset to make a transform,
-            # then adds the transform to the dataset's existing transforms.
+            # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
+            # to make a transform, then adds the transform to the dataset's existing transforms.
             if auto_norm:
                 if isinstance(sub_dataset, RasterDataset):
                     init_auto_norm(sub_dataset, auto_norm)
@@ -713,8 +713,8 @@ def make_dataset(
 
             sub_datasets.append(sub_dataset)
 
-    # Intersect sub-datasets of differing modalities together to form single dataset if more than one sub-dataset exists.
-    # Else, just set that to dataset.
+    # Intersect sub-datasets of differing modalities together to form single dataset
+    # if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
         dataset = intersect_datasets(sub_datasets)
