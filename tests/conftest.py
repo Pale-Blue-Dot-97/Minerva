@@ -48,11 +48,12 @@ import pytest
 import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
+from rasterio.crs import CRS
 from torch import LongTensor, Tensor
 from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.datasets import make_dataset
+from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
 from minerva.models import CNN, MLP, MinervaModel
 from minerva.utils import CONFIG, utils
 
@@ -318,6 +319,19 @@ def simple_bbox() -> BoundingBox:
 
 
 @pytest.fixture
+def exp_dataset_params() -> Dict[str, Any]:
+    return {
+        "image": {
+            "transforms": {"AutoNorm": {"length": 12}},
+            "module": "minerva.datasets",
+            "name": "TstImgDataset",
+            "root": "NAIP",
+            "params": {"res": 1.0},
+        }
+    }
+
+
+@pytest.fixture
 def default_dataset() -> IntersectionDataset:
     dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
     assert isinstance(dataset, IntersectionDataset)
@@ -332,19 +346,18 @@ def default_image_dataset(exp_dataset_params: Dict[str, Any]) -> RasterDataset:
 
 
 @pytest.fixture
-def exp_dataset_params() -> Dict[str, Any]:
-    return {
-        "image": {
-            "transforms": {"AutoNorm": {"length": 12}},
-            "module": "minerva.datasets",
-            "name": "TstImgDataset",
-            "root": "NAIP",
-            "params": {"res": 1.0},
-        }
-    }
+def ssl4eo_s12_dataset(data_root: Path, epsg3857: CRS) -> RasterDataset:
+    return SSL4EOS12Sentinel2(
+        str(data_root / "SSL4EO-S12"), epsg3857, 10.0, bands=["B2", "B3", "B4", "B8"]
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
 def wandb_offline() -> Generator[int, None, None]:
     yield os.system("wandb offline")  # nosec B605, B607
     os.system("wandb online")  # nosec B605, B607
+
+
+@pytest.fixture
+def epsg3857() -> CRS:
+    return CRS.from_epsg("3857")

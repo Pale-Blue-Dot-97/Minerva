@@ -341,6 +341,10 @@ def test_swap_keys(random_rgbi_tensor, random_tensor_mask) -> None:
     assert repr(transform) == "SwapKeys(mask -> image)"
 
 
-def test_auto_norm(default_image_dataset: RasterDataset, random_rgbi_tensor):
-    auto_norm = AutoNorm(default_image_dataset, 12)
+@pytest.mark.parametrize(
+    "dataset",
+    [lazy_fixture("default_image_dataset"), lazy_fixture("ssl4eo_s12_dataset")],
+)
+def test_auto_norm(dataset: RasterDataset, random_rgbi_tensor):
+    auto_norm = AutoNorm(dataset, 12)
     assert isinstance(auto_norm(random_rgbi_tensor), FloatTensor)
