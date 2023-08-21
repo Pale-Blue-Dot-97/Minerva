@@ -220,7 +220,7 @@ class AutoNorm(Normalize):
         hits = self.dataset.index.intersection(tuple(query), objects=True)
         filepaths = cast(list[str], [hit.object for hit in hits])
 
-        if not filepaths:
+        if not filepaths:  # pragma: no cover
             raise IndexError(
                 f"query: {query} not found in index with bounds: {self.dataset.bounds}"
             )
