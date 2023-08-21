@@ -48,9 +48,10 @@ from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 from torch import Tensor
 from torch.utils.data import DataLoader
-from torchgeo.datasets import IntersectionDataset, UnionDataset
+from torchgeo.datasets import IntersectionDataset, RasterDataset, UnionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
+from torchvision.transforms import RandomHorizontalFlip
 
 from minerva import datasets as mdt
 from minerva.datasets import (
@@ -59,6 +60,7 @@ from minerva.datasets import (
     TstImgDataset,
     TstMaskDataset,
 )
+from minerva.transforms import AutoNorm, MinervaCompose
 from minerva.utils.utils import CONFIG
 
 
@@ -271,6 +273,33 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any]) -> None:
 
     assert isinstance(dataset_5, IntersectionDataset)
     assert isinstance(subdatasets_5[0], UnionDataset)
+
+
+@pytest.mark.parametrize(
+    "transforms",
+    [
+        None,
+        MinervaCompose(RandomHorizontalFlip()),
+        RandomHorizontalFlip(),
+        [RandomHorizontalFlip()],
+    ],
+)
+def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> None:
+    params = {"length": 12}
+
+    default_image_dataset.transforms = transforms
+
+    if (
+        not isinstance(transforms, MinervaCompose)
+        and not callable(transforms)
+        and not transforms is None
+    ):
+        with pytest.raises(TypeError):
+            _ = mdt.init_auto_norm(default_image_dataset, params)
+    else:
+        dataset = mdt.init_auto_norm(default_image_dataset, params)
+        assert isinstance(dataset, RasterDataset)
+        assert isinstance(dataset.transforms.transforms[-1], AutoNorm)  # type: ignore[union-attr]
 
 
 @pytest.mark.parametrize(
