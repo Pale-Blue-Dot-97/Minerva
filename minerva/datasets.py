@@ -224,6 +224,8 @@ class PairedDataset(RasterDataset):
     ) -> None:
         if isinstance(dataset, GeoDataset):
             self.dataset = dataset
+            self._res = dataset.res
+            self._crs = dataset.crs
 
         elif callable(dataset):
             super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
@@ -519,7 +521,9 @@ def unionise_datasets(
     return master_dataset
 
 
-def init_auto_norm(dataset: RasterDataset, params: Dict[str, Any]) -> RasterDataset:
+def init_auto_norm(
+    dataset: RasterDataset, params: Dict[str, Any] = {}
+) -> RasterDataset:
     """Uses :class:~`minerva.transforms.AutoNorm` to automatically find the mean and standard deviation of `dataset`
     to create a normalisation transform that is then added to the existing transforms of `dataset`.
 
