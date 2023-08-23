@@ -48,19 +48,13 @@ from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
 from torch import Tensor
 from torch.utils.data import DataLoader
-from torchgeo.datasets import IntersectionDataset, RasterDataset, UnionDataset
+from torchgeo.datasets import IntersectionDataset, UnionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
-from torchvision.transforms import RandomHorizontalFlip
 
 from minerva import datasets as mdt
-from minerva.datasets import (
-    PairedDataset,
-    PairedUnionDataset,
-    TstImgDataset,
-    TstMaskDataset,
-)
-from minerva.transforms import AutoNorm, MinervaCompose
+from minerva.datasets import PairedDataset, PairedUnionDataset
+from minerva.datasets.__testing import TstImgDataset, TstMaskDataset
 from minerva.utils.utils import CONFIG
 
 
@@ -236,7 +230,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
     assert isinstance(dataset_2, PairedDataset)
 
     exp_dataset_params["mask"] = {
-        "module": "minerva.datasets",
+        "module": "minerva.datasets.__testing",
         "name": "TstMaskDataset",
         "root": "Chesapeake7",
         "params": {"res": 1.0},
@@ -271,33 +265,6 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
 
     assert isinstance(dataset_5, IntersectionDataset)
     assert isinstance(subdatasets_5[0], UnionDataset)
-
-
-@pytest.mark.parametrize(
-    "transforms",
-    [
-        None,
-        MinervaCompose(RandomHorizontalFlip()),
-        RandomHorizontalFlip(),
-        [RandomHorizontalFlip()],
-    ],
-)
-def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> None:
-    params = {"length": 12}
-
-    default_image_dataset.transforms = transforms
-
-    if (
-        not isinstance(transforms, MinervaCompose)
-        and not callable(transforms)
-        and transforms is not None
-    ):
-        with pytest.raises(TypeError):
-            _ = mdt.init_auto_norm(default_image_dataset, params)
-    else:
-        dataset = mdt.init_auto_norm(default_image_dataset, params)
-        assert isinstance(dataset, RasterDataset)
-        assert isinstance(dataset.transforms.transforms[-1], AutoNorm)  # type: ignore[union-attr]
 
 
 @pytest.mark.parametrize(
@@ -362,64 +329,6 @@ def test_construct_dataloader(
     )
 
     assert isinstance(dataloader, DataLoader)
-
-
-def test_get_transform() -> None:
-    name = "RandomResizedCrop"
-    params = {"module": "torchvision.transforms", "size": 128}
-    transform = mdt.get_transform(name, params)
-
-    assert callable(transform)
-
-    with pytest.raises(TypeError):
-        _ = mdt.get_transform("DataFrame", {"module": "pandas"})
-
-
-@pytest.mark.parametrize(
-    ["params", "key"],
-    [
-        (
-            {
-                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-            },
-            None,
-        ),
-        (
-            {
-                "RandomApply": {
-                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-                    "p": 0.3,
-                },
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-            },
-            None,
-        ),
-        (
-            {
-                "MinervaCompose": {
-                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-                    "RandomHorizontalFlip": {
-                        "module": "torchvision.transforms",
-                        "p": 0.7,
-                    },
-                },
-                "RandomApply": {
-                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-                    "p": 0.3,
-                },
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
-            },
-            "image",
-        ),
-    ],
-)
-def test_make_transformations(params: Dict[str, Any], key: str) -> None:
-    if params:
-        transforms = mdt.make_transformations(params, key)
-        assert callable(transforms)
-    else:
-        assert mdt.make_transformations(False) is None
 
 
 def test_make_loaders() -> None:
