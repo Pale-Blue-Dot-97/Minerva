@@ -318,7 +318,7 @@ class MinervaDataParallel(Module):  # pragma: no cover
         try:
             return super().__getattr__(name)
         except AttributeError:
-            return getattr(self.model.module, name)
+            return getattr(self.model, name)
 
     def __repr__(self) -> Any:
         return self.model.__repr__()
