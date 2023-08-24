@@ -1086,7 +1086,7 @@ class Trainer:
 
                 # Get features from passing the input data through the model.
                 if utils.check_substrings_in_string(self.model_type, "siamese"):
-                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
+                    # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
                     if dist.is_available() and dist.is_initialized():
                         assert isinstance(self.model.model.module, MinervaSiamese)
                     else:
