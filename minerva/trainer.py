@@ -1050,7 +1050,10 @@ class Trainer:
                 # Get features from passing the input data through the model.
                 if utils.check_substrings_in_string(self.model_type, "siamese"):
                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                    assert isinstance(self.model, MinervaSiamese)
+                    if dist.is_available() and dist.is_initialized():
+                        assert isinstance(self.model.model.module, MinervaSiamese)
+                    else:
+                        assert isinstance(self.model, MinervaSiamese)
 
                     # Ensures that the data is parsed through a single head of the model rather than paired.
                     feature, _ = self.model.forward_single(val_data)
@@ -1083,8 +1086,11 @@ class Trainer:
 
                 # Get features from passing the input data through the model.
                 if utils.check_substrings_in_string(self.model_type, "siamese"):
-                    # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                    assert isinstance(self.model, MinervaSiamese)
+                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
+                    if dist.is_available() and dist.is_initialized():
+                        assert isinstance(self.model.model.module, MinervaSiamese)
+                    else:
+                        assert isinstance(self.model, MinervaSiamese)
 
                     # Ensures that the data is parsed through a single head of the model rather than paired.
                     feature, _ = self.model.forward_single(test_data)
