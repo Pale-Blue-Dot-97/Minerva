@@ -296,6 +296,9 @@ class MinervaDataParallel(Module):  # pragma: no cover
     ) -> None:
         super(MinervaDataParallel, self).__init__()
         self.model = paralleliser(model, *args, **kwargs).cuda()
+        # Set these so that epoch logging will use the wrapped model's values
+        self.output_shape = model.output_shape
+        self.n_classes = model.n_classes
 
     def forward(self, *inputs: Tuple[Tensor, ...]) -> Tuple[Tensor, ...]:
         """Ensures a forward call to the model goes to the actual wrapped model.
@@ -318,7 +321,7 @@ class MinervaDataParallel(Module):  # pragma: no cover
         try:
             return super().__getattr__(name)
         except AttributeError:
-            return getattr(self.model, name)
+            return getattr(self.model.module, name)
 
     def __repr__(self) -> Any:
         return self.model.__repr__()

@@ -1253,7 +1253,7 @@ class Trainer:
             assert isinstance(model, MinervaDataParallel)
 
             # Extracts the actual model instance from the distributed wrapping.
-            model = model.model
+            model = model.model.module
 
         assert isinstance(model, MinervaModel)
         return model
