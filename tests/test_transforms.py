@@ -56,6 +56,9 @@ from minerva.transforms import (
     SingleLabel,
     SwapKeys,
     ToRGB,
+    get_transform,
+    init_auto_norm,
+    make_transformations,
 )
 from minerva.utils import utils
 
@@ -348,3 +351,88 @@ def test_swap_keys(random_rgbi_tensor, random_tensor_mask) -> None:
 def test_auto_norm(dataset: RasterDataset, random_rgbi_tensor):
     auto_norm = AutoNorm(dataset, 12)
     assert isinstance(auto_norm(random_rgbi_tensor), FloatTensor)
+
+
+@pytest.mark.parametrize(
+    "transforms",
+    [
+        None,
+        MinervaCompose(RandomHorizontalFlip()),
+        RandomHorizontalFlip(),
+        [RandomHorizontalFlip()],
+    ],
+)
+def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> None:
+    params = {"length": 12}
+
+    default_image_dataset.transforms = transforms
+
+    if (
+        not isinstance(transforms, MinervaCompose)
+        and not callable(transforms)
+        and transforms is not None
+    ):
+        with pytest.raises(TypeError):
+            _ = init_auto_norm(default_image_dataset, params)
+    else:
+        dataset = init_auto_norm(default_image_dataset, params)
+        assert isinstance(dataset, RasterDataset)
+        assert isinstance(dataset.transforms.transforms[-1], AutoNorm)  # type: ignore[union-attr]
+
+
+def test_get_transform() -> None:
+    name = "RandomResizedCrop"
+    params = {"module": "torchvision.transforms", "size": 128}
+    transform = get_transform(name, params)
+
+    assert callable(transform)
+
+    with pytest.raises(TypeError):
+        _ = get_transform("DataFrame", {"module": "pandas"})
+
+
+@pytest.mark.parametrize(
+    ["params", "key"],
+    [
+        (
+            {
+                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            None,
+        ),
+        (
+            {
+                "RandomApply": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "p": 0.3,
+                },
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            None,
+        ),
+        (
+            {
+                "MinervaCompose": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "RandomHorizontalFlip": {
+                        "module": "torchvision.transforms",
+                        "p": 0.7,
+                    },
+                },
+                "RandomApply": {
+                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "p": 0.3,
+                },
+                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+            },
+            "image",
+        ),
+    ],
+)
+def test_make_transformations(params: Dict[str, Any], key: str) -> None:
+    if params:
+        transforms = make_transformations(params, key)
+        assert callable(transforms)
+    else:
+        assert make_transformations(False) is None

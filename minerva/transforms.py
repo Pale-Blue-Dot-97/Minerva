@@ -41,6 +41,9 @@ __all__ = [
     "ToRGB",
     "MinervaCompose",
     "SwapKeys",
+    "get_transform",
+    "init_auto_norm",
+    "make_transformations",
 ]
 
 
@@ -55,6 +58,7 @@ from typing import (
     Callable,
     Dict,
     List,
+    Literal,
     Optional,
     Sequence,
     Tuple,
@@ -69,10 +73,10 @@ import torch
 from torch import LongTensor, Tensor
 from torchgeo.datasets import BoundingBox, RasterDataset
 from torchgeo.samplers import RandomGeoSampler
-from torchvision.transforms import ColorJitter, Normalize
+from torchvision.transforms import ColorJitter, Normalize, RandomApply
 from torchvision.transforms import functional_tensor as ft
 
-from minerva.utils.utils import find_tensor_mode, mask_transform
+from minerva.utils.utils import find_tensor_mode, func_by_str, mask_transform
 
 
 # =====================================================================================================================
@@ -595,3 +599,162 @@ class SwapKeys:
         """
         sample[self.to_key] = sample[self.from_key]
         return sample
+
+
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
+def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
+    p = random_params.pop("p", 0.5)
+
+    random_transforms = []
+    for ran_name in random_params:
+        random_transforms.append(get_transform(ran_name, random_params[ran_name]))
+
+    return RandomApply(random_transforms, p=p)
+
+
+def _manual_compose(
+    manual_params: Dict[str, Any],
+    key: str,
+    other_transforms: Optional[List[Any]] = None,
+) -> MinervaCompose:
+    manual_transforms = []
+
+    for manual_name in manual_params:
+        manual_transforms.append(get_transform(manual_name, manual_params[manual_name]))
+
+    if other_transforms:
+        manual_transforms = manual_transforms + other_transforms
+
+    return MinervaCompose(manual_transforms, key=key)
+
+
+def init_auto_norm(
+    dataset: RasterDataset, params: Dict[str, Any] = {}
+) -> RasterDataset:
+    """Uses :class:~`minerva.transforms.AutoNorm` to automatically find the mean and standard deviation of `dataset`
+    to create a normalisation transform that is then added to the existing transforms of `dataset`.
+
+    Args:
+        dataset (RasterDataset): Dataset to find and apply the normalisation conditions to.
+        params (Dict[str, Any]): Parameters for :class:~`minerva.transforms.AutoNorm`.
+
+    Returns:
+        RasterDataset: `dataset` with an additional :class:~`minerva.transforms.AutoNorm` transform
+        added to it's :attr:~`torchgeo.datasets.RasterDataset.transforms` attribute.
+    """
+    # Creates the AutoNorm transform by sampling `dataset` for its mean and standard deviation stats.
+    auto_norm = AutoNorm(dataset, **params)
+
+    if dataset.transforms is None:
+        dataset.transforms = MinervaCompose(auto_norm)
+    else:
+        # If the existing transforms are already `MinervaCompose`, we can just add the AutoNorm transform on.
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += auto_norm
+
+        # If existing transforms are a callable, place in a list with AutoNorm and make in `MinervaCompose`.
+        elif callable(dataset.transforms):
+            dataset.transforms = MinervaCompose([dataset.transforms, auto_norm])
+        else:
+            raise TypeError(
+                f"The type of datset.transforms, {type(dataset.transforms)}, is not supported"
+            )
+
+    return dataset
+
+
+def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., Any]:
+    """Creates a transform object based on config parameters.
+
+    Args:
+        name (str): Name of transform object to import e.g :class:`~torchvision.transforms.RandomResizedCrop`.
+        transform_params (dict[str, ~typing.Any]): Arguements to construct transform with.
+            Should also include ``"module"`` key defining the import path to the transform object.
+
+    Returns:
+        Initialised transform object specified by config parameters.
+
+    .. note::
+        If ``transform_params`` contains no ``"module"`` key, it defaults to ``torchvision.transforms``.
+
+    Example:
+        >>> name = "RandomResizedCrop"
+        >>> params = {"module": "torchvision.transforms", "size": 128}
+        >>> transform = get_transform(name, params)
+
+    Raises:
+        TypeError: If created transform object is itself not :class:`~typing.Callable`.
+    """
+    params = transform_params.copy()
+    module = params.pop("module", "torchvision.transforms")
+
+    # Gets the transform requested by config parameters.
+    _transform: Callable[..., Any] = func_by_str(module, name)
+
+    transform: Callable[..., Any] = _transform(**params)
+    if callable(transform):
+        return transform
+    else:
+        raise TypeError(f"Transform has type {type(transform)}, not a callable!")
+
+
+def make_transformations(
+    transform_params: Union[Dict[str, Any], Literal[False]], key: Optional[str] = None
+) -> Optional[Any]:
+    """Constructs a transform or series of transforms based on parameters provided.
+
+    Args:
+        transform_params (dict[str, ~typing.Any] | ~typing.Literal[False]): Parameters defining transforms desired.
+            The name of each transform should be the key, while the kwargs for the transform should
+            be the value of that key as a dict.
+        key (str): Optional; Key of the type of data within the sample to be transformed.
+            Must be ``"image"`` or ``"mask"``.
+
+    Example:
+        >>> transform_params = {
+        >>>    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+        >>>     "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7}
+        >>> }
+        >>> transforms = make_transformations(transform_params)
+
+    Returns:
+        If no parameters are parsed, None is returned.
+        If only one transform is defined by the parameters, returns a Transforms object.
+        If multiple transforms are defined, a Compose object of Transform objects is returned.
+    """
+    transformations = []
+
+    # If no transforms are specified, return None.
+    if not transform_params:
+        return None
+
+    manual_compose = False
+
+    # Get each transform.
+    for name in transform_params:
+        if name == "MinervaCompose":
+            manual_compose = True
+
+        elif name == "RandomApply":
+            random_params = transform_params[name].copy()
+            transformations.append(_construct_random_transforms(random_params))
+
+        # AutoNorm needs to be handled separately.
+        elif name == "AutoNorm":
+            continue
+
+        else:
+            transformations.append(get_transform(name, transform_params[name]))
+
+    # Compose transforms together and return.
+    if manual_compose:
+        assert key is not None
+        return _manual_compose(
+            transform_params["MinervaCompose"].copy(),
+            key=key,
+            other_transforms=transformations,
+        )
+    else:
+        return MinervaCompose(transformations, key)

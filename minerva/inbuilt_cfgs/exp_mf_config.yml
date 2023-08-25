@@ -18,13 +18,13 @@ dir:
 dataset_params:
     make:
         image:
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TestImgDataset
             root: NAIP
             params:
                 res: 1.0
         mask:
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TestMaskDataset
             root: Chesapeake7
             params:
