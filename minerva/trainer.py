@@ -1050,13 +1050,13 @@ class Trainer:
                 # Get features from passing the input data through the model.
                 if utils.check_substrings_in_string(self.model_type, "siamese"):
                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                    if dist.is_available() and dist.is_initialized():
+                    if isinstance(self.model, MinervaDataParallel):  # pragma: no cover
                         assert isinstance(self.model.model.module, MinervaSiamese)
                     else:
                         assert isinstance(self.model, MinervaSiamese)
 
                     # Ensures that the data is parsed through a single head of the model rather than paired.
-                    feature, _ = self.model.forward_single(val_data)
+                    feature, _ = self.model.forward_single(val_data)  # type: ignore[operator]
                 else:
                     feature, _ = self.model(val_data)
 
@@ -1087,13 +1087,13 @@ class Trainer:
                 # Get features from passing the input data through the model.
                 if utils.check_substrings_in_string(self.model_type, "siamese"):
                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                    if dist.is_available() and dist.is_initialized():
+                    if isinstance(self.model, MinervaDataParallel):  # pragma: no cover
                         assert isinstance(self.model.model.module, MinervaSiamese)
                     else:
                         assert isinstance(self.model, MinervaSiamese)
 
                     # Ensures that the data is parsed through a single head of the model rather than paired.
-                    feature, _ = self.model.forward_single(test_data)
+                    feature, _ = self.model.forward_single(test_data)  # type: ignore[operator]
                 else:
                     feature, _ = self.model(test_data)
 
@@ -1255,11 +1255,9 @@ class Trainer:
         model = self.model
 
         # Checks if this is a distributed run.
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-            assert isinstance(model, MinervaDataParallel)
-
+        if isinstance(model, MinervaDataParallel):  # type: ignore[attr-defined]  # pragma: no cover
             # Extracts the actual model instance from the distributed wrapping.
-            model = model.model.module
+            model = model.model.module  # type: ignore[assignment]
 
         assert isinstance(model, MinervaModel)
         return model
