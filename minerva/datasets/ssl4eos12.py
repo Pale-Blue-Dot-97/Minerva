@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Functionality for constructing datasets, samplers and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
+r"""Simple adaption of the :mod:`~torchgeo.datasets.Sentinel2` dataset for use with the SSL4EO-S12 dataset.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -44,10 +44,14 @@ from torchgeo.datasets import Sentinel2
 #                                                     CLASSES
 # =====================================================================================================================
 class SSL4EOS12Sentinel2(Sentinel2):
-    """Adapted version of :class:~`torchgeo.datasets.Sentinel2` that works .
+    """Adapted version of :class:~`torchgeo.datasets.Sentinel2` that works with the SSL4EO-S12 data format.
 
     Attributes:
-        filename_glob (str): Pattern for tiff files within dataset root to construct dataset from.
+        filename_glob (str): Adapted pattern from :class:`~torchgeo.datasets.Sentinel2` that looks just for band ID.
+        filename_regex (str): Adapted regex from :class:`~torchgeo.datasets.Sentinel2` that looks just for band IDs
+            with either ``B0x`` (like standard Sentinel2) or ``Bx`` (like SSL4EO-S12) format.
+        all_bands (list[str]): Sentinel2 bands with the leading 0 ommitted.
+        rgb_bands (list[str]): RGB Sentinel2 bands with the leading 0 omitted.
     """
 
     filename_glob = "{}.*"
