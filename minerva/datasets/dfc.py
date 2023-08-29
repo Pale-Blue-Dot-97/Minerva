@@ -45,6 +45,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
 import numpy as np
+import pandas as pd
 import rasterio
 import torch
 from torch import FloatTensor, Tensor
@@ -357,3 +358,101 @@ class DFC2020(BaseSenS12MS):
         self.samples = sorted(self.samples, key=lambda i: i["id"])
 
         print(f"Loaded {len(self.samples)} samples from the DFC2020 {split} subset")
+
+
+class SEN12MS(BaseSenS12MS):
+    """PyTorch dataset class for the SEN12MS dataset
+
+    Expects dataset dir as:
+    >>> - SEN12MS_holdOutScenes.txt
+    >>> - ROIsxxxx_y
+    >>>     - lc_n
+    >>>     - s1_n
+    >>>     - s2_n
+
+    SEN12SEN12MS_holdOutScenes.txt contains the subdirs for the official
+    train/val split and can be obtained from:
+    https://github.com/MSchmitt1984/SEN12MS/blob/master/splits
+    """
+
+    splits = ["train", "holdout"]
+    igbp = True
+
+    def __init__(
+        self,
+        root: str,
+        split="train",
+        no_savanna=False,
+        use_s2hr=False,
+        use_s2mr=False,
+        use_s2lr=False,
+        use_s1=False,
+        labels=False,
+    ) -> None:
+        super(SEN12MS, self).__init__(
+            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
+        )
+
+        # Find and index samples.
+        self.samples = []
+        if split == "train":
+            pbar = tqdm(total=162556)  # we expect 541,986 / 3 * 0.9 samples
+        else:
+            pbar = tqdm(total=18106)  # we expect 541,986 / 3 * 0.1 samples
+        pbar.set_description("[Load]")
+
+        val_list = list(
+            pd.read_csv(self.root / "SEN12MS_holdOutScenes.txt", header=None)[0]
+        )
+        val_list = [x.replace("s1_", "s2_") for x in val_list]
+
+        # Compile a list of paths to all samples
+        if split == "train":
+            train_list = []
+            for seasonfolder in [
+                "ROIs1970_fall",
+                "ROIs1158_spring",
+                "ROIs2017_winter",
+                "ROIs1868_summer",
+            ]:
+                train_list += [
+                    str(Path(seasonfolder) / x)
+                    for x in (self.root / seasonfolder).iterdir()
+                ]
+            train_list = [x for x in train_list if "s2_" in x]
+            train_list = [x for x in train_list if x not in val_list]
+            sample_dirs = train_list
+        elif split == "holdout":
+            sample_dirs = val_list
+
+        for folder in sample_dirs:
+            s2_locations = glob(str(self.root / f"{folder}/*.tif"), recursive=True)
+
+            # INFO there is one "broken" file in the sen12ms dataset with nan
+            #      values in the s1 data. we simply ignore this specific sample
+            #      at this point. id: ROIs1868_summer_xx_146_p202
+            if folder == "ROIs1868_summer/s2_146":
+                broken_file = str(
+                    self.root
+                    / "ROIs1868_summer"
+                    / "s2_146"
+                    / "ROIs1868_summer_s2_146_p202.tif"
+                )
+                s2_locations.remove(broken_file)
+                pbar.write("ignored one sample because of nan values in the s1 data")
+
+            for s2_loc in s2_locations:
+                s1_loc = s2_loc.replace("_s2_", "_s1_").replace("s2_", "s1_")
+                lc_loc = s2_loc.replace("_s2_", "_lc_").replace("s2_", "lc_")
+
+                pbar.update()
+                self.samples.append(
+                    {"lc": lc_loc, "s1": s1_loc, "s2": s2_loc, "id": Path(s2_loc).name}
+                )
+
+        pbar.close()
+
+        # Sort list of samples
+        self.samples = sorted(self.samples, key=lambda i: i["id"])
+
+        print(f"Loaded {len(self.samples)} samples from the SEN12MS {split} subset")
