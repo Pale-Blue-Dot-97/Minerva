@@ -52,14 +52,17 @@ __all__ = ["DFC2020"]
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import os
 from enum import Enum, EnumType
 from glob import glob
 from pathlib import Path
-from typing import Dict, List, Optional, Set, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 import numpy as np
 import rasterio
+import torch
+from torch import Tensor
+from torchgeo.datasets import BoundingBox, GeoDataset, RasterDataset
+from torchgeo.datasets.utils import BoundingBox
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -71,6 +74,14 @@ IGBP2DFC = np.array([0, 1, 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 6, 7, 6, 8, 9, 10])
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
+class DFC(GeoDataset):
+    def __init__(self) -> None:
+        pass
+
+    def __getitem__(self):
+        pass
+
+
 class S1Bands(Enum):
     """Sentinel 1 band specs"""
 
@@ -128,18 +139,30 @@ class Sensor(Enum):
     dfc = "dfc"
 
 
-class DFC2020:
+class DFC2020(RasterDataset):
     """DFC2020 dataset.
 
     .. note::
         The order in which you request the bands is the same order they will be returned in.
     """
 
-    def __init__(self, base_dir: Path) -> None:
+    metadata = {
+        "spring",
+        "summer",
+        "autumn",
+        "winter",
+    }
+
+    def __init__(
+        self, base_dir: Path, seasons: List[str], bands: Union[List[EnumType], EnumType]
+    ) -> None:
         self.base_dir = base_dir
 
         if not self.base_dir.exists():
             raise Exception("The specified base_dir for SEN12MS dataset does not exist")
+
+        self.seasons = seasons
+        self.bands = bands
 
     def get_scene_ids(self, season) -> Set[int]:
         """Returns a list of scene ids for a specific season.
@@ -207,15 +230,18 @@ class DFC2020:
 
         return ids
 
-    def get_patch(self, season, scene_id, patch_id, bands):
-        """Returns raster data and image bounds for the defined bands of a specific patch
+    def get_patch(
+        self, season, scene_id=None, patch_id=None, bands=None
+    ) -> Tuple[Optional[Tensor], Optional[BoundingBox]]:
+        """Returns raster data and image bounds for the defined bands of a specific patch.
 
         .. note::
-            This method only loads a sinlge patch from a single sensor as defined by the bands specified
+            This method only loads a single patch from a single sensor as defined by the bands specified.
 
         Args:
             season ():
             scene_id ():
+            patch_id ():
             bands ():
 
         Returns:
@@ -270,18 +296,33 @@ class DFC2020:
         if len(data.shape) == 2:
             data = np.expand_dims(data, axis=0)
 
-        return data, bounds
+        # Fix numpy dtypes which are not supported by pytorch tensors
+        if data.dtype == np.uint16:
+            data = data.astype(np.int32)
+        elif data.dtype == np.uint32:
+            data = data.astype(np.int64)
+
+        tensor = torch.tensor(data)
+        bounds = BoundingBox(*(bounds, 0, np.inf))
+
+        return tensor, bounds
 
     def get_s1_s2_lc_dfc_quad(
         self,
         season,
-        scene_id,
-        patch_id,
+        scene_id=None,
+        patch_id=None,
         s1_bands=S1Bands.ALL,
         s2_bands=S2Bands.ALL,
         lc_bands=LCBands.ALL,
         dfc_bands=LCBands.NONE,
-    ):
+    ) -> Tuple[
+        Optional[Tensor],
+        Optional[Tensor],
+        Optional[Tensor],
+        Optional[Tensor],
+        Optional[BoundingBox],
+    ]:
         """
         Returns a quadruple of patches. S1, S2, LC and DFC as well as the geo-bounds of the patch. If the number of bands is NONE
         then a None value will be returned instead of image data
@@ -295,6 +336,21 @@ class DFC2020:
         bounds = next(filter(None, [bounds1, bounds2, bounds3, bounds4]), None)
 
         return s1, s2, lc, dfc, bounds
+
+    def __getitem__(self, index) -> dict[str, Any]:
+        sample = {}
+        for band in self.bands:
+            data, bounds = self.get_patch(self.seasons, bands=band)
+
+            if isinstance(band, (S1Bands, S2Bands)):
+                sample["image"] = data
+                sample["bbox"] = bounds
+
+            elif isinstance(band, LCBands):
+                sample["mask"] = data
+                sample["bbox"] = bounds
+
+        return sample
 
     def get_quad_stack(
         self,
@@ -311,7 +367,7 @@ class DFC2020:
         using scene_ids and patch_ids and B is the number of bands for S1, S2 or LC
         """
         season = Seasons(season)
-        scene_list = []
+        scene_list: List[int] = []
         patch_list = []
         bounds = []
         s1_data = []
