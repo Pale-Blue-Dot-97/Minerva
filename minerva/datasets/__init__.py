@@ -37,16 +37,15 @@ __all__ = [
     "PairedUnionDataset",
     "SSL4EOS12Sentinel2",
     "NAIPChesapeakeCVPR",
+    "DFC2020",
     "construct_dataloader",
     "get_collator",
     "get_manifest",
-    "get_transform",
     "load_all_samples",
     "make_bounding_box",
     "make_dataset",
     "make_loaders",
     "make_manifest",
-    "make_transformations",
     "stack_sample_pairs",
     "intersect_datasets",
     "unionise_datasets",
@@ -55,6 +54,7 @@ __all__ = [
 ]
 
 from .collators import get_collator, stack_sample_pairs
+from .dfc import DFC2020
 from .factory import (
     construct_dataloader,
     get_manifest,

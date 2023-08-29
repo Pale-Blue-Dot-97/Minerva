@@ -23,28 +23,16 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Generic dataloading routines for the SEN12MS dataset of corresponding Sentinel 1,
-Sentinel 2 and IGBP landcover specifically targeting the 2020 Data Fusion Contest
-requirements.
-
-The SEN12MS class is meant to provide a set of helper routines for loading individual
-image patches as well as triplets of patches from the dataset. These routines can easily
-be wrapped or extended for use with many Deep Learning frameworks or as standalone helper
-methods. For an example use case please see the "main" routine at the end of this file.
+r"""Implementation for the DFC2020 competition dataset using Sentinel 1&2 data and IGBP labels in :mod:`torchgeo`.
 
 .. note::
-    Adapted from ``dfc_sen12ms_dataset.py`` authored by Lloyd Hughes, provided with
-    the DFC2020 dataset.
-
-.. note::
-    Some folder/file existence and validity checks are implemented but it is
-    by no means complete.
+    Adapted from https://github.com/lukasliebel/dfc2020_baseline/blob/master/code/datasets.py
 """
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
-__author__ = ["Lloyd Hughes", "Harry Baker"]
-__contact__ = ["lloyd.hughes@tum.de", "hjb1d20@soton.ac.uk"]
+__author__ = ["Lukas Liebel", "Harry Baker"]
+__contact__ = ["hjb1d20@soton.ac.uk"]
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = ["DFC2020"]
@@ -52,366 +40,320 @@ __all__ = ["DFC2020"]
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from enum import Enum, EnumType
 from glob import glob
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
 import rasterio
 import torch
-from torch import Tensor
-from torchgeo.datasets import BoundingBox, GeoDataset, RasterDataset
-from torchgeo.datasets.utils import BoundingBox
-
-# =====================================================================================================================
-#                                                     GLOBALS
-# =====================================================================================================================
-# Remapping IGBP classes to simplified DFC classes.
-IGBP2DFC = np.array([0, 1, 1, 1, 1, 1, 2, 2, 3, 3, 4, 5, 6, 7, 6, 8, 9, 10])
+from torch import FloatTensor, Tensor
+from torchgeo.datasets import NonGeoDataset
+from tqdm import tqdm
 
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class DFC(GeoDataset):
-    def __init__(self) -> None:
-        pass
+class BaseSenS12MS(NonGeoDataset):
+    # Mapping from IGBP to DFC2020 classes.
+    DFC2020_CLASSES = [
+        0,  # Class 0 unused in both schemes.
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        3,  # --> will be masked if no_savanna == True
+        3,  # --> will be masked if no_savanna == True
+        4,
+        5,
+        6,  # 12 --> 6
+        7,  # 13 --> 7
+        6,  # 14 --> 6
+        8,
+        9,
+        10,
+    ]
 
-    def __getitem__(self):
-        pass
+    # Indices of sentinel-2 high-/medium-/low-resolution bands
+    S2_BANDS_HR = [2, 3, 4, 8]
+    S2_BANDS_MR = [5, 6, 7, 9, 12, 13]
+    S2_BANDS_LR = [1, 10, 11]
 
+    splits: List[str] = []
 
-class S1Bands(Enum):
-    """Sentinel 1 band specs"""
-
-    VV = 1
-    VH = 2
-    ALL = [VV, VH]
-    NONE = None
-
-
-class S2Bands(Enum):
-    "Sentinel 2 band specs"
-
-    B01 = aerosol = 1
-    B02 = blue = 2
-    B03 = green = 3
-    B04 = red = 4
-    B05 = re1 = 5
-    B06 = re2 = 6
-    B07 = re3 = 7
-    B08 = nir1 = 8
-    B08A = nir2 = 9
-    B09 = vapor = 10
-    B10 = cirrus = 11
-    B11 = swir1 = 12
-    B12 = swir2 = 13
-    ALL = [B01, B02, B03, B04, B05, B06, B07, B08, B08A, B09, B10, B11, B12]
-    RGB = [B04, B03, B02]
-    NONE = None
-
-
-class LCBands(Enum):
-    LC = lc = 0
-    DFC = dfc = 1
-    ALL = [DFC]
-    NONE = None
-
-
-class Seasons(Enum):
-    SPRING = "ROIs1158_spring"
-    SUMMER = "ROIs1868_summer"
-    FALL = "ROIs1970_fall"
-    WINTER = "ROIs2017_winter"
-    TESTSET = "ROIs0000_test"
-    VALSET = "ROIs0000_validation"
-    TEST = [TESTSET]
-    VALIDATION = [VALSET]
-    TRAIN = [SPRING, SUMMER, FALL, WINTER]
-    ALL = [SPRING, SUMMER, FALL, WINTER, VALIDATION, TEST]
-
-
-class Sensor(Enum):
-    s1 = "s1"
-    s2 = "s2"
-    lc = "lc"
-    dfc = "dfc"
-
-
-class DFC2020(RasterDataset):
-    """DFC2020 dataset.
-
-    .. note::
-        The order in which you request the bands is the same order they will be returned in.
-    """
-
-    metadata = {
-        "spring",
-        "summer",
-        "autumn",
-        "winter",
-    }
+    igbp = False
 
     def __init__(
-        self, base_dir: Path, seasons: List[str], bands: Union[List[EnumType], EnumType]
+        self,
+        root: str,
+        split="val",
+        no_savanna=False,
+        use_s2hr=False,
+        use_s2mr=False,
+        use_s2lr=False,
+        use_s1=False,
+        labels=False,
     ) -> None:
-        self.base_dir = base_dir
+        super().__init__()
 
-        if not self.base_dir.exists():
-            raise Exception("The specified base_dir for SEN12MS dataset does not exist")
-
-        self.seasons = seasons
-        self.bands = bands
-
-    def get_scene_ids(self, season) -> Set[int]:
-        """Returns a list of scene ids for a specific season.
-
-        Args:
-            season ():
-
-        Returns:
-            set[int]:
-        """
-
-        season = Seasons(season).value
-        path: Path = self.base_dir / season
-
-        if not path.exists():
-            raise NameError(
-                f"Could not find season {season} in base directory {self.base_dir}"
+        # Make sure at least one of the band sets are requested.
+        if not (use_s2hr or use_s2mr or use_s2lr or use_s1):
+            raise ValueError(
+                "No input specified, set at least one of "
+                + "use_[s2hr, s2mr, s2lr, s1] to True!"
             )
 
-        scene_list = [
-            int(str(Path(s).name).split("_")[1]) for s in glob(str(path / "*"))
-        ]
-        return set(scene_list)
+        self.use_s2hr = use_s2hr
+        self.use_s2mr = use_s2mr
+        self.use_s2lr = use_s2lr
+        self.use_s1 = use_s1
 
-    def get_patch_ids(self, season, scene_id: int, sensor=Sensor.s1) -> List[int]:
-        """Returns a list of patch ids for a specific scene within a specific season.
+        assert split in self.splits
+        self.no_savanna = no_savanna
 
-        Args:
-            season ():
-            scene_id (int):
-            sensor ():
+        # Provide number of input channels
+        self.n_inputs = self.get_ninputs()
 
-        Returns:
-            list[int]:
-        """
-        season = Seasons(season).value
-        path: Path = self.base_dir / str(season) / f"{sensor.value}_{scene_id}"
+        # Provide index of channel(s) suitable for previewing the input
+        self.display_channels, self.brightness_factor = self.get_display_channels()
 
-        if not path.exists():
-            raise NameError(f"Could not find scene {scene_id} within season {season}")
-
-        patch_ids: list[int] = []
-        for p in glob(str(path / "*.tif")):
-            patch_ids.append(int(str(Path(p).stem).rsplit("_", 1)[1].split("p")[1]))
-
-        return patch_ids
-
-    def get_season_ids(self, season) -> Dict[int, List[int]]:
-        """Return a dict of scene ids and their corresponding patch ids.
-
-        key => scene_ids, value => list of patch_ids
-
-        Args:
-            season ():
-
-        Returns:
-            dict[int, list[int]]:
-        """
-        season = Seasons(season).value
-        ids = {}
-        scene_ids = self.get_scene_ids(season)
-
-        for sid in scene_ids:
-            ids[sid] = self.get_patch_ids(season, sid)
-
-        return ids
-
-    def get_patch(
-        self, season, scene_id=None, patch_id=None, bands=None
-    ) -> Tuple[Optional[Tensor], Optional[BoundingBox]]:
-        """Returns raster data and image bounds for the defined bands of a specific patch.
-
-        .. note::
-            This method only loads a single patch from a single sensor as defined by the bands specified.
-
-        Args:
-            season ():
-            scene_id ():
-            patch_id ():
-            bands ():
-
-        Returns:
-            tuple:
-        """
-        season = Seasons(season).value
-        sensor = None
-
-        if not bands:
-            return None, None
-
-        if isinstance(bands, (list, tuple)):
-            b = bands[0]
+        # Provide number of classes.
+        if no_savanna:
+            self.n_classes = max(self.DFC2020_CLASSES) - 1
         else:
-            b = bands
+            self.n_classes = max(self.DFC2020_CLASSES)
 
-        bandEnum: EnumType
-        if isinstance(b, S1Bands):
-            sensor = Sensor.s1.value
-            bandEnum = S1Bands
-        elif isinstance(b, S2Bands):
-            sensor = Sensor.s2.value
-            bandEnum = S2Bands
-        elif isinstance(b, LCBands):
-            if LCBands(bands) == LCBands.LC:
-                sensor = Sensor.lc.value
+        self.labels = labels
+
+        self.root = Path(root)
+
+        # Make sure parent dir exists.
+        assert self.root.exists()
+
+        self.samples: List[Dict[str, str]]
+
+    def load_sample(
+        self,
+        sample: Dict[str, str],
+    ) -> Dict[str, Any]:
+        """Util function for reading data from single sample.
+
+        Args:
+            sample (dict[str, str]): Dictionary defining the paths to the files for each modality of the sample.
+
+        Returns:
+            dict[str, ~typing.Any]: Dictionary defining the sample in each modality.
+        """
+
+        use_s2 = self.use_s2hr or self.use_s2mr or self.use_s2lr
+
+        # load s2 data.
+        if use_s2:
+            img = self.load_s2(sample["s2"])
+
+        # load s1 data.
+        if self.use_s1:
+            if use_s2:
+                img = torch.concatenate((img, self.load_s1(sample["s1"])), dim=0)  # type: ignore[assignment]
             else:
-                sensor = Sensor.dfc.value
+                img = self.load_s1(sample["s1"])
 
-            bands = LCBands(1)
-            bandEnum = LCBands
+        # load labels.
+        if self.labels:
+            lc = self.load_lc(sample["lc"])
+            return {"image": img, "mask": lc, "id": sample["id"]}
         else:
-            raise Exception("Invalid bands specified")
+            return {"image": img, "id": sample["id"]}
 
-        if isinstance(bands, (list, tuple)):
-            bands = [b.value for b in bands]
+    def get_ninputs(self) -> int:
+        """Calculate number of input channels.
+
+        Returns:
+            int: Number of input channels.
+        """
+        n_inputs = 0
+        if self.use_s2hr:
+            n_inputs += len(self.S2_BANDS_HR)
+        if self.use_s2mr:
+            n_inputs += len(self.S2_BANDS_MR)
+        if self.use_s2lr:
+            n_inputs += len(self.S2_BANDS_LR)
+        if self.use_s1:
+            n_inputs += 2
+        return n_inputs
+
+    def get_display_channels(self) -> Tuple[List[int], int]:
+        """Select channels for preview images.
+
+        Returns:
+            tuple[list[int] | int, int]: Tuple of the index of display channels and the brightness factor.
+        """
+        if self.use_s2hr and self.use_s2lr:
+            display_channels = [3, 2, 1]
+            brightness_factor = 3
+        elif self.use_s2hr:
+            display_channels = [2, 1, 0]
+            brightness_factor = 3
+        elif not (self.use_s2hr or self.use_s2mr or self.use_s2lr):
+            display_channels = [0]
+            brightness_factor = 1
         else:
-            bands = bandEnum(bands).value
+            display_channels = [0]
+            brightness_factor = 3
 
-        scene = f"{sensor}_{scene_id}"
-        filename = f"{season}_{scene}_p{patch_id}.tif"
-        patch_path = self.base_dir / season / scene / filename
+        return display_channels, brightness_factor
 
-        with rasterio.open(patch_path) as patch:
-            data = patch.read(bands)
-            bounds = patch.bounds
+    def load_s2(self, path: str) -> FloatTensor:
+        """Util function for reading and cleaning Sentinel2 data.
 
-        # Remap IGBP to DFC bands
-        if sensor == "lc":
-            data = IGBP2DFC[data]
+        Args:
+            path (str): Path to patch of Sentinel2 data.
 
-        if len(data.shape) == 2:
-            data = np.expand_dims(data, axis=0)
+        Returns:
+            FloatTensor: Patch of Sentinel2 data.
+        """
+        bands_selected = []
+        if self.use_s2hr:
+            bands_selected.extend(self.S2_BANDS_HR)
+        if self.use_s2mr:
+            bands_selected.extend(self.S2_BANDS_MR)
+        if self.use_s2lr:
+            bands_selected.extend(self.S2_BANDS_LR)
 
-        # Fix numpy dtypes which are not supported by pytorch tensors
-        if data.dtype == np.uint16:
-            data = data.astype(np.int32)
-        elif data.dtype == np.uint32:
-            data = data.astype(np.int64)
+        bands_selected = sorted(bands_selected)
 
-        tensor = torch.tensor(data)
-        bounds = BoundingBox(*(bounds, 0, np.inf))
+        # Read data out of the TIFF file.
+        with rasterio.open(path) as data:
+            s2 = data.read(bands_selected)
 
-        return tensor, bounds
+        s2 = s2.astype(np.float32)
+        s2 = np.clip(s2, 0, 10000)
+        s2 /= 10000
 
-    def get_s1_s2_lc_dfc_quad(
+        # Cast to 32-bit float.
+        s2 = s2.astype(np.float32)
+
+        # Convert to Tensor.
+        s2 = torch.tensor(s2)
+        assert isinstance(s2, FloatTensor)
+
+        return s2
+
+    def load_s1(self, path: str) -> FloatTensor:
+        """Util function for reading and cleaning Sentinel1 data.
+
+        Args:
+            path (str): Path to patch of Sentinel1 data.
+
+        Returns:
+            FloatTensor: Patch of Sentinel1 data.
+        """
+        with rasterio.open(path) as data:
+            s1 = data.read()
+
+        s1 = s1.astype(np.float32)
+        s1 = np.nan_to_num(s1)
+        s1 = np.clip(s1, -25, 0)
+        s1 /= 25
+        s1 += 1
+
+        # Cast to 32-bit float.
+        s1 = s1.astype(np.float32)
+
+        # Convert to Tensor.
+        s1 = torch.tensor(s1)
+        assert isinstance(s1, FloatTensor)
+
+        return s1
+
+    def load_lc(self, path: str) -> Tensor:
+        """Util function for reading Sentinel land cover data.
+
+        Args:
+            path (str): Path to the land cover labels for the patch.
+
+        Returns:
+            Tensor: Label mask for the patch.
+        """
+
+        # Load labels.
+        with rasterio.open(path) as data:
+            lc = data.read(1)
+
+        # Convert IGBP to dfc2020 classes.
+        if self.igbp:
+            lc = np.take(self.DFC2020_CLASSES, lc)
+        else:
+            lc = lc.astype(np.int64)
+
+        # Adjust class scheme to ignore class savanna.
+        if self.no_savanna:
+            lc[lc == 3] = 0
+            lc[lc > 3] -= 1
+
+        # Convert to zero-based labels and set ignore mask.
+        lc -= 1
+        lc[lc == -1] = 255
+
+        # Convert to tensor.
+        lc = torch.tensor(lc, dtype=torch.int8)
+        assert isinstance(lc, Tensor)
+
+        return lc
+
+    def __getitem__(self, index: int) -> Dict[str, Any]:
+        """Get a single example from the dataset"""
+
+        # Get and load sample from index file.
+        sample = self.samples[index]
+        return self.load_sample(sample)
+
+    def __len__(self) -> int:
+        """Get number of samples in the dataset"""
+        return len(self.samples)
+
+
+class DFC2020(BaseSenS12MS):
+    """PyTorch dataset class for the DFC2020 dataset"""
+
+    splits = ["val", "test"]
+    igbp = False
+
+    def __init__(
         self,
-        season,
-        scene_id=None,
-        patch_id=None,
-        s1_bands=S1Bands.ALL,
-        s2_bands=S2Bands.ALL,
-        lc_bands=LCBands.ALL,
-        dfc_bands=LCBands.NONE,
-    ) -> Tuple[
-        Optional[Tensor],
-        Optional[Tensor],
-        Optional[Tensor],
-        Optional[Tensor],
-        Optional[BoundingBox],
-    ]:
-        """
-        Returns a quadruple of patches. S1, S2, LC and DFC as well as the geo-bounds of the patch. If the number of bands is NONE
-        then a None value will be returned instead of image data
-        """
-
-        s1, bounds1 = self.get_patch(season, scene_id, patch_id, s1_bands)
-        s2, bounds2 = self.get_patch(season, scene_id, patch_id, s2_bands)
-        lc, bounds3 = self.get_patch(season, scene_id, patch_id, lc_bands)
-        dfc, bounds4 = self.get_patch(season, scene_id, patch_id, dfc_bands)
-
-        bounds = next(filter(None, [bounds1, bounds2, bounds3, bounds4]), None)
-
-        return s1, s2, lc, dfc, bounds
-
-    def __getitem__(self, index) -> dict[str, Any]:
-        sample = {}
-        for band in self.bands:
-            data, bounds = self.get_patch(self.seasons, bands=band)
-
-            if isinstance(band, (S1Bands, S2Bands)):
-                sample["image"] = data
-                sample["bbox"] = bounds
-
-            elif isinstance(band, LCBands):
-                sample["mask"] = data
-                sample["bbox"] = bounds
-
-        return sample
-
-    def get_quad_stack(
-        self,
-        season,
-        scene_ids: Optional[Union[List[int], int]] = None,
-        patch_ids=None,
-        s1_bands=S1Bands.ALL,
-        s2_bands=S2Bands.ALL,
-        lc_bands=LCBands.ALL,
-        dfc_bands=LCBands.NONE,
-    ):
-        """
-        Returns a triplet of numpy arrays with dimensions D, B, W, H where D is the number of patches specified
-        using scene_ids and patch_ids and B is the number of bands for S1, S2 or LC
-        """
-        season = Seasons(season)
-        scene_list: List[int] = []
-        patch_list = []
-        bounds = []
-        s1_data = []
-        s2_data = []
-        lc_data = []
-        dfc_data = []
-
-        # This is due to the fact that not all patch ids are available in all scenes
-        # And not all scenes exist in all seasons
-        if isinstance(scene_ids, list) and isinstance(patch_ids, list):
-            raise Exception("Only scene_ids or patch_ids can be a list, not both.")
-
-        if scene_ids is None:
-            scene_list = self.get_scene_ids(season)
-        else:
-            try:
-                scene_list.extend(scene_ids)
-            except TypeError:
-                scene_list.append(scene_ids)
-
-        if patch_ids is not None:
-            try:
-                patch_list.extend(patch_ids)
-            except TypeError:
-                patch_list.append(patch_ids)
-
-        for sid in scene_list:
-            if patch_ids is None:
-                patch_list = self.get_patch_ids(season, sid)
-
-            for pid in patch_list:
-                s1, s2, lc, dfc, bound = self.get_s1_s2_lc_dfc_quad(
-                    season, sid, pid, s1_bands, s2_bands, lc_bands, dfc_bands
-                )
-                s1_data.append(s1)
-                s2_data.append(s2)
-                lc_data.append(lc)
-                dfc_data.append(dfc)
-                bounds.append(bound)
-
-        return (
-            np.stack(s1_data, axis=0),
-            np.stack(s2_data, axis=0),
-            np.stack(lc_data, axis=0),
-            np.stack(dfc_data, axis=0),
-            bounds,
+        root: str,
+        split="val",
+        no_savanna=False,
+        use_s2hr=False,
+        use_s2mr=False,
+        use_s2lr=False,
+        use_s1=False,
+        labels=False,
+    ) -> None:
+        super(DFC2020, self).__init__(
+            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
         )
+
+        # Build list of sample paths.
+        if split == "val":
+            path = self.root / "ROIs0000_validation" / "s2_validation"
+        else:
+            path = self.root / "ROIs0000_test" / "s2_0"
+
+        s2_locations = glob(str(path / "*.tif"), recursive=True)
+        self.samples = []
+        for s2_loc in tqdm(s2_locations, desc="[Load]"):
+            s1_loc = s2_loc.replace("_s2_", "_s1_").replace("s2_", "s1_")
+            lc_loc = s2_loc.replace("_dfc_", "_lc_").replace("s2_", "dfc_")
+            self.samples.append(
+                {"lc": lc_loc, "s1": s1_loc, "s2": s2_loc, "id": Path(s2_loc).name}
+            )
+
+        # Sort list of samples.
+        self.samples = sorted(self.samples, key=lambda i: i["id"])
+
+        print(f"Loaded {len(self.samples)} samples from the DFC2020 {split} subset")
