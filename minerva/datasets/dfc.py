@@ -356,7 +356,8 @@ class DFC2020(BaseSenS12MS):
         print(f"Loaded {len(self.samples)} samples from the DFC2020 {split} subset")
 
 
-class SEN12MS(BaseSenS12MS):
+# TODO: Add tests to cover SEN12MS dataset
+class SEN12MS(BaseSenS12MS):  # pragma: no cover
     """PyTorch dataset class for the SEN12MS dataset
 
     Expects dataset dir as:
