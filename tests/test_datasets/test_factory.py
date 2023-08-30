@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.datasets`.
+r"""Tests for :mod:`minerva.datasets.factory`.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -36,184 +36,23 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List, Union
+from typing import Any, Dict
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
-import torch
-from numpy.testing import assert_array_equal
-from rasterio.crs import CRS
-from torch import Tensor
 from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset, UnionDataset
-from torchgeo.datasets.utils import BoundingBox
-from torchgeo.samplers.utils import get_random_bounding_box
 
 from minerva import datasets as mdt
-from minerva.datasets import PairedDataset, PairedUnionDataset
-from minerva.datasets.__testing import TstImgDataset, TstMaskDataset
+from minerva.datasets import PairedDataset
+from minerva.datasets.__testing import TstImgDataset
 from minerva.utils.utils import CONFIG
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_make_bounding_box() -> None:
-    assert mdt.make_bounding_box() is None
-    assert mdt.make_bounding_box(False) is None
-
-    bbox = (1.0, 2.0, 1.0, 2.0, 1.0, 2.0)
-    assert mdt.make_bounding_box(bbox) == BoundingBox(*bbox)
-
-    with pytest.raises(
-        ValueError,
-        match="``roi`` must be a sequence of floats or ``False``, not ``True``",
-    ):
-        _ = mdt.make_bounding_box(True)
-
-
-def test_tinydataset(img_root: Path, lc_root: Path) -> None:
-    """Source of TIFF: https://github.com/mommermi/geotiff_sample"""
-
-    imagery = TstImgDataset(str(img_root))
-    labels = TstMaskDataset(str(lc_root))
-
-    dataset = imagery & labels
-    assert isinstance(dataset, IntersectionDataset)
-
-
-def test_paired_datasets(img_root: Path) -> None:
-    dataset1 = PairedDataset(TstImgDataset, img_root)
-    dataset2 = TstImgDataset(str(img_root))
-
-    with pytest.raises(
-        ValueError,
-        match=f"Intersecting a dataset of {type(dataset2)} and a PairedDataset is not supported!",
-    ):
-        _ = dataset1 & dataset2  # type: ignore[operator]
-
-    dataset3 = PairedDataset(dataset2)
-
-    non_dataset = 42
-    with pytest.raises(
-        ValueError,
-        match=f"``dataset`` is of unsupported type {type(non_dataset)} not GeoDataset",
-    ):
-        _ = PairedDataset(42)  # type: ignore[call-overload]
-
-    bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
-    query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
-    query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
-
-    for dataset in (dataset1, dataset3):
-        sample_1, sample_2 = dataset[(query_1, query_2)]
-
-        assert isinstance(sample_1, dict)
-        assert isinstance(sample_2, dict)
-
-        assert isinstance(dataset.crs, CRS)
-        assert isinstance(getattr(dataset, "crs"), CRS)
-        assert isinstance(dataset.dataset, TstImgDataset)
-        assert isinstance(dataset.__getattr__("dataset"), TstImgDataset)
-
-        with pytest.raises(AttributeError):
-            dataset.roi
-
-        assert isinstance(dataset.__repr__(), str)
-
-        assert isinstance(
-            dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure  # type: ignore[attr-defined]
-        )
-
-
-def test_paired_union_datasets(img_root: Path) -> None:
-    def dataset_test(_dataset) -> None:
-        query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
-        query_2 = get_random_bounding_box(bounds, (32, 32), 10.0)
-        sample_1, sample_2 = _dataset[(query_1, query_2)]
-
-        assert isinstance(sample_1, dict)
-        assert isinstance(sample_2, dict)
-
-    bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
-
-    dataset1 = TstImgDataset(str(img_root))
-    dataset2 = TstImgDataset(str(img_root))
-    dataset3 = PairedDataset(TstImgDataset, img_root)
-    dataset4 = PairedDataset(TstImgDataset, img_root)
-
-    union_dataset1 = PairedDataset(dataset1 | dataset2)
-    union_dataset2 = dataset3 | dataset4
-    union_dataset3 = union_dataset1 | dataset3
-    union_dataset4 = union_dataset1 | dataset2  # type: ignore[operator]
-    union_dataset5 = dataset3 | dataset2  # type: ignore[operator]
-
-    for dataset in (
-        union_dataset1,
-        union_dataset2,
-        union_dataset3,
-        union_dataset4,
-        union_dataset5,
-    ):
-        assert isinstance(dataset, PairedUnionDataset)
-        dataset_test(dataset)
-
-
-def test_get_collator() -> None:
-    collator_params_1 = {"module": "torchgeo.datasets.utils", "name": "stack_samples"}
-    collator_params_2 = {"name": "stack_sample_pairs"}
-
-    assert callable(mdt.get_collator(collator_params_1))
-    assert callable(mdt.get_collator(collator_params_2))
-
-
-def test_stack_sample_pairs() -> None:
-    image_1 = torch.rand(size=(3, 52, 52))
-    mask_1 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
-    bbox_1 = [BoundingBox(0, 1, 0, 1, 0, 1)]
-
-    image_2 = torch.rand(size=(3, 52, 52))
-    mask_2 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
-    bbox_2 = [BoundingBox(0, 1, 0, 1, 0, 1)]
-
-    sample_1: Dict[str, Union[Tensor, List[Any]]] = {
-        "image": image_1,
-        "mask": mask_1,
-        "bbox": bbox_1,
-    }
-
-    sample_2: Dict[str, Union[Tensor, List[Any]]] = {
-        "image": image_2,
-        "mask": mask_2,
-        "bbox": bbox_2,
-    }
-
-    samples = []
-
-    for _ in range(6):
-        samples.append((sample_1, sample_2))
-
-    stacked_samples_1, stacked_samples_2 = mdt.stack_sample_pairs(samples)
-
-    assert isinstance(stacked_samples_1, defaultdict)
-    assert isinstance(stacked_samples_2, defaultdict)
-
-    for key in ("image", "mask", "bbox"):
-        for i in range(6):
-            assert_array_equal(stacked_samples_1[key][i], sample_1[key])
-            assert_array_equal(stacked_samples_2[key][i], sample_2[key])
-
-
-def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
-    imagery = PairedDataset(TstImgDataset, img_root)
-    labels = PairedDataset(TstMaskDataset, lc_root)
-
-    assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
-
-
 def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> None:
     dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params)
 
