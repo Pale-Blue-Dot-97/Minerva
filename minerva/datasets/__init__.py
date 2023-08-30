@@ -38,6 +38,7 @@ __all__ = [
     "SSL4EOS12Sentinel2",
     "NAIPChesapeakeCVPR",
     "DFC2020",
+    "SEN12MS",
     "construct_dataloader",
     "get_collator",
     "get_manifest",
@@ -54,7 +55,7 @@ __all__ = [
 ]
 
 from .collators import get_collator, stack_sample_pairs
-from .dfc import DFC2020
+from .dfc import DFC2020, SEN12MS
 from .factory import (
     construct_dataloader,
     get_manifest,
