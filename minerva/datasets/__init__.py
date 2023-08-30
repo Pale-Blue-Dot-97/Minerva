@@ -64,10 +64,9 @@ from .factory import (
     make_loaders,
     make_manifest,
 )
-from .naip import NAIPChesapeakeCVPR as NAIPChesapeakeCVPR
-from .paired import PairedDataset as PairedDataset
-from .paired import PairedUnionDataset as PairedUnionDataset
-from .ssl4eos12 import SSL4EOS12Sentinel2 as SSL4EOS12Sentinel2
+from .naip import NAIPChesapeakeCVPR
+from .paired import PairedDataset, PairedUnionDataset
+from .ssl4eos12 import SSL4EOS12Sentinel2
 from .utils import (
     get_random_sample,
     intersect_datasets,
