@@ -51,6 +51,7 @@ __all__ = [
 import os
 import platform
 import re
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -133,22 +134,21 @@ def make_dataset(
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
         _transformations: Optional[Any],
     ) -> GeoDataset:
-        if "crs" in subdataset_params["params"]:
-            subdataset_params["params"]["crs"] = CRS.from_epsg(
-                subdataset_params["params"]["crs"]
-            )
+        copy_params = deepcopy(subdataset_params)
+        if "crs" in copy_params["params"]:
+            copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
                 root=root,
                 transforms=_transformations,
-                **subdataset_params["params"],
+                **copy_params["params"],
             )
         else:
             return dataset_class(
                 root=root,
                 transforms=_transformations,
-                **subdataset_params["params"],
+                **copy_params["params"],
             )
 
     # --+ MAKE SUB-DATASETS +=========================================================================================+
