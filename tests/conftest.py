@@ -326,7 +326,7 @@ def exp_dataset_params() -> Dict[str, Any]:
             "module": "minerva.datasets.__testing",
             "name": "TstImgDataset",
             "root": "NAIP",
-            "params": {"res": 1.0},
+            "params": {"res": 1.0, "crs": 26918},
         }
     }
 
