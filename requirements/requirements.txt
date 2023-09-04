@@ -4,7 +4,7 @@ catalyst==22.4
 fastapi>=0.65.2
 fiona>=1.9.1
 geopy==2.4.0
-imageio==2.31.1
+imageio==2.31.3
 inputimeout==1.0.4
 ipykernel==6.25.1
 lightly==1.4.6
