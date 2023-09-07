@@ -43,7 +43,7 @@ from torch import FloatTensor, Tensor
 from torch.utils.data import DataLoader
 from torch.utils.data.sampler import RandomSampler
 
-from minerva.datasets import DFC2020, SEN12MS
+from minerva.datasets import DFC2020
 
 
 # =====================================================================================================================
