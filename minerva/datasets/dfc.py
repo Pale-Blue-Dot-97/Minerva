@@ -148,18 +148,24 @@ class BaseSenS12MS(NonGeoDataset):
 
         use_s2 = self.use_s2hr or self.use_s2mr or self.use_s2lr
 
-        # load s2 data.
-        if use_s2:
+        # Load just S2 data.
+        if use_s2 and not self.use_s1:
             img = self.load_s2(sample["s2"])
 
-        # load s1 data.
-        if self.use_s1:
-            if use_s2:
-                img = torch.concatenate((img, self.load_s1(sample["s1"])), dim=0)  # type: ignore[assignment]
-            else:
-                img = self.load_s1(sample["s1"])
+        # Load S1 and S2 data.
+        elif self.use_s1 and use_s2:
+            img = torch.concatenate(
+                (self.load_s2(sample["s2"]), self.load_s1(sample["s1"])), dim=0
+            )  # type: ignore[assignment]
 
-        # load labels.
+        # Load just S1 data.
+        elif self.use_s1 and not use_s2:
+            img = self.load_s1(sample["s1"])
+
+        else:
+            raise ValueError("No data selected")
+
+        # Load labels.
         if self.labels:
             lc = self.load_lc(sample["lc"])
             return {"image": img, "mask": lc, "id": sample["id"]}
@@ -240,7 +246,8 @@ class BaseSenS12MS(NonGeoDataset):
 
         return s2
 
-    def load_s1(self, path: str) -> FloatTensor:
+    @staticmethod
+    def load_s1(path: str) -> FloatTensor:
         """Util function for reading and cleaning Sentinel1 data.
 
         Args:
@@ -419,7 +426,7 @@ class SEN12MS(BaseSenS12MS):  # pragma: no cover
             train_list = [x for x in train_list if "s2_" in x]
             train_list = [x for x in train_list if x not in val_list]
             sample_dirs = train_list
-        elif split == "holdout":
+        else:
             sample_dirs = val_list
 
         for folder in sample_dirs:
