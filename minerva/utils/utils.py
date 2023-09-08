@@ -606,6 +606,27 @@ def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
         return False
 
 
+def check_substrings_in_string(
+    string: str, *substrings, all_true: bool = False
+) -> bool:
+    """Checks if either any or all substrings are in the provided string.
+
+    Args:
+        string (str): String to check for ``substrings`` in.
+        substrings (str | tuple(str, ...)): Substrings to check for in ``string``.
+        all_true (bool): Optional; Only returns ``True`` if all ``substrings`` are in ``string``.
+            Defaults to ``False``.
+
+    Returns:
+        bool: True if any ``substring`` is in ``string`` if ``all_true==False``.
+        Only ``True`` if all ``substrings`` in ``string`` if ``all_true==True``. ``False`` if else.
+    """
+    if all_true:
+        return all(substring in string for substring in substrings)
+    else:
+        return any(substring in string for substring in substrings)
+
+
 def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
     """Takes a :class:`str` representing a time stamp in one format and returns it reformatted into a second.
 

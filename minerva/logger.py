@@ -603,6 +603,8 @@ class SSLLogger(MinervaLogger):
         self.collapse_level = kwargs.get("collapse_level", False)
         self.euclidean = kwargs.get("euclidean", False)
 
+        self.model_type = kwargs.get("model_type", "")
+
         if self.collapse_level:
             self.logs["collapse_level"] = 0
         if self.euclidean:
@@ -631,6 +633,9 @@ class SSLLogger(MinervaLogger):
         """
         assert z is not None
 
+        if "segmentation" in self.model_type:
+            z = z.flatten(1, -1)
+
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
@@ -647,7 +652,8 @@ class SSLLogger(MinervaLogger):
             for i in range(len(z_a)):
                 euc_dists.append(
                     utils.calc_norm_euc_dist(
-                        z_a[i].detach().cpu().numpy(), z_b[i].detach().cpu().numpy()
+                        torch.nan_to_num(z_a[i]).detach().cpu().numpy(),
+                        torch.nan_to_num(z_b[i]).detach().cpu().numpy(),
                     )
                 )
 
