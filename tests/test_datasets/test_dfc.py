@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.samplers`.
+r"""Tests for :mod:`minerva.datasets.dfc`.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -36,69 +36,56 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict
 
 import pytest
+from torch import FloatTensor, Tensor
 from torch.utils.data import DataLoader
-from torchgeo.datasets.utils import BoundingBox
+from torch.utils.data.sampler import RandomSampler
 
-from minerva.datasets import PairedDataset, stack_sample_pairs
-from minerva.datasets.__testing import TstImgDataset
-from minerva.samplers import (
-    RandomPairBatchGeoSampler,
-    RandomPairGeoSampler,
-    get_greater_bbox,
-)
+from minerva.datasets import DFC2020
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_randompairgeosampler(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
-
-    sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
-    loader: DataLoader[Dict[str, Any]] = DataLoader(
-        dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs
-    )
-
-    batch = next(iter(loader))
-
-    assert isinstance(batch[0], defaultdict)
-    assert isinstance(batch[1], defaultdict)
-    assert len(batch[0]["image"]) == 8
-    assert len(batch[1]["image"]) == 8
-
-
-def test_randompairbatchgeosampler(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
-
-    sampler = RandomPairBatchGeoSampler(
-        dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1
-    )
-    loader: DataLoader[Dict[str, Any]] = DataLoader(
-        dataset, batch_sampler=sampler, collate_fn=stack_sample_pairs
-    )
-
-    assert isinstance(loader, DataLoader)
-
-    batch = next(iter(loader))
-
-    assert isinstance(batch[0], defaultdict)
-    assert isinstance(batch[1], defaultdict)
-    assert len(batch[0]["image"]) == 8
-    assert len(batch[1]["image"]) == 8
-
-    with pytest.raises(
-        ValueError, match="tiles_per_batch=2 is not a multiple of batch_size=7"
-    ):
-        _ = RandomPairBatchGeoSampler(
-            dataset, size=32, length=32, batch_size=7, max_r=52, tiles_per_batch=2
+@pytest.mark.parametrize(
+    ["split", "no_savanna", "use_s2hr", "use_s2mr", "use_s2lr", "use_s1", "labels"],
+    [
+        ("val", False, False, False, False, False, False),  # Expect error
+        ("val", False, True, True, True, False, True),  # Validation, S2 and labels
+        ("test", True, True, False, False, False, False),  # Test, just high-res S2
+        ("test", False, False, False, False, True, False),  # Test, just S1
+        ("val", True, True, True, True, True, True),  # Validation, S1&2, labels
+    ],
+)
+def test_dfc2020(
+    data_root: Path,
+    split: str,
+    no_savanna: bool,
+    use_s2hr: bool,
+    use_s2mr: bool,
+    use_s2lr: bool,
+    use_s1: bool,
+    labels: bool,
+) -> None:
+    root = str(data_root / "DFC" / "DFC2020")
+    if not any((use_s2hr, use_s2mr, use_s2lr, use_s1)):
+        with pytest.raises(ValueError):
+            _ = DFC2020(
+                root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
+            )
+        return
+    else:
+        dataset = DFC2020(
+            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
         )
 
+    sampler = RandomSampler(dataset, replacement=True)
+    dataloader = DataLoader(dataset, sampler=sampler)
 
-def test_get_greater_bbox(simple_bbox: BoundingBox) -> None:
-    new_bbox = get_greater_bbox(simple_bbox, 1.0, 1.0)
-    assert new_bbox == BoundingBox(-1.0, 2.0, -1.0, 2.0, 0.0, 1.0)
+    sample = next(iter(dataloader))
+
+    assert isinstance(sample["image"], FloatTensor)
+    if labels:
+        assert isinstance(sample["mask"], Tensor)

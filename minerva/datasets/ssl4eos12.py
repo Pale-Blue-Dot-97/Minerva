@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# flake8: noqa: F401
 # MIT License
 
 # Copyright (c) 2023 Harry Baker
@@ -24,7 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-""":mod:`models` contains several types of models designed to work within :mod:`minerva`."""
+r"""Simple adaption of the :mod:`~torchgeo.datasets.Sentinel2` dataset for use with the SSL4EO-S12 dataset.
+"""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -32,88 +32,44 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
-__all__ = [
-    "MinervaBackbone",
-    "MinervaDataParallel",
-    "MinervaModel",
-    "MinervaOnnxModel",
-    "MinervaWrapper",
-    "bilinear_init",
-    "get_output_shape",
-    "get_torch_weights",
-    "FCN8ResNet18",
-    "FCN8ResNet34",
-    "FCN8ResNet50",
-    "FCN8ResNet101",
-    "FCN8ResNet152",
-    "FCN16ResNet18",
-    "FCN16ResNet34",
-    "FCN16ResNet50",
-    "FCN32ResNet18",
-    "FCN32ResNet34",
-    "FCN32ResNet50",
-    "PSPEncoder",
-    "ResNetX",
-    "ResNet18",
-    "ResNet34",
-    "ResNet50",
-    "ResNet101",
-    "ResNet152",
-    "MinervaSiamese",
-    "SimCLR18",
-    "SimCLR34",
-    "SimCLR50",
-    "SimConv",
-    "SimSiam18",
-    "SimSiam34",
-    "SimSiam50",
-    "UNet",
-    "UNetR18",
-    "UNetR34",
-    "UNetR50",
-    "UNetR101",
-    "UNetR152",
-]
-
+__all__ = ["SSL4EOS12Sentinel2"]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from .__depreciated import CNN as CNN
-from .__depreciated import MLP as MLP
-from .core import (
-    MinervaBackbone,
-    MinervaDataParallel,
-    MinervaModel,
-    MinervaOnnxModel,
-    MinervaWrapper,
-    bilinear_init,
-    get_output_shape,
-    get_torch_weights,
-)
-from .fcn import (
-    FCN8ResNet18,
-    FCN8ResNet34,
-    FCN8ResNet50,
-    FCN8ResNet101,
-    FCN8ResNet152,
-    FCN16ResNet18,
-    FCN16ResNet34,
-    FCN16ResNet50,
-    FCN32ResNet18,
-    FCN32ResNet34,
-    FCN32ResNet50,
-)
-from .psp import PSPEncoder
-from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNetX
-from .siamese import (
-    MinervaSiamese,
-    SimCLR18,
-    SimCLR34,
-    SimCLR50,
-    SimConv,
-    SimSiam18,
-    SimSiam34,
-    SimSiam50,
-)
-from .unet import UNet, UNetR18, UNetR34, UNetR50, UNetR101, UNetR152
+from torchgeo.datasets import Sentinel2
+
+
+# =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class SSL4EOS12Sentinel2(Sentinel2):
+    """Adapted version of :class:~`torchgeo.datasets.Sentinel2` that works with the SSL4EO-S12 data format.
+
+    Attributes:
+        filename_glob (str): Adapted pattern from :class:`~torchgeo.datasets.Sentinel2` that looks just for band ID.
+        filename_regex (str): Adapted regex from :class:`~torchgeo.datasets.Sentinel2` that looks just for band IDs
+            with either ``B0x`` (like standard Sentinel2) or ``Bx`` (like SSL4EO-S12) format.
+        all_bands (list[str]): Sentinel2 bands with the leading 0 ommitted.
+        rgb_bands (list[str]): RGB Sentinel2 bands with the leading 0 omitted.
+    """
+
+    filename_glob = "{}.*"
+    filename_regex = r"""(?P<band>B[^[0-1]?[0-9]|B[^[1]?[0-9][\dA])\..*$"""
+    date_format = ""
+    all_bands = [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "B8A",
+        "B9",
+        "B10",
+        "B11",
+        "B12",
+    ]
+    rgb_bands = ["B4", "B3", "B2"]

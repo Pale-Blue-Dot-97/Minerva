@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.samplers`.
+r"""Tests for :mod:`minerva.datasets.collators`.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -37,68 +37,59 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                      IMPORTS
 # =====================================================================================================================
 from collections import defaultdict
-from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List, Union
 
-import pytest
-from torch.utils.data import DataLoader
+import torch
+from numpy.testing import assert_array_equal
+from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.datasets import PairedDataset, stack_sample_pairs
-from minerva.datasets.__testing import TstImgDataset
-from minerva.samplers import (
-    RandomPairBatchGeoSampler,
-    RandomPairGeoSampler,
-    get_greater_bbox,
-)
+from minerva import datasets as mdt
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_randompairgeosampler(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
+def test_get_collator() -> None:
+    collator_params_1 = {"module": "torchgeo.datasets.utils", "name": "stack_samples"}
+    collator_params_2 = {"name": "stack_sample_pairs"}
 
-    sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
-    loader: DataLoader[Dict[str, Any]] = DataLoader(
-        dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs
-    )
-
-    batch = next(iter(loader))
-
-    assert isinstance(batch[0], defaultdict)
-    assert isinstance(batch[1], defaultdict)
-    assert len(batch[0]["image"]) == 8
-    assert len(batch[1]["image"]) == 8
+    assert callable(mdt.get_collator(collator_params_1))
+    assert callable(mdt.get_collator(collator_params_2))
 
 
-def test_randompairbatchgeosampler(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
+def test_stack_sample_pairs() -> None:
+    image_1 = torch.rand(size=(3, 52, 52))
+    mask_1 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
+    bbox_1 = [BoundingBox(0, 1, 0, 1, 0, 1)]
 
-    sampler = RandomPairBatchGeoSampler(
-        dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1
-    )
-    loader: DataLoader[Dict[str, Any]] = DataLoader(
-        dataset, batch_sampler=sampler, collate_fn=stack_sample_pairs
-    )
+    image_2 = torch.rand(size=(3, 52, 52))
+    mask_2 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
+    bbox_2 = [BoundingBox(0, 1, 0, 1, 0, 1)]
 
-    assert isinstance(loader, DataLoader)
+    sample_1: Dict[str, Union[Tensor, List[Any]]] = {
+        "image": image_1,
+        "mask": mask_1,
+        "bbox": bbox_1,
+    }
 
-    batch = next(iter(loader))
+    sample_2: Dict[str, Union[Tensor, List[Any]]] = {
+        "image": image_2,
+        "mask": mask_2,
+        "bbox": bbox_2,
+    }
 
-    assert isinstance(batch[0], defaultdict)
-    assert isinstance(batch[1], defaultdict)
-    assert len(batch[0]["image"]) == 8
-    assert len(batch[1]["image"]) == 8
+    samples = []
 
-    with pytest.raises(
-        ValueError, match="tiles_per_batch=2 is not a multiple of batch_size=7"
-    ):
-        _ = RandomPairBatchGeoSampler(
-            dataset, size=32, length=32, batch_size=7, max_r=52, tiles_per_batch=2
-        )
+    for _ in range(6):
+        samples.append((sample_1, sample_2))
 
+    stacked_samples_1, stacked_samples_2 = mdt.stack_sample_pairs(samples)
 
-def test_get_greater_bbox(simple_bbox: BoundingBox) -> None:
-    new_bbox = get_greater_bbox(simple_bbox, 1.0, 1.0)
-    assert new_bbox == BoundingBox(-1.0, 2.0, -1.0, 2.0, 0.0, 1.0)
+    assert isinstance(stacked_samples_1, defaultdict)
+    assert isinstance(stacked_samples_2, defaultdict)
+
+    for key in ("image", "mask", "bbox"):
+        for i in range(6):
+            assert_array_equal(stacked_samples_1[key][i], sample_1[key])
+            assert_array_equal(stacked_samples_2[key][i], sample_2[key])

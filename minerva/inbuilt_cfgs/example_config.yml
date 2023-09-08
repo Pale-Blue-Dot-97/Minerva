@@ -97,14 +97,14 @@ dataset_params:
         image:
             transforms: false
             images_1:
-                module: minerva.datasets
+                module: minerva.datasets.__testing
                 name: TstImgDataset
                 root: NAIP
                 params:
                     res: 1.0
 
             image2:
-                module: minerva.datasets
+                module: minerva.datasets.__testing
                 name: TstImgDataset
                 root: NAIP
                 params:
@@ -112,7 +112,7 @@ dataset_params:
 
         mask:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstMaskDataset
             root: Chesapeake7
             params:
@@ -130,7 +130,7 @@ dataset_params:
 
         image:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstImgDataset
             root: NAIP
             params:
@@ -138,7 +138,7 @@ dataset_params:
 
         mask:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstMaskDataset
             root: Chesapeake7
             params:
@@ -156,7 +156,7 @@ dataset_params:
 
         image:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstImgDataset
             root: NAIP
             params:
@@ -164,7 +164,7 @@ dataset_params:
 
         mask:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstMaskDataset
             root: Chesapeake7
             params:

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# flake8: noqa: F401
 # MIT License
 
 # Copyright (c) 2023 Harry Baker
@@ -24,7 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-""":mod:`models` contains several types of models designed to work within :mod:`minerva`."""
+r"""Tests for :mod:`minerva.datasets.__testing`.
+"""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -32,88 +32,25 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
-__all__ = [
-    "MinervaBackbone",
-    "MinervaDataParallel",
-    "MinervaModel",
-    "MinervaOnnxModel",
-    "MinervaWrapper",
-    "bilinear_init",
-    "get_output_shape",
-    "get_torch_weights",
-    "FCN8ResNet18",
-    "FCN8ResNet34",
-    "FCN8ResNet50",
-    "FCN8ResNet101",
-    "FCN8ResNet152",
-    "FCN16ResNet18",
-    "FCN16ResNet34",
-    "FCN16ResNet50",
-    "FCN32ResNet18",
-    "FCN32ResNet34",
-    "FCN32ResNet50",
-    "PSPEncoder",
-    "ResNetX",
-    "ResNet18",
-    "ResNet34",
-    "ResNet50",
-    "ResNet101",
-    "ResNet152",
-    "MinervaSiamese",
-    "SimCLR18",
-    "SimCLR34",
-    "SimCLR50",
-    "SimConv",
-    "SimSiam18",
-    "SimSiam34",
-    "SimSiam50",
-    "UNet",
-    "UNetR18",
-    "UNetR34",
-    "UNetR50",
-    "UNetR101",
-    "UNetR152",
-]
+
+# =====================================================================================================================
+#                                                      IMPORTS
+# =====================================================================================================================
+from pathlib import Path
+
+from torchgeo.datasets import IntersectionDataset
+
+from minerva.datasets.__testing import TstImgDataset, TstMaskDataset
 
 
 # =====================================================================================================================
-#                                                     IMPORTS
+#                                                       TESTS
 # =====================================================================================================================
-from .__depreciated import CNN as CNN
-from .__depreciated import MLP as MLP
-from .core import (
-    MinervaBackbone,
-    MinervaDataParallel,
-    MinervaModel,
-    MinervaOnnxModel,
-    MinervaWrapper,
-    bilinear_init,
-    get_output_shape,
-    get_torch_weights,
-)
-from .fcn import (
-    FCN8ResNet18,
-    FCN8ResNet34,
-    FCN8ResNet50,
-    FCN8ResNet101,
-    FCN8ResNet152,
-    FCN16ResNet18,
-    FCN16ResNet34,
-    FCN16ResNet50,
-    FCN32ResNet18,
-    FCN32ResNet34,
-    FCN32ResNet50,
-)
-from .psp import PSPEncoder
-from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNetX
-from .siamese import (
-    MinervaSiamese,
-    SimCLR18,
-    SimCLR34,
-    SimCLR50,
-    SimConv,
-    SimSiam18,
-    SimSiam34,
-    SimSiam50,
-)
-from .unet import UNet, UNetR18, UNetR34, UNetR50, UNetR101, UNetR152
+def test_tinydataset(img_root: Path, lc_root: Path) -> None:
+    """Source of TIFF: https://github.com/mommermi/geotiff_sample"""
+
+    imagery = TstImgDataset(str(img_root))
+    labels = TstMaskDataset(str(lc_root))
+
+    dataset = imagery & labels
+    assert isinstance(dataset, IntersectionDataset)
