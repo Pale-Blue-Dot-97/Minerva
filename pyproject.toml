@@ -50,6 +50,7 @@ dependencies = [
     "types-requests",
     "types-tabulate",
     "wandb",
+    "segmentation-models-pytorch",
 ]
 
 [project.optional-dependencies]
