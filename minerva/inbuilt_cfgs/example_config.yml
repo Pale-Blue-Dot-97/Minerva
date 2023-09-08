@@ -9,7 +9,7 @@
 #
 # === PATHS ===================================================================
 dir:
-    data: tests/tmp/data
+    data: tests/fixtures/data
     configs:
         data_config: Chesapeake7.yml
         imagery_config: NAIP.yml
@@ -97,24 +97,24 @@ dataset_params:
         image:
             transforms: false
             images_1:
-                module: minerva.datasets
+                module: minerva.datasets.__testing
                 name: TstImgDataset
-                root: test_images
+                root: NAIP
                 params:
                     res: 1.0
 
             image2:
-                module: minerva.datasets
+                module: minerva.datasets.__testing
                 name: TstImgDataset
-                root: test_images
+                root: NAIP
                 params:
                     res: 1.0
 
         mask:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstMaskDataset
-            root: test_lc
+            root: Chesapeake7
             params:
                 res: 1.0
 
@@ -130,17 +130,17 @@ dataset_params:
 
         image:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstImgDataset
-            root: test_images
+            root: NAIP
             params:
                 res: 1.0
 
         mask:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstMaskDataset
-            root: test_lc
+            root: Chesapeake7
             params:
                 res: 1.0
 
@@ -156,17 +156,17 @@ dataset_params:
 
         image:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstImgDataset
-            root: test_images
+            root: NAIP
             params:
                 res: 1.0
 
         mask:
             transforms: false
-            module: minerva.datasets
+            module: minerva.datasets.__testing
             name: TstMaskDataset
-            root: test_lc
+            root: Chesapeake7
             params:
                 res: 1.0
 

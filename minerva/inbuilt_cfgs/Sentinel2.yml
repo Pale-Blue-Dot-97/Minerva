@@ -1,0 +1,13 @@
+---
+co_sys:
+    id: 4326
+    name: WGS84_4326
+
+data_specs:
+    band_ids:
+        R: B2
+        G: B3
+        B: B4
+        NIR: B8
+    image_size: [256, 256]
+    max_value: 255

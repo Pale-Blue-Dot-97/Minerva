@@ -53,3 +53,7 @@ try:
 except ImportError:  # pragma: no cover
     __version__ = "unknown version"
     version_tuple = (0, 0, "unknown version")  # type: ignore[assignment]
+
+import warnings
+
+warnings.filterwarnings("ignore", module="torchvision")

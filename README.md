@@ -21,7 +21,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> v0.25</b>
+    <b style="font-size:26px;"> v0.26</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
@@ -58,7 +58,7 @@ datasets with upcoming support for [torchvision](https://pytorch.org/vision/stab
 
 Required Python modules for `minerva` are stated in the `setup.cfg`.
 
-`minerva` currently only supports `python` 3.8 -- 3.11.
+`minerva` currently only supports `python` 3.9 -- 3.11.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -142,14 +142,17 @@ I'd like to acknowledge the invaluable supervision and contributions of [Prof Jo
 The following modules are adapted from open source third-parites:
 | Module | Original Author | License | Link |
 |:-------|:----------------|:--------|:-----|
-| `pytorchtools` | [Noah Golmant](https://github.com/noahgolmant) | MIT | https://github.com/noahgolmant/pytorch-lars/blob/master/lars.py |
-| `optimisers` | [Bjarte Mehus Sunde](https://github.com/Bjarten) | MIT | https://github.com/Bjarten/early-stopping-pytorch |
+| `pytorchtools` | [Noah Golmant](https://github.com/noahgolmant) | [MIT](https://choosealicense.com/licenses/mit/) | [lars](https://github.com/noahgolmant/pytorch-lars/blob/master/lars.py) |
+| `optimisers` | [Bjarte Mehus Sunde](https://github.com/Bjarten) | [MIT](https://choosealicense.com/licenses/mit/) | [early-stopping-pytorch](https://github.com/Bjarten/early-stopping-pytorch) |
+| `dfc` | [Lukas Liebel](https://github.com/lukasliebel) | [GNU GPL v3.0](https://choosealicense.com/licenses/gpl-3.0/) | [dfc2020_baseline](https://github.com/lukasliebel/dfc2020_baseline/blob/master/code/datasets.py) |
 
-This repositry also contains two small ``.tiff`` exercpts from the [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) dataset used for unit testing purposes. Credit for this data goes to:
+This repositry also contains some small samples from various public datasets for unit testing purposes. These are:
 
-> Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N.
-Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data.
-Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019)
+| Dataset | Citation | License | Link |
+|:--------|:---------|:--------|:-----|
+| ChesapeakeCVPR | Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N, "Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data". Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019) | Unknown | [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) |
+| SSL4EO-S12 | Wang Y, Braham N A A, Xiong Z, Liu C, Albrecht C M, Zhu X X, "SSL4EO-S12: A Large-Scale Multi-Modal, Multi-Temporal Dataset for Self-Supervised Learning in Earth Observation". arXiv preprint, 2023 | [Apache 2.0](https://github.com/zhu-xlab/SSL4EO-S12/blob/main/LICENSE) | [SSL4E0-S12](https://github.com/zhu-xlab/SSL4EO-S12) |
+| DFC2020 | M. Schmitt, L. H. Hughes, C. Qiu, and X. X. Zhu, “SEN12MS – A curated dataset of georeferenced multi-spectral sentinel-1/2 imagery for deep learning and data fusion,” in ISPRS Ann. Photogramm. Remote Sens. Spatial Inf. Sci. IV-2/W7, 2019, pp. 153–160. | [Creative Commons Attribution](https://creativecommons.org/licenses/by/4.0/) | [IEEE DFC2020](https://ieee-dataport.org/competitions/2020-ieee-grss-data-fusion-contest#files)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

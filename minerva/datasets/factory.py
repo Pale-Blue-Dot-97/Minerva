@@ -23,11 +23,10 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Functionality for constructing datasets, samplers and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
+"""Functionality for constructing datasets, manifests and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
 
 Attributes:
     IMAGERY_CONFIG (dict[str, ~typing.Any]): Config defining the properties of the imagery used in the experiment.
-    CACHE_DIR (~pathlib.Path): Path to the cache directory used to store dataset manifests, cached model weights etc.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -37,70 +36,47 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
-    "PairedDataset",
-    "PairedUnionDataset",
     "construct_dataloader",
-    "get_collator",
-    "get_manifest",
-    "get_transform",
-    "load_all_samples",
-    "make_bounding_box",
     "make_dataset",
     "make_loaders",
-    "make_manifest",
-    "make_transformations",
-    "stack_sample_pairs",
-    "intersect_datasets",
-    "unionise_datasets",
     "get_manifest_path",
+    "get_manifest",
+    "make_manifest",
 ]
+
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import inspect
 import os
 import platform
 import re
+from copy import deepcopy
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
-from alive_progress import alive_it
 from catalyst.data.sampler import DistributedSamplerWrapper
-from matplotlib.figure import Figure
-from nptyping import NDArray
 from pandas import DataFrame
+from rasterio.crs import CRS
 from torch.utils.data import DataLoader
-from torchgeo.datasets import (
-    NAIP,
-    GeoDataset,
-    IntersectionDataset,
-    RasterDataset,
-    UnionDataset,
-)
-from torchgeo.datasets.utils import BoundingBox, concat_samples, stack_samples
+from torchgeo.datasets import GeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
-from torchgeo.samplers.utils import get_random_bounding_box
-from torchvision.transforms import RandomApply
 
-from minerva.transforms import MinervaCompose
+from minerva.transforms import init_auto_norm, make_transformations
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
+
+from .collators import get_collator, stack_sample_pairs
+from .paired import PairedDataset
+from .utils import (
+    intersect_datasets,
+    load_all_samples,
+    make_bounding_box,
+    unionise_datasets,
+)
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -112,347 +88,8 @@ CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
 
 
 # =====================================================================================================================
-#                                                     CLASSES
-# =====================================================================================================================
-class TstImgDataset(RasterDataset):
-    """Test dataset for imagery.
-
-    Attributes:
-        filename_glob (str): Pattern for image tiff files within dataset root to construct dataset from.
-    """
-
-    filename_glob = "*_img.tif"
-
-
-class TstMaskDataset(RasterDataset):
-    """Test dataset for land cover data.
-
-    Attributes:
-        filename_glob (str): Pattern for mask tiff files within dataset root to construct dataset from.
-        is_image (bool): Sets flag to false to mark this as not a imagery dataset.
-    """
-
-    filename_glob = "*_lc.tif"
-    is_image = False
-
-
-class NAIPChesapeakeCVPR(NAIP):
-    filename_glob = "m_*_naip-*.tif"
-    filename_regex = ""
-    r"""
-        ^m
-        _(?P<quadrangle>\d+)
-        _(?P<quarter_quad>[a-z]+)
-        _(?P<utm_zone>\d+)
-        _(?P<resolution>\d+)
-        \..*$
-    """
-
-
-class PairedDataset(RasterDataset):
-    """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
-
-    Attributes:
-        dataset (~torchgeo.datasets.RasterDataset): Wrapped dataset to sampled from.
-
-    Args:
-        dataset_cls (~typing.Callable[..., ~torchgeo.datasets.GeoDataset]): Constructor for a
-            :class:`~torchgeo.datasets.RasterDataset` to be wrapped for paired sampling.
-    """
-
-    def __init__(
-        self,
-        dataset_cls: Callable[..., GeoDataset],
-        *args,
-        **kwargs,
-    ) -> None:
-        super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
-        super_kwargs = {
-            key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
-        }
-
-        super().__init__(*args, **super_kwargs)
-        self.dataset = dataset_cls(*args, **kwargs)
-
-    def __getitem__(  # type: ignore[override]
-        self, queries: Tuple[BoundingBox, BoundingBox]
-    ) -> Tuple[Dict[str, Any], ...]:
-        return self.dataset.__getitem__(queries[0]), self.dataset.__getitem__(
-            queries[1]
-        )
-
-    def __and__(self, other: "PairedDataset") -> IntersectionDataset:  # type: ignore[override]
-        """Take the intersection of two :class:`PairedDataset`.
-
-        Args:
-            other (PairedDataset): Another dataset.
-
-        Returns:
-            IntersectionDataset: A single dataset.
-
-        Raises:
-            ValueError: If other is not a :class:`PairedDataset`
-
-        .. versionadded:: 0.24
-        """
-        if not isinstance(other, PairedDataset):
-            raise ValueError(
-                f"Intersecting a dataset of {type(other)} and a PairedDataset is not supported!"
-            )
-
-        return IntersectionDataset(
-            self, other, collate_fn=utils.pair_collate(concat_samples)
-        )
-
-    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":  # type: ignore[override]
-        """Take the union of two :class:`PairedDataset`.
-
-        Args:
-            other (PairedDataset): Another dataset.
-
-        Returns:
-            PairedUnionDataset: A single dataset.
-
-        Raises:
-            ValueError: If ``other`` is not a :class:`PairedDataset`
-
-        .. versionadded:: 0.24
-        """
-        if not isinstance(other, PairedDataset):
-            raise ValueError(
-                f"Unionising a dataset of {type(other)} and a PairedDataset is not supported!"
-            )
-
-        return PairedUnionDataset(self, other)
-
-    def __getattr__(self, item):
-        if item in self.dataset.__dict__:
-            return getattr(self.dataset, item)  # pragma: no cover
-        elif item in self.__dict__:
-            return getattr(self, item)
-        else:
-            raise AttributeError
-
-    def __repr__(self) -> Any:
-        return self.dataset.__repr__()
-
-    @staticmethod
-    def plot(
-        sample: Dict[str, Any],
-        show_titles: bool = True,
-        suptitle: Optional[str] = None,
-    ) -> Figure:
-        """Plots a sample from the dataset.
-
-        Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
-
-        Args:
-            sample (dict[str, ~typing.Any]): Sample to plot.
-            show_titles (bool): Optional; Add title to the figure. Defaults to True.
-            suptitle (str): Optional; Super title to add to figure. Defaults to None.
-
-        Returns:
-            ~matplotlib.figure.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
-        """
-
-        image = sample["image"][0:3, :, :].permute(1, 2, 0)
-
-        # Setup the figure.
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
-
-        # Plot the image.
-        ax.imshow(image)
-
-        # Turn the axis off.
-        ax.axis("off")
-
-        # Add title to figure.
-        if show_titles:
-            ax.set_title("Image")
-
-        if suptitle is not None:
-            plt.suptitle(suptitle)
-
-        return fig
-
-    def plot_random_sample(
-        self,
-        size: Union[Tuple[int, int], int],
-        res: float,
-        show_titles: bool = True,
-        suptitle: Optional[str] = None,
-    ) -> Figure:
-        """Plots a random sample the dataset at a given size and resolution.
-
-        Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
-
-        Args:
-            size (tuple[int, int] | int): Size of the patch to plot.
-            res (float): Resolution of the patch.
-            show_titles (bool): Optional; Add title to the figure. Defaults to ``True``.
-            suptitle (str): Optional; Super title to add to figure. Defaults to ``None``.
-
-        Returns:
-            ~matplotlib.figure.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
-        """
-
-        # Get a random sample from the dataset at the given size and resolution.
-        sample = get_random_sample(self.dataset, size, res)
-        return self.plot(sample, show_titles, suptitle)
-
-
-class PairedUnionDataset(UnionDataset):
-    """Adapted form of :class:`~torchgeo.datasets.UnionDataset` to handle paired samples.
-
-    ..warning::
-
-        Do not use with :class:`PairedDataset` as this will essentially account for paired sampling twice
-        and cause a :class:`TypeError`.
-    """
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        new_datasets = []
-        for _dataset in self.datasets:
-            if isinstance(_dataset, PairedDataset):
-                new_datasets.append(_dataset.dataset)
-
-        self.datasets = new_datasets
-
-    def __getitem__(  # type: ignore[override]
-        self, query: Tuple[BoundingBox, BoundingBox]
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-        """Retrieve image and metadata indexed by query.
-
-        Uses :meth:`torchgeo.datasets.UnionDataset.__getitem__` to send each query of the pair off to get a
-        sample for each and returns as a tuple.
-
-        Args:
-            query (tuple[~torchgeo.datasets.utils.BoundingBox, ~torchgeo.datasets.utils.BoundingBox]): Coordinates
-                to index in the form (minx, maxx, miny, maxy, mint, maxt).
-
-        Returns:
-            tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]: Sample of data/labels and metadata at that index.
-        """
-        return super().__getitem__(query[0]), super().__getitem__(query[1])
-
-    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":  # type: ignore[override]
-        """Take the union of a PairedUnionDataset and a :class:`PairedDataset`.
-
-        Args:
-            other (PairedDataset): Another dataset.
-
-        Returns:
-            PairedUnionDataset: A single dataset.
-
-        Raises:
-            ValueError: If ``other`` is not a :class:`PairedDataset`
-
-        .. versionadded:: 0.24
-        """
-        if not isinstance(other, PairedDataset):
-            raise ValueError(
-                f"Unionising a dataset of {type(other)} and a PairedUnionDataset is not supported!"
-            )
-
-        return PairedUnionDataset(self, other)
-
-
-# =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_collator(
-    collator_params: Optional[Dict[str, str]] = None
-) -> Callable[..., Any]:
-    """Gets the function defined in parameters to collate samples together to form a batch.
-
-    Args:
-        collator_params (dict[str, str]): Optional; Dictionary that must contain keys for
-            ``'module'`` and ``'name'`` of the collation function. Defaults to ``config['collator']``.
-
-    Returns:
-        ~typing.Callable[..., ~typing.Any]: Collation function found from parameters given.
-    """
-    collator: Callable[..., Any]
-    if collator_params is not None:
-        module = collator_params.pop("module", "")
-        if module == "":
-            collator = globals()[collator_params["name"]]
-        else:
-            collator = utils.func_by_str(module, collator_params["name"])
-    else:
-        collator = stack_samples
-
-    assert callable(collator)
-    return collator
-
-
-def stack_sample_pairs(
-    samples: Iterable[Tuple[Dict[Any, Any], Dict[Any, Any]]]
-) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
-    """Takes a list of paired sample dicts and stacks them into a tuple of batches of sample dicts.
-
-    Args:
-        samples (~typing.Iterable[tuple[dict[~typing.Any, ~typing.Any], dict[~typing.Any, ~typing.Any]]]): List of
-            paired sample dicts to be stacked.
-
-    Returns:
-        tuple[dict[~typing.Any, ~typing.Any], dict[~typing.Any, ~typing.Any]]: Tuple of batches within dicts.
-    """
-    a, b = tuple(zip(*samples))
-    return stack_samples(a), stack_samples(b)
-
-
-def intersect_datasets(datasets: Sequence[GeoDataset]) -> IntersectionDataset:
-    r"""
-    Intersects a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
-
-    Args:
-        datasets (list[~torchgeo.datasets.GeoDataset]): List of datasets to intersect together.
-            Should have some geospatial overlap.
-
-    Returns:
-        ~torchgeo.datasets.IntersectionDataset: Final dataset object representing an intersection
-        of all the parsed datasets.
-    """
-    master_dataset: Union[GeoDataset, IntersectionDataset] = datasets[0]
-
-    for i in range(len(datasets) - 1):
-        master_dataset = master_dataset & datasets[i + 1]
-
-    assert isinstance(master_dataset, IntersectionDataset)
-    return master_dataset
-
-
-def unionise_datasets(
-    datasets: Sequence[GeoDataset],
-    transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
-) -> UnionDataset:
-    """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
-
-    Args:
-        datasets (list[~torchgeo.datasets.GeoDataset]): List of datasets to unionise together.
-        transforms (): Optional; Function that will transform any sample yielded from the union.
-
-    .. note::
-        The transforms of ``transforms`` will be applied to the sample after any transforms applied to it by
-        the constituent dataset of the union the dataset came from. Therefore, ``transforms`` needs to compatible
-        with all possible samples of the union.
-
-    Returns:
-        ~torchgeo.datasets.UnionDataset: Final dataset object representing an union of all the parsed datasets.
-    """
-    master_dataset: Union[GeoDataset, UnionDataset] = datasets[0]
-
-    for i in range(len(datasets) - 1):
-        master_dataset = master_dataset | datasets[i + 1]
-
-    master_dataset.transforms = transforms
-    assert isinstance(master_dataset, UnionDataset)
-    return master_dataset
-
-
 def make_dataset(
     data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
@@ -497,18 +134,21 @@ def make_dataset(
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
         _transformations: Optional[Any],
     ) -> GeoDataset:
+        copy_params = deepcopy(subdataset_params)
+        if "crs" in copy_params["params"]:
+            copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
                 root=root,
                 transforms=_transformations,
-                **subdataset_params["params"],
+                **copy_params["params"],
             )
         else:
             return dataset_class(
                 root=root,
                 transforms=_transformations,
-                **subdataset_params["params"],
+                **copy_params["params"],
             )
 
     # --+ MAKE SUB-DATASETS +=========================================================================================+
@@ -524,44 +164,94 @@ def make_dataset(
         type_subdatasets = []
 
         multi_datasets_exist = False
+
+        auto_norm = None
         master_transforms: Optional[Any] = None
         for area_key in type_dataset_params.keys():
+            # If any of these keys are present, this must be a parameter set for a singular dataset at this level.
             if area_key in ("module", "name", "params", "root"):
                 multi_datasets_exist = False
                 continue
+
+            # If there are transforms specified, make them. These could cover a single dataset or many.
             elif area_key == "transforms":
-                master_transforms = make_transformations(
-                    type_dataset_params[area_key], type_key
-                )
+                if isinstance(type_dataset_params[area_key], dict):
+                    transform_params = type_dataset_params[area_key]
+                    auto_norm = transform_params.get("AutoNorm")
+                else:
+                    transform_params = False
+
+                master_transforms = make_transformations(transform_params, type_key)
+
+            # Assuming that these keys are names of datasets.
             else:
                 multi_datasets_exist = True
+
                 _subdataset, subdataset_root = get_subdataset(
                     type_dataset_params, area_key
                 )
-                transformations = make_transformations(
-                    type_dataset_params[area_key].get("transforms", False), type_key
-                )
-                type_subdatasets.append(
-                    create_subdataset(
-                        _subdataset,
-                        subdataset_root,
-                        type_dataset_params[area_key],
-                        transformations,
-                    )
+
+                if isinstance(type_dataset_params[area_key].get("transforms"), dict):
+                    transform_params = type_dataset_params[area_key]["transforms"]
+                    auto_norm = transform_params.get("AutoNorm")
+                else:
+                    transform_params = False
+
+                transformations = make_transformations(transform_params, type_key)
+
+                # Send the params for this area key back through this function to make the sub-dataset.
+                sub_dataset = create_subdataset(
+                    _subdataset,
+                    subdataset_root,
+                    type_dataset_params[area_key],
+                    transformations,
                 )
 
+                # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
+                # to make a transform, then adds the transform to the dataset's existing transforms.
+                if auto_norm:
+                    if isinstance(sub_dataset, RasterDataset):
+                        init_auto_norm(sub_dataset, auto_norm)
+                    else:
+                        raise TypeError(  # pragma: no cover
+                            "AutoNorm only supports normalisation of data "
+                            + f"from RasterDatasets, not {type(sub_dataset)}!"
+                        )
+
+                    # Reset back to None.
+                    auto_norm = None
+
+                type_subdatasets.append(sub_dataset)
+
+        # Unionise all the sub-datsets of this modality together.
         if multi_datasets_exist:
             sub_datasets.append(unionise_datasets(type_subdatasets, master_transforms))
+
+        # Add the subdataset of this modality to the list.
         else:
-            sub_datasets.append(
-                create_subdataset(
-                    *get_subdataset(dataset_params, type_key),
-                    type_dataset_params,
-                    master_transforms,
-                )
+            sub_dataset = create_subdataset(
+                *get_subdataset(dataset_params, type_key),
+                type_dataset_params,
+                master_transforms,
             )
 
-    # Intersect sub-datasets to form single dataset if more than one sub-dataset exists. Else, just set that to dataset.
+            # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
+            # to make a transform, then adds the transform to the dataset's existing transforms.
+            if auto_norm:
+                if isinstance(sub_dataset, RasterDataset):
+                    init_auto_norm(sub_dataset, auto_norm)
+
+                    # Reset back to None.
+                    auto_norm = None
+                else:
+                    raise TypeError(  # pragma: no cover
+                        f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
+                    )
+
+            sub_datasets.append(sub_dataset)
+
+    # Intersect sub-datasets of differing modalities together to form single dataset
+    # if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1:
         dataset = intersect_datasets(sub_datasets)
@@ -570,7 +260,7 @@ def make_dataset(
 
 
 def construct_dataloader(
-    data_directory: Iterable[str],
+    data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[str, Any],
     sampler_params: Dict[str, Any],
     dataloader_params: Dict[str, Any],
@@ -666,147 +356,6 @@ def construct_dataloader(
     return DataLoader(dataset, collate_fn=collator, **_dataloader_params)
 
 
-def make_bounding_box(
-    roi: Union[Sequence[float], bool] = False
-) -> Optional[BoundingBox]:
-    """Construct a :class:`~torchgeo.datasets.utils.BoundingBox` object from the corners of the box.
-    ``False`` for no :class:`~torchgeo.datasets.utils.BoundingBox`.
-
-    Args:
-        roi (~typing.Sequence[float] | bool): Either a :class:`tuple` or array of values defining
-            the corners of a bounding box or False to designate no BoundingBox is defined.
-
-    Returns:
-        ~torchgeo.datasets.utils.BoundingBox | None: Bounding box made from parsed values
-        or ``None`` if ``False`` was given.
-    """
-    if roi is False:
-        return None
-    elif roi is True:
-        raise ValueError(
-            "``roi`` must be a sequence of floats or ``False``, not ``True``"
-        )
-    else:
-        return BoundingBox(*roi)
-
-
-def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., Any]:
-    """Creates a transform object based on config parameters.
-
-    Args:
-        name (str): Name of transform object to import e.g :class:`~torchvision.transforms.RandomResizedCrop`.
-        transform_params (dict[str, ~typing.Any]): Arguements to construct transform with.
-            Should also include ``"module"`` key defining the import path to the transform object.
-
-    Returns:
-        Initialised transform object specified by config parameters.
-
-    .. note::
-        If ``transform_params`` contains no ``"module"`` key, it defaults to ``torchvision.transforms``.
-
-    Example:
-        >>> name = "RandomResizedCrop"
-        >>> params = {"module": "torchvision.transforms", "size": 128}
-        >>> transform = get_transform(name, params)
-
-    Raises:
-        TypeError: If created transform object is itself not :class:`~typing.Callable`.
-    """
-    params = transform_params.copy()
-    module = params.pop("module", "torchvision.transforms")
-
-    # Gets the transform requested by config parameters.
-    _transform: Callable[..., Any] = utils.func_by_str(module, name)
-
-    transform: Callable[..., Any] = _transform(**params)
-    if callable(transform):
-        return transform
-    else:
-        raise TypeError(f"Transform has type {type(transform)}, not a callable!")
-
-
-def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
-    p = random_params.pop("p", 0.5)
-
-    random_transforms = []
-    for ran_name in random_params:
-        random_transforms.append(get_transform(ran_name, random_params[ran_name]))
-
-    return RandomApply(random_transforms, p=p)
-
-
-def _manual_compose(
-    manual_params: Dict[str, Any],
-    key: str,
-    other_transforms: Optional[List[Any]] = None,
-) -> MinervaCompose:
-    manual_transforms = []
-
-    for manual_name in manual_params:
-        manual_transforms.append(get_transform(manual_name, manual_params[manual_name]))
-
-    if other_transforms:
-        manual_transforms = manual_transforms + other_transforms
-
-    return MinervaCompose(manual_transforms, key=key)
-
-
-def make_transformations(
-    transform_params: Union[Dict[str, Any], Literal[False]], key: Optional[str] = None
-) -> Optional[Any]:
-    """Constructs a transform or series of transforms based on parameters provided.
-
-    Args:
-        transform_params (dict[str, ~typing.Any] | ~typing.Literal[False]): Parameters defining transforms desired.
-            The name of each transform should be the key, while the kwargs for the transform should
-            be the value of that key as a dict.
-        key (str): Optional; Key of the type of data within the sample to be transformed.
-            Must be ``"image"`` or ``"mask"``.
-
-    Example:
-        >>> transform_params = {
-        >>>    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-        >>>     "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7}
-        >>> }
-        >>> transforms = make_transformations(transform_params)
-
-    Returns:
-        If no parameters are parsed, None is returned.
-        If only one transform is defined by the parameters, returns a Transforms object.
-        If multiple transforms are defined, a Compose object of Transform objects is returned.
-    """
-    transformations = []
-
-    # If no transforms are specified, return None.
-    if not transform_params:
-        return None
-
-    manual_compose = False
-
-    # Get each transform.
-    for name in transform_params:
-        if name == "MinervaCompose":
-            manual_compose = True
-
-        elif name == "RandomApply":
-            random_params = transform_params[name].copy()
-            transformations.append(_construct_random_transforms(random_params))
-
-        else:
-            transformations.append(get_transform(name, transform_params[name]))
-
-    # Compose transforms together and return.
-    if manual_compose:
-        assert key is not None
-        return _manual_compose(
-            transform_params["MinervaCompose"].copy(),
-            key=key,
-            other_transforms=transformations,
-        )
-    else:
-        return MinervaCompose(transformations, key)
-
-
 @utils.return_updated_kwargs
 def make_loaders(
     rank: int = 0,
@@ -869,7 +418,7 @@ def make_loaders(
     if not isinstance(sample_pairs, bool):
         sample_pairs = False
 
-    if model_type != "siamese":
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         # Load manifest from cache for this dataset.
         manifest = get_manifest(get_manifest_path())
         class_dist = utils.modes_from_manifest(manifest)
@@ -885,7 +434,9 @@ def make_loaders(
     loaders = {}
 
     for mode in dataset_params.keys():
-        if params.get("elim", False) and model_type != "siamese":
+        if params.get("elim", False) and not utils.check_substrings_in_string(
+            model_type, "siamese"
+        ):
             class_transform = {
                 "ClassTransform": {
                     "module": "minerva.transforms",
@@ -920,7 +471,7 @@ def make_loaders(
         )
         print("DONE")
 
-    if model_type != "siamese":
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
         if params.get("elim", False):
             class_dist = utils.class_dist_transform(class_dist, forwards)
@@ -1053,38 +604,3 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     del df["MODES"]
 
     return df
-
-
-def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]:
-    """Loads all sample masks from parsed :class:`~torch.utils.data.DataLoader` and computes the modes of their classes.
-
-    Args:
-        dataloader (~torch.utils.data.DataLoader): DataLoader containing samples. Must be using a dataset with
-            ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` key.
-
-    Returns:
-        ~numpy.ndarray: 2D array of the class modes within every sample defined by the parsed
-        :class:`~torch.utils.data.DataLoader`.
-    """
-    sample_modes: List[List[Tuple[int, int]]] = []
-    for sample in alive_it(dataloader):
-        modes = utils.find_modes(sample["mask"])
-        sample_modes.append(modes)
-
-    return np.array(sample_modes, dtype=object)
-
-
-def get_random_sample(
-    dataset: GeoDataset, size: Union[Tuple[int, int], int], res: float
-) -> Dict[str, Any]:
-    """Gets a random sample from the provided dataset of size ``size`` and at ``res`` resolution.
-
-    Args:
-        dataset (~torchgeo.datasets.GeoDataset): Dataset to sample from.
-        size (tuple[int, int] | int): Size of the patch to sample.
-        res (float): Resolution of the patch.
-
-    Returns:
-        dict[str, ~typing.Any]: Random sample from the dataset.
-    """
-    return dataset[get_random_bounding_box(dataset.bounds, size, res)]
