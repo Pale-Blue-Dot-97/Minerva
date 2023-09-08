@@ -163,6 +163,24 @@ def test_config_loading() -> None:
     assert type(AUX_CONFIGS) is dict
 
 
+@pytest.mark.parametrize(
+    ("string", "substrs", "all_true", "expected"),
+    (
+        ("siamese-segmentation", "siamese", False, True),
+        ("siamese-segmentation", ("ssl", "siamese"), False, True),
+        ("siamese-segmentation", ("ssl", "siamese"), True, False),
+        ("siamese-segmentation", ("segmentation", "siamese"), True, True),
+    ),
+)
+def test_check_substrings_in_string(
+    string: str, substrs, all_true: bool, expected: bool
+) -> None:
+    assert (
+        utils.check_substrings_in_string(string, *substrs, all_true=all_true)
+        is expected
+    )
+
+
 def test_datetime_reformat() -> None:
     dt = "2018-12-15"
     assert utils.datetime_reformat(dt, "%Y-%m-%d", "%d.%m.%Y") == "15.12.2018"

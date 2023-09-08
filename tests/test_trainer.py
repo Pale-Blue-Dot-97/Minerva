@@ -160,6 +160,7 @@ def test_trainer_3() -> None:
         ("example_GeoCLR_config.yml", {"plot_last_epoch": False}, {}),
         ("example_3rd_party.yml", {}, {}),
         ("example_autoencoder_config.yml", {}, {}),
+        ("example_GeoSimConvNet.yml", {}, {}),
     ],
 )
 def test_trainer_4(

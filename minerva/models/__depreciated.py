@@ -24,7 +24,6 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module for redundant model classes."""
-# TODO: Consider removing redundant models.
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

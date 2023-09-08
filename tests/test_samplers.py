@@ -44,7 +44,8 @@ import pytest
 from torch.utils.data import DataLoader
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.datasets import PairedDataset, TstImgDataset, stack_sample_pairs
+from minerva.datasets import PairedDataset, stack_sample_pairs
+from minerva.datasets.__testing import TstImgDataset
 from minerva.samplers import (
     RandomPairBatchGeoSampler,
     RandomPairGeoSampler,

@@ -9,7 +9,7 @@
 #
 # === PATHS ===================================================================
 dir:
-    data: tests/tmp/data
+    data: tests/fixtures/data
     configs:
         data_config: Chesapeake7.yml
         imagery_config: NAIP.yml
@@ -100,14 +100,14 @@ dataset_params:
                 Normalise:
                     module: minerva.transforms
                     norm_value: 255
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Train
+            module: minerva.datasets.__testing
+            name: TstImgDataset
+            root: NAIP
             params:
                 res: 1.0
         mask:
-            module: torchgeo.datasets
-            name: Chesapeake7
+            module: minerva.datasets.__testing
+            name: TstMaskDataset
             root: Chesapeake7
             params:
                 res: 1.0
@@ -127,14 +127,14 @@ dataset_params:
                 Normalise:
                     module: minerva.transforms
                     norm_value: 255
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Validation
+            module: minerva.datasets.__testing
+            name: TstImgDataset
+            root: NAIP
             params:
                 res: 1.0
         mask:
-            module: torchgeo.datasets
-            name: Chesapeake7
+            module: minerva.datasets.__testing
+            name: TstMaskDataset
             root: Chesapeake7
             params:
                 res: 1.0
@@ -153,14 +153,14 @@ dataset_params:
                 Normalise:
                     module: minerva.transforms
                     norm_value: 255
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP 2013/Test
+            module: minerva.datasets.__testing
+            name: TstImgDataset
+            root: NAIP
             params:
                 res: 1.0
         mask:
-            module: torchgeo.datasets
-            name: Chesapeake7
+            module: minerva.datasets.__testing
+            name: TstMaskDataset
             root: Chesapeake7
             params:
                 res: 1.0
