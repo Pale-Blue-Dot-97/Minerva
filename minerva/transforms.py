@@ -35,24 +35,48 @@ __all__ = [
     "ClassTransform",
     "PairCreate",
     "Normalise",
+    "AutoNorm",
     "DetachedColorJitter",
     "SingleLabel",
     "ToRGB",
     "MinervaCompose",
     "SwapKeys",
+    "get_transform",
+    "init_auto_norm",
+    "make_transformations",
 ]
+
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
+import re
+from copy import deepcopy
+from pathlib import Path
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    overload,
+)
 
+import numpy as np
+import rasterio
 import torch
 from torch import LongTensor, Tensor
-from torchvision.transforms import ColorJitter
+from torchgeo.datasets import BoundingBox, RasterDataset
+from torchgeo.samplers import RandomGeoSampler
+from torchvision.transforms import ColorJitter, Normalize, RandomApply
 from torchvision.transforms import functional_tensor as ft
 
-from minerva.utils.utils import find_tensor_mode, mask_transform
+from minerva.utils.utils import find_tensor_mode, func_by_str, mask_transform
 
 
 # =====================================================================================================================
@@ -145,6 +169,133 @@ class Normalise:
             ~torch.Tensor: Input image tensor normalised by ``norm_value``.
         """
         return img / self.norm_value
+
+
+class AutoNorm(Normalize):
+    """Transform that will automatically calculate the mean and standard deviation of the dataset
+    to normalise the data with.
+
+    Uses :class:`torchvision.transforms.Normalize` for the normalisation.
+
+    Attributes:
+        dataset (RasterDataset): Dataset to calculate the mean and standard deviation of.
+        sampler (RandomGeoSampler): Sampler used to create valid queries for the dataset to find data files.
+
+    Args:
+        dataset (RasterDataset): Dataset to calculate the mean and standard deviation of.
+        length (int): Optional; Number of samples from the dataset to calculate the mean and standard deviation of.
+        roi (BoundingBox): Optional; Region of interest for sampler to sample from.
+        inplace (bool): Optional; Performs the normalisation transform inplace on the tensor. Default False.
+
+    .. versionadded:: 0.26
+    """
+
+    def __init__(
+        self,
+        dataset: RasterDataset,
+        length: int = 128,
+        roi: Optional[BoundingBox] = None,
+        inplace=False,
+    ):
+        self.dataset = dataset
+        self.sampler = RandomGeoSampler(dataset, 32, length, roi)
+
+        mean, std = self._calc_mean_std()
+
+        super().__init__(mean, std, inplace)
+
+    def _calc_mean_std(self) -> Tuple[List[float], List[float]]:
+        per_img_means = []
+        per_img_stds = []
+        for query in self.sampler:
+            mean, std = self._get_tile_mean_std(query)
+            per_img_means.append(mean)
+            per_img_stds.append(std)
+
+        per_band_means = list(zip(*per_img_means))
+        per_band_stds = list(zip(*per_img_stds))
+
+        per_band_mean = [np.mean(band) for band in per_band_means]
+        per_band_std = [np.mean(band) for band in per_band_stds]
+
+        return per_band_mean, per_band_std
+
+    def _get_tile_mean_std(self, query: BoundingBox) -> Tuple[List[float], List[float]]:
+        hits = self.dataset.index.intersection(tuple(query), objects=True)
+        filepaths = cast(list[str], [hit.object for hit in hits])
+
+        if not filepaths:  # pragma: no cover
+            raise IndexError(
+                f"query: {query} not found in index with bounds: {self.dataset.bounds}"
+            )
+
+        means: List[float]
+        stds: List[float]
+        if self.dataset.separate_files:
+            filename_regex = re.compile(self.dataset.filename_regex, re.VERBOSE)
+
+            band_means = []
+            band_stds = []
+            for band in self.dataset.bands:
+                band_filepaths = []
+                for filepath in filepaths:
+                    filename = Path(filepath).name
+                    directory = Path(filepath).parent
+                    match = re.match(filename_regex, filename)
+                    if match:
+                        if "band" in match.groupdict():
+                            start = match.start("band")
+                            end = match.end("band")
+                            filename = filename[:start] + band + filename[end:]
+                    filepath = str(directory / filename)
+                    band_filepaths.append(filepath)
+                mean, std = self._get_image_mean_std(band_filepaths)
+                band_means.append(mean)
+                band_stds.append(std)
+            means = [np.mean(band) for band in band_means]  # type:ignore[misc]
+            stds = [np.mean(band) for band in band_stds]  # type:ignore[misc]
+        else:
+            means, stds = self._get_image_mean_std(filepaths, self.dataset.band_indexes)
+
+        return means, stds
+
+    def _get_image_mean_std(
+        self,
+        filepaths: List[str],
+        band_indexes: Optional[Sequence[int]] = None,
+    ) -> Tuple[List[float], List[float]]:
+        stats = [self._get_meta_mean_std(fp, band_indexes) for fp in filepaths]
+
+        means = list(np.mean([stat[0] for stat in stats], axis=0))
+        stds = list(np.mean([stat[1] for stat in stats], axis=0))
+
+        return means, stds
+
+    def _get_meta_mean_std(
+        self, filepath, band_indexes: Optional[Sequence[int]] = None
+    ) -> Tuple[List[float], List[float]]:
+        # Open the Tiff file and get the statistics from the meta (min, max, mean, std).
+        means = []
+        stds = []
+        data = rasterio.open(filepath)
+        if band_indexes:
+            for band in band_indexes:
+                mean, std = self._extract_meta(data, band)
+                means.append(mean)
+                stds.append(std)
+        else:
+            mean, std = self._extract_meta(data, 1)
+            means, stds = [mean], [std]
+        data.close()
+
+        return means, stds
+
+    @staticmethod
+    def _extract_meta(data, band_index):
+        stats = data.statistics(band_index)
+        mean, std = stats.mean, stats.std
+
+        return mean, std
 
 
 class DetachedColorJitter(ColorJitter):
@@ -290,12 +441,16 @@ class SingleLabel:
 
 
 class MinervaCompose:
-    """Extension of :class:`torchvision.transforms.Compose`. Composes several transforms together.
+    """Adaption of :class:`torchvision.transforms.Compose`. Composes several transforms together.
 
     Designed to work with both :class:`~torch.Tensor` and :mod:`torchgeo` sample :class:`dict`.
 
-    This transform does not support torchscript. Please, see the note below.
+    This transform does not support torchscript.
 
+    Attributes:
+        transforms (list[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
+            List of composed transforms.
+        key (str): The key of the data type in the sample dict to transform for use with :mod:`torchgeo` samples.
     Args:
         transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
             List of transforms to compose.
@@ -308,19 +463,6 @@ class MinervaCompose:
         >>>     transforms.PILToTensor(),
         >>>     transforms.ConvertImageDtype(torch.float),
         >>> ])
-
-    .. note::
-        In order to script the transformations, please use :class:`torch.nn.Sequential` as below.
-
-        >>> transforms = torch.nn.Sequential(
-        >>>     transforms.CenterCrop(10),
-        >>>     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        >>> )
-        >>> scripted_transforms = torch.jit.script(transforms)
-
-        Make sure to use only scriptable transformations, i.e. that work with :class:`torch.Tensor`,
-        does not require ``lambda`` functions or :class:`pillow.Image`.
-
     """
 
     def __init__(
@@ -328,7 +470,14 @@ class MinervaCompose:
         transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
         key: Optional[str] = None,
     ) -> None:
-        self.transforms = transforms
+        if isinstance(transforms, Sequence):
+            self.transforms = list(transforms)
+        elif callable(transforms):
+            self.transforms = [transforms]
+        else:
+            raise TypeError(
+                f"`transforms` has type {type(transforms)}, not callable or sequence of callables"
+            )
         self.key = key
 
     @overload
@@ -355,31 +504,57 @@ class MinervaCompose:
         if isinstance(self.transforms, Sequence):
             for t in self.transforms:
                 img = t(img)
-        elif callable(self.transforms):
-            img = self.transforms(img)
 
         else:
             raise TypeError(
-                f"`transforms` has type {type(self.transforms)}, not callable"
+                f"`transforms` has type {type(self.transforms)}, not sequence of callables"
             )
 
         return img
 
+    def _add(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> List[Callable[..., Any]]:
+        _transforms = deepcopy(self.transforms)
+        if isinstance(new_transform, Sequence):
+            _transforms.extend(new_transform)
+            return _transforms
+        elif callable(new_transform):
+            _transforms.append(new_transform)
+            return _transforms
+        else:
+            raise TypeError(
+                f"`new_transform` has type {type(new_transform)}, not callable or sequence of callables"
+            )
+
+    def __add__(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> "MinervaCompose":
+        new_compose = deepcopy(self)
+        new_compose.transforms = self._add(new_transform)
+        return new_compose
+
+    def __iadd__(
+        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+    ) -> "MinervaCompose":
+        self.transforms = self._add(new_transform)
+        return self
+
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
+        if hasattr(self.transforms, "__len__"):
+            if len(self.transforms) > 1:
+                for t in self.transforms:
+                    format_string += "\n"
+                    format_string += "    {0}".format(t)
 
-        if isinstance(self.transforms, Sequence):
-            for t in self.transforms:
-                format_string += "\n"
-                format_string += "    {0}".format(t)
-
-        elif callable(self.transforms):
-            format_string += "{0})".format(self.transforms)
-            return format_string
+            else:
+                format_string += "{0})".format(self.transforms[0])
+                return format_string
 
         else:
             raise TypeError(
-                f"`transforms` has type {type(self.transforms)}, not callable"
+                f"`transforms` has type {type(self.transforms)}, not sequence of callables"
             )
 
         format_string += "\n)"
@@ -424,3 +599,162 @@ class SwapKeys:
         """
         sample[self.to_key] = sample[self.from_key]
         return sample
+
+
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
+def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
+    p = random_params.pop("p", 0.5)
+
+    random_transforms = []
+    for ran_name in random_params:
+        random_transforms.append(get_transform(ran_name, random_params[ran_name]))
+
+    return RandomApply(random_transforms, p=p)
+
+
+def _manual_compose(
+    manual_params: Dict[str, Any],
+    key: str,
+    other_transforms: Optional[List[Any]] = None,
+) -> MinervaCompose:
+    manual_transforms = []
+
+    for manual_name in manual_params:
+        manual_transforms.append(get_transform(manual_name, manual_params[manual_name]))
+
+    if other_transforms:
+        manual_transforms = manual_transforms + other_transforms
+
+    return MinervaCompose(manual_transforms, key=key)
+
+
+def init_auto_norm(
+    dataset: RasterDataset, params: Dict[str, Any] = {}
+) -> RasterDataset:
+    """Uses :class:~`minerva.transforms.AutoNorm` to automatically find the mean and standard deviation of `dataset`
+    to create a normalisation transform that is then added to the existing transforms of `dataset`.
+
+    Args:
+        dataset (RasterDataset): Dataset to find and apply the normalisation conditions to.
+        params (Dict[str, Any]): Parameters for :class:~`minerva.transforms.AutoNorm`.
+
+    Returns:
+        RasterDataset: `dataset` with an additional :class:~`minerva.transforms.AutoNorm` transform
+        added to it's :attr:~`torchgeo.datasets.RasterDataset.transforms` attribute.
+    """
+    # Creates the AutoNorm transform by sampling `dataset` for its mean and standard deviation stats.
+    auto_norm = AutoNorm(dataset, **params)
+
+    if dataset.transforms is None:
+        dataset.transforms = MinervaCompose(auto_norm)
+    else:
+        # If the existing transforms are already `MinervaCompose`, we can just add the AutoNorm transform on.
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += auto_norm
+
+        # If existing transforms are a callable, place in a list with AutoNorm and make in `MinervaCompose`.
+        elif callable(dataset.transforms):
+            dataset.transforms = MinervaCompose([dataset.transforms, auto_norm])
+        else:
+            raise TypeError(
+                f"The type of datset.transforms, {type(dataset.transforms)}, is not supported"
+            )
+
+    return dataset
+
+
+def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., Any]:
+    """Creates a transform object based on config parameters.
+
+    Args:
+        name (str): Name of transform object to import e.g :class:`~torchvision.transforms.RandomResizedCrop`.
+        transform_params (dict[str, ~typing.Any]): Arguements to construct transform with.
+            Should also include ``"module"`` key defining the import path to the transform object.
+
+    Returns:
+        Initialised transform object specified by config parameters.
+
+    .. note::
+        If ``transform_params`` contains no ``"module"`` key, it defaults to ``torchvision.transforms``.
+
+    Example:
+        >>> name = "RandomResizedCrop"
+        >>> params = {"module": "torchvision.transforms", "size": 128}
+        >>> transform = get_transform(name, params)
+
+    Raises:
+        TypeError: If created transform object is itself not :class:`~typing.Callable`.
+    """
+    params = transform_params.copy()
+    module = params.pop("module", "torchvision.transforms")
+
+    # Gets the transform requested by config parameters.
+    _transform: Callable[..., Any] = func_by_str(module, name)
+
+    transform: Callable[..., Any] = _transform(**params)
+    if callable(transform):
+        return transform
+    else:
+        raise TypeError(f"Transform has type {type(transform)}, not a callable!")
+
+
+def make_transformations(
+    transform_params: Union[Dict[str, Any], Literal[False]], key: Optional[str] = None
+) -> Optional[Any]:
+    """Constructs a transform or series of transforms based on parameters provided.
+
+    Args:
+        transform_params (dict[str, ~typing.Any] | ~typing.Literal[False]): Parameters defining transforms desired.
+            The name of each transform should be the key, while the kwargs for the transform should
+            be the value of that key as a dict.
+        key (str): Optional; Key of the type of data within the sample to be transformed.
+            Must be ``"image"`` or ``"mask"``.
+
+    Example:
+        >>> transform_params = {
+        >>>    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+        >>>     "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7}
+        >>> }
+        >>> transforms = make_transformations(transform_params)
+
+    Returns:
+        If no parameters are parsed, None is returned.
+        If only one transform is defined by the parameters, returns a Transforms object.
+        If multiple transforms are defined, a Compose object of Transform objects is returned.
+    """
+    transformations = []
+
+    # If no transforms are specified, return None.
+    if not transform_params:
+        return None
+
+    manual_compose = False
+
+    # Get each transform.
+    for name in transform_params:
+        if name == "MinervaCompose":
+            manual_compose = True
+
+        elif name == "RandomApply":
+            random_params = transform_params[name].copy()
+            transformations.append(_construct_random_transforms(random_params))
+
+        # AutoNorm needs to be handled separately.
+        elif name == "AutoNorm":
+            continue
+
+        else:
+            transformations.append(get_transform(name, transform_params[name]))
+
+    # Compose transforms together and return.
+    if manual_compose:
+        assert key is not None
+        return _manual_compose(
+            transform_params["MinervaCompose"].copy(),
+            key=key,
+            other_transforms=transformations,
+        )
+    else:
+        return MinervaCompose(transformations, key)

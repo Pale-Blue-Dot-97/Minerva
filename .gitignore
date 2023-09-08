@@ -144,8 +144,7 @@ dmypy.json
 
 # Exclusions
 !docs/images/*.png
-!tests/tmp/data/test_images/*.tif
-!tests/tmp/data/test_lc/*.tif
+!tests/fixtures/data/**/*.tif
 
 lightning_logs/
 data/*
