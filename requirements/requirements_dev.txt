@@ -6,6 +6,7 @@ fastapi>=0.101.0
 fiona>=1.9.1
 flake8==6.1.0
 geopy==2.4.0
+GitPython>=3.1.35
 imageio==2.31.3
 inputimeout==1.0.4
 internet-sabotage3==0.1.6
