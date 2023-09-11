@@ -8,7 +8,7 @@ GitPython>=3.1.35
 imageio==2.31.3
 inputimeout==1.0.4
 ipykernel==6.25.1
-lightly==1.4.6
+lightly==1.4.17
 matplotlib==3.7.2
 mlflow==2.6.0
 nptyping==2.5.0
