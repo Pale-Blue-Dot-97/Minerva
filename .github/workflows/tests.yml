@@ -25,3 +25,7 @@ jobs:
               uses: collective/tox-action@main
               with:
                   python-version: ${{ matrix.python-version }}
+            - name: Upload coverage report to CodeCov ☂
+              uses: codecov/codecov-action@v3
+              env:
+                  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

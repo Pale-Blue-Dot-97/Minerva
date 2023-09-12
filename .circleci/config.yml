@@ -5,13 +5,13 @@ version: 2.1
 
 # See: https://circleci.com/docs/2.0/orb-intro/
 orbs:
-    coveralls: coveralls/coveralls@1.0.6
+    coveralls: coveralls/coveralls@2.2.1
 
 jobs:
     build-and-test:
         # Change the version below to your required version of python
         docker:
-            - image: cimg/python:3.10.9-node
+            - image: cimg/python:3.11.5-node
               user: root
         steps:
             - checkout
@@ -40,7 +40,7 @@ jobs:
                   path: /tmp/test-results/coverage.lcov
                   destination: coverage
             - coveralls/upload:
-                  path_to_lcov: /tmp/test-results/coverage.lcov
+                  coverage_file: /tmp/test-results/coverage.lcov
 
 workflows:
     tests:
