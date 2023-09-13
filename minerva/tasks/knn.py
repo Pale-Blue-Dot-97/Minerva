@@ -35,27 +35,19 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import TYPE_CHECKING, Any, Dict, Optional
+from typing import Any, Dict, Optional
 
-import pandas as pd
 import torch
 import torch.distributed as dist
 import torch.nn.functional as ptfunc
 from alive_progress import alive_it
 from torch import Tensor
-from torch.nn.parallel import DistributedDataParallel as DDP
-
-if TYPE_CHECKING:  # pragma: no cover
-    from torch.utils.tensorboard.writer import SummaryWriter
-
-from torchinfo import summary
-from wandb.sdk.lib import RunDisabled
-from wandb.sdk.wandb_run import Run
+from torch.utils.data import DataLoader
 
 from minerva.datasets import make_loaders
 from minerva.logger import KNNLogger, MinervaLogger
 from minerva.metrics import MinervaMetrics
-from minerva.models import MinervaDataParallel, MinervaSiamese
+from minerva.models import MinervaDataParallel, MinervaModel, MinervaSiamese
 from minerva.utils import AUX_CONFIGS, utils
 
 from .core import MinervaTask
@@ -65,6 +57,31 @@ from .core import MinervaTask
 #                                                     CLASSES
 # =====================================================================================================================
 class WeightedKNN(MinervaTask):
+    def __init__(
+        self,
+        model: MinervaModel,
+        batch_size: int,
+        n_batches: int,
+        model_type: str,
+        sample_pairs: bool,
+        loader: DataLoader,
+        device: torch.device,
+        **params,
+    ) -> None:
+        super().__init__(
+            model,
+            batch_size,
+            n_batches,
+            model_type,
+            sample_pairs,
+            loader,
+            device,
+            **params,
+        )
+
+        self.temp = self.params["temp"]
+        self.k = self.params["k"]
+
     def step(
         self,
         temp: float = 0.5,
@@ -96,15 +113,13 @@ class WeightedKNN(MinervaTask):
         # Get the number of classes from the data config.
         n_classes = len(AUX_CONFIGS["data_config"]["classes"])
 
-        batch_size = self.batch_size
-
         # Calculates the number of samples.
-        n_samples = self.n_batches[mode] * batch_size
+        n_samples = self.n_batches * self.batch_size
 
         # Uses the special `KNNLogger` to log the results from the KNN.
         epoch_logger = KNNLogger(
-            self.n_batches[mode],
-            batch_size,
+            self.n_batches,
+            self.batch_size,
             n_samples,
             record_int=record_int,
             record_float=record_float,
@@ -179,7 +194,7 @@ class WeightedKNN(MinervaTask):
                 if utils.check_substrings_in_string(self.model_type, "segmentation"):
                     feature = feature.flatten(1, -1)
 
-                total_num += batch_size
+                total_num += self.batch_size
 
                 # compute cos similarity between each feature vector and feature bank ---> [B, N]
                 sim_matrix = torch.mm(feature, feature_bank)
@@ -230,15 +245,7 @@ class WeightedKNN(MinervaTask):
                     results = (loss, *results[1:])
 
                 # Sends results to logger.
-                epoch_logger.log(mode, self.step_num[mode], *results)
+                epoch_logger.log(mode, self.step_num, *results)
 
                 # Update global step number for this mode of model fitting.
-                self.step_num[mode] += 1
-
-        # Send the logs to the metric logger.
-        self.metric_logger(mode, epoch_logger.get_logs)
-
-        if record_int or record_float:
-            return epoch_logger.get_results
-        else:
-            return None
+                self.step_num += 1
