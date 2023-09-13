@@ -49,10 +49,13 @@ from typing import (
     overload,
 )
 
+import torch
 import torch.distributed as dist
+from torch.utils.data import DataLoader
 
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
+from minerva.models import MinervaDataParallel, MinervaModel
 from minerva.utils.utils import func_by_str
 
 
@@ -62,11 +65,15 @@ from minerva.utils.utils import func_by_str
 class MinervaTask(ABC):
     def __init__(
         self,
-        model,
+        model: Union[MinervaModel, MinervaDataParallel],
         batch_size: int,
         n_batches: int,
         model_type: str,
         sample_pairs: bool,
+        loader: DataLoader,
+        device: torch.device,
+        record_int: bool,
+        record_float: bool,
         **params,
     ) -> None:
         self.model = model
@@ -83,6 +90,14 @@ class MinervaTask(ABC):
         self.metric_logger: MinervaMetrics = self.make_metric_logger()
         self.logger: MinervaLogger = self.get_logger()
         self.modelio = self.get_io_func()
+
+        self.loader = loader
+        self.device = device
+
+        self.record_int = record_int
+        self.record_float = record_float
+
+        self.step_num = 0
 
     def make_metric_logger(self) -> MinervaMetrics:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
@@ -134,11 +149,22 @@ class MinervaTask(ABC):
         return io_func
 
     @abc.abstractmethod
-    def step(self) -> None:
+    def step(self) -> Dict[str, Any]:
         pass
 
+    def _generic_step(self) -> Optional[Dict[str, Any]]:
+        self.step()
+
+        # Send the logs to the metric logger.
+        self.metric_logger(mode, self.logger.get_logs)
+
+        if self.record_int or self.record_float:
+            return self.logger.get_results
+        else:
+            return None
+
     def __call__(self) -> Any:
-        return self.step()
+        return self._generic_step()
 
     @property
     def get_logs(self) -> Dict[str, Any]:
