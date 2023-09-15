@@ -63,7 +63,7 @@ class MinervaTask(ABC):
         batch_size: int,
         n_batches: int,
         model_type: str,
-        loader: DataLoader[Iterable[Any]],
+        loaders: Dict[str, DataLoader[Iterable[Any]]],
         device: torch.device,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         record_int: bool = True,
@@ -85,7 +85,7 @@ class MinervaTask(ABC):
         self.logger: MinervaLogger = self.get_logger()
         self.modelio = self.get_io_func()
 
-        self.loader = loader
+        self.loaders = loaders
         self.device = device
 
         self.record_int = record_int

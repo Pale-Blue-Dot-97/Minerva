@@ -35,7 +35,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -65,7 +65,7 @@ class WeightedKNN(MinervaTask):
         batch_size: int,
         n_batches: int,
         model_type: str,
-        loader: DataLoader[Iterable[Any]],
+        loaders: Dict[str, DataLoader[Iterable[Any]]],
         device: torch.device,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         record_int: bool = True,
@@ -77,7 +77,7 @@ class WeightedKNN(MinervaTask):
             batch_size,
             n_batches,
             model_type,
-            loader,
+            loaders,
             device,
             writer,
             record_int,
