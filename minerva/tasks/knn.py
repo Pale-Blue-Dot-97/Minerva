@@ -35,14 +35,13 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
 import torch.nn.functional as ptfunc
 from alive_progress import alive_it
 from torch import Tensor
-from torch.utils.data import DataLoader
 from wandb.sdk.wandb_run import Run
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -63,10 +62,9 @@ class WeightedKNN(MinervaTask):
         self,
         model: MinervaModel,
         batch_size: int,
-        n_batches: int,
-        model_type: str,
-        loaders: Dict[str, DataLoader[Iterable[Any]]],
         device: torch.device,
+        rank: int = 0,
+        world_size: int = 1,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         record_int: bool = True,
         record_float: bool = False,
@@ -75,10 +73,9 @@ class WeightedKNN(MinervaTask):
         super().__init__(
             model,
             batch_size,
-            n_batches,
-            model_type,
-            loaders,
             device,
+            rank,
+            world_size,
             writer,
             record_int,
             record_float,

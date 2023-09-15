@@ -37,16 +37,16 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
 import torch
 import torch.distributed as dist
-from torch.utils.data import DataLoader
 from wandb.sdk.wandb_run import Run
 
+from minerva.datasets import make_loaders
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import MinervaDataParallel, MinervaModel
@@ -61,29 +61,36 @@ class MinervaTask(ABC):
         self,
         model: Union[MinervaModel, MinervaDataParallel],
         batch_size: int,
-        n_batches: int,
-        model_type: str,
-        loaders: Dict[str, DataLoader[Iterable[Any]]],
         device: torch.device,
+        rank: int = 0,
+        world_size: int = 1,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         record_int: bool = True,
         record_float: bool = False,
         **params,
     ) -> None:
         self.model = model
-        self.params = params
+
+        # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
+        loaders, n_batches, class_dist, new_params = make_loaders(
+            rank, world_size, **params
+        )
+
+        self.loaders = loaders
+        self.params = new_params
+        self.class_dist = class_dist
 
         # Corrects the batch size if this is a distributed job to account for batches being split across devices.
         if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
             self.batch_size = batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         self.n_batches = n_batches
-        self.model_type = model_type
+        self.model_type = self.params["model_type"]
         self.sample_pairs = self.params.get("sample_pairs", False)
 
         self.metric_logger: MinervaMetrics = self.make_metric_logger()
-        self.logger: MinervaLogger = self.get_logger()
         self.modelio = self.get_io_func()
+        self.logger: MinervaLogger
 
         self.loaders = loaders
         self.device = device
