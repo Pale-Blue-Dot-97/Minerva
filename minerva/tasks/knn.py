@@ -35,7 +35,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Tuple, Union
 
 import torch
 import torch.distributed as dist
@@ -79,11 +79,55 @@ class WeightedKNN(MinervaTask):
             model_type,
             loader,
             device,
+            writer,
+            record_int,
+            record_float,
             **params,
         )
 
         self.temp = self.params["temp"]
         self.k = self.params["k"]
+
+    def generate_feature_bank(self) -> Tuple[Tensor, Tensor]:
+        feature_list = []
+        target_list = []
+
+        feat_bar = alive_it(self.loaders["val"])
+        for batch in feat_bar:
+            val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
+            val_target: Tensor = batch["mask"].to(self.device, non_blocking=True)
+            target_list.append(
+                torch.mode(torch.flatten(val_target, start_dim=1)).values
+            )
+
+            # Get features from passing the input data through the model.
+            if utils.check_substrings_in_string(self.model_type, "siamese"):
+                # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
+                if isinstance(self.model, MinervaDataParallel):  # pragma: no cover
+                    assert isinstance(self.model.model.module, MinervaSiamese)
+                else:
+                    assert isinstance(self.model, MinervaSiamese)
+
+                # Ensures that the data is parsed through a single head of the model rather than paired.
+                feature, _ = self.model.forward_single(val_data)  # type: ignore[operator]
+            else:
+                feature, _ = self.model(val_data)
+
+            # The masks from segmentation models will need to be flattened.
+            if utils.check_substrings_in_string(self.model_type, "segmentation"):
+                feature = feature.flatten(1, -1)
+
+            feature_list.append(feature)
+
+        # [D, N]
+        feature_bank = torch.cat(feature_list, dim=0).t().contiguous()
+
+        # [N]
+        feature_labels = (
+            torch.cat(target_list, dim=0).contiguous().to(feature_bank.device)
+        )
+
+        return feature_bank, feature_labels
 
     def step(
         self,
@@ -126,45 +170,10 @@ class WeightedKNN(MinervaTask):
         )
 
         total_num = 0
-        feature_list = []
-        target_list = []
 
         with torch.no_grad():
             # Generate feature bank and target bank.
-            feat_bar = alive_it(self.loaders["val"])
-            for batch in feat_bar:
-                val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
-                val_target: Tensor = batch["mask"].to(self.device, non_blocking=True)
-                target_list.append(
-                    torch.mode(torch.flatten(val_target, start_dim=1)).values
-                )
-
-                # Get features from passing the input data through the model.
-                if utils.check_substrings_in_string(self.model_type, "siamese"):
-                    # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                    if isinstance(self.model, MinervaDataParallel):  # pragma: no cover
-                        assert isinstance(self.model.model.module, MinervaSiamese)
-                    else:
-                        assert isinstance(self.model, MinervaSiamese)
-
-                    # Ensures that the data is parsed through a single head of the model rather than paired.
-                    feature, _ = self.model.forward_single(val_data)  # type: ignore[operator]
-                else:
-                    feature, _ = self.model(val_data)
-
-                # The masks from segmentation models will need to be flattened.
-                if utils.check_substrings_in_string(self.model_type, "segmentation"):
-                    feature = feature.flatten(1, -1)
-
-                feature_list.append(feature)
-
-            # [D, N]
-            feature_bank = torch.cat(feature_list, dim=0).t().contiguous()
-
-            # [N]
-            feature_labels = (
-                torch.cat(target_list, dim=0).contiguous().to(feature_bank.device)
-            )
+            feature_bank, feature_labels = self.generate_feature_bank()
 
             # Loop test data to predict the label by weighted KNN search.
             test_bar = alive_it(self.loaders["test"])
