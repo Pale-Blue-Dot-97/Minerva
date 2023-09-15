@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-""""""
+"""Core functionality of :mod:`tasks`, defining the abstract :class:`MinervaTask` class"""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -57,6 +57,85 @@ from minerva.utils.utils import func_by_str
 #                                                     CLASSES
 # =====================================================================================================================
 class MinervaTask(ABC):
+    """An abstract definition of a task to fit or evalulate a model within :mod:`minerva`.
+
+    Attributes:
+        params (dict[str, ~typing.Any]): Dictionary describing all the parameters that define how the model will be
+            constructed, trained and evaluated. These should be defined via config ``YAML`` files.
+        model (MinervaModel): Model to be fitted of a class contained within :mod:`~minerva.models`.
+        batch_size (int): Size of each batch of samples supplied to the model.
+        loaders (dict[str, ~torch.utils.data.DataLoader]): :class:`dict` containing
+            :class:`~torch.utils.data.DataLoader` (s) for each dataset.
+        n_batches (dict[str, int]): Dictionary of the number of batches to supply to the model for train,
+            validation and testing.
+        metrics (dict[str, ~typing.Any]): Dictionary to hold the loss and accuracy results from training,
+            validation and testing.
+        device: The CUDA device on which to fit the model.
+        verbose (bool): Provides more prints to stdout if ``True``.
+        class_dist (~typing.Any): Distribution of classes within the data.
+        sample_pairs (bool): Whether samples are paired together for Siamese learning.
+        modes (tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
+        writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run | None): The *writer*
+            to perform logging for this experiment. For use with either :mod:`tensorboard` or :mod:`wandb`.
+        stopper (~pytorchtools.EarlyStopping | None): Early stopping function.
+        early_stop (bool): Whether early stopping has been triggered. Will end model training if ``True``.
+        n_samples (dict[str, int]): Number of samples in each mode of model fitting.
+        metric_logger (~logger.MinervaLogger): Object to calculate and log metrics to track the performance
+            of the model.
+        modelio_func (~typing.Callable[..., ~typing.Any]): Function to handle the input/ output to the model.
+        steps (dict[str, int]): :class:`dict` to hold the global step number for each mode of model fitting.
+        model_type (str): Type of the model that determines how to handle IO, metric calculations etc.
+
+    Args:
+        model (MinervaModel): Model to be fitted of a class contained within :mod:`~minerva.models`.
+        rank (int): Optional; The rank of this process across all devices in the distributed run.
+        world_size (int): Optional; The total number of processes across the distributed run.
+        writer (~wandb.sdk.wandb_run.Run | RunDisabled): Optional; Run object for Weights and Biases.
+        params (dict[str, ~typing.Any]): Dictionary describing all the parameters that define how the model will be
+            constructed, trained and evaluated. These should be defined via config ``YAML`` files.
+
+    Keyword Args:
+        batch_size (int): Number of samples in each batch.
+        elim (bool): Will eliminate classes that have no samples in and reorder the class labels so they
+            still run from ``0`` to ``n-1`` classes where ``n`` is the reduced number of classes.
+            :mod:`minerva` ensures that labels are converted between the old and new schemes seamlessly.
+        model_type (str): Defines the type of the model. If ``siamese``, ensures inappropiate functionality is not used.
+        dataset_params (dict[str, ~typing.Any]): Parameters to construct each dataset.
+            See documentation on structure of these.
+        collator (dict[str, ~typing.Any]): Defines the collator to use that will collate samples together into batches.
+            Contains the ``module`` key to define the import path and the ``name`` key
+            for name of the collation function.
+        sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
+        stopping (dict[str, ~typing.Any]): Dictionary to hold the parameters defining the early stopping functionality.
+            If no dictionary is given, it is assumed that there will be no early stopping.
+        pre_train_name (str): Name of the pre-trained model to use.
+        reload (bool): Reloads the weights in the cache matching ``pre_train_name`` to continue model fitting.
+        loss_func (str): Name of the loss function to use.
+        optim_func (str): Name of the optimiser function to use.
+        lr (float): Learning rate of optimiser.
+        optim_params (dict[str, ~typing.Any]): :class:`dict` to hold any additional parameters for the optimiser,
+            other than the already handled learning rate -- ``lr``. Place them in the ``params`` key.
+            If using a non-torch optimiser, use the ``module`` key to specify the import path to the optimiser function.
+        loss_params (dict[str, ~typing.Any]): :class:`dict` to hold any additional parameters for the loss function
+            in the ``params`` key. If using a non-torch loss function, you need to specify the import path
+            with the ``module`` key.
+        balance (bool): Activates class balancing. For ``model_type="scene classifer"`` or ``model_type="mlp"``,
+            over and under sampling will be used. For ``model_type="segmentation"``, class weighting will be
+            used on the loss function.
+        patch_size (tuple[float, float]): Defines the shape of the patches in the dataset.
+        input_size (tuple[int, ...]): Shape of the input to the model. Typically in CxHxW format.
+            Should align with the values given for ``patch_size``.
+        metrics (str): Specify the metric logger to use. Must be the name of a :class:`~metrics.MinervaMetric` class
+            within :mod:`metrics`.
+        logger (str): Specify the logger to use. Must be the name of a :class:`~logger.MinervaLogger` class
+            within :mod:`logger`.
+        modelio (str): Specify the IO function to use to handle IO for the model during fitting. Must be the name
+            of a function within :mod:`modelio`.
+        record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
+        record_float (bool): Store the floating point results of each epoch in memory
+            such as the raw predicted probabilities.
+    """
+
     def __init__(
         self,
         model: Union[MinervaModel, MinervaDataParallel],
