@@ -37,21 +37,15 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    overload,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Optional, Union
+
+if TYPE_CHECKING:  # pragma: no cover
+    from torch.utils.tensorboard.writer import SummaryWriter
 
 import torch
 import torch.distributed as dist
 from torch.utils.data import DataLoader
+from wandb.sdk.wandb_run import Run
 
 from minerva.logger import MinervaLogger
 from minerva.metrics import MinervaMetrics
@@ -69,11 +63,11 @@ class MinervaTask(ABC):
         batch_size: int,
         n_batches: int,
         model_type: str,
-        sample_pairs: bool,
-        loader: DataLoader,
+        loader: DataLoader[Iterable[Any]],
         device: torch.device,
-        record_int: bool,
-        record_float: bool,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
+        record_int: bool = True,
+        record_float: bool = False,
         **params,
     ) -> None:
         self.model = model
@@ -85,7 +79,7 @@ class MinervaTask(ABC):
 
         self.n_batches = n_batches
         self.model_type = model_type
-        self.sample_pairs = sample_pairs
+        self.sample_pairs = self.params.get("sample_pairs", False)
 
         self.metric_logger: MinervaMetrics = self.make_metric_logger()
         self.logger: MinervaLogger = self.get_logger()
@@ -96,6 +90,8 @@ class MinervaTask(ABC):
 
         self.record_int = record_int
         self.record_float = record_float
+
+        self.writer = writer
 
         self.step_num = 0
 
@@ -149,11 +145,11 @@ class MinervaTask(ABC):
         return io_func
 
     @abc.abstractmethod
-    def step(self) -> Dict[str, Any]:
+    def step(self, mode: str) -> None:
         pass
 
-    def _generic_step(self) -> Optional[Dict[str, Any]]:
-        self.step()
+    def _generic_step(self, mode: str) -> Optional[Dict[str, Any]]:
+        self.step(mode)
 
         # Send the logs to the metric logger.
         self.metric_logger(mode, self.logger.get_logs)
@@ -163,8 +159,8 @@ class MinervaTask(ABC):
         else:
             return None
 
-    def __call__(self) -> Any:
-        return self._generic_step()
+    def __call__(self, mode: str) -> Any:
+        return self._generic_step(mode)
 
     @property
     def get_logs(self) -> Dict[str, Any]:

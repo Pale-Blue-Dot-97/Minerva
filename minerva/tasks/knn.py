@@ -35,7 +35,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Optional
+from typing import TYPE_CHECKING, Any, Iterable, Optional, Union
 
 import torch
 import torch.distributed as dist
@@ -43,10 +43,12 @@ import torch.nn.functional as ptfunc
 from alive_progress import alive_it
 from torch import Tensor
 from torch.utils.data import DataLoader
+from wandb.sdk.wandb_run import Run
 
-from minerva.datasets import make_loaders
-from minerva.logger import KNNLogger, MinervaLogger
-from minerva.metrics import MinervaMetrics
+if TYPE_CHECKING:  # pragma: no cover
+    from torch.utils.tensorboard.writer import SummaryWriter
+
+from minerva.logger import KNNLogger
 from minerva.models import MinervaDataParallel, MinervaModel, MinervaSiamese
 from minerva.utils import AUX_CONFIGS, utils
 
@@ -63,9 +65,11 @@ class WeightedKNN(MinervaTask):
         batch_size: int,
         n_batches: int,
         model_type: str,
-        sample_pairs: bool,
-        loader: DataLoader,
+        loader: DataLoader[Iterable[Any]],
         device: torch.device,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
+        record_int: bool = True,
+        record_float: bool = False,
         **params,
     ) -> None:
         super().__init__(
@@ -73,7 +77,6 @@ class WeightedKNN(MinervaTask):
             batch_size,
             n_batches,
             model_type,
-            sample_pairs,
             loader,
             device,
             **params,
@@ -84,12 +87,8 @@ class WeightedKNN(MinervaTask):
 
     def step(
         self,
-        temp: float = 0.5,
-        k: int = 200,
-        mode: str = "val",
-        record_int: bool = True,
-        record_float: bool = False,
-    ) -> Optional[Dict[str, Any]]:
+        mode: str,
+    ) -> None:
         """Trains a KNN using the model to validate a SSL model.
 
         Adapted from https://github.com/yaohungt/Barlow-Twins-HSIC for use in :mod:`minerva`.
@@ -121,8 +120,8 @@ class WeightedKNN(MinervaTask):
             self.n_batches,
             self.batch_size,
             n_samples,
-            record_int=record_int,
-            record_float=record_float,
+            record_int=self.record_int,
+            record_float=self.record_float,
             writer=self.writer,
         )
 
@@ -200,7 +199,7 @@ class WeightedKNN(MinervaTask):
                 sim_matrix = torch.mm(feature, feature_bank)
 
                 # [B, K]
-                sim_weight, sim_indices = sim_matrix.topk(k=k, dim=-1)
+                sim_weight, sim_indices = sim_matrix.topk(k=self.k, dim=-1)
 
                 # [B, K]
                 sim_labels = torch.gather(
@@ -209,11 +208,11 @@ class WeightedKNN(MinervaTask):
                     index=sim_indices,
                 )
 
-                sim_weight = (sim_weight / temp).exp()
+                sim_weight = (sim_weight / self.temp).exp()
 
                 # Counts for each class
                 one_hot_label = torch.zeros(
-                    test_data.size(0) * k, n_classes, device=sim_labels.device
+                    test_data.size(0) * self.k, n_classes, device=sim_labels.device
                 )
 
                 # [B*K, C]
