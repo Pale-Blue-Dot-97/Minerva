@@ -102,6 +102,16 @@ class MinervaTask(ABC):
 
         self.step_num = 0
 
+    @abc.abstractmethod
+    def adapt_model(self) -> None:
+        """Adapt the model for this particular task.
+
+        .. note::
+            May not be needed in all tasks.
+
+        """
+        pass
+
     def make_metric_logger(self) -> MinervaMetrics:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
 
