@@ -141,6 +141,7 @@ class MinervaTask(ABC):
         model: Union[MinervaModel, MinervaDataParallel],
         batch_size: int,
         device: torch.device,
+        gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -154,6 +155,8 @@ class MinervaTask(ABC):
         loaders, n_batches, class_dist, new_params = make_loaders(
             rank, world_size, **params
         )
+
+        self.gpu = gpu
 
         self.loaders = loaders
         self.params = new_params
@@ -242,7 +245,7 @@ class MinervaTask(ABC):
 
     @abc.abstractmethod
     def step(self, mode: str) -> None:
-        pass
+        raise NotImplementedError
 
     def _generic_step(self, mode: str) -> Optional[Dict[str, Any]]:
         self.step(mode)
