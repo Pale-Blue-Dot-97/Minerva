@@ -267,3 +267,23 @@ class MinervaTask(ABC):
 
     def __repr__(self) -> str:
         return self.__class__.__name__
+
+
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
+def get_task(task: str, params: Dict[str, Any]) -> MinervaTask:
+    """Get the requested :class:`MinervaTask` by name.
+
+    Args:
+        task (str): Name of the task.
+        params (Dict[str, Any]): Parameters for the task to be initialised.
+
+    Returns:
+        MinervaTask: Constructed :class:`MinervaTask` object.
+    """
+    _task = func_by_str("minerva.tasks", task)
+
+    task = _task(**params)
+    assert isinstance(task, MinervaTask)
+    return task

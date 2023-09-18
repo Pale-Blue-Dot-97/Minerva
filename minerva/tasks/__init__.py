@@ -35,8 +35,9 @@ __all__ = [
     "MinervaTask",
     "StandardEpoch",
     "WeightedKNN",
+    "get_task",
 ]
 
-from .core import MinervaTask
+from .core import MinervaTask, get_task
 from .epoch import StandardEpoch
 from .knn import WeightedKNN
