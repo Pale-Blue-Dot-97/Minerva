@@ -39,7 +39,7 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
-from contextlib import nullcontext
+from copy import deepcopy
 from pathlib import Path
 from typing import (
     TYPE_CHECKING,
@@ -85,6 +85,7 @@ from minerva.models import (
     MinervaWrapper,
 )
 from minerva.pytorchtools import EarlyStopping
+from minerva.tasks import MinervaTask, get_task
 from minerva.utils import AUX_CONFIGS, universal_path, utils, visutils
 
 # =====================================================================================================================
@@ -631,93 +632,99 @@ class Trainer:
         )
         return io_func
 
-    def epoch(
-        self,
-        mode: str,
-        record_int: bool = False,
-        record_float: bool = False,
-    ) -> Optional[Dict[str, Any]]:
-        """All encompassing function for any type of epoch, be that train, validation or testing.
+    # def epoch(
+    #     self,
+    #     mode: str,
+    #     record_int: bool = False,
+    #     record_float: bool = False,
+    # ) -> Optional[Dict[str, Any]]:
+    #     """All encompassing function for any type of epoch, be that train, validation or testing.
 
-        Args:
-            mode (str): Either train, val or test.
-                Defines the type of epoch to run on the model.
-            record_int (bool): Optional; Whether to record the integer results
-                (i.e. ground truth and predicted labels).
-            record_float (bool): Optional; Whether to record the floating point results i.e. class probabilities.
+    #     Args:
+    #         mode (str): Either train, val or test.
+    #             Defines the type of epoch to run on the model.
+    #         record_int (bool): Optional; Whether to record the integer results
+    #             (i.e. ground truth and predicted labels).
+    #         record_float (bool): Optional; Whether to record the floating point results i.e. class probabilities.
 
-        Returns:
-            dict[str, ~typing.Any] | None: If ``record_int=True`` or ``record_float=True``, returns the predicted
-            and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
-        """
-        batch_size = self.batch_size
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-            batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
+    #     Returns:
+    #         dict[str, ~typing.Any] | None: If ``record_int=True`` or ``record_float=True``, returns the predicted
+    #         and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
+    #     """
+    #     batch_size = self.batch_size
+    #     if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
+    #         batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
-        # Calculates the number of samples
-        n_samples = self.n_batches[mode] * batch_size
+    #     # Calculates the number of samples
+    #     n_samples = self.n_batches[mode] * batch_size
 
-        # Creates object to log the results from each step of this epoch.
-        _epoch_logger: Callable[..., Any] = self.get_logger()
-        epoch_logger: MinervaLogger = _epoch_logger(
-            self.n_batches[mode],
-            batch_size,
-            n_samples,
-            self.model.output_shape,
-            self.model.n_classes,
-            record_int=record_int,
-            record_float=record_float,
-            collapse_level=self.sample_pairs,
-            euclidean=self.sample_pairs,
-            model_type=self.model_type,
-            writer=self.writer,
-        )
+    #     # Creates object to log the results from each step of this epoch.
+    #     _epoch_logger: Callable[..., Any] = self.get_logger()
+    #     epoch_logger: MinervaLogger = _epoch_logger(
+    #         self.n_batches[mode],
+    #         batch_size,
+    #         n_samples,
+    #         self.model.output_shape,
+    #         self.model.n_classes,
+    #         record_int=record_int,
+    #         record_float=record_float,
+    #         collapse_level=self.sample_pairs,
+    #         euclidean=self.sample_pairs,
+    #         model_type=self.model_type,
+    #         writer=self.writer,
+    #     )
 
-        # Initialises a progress bar for the epoch.
-        with alive_bar(
-            self.n_batches[mode], bar="blocks"
-        ) if self.gpu == 0 else nullcontext() as bar:
-            # Sets the model up for training or evaluation modes.
-            if mode == "train":
-                self.model.train()
-            else:
-                self.model.eval()
+    #     # Initialises a progress bar for the epoch.
+    #     with alive_bar(
+    #         self.n_batches[mode], bar="blocks"
+    #     ) if self.gpu == 0 else nullcontext() as bar:
+    #         # Sets the model up for training or evaluation modes.
+    #         if mode == "train":
+    #             self.model.train()
+    #         else:
+    #             self.model.eval()
 
-            # Core of the epoch.
-            for batch in self.loaders[mode]:
-                results = self.modelio_func(
-                    batch, self.model, self.device, mode, **self.params
-                )
+    #         # Core of the epoch.
+    #         for batch in self.loaders[mode]:
+    #             results = self.modelio_func(
+    #                 batch, self.model, self.device, mode, **self.params
+    #             )
 
-                if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-                    loss = results[0].data.clone()
-                    dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
-                    results = (loss, *results[1:])
+    #             if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
+    #                 loss = results[0].data.clone()
+    #                 dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
+    #                 results = (loss, *results[1:])
 
-                epoch_logger.log(mode, self.step_num[mode], *results)
+    #             epoch_logger.log(mode, self.step_num[mode], *results)
 
-                self.step_num[mode] += 1
+    #             self.step_num[mode] += 1
 
-                # Updates progress bar that batch has been processed.
-                if self.gpu == 0:
-                    bar()  # type: ignore
+    #             # Updates progress bar that batch has been processed.
+    #             if self.gpu == 0:
+    #                 bar()  # type: ignore
 
-        # Updates metrics with epoch results.
-        self.metric_logger(mode, epoch_logger.get_logs)
+    #     # Updates metrics with epoch results.
+    #     self.metric_logger(mode, epoch_logger.get_logs)
 
-        # If configured to do so, calculates the grad norms.
-        if self.params.get("calc_norm", False):
-            _ = utils.calc_grad(self.model)
+    #     # If configured to do so, calculates the grad norms.
+    #     if self.params.get("calc_norm", False):
+    #         _ = utils.calc_grad(self.model)
 
-        # Returns the results of the epoch if configured to do so. Else, returns None.
-        if record_int or record_float:
-            epoch_results: Dict[str, Any] = epoch_logger.get_results
-            return epoch_results
-        else:
-            return None
+    #     # Returns the results of the epoch if configured to do so. Else, returns None.
+    #     if record_int or record_float:
+    #         epoch_results: Dict[str, Any] = epoch_logger.get_results
+    #         return epoch_results
+    #     else:
+    #         return None
 
     def fit(self) -> None:
         """Fits the model by running ``max_epochs`` number of training and validation epochs."""
+        fit_params = deepcopy(self.params["tasks"]["fit"])
+
+        tasks: Dict[str, MinervaTask] = {}
+        for mode in ("train", "val"):
+            tasks[mode] = get_task(fit_params[mode].pop("type"), fit_params[mode])
+
         for epoch in range(self.max_epochs):
             self.print(
                 f"\nEpoch: {epoch + 1}/{self.max_epochs} =========================================================="
