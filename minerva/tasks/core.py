@@ -188,16 +188,6 @@ class MinervaTask(ABC):
 
         self.step_num = 0
 
-    @abc.abstractmethod
-    def adapt_model(self) -> None:
-        """Adapt the model for this particular task.
-
-        .. note::
-            May not be needed in all tasks.
-
-        """
-        pass
-
     def make_metric_logger(self) -> MinervaMetrics:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
 
@@ -276,7 +266,7 @@ class MinervaTask(ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_task(task: str, params: Dict[str, Any]) -> MinervaTask:
+def get_task(task: str, *args, **params) -> MinervaTask:
     """Get the requested :class:`MinervaTask` by name.
 
     Args:
@@ -288,6 +278,6 @@ def get_task(task: str, params: Dict[str, Any]) -> MinervaTask:
     """
     _task = func_by_str("minerva.tasks", task)
 
-    task = _task(**params)
+    task = _task(*args, **params)
     assert isinstance(task, MinervaTask)
     return task
