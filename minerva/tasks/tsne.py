@@ -37,8 +37,15 @@ __all__ = ["TSNEVis"]
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from torch import Tensor
+from pathlib import Path
+from typing import Union
 
+import torch
+from torch import Tensor
+from torch.utils.tensorboard.writer import SummaryWriter
+from wandb.sdk.wandb_run import Run
+
+from minerva.models import MinervaDataParallel, MinervaModel
 from minerva.utils.visutils import plot_embedding
 
 from .core import MinervaTask
@@ -48,6 +55,36 @@ from .core import MinervaTask
 #                                                     CLASSES
 # =====================================================================================================================
 class TSNEVis(MinervaTask):
+    def __init__(
+        self,
+        model: Union[MinervaModel, MinervaDataParallel],
+        batch_size: int,
+        device: torch.device,
+        exp_fn: Path,
+        gpu: int = 0,
+        rank: int = 0,
+        world_size: int = 1,
+        writer: Union[SummaryWriter, Run, None] = None,
+        record_int: bool = True,
+        record_float: bool = False,
+        **params,
+    ) -> None:
+        super().__init__(
+            model,
+            batch_size,
+            device,
+            exp_fn,
+            gpu,
+            rank,
+            world_size,
+            writer,
+            record_int,
+            record_float,
+            **params,
+        )
+        if self.params.get("data", None):
+            self.loaders["test"] = self.params["data"]
+
     def step(self, mode: str) -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.
 

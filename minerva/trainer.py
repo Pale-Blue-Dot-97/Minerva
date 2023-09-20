@@ -80,7 +80,7 @@ from minerva.models import (
     MinervaWrapper,
 )
 from minerva.pytorchtools import EarlyStopping
-from minerva.tasks import MinervaTask, get_task
+from minerva.tasks import MinervaTask, TSNEVis, get_task
 from minerva.utils import universal_path, utils, visutils
 
 # =====================================================================================================================
@@ -257,6 +257,8 @@ class Trainer:
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
+        self.rank = rank
+        self.world_size = world_size
 
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
@@ -633,7 +635,18 @@ class Trainer:
 
         tasks: Dict[str, MinervaTask] = {}
         for mode in ("train", "val"):
-            tasks[mode] = get_task(fit_params[mode].pop("type"), fit_params[mode])
+            tasks[mode] = get_task(
+                fit_params[mode].pop("type"),
+                self.model,
+                self.batch_size,
+                self.device,
+                self.exp_fn,
+                self.gpu,
+                self.rank,
+                self.world_size,
+                self.writer,
+                fit_params[mode],
+            )
 
         for epoch in range(self.max_epochs):
             self.print(
@@ -645,6 +658,11 @@ class Trainer:
                 # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
                 if mode == "val" and (epoch + 1) % self.val_freq != 0:
                     break
+
+                if mode == "train":
+                    self.model.train()
+                else:
+                    self.model.eval()
 
                 results: Optional[Dict[str, Any]]
 
@@ -741,7 +759,18 @@ class Trainer:
         test_params = deepcopy(self.params["tasks"]["tests"])
 
         for _task in test_params:
-            task = get_task(test_params[_task]["type"], test_params[_task].pop("type"))
+            task = get_task(
+                test_params[_task].pop("type"),
+                self.model,
+                self.batch_size,
+                self.device,
+                self.exp_fn,
+                self.gpu,
+                self.rank,
+                self.world_size,
+                self.writer,
+                test_params[_task],
+            )
 
             # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
             # and the IDs of the samples supplied.
@@ -844,27 +873,15 @@ class Trainer:
         Args:
             mode (str): The mode of model fitting that the embeddings come from.
         """
-        # Get a batch of data.
-        data = next(iter(self.loaders[mode]))
-
-        # Make sure the model is in evaluation mode.
-        self.model.eval()
-
-        # Pass the batch of data through the model to get the embeddings.
-        embeddings: Tensor = self.model(data["image"].to(self.device))[0]
-
-        # Flatten embeddings.
-        embeddings = embeddings.flatten(start_dim=1)
-
-        # Get the results directory.
-        results_dir = self.exp_fn.parent / mode
-
-        visutils.plot_embedding(
-            embeddings.detach().cpu(),
-            data["bbox"],
-            mode,
-            show=True,
-            filename=str(results_dir / "tsne_cluster_vis.png"),
+        task = TSNEVis(
+            self.model,
+            self.batch_size,
+            self.device,
+            self.exp_fn,
+            self.gpu,
+            self.rank,
+            self.world_size,
+            self.writer,
         )
 
     def close(self) -> None:
