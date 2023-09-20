@@ -162,39 +162,40 @@ tasks:
                         params:
                             res: 1.0
 
-    test:
-        type: StandardEpoch
-        # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        logger: STGLogger
-        metrics: SPMetrics
-        model_io: sup_tg
+    tests:
+        test:
+            type: StandardEpoch
+            # ---+ Minerva Inbuilt Logging Functions +-------------------------
+            logger: STGLogger
+            metrics: SPMetrics
+            model_io: sup_tg
 
-        # ---+ Dataset Parameters +----------------------------------------
-        dataset_params:
-            test:
-                sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
-                    roi: false
-                    params:
-                        size: *patch_size
-                        length: 32
+            # ---+ Dataset Parameters +----------------------------------------
+            dataset_params:
+                test:
+                    sampler:
+                        module: torchgeo.samplers
+                        name: RandomGeoSampler
+                        roi: false
+                        params:
+                            size: *patch_size
+                            length: 32
 
-                image:
-                    transforms: false
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    root: NAIP
-                    params:
-                        res: 1.0
+                    image:
+                        transforms: false
+                        module: minerva.datasets.__testing
+                        name: TstImgDataset
+                        root: NAIP
+                        params:
+                            res: 1.0
 
-                mask:
-                    transforms: false
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
-                    root: Chesapeake7
-                    params:
-                        res: 1.0
+                    mask:
+                        transforms: false
+                        module: minerva.datasets.__testing
+                        name: TstMaskDataset
+                        root: Chesapeake7
+                        params:
+                            res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:

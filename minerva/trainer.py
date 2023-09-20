@@ -632,91 +632,6 @@ class Trainer:
         )
         return io_func
 
-    # def epoch(
-    #     self,
-    #     mode: str,
-    #     record_int: bool = False,
-    #     record_float: bool = False,
-    # ) -> Optional[Dict[str, Any]]:
-    #     """All encompassing function for any type of epoch, be that train, validation or testing.
-
-    #     Args:
-    #         mode (str): Either train, val or test.
-    #             Defines the type of epoch to run on the model.
-    #         record_int (bool): Optional; Whether to record the integer results
-    #             (i.e. ground truth and predicted labels).
-    #         record_float (bool): Optional; Whether to record the floating point results i.e. class probabilities.
-
-    #     Returns:
-    #         dict[str, ~typing.Any] | None: If ``record_int=True`` or ``record_float=True``, returns the predicted
-    #         and ground truth labels, and the patch IDs supplied to the model. Else, returns ``None``.
-    #     """
-    #     batch_size = self.batch_size
-    #     if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-    #         batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
-
-    #     # Calculates the number of samples
-    #     n_samples = self.n_batches[mode] * batch_size
-
-    #     # Creates object to log the results from each step of this epoch.
-    #     _epoch_logger: Callable[..., Any] = self.get_logger()
-    #     epoch_logger: MinervaLogger = _epoch_logger(
-    #         self.n_batches[mode],
-    #         batch_size,
-    #         n_samples,
-    #         self.model.output_shape,
-    #         self.model.n_classes,
-    #         record_int=record_int,
-    #         record_float=record_float,
-    #         collapse_level=self.sample_pairs,
-    #         euclidean=self.sample_pairs,
-    #         model_type=self.model_type,
-    #         writer=self.writer,
-    #     )
-
-    #     # Initialises a progress bar for the epoch.
-    #     with alive_bar(
-    #         self.n_batches[mode], bar="blocks"
-    #     ) if self.gpu == 0 else nullcontext() as bar:
-    #         # Sets the model up for training or evaluation modes.
-    #         if mode == "train":
-    #             self.model.train()
-    #         else:
-    #             self.model.eval()
-
-    #         # Core of the epoch.
-    #         for batch in self.loaders[mode]:
-    #             results = self.modelio_func(
-    #                 batch, self.model, self.device, mode, **self.params
-    #             )
-
-    #             if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-    #                 loss = results[0].data.clone()
-    #                 dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
-    #                 results = (loss, *results[1:])
-
-    #             epoch_logger.log(mode, self.step_num[mode], *results)
-
-    #             self.step_num[mode] += 1
-
-    #             # Updates progress bar that batch has been processed.
-    #             if self.gpu == 0:
-    #                 bar()  # type: ignore
-
-    #     # Updates metrics with epoch results.
-    #     self.metric_logger(mode, epoch_logger.get_logs)
-
-    #     # If configured to do so, calculates the grad norms.
-    #     if self.params.get("calc_norm", False):
-    #         _ = utils.calc_grad(self.model)
-
-    #     # Returns the results of the epoch if configured to do so. Else, returns None.
-    #     if record_int or record_float:
-    #         epoch_results: Dict[str, Any] = epoch_logger.get_results
-    #         return epoch_results
-    #     else:
-    #         return None
-
     def fit(self) -> None:
         """Fits the model by running ``max_epochs`` number of training and validation epochs."""
         fit_params = deepcopy(self.params["tasks"]["fit"])
@@ -732,58 +647,20 @@ class Trainer:
 
             # Conduct training or validation epoch.
             for mode in ("train", "val"):
-                # Only run a KNN validation epoch at set frequency of epochs. Goes to next epoch if not.
-                if (
-                    mode == "val"
-                    and utils.check_substrings_in_string(
-                        self.model_type, "ssl", "siamese"
-                    )
-                    and (epoch + 1) % self.val_freq != 0
-                ):
+                # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
+                if mode == "val" and (epoch + 1) % self.val_freq != 0:
                     break
 
-                results: Dict[str, Any] = {}
+                results: Optional[Dict[str, Any]]
 
-                # If final epoch and configured to plot, runs the epoch with recording of integer results turned on.
-                if self.params.get("plot_last_epoch", False):
-                    result: Optional[Dict[str, Any]]
-                    if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, "ssl", "siamese"
-                    ):
-                        result = self.weighted_knn_validation(
-                            k=self.params.get("knn_k", None),
-                            record_int=True,
-                            record_float=self.params.get("record_float", False),
-                        )
-                    else:
-                        result = self.epoch(
-                            mode,
-                            record_int=True,
-                            record_float=self.params.get("record_float", False),
-                        )
-                    assert result is not None
-                    results = result
-
-                else:
-                    if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, "ssl", "siamese"
-                    ):
-                        self.weighted_knn_validation(
-                            k=self.params.get("knn_k", None),
-                            record_int=False,
-                            record_float=False,
-                        )
-                    else:
-                        self.epoch(mode, record_int=False, record_float=False)
+                results = tasks[mode](mode)
 
                 # Add epoch number to metrics.
                 self.metric_logger.log_epoch_number(mode, epoch)
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, "ssl", "siamese"
-                    ):
+                    if mode == "val":
                         epoch_no = epoch // self.val_freq
                     else:
                         epoch_no = epoch
@@ -791,9 +668,7 @@ class Trainer:
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if mode == "val" and self.stopper is not None:
-                    if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, "ssl", "siamese"
-                    ):
+                    if mode == "val":
                         epoch_no = epoch // self.val_freq
                     else:
                         epoch_no = epoch
@@ -829,6 +704,8 @@ class Trainer:
 
                     # Amends the results' directory to add a new level for train or validation.
                     results_dir = self.exp_fn.parent / mode
+
+                    assert results is not None
 
                     if self.gpu == 0:
                         # Plots the results of this epoch.
@@ -866,56 +743,61 @@ class Trainer:
         """
         self.print("\r\nTESTING")
 
-        # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
-        # and the IDs of the samples supplied.
-        results: Optional[Dict[str, Any]] = self.epoch(
-            "test", record_int=True, record_float=True
-        )
-        assert results is not None
+        test_params = deepcopy(self.params["tasks"]["tests"])
 
-        # Prints test loss and accuracy to stdout.
-        self.metric_logger.print_epoch_results("test", 0)
+        for _task in test_params:
+            task = get_task(test_params[_task]["type"], test_params[_task].pop("type"))
 
-        # Add epoch number to testing results.
-        self.metric_logger.log_epoch_number("test", 0)
+            # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
+            # and the IDs of the samples supplied.
+            results = task("test")
+
+            assert results is not None
+
+            # Prints test loss and accuracy to stdout.
+            self.metric_logger.print_epoch_results("test", 0)
+
+            # Add epoch number to testing results.
+            self.metric_logger.log_epoch_number("test", 0)
+
+            if self.gpu == 0:
+                if "z" in results and "y" in results:
+                    self.print("\nMAKING CLASSIFICATION REPORT")
+                    self.compute_classification_report(results["z"], results["y"])
+
+                # Gets the dict from params that defines which plots to make from the results.
+                plots = self.params.get("plots", {}).copy()
+
+                # Ensure history is not plotted again.
+                plots["History"] = False
+
+                if utils.check_substrings_in_string(
+                    self.model_type, "scene classifier", "mlp", "MLP"
+                ):
+                    plots["Mask"] = False
+
+                # Amends the results' directory to add a new level for test results.
+                results_dir = self.exp_fn.parent / "test"
+
+                # Plots the results.
+                visutils.plot_results(
+                    plots,
+                    mode="test",
+                    class_names=self.params["classes"],
+                    colours=self.params["colours"],
+                    save=save,
+                    show=show,
+                    model_name=self.params["model_name"],
+                    timestamp=self.params["timestamp"],
+                    results_dir=results_dir,
+                    **results,
+                )
 
         # Now experiment is complete, saves model parameters and config file to disk in case error is
         # encountered in plotting of results.
         self.close()
 
         if self.gpu == 0:
-            if "z" in results and "y" in results:
-                self.print("\nMAKING CLASSIFICATION REPORT")
-                self.compute_classification_report(results["z"], results["y"])
-
-            # Gets the dict from params that defines which plots to make from the results.
-            plots = self.params.get("plots", {}).copy()
-
-            # Ensure history is not plotted again.
-            plots["History"] = False
-
-            if utils.check_substrings_in_string(
-                self.model_type, "scene classifier", "mlp", "MLP"
-            ):
-                plots["Mask"] = False
-
-            # Amends the results' directory to add a new level for test results.
-            results_dir = self.exp_fn.parent / "test"
-
-            # Plots the results.
-            visutils.plot_results(
-                plots,
-                mode="test",
-                class_names=self.params["classes"],
-                colours=self.params["colours"],
-                save=save,
-                show=show,
-                model_name=self.params["model_name"],
-                timestamp=self.params["timestamp"],
-                results_dir=results_dir,
-                **results,
-            )
-
             # Checks whether to run TensorBoard on the log from the experiment. If defined as optional in the config,
             # a user confirmation is required to run TensorBoard with a 60s timeout.
             if self.params.get("run_tensorboard", False) in (
@@ -989,188 +871,6 @@ class Trainer:
             show=True,
             filename=str(results_dir / "tsne_cluster_vis.png"),
         )
-
-    def weighted_knn_validation(
-        self,
-        temp: float = 0.5,
-        k: int = 200,
-        mode: str = "val",
-        record_int: bool = True,
-        record_float: bool = False,
-    ) -> Optional[Dict[str, Any]]:
-        """Trains a KNN using the model to validate a SSL model.
-
-        Adapted from https://github.com/yaohungt/Barlow-Twins-HSIC for use in :mod:`minerva`.
-
-        Args:
-            temp (float, optional): Temperature of the similarity loss. Defaults to 0.5.
-            k (int, optional): Number of similar images to use to predict images. Defaults to 200.
-            mode (str, optional): Mode of model fitting this has been called on. Defaults to "val".
-            record_int (bool, optional): Whether to record integer values. Defaults to True.
-            record_float (bool, optional): Whether to record floating point values. Warning!
-                This may result in memory issues on large amounts of data! Defaults to False.
-
-        Returns:
-            dict[str, ~typing.Any] | None: Results dictionary from the epoch logger if ``record_int``
-            or ``record_float`` are ``True``.
-        """
-
-        # Puts the model in evaluation mode so no back passes are made.
-        self.model.eval()
-
-        # Get the number of classes from the data config.
-        n_classes = len(AUX_CONFIGS["data_config"]["classes"])
-
-        batch_size = self.batch_size
-
-        # Corrects the batch size if this is a distributed job to account for batches being split across devices.
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-            batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
-
-        # Calculates the number of samples.
-        n_samples = self.n_batches[mode] * batch_size
-
-        # Uses the special `KNNLogger` to log the results from the KNN.
-        epoch_logger = KNNLogger(
-            self.n_batches[mode],
-            batch_size,
-            n_samples,
-            record_int=record_int,
-            record_float=record_float,
-            writer=self.writer,
-        )
-
-        total_num = 0
-        feature_list = []
-        target_list = []
-
-        with torch.no_grad():
-            # Generate feature bank and target bank.
-            feat_bar = alive_it(self.loaders["val"])
-            for batch in feat_bar:
-                val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
-                val_target: Tensor = batch["mask"].to(self.device, non_blocking=True)
-                target_list.append(
-                    torch.mode(torch.flatten(val_target, start_dim=1)).values
-                )
-
-                # Get features from passing the input data through the model.
-                if utils.check_substrings_in_string(self.model_type, "siamese"):
-                    # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                    if isinstance(self.model, MinervaDataParallel):  # pragma: no cover
-                        assert isinstance(self.model.model.module, MinervaSiamese)
-                    else:
-                        assert isinstance(self.model, MinervaSiamese)
-
-                    # Ensures that the data is parsed through a single head of the model rather than paired.
-                    feature, _ = self.model.forward_single(val_data)  # type: ignore[operator]
-                else:
-                    feature, _ = self.model(val_data)
-
-                # The masks from segmentation models will need to be flattened.
-                if utils.check_substrings_in_string(self.model_type, "segmentation"):
-                    feature = feature.flatten(1, -1)
-
-                feature_list.append(feature)
-
-            # [D, N]
-            feature_bank = torch.cat(feature_list, dim=0).t().contiguous()
-
-            # [N]
-            feature_labels = (
-                torch.cat(target_list, dim=0).contiguous().to(feature_bank.device)
-            )
-
-            # Loop test data to predict the label by weighted KNN search.
-            test_bar = alive_it(self.loaders["test"])
-            for batch in test_bar:
-                test_data: Tensor = batch["image"].to(self.device, non_blocking=True)
-                test_target: Tensor = torch.mode(
-                    torch.flatten(
-                        batch["mask"].to(self.device, non_blocking=True), start_dim=1
-                    )
-                ).values
-
-                # Get features from passing the input data through the model.
-                if utils.check_substrings_in_string(self.model_type, "siamese"):
-                    # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                    if isinstance(self.model, MinervaDataParallel):  # pragma: no cover
-                        assert isinstance(self.model.model.module, MinervaSiamese)
-                    else:
-                        assert isinstance(self.model, MinervaSiamese)
-
-                    # Ensures that the data is parsed through a single head of the model rather than paired.
-                    feature, _ = self.model.forward_single(test_data)  # type: ignore[operator]
-                else:
-                    feature, _ = self.model(test_data)
-
-                # The masks from segmentation models will need to be flattened.
-                if utils.check_substrings_in_string(self.model_type, "segmentation"):
-                    feature = feature.flatten(1, -1)
-
-                total_num += batch_size
-
-                # compute cos similarity between each feature vector and feature bank ---> [B, N]
-                sim_matrix = torch.mm(feature, feature_bank)
-
-                # [B, K]
-                sim_weight, sim_indices = sim_matrix.topk(k=k, dim=-1)
-
-                # [B, K]
-                sim_labels = torch.gather(
-                    feature_labels.expand(test_data.size(0), -1),
-                    dim=-1,
-                    index=sim_indices,
-                )
-
-                sim_weight = (sim_weight / temp).exp()
-
-                # Counts for each class
-                one_hot_label = torch.zeros(
-                    test_data.size(0) * k, n_classes, device=sim_labels.device
-                )
-
-                # [B*K, C]
-                one_hot_label = one_hot_label.scatter(
-                    dim=-1, index=sim_labels.view(-1, 1), value=1.0
-                )
-
-                # Weighted score ---> [B, C]
-                pred_scores = torch.sum(
-                    one_hot_label.view(test_data.size(0), -1, n_classes)
-                    * sim_weight.unsqueeze(dim=-1),
-                    dim=1,
-                )
-                pred_scores = ptfunc.normalize(
-                    pred_scores.nan_to_num(nan=0.0, posinf=1.0, neginf=0.0),
-                )
-
-                # Calculate loss between predicted and ground truth labels by KNN.
-                criterion = torch.nn.CrossEntropyLoss()
-                loss = criterion(pred_scores, test_target)
-
-                # Pack results together for the logger.
-                results = (loss, pred_scores, test_target, _)
-
-                # Gathers the losses across devices together if a distributed job.
-                if dist.is_available() and dist.is_initialized():  # pragma: no cover
-                    loss = results[0].data.clone()
-                    dist.all_reduce(loss.div_(dist.get_world_size()))
-                    results = (loss, *results[1:])
-
-                # Sends results to logger.
-                epoch_logger.log(mode, self.step_num[mode], *results)
-
-                # Update global step number for this mode of model fitting.
-                self.step_num[mode] += 1
-
-        # Send the logs to the metric logger.
-        self.metric_logger(mode, epoch_logger.get_logs)
-
-        if record_int or record_float:
-            return epoch_logger.get_results
-        else:
-            return None
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
