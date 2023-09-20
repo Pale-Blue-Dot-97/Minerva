@@ -38,18 +38,12 @@ __all__ = ["StandardEpoch"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from contextlib import nullcontext
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import Any, Callable
 
-import torch
 import torch.distributed as dist
 from alive_progress import alive_bar
-from wandb.sdk.wandb_run import Run
-
-if TYPE_CHECKING:  # pragma: no cover
-    from torch.utils.tensorboard.writer import SummaryWriter
 
 from minerva.logger import MinervaLogger
-from minerva.models import MinervaDataParallel, MinervaModel
 from minerva.utils import utils
 
 from .core import MinervaTask
