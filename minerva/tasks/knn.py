@@ -31,6 +31,9 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
+__all__ = ["WeightedKNN"]
+
+from pathlib import Path
 
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -142,6 +145,7 @@ class WeightedKNN(MinervaTask):
         model: MinervaModel,
         batch_size: int,
         device: torch.device,
+        exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
@@ -154,6 +158,7 @@ class WeightedKNN(MinervaTask):
             model,
             batch_size,
             device,
+            exp_fn,
             gpu,
             rank,
             world_size,

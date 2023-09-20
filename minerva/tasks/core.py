@@ -37,6 +37,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 import abc
 from abc import ABC
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -141,6 +142,7 @@ class MinervaTask(ABC):
         model: Union[MinervaModel, MinervaDataParallel],
         batch_size: int,
         device: torch.device,
+        exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
@@ -155,6 +157,8 @@ class MinervaTask(ABC):
         loaders, n_batches, class_dist, new_params = make_loaders(
             rank, world_size, **params
         )
+
+        self.exp_fn = exp_fn
 
         self.gpu = gpu
 
