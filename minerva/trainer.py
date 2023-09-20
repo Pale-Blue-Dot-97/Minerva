@@ -55,10 +55,7 @@ from typing import (
 
 import pandas as pd
 import torch
-import torch.distributed as dist
-import torch.nn.functional as ptfunc
 import yaml
-from alive_progress import alive_bar, alive_it
 from inputimeout import TimeoutOccurred, inputimeout
 from nptyping import Int, NDArray
 from torch import Tensor
@@ -74,19 +71,17 @@ from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
-from minerva.logger import KNNLogger, MinervaLogger
 from minerva.metrics import MinervaMetrics
 from minerva.models import (
     MinervaBackbone,
     MinervaDataParallel,
     MinervaModel,
     MinervaOnnxModel,
-    MinervaSiamese,
     MinervaWrapper,
 )
 from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, get_task
-from minerva.utils import AUX_CONFIGS, universal_path, utils, visutils
+from minerva.utils import universal_path, utils, visutils
 
 # =====================================================================================================================
 #                                                     GLOBALS
