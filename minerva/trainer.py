@@ -251,9 +251,9 @@ class Trainer:
         assert not isinstance(wandb_run, RunDisabled)
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
-        loaders, n_batches, class_dist, new_params = make_loaders(
-            rank, world_size, **params
-        )
+        # loaders, n_batches, class_dist, new_params = make_loaders(
+        #    rank, world_size, **params
+        # )
 
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
@@ -274,9 +274,9 @@ class Trainer:
             utils.print_config(new_params)
 
         self.params: Dict[str, Any] = new_params
-        self.class_dist = class_dist
-        self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
-        self.n_batches = n_batches
+        # self.class_dist = class_dist
+        # self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
+        # self.n_batches = n_batches
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
@@ -360,8 +360,8 @@ class Trainer:
         }
 
         # Initialise the metric logger and model IO for the experiment.
-        self.metric_logger = self.make_metric_logger()
-        self.modelio_func = self.get_io_func()
+        # self.metric_logger = self.make_metric_logger()
+        # self.modelio_func = self.get_io_func()
 
         # Stores the step number for that mode of fitting. To be used for logging.
         self.step_num = {mode: 0 for mode in self.modes}
@@ -579,55 +579,6 @@ class Trainer:
         self.model.set_optimiser(  # type: ignore
             optimiser(self.model.parameters(), **optimiser_params["params"])
         )
-
-    def make_metric_logger(self) -> MinervaMetrics:
-        """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
-
-        Returns:
-            MinervaMetrics: Constructed metric logger.
-        """
-
-        # Gets the size of the input data to the network (without batch dimension).
-        data_size = self.params["input_size"]
-
-        # Gets constructor of the metric logger from name in the config.
-        _metric_logger: Callable[..., Any] = utils.func_by_str(
-            "minerva.metrics", self.params["metrics"]
-        )
-
-        # Initialises the metric logger with arguments.
-        metric_logger: MinervaMetrics = _metric_logger(
-            self.n_batches,
-            batch_size=self.batch_size,
-            data_size=data_size,
-            model_type=self.model_type,
-            sample_pairs=self.sample_pairs,
-        )
-
-        return metric_logger
-
-    def get_logger(self) -> Callable[..., Any]:
-        """Creates an object to log the results from each step of model fitting during an epoch.
-
-        Returns:
-            ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logger.MinervaLogger`
-            to be intialised within the epoch.
-        """
-        logger: Callable[..., Any] = utils.func_by_str(
-            "minerva.logger", self.params["logger"]
-        )
-        return logger
-
-    def get_io_func(self) -> Callable[..., Any]:
-        """Fetches a func to handle IO for the type of model used in the experiment.
-
-        Returns:
-            ~typing.Callable[..., ~typing.Any]: Model IO function requested from parameters.
-        """
-        io_func: Callable[..., Any] = utils.func_by_str(
-            "minerva.modelio", self.params["model_io"]
-        )
-        return io_func
 
     def fit(self) -> None:
         """Fits the model by running ``max_epochs`` number of training and validation epochs."""
