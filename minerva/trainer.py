@@ -884,6 +884,8 @@ class Trainer:
             self.writer,
         )
 
+        task(mode)
+
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
         if _tensorflow_exist:
