@@ -481,9 +481,9 @@ def make_loaders(
             utils.print_class_dist(class_dist)
 
         params["n_classes"] = len(new_classes)
-        model_params_params = params["model_params"].get("params", {})
-        model_params_params["n_classes"] = len(new_classes)
-        params["model_params"]["params"] = model_params_params
+        model_params = params["model_params"].get("params", {})
+        model_params["n_classes"] = len(new_classes)
+        params["model_params"]["params"] = model_params
         params["classes"] = new_classes
         params["colours"] = new_colours
 
@@ -532,8 +532,6 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
         print("CONSTRUCTING MISSING MANIFEST")
         mf_config = CONFIG.copy()
 
-        mf_config["dataloader_params"] = CONFIG["loader_params"]
-
         manifest = make_manifest(mf_config)
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
@@ -558,7 +556,7 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
     batch_size: int = mf_config["batch_size"]
-    dataloader_params: Dict[str, Any] = mf_config["dataloader_params"]
+    loader_params: Dict[str, Any] = mf_config["loader_params"]
     dataset_params: Dict[str, Any] = mf_config["dataset_params"]
     collator_params: Dict[str, Any] = mf_config["collator"]
 
@@ -580,7 +578,7 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
         mf_config["dir"]["data"],
         dataset_params[keys[0]],
         sampler_params,
-        dataloader_params,
+        loader_params,
         batch_size,
         collator_params=collator_params,
     )
