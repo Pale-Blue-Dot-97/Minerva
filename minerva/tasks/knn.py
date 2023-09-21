@@ -49,6 +49,8 @@ from wandb.sdk.wandb_run import Run
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
+else:  # pragma: no cover
+    SummaryWriter = None
 
 from minerva.logger import KNNLogger
 from minerva.models import MinervaDataParallel, MinervaModel, MinervaSiamese

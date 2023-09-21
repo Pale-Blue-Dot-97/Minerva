@@ -42,6 +42,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
+else:  # pragma: no cover
+    SummaryWriter = None
 
 import torch
 import torch.distributed as dist
@@ -89,6 +91,8 @@ class MinervaTask(ABC):
 
     Args:
         model (MinervaModel): Model to be fitted of a class contained within :mod:`~minerva.models`.
+        batch_size (int): Number of samples in each batch.
+        device: The CUDA device on which to fit the model.
         rank (int): Optional; The rank of this process across all devices in the distributed run.
         world_size (int): Optional; The total number of processes across the distributed run.
         writer (~wandb.sdk.wandb_run.Run | RunDisabled): Optional; Run object for Weights and Biases.
@@ -96,7 +100,6 @@ class MinervaTask(ABC):
             constructed, trained and evaluated. These should be defined via config ``YAML`` files.
 
     Keyword Args:
-        batch_size (int): Number of samples in each batch.
         elim (bool): Will eliminate classes that have no samples in and reorder the class labels so they
             still run from ``0`` to ``n-1`` classes where ``n`` is the reduced number of classes.
             :mod:`minerva` ensures that labels are converted between the old and new schemes seamlessly.
