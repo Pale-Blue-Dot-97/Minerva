@@ -55,6 +55,12 @@ from .core import MinervaTask
 #                                                     CLASSES
 # =====================================================================================================================
 class TSNEVis(MinervaTask):
+    """TSNE clustering task.
+
+    Passes a batch of data through the model in eval mode to get the embeddings.
+    Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
+    """
+
     def __init__(
         self,
         model: Union[MinervaModel, MinervaDataParallel],
