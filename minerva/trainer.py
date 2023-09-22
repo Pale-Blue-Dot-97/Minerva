@@ -271,9 +271,9 @@ class Trainer:
             print(
                 "\n==+ Experiment Parameters +====================================================="
             )
-            utils.print_config(new_params)
+            utils.print_config(dict(params))
 
-        self.params: Dict[str, Any] = new_params
+        self.params: Dict[str, Any] = dict(params)
         # self.class_dist = class_dist
         # self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
         # self.n_batches = n_batches
@@ -355,9 +355,9 @@ class Trainer:
             )
 
         # Calculates number of samples in each mode of fitting.
-        self.n_samples = {
-            mode: self.n_batches[mode] * self.batch_size for mode in self.modes
-        }
+        # self.n_samples = {
+        #    mode: self.n_batches[mode] * self.batch_size for mode in self.modes
+        # }
 
         # Initialise the metric logger and model IO for the experiment.
         # self.metric_logger = self.make_metric_logger()
