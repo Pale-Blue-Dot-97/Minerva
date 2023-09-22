@@ -42,7 +42,9 @@ __all__ = [
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+from minerva.logger import MinervaLogger
 
 
 # =====================================================================================================================
@@ -63,7 +65,7 @@ class MinervaMetrics(ABC):
         n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
         data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
-
+        logger_params (dict[str, ~typing.Any]): Optional; Parameters for a logger other than the default for these metrics.
     """
 
     __metaclass__ = abc.ABCMeta
@@ -73,9 +75,11 @@ class MinervaMetrics(ABC):
 
     def __init__(
         self,
-        n_batches: Dict[str, int],
+        n_batches: int,
         batch_size: int,
         data_size: Tuple[int, int, int],
+        task_name: str,
+        logger_params: Optional[Dict[str, Any]] = None,
         **params,
     ) -> None:
         super(MinervaMetrics, self).__init__()
@@ -87,36 +91,33 @@ class MinervaMetrics(ABC):
         self.model_type = params.get("model_type", "scene_classifier")
         self.sample_pairs = params.get("sample_pairs", False)
 
-        self.modes = params.get("modes", ["train", "val", "test"])
+        self.logger = MinervaLogger()
 
         if self.sample_pairs:
             self.metric_types += self.special_metric_types
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics: Dict[str, Any] = {}
-        for mode in self.modes:
-            for metric in self.metric_types:
-                self.metrics[f"{mode}_{metric}"] = {"x": [], "y": []}
+        for metric in self.metric_types:
+            self.metrics[f"{task_name}_{metric}"] = {"x": [], "y": []}
 
-    def __call__(self, mode: str, logs: Dict[str, Any]) -> None:
-        self.calc_metrics(mode, logs)
+    def __call__(self, logs: Dict[str, Any]) -> None:
+        self.calc_metrics(logs)
 
     @abc.abstractmethod
-    def calc_metrics(self, mode: str, logs: Dict[str, Any]) -> None:
+    def calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
-            mode (str): Mode of model fitting.
-            logs (dict[str, ~typing.Any]): Logs of the results from the epoch of fitting to calculate metrics from.
+            logs (dict[str, ~typing.Any]): Logs of the results from the epoch of the task to calculate metrics from.
         """
         pass  # pragma: no cover
 
     @abc.abstractmethod
-    def log_epoch_number(self, mode: str, epoch_no: int) -> None:
+    def log_epoch_number(self, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
 
         Args:
-            mode (str): Mode of model fitting.
             epoch_no (int): Epoch number to log.
         """
         pass  # pragma: no cover
@@ -152,11 +153,10 @@ class MinervaMetrics(ABC):
         return sub_metrics
 
     @abc.abstractmethod
-    def print_epoch_results(self, mode: str, epoch_no: int) -> None:
+    def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
 
         Args:
-            mode (str): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
         pass  # pragma: no cover

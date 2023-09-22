@@ -179,7 +179,6 @@ class MinervaTask(ABC):
 
         self.metric_logger: MinervaMetrics = self.make_metric_logger()
         self.modelio = self.get_io_func()
-        self.logger: MinervaLogger
 
         self.loaders = loaders
         self.device = device
