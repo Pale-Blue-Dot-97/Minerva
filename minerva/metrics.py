@@ -42,9 +42,16 @@ __all__ = [
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import Any, Dict, List, Optional, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
 
-from minerva.logger import MinervaLogger
+if TYPE_CHECKING:  # pragma: no cover
+    from torch.utils.tensorboard.writer import SummaryWriter
+
+from torch import Tensor
+from torchgeo.datasets.utils import BoundingBox
+from wandb.sdk.wandb_run import Run
+
+from minerva.logger import MinervaLogger, SSLLogger, STGLogger, get_logger
 
 
 # =====================================================================================================================
@@ -72,6 +79,7 @@ class MinervaMetrics(ABC):
 
     metric_types: List[str] = []
     special_metric_types: List[str] = []
+    logger_cls: Callable[..., MinervaLogger]
 
     def __init__(
         self,
@@ -80,18 +88,40 @@ class MinervaMetrics(ABC):
         data_size: Tuple[int, int, int],
         task_name: str,
         logger_params: Optional[Dict[str, Any]] = None,
+        record_int: bool = True,
+        record_float: bool = False,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
         **params,
     ) -> None:
         super(MinervaMetrics, self).__init__()
 
         self.n_batches = n_batches
         self.batch_size = batch_size
+        self.n_samples = self.n_batches * self.batch_size
         self.data_size = data_size
+        self.task_name = task_name
 
         self.model_type = params.get("model_type", "scene_classifier")
         self.sample_pairs = params.get("sample_pairs", False)
 
-        self.logger = MinervaLogger()
+        self.writer = writer
+
+        if logger_params:
+            if logger_params.get("name", None) is not None:
+                self.logger_cls = get_logger(logger_params["name"])
+
+        else:
+            logger_params = {}
+
+        self.logger = self.logger_cls(
+            self.n_batches,
+            self.batch_size,
+            self.n_samples,
+            record_int,
+            record_float,
+            self.writer,
+            **logger_params["params"],
+        )
 
         if self.sample_pairs:
             self.metric_types += self.special_metric_types
@@ -99,14 +129,50 @@ class MinervaMetrics(ABC):
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics: Dict[str, Any] = {}
         for metric in self.metric_types:
-            self.metrics[f"{task_name}_{metric}"] = {"x": [], "y": []}
+            self.metrics[f"{self.task_name}_{metric}"] = {"x": [], "y": []}
 
-    def __call__(self, logs: Dict[str, Any]) -> None:
-        self.calc_metrics(logs)
+    def step(
+        self,
+        step_num: int,
+        loss: Tensor,
+        z: Optional[Tensor] = None,
+        y: Optional[Tensor] = None,
+        bbox: Optional[BoundingBox] = None,
+        *args,
+        **kwargs,
+    ) -> None:
+        """Abstract method to log a step, using the logger. Must be overwritten.
+
+        Args:
+            mode (str): Mode of model fitting.
+            step_num (int): The global step number of for the mode of model fitting.
+            loss (~torch.Tensor): Loss from this step of model fitting.
+            z (~torch.Tensor): Optional; Output tensor from the model.
+            y (~torch.Tensor): Optional; Labels to assess model output against.
+            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
+
+        Returns:
+            None
+        """
+        self.logger.log(
+            step_num,
+            loss,
+            z,
+            y,
+            bbox,
+            *args,
+            **kwargs,
+        )
+
+    def calc_metrics(self) -> None:
+        """Updates metrics with epoch results."""
+        self._calc_metrics(self.logger.get_logs)
 
     @abc.abstractmethod
-    def calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
+
+        Must be defined before use.
 
         Args:
             logs (dict[str, ~typing.Any]): Logs of the results from the epoch of the task to calculate metrics from.
@@ -181,76 +247,90 @@ class SPMetrics(MinervaMetrics):
     """
 
     metric_types: List[str] = ["loss", "acc", "miou"]
+    logger_cls = STGLogger
 
     def __init__(
         self,
-        n_batches: Dict[str, int],
+        n_batches: int,
         batch_size: int,
         data_size: Tuple[int, int, int],
+        task_name: str,
+        logger_params: Optional[Dict[str, Any]] = None,
+        record_int: bool = True,
+        record_float: bool = False,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
         model_type: str = "segmentation",
         **params,
     ) -> None:
         super(SPMetrics, self).__init__(
-            n_batches, batch_size, data_size, model_type=model_type
+            n_batches,
+            batch_size,
+            data_size,
+            task_name,
+            logger_params,
+            record_int,
+            record_float,
+            writer,
+            model_type=model_type,
         )
 
-    def calc_metrics(self, mode: str, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
             mode (str): Mode of model fitting.
             logs (dict[str, ~typing.Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
-        self.metrics[f"{mode}_loss"]["y"].append(
-            logs["total_loss"] / self.n_batches[mode]
+        self.metrics[f"{self.task_name}_loss"]["y"].append(
+            logs["total_loss"] / self.n_batches
         )
 
         if self.model_type == "segmentation":
-            self.metrics[f"{mode}_acc"]["y"].append(
+            self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"]
                 / (
-                    self.n_batches[mode]
+                    self.n_batches
                     * self.batch_size
                     * self.data_size[1]
                     * self.data_size[2]
                 )
             )
             if logs.get("total_miou") is not None:
-                self.metrics[f"{mode}_miou"]["y"].append(
-                    logs["total_miou"] / (self.n_batches[mode] * self.batch_size)
+                self.metrics[f"{self.task_name}_miou"]["y"].append(
+                    logs["total_miou"] / (self.n_samples)
                 )
 
         else:
-            self.metrics[f"{mode}_acc"]["y"].append(
-                logs["total_correct"] / (self.n_batches[mode] * self.batch_size)
+            self.metrics[f"{self.task_name}_acc"]["y"].append(
+                logs["total_correct"] / (self.n_samples)
             )
 
-    def log_epoch_number(self, mode: str, epoch_no: int) -> None:
+    def log_epoch_number(self, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
 
         Args:
-            mode (str): Mode of model fitting.
             epoch_no (int): Epoch number to log.
         """
-        self.metrics[f"{mode}_loss"]["x"].append(epoch_no + 1)
-        self.metrics[f"{mode}_acc"]["x"].append(epoch_no + 1)
-        self.metrics[f"{mode}_miou"]["x"].append(epoch_no + 1)
+        self.metrics[f"{self.task_name}_loss"]["x"].append(epoch_no + 1)
+        self.metrics[f"{self.task_name}_acc"]["x"].append(epoch_no + 1)
+        self.metrics[f"{self.task_name}_miou"]["x"].append(epoch_no + 1)
 
-    def print_epoch_results(self, mode: str, epoch_no: int) -> None:
+    def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
 
         Args:
-            mode (str): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
         msg = "{} | Loss: {} | Accuracy: {}%".format(
-            mode,
-            self.metrics[f"{mode}_loss"]["y"][epoch_no],
-            self.metrics[f"{mode}_acc"]["y"][epoch_no] * 100.0,
+            self.task_name,
+            self.metrics[f"{self.task_name}_loss"]["y"][epoch_no],
+            self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
         )
 
         if self.model_type == "segmentation":
-            msg += " | mIoU: {}".format(self.metrics[f"{mode}_miou"]["y"][epoch_no])
+            msg += " | mIoU: {}".format(
+                self.metrics[f"{self.task_name}_miou"]["y"][epoch_no]
+            )
 
         msg += "\n"
         print(msg)
@@ -276,12 +356,18 @@ class SSLMetrics(MinervaMetrics):
 
     metric_types = ["loss", "acc", "top5_acc"]
     special_metric_types = ["collapse_level", "euc_dist"]
+    logger_cls = SSLLogger
 
     def __init__(
         self,
-        n_batches: Dict[str, int],
+        n_batches: int,
         batch_size: int,
         data_size: Tuple[int, int, int],
+        task_name: str,
+        logger_params: Optional[Dict[str, Any]] = None,
+        record_int: bool = True,
+        record_float: bool = False,
+        writer: Optional[Union[SummaryWriter, Run]] = None,
         model_type: str = "segmentation",
         sample_pairs: bool = False,
         **params,
@@ -290,35 +376,39 @@ class SSLMetrics(MinervaMetrics):
             n_batches,
             batch_size,
             data_size,
+            task_name,
+            logger_params,
+            record_int,
+            record_float,
+            writer,
             model_type=model_type,
             sample_pairs=sample_pairs,
         )
 
-    def calc_metrics(self, mode: str, logs) -> None:
+    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
-            mode (str): Mode of model fitting.
             logs (dict[str, ~typing.Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
-        self.metrics[f"{mode}_loss"]["y"].append(
-            logs["total_loss"] / self.n_batches[mode]
+        self.metrics[f"{self.task_name}_loss"]["y"].append(
+            logs["total_loss"] / self.n_batches
         )
 
         if self.model_type == "segmentation":
-            self.metrics[f"{mode}_acc"]["y"].append(
+            self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"]
                 / (
-                    self.n_batches[mode]
+                    self.n_batches
                     * self.batch_size
                     * self.data_size[1]
                     * self.data_size[2]
                 )
             )
-            self.metrics[f"{mode}_top5_acc"]["y"].append(
+            self.metrics[f"{self.task_name}_top5_acc"]["y"].append(
                 logs["total_top5"]
                 / (
-                    self.n_batches[mode]
+                    self.n_batches
                     * self.batch_size
                     * self.data_size[1]
                     * self.data_size[2]
@@ -326,56 +416,56 @@ class SSLMetrics(MinervaMetrics):
             )
 
         else:
-            self.metrics[f"{mode}_acc"]["y"].append(
-                logs["total_correct"] / (self.n_batches[mode] * self.batch_size)
+            self.metrics[f"{self.task_name}_acc"]["y"].append(
+                logs["total_correct"] / (self.n_samples)
             )
-            self.metrics[f"{mode}_top5_acc"]["y"].append(
-                logs["total_top5"] / (self.n_batches[mode] * self.batch_size)
-            )
-
-        if self.sample_pairs and mode == "train":
-            self.metrics[f"{mode}_collapse_level"]["y"].append(logs["collapse_level"])
-            self.metrics[f"{mode}_euc_dist"]["y"].append(
-                logs["euc_dist"] / self.n_batches[mode]
+            self.metrics[f"{self.task_name}_top5_acc"]["y"].append(
+                logs["total_top5"] / (self.n_samples)
             )
 
-    def log_epoch_number(self, mode: str, epoch_no: int) -> None:
+        if self.sample_pairs:
+            self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
+                logs["collapse_level"]
+            )
+            self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
+                logs["euc_dist"] / self.n_batches
+            )
+
+    def log_epoch_number(self, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
 
         Args:
-            mode (str): Mode of model fitting.
             epoch_no (int): Epoch number to log.
         """
-        self.metrics[f"{mode}_loss"]["x"].append(epoch_no + 1)
-        self.metrics[f"{mode}_acc"]["x"].append(epoch_no + 1)
-        self.metrics[f"{mode}_top5_acc"]["x"].append(epoch_no + 1)
+        self.metrics[f"{self.task_name}_loss"]["x"].append(epoch_no + 1)
+        self.metrics[f"{self.task_name}_acc"]["x"].append(epoch_no + 1)
+        self.metrics[f"{self.task_name}_top5_acc"]["x"].append(epoch_no + 1)
 
-        if self.sample_pairs and mode == "train":
-            self.metrics[f"{mode}_collapse_level"]["x"].append(epoch_no + 1)
-            self.metrics[f"{mode}_euc_dist"]["x"].append(epoch_no + 1)
+        if self.sample_pairs:
+            self.metrics[f"{self.task_name}_collapse_level"]["x"].append(epoch_no + 1)
+            self.metrics[f"{self.task_name}_euc_dist"]["x"].append(epoch_no + 1)
 
-    def print_epoch_results(self, mode: str, epoch_no: int) -> None:
+    def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
 
         Args:
-            mode (str): Mode of fitting to print results from.
             epoch_no (int): Epoch number to print results from.
         """
         msg = "{} | Loss: {} | Accuracy: {}% | Top5 Accuracy: {}% ".format(
-            mode,
-            self.metrics[f"{mode}_loss"]["y"][epoch_no],
-            self.metrics[f"{mode}_acc"]["y"][epoch_no] * 100.0,
-            self.metrics[f"{mode}_top5_acc"]["y"][epoch_no] * 100.0,
+            self.task_name,
+            self.metrics[f"{self.task_name}_loss"]["y"][epoch_no],
+            self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
+            self.metrics[f"{self.task_name}_top5_acc"]["y"][epoch_no] * 100.0,
         )
 
-        if self.sample_pairs and mode == "train":
+        if self.sample_pairs:
             msg += "\n"
 
             msg += "| Collapse Level: {}%".format(
-                self.metrics[f"{mode}_collapse_level"]["y"][epoch_no] * 100.0
+                self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no] * 100.0
             )
             msg += "| Avg. Euclidean Distance: {}".format(
-                self.metrics[f"{mode}_euc_dist"]["y"][epoch_no]
+                self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
             )
 
         msg += "\n"

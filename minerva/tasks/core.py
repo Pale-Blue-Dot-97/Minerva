@@ -216,18 +216,6 @@ class MinervaTask(ABC):
 
         return metric_logger
 
-    def get_logger(self) -> Callable[..., Any]:
-        """Creates an object to log the results from each step of model fitting during an epoch.
-
-        Returns:
-            ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logger.MinervaLogger`
-            to be intialised within the epoch.
-        """
-        logger: Callable[..., Any] = func_by_str(
-            "minerva.logger", self.params["logger"]
-        )
-        return logger
-
     def get_io_func(self) -> Callable[..., Any]:
         """Fetches a func to handle IO for the type of model used in the experiment.
 
@@ -247,10 +235,10 @@ class MinervaTask(ABC):
         self.step(mode)
 
         # Send the logs to the metric logger.
-        self.metric_logger(mode, self.logger.get_logs)
+        self.metric_logger.calc_metrics()
 
         if self.record_int or self.record_float:
-            return self.logger.get_results
+            return self.metric_logger.get_results
         else:
             return None
 
@@ -259,7 +247,7 @@ class MinervaTask(ABC):
 
     @property
     def get_logs(self) -> Dict[str, Any]:
-        return self.logger.get_logs
+        return self.metric_logger.get_logs
 
     def __repr__(self) -> str:
         return self.__class__.__name__

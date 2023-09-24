@@ -70,6 +70,7 @@ from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
 from minerva.utils import utils
+from minerva.utils.utils import func_by_str
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -124,6 +125,7 @@ class MinervaLogger(ABC):
         n_batches: int,
         batch_size: int,
         n_samples: int,
+        task_name: str,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -135,28 +137,27 @@ class MinervaLogger(ABC):
         self.n_batches = n_batches
         self.batch_size = batch_size
         self.n_samples = n_samples
+        self.task_name = task_name
         self.writer = writer
 
         self.logs: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}
 
-    def __call__(self, mode: str, step_num: int, loss: Tensor, *args) -> None:
+    def __call__(self, step_num: int, loss: Tensor, *args) -> None:
         """Call :meth:`log`.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
 
         Returns:
             None
         """
-        self.log(mode, step_num, loss, *args)
+        self.log(step_num, loss, *args)
 
     @abc.abstractmethod
     def log(
         self,
-        mode: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -168,7 +169,6 @@ class MinervaLogger(ABC):
         """Abstract logging method, the core functionality of a logger. Must be overwritten.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
@@ -181,12 +181,11 @@ class MinervaLogger(ABC):
         pass  # pragma: no cover
 
     def write_metric(
-        self, mode: str, key: str, value: SupportsFloat, step_num: Optional[int] = None
+        self, key: str, value: SupportsFloat, step_num: Optional[int] = None
     ):
         """Write metric values to logging backends after calculation.
 
         Args:
-            mode (str): Mode of model fitting.
             key (str): Key for the metric that ``value`` belongs to.
             value (SupportsFloat): Metric to write to logger.
             step_num (int): Optional; Global step number for this ``mode`` of fitting.
@@ -202,12 +201,17 @@ class MinervaLogger(ABC):
                     and self.writer
                 ):
                     self.writer.add_scalar(  # type: ignore[attr-defined]
-                        tag=f"{mode}_{key}",
+                        tag=f"{self.task_name}_{key}",
                         scalar_value=value,  # type: ignore[attr-defined]
                         global_step=step_num,
                     )
             if isinstance(self.writer, Run):
-                self.writer.log({f"{mode}/step": step_num, f"{mode}/{key}": value})
+                self.writer.log(
+                    {
+                        f"{self.task_name}/step": step_num,
+                        f"{self.task_name}/{key}": value,
+                    }
+                )
 
         if mlflow.active_run():
             # If running in Azure Machine Learning, tracking URI / experiment ID set already
@@ -361,7 +365,7 @@ class STGLogger(MinervaLogger):
 
     def log(
         self,
-        mode: str,
+        task_name: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -428,12 +432,12 @@ class STGLogger(MinervaLogger):
                 )  # noqa: E501 type: ignore[attr-defined]
             self.logs["total_miou"] += miou
 
-            self.write_metric(mode, "miou", miou / len(y), step_num=step_num)
+            self.write_metric(task_name, "miou", miou / len(y), step_num=step_num)
 
         # Writes loss and correct predictions to the writer.
-        self.write_metric(mode, "loss", ls, step_num=step_num)
+        self.write_metric(task_name, "loss", ls, step_num=step_num)
         self.write_metric(
-            mode, "acc", correct / len(torch.flatten(y)), step_num=step_num
+            task_name, "acc", correct / len(torch.flatten(y)), step_num=step_num
         )
 
         # Adds 1 to batch number (step number).
@@ -698,3 +702,14 @@ class SSLLogger(MinervaLogger):
 
         # Adds 1 to the batch number (step number).
         self.logs["batch_num"] += 1
+
+
+def get_logger(name) -> Callable[..., Any]:
+    """Creates an object to log the results from each step of model fitting during an epoch.
+
+    Returns:
+        ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logger.MinervaLogger`
+        to be intialised within the epoch.
+    """
+    logger: Callable[..., Any] = func_by_str("minerva.logger", name)
+    return logger
