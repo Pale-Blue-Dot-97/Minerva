@@ -33,4 +33,18 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
     "MinervaTaskLogger",
+    "SSLTaskLogger",
+    "SupervisedTaskLogger",
+    "MinervaStepLogger",
+    "SupervisedGeoStepLogger",
+    "SSLStepLogger",
+    "KNNStepLogger",
 ]
+
+from .steplog import (
+    KNNStepLogger,
+    MinervaStepLogger,
+    SSLStepLogger,
+    SupervisedGeoStepLogger,
+)
+from .tasklog import MinervaTaskLogger, SSLTaskLogger, SupervisedTaskLogger
