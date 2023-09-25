@@ -50,8 +50,7 @@ import torch.distributed as dist
 from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
-from minerva.logger import MinervaLogger
-from minerva.metrics import MinervaMetrics
+from minerva.logging.tasklog import MinervaTaskLogger
 from minerva.models import MinervaDataParallel, MinervaModel
 from minerva.utils.utils import func_by_str
 
@@ -177,7 +176,7 @@ class MinervaTask(ABC):
         self.model_type = self.params["model_type"]
         self.sample_pairs = self.params.get("sample_pairs", False)
 
-        self.metric_logger: MinervaMetrics = self.make_metric_logger()
+        self.logger: MinervaTaskLogger = self.make_logger()
         self.modelio = self.get_io_func()
 
         self.loaders = loaders
@@ -190,23 +189,23 @@ class MinervaTask(ABC):
 
         self.step_num = 0
 
-    def make_metric_logger(self) -> MinervaMetrics:
+    def make_logger(self) -> MinervaTaskLogger:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
 
         Returns:
-            MinervaMetrics: Constructed metric logger.
+            MinervaTaskLogger: Constructed metric logger.
         """
 
         # Gets the size of the input data to the network (without batch dimension).
         data_size = self.params["input_size"]
 
         # Gets constructor of the metric logger from name in the config.
-        _metric_logger: Callable[..., Any] = func_by_str(
+        _logger: Callable[..., Any] = func_by_str(
             "minerva.metrics", self.params["metrics"]
         )
 
         # Initialises the metric logger with arguments.
-        metric_logger: MinervaMetrics = _metric_logger(
+        logger: MinervaTaskLogger = _logger(
             self.n_batches,
             batch_size=self.batch_size,
             data_size=data_size,
@@ -214,7 +213,7 @@ class MinervaTask(ABC):
             sample_pairs=self.sample_pairs,
         )
 
-        return metric_logger
+        return logger
 
     def get_io_func(self) -> Callable[..., Any]:
         """Fetches a func to handle IO for the type of model used in the experiment.
@@ -238,7 +237,7 @@ class MinervaTask(ABC):
         self.metric_logger.calc_metrics()
 
         if self.record_int or self.record_float:
-            return self.metric_logger.get_results
+            return self.logger.get_results
         else:
             return None
 
@@ -247,7 +246,7 @@ class MinervaTask(ABC):
 
     @property
     def get_logs(self) -> Dict[str, Any]:
-        return self.metric_logger.get_logs
+        return self.logger.get_logs
 
     def __repr__(self) -> str:
         return self.__class__.__name__

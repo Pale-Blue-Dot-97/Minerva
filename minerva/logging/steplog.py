@@ -34,10 +34,10 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
-    "MinervaLogger",
-    "STGLogger",
-    "SSLLogger",
-    "KNNLogger",
+    "MinervaStepLogger",
+    "SupervisedGeoStepLogger",
+    "SSLStepLogger",
+    "KNNStepLogger",
 ]
 
 # =====================================================================================================================
@@ -92,7 +92,7 @@ except ImportError as err:  # pragma: no cover
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class MinervaLogger(ABC):
+class MinervaStepLogger(ABC):
     """Base abstract class for all :mod:`minerva` logger classes to ensure intercompatibility with
     :class:`~trainer.Trainer`.
 
@@ -131,7 +131,7 @@ class MinervaLogger(ABC):
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
-        super(MinervaLogger, self).__init__()
+        super(MinervaStepLogger, self).__init__()
         self.record_int = record_int
         self.record_float = record_float
         self.n_batches = n_batches
@@ -237,7 +237,7 @@ class MinervaLogger(ABC):
         return self.results
 
 
-class STGLogger(MinervaLogger):
+class SupervisedGeoStepLogger(MinervaStepLogger):
     """Logger designed for supervised learning using :mod:`torchgeo` datasets.
 
     Attributes:
@@ -283,6 +283,7 @@ class STGLogger(MinervaLogger):
         n_batches: int,
         batch_size: int,
         n_samples: int,
+        task_name: str,
         out_shape: Union[int, Tuple[int, ...]],
         n_classes: int,
         record_int: bool = True,
@@ -290,10 +291,11 @@ class STGLogger(MinervaLogger):
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
-        super(STGLogger, self).__init__(
+        super(SupervisedGeoStepLogger, self).__init__(
             n_batches,
             batch_size,
             n_samples,
+            task_name,
             record_int,
             record_float,
             writer,
@@ -365,7 +367,6 @@ class STGLogger(MinervaLogger):
 
     def log(
         self,
-        task_name: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -432,19 +433,17 @@ class STGLogger(MinervaLogger):
                 )  # noqa: E501 type: ignore[attr-defined]
             self.logs["total_miou"] += miou
 
-            self.write_metric(task_name, "miou", miou / len(y), step_num=step_num)
+            self.write_metric("miou", miou / len(y), step_num=step_num)
 
         # Writes loss and correct predictions to the writer.
-        self.write_metric(task_name, "loss", ls, step_num=step_num)
-        self.write_metric(
-            task_name, "acc", correct / len(torch.flatten(y)), step_num=step_num
-        )
+        self.write_metric("loss", ls, step_num=step_num)
+        self.write_metric("acc", correct / len(torch.flatten(y)), step_num=step_num)
 
         # Adds 1 to batch number (step number).
         self.logs["batch_num"] += 1
 
 
-class KNNLogger(MinervaLogger):
+class KNNStepLogger(MinervaStepLogger):
     """Logger specifically designed for use with the KNN validation in
     :meth:`trainer.Trainer.weighted_knn_validation`.
 
@@ -481,13 +480,21 @@ class KNNLogger(MinervaLogger):
         n_batches: int,
         batch_size: int,
         n_samples: int,
+        task_name: str,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
         super().__init__(
-            n_batches, batch_size, n_samples, record_int, record_float, writer, **kwargs
+            n_batches,
+            batch_size,
+            n_samples,
+            task_name,
+            record_int,
+            record_float,
+            writer,
+            **kwargs,
         )
 
         self.logs: Dict[str, Any] = {
@@ -507,7 +514,6 @@ class KNNLogger(MinervaLogger):
 
     def log(
         self,
-        mode: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -534,15 +540,15 @@ class KNNLogger(MinervaLogger):
         self.logs["total_top5"] += top5
 
         # Write results to the writer.
-        self.write_metric(mode, "loss", loss, step_num)
-        self.write_metric(mode, "acc", top1, step_num)
-        self.write_metric(mode, "top5", top5, step_num)
+        self.write_metric("loss", loss, step_num)
+        self.write_metric("acc", top1, step_num)
+        self.write_metric("top5", top5, step_num)
 
         # Adds 1 to batch number (step number).
         self.logs["batch_num"] += 1
 
 
-class SSLLogger(MinervaLogger):
+class SSLStepLogger(MinervaStepLogger):
     """Logger designed for self-supervised learning.
 
     Attributes:
@@ -579,6 +585,7 @@ class SSLLogger(MinervaLogger):
         n_batches: int,
         batch_size: int,
         n_samples: int,
+        task_name: str,
         out_shape: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
         record_int: bool = True,
@@ -586,10 +593,11 @@ class SSLLogger(MinervaLogger):
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
-        super(SSLLogger, self).__init__(
+        super(SSLStepLogger, self).__init__(
             n_batches,
             batch_size,
             n_samples,
+            task_name,
             record_int,
             record_float=record_float,
             writer=writer,
@@ -616,7 +624,6 @@ class SSLLogger(MinervaLogger):
 
     def log(
         self,
-        mode: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -628,7 +635,6 @@ class SSLLogger(MinervaLogger):
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
@@ -662,7 +668,7 @@ class SSLLogger(MinervaLogger):
                 )
 
             euc_dist = sum(euc_dists) / len(euc_dists)
-            self.write_metric(mode, "euc_dist", euc_dist, step_num)
+            self.write_metric("euc_dist", euc_dist, step_num)
             self.logs["euc_dist"] += euc_dist
 
         if self.collapse_level:
@@ -687,7 +693,7 @@ class SSLLogger(MinervaLogger):
                 0.0, 1 - math.sqrt(len(output)) * self.logs["avg_output_std"]
             )
 
-            self.write_metric(mode, "collapse_level", collapse_level, step_num)
+            self.write_metric("collapse_level", collapse_level, step_num)
 
             self.logs["collapse_level"] = collapse_level
 
@@ -696,14 +702,17 @@ class SSLLogger(MinervaLogger):
         self.logs["total_top5"] += top5
 
         # Writes the loss to the writer.
-        self.write_metric(mode, "loss", ls, step_num=step_num)
-        self.write_metric(mode, "acc", correct / 2 * len(z[0]), step_num)
-        self.write_metric(mode, "top5_acc", top5 / 2 * len(z[0]), step_num)
+        self.write_metric("loss", ls, step_num=step_num)
+        self.write_metric("acc", correct / 2 * len(z[0]), step_num)
+        self.write_metric("top5_acc", top5 / 2 * len(z[0]), step_num)
 
         # Adds 1 to the batch number (step number).
         self.logs["batch_num"] += 1
 
 
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
 def get_logger(name) -> Callable[..., Any]:
     """Creates an object to log the results from each step of model fitting during an epoch.
 
