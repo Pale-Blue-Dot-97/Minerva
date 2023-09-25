@@ -726,7 +726,7 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in ("train", "val"):
                 # Only run a KNN validation epoch at set frequency of epochs. Goes to next epoch if not.
-                if (
+                if self.val_freq != 0 and (
                     mode == "val"
                     and utils.check_substrings_in_string(
                         self.model_type, "ssl", "siamese"
@@ -774,16 +774,17 @@ class Trainer:
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    if mode == "val" and utils.check_substrings_in_string(
-                        self.model_type, "ssl", "siamese"
-                    ):
-                        epoch_no = epoch // self.val_freq
-                    else:
-                        epoch_no = epoch
-                    self.metric_logger.print_epoch_results(mode, epoch_no)
+                    if self.val_freq != 0:
+                        if mode == "val" and utils.check_substrings_in_string(
+                            self.model_type, "ssl", "siamese"
+                        ):
+                            epoch_no = epoch // self.val_freq
+                        else:
+                            epoch_no = epoch
+                        self.metric_logger.print_epoch_results(mode, epoch_no)
 
                 # Sends validation loss to the stopper and updates early stop bool.
-                if mode == "val" and self.stopper is not None:
+                if mode == "val" and self.stopper is not None and self.val_freq != 0:
                     if mode == "val" and utils.check_substrings_in_string(
                         self.model_type, "ssl", "siamese"
                     ):
@@ -1188,12 +1189,19 @@ class Trainer:
             self.print("\nSAVING METRICS TO FILE")
             try:
                 sub_metrics = self.metric_logger.get_sub_metrics()
-                metrics_df = pd.DataFrame(
-                    {key: sub_metrics[key]["y"] for key in sub_metrics.keys()}
+                metrics_train_df = pd.DataFrame(
+                    {key: sub_metrics[key]["y"] for key in sub_metrics.keys() if "train" in key}
                 )
-                metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
-                metrics_df.set_index("Epoch", inplace=True, drop=True)
-                metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
+                metrics_train_df["Epoch"] = sub_metrics["train_loss"]["x"]
+                metrics_train_df.set_index("Epoch", inplace=True, drop=True)
+                metrics_train_df.to_csv(f"{self.exp_fn}_metrics_train.csv")
+
+                metric_valid_df = pd.DataFrame(
+                    {key: sub_metrics[key]["y"] for key in sub_metrics.keys() if ("val" in key) and ("collapse" not in key) and ("dist" not in key)}
+                )
+                metric_valid_df["Epoch"] = sub_metrics["val_loss"]["x"]
+                metric_valid_df.set_index("Epoch", inplace=True, drop=True)
+                metric_valid_df.to_csv(f"{self.exp_fn}_metrics_validate.csv")
 
             except (ValueError, KeyError) as err:  # pragma: no cover
                 self.print(err)
