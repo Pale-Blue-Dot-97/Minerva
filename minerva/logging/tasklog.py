@@ -32,9 +32,9 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
-    "MinervaMetrics",
-    "SPMetrics",
-    "SSLMetrics",
+    "MinervaTaskLogger",
+    "SupervisedTaskLogger",
+    "SSLTaskLogger",
 ]
 
 # =====================================================================================================================
@@ -51,13 +51,18 @@ from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
-from minerva.logger import MinervaLogger, SSLLogger, STGLogger, get_logger
+from .steplog import (
+    MinervaStepLogger,
+    SSLStepLogger,
+    SupervisedGeoStepLogger,
+    get_logger,
+)
 
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class MinervaMetrics(ABC):
+class MinervaTaskLogger(ABC):
     """Abstract class for metric logging within the :mod:`minerva` framework.
 
     Attributes:
@@ -79,7 +84,7 @@ class MinervaMetrics(ABC):
 
     metric_types: List[str] = []
     special_metric_types: List[str] = []
-    logger_cls: Callable[..., MinervaLogger]
+    logger_cls: Callable[..., MinervaStepLogger]
 
     def __init__(
         self,
@@ -93,7 +98,7 @@ class MinervaMetrics(ABC):
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **params,
     ) -> None:
-        super(MinervaMetrics, self).__init__()
+        super(MinervaTaskLogger, self).__init__()
 
         self.n_batches = n_batches
         self.batch_size = batch_size
@@ -228,7 +233,7 @@ class MinervaMetrics(ABC):
         pass  # pragma: no cover
 
 
-class SPMetrics(MinervaMetrics):
+class SupervisedTaskLogger(MinervaTaskLogger):
     """Metric logging for supervised models.
 
     Attributes:
@@ -247,7 +252,7 @@ class SPMetrics(MinervaMetrics):
     """
 
     metric_types: List[str] = ["loss", "acc", "miou"]
-    logger_cls = STGLogger
+    logger_cls = SupervisedGeoStepLogger
 
     def __init__(
         self,
@@ -262,7 +267,7 @@ class SPMetrics(MinervaMetrics):
         model_type: str = "segmentation",
         **params,
     ) -> None:
-        super(SPMetrics, self).__init__(
+        super(SupervisedTaskLogger, self).__init__(
             n_batches,
             batch_size,
             data_size,
@@ -336,7 +341,7 @@ class SPMetrics(MinervaMetrics):
         print(msg)
 
 
-class SSLMetrics(MinervaMetrics):
+class SSLTaskLogger(MinervaTaskLogger):
     """Metric logging for self-supervised models.
 
     Attributes:
@@ -356,7 +361,7 @@ class SSLMetrics(MinervaMetrics):
 
     metric_types = ["loss", "acc", "top5_acc"]
     special_metric_types = ["collapse_level", "euc_dist"]
-    logger_cls = SSLLogger
+    logger_cls = SSLStepLogger
 
     def __init__(
         self,
@@ -372,7 +377,7 @@ class SSLMetrics(MinervaMetrics):
         sample_pairs: bool = False,
         **params,
     ) -> None:
-        super(SSLMetrics, self).__init__(
+        super(SSLTaskLogger, self).__init__(
             n_batches,
             batch_size,
             data_size,
