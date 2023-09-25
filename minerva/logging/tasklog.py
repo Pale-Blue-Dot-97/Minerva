@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module to calculate the metrics of a model's fitting."""
+"""These loggers are designed to handle the logging and analysis for a whole task."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -198,9 +198,18 @@ class MinervaTaskLogger(ABC):
         """Get the ``metrics`` dictionary.
 
         Returns:
-            dict[str, Any]: Metrics dictionary.
+            dict[str, ~typing.Any]: Metrics dictionary.
         """
         return self.metrics
+
+    @property
+    def get_logs(self) -> Dict[str, Any]:
+        """Get the logs of each step from the latest epoch of the task.
+
+        Returns:
+            dict[str, ~typing.Any]: Logs per step of last epoch.
+        """
+        return self.logger.get_logs
 
     def get_sub_metrics(
         self, pattern: Tuple[str, ...] = ("train", "val")
