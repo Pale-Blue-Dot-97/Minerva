@@ -134,6 +134,7 @@ class MinervaStepLogger(ABC):
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        model_type: str = "",
         **kwargs,
     ) -> None:
         super(MinervaStepLogger, self).__init__()
@@ -150,6 +151,8 @@ class MinervaStepLogger(ABC):
 
         self.task_name = task_name
         self.writer = writer
+
+        self.model_type = model_type
 
         self.logs: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}
@@ -297,10 +300,11 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         n_batches: int,
         batch_size: int,
         output_size: Tuple[int, int],
-        n_classes: int,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        model_type: str = "",
+        n_classes: Optional[int] = None,
         **kwargs,
     ) -> None:
         super(SupervisedGeoStepLogger, self).__init__(
@@ -311,7 +315,10 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             record_int,
             record_float,
             writer,
+            model_type,
         )
+        if n_classes is None:
+            raise (ValueError, "`n_classes` must be specified for this type of logger!")
 
         self.logs: Dict[str, Any] = {
             "batch_num": 0,
@@ -326,7 +333,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             "ids": [],
             "bounds": None,
         }
-        self.calc_miou = True if kwargs.get("model_type") == "segmentation" else False
+        self.calc_miou = True if self.model_type == "segmentation" else False
 
         if self.calc_miou:
             self.logs["total_miou"] = 0.0
@@ -334,7 +341,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
             int_log_shape: Tuple[int, ...]
-            if kwargs.get("model_type") == "scene classifier":
+            if self.model_type == "scene classifier":
                 int_log_shape = (self.n_batches, self.batch_size)
             else:
                 int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
@@ -384,7 +391,6 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Output tensor from the model.
@@ -491,6 +497,7 @@ class KNNStepLogger(MinervaStepLogger):
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        model_type: str = "",
         **kwargs,
     ) -> None:
         super().__init__(
@@ -500,6 +507,7 @@ class KNNStepLogger(MinervaStepLogger):
             record_int=record_int,
             record_float=record_float,
             writer=writer,
+            model_type=model_type,
             **kwargs,
         )
 
@@ -597,6 +605,7 @@ class SSLStepLogger(MinervaStepLogger):
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        model_type: str = "scene_classifier",
         **kwargs,
     ) -> None:
         super(SSLStepLogger, self).__init__(
@@ -607,6 +616,7 @@ class SSLStepLogger(MinervaStepLogger):
             record_int=record_int,
             record_float=record_float,
             writer=writer,
+            model_type=model_type,
             **kwargs,
         )
 
@@ -621,8 +631,6 @@ class SSLStepLogger(MinervaStepLogger):
 
         self.collapse_level = kwargs.get("collapse_level", False)
         self.euclidean = kwargs.get("euclidean", False)
-
-        self.model_type = kwargs.get("model_type", "")
 
         if self.collapse_level:
             self.logs["collapse_level"] = 0
