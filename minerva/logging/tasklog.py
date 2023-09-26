@@ -46,6 +46,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Un
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
+else:  # pragma: no cover
+    SummaryWriter = None
 
 from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
@@ -142,13 +144,15 @@ class MinervaTaskLogger(ABC):
             Will overwrite ``self.logger`` with new logger.
         """
         self.step_logger = self.logger_cls(
+            self.task_name,
             self.n_batches,
             self.batch_size,
-            self.n_samples,
+            self.output_size,
             self.record_int,
             self.record_float,
             self.writer,
-            **self.step_logger_params["params"],
+            self.model_type,
+            **self.step_logger_params.get("params", {}),
         )
 
     def step(
@@ -223,8 +227,21 @@ class MinervaTaskLogger(ABC):
 
         Returns:
             dict[str, ~typing.Any]: Logs per step of last epoch.
+
+        .. versionadded:: 0.27
         """
         return self.step_logger.get_logs
+
+    @property
+    def get_results(self) -> Dict[str, Any]:
+        """Get the results of each step from the latest epoch of the task.
+
+        Returns:
+            dict[str, ~typing.Any]: Logs per step of last epoch.
+
+        .. versionadded:: 0.27
+        """
+        return self.step_logger.get_results
 
     def get_sub_metrics(
         self, pattern: Tuple[str, ...] = ("train", "val")
@@ -322,8 +339,8 @@ class SupervisedTaskLogger(MinervaTaskLogger):
                 / (
                     self.n_batches
                     * self.batch_size
-                    * self.data_size[1]
-                    * self.data_size[2]
+                    * self.output_size[0]
+                    * self.output_size[1]
                 )
             )
             if logs.get("total_miou") is not None:
