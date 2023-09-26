@@ -59,7 +59,7 @@ from torch import Tensor
 from torch.nn.modules import Module
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.logger import SSLLogger, STGLogger
+from minerva.logging.steplog import SSLStepLogger, SupervisedGeoStepLogger
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN16ResNet18, MinervaSiamese, SimCLR18, SimConv
@@ -69,9 +69,9 @@ from minerva.utils import utils
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-@pytest.mark.parametrize("mode", ("train", "val", "test"))
+@pytest.mark.parametrize("train", (True, False))
 @pytest.mark.parametrize("model_type", ("scene_classifier", "segmentation"))
-def test_STGLogger(
+def test_SupervisedGeoStepLogger(
     simple_bbox: BoundingBox,
     x_entropy_loss,
     std_n_batches: int,
@@ -79,7 +79,7 @@ def test_STGLogger(
     std_batch_size: int,
     small_patch_size: Tuple[int, int],
     default_device: torch.device,
-    mode: str,
+    train: bool,
     model_type: str,
 ) -> None:
     path = Path(tempfile.gettempdir(), "exp1")
@@ -107,14 +107,11 @@ def test_STGLogger(
     output_shape = model.output_shape
     assert isinstance(output_shape, tuple)
 
-    logger = STGLogger(
+    logger = SupervisedGeoStepLogger(
+        task_name="pytest",
         n_batches=std_n_batches,
         batch_size=std_batch_size,
-        n_samples=std_n_batches
-        * std_batch_size
-        * small_patch_size[0]
-        * small_patch_size[1],
-        out_shape=output_shape,
+        output_size=output_shape,
         n_classes=std_n_classes,
         record_int=True,
         record_float=True,
@@ -135,7 +132,7 @@ def test_STGLogger(
         }
         data.append(batch)
 
-        logger(mode, i, *sup_tg(batch, model, device=default_device, mode=mode))
+        logger(i, *sup_tg(batch, model, device=default_device, train=train))
 
     logs = logger.get_logs
     assert logs["batch_num"] == std_n_batches
@@ -179,9 +176,9 @@ def test_STGLogger(
         (SimConv, "siamese-segmentation", SegBarlowTwinsLoss()),
     ),
 )
-@pytest.mark.parametrize("mode", ("train", "val", "test"))
+@pytest.mark.parametrize("train", (True, False))
 @pytest.mark.parametrize("extra_metrics", (True, False))
-def test_SSLLogger(
+def test_SSLStepLogger(
     simple_bbox: BoundingBox,
     std_n_batches: int,
     std_batch_size: int,
@@ -190,7 +187,7 @@ def test_SSLLogger(
     model_cls: MinervaSiamese,
     model_type: str,
     criterion: Module,
-    mode: str,
+    train: bool,
     extra_metrics: bool,
 ) -> None:
     path = Path(tempfile.gettempdir(), "exp2")
@@ -214,31 +211,31 @@ def test_SSLLogger(
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
-    logger = SSLLogger(
+    model.determine_output_dim(sample_pairs=True)
+    output_shape = model.output_shape
+    assert isinstance(output_shape, tuple)
+
+    logger = SSLStepLogger(
+        task_name="pytest",
         n_batches=std_n_batches,
         batch_size=std_batch_size,
-        n_samples=std_n_batches * std_batch_size,
+        output_size=output_shape,
         record_int=True,
         record_float=True,
-        collapse_level=extra_metrics,
-        euclidean=extra_metrics,
         writer=writer,
         model_type=model_type,
+        collapse_level=extra_metrics,
+        euclidean=extra_metrics,
     )
-    data = []
+
     for i in range(std_n_batches):
         images = torch.rand(size=(std_batch_size, 4, *small_patch_size))
         bboxes = [simple_bbox] * std_batch_size
-        batch = {
-            "image": images,
-            "bbox": bboxes,
-        }
-        data.append((batch, batch))
+        batch = {"image": images, "bbox": bboxes}
 
         logger(
-            mode,
             i,
-            *ssl_pair_tg((batch, batch), model, device=default_device, mode=mode),
+            *ssl_pair_tg((batch, batch), model, device=default_device, train=train),
         )
 
     logs = logger.get_logs

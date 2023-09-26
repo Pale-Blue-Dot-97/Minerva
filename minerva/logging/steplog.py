@@ -60,11 +60,14 @@ from typing import (
 import mlflow
 import numpy as np
 import torch
+import torch.distributed as dist
 from sklearn.metrics import jaccard_score
 from torch import Tensor
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
+else:  # pragma: no cover
+    SummaryWriter = None
 
 from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
@@ -590,6 +593,7 @@ class SSLStepLogger(MinervaStepLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
+        output_size: Tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -599,6 +603,7 @@ class SSLStepLogger(MinervaStepLogger):
             task_name,
             n_batches,
             batch_size,
+            output_size,
             record_int=record_int,
             record_float=record_float,
             writer=writer,
