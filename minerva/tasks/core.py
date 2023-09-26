@@ -23,7 +23,10 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Core functionality of :mod:`tasks`, defining the abstract :class:`MinervaTask` class"""
+"""Core functionality of :mod:`tasks`, defining the abstract :class:`MinervaTask` class
+
+.. versionadded:: 0.27
+"""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -50,7 +53,7 @@ import torch.distributed as dist
 from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
-from minerva.logging.tasklog import MinervaTaskLogger
+from minerva.logging.tasklog import MinervaTaskLogger, SupervisedTaskLogger
 from minerva.models import MinervaDataParallel, MinervaModel
 from minerva.utils.utils import func_by_str
 
@@ -137,14 +140,20 @@ class MinervaTask(ABC):
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
+
+    .. versionadded:: 0.27
     """
+
+    logger_cls: MinervaTaskLogger = SupervisedTaskLogger
 
     def __init__(
         self,
+        name: str,
         model: Union[MinervaModel, MinervaDataParallel],
         batch_size: int,
         device: torch.device,
         exp_fn: Path,
+        train: bool = False,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
@@ -153,6 +162,8 @@ class MinervaTask(ABC):
         record_float: bool = False,
         **params,
     ) -> None:
+        self.name = name
+
         self.model = model
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
@@ -161,6 +172,8 @@ class MinervaTask(ABC):
         )
 
         self.exp_fn = exp_fn
+
+        self.train = train
 
         self.gpu = gpu
 
@@ -176,39 +189,42 @@ class MinervaTask(ABC):
         self.model_type = self.params["model_type"]
         self.sample_pairs = self.params.get("sample_pairs", False)
 
-        self.logger: MinervaTaskLogger = self.make_logger()
-        self.modelio = self.get_io_func()
-
-        self.loaders = loaders
-        self.device = device
+        self.output_size = model.output_shape
 
         self.record_int = record_int
         self.record_float = record_float
 
-        self.writer = writer
+        self.modelio = self.get_io_func()
 
+        self.loaders = loaders
+        self.device = device
+        self.writer = writer
         self.step_num = 0
+
+        self.logger: MinervaTaskLogger = self.make_logger()
 
     def make_logger(self) -> MinervaTaskLogger:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
 
         Returns:
-            MinervaTaskLogger: Constructed metric logger.
+            MinervaTaskLogger: Constructed task logger.
         """
 
-        # Gets the size of the input data to the network (without batch dimension).
-        data_size = self.params["input_size"]
-
         # Gets constructor of the metric logger from name in the config.
-        _logger: Callable[..., Any] = func_by_str(
-            "minerva.metrics", self.params["metrics"]
+        self.logger_cls = func_by_str(
+            "minerva.logging.tasklog", self.params.get("logger", self.logger_cls)
         )
 
         # Initialises the metric logger with arguments.
-        logger: MinervaTaskLogger = _logger(
+        logger: MinervaTaskLogger = self.logger_cls(
+            self.name,
             self.n_batches,
-            batch_size=self.batch_size,
-            data_size=data_size,
+            self.batch_size,
+            self.output_size,
+            step_logger_params=self.params.get("step_logger"),
+            record_int=self.record_int,
+            record_float=self.record_float,
+            writer=self.writer,
             model_type=self.model_type,
             sample_pairs=self.sample_pairs,
         )
@@ -234,7 +250,7 @@ class MinervaTask(ABC):
         self.step(mode)
 
         # Send the logs to the metric logger.
-        self.metric_logger.calc_metrics()
+        self.logger.calc_metrics()
 
         if self.record_int or self.record_float:
             return self.logger.get_results

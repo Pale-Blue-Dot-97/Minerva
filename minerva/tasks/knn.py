@@ -23,7 +23,10 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""KNN Validation task"""
+"""KNN Validation task.
+
+.. versionadded:: 0.27
+"""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -52,7 +55,7 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
-from minerva.logger import KNNLogger
+from minerva.logging import SSLTaskLogger
 from minerva.models import MinervaDataParallel, MinervaModel, MinervaSiamese
 from minerva.utils import AUX_CONFIGS, utils
 
@@ -140,10 +143,15 @@ class WeightedKNN(MinervaTask):
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
+
+    .. versionadded:: 0.27
     """
+
+    logger_cls = SSLTaskLogger
 
     def __init__(
         self,
+        name: str,
         model: MinervaModel,
         batch_size: int,
         device: torch.device,
@@ -157,6 +165,7 @@ class WeightedKNN(MinervaTask):
         **params,
     ) -> None:
         super().__init__(
+            name,
             model,
             batch_size,
             device,
@@ -214,25 +223,10 @@ class WeightedKNN(MinervaTask):
 
         return feature_bank, feature_labels
 
-    def step(
-        self,
-        mode: str,
-    ) -> None:
+    def step(self) -> None:
         """Trains a KNN using the model to validate a SSL model.
 
         Adapted from https://github.com/yaohungt/Barlow-Twins-HSIC for use in :mod:`minerva`.
-
-        Args:
-            temp (float, optional): Temperature of the similarity loss. Defaults to 0.5.
-            k (int, optional): Number of similar images to use to predict images. Defaults to 200.
-            mode (str, optional): Mode of model fitting this has been called on. Defaults to "val".
-            record_int (bool, optional): Whether to record integer values. Defaults to True.
-            record_float (bool, optional): Whether to record floating point values. Warning!
-                This may result in memory issues on large amounts of data! Defaults to False.
-
-        Returns:
-            dict[str, ~typing.Any] | None: Results dictionary from the epoch logger if ``record_int``
-            or ``record_float`` are ``True``.
         """
 
         # Puts the model in evaluation mode so no back passes are made.
@@ -240,19 +234,6 @@ class WeightedKNN(MinervaTask):
 
         # Get the number of classes from the data config.
         n_classes = len(AUX_CONFIGS["data_config"]["classes"])
-
-        # Calculates the number of samples.
-        n_samples = self.n_batches * self.batch_size
-
-        # Uses the special `KNNLogger` to log the results from the KNN.
-        epoch_logger = KNNLogger(
-            self.n_batches,
-            self.batch_size,
-            n_samples,
-            record_int=self.record_int,
-            record_float=self.record_float,
-            writer=self.writer,
-        )
 
         total_num = 0
 
@@ -338,7 +319,7 @@ class WeightedKNN(MinervaTask):
                     results = (loss, *results[1:])
 
                 # Sends results to logger.
-                epoch_logger.log(mode, self.step_num, *results)
+                self.logger.step(self.step_num, *results)
 
                 # Update global step number for this mode of model fitting.
                 self.step_num += 1

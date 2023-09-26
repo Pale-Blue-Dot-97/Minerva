@@ -23,7 +23,10 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-""""""
+"""A standard epoch for use with generic model fitting.
+
+.. versionadded:: 0.27
+"""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -38,12 +41,11 @@ __all__ = ["StandardEpoch"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from contextlib import nullcontext
-from typing import Any, Callable
 
 import torch.distributed as dist
 from alive_progress import alive_bar
 
-from minerva.logger import MinervaLogger
+from minerva.logging import SupervisedTaskLogger
 from minerva.utils import utils
 
 from .core import MinervaTask
@@ -53,53 +55,28 @@ from .core import MinervaTask
 #                                                     CLASSES
 # =====================================================================================================================
 class StandardEpoch(MinervaTask):
-    def step(
-        self,
-        mode: str,
-    ) -> None:
-        """All encompassing function for any type of epoch, be that train, validation or testing.
+    """A standard epoch for use with generic model fitting.
 
-        Args:
-            mode (str): Either train, val or test.
-                Defines the type of epoch to run on the model.
-        """
-        batch_size = self.batch_size
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-            batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
+    .. versionadded:: 0.27
+    """
 
-        # Calculates the number of samples
-        n_samples = self.n_batches[mode] * batch_size
+    logger_cls = SupervisedTaskLogger
 
-        # Creates object to log the results from each step of this epoch.
-        _epoch_logger: Callable[..., Any] = self.get_logger()
-        epoch_logger: MinervaLogger = _epoch_logger(
-            self.n_batches[mode],
-            batch_size,
-            n_samples,
-            self.model.output_shape,
-            self.model.n_classes,
-            record_int=self.record_int,
-            record_float=self.record_float,
-            collapse_level=self.sample_pairs,
-            euclidean=self.sample_pairs,
-            model_type=self.model_type,
-            writer=self.writer,
-        )
-
+    def step(self) -> None:
         # Initialises a progress bar for the epoch.
         with alive_bar(
-            self.n_batches[mode], bar="blocks"
+            self.n_batches, bar="blocks"
         ) if self.gpu == 0 else nullcontext() as bar:
             # Sets the model up for training or evaluation modes.
-            if mode == "train":
+            if self.train:
                 self.model.train()
             else:
                 self.model.eval()
 
             # Core of the epoch.
-            for batch in self.loaders[mode]:
+            for batch in self.loaders:
                 results = self.modelio(
-                    batch, self.model, self.device, mode, **self.params
+                    batch, self.model, self.device, self.train, **self.params
                 )
 
                 if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
@@ -107,7 +84,7 @@ class StandardEpoch(MinervaTask):
                     dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                     results = (loss, *results[1:])
 
-                epoch_logger.log(mode, self.step_num, *results)
+                self.logger.step(self.step_num, *results)
 
                 self.step_num += 1
 
@@ -116,7 +93,7 @@ class StandardEpoch(MinervaTask):
                     bar()  # type: ignore
 
         # Updates metrics with epoch results.
-        self.metric_logger(mode, epoch_logger.get_logs)
+        self.logger.calc_metrics()
 
         # If configured to do so, calculates the grad norms.
         if self.params.get("calc_norm", False):
