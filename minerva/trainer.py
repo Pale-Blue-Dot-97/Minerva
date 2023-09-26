@@ -41,17 +41,7 @@ __all__ = ["Trainer"]
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import pandas as pd
 import torch
@@ -61,7 +51,6 @@ from nptyping import Int, NDArray
 from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.utils.data import DataLoader
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -70,8 +59,6 @@ from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
-from minerva.datasets import make_loaders
-from minerva.metrics import MinervaMetrics
 from minerva.models import (
     MinervaBackbone,
     MinervaDataParallel,
@@ -250,11 +237,6 @@ class Trainer:
     ) -> None:
         assert not isinstance(wandb_run, RunDisabled)
 
-        # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
-        # loaders, n_batches, class_dist, new_params = make_loaders(
-        #    rank, world_size, **params
-        # )
-
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
         self.rank = rank
@@ -274,9 +256,6 @@ class Trainer:
             utils.print_config(dict(params))
 
         self.params: Dict[str, Any] = dict(params)
-        # self.class_dist = class_dist
-        # self.loaders: Dict[str, DataLoader[Iterable[Any]]] = loaders
-        # self.n_batches = n_batches
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
@@ -353,15 +332,6 @@ class Trainer:
                 trace_func=self.print,
                 **self.params["stopping"],
             )
-
-        # Calculates number of samples in each mode of fitting.
-        # self.n_samples = {
-        #    mode: self.n_batches[mode] * self.batch_size for mode in self.modes
-        # }
-
-        # Initialise the metric logger and model IO for the experiment.
-        # self.metric_logger = self.make_metric_logger()
-        # self.modelio_func = self.get_io_func()
 
         # Stores the step number for that mode of fitting. To be used for logging.
         self.step_num = {mode: 0 for mode in self.modes}
