@@ -73,7 +73,7 @@ from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
 from minerva.utils import utils
-from minerva.utils.utils import func_by_str
+from minerva.utils.utils import check_substrings_in_string, func_by_str
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -341,7 +341,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
             int_log_shape: Tuple[int, ...]
-            if self.model_type == "scene classifier":
+            if check_substrings_in_string(self.model_type, "scene classifier"):
                 int_log_shape = (self.n_batches, self.batch_size)
             else:
                 int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
@@ -352,7 +352,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         # Allocate memory for the floating point values to be recorded.
         if self.record_float:
             float_log_shape: Tuple[int, ...]
-            if kwargs.get("model_type") == "scene classifier":
+            if check_substrings_in_string(self.model_type, "scene classifier"):
                 float_log_shape = (self.n_batches, self.batch_size, n_classes)
             else:
                 float_log_shape = (
