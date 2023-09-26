@@ -68,7 +68,7 @@ class MinervaTaskLogger(ABC):
     Attributes:
         n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
-        data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
+        output_size (tuple[int, int]): Shape of the output data in ``H x W``.
         metrics (dict[str, ~typing.Any]): Dictionary to hold the metrics to assess the model with
             for each mode of fitting.
         model_type (str): Type of the model.
@@ -78,6 +78,8 @@ class MinervaTaskLogger(ABC):
         batch_size (int): Batch size.
         data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         logger_params (dict[str, ~typing.Any]): Optional; Parameters for a logger other than the default for these metrics.
+
+    .. versionadded:: 0.27
     """
 
     __metaclass__ = abc.ABCMeta
@@ -88,11 +90,11 @@ class MinervaTaskLogger(ABC):
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        data_size: Tuple[int, int, int],
-        task_name: str,
-        logger_params: Optional[Dict[str, Any]] = None,
+        output_size: Tuple[int, int],
+        step_logger_params: Optional[Dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -103,30 +105,27 @@ class MinervaTaskLogger(ABC):
         self.n_batches = n_batches
         self.batch_size = batch_size
         self.n_samples = self.n_batches * self.batch_size
-        self.data_size = data_size
+        self.output_size = output_size
         self.task_name = task_name
+
+        self.record_int = record_int
+        self.record_float = record_float
 
         self.model_type = params.get("model_type", "scene_classifier")
         self.sample_pairs = params.get("sample_pairs", False)
 
         self.writer = writer
 
-        if logger_params:
-            if logger_params.get("name", None) is not None:
-                self.logger_cls = get_logger(logger_params["name"])
+        if step_logger_params:
+            if step_logger_params.get("name", None) is not None:
+                self.logger_cls = get_logger(step_logger_params["name"])
 
         else:
-            logger_params = {}
+            step_logger_params = {}
 
-        self.logger = self.logger_cls(
-            self.n_batches,
-            self.batch_size,
-            self.n_samples,
-            record_int,
-            record_float,
-            self.writer,
-            **logger_params["params"],
-        )
+        self.step_logger_params = step_logger_params
+
+        self._make_logger()
 
         if self.sample_pairs:
             self.metric_types += self.special_metric_types
@@ -135,6 +134,22 @@ class MinervaTaskLogger(ABC):
         self.metrics: Dict[str, Any] = {}
         for metric in self.metric_types:
             self.metrics[f"{self.task_name}_{metric}"] = {"x": [], "y": []}
+
+    def _make_logger(self) -> None:
+        """Builds and sets the logger.
+
+        .. note::
+            Will overwrite ``self.logger`` with new logger.
+        """
+        self.step_logger = self.logger_cls(
+            self.n_batches,
+            self.batch_size,
+            self.n_samples,
+            self.record_int,
+            self.record_float,
+            self.writer,
+            **self.step_logger_params["params"],
+        )
 
     def step(
         self,
@@ -159,7 +174,7 @@ class MinervaTaskLogger(ABC):
         Returns:
             None
         """
-        self.logger.log(
+        self.step_logger.log(
             step_num,
             loss,
             z,
@@ -171,7 +186,7 @@ class MinervaTaskLogger(ABC):
 
     def calc_metrics(self) -> None:
         """Updates metrics with epoch results."""
-        self._calc_metrics(self.logger.get_logs)
+        self._calc_metrics(self.step_logger.get_logs)
 
     @abc.abstractmethod
     def _calc_metrics(self, logs: Dict[str, Any]) -> None:
@@ -209,7 +224,7 @@ class MinervaTaskLogger(ABC):
         Returns:
             dict[str, ~typing.Any]: Logs per step of last epoch.
         """
-        return self.logger.get_logs
+        return self.step_logger.get_logs
 
     def get_sub_metrics(
         self, pattern: Tuple[str, ...] = ("train", "val")
@@ -258,6 +273,8 @@ class SupervisedTaskLogger(MinervaTaskLogger):
         batch_size (int): Batch size.
         data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         model_type (str): Optional; Type of the model.
+
+    .. versionadded:: 0.27
     """
 
     metric_types: List[str] = ["loss", "acc", "miou"]
@@ -265,11 +282,11 @@ class SupervisedTaskLogger(MinervaTaskLogger):
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        data_size: Tuple[int, int, int],
-        task_name: str,
-        logger_params: Optional[Dict[str, Any]] = None,
+        output_size: Tuple[int, int],
+        step_logger_params: Optional[Dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -277,22 +294,22 @@ class SupervisedTaskLogger(MinervaTaskLogger):
         **params,
     ) -> None:
         super(SupervisedTaskLogger, self).__init__(
+            task_name,
             n_batches,
             batch_size,
-            data_size,
-            task_name,
-            logger_params,
+            output_size,
+            step_logger_params,
             record_int,
             record_float,
             writer,
             model_type=model_type,
+            **params,
         )
 
     def _calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
-            mode (str): Mode of model fitting.
             logs (dict[str, ~typing.Any]): Logs of the results from the epoch of fitting to calculate metrics from.
         """
         self.metrics[f"{self.task_name}_loss"]["y"].append(
@@ -366,6 +383,8 @@ class SSLTaskLogger(MinervaTaskLogger):
         batch_size (int): Batch size.
         data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
         model_type (str): Optional; Type of the model.
+
+    .. versionadded:: 0.27
     """
 
     metric_types = ["loss", "acc", "top5_acc"]
@@ -374,11 +393,11 @@ class SSLTaskLogger(MinervaTaskLogger):
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        data_size: Tuple[int, int, int],
-        task_name: str,
-        logger_params: Optional[Dict[str, Any]] = None,
+        output_size: Tuple[int, int],
+        step_logger_params: Optional[Dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -387,16 +406,17 @@ class SSLTaskLogger(MinervaTaskLogger):
         **params,
     ) -> None:
         super(SSLTaskLogger, self).__init__(
+            task_name,
             n_batches,
             batch_size,
-            data_size,
-            task_name,
-            logger_params,
+            output_size,
+            step_logger_params,
             record_int,
             record_float,
             writer,
             model_type=model_type,
             sample_pairs=sample_pairs,
+            **params,
         )
 
     def _calc_metrics(self, logs: Dict[str, Any]) -> None:
@@ -415,8 +435,8 @@ class SSLTaskLogger(MinervaTaskLogger):
                 / (
                     self.n_batches
                     * self.batch_size
-                    * self.data_size[1]
-                    * self.data_size[2]
+                    * self.output_size[0]
+                    * self.output_size[1]
                 )
             )
             self.metrics[f"{self.task_name}_top5_acc"]["y"].append(
@@ -424,8 +444,8 @@ class SSLTaskLogger(MinervaTaskLogger):
                 / (
                     self.n_batches
                     * self.batch_size
-                    * self.data_size[1]
-                    * self.data_size[2]
+                    * self.output_size[0]
+                    * self.output_size[1]
                 )
             )
 

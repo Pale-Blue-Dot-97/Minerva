@@ -93,7 +93,7 @@ except ImportError as err:  # pragma: no cover
 #                                                     CLASSES
 # =====================================================================================================================
 class MinervaStepLogger(ABC):
-    """Base abstract class for all :mod:`minerva` logger classes to ensure intercompatibility with
+    """Base abstract class for all :mod:`minerva` step logger classes to ensure intercompatibility with
     :class:`~trainer.Trainer`.
 
     Attributes:
@@ -116,16 +116,18 @@ class MinervaStepLogger(ABC):
             Defaults to ``False``.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run): Optional; Writer object
             from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
+
+    .. versionadded:: 0.27
     """
 
     __metaclass__ = abc.ABCMeta
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        n_samples: int,
-        task_name: str,
+        output_size: int,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -135,8 +137,14 @@ class MinervaStepLogger(ABC):
         self.record_int = record_int
         self.record_float = record_float
         self.n_batches = n_batches
+        self.output_size = output_size
         self.batch_size = batch_size
-        self.n_samples = n_samples
+
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
+            self.batch_size = batch_size // dist.get_world_size()  # type: ignore[attr-defined]
+
+        self.n_samples = self.batch_size * self.n_batches
+
         self.task_name = task_name
         self.writer = writer
 
@@ -276,15 +284,16 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         MemoryError: If trying to allocate memory to hold the probabilites of predictions
             from the model exceeds capacity.
         MemoryError: If trying to allocate memory to hold the bounding boxes of samples would exceed capacity.
+
+    .. versionadded:: 0.27
     """
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        n_samples: int,
-        task_name: str,
-        out_shape: Union[int, Tuple[int, ...]],
+        output_size: Tuple[int, int],
         n_classes: int,
         record_int: bool = True,
         record_float: bool = False,
@@ -292,20 +301,14 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         **kwargs,
     ) -> None:
         super(SupervisedGeoStepLogger, self).__init__(
+            task_name,
             n_batches,
             batch_size,
-            n_samples,
-            task_name,
+            output_size,
             record_int,
             record_float,
             writer,
         )
-        _out_shape: Tuple[int, ...]
-
-        if isinstance(out_shape, int):
-            _out_shape = (out_shape,)
-        else:
-            _out_shape = out_shape
 
         self.logs: Dict[str, Any] = {
             "batch_num": 0,
@@ -331,7 +334,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             if kwargs.get("model_type") == "scene classifier":
                 int_log_shape = (self.n_batches, self.batch_size)
             else:
-                int_log_shape = (self.n_batches, self.batch_size, *_out_shape)
+                int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
 
             self.results["z"] = np.empty(int_log_shape, dtype=np.uint8)
             self.results["y"] = np.empty(int_log_shape, dtype=np.uint8)
@@ -346,7 +349,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
                     self.n_batches,
                     self.batch_size,
                     n_classes,
-                    *_out_shape,
+                    *self.output_size,
                 )
 
             try:
@@ -473,27 +476,27 @@ class KNNStepLogger(MinervaStepLogger):
             Defaults to ``False``.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wand_run.Run): Optional; Writer object
             from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
+
+    .. versionadded:: 0.27
     """
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        n_samples: int,
-        task_name: str,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
         super().__init__(
+            task_name,
             n_batches,
             batch_size,
-            n_samples,
-            task_name,
-            record_int,
-            record_float,
-            writer,
+            record_int=record_int,
+            record_float=record_float,
+            writer=writer,
             **kwargs,
         )
 
@@ -578,29 +581,28 @@ class SSLStepLogger(MinervaStepLogger):
             Defaults to ``False``.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wand_run.Run): Optional; Writer object
             from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
+
+    .. versionadded:: 0.27
     """
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        n_samples: int,
-        task_name: str,
-        out_shape: Optional[Tuple[int, ...]] = None,
-        n_classes: Optional[int] = None,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         **kwargs,
     ) -> None:
         super(SSLStepLogger, self).__init__(
+            task_name,
             n_batches,
             batch_size,
-            n_samples,
-            task_name,
-            record_int,
+            record_int=record_int,
             record_float=record_float,
             writer=writer,
+            **kwargs,
         )
 
         self.logs: Dict[str, Any] = {
@@ -714,11 +716,13 @@ class SSLStepLogger(MinervaStepLogger):
 #                                                     METHODS
 # =====================================================================================================================
 def get_logger(name) -> Callable[..., Any]:
-    """Creates an object to log the results from each step of model fitting during an epoch.
+    """Gets the constructor for a step logger to log the results from each step of model fitting during an epoch.
 
     Returns:
-        ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logger.MinervaLogger`
+        ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logging.step.log.MinervaStepLogger`
         to be intialised within the epoch.
+
+    .. versionadded:: 0.27
     """
-    logger: Callable[..., Any] = func_by_str("minerva.logger", name)
+    logger: Callable[..., Any] = func_by_str("minerva.logging.steplog", name)
     return logger
