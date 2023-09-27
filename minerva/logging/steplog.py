@@ -333,7 +333,11 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             "ids": [],
             "bounds": None,
         }
-        self.calc_miou = True if self.model_type == "segmentation" else False
+        self.calc_miou = (
+            True
+            if check_substrings_in_string(self.model_type, "segmentation")
+            else False
+        )
 
         if self.calc_miou:
             self.logs["total_miou"] = 0.0
@@ -605,7 +609,7 @@ class SSLStepLogger(MinervaStepLogger):
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
-        model_type: str = "scene_classifier",
+        model_type: str = "",
         **kwargs,
     ) -> None:
         super(SSLStepLogger, self).__init__(
@@ -658,7 +662,7 @@ class SSLStepLogger(MinervaStepLogger):
         """
         assert z is not None
 
-        if "segmentation" in self.model_type:
+        if check_substrings_in_string(self.model_type, "segmentation"):
             z = z.flatten(1, -1)
 
         # Adds the loss for this step to the logs.

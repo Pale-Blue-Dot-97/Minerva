@@ -53,6 +53,8 @@ from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
+from minerva.utils.utils import check_substrings_in_string
+
 from .steplog import (
     MinervaStepLogger,
     SSLStepLogger,
@@ -422,6 +424,16 @@ class SSLTaskLogger(MinervaTaskLogger):
         sample_pairs: bool = False,
         **params,
     ) -> None:
+        if sample_pairs:
+            if not step_logger_params:
+                step_logger_params = {}
+            if "params" not in step_logger_params:
+                step_logger_params["params"] = {}
+
+        step_logger_params["params"]["sample_pairs"] = sample_pairs
+        step_logger_params["params"]["collapse_level"] = sample_pairs
+        step_logger_params["params"]["euclidean"] = sample_pairs
+
         super(SSLTaskLogger, self).__init__(
             task_name,
             n_batches,
@@ -446,7 +458,17 @@ class SSLTaskLogger(MinervaTaskLogger):
             logs["total_loss"] / self.n_batches
         )
 
-        if self.model_type == "segmentation":
+        if check_substrings_in_string(self.model_type, "segmentation"):
+            print(
+                self.n_batches
+                * self.batch_size
+                * self.output_size[0]
+                * self.output_size[1]
+            )
+            print(f"{self.n_batches=}")
+            print(f"{self.batch_size=}")
+            print(f"{self.output_size=}")
+
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"]
                 / (
