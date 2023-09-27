@@ -263,19 +263,12 @@ def test_SSLStepLogger(
         task_name="pytest",
         n_batches=std_n_batches,
         batch_size=std_batch_size,
-        output_size=output_shape,
+        output_size=small_patch_size,
         record_int=True,
         record_float=True,
         writer=writer,
         model_type=model_type,
         sample_pairs=True,
-        step_logger_params={
-            "params": {
-                "collapse_level": extra_metrics,
-                "euclidean": extra_metrics,
-                "sample_pairs": True,
-            }
-        },
     )
 
     correct_loss = {"x": [], "y": []}
@@ -315,6 +308,10 @@ def test_SSLStepLogger(
         correct_loss["y"].append(logs["total_loss"] / std_n_batches)
 
         if utils.check_substrings_in_string(model_type, "segmentation"):
+            print(std_n_batches * std_batch_size * np.prod(output_shape))
+            print(f"{std_n_batches=}")
+            print(f"{std_batch_size=}")
+            print(f"{small_patch_size=}")
             correct_acc["y"].append(
                 logs["total_correct"]
                 / (std_n_batches * std_batch_size * np.prod(small_patch_size))
@@ -347,15 +344,21 @@ def test_SSLStepLogger(
         print(metrics)
         print(correct_loss)
         print(correct_acc)
+        print(correct_top5)
 
         assert metrics[f"pytest_loss"] == pytest.approx(correct_loss)
         assert metrics[f"pytest_acc"] == pytest.approx(correct_acc)
         assert metrics[f"pytest_top5_acc"] == pytest.approx(correct_top5)
 
         if extra_metrics:
+            print(correct_collapse_level)
+            print(correct_euc_dist)
+
             assert metrics[f"pytest_collapse_level"] == pytest.approx(
                 correct_collapse_level
             )
             assert metrics[f"pytest_euc_dist"] == pytest.approx(correct_euc_dist)
+
+        logger._make_logger()
 
     shutil.rmtree(path, ignore_errors=True)
