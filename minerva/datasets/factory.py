@@ -530,7 +530,7 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
         print(err)
 
         print("CONSTRUCTING MISSING MANIFEST")
-        mf_config = CONFIG.copy()
+        mf_config = CONFIG["tasks"]["fit"]["train"].copy()
 
         manifest = make_manifest(mf_config)
 

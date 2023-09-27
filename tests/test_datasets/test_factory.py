@@ -171,7 +171,7 @@ def test_construct_dataloader(
 
 
 def test_make_loaders() -> None:
-    old_params = CONFIG.copy()
+    old_params = CONFIG["tasks"]["fit"].copy()
 
     mask_transforms = {"RandomHorizontalFlip": {"module": "torchvision.transforms"}}
     transform_params = {
@@ -193,7 +193,7 @@ def test_make_loaders() -> None:
 
     loaders, n_batches, class_dist, params = mdt.make_loaders(**old_params)
 
-    for mode in ("train", "val", "test"):
+    for mode in ("train", "val"):
         assert isinstance(loaders[mode], DataLoader)
         assert type(n_batches[mode]) is int
         assert type(class_dist) is list
