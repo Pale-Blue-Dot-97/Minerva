@@ -361,6 +361,7 @@ def make_loaders(
     rank: int = 0,
     world_size: int = 1,
     p_dist: bool = False,
+    task_name: Optional[str] = None,
     **params,
 ) -> Tuple[
     Dict[str, DataLoader[Iterable[Any]]],
@@ -375,6 +376,8 @@ def make_loaders(
         world_size (int): Total number of processes across all nodes. For use with
             :class:`~torch.nn.parallel.DistributedDataParallel`.
         p_dist (bool): Print to screen the distribution of classes within each dataset.
+        task_name (str): Optional; If specified, only create the loaders for this task,
+            overwriting experiment-wode parameters with those found in this task's params if found.
 
     Keyword Args:
         batch_size (int): Number of samples in each batch to be returned by the DataLoaders.

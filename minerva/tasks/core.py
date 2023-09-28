@@ -168,7 +168,7 @@ class MinervaTask(ABC):
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
         loaders, n_batches, class_dist, new_params = make_loaders(
-            rank, world_size, **params
+            rank, world_size, task_name=name, **params
         )
 
         self.exp_fn = exp_fn

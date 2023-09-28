@@ -49,12 +49,16 @@ def test_standard_epoch(std_batch_size, default_device, exp_cnn):
         CONFIG["model_name"], utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
     )
     exp_fn = universal_path(CONFIG["dir"]["results"]) / exp_name / exp_name
+
+    params = CONFIG.copy()
+
     task = StandardEpoch(
         name="pytest",
         model=exp_cnn,
         batch_size=std_batch_size,
         device=default_device,
         exp_fn=exp_fn,
+        **params,
     )
 
     assert isinstance(task, MinervaTask)
