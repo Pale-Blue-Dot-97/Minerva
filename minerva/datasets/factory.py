@@ -405,19 +405,29 @@ def make_loaders(
             * The class distribution of the entire dataset, sorted from largest to smallest class.
             * Unused and updated kwargs.
     """
-    # Gets out the parameters for the DataLoaders from params.
-    dataloader_params: Dict[Any, Any] = params["loader_params"]
-    dataset_params: Dict[str, Any] = params["dataset_params"]
-    batch_size: int = params["batch_size"]
+    task_params = params
+    if task_name:
+        task_params[task_name]
 
-    model_type = params["model_type"]
+    # Gets out the parameters for the DataLoaders from params.
+    dataloader_params: Dict[Any, Any] = task_params.get(
+        "loader_params", params["loader_params"]
+    )
+    dataset_params: Dict[str, Any] = task_params.get(
+        "dataset_params", params["dataset_params"]
+    )
+    batch_size: int = task_params.get("batch_size", params["batch_size"])
+
+    model_type = task_params.get("model_type", params["model_type"])
     class_dist: List[Tuple[int, int]] = [(0, 0)]
 
     new_classes: Dict[int, str] = {}
     new_colours: Dict[int, str] = {}
     forwards: Dict[int, int] = {}
 
-    sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
+    sample_pairs: Union[bool, Any] = task_params.get(
+        "sample_pairs", params.get("sample_pairs", False)
+    )
     if not isinstance(sample_pairs, bool):
         sample_pairs = False
 
@@ -429,7 +439,8 @@ def make_loaders(
         # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
         # and new colours.
         new_classes, forwards, new_colours = utils.load_data_specs(
-            class_dist=class_dist, elim=params.get("elim", False)
+            class_dist=class_dist,
+            elim=task_params.get("elim", params.get("elim", False)),
         )
 
     # Inits dicts to hold the variables and lists for train, validation and test.
@@ -437,9 +448,9 @@ def make_loaders(
     loaders = {}
 
     for mode in dataset_params.keys():
-        if params.get("elim", False) and not utils.check_substrings_in_string(
-            model_type, "siamese"
-        ):
+        if task_params.get(
+            "elim", params.get("elim", False)
+        ) and not utils.check_substrings_in_string(model_type, "siamese"):
             class_transform = {
                 "ClassTransform": {
                     "module": "minerva.transforms",
@@ -467,7 +478,7 @@ def make_loaders(
             sampler_params,
             dataloader_params,
             batch_size,
-            collator_params=params["collator"],
+            collator_params=task_params.get("collator", params["collator"]),
             rank=rank,
             world_size=world_size,
             sample_pairs=sample_pairs if mode == "train" else False,
@@ -476,23 +487,23 @@ def make_loaders(
 
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
-        if params.get("elim", False):
+        if task_params.get("elim", params.get("elim", False)):
             class_dist = utils.class_dist_transform(class_dist, forwards)
 
         # Prints class distribution in a pretty text format using tabulate to stdout.
         if p_dist:
             utils.print_class_dist(class_dist)
 
-        params["n_classes"] = len(new_classes)
+        task_params["n_classes"] = len(new_classes)
         model_params = params["model_params"].get("params", {})
         model_params["n_classes"] = len(new_classes)
-        params["model_params"]["params"] = model_params
-        params["classes"] = new_classes
-        params["colours"] = new_colours
+        task_params["model_params"]["params"] = model_params
+        task_params["classes"] = new_classes
+        task_params["colours"] = new_colours
 
-    params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
+    task_params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
 
-    return loaders, n_batches, class_dist, params
+    return loaders, n_batches, class_dist, task_params
 
 
 def get_manifest_path() -> str:
