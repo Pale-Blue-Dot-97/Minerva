@@ -1928,3 +1928,28 @@ def calc_norm_euc_dist(
     euc_dist: float = distance.euclidean(a, b) / float(len(a))
 
     return euc_dist
+
+
+def fallback_params(
+    key: str,
+    params_a: Dict[str, Any],
+    params_b: Dict[str, Any],
+    fallback: Optional[Any] = None,
+) -> Any:
+    """Search for a value associated with ``key`` from
+
+    Args:
+        key (str): _description_
+        params_a (dict[str, ~typing.Any]): _description_
+        params_b (dict[str, ~typing.Any]): _description_
+        fallback (~typing.Any): Optional; _description_. Defaults to None.
+
+    Returns:
+        ~typing.Any: _description_
+    """
+    if key in params_a:
+        return params_a[key]
+    elif key in params_b:
+        return params_b[key]
+    else:
+        return fallback

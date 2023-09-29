@@ -406,41 +406,43 @@ def make_loaders(
             * Unused and updated kwargs.
     """
     task_params = params
-    if task_name:
-        task_params[task_name]
+    if task_name is not None:
+        task_params = params["tasks"][task_name]
 
     # Gets out the parameters for the DataLoaders from params.
-    dataloader_params: Dict[Any, Any] = task_params.get(
-        "loader_params", params["loader_params"]
+    dataloader_params: Dict[Any, Any] = utils.fallback_params(
+        "loader_params", task_params, params
     )
-    dataset_params: Dict[str, Any] = task_params.get(
-        "dataset_params", params["dataset_params"]
+    dataset_params: Dict[str, Any] = utils.fallback_params(
+        "dataset_params", task_params, params
     )
-    batch_size: int = task_params.get("batch_size", params["batch_size"])
+    batch_size: int = utils.fallback_params("batch_size", task_params, params)
 
-    model_type = task_params.get("model_type", params["model_type"])
+    model_type = utils.fallback_params("model_type", task_params, params)
     class_dist: List[Tuple[int, int]] = [(0, 0)]
 
     new_classes: Dict[int, str] = {}
     new_colours: Dict[int, str] = {}
     forwards: Dict[int, int] = {}
 
-    sample_pairs: Union[bool, Any] = task_params.get(
-        "sample_pairs", params.get("sample_pairs", False)
+    sample_pairs: Union[bool, Any] = utils.fallback_params(
+        "sample_pairs", task_params, params, False
     )
     if not isinstance(sample_pairs, bool):
         sample_pairs = False
 
+    elim = utils.fallback_params("elim", task_params, params, False)
+
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Load manifest from cache for this dataset.
-        manifest = get_manifest(get_manifest_path())
+        manifest = get_manifest(get_manifest_path(), task_name)
         class_dist = utils.modes_from_manifest(manifest)
 
         # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
         # and new colours.
         new_classes, forwards, new_colours = utils.load_data_specs(
             class_dist=class_dist,
-            elim=task_params.get("elim", params.get("elim", False)),
+            elim=elim,
         )
 
     # Inits dicts to hold the variables and lists for train, validation and test.
@@ -448,9 +450,7 @@ def make_loaders(
     loaders = {}
 
     for mode in dataset_params.keys():
-        if task_params.get(
-            "elim", params.get("elim", False)
-        ) and not utils.check_substrings_in_string(model_type, "siamese"):
+        if elim and not utils.check_substrings_in_string(model_type, "siamese"):
             class_transform = {
                 "ClassTransform": {
                     "module": "minerva.transforms",
@@ -478,7 +478,7 @@ def make_loaders(
             sampler_params,
             dataloader_params,
             batch_size,
-            collator_params=task_params.get("collator", params["collator"]),
+            collator_params=utils.fallback_params("collator", task_params, params),
             rank=rank,
             world_size=world_size,
             sample_pairs=sample_pairs if mode == "train" else False,
@@ -487,7 +487,7 @@ def make_loaders(
 
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
-        if task_params.get("elim", params.get("elim", False)):
+        if elim:
             class_dist = utils.class_dist_transform(class_dist, forwards)
 
         # Prints class distribution in a pretty text format using tabulate to stdout.
@@ -515,7 +515,9 @@ def get_manifest_path() -> str:
     return str(Path(CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"))
 
 
-def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
+def get_manifest(
+    manifest_path: Union[str, Path], task_name: Optional[str] = None
+) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
     If a ``csv`` file is not found at ``manifest_path``, the manifest is constructed from
@@ -544,9 +546,9 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
         print(err)
 
         print("CONSTRUCTING MISSING MANIFEST")
-        mf_config = CONFIG["tasks"]["fit"]["train"].copy()
+        mf_config = CONFIG.copy()
 
-        manifest = make_manifest(mf_config)
+        manifest = make_manifest(mf_config, task_name)
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
         path = manifest_path.parent
@@ -558,7 +560,9 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
         return manifest
 
 
-def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
+def make_manifest(
+    mf_config: Dict[Any, Any], task_name: Optional[str] = None
+) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
     The dataset to construct a manifest of is defined by the ``data_config`` value in the config.
@@ -569,10 +573,20 @@ def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
-    batch_size: int = mf_config["batch_size"]
-    loader_params: Dict[str, Any] = mf_config["loader_params"]
-    dataset_params: Dict[str, Any] = mf_config["dataset_params"]
-    collator_params: Dict[str, Any] = mf_config["collator"]
+    task_params = mf_config
+    if task_name is not None:
+        task_params = mf_config["tasks"][task_name]
+
+    batch_size: int = utils.fallback_params("batch_size", task_params, mf_config)
+    loader_params: Dict[str, Any] = utils.fallback_params(
+        "loader_params", task_params, mf_config
+    )
+    dataset_params: Dict[str, Any] = utils.fallback_params(
+        "dataset_params", task_params, mf_config
+    )
+    collator_params: Dict[str, Any] = utils.fallback_params(
+        "collator_params", task_params, mf_config
+    )
 
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
