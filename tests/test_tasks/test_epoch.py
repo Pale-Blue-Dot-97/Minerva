@@ -44,7 +44,7 @@ from minerva.utils import CONFIG, universal_path, utils
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_standard_epoch(std_batch_size, default_device, exp_cnn):
+def test_standard_epoch(default_device, exp_cnn):
     exp_name = "{}_{}".format(
         CONFIG["model_name"], utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
     )
@@ -53,9 +53,8 @@ def test_standard_epoch(std_batch_size, default_device, exp_cnn):
     params = CONFIG.copy()
 
     task = StandardEpoch(
-        name="pytest",
+        name="train",
         model=exp_cnn,
-        batch_size=std_batch_size,
         device=default_device,
         exp_fn=exp_fn,
         **params,

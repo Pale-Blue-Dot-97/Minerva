@@ -150,7 +150,6 @@ class MinervaTask(ABC):
         self,
         name: str,
         model: Union[MinervaModel, MinervaDataParallel],
-        batch_size: int,
         device: torch.device,
         exp_fn: Path,
         train: bool = False,
@@ -180,6 +179,8 @@ class MinervaTask(ABC):
         self.loaders = loaders
         self.params = new_params
         self.class_dist = class_dist
+
+        batch_size = self.params[name].get("batch_size", self.params["batch_size"])
 
         # Corrects the batch size if this is a distributed job to account for batches being split across devices.
         if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
