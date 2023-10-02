@@ -318,7 +318,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             model_type,
         )
         if n_classes is None:
-            raise (ValueError, "`n_classes` must be specified for this type of logger!")
+            raise ValueError("`n_classes` must be specified for this type of logger!")
 
         self.logs: Dict[str, Any] = {
             "batch_num": 0,
