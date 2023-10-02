@@ -53,6 +53,7 @@ from minerva.utils.utils import mask_to_ohe
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+@staticmethod
 def sup_tg(
     batch: Dict[Any, Any],
     model: MinervaModel,
@@ -102,6 +103,7 @@ def sup_tg(
     return loss, z, y, bbox
 
 
+@staticmethod
 def autoencoder_io(
     batch: Dict[Any, Any],
     model: MinervaModel,
@@ -183,6 +185,7 @@ def autoencoder_io(
     return loss, z, y, bbox
 
 
+@staticmethod
 def ssl_pair_tg(
     batch: Tuple[Dict[str, Any], Dict[str, Any]],
     model: MinervaModel,
