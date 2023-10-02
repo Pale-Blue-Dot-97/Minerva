@@ -35,8 +35,9 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-import pytest
+from torch.optim import SGD
 
+from minerva.models import MinervaModel
 from minerva.tasks import MinervaTask, StandardEpoch
 from minerva.utils import CONFIG, universal_path, utils
 
@@ -44,7 +45,12 @@ from minerva.utils import CONFIG, universal_path, utils
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_standard_epoch(default_device, exp_cnn):
+def test_standard_epoch(default_device, exp_cnn: MinervaModel):
+    exp_cnn.determine_output_dim()
+    optimiser = SGD(exp_cnn.parameters(), lr=1.0e-3)
+    exp_cnn.set_optimiser(optimiser)
+    exp_cnn.to(default_device)
+
     exp_name = "{}_{}".format(
         CONFIG["model_name"], utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
     )
