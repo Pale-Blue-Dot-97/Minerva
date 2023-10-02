@@ -89,7 +89,8 @@ class MinervaModel(Module, ABC):
         input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
             number of channels, image width, image height but may vary dependant on model specs.
         n_classes (int): Number of classes in input data.
-        output_shape: The shape of the output of the network. Determined and set by :meth:`determine_output_dim`.
+        output_shape (tuple[int, ...]): The shape of the output of the network.
+            Determined and set by :meth:`determine_output_dim`.
         optimiser: :mod:`torch` optimiser model will use, to be initialised with inherited model's parameters.
 
     Args:
@@ -116,7 +117,7 @@ class MinervaModel(Module, ABC):
         self.n_classes = n_classes
 
         # Output shape initialised as None. Should be set by calling determine_output_dim.
-        self.output_shape: Optional[Union[int, Iterable[int]]] = None
+        self.output_shape: Optional[Tuple[int, ...]] = None
 
         # Optimiser initialised as None as the model parameters created by its init is required to init a
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
@@ -421,7 +422,7 @@ def get_output_shape(
     model: Module,
     image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
-) -> Union[int, Sequence[int]]:
+) -> Tuple[int, ...]:
     """Gets the output shape of a model.
 
     Args:
@@ -431,7 +432,7 @@ def get_output_shape(
             Will send a paired sample through the model.
 
     Returns:
-        int | ~typing.Sequence[int]: The shape of the output data from the model.
+        tuple[int, ...]: The shape of the output data from the model.
     """
     _image_dim: Union[Sequence[int], int] = image_dim
     try:
@@ -455,10 +456,10 @@ def get_output_shape(
     output: Tensor = model(random_input.to(next(model.parameters()).device))
 
     if len(output[0].data.shape) == 1:
-        return output[0].data.shape[0]
+        return (output[0].data.shape[0],)
 
     else:
-        return output[0].data.shape[1:]
+        return tuple(output[0].data.shape[1:])
 
 
 def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tensor:
