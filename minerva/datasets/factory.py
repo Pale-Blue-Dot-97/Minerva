@@ -135,18 +135,20 @@ def make_dataset(
         _transformations: Optional[Any],
     ) -> GeoDataset:
         copy_params = deepcopy(subdataset_params)
+
         if "crs" in copy_params["params"]:
             copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
+
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
-                root=root,
+                root,
                 transforms=_transformations,
                 **copy_params["params"],
             )
         else:
             return dataset_class(
-                root=root,
+                root,
                 transforms=_transformations,
                 **copy_params["params"],
             )
@@ -364,8 +366,8 @@ def make_loaders(
     task_name: Optional[str] = None,
     **params,
 ) -> Tuple[
-    Dict[str, DataLoader[Iterable[Any]]],
-    Dict[str, int],
+    Union[Dict[str, DataLoader[Iterable[Any]]], DataLoader[Iterable[Any]]],
+    Union[Dict[str, int], int],
     List[Tuple[int, int]],
     Dict[Any, Any],
 ]:
@@ -445,11 +447,10 @@ def make_loaders(
             elim=elim,
         )
 
-    # Inits dicts to hold the variables and lists for train, validation and test.
-    n_batches = {}
-    loaders = {}
+    n_batches: Union[Dict[str, int], int]
+    loaders: Union[Dict[str, DataLoader[Iterable[Any]]], DataLoader[Iterable[Any]]]
 
-    for mode in dataset_params.keys():
+    if "sampler" in dataset_params.keys():
         if elim and not utils.check_substrings_in_string(model_type, "siamese"):
             class_transform = {
                 "ClassTransform": {
@@ -458,32 +459,73 @@ def make_loaders(
                 }
             }
 
-            if type(dataset_params[mode]["mask"].get("transforms")) != dict:
-                dataset_params[mode]["mask"]["transforms"] = class_transform
+            if type(dataset_params["mask"].get("transforms")) != dict:
+                dataset_params["mask"]["transforms"] = class_transform
             else:
-                dataset_params[mode]["mask"]["transforms"][
+                dataset_params["mask"]["transforms"][
                     "ClassTransform"
                 ] = class_transform["ClassTransform"]
 
-        sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
+        sampler_params: Dict[str, Any] = dataset_params["sampler"]
 
         # Calculates number of batches.
-        n_batches[mode] = int(sampler_params["params"]["length"] / batch_size)
+        n_batches = int(sampler_params["params"]["length"] / batch_size)
 
         # --+ MAKE DATASETS +=========================================================================================+
-        print(f"CREATING {mode} DATASET")
-        loaders[mode] = construct_dataloader(
+        print(f"CREATING {task_name} DATASET")
+        loaders = construct_dataloader(
             params["dir"]["data"],
-            dataset_params[mode],
+            dataset_params,
             sampler_params,
             dataloader_params,
             batch_size,
             collator_params=utils.fallback_params("collator", task_params, params),
             rank=rank,
             world_size=world_size,
-            sample_pairs=sample_pairs if mode == "train" else False,
+            sample_pairs=sample_pairs,
         )
         print("DONE")
+
+    else:
+        # Inits dicts to hold the variables and lists for train, validation and test.
+        n_batches = {}
+        loaders = {}
+
+        for mode in dataset_params.keys():
+            if elim and not utils.check_substrings_in_string(model_type, "siamese"):
+                class_transform = {
+                    "ClassTransform": {
+                        "module": "minerva.transforms",
+                        "transform": forwards,
+                    }
+                }
+
+                if type(dataset_params[mode]["mask"].get("transforms")) != dict:
+                    dataset_params[mode]["mask"]["transforms"] = class_transform
+                else:
+                    dataset_params[mode]["mask"]["transforms"][
+                        "ClassTransform"
+                    ] = class_transform["ClassTransform"]
+
+            sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
+
+            # Calculates number of batches.
+            n_batches[mode] = int(sampler_params["params"]["length"] / batch_size)
+
+            # --+ MAKE DATASETS +=========================================================================================+
+            print(f"CREATING {mode} DATASET")
+            loaders[mode] = construct_dataloader(
+                params["dir"]["data"],
+                dataset_params[mode],
+                sampler_params,
+                dataloader_params,
+                batch_size,
+                collator_params=utils.fallback_params("collator", task_params, params),
+                rank=rank,
+                world_size=world_size,
+                sample_pairs=sample_pairs if mode == "train" else False,
+            )
+            print("DONE")
 
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
