@@ -54,8 +54,9 @@ from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
 from minerva.logging.tasklog import MinervaTaskLogger, SupervisedTaskLogger
+from minerva.modelio import sup_tg
 from minerva.models import MinervaDataParallel, MinervaModel
-from minerva.utils.utils import func_by_str
+from minerva.utils.utils import fallback_params, func_by_str
 
 
 # =====================================================================================================================
@@ -145,6 +146,7 @@ class MinervaTask(ABC):
     """
 
     logger_cls: MinervaTaskLogger = SupervisedTaskLogger
+    modelio_cls: Callable[..., Any] = sup_tg
 
     def __init__(
         self,
@@ -180,11 +182,13 @@ class MinervaTask(ABC):
         self.params = new_params
         self.class_dist = class_dist
 
-        batch_size = self.params[name].get("batch_size", self.params["batch_size"])
+        self.batch_size = fallback_params(
+            "batch_size", params["tasks"][name], self.params
+        )
 
         # Corrects the batch size if this is a distributed job to account for batches being split across devices.
         if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-            self.batch_size = batch_size // dist.get_world_size()  # type: ignore[attr-defined]
+            self.batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         self.n_batches = n_batches
         self.model_type = self.params["model_type"]
@@ -212,8 +216,10 @@ class MinervaTask(ABC):
         """
 
         # Gets constructor of the metric logger from name in the config.
-        self.logger_cls = func_by_str(
-            "minerva.logging.tasklog", self.params.get("logger", self.logger_cls)
+        self.logger_cls = (
+            func_by_str("minerva.logging.tasklog", self.params["logger"])
+            if "logger" in self.params
+            else self.logger_cls
         )
 
         # Initialises the metric logger with arguments.
@@ -238,8 +244,10 @@ class MinervaTask(ABC):
         Returns:
             ~typing.Callable[..., ~typing.Any]: Model IO function requested from parameters.
         """
-        io_func: Callable[..., Any] = func_by_str(
-            "minerva.modelio", self.params["model_io"]
+        io_func: Callable[..., Any] = (
+            func_by_str("minerva.modelio", self.params["model_io"])
+            if "modelio" in self.params
+            else self.modelio_cls
         )
         return io_func
 

@@ -79,9 +79,9 @@ tasks:
     train:
         type: StandardEpoch
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        logger: STGLogger
-        metrics: SPMetrics
-        model_io: sup_tg
+        # logger: STGLogger
+        # metrics: SPMetrics
+        # model_io: sup_tg
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
@@ -121,9 +121,9 @@ tasks:
     val:
         type: StandardEpoch
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        logger: STGLogger
-        metrics: SPMetrics
-        model_io: sup_tg
+        # logger: STGLogger
+        # metrics: SPMetrics
+        # model_io: sup_tg
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
