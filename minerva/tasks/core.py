@@ -146,7 +146,7 @@ class MinervaTask(ABC):
     """
 
     logger_cls: MinervaTaskLogger = SupervisedTaskLogger
-    modelio_cls: Callable[..., Any] = sup_tg
+    modelio: Callable[..., Any] = sup_tg
 
     def __init__(
         self,
@@ -193,6 +193,7 @@ class MinervaTask(ABC):
         self.n_batches = n_batches
         self.model_type = self.params["model_type"]
         self.sample_pairs = self.params.get("sample_pairs", False)
+        self.n_classes = self.params.get("n_classes")
 
         self.output_size = model.output_shape
 
@@ -234,6 +235,7 @@ class MinervaTask(ABC):
             writer=self.writer,
             model_type=self.model_type,
             sample_pairs=self.sample_pairs,
+            n_classes=self.n_classes,
         )
 
         return logger
@@ -247,7 +249,7 @@ class MinervaTask(ABC):
         io_func: Callable[..., Any] = (
             func_by_str("minerva.modelio", self.params["model_io"])
             if "modelio" in self.params
-            else self.modelio_cls
+            else self.modelio
         )
         return io_func
 

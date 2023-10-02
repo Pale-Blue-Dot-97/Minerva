@@ -76,7 +76,11 @@ class StandardEpoch(MinervaTask):
             # Core of the epoch.
             for batch in self.loaders:
                 results = self.modelio(
-                    batch, self.model, self.device, self.train, **self.params
+                    batch,
+                    self.model,
+                    self.device,
+                    self.train,
+                    **self.params,
                 )
 
                 if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover

@@ -117,15 +117,18 @@ class MinervaTaskLogger(ABC):
 
         self.model_type = params.get("model_type", "scene_classifier")
         self.sample_pairs = params.get("sample_pairs", False)
+        self.n_classes = params.get("n_classes")
 
         self.writer = writer
 
         if step_logger_params:
-            if step_logger_params.get("name", None) is not None:
+            if step_logger_params.get("name") is not None:
                 self.logger_cls = get_logger(step_logger_params["name"])
 
         else:
-            step_logger_params = {}
+            step_logger_params = {"params": {}}
+
+        step_logger_params["params"]["n_classes"] = self.n_classes
 
         self.step_logger_params = step_logger_params
 
