@@ -495,9 +495,14 @@ def make_loaders(
             utils.print_class_dist(class_dist)
 
         task_params["n_classes"] = len(new_classes)
-        model_params = params["model_params"].get("params", {})
+        model_params = utils.fallback_params("model_params", task_params, params, {})
         model_params["n_classes"] = len(new_classes)
-        task_params["model_params"]["params"] = model_params
+
+        if "model_params" in task_params:
+            task_params["model_params"]["params"] = model_params
+        else:
+            task_params["model_params"] = {"params": model_params}
+
         task_params["classes"] = new_classes
         task_params["colours"] = new_colours
 
