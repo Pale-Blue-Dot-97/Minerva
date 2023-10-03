@@ -45,11 +45,11 @@ from minerva.utils import CONFIG, universal_path, utils
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_standard_epoch(default_device, exp_cnn: MinervaModel):
-    exp_cnn.determine_output_dim()
-    optimiser = SGD(exp_cnn.parameters(), lr=1.0e-3)
-    exp_cnn.set_optimiser(optimiser)
-    exp_cnn.to(default_device)
+def test_standard_epoch(default_device, exp_fcn: MinervaModel):
+    exp_fcn.determine_output_dim()
+    optimiser = SGD(exp_fcn.parameters(), lr=1.0e-3)
+    exp_fcn.set_optimiser(optimiser)
+    exp_fcn.to(default_device)
 
     exp_name = "{}_{}".format(
         CONFIG["model_name"], utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
@@ -60,7 +60,7 @@ def test_standard_epoch(default_device, exp_cnn: MinervaModel):
 
     task = StandardEpoch(
         name="train",
-        model=exp_cnn,
+        model=exp_fcn,
         device=default_device,
         exp_fn=exp_fn,
         **params,
@@ -72,4 +72,4 @@ def test_standard_epoch(default_device, exp_cnn: MinervaModel):
 
     assert isinstance(task.get_logs, dict)
 
-    assert repr(task) == "StandardEpoch-pytest"
+    assert repr(task) == "StandardEpoch-train"
