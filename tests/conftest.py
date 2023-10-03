@@ -54,7 +54,7 @@ from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
-from minerva.models import CNN, MLP, MinervaModel
+from minerva.models import CNN, MLP, FCN32ResNet18
 from minerva.utils import CONFIG, utils
 
 
@@ -160,7 +160,7 @@ def std_n_batches() -> int:
 
 
 @pytest.fixture
-def x_entropy_loss():
+def x_entropy_loss() -> nn.CrossEntropyLoss:
     return nn.CrossEntropyLoss()
 
 
@@ -171,33 +171,50 @@ def small_patch_size() -> Tuple[int, int]:
 
 @pytest.fixture
 def rgbi_input_size() -> Tuple[int, int, int]:
-    return (4, 64, 64)
+    return (4, 32, 32)
 
 
 @pytest.fixture
-def exp_mlp(x_entropy_loss) -> MinervaModel:
+def exp_mlp(x_entropy_loss: nn.CrossEntropyLoss) -> MLP:
     return MLP(x_entropy_loss, 64)
 
 
 @pytest.fixture
-def exp_cnn(x_entropy_loss, rgbi_input_size) -> MinervaModel:
+def exp_cnn(
+    x_entropy_loss: nn.CrossEntropyLoss, rgbi_input_size: Tuple[int, int, int]
+) -> CNN:
     return CNN(x_entropy_loss, rgbi_input_size)
 
 
 @pytest.fixture
-def random_mask(small_patch_size, std_n_classes) -> NDArray[Shape["32, 32"], Int]:
+def exp_fcn(
+    x_entropy_loss: nn.CrossEntropyLoss,
+    rgbi_input_size: Tuple[int, int, int],
+    std_n_classes: int,
+) -> FCN32ResNet18:
+    return FCN32ResNet18(x_entropy_loss, rgbi_input_size, std_n_classes)
+
+
+@pytest.fixture
+def random_mask(
+    small_patch_size: Tuple[int, int], std_n_classes: int
+) -> NDArray[Shape["32, 32"], Int]:
     mask = np.random.randint(0, std_n_classes - 1, size=small_patch_size)
     assert isinstance(mask, np.ndarray)
     return mask
 
 
 @pytest.fixture
-def random_image(small_patch_size) -> NDArray[Shape["32, 32, 3"], Float]:
+def random_image(
+    small_patch_size: Tuple[int, int]
+) -> NDArray[Shape["32, 32, 3"], Float]:
     return np.random.rand(*small_patch_size, 3)
 
 
 @pytest.fixture
-def random_rgbi_image(small_patch_size) -> NDArray[Shape["32, 32, 4"], Float]:
+def random_rgbi_image(
+    small_patch_size: Tuple[int, int]
+) -> NDArray[Shape["32, 32, 4"], Float]:
     return np.random.rand(*small_patch_size, 4)
 
 
@@ -216,7 +233,7 @@ def simple_rgb_img() -> Tensor:
 
 
 @pytest.fixture
-def norm_simple_rgb_img(simple_rgb_img) -> Tensor:
+def norm_simple_rgb_img(simple_rgb_img: Tensor) -> Tensor:
     norm_img = simple_rgb_img / 255
     assert isinstance(norm_img, Tensor)
     return norm_img
@@ -232,12 +249,14 @@ def flipped_rgb_img() -> Tensor:
 
 
 @pytest.fixture
-def simple_sample(simple_rgb_img, simple_mask) -> Dict[str, Tensor]:
+def simple_sample(simple_rgb_img: Tensor, simple_mask: LongTensor) -> Dict[str, Tensor]:
     return {"image": simple_rgb_img, "mask": simple_mask}
 
 
 @pytest.fixture
-def flipped_simple_sample(flipped_rgb_img, flipped_simple_mask) -> Dict[str, Tensor]:
+def flipped_simple_sample(
+    flipped_rgb_img: Tensor, flipped_simple_mask: LongTensor
+) -> Dict[str, Tensor]:
     return {"image": flipped_rgb_img, "mask": flipped_simple_mask}
 
 
@@ -249,7 +268,9 @@ def random_rgbi_batch(
 
 
 @pytest.fixture
-def random_tensor_mask(std_n_classes: int, small_patch_size) -> LongTensor:
+def random_tensor_mask(
+    std_n_classes: int, small_patch_size: Tuple[int, int]
+) -> LongTensor:
     mask = torch.randint(0, std_n_classes - 1, size=small_patch_size, dtype=torch.long)
     assert isinstance(mask, LongTensor)
     return mask
@@ -270,7 +291,9 @@ def random_mask_batch(
 
 
 @pytest.fixture
-def random_scene_classification_batch(std_batch_size, std_n_classes) -> LongTensor:
+def random_scene_classification_batch(
+    std_batch_size: int, std_n_classes: int
+) -> LongTensor:
     batch = torch.randint(0, std_n_classes - 1, size=(std_batch_size,))
     assert isinstance(batch, LongTensor)
     return batch
