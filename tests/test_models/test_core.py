@@ -37,6 +37,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                      IMPORTS
 # =====================================================================================================================
 import importlib
+from typing import Tuple
 
 import internet_sabotage
 import numpy as np
@@ -70,9 +71,9 @@ from minerva.models.__depreciated import MLP
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_minerva_model(x_entropy_loss) -> None:
-    x = torch.rand(16, (288))
-    y = torch.LongTensor(np.random.randint(0, 8, size=16))
+def test_minerva_model(x_entropy_loss, std_n_classes: int, std_n_batches: int) -> None:
+    x = torch.rand(std_n_batches, (288))
+    y = torch.LongTensor(np.random.randint(0, std_n_classes, size=std_n_batches))
 
     with pytest.raises(NotImplementedError, match="Criterion has not been set!"):
         model_fail = MLP()
@@ -91,37 +92,37 @@ def test_minerva_model(x_entropy_loss) -> None:
     model.set_optimiser(optimiser)
 
     model.determine_output_dim()
-    assert model.output_shape is model.n_classes
+    assert model.output_shape[0] is model.n_classes
 
-    for mode in ("train", "val", "test"):
-        if mode == "train":
-            loss, z = model.step(x, y, train=True)
-        else:
-            loss, z = model.step(x, y, train=False)
+    for train in (True, False):
+        loss, z = model.step(x, y, train=train)
 
         assert type(loss.item()) is float
         assert isinstance(z, Tensor)
-        assert z.size() == (16, 8)
+        assert z.size() == (std_n_batches, std_n_classes)
 
 
-def test_minerva_backbone() -> None:
+def test_minerva_backbone(rgbi_input_size: Tuple[int, int, int]) -> None:
     loss_func = NTXentLoss(0.3)
-    input_size = (4, 64, 64)
 
-    model = SimCLR18(loss_func, input_size=input_size)
+    model = SimCLR18(loss_func, input_size=rgbi_input_size)
 
     assert isinstance(model.get_backbone(), Module)
 
 
-def test_minerva_wrapper(x_entropy_loss) -> None:
-    input_size = (3, 32, 32)
-    n_classes = 8
+def test_minerva_wrapper(
+    x_entropy_loss,
+    small_patch_size: Tuple[int, int],
+    std_n_classes: int,
+    std_n_batches: int,
+) -> None:
+    input_size = (3, *small_patch_size)
     model = MinervaWrapper(
         ResNetGenerator,
         x_entropy_loss,
         input_size=input_size,
-        n_classes=n_classes,
-        num_classes=n_classes,
+        n_classes=std_n_classes,
+        num_classes=std_n_classes,
         name="resnet-9",
     )
 
@@ -132,20 +133,17 @@ def test_minerva_wrapper(x_entropy_loss) -> None:
     model.set_optimiser(optimiser)
 
     model.determine_output_dim()
-    assert model.output_shape is model.n_classes
+    assert model.output_shape[0] is model.n_classes
 
-    x = torch.rand(6, *input_size)
-    y = LongTensor(np.random.randint(0, 8, size=6))
+    x = torch.rand(std_n_batches, *input_size)
+    y = LongTensor(np.random.randint(0, std_n_classes, size=std_n_batches))
 
-    for mode in ("train", "val", "test"):
-        if mode == "train":
-            loss, z = model.step(x, y, train=True)
-        else:
-            loss, z = model.step(x, y, train=False)
+    for train in (True, False):
+        loss, z = model.step(x, y, train=train)
 
         assert type(loss.item()) is float
         assert isinstance(z, Tensor)
-        assert z.size() == (6, 8)
+        assert z.size() == (std_n_batches, std_n_classes)
 
 
 def test_get_torch_weights() -> None:
@@ -170,10 +168,10 @@ def test_get_torch_weights() -> None:
         print(err)
 
 
-def test_get_output_shape(exp_mlp) -> None:
+def test_get_output_shape(exp_mlp, std_n_classes: int) -> None:
     output_shape = get_output_shape(exp_mlp, 64)
 
-    assert output_shape == 8
+    assert output_shape == (std_n_classes,)
 
 
 def test_bilinear_init() -> None:

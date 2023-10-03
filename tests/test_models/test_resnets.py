@@ -65,7 +65,7 @@ def resnet_test(
     model.set_optimiser(optimiser)
 
     model.determine_output_dim()
-    assert model.output_shape is model.n_classes
+    assert model.output_shape[0] is model.n_classes
 
     loss, z = model.step(x, y, True)
 
@@ -151,14 +151,13 @@ def test_resnet_encoder(
     encoder.set_optimiser(optimiser)
 
     encoder.determine_output_dim()
-    print(encoder.output_shape)
-    assert encoder.output_shape == (512, 2, 2)
+    assert encoder.output_shape == (512, 1, 1)
 
     assert len(encoder(random_rgbi_batch)) == 5
 
 
-def test_preload_weights() -> None:
+def test_preload_weights(rgbi_input_size: Tuple[int, int, int]) -> None:
     resnet = ResNet(BasicBlock, [2, 2, 2, 2])
-    new_resnet = _preload_weights(resnet, None, (4, 32, 32), encoder_on=False)
+    new_resnet = _preload_weights(resnet, None, rgbi_input_size, encoder_on=False)
 
     assert resnet == new_resnet
