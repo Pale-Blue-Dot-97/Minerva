@@ -171,33 +171,34 @@ def test_construct_dataloader(
 
 
 def test_make_loaders() -> None:
-    old_params = CONFIG["tasks"].copy()
+    old_params = CONFIG.copy()
 
-    mask_transforms = {"RandomHorizontalFlip": {"module": "torchvision.transforms"}}
-    transform_params = {
-        "train": {
-            "image": False,
-            "mask": mask_transforms,
-        },
-        "val": {
-            "image": False,
-            "mask": mask_transforms,
-        },
-        "test": {
-            "image": False,
-            "mask": False,
-        },
-    }
+    # mask_transforms = {"RandomHorizontalFlip": {"module": "torchvision.transforms"}}
+    # transform_params = {
+    #     "train": {
+    #         "image": False,
+    #         "mask": mask_transforms,
+    #     },
+    #     "val": {
+    #         "image": False,
+    #         "mask": mask_transforms,
+    #     },
+    #     "test": {
+    #         "image": False,
+    #         "mask": False,
+    #     },
+    # }
 
-    old_params["transform_params"] = transform_params
+    # old_params["transform_params"] = transform_params
 
-    loaders, n_batches, class_dist, params = mdt.make_loaders(**old_params)
+    loader, n_batches, class_dist, params = mdt.make_loaders(
+        **old_params, task_name="val"
+    )
 
-    for mode in ("train", "val"):
-        assert isinstance(loaders[mode], DataLoader)
-        assert type(n_batches[mode]) is int
-        assert type(class_dist) is list
-        assert isinstance(params, dict)
+    assert isinstance(loader, DataLoader)
+    assert type(n_batches) is int
+    assert type(class_dist) is list
+    assert isinstance(params, dict)
 
 
 def test_get_manifest_path() -> None:
@@ -212,18 +213,17 @@ def test_get_manifest() -> None:
     if manifest_path.exists():
         manifest_path.unlink()
 
-    assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
-    assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
+    assert isinstance(mdt.get_manifest(manifest_path, task_name="train"), pd.DataFrame)
+    assert isinstance(mdt.get_manifest(manifest_path, task_name="train"), pd.DataFrame)
 
     new_path = Path("tests", "tmp", "empty", "Chesapeake7_Manifest.csv")
     if new_path.exists():
-        print("exists")
         new_path.unlink()
 
     if new_path.parent.exists():
         new_path.parent.rmdir()
 
-    assert isinstance(mdt.get_manifest(new_path), pd.DataFrame)
+    assert isinstance(mdt.get_manifest(new_path, task_name="train"), pd.DataFrame)
 
     if new_path.exists():
         new_path.unlink()

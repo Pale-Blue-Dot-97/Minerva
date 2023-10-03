@@ -641,13 +641,13 @@ def make_manifest(
     collator_params: Dict[str, Any] = utils.fallback_params(
         "collator_params", task_params, mf_config
     )
+    sampler_params = dataset_params["sampler"]
 
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
     if "sampler" in dataset_params.keys():
         delete_class_transform(dataset_params)
-        sampler_params = dataset_params["sampler"]
 
         print("CONSTRUCTING DATASET")
 
