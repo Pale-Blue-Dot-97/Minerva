@@ -620,6 +620,13 @@ def make_manifest(
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
+
+    def delete_class_transform(params: Dict[str, Any]) -> None:
+        if "transforms" in params["mask"]:
+            if isinstance(params["mask"]["transforms"], dict):
+                if "ClassTransform" in params["mask"]["transforms"]:
+                    del params["mask"]["transforms"]["ClassTransform"]
+
     task_params = mf_config
     if task_name is not None:
         task_params = mf_config["tasks"][task_name]
@@ -638,25 +645,37 @@ def make_manifest(
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
-    for mode in dataset_params.keys():
-        if "transforms" in dataset_params[mode]["mask"]:
-            if isinstance(dataset_params[mode]["mask"]["transforms"], dict):
-                if "ClassTransform" in dataset_params[mode]["mask"]["transforms"]:
-                    del dataset_params[mode]["mask"]["transforms"]["ClassTransform"]
+    if "sampler" in dataset_params.keys():
+        delete_class_transform(dataset_params)
+        sampler_params = dataset_params["sampler"]
 
-    keys = list(dataset_params.keys())
-    print("CONSTRUCTING DATASET")
+        print("CONSTRUCTING DATASET")
 
-    sampler_params = dataset_params[keys[0]]["sampler"]
+        loader = construct_dataloader(
+            mf_config["dir"]["data"],
+            dataset_params,
+            sampler_params,
+            loader_params,
+            batch_size,
+            collator_params=collator_params,
+        )
+    else:
+        for mode in dataset_params.keys():
+            delete_class_transform(dataset_params[mode])
 
-    loader = construct_dataloader(
-        mf_config["dir"]["data"],
-        dataset_params[keys[0]],
-        sampler_params,
-        loader_params,
-        batch_size,
-        collator_params=collator_params,
-    )
+        keys = list(dataset_params.keys())
+        sampler_params = dataset_params[keys[0]]["sampler"]
+
+        print("CONSTRUCTING DATASET")
+
+        loader = construct_dataloader(
+            mf_config["dir"]["data"],
+            dataset_params[keys[0]],
+            sampler_params,
+            loader_params,
+            batch_size,
+            collator_params=collator_params,
+        )
 
     print("FETCHING SAMPLES")
     df = DataFrame()

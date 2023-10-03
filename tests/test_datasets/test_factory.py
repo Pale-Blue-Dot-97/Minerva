@@ -171,7 +171,7 @@ def test_construct_dataloader(
 
 
 def test_make_loaders() -> None:
-    old_params = CONFIG["tasks"]["fit"].copy()
+    old_params = CONFIG["tasks"].copy()
 
     mask_transforms = {"RandomHorizontalFlip": {"module": "torchvision.transforms"}}
     transform_params = {
