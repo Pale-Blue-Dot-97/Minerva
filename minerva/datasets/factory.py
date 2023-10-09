@@ -120,17 +120,17 @@ def make_dataset(
             module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
         )
 
-        # Construct the root to the sub-dataset's files.
-        sub_dataset_root: Path = (
-            universal_path(data_directory) / sub_dataset_params["root"]
+        # Construct the path to the sub-dataset's files.
+        sub_dataset_path: Path = (
+            universal_path(data_directory) / sub_dataset_params["paths"]
         )
-        sub_dataset_root = sub_dataset_root.absolute()
+        sub_dataset_path = sub_dataset_path.absolute()
 
-        return _sub_dataset, str(sub_dataset_root)
+        return _sub_dataset, str(sub_dataset_path)
 
     def create_subdataset(
         dataset_class: Callable[..., GeoDataset],
-        root: str,
+        paths: Union[str, Iterable[str]],
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
         _transformations: Optional[Any],
     ) -> GeoDataset:
@@ -140,13 +140,13 @@ def make_dataset(
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
-                root=root,
+                paths=paths,
                 transforms=_transformations,
                 **copy_params["params"],
             )
         else:
             return dataset_class(
-                root=root,
+                paths=paths,
                 transforms=_transformations,
                 **copy_params["params"],
             )
@@ -169,7 +169,7 @@ def make_dataset(
         master_transforms: Optional[Any] = None
         for area_key in type_dataset_params.keys():
             # If any of these keys are present, this must be a parameter set for a singular dataset at this level.
-            if area_key in ("module", "name", "params", "root"):
+            if area_key in ("module", "name", "params", "root", "paths"):
                 multi_datasets_exist = False
                 continue
 
@@ -187,7 +187,7 @@ def make_dataset(
             else:
                 multi_datasets_exist = True
 
-                _subdataset, subdataset_root = get_subdataset(
+                _subdataset, subdataset_paths = get_subdataset(
                     type_dataset_params, area_key
                 )
 
@@ -202,7 +202,7 @@ def make_dataset(
                 # Send the params for this area key back through this function to make the sub-dataset.
                 sub_dataset = create_subdataset(
                     _subdataset,
-                    subdataset_root,
+                    subdataset_paths,
                     type_dataset_params[area_key],
                     transformations,
                 )
