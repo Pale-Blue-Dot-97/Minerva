@@ -34,11 +34,10 @@ n_classes: &n_classes 8               # Number of classes in dataset.
 max_epochs: 5                         # Maximum number of training epochs.
 pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
-elim: true                            # Eliminates empty classes from schema.
-balance: true                         # Balances dataset classes.
+elim: false                            # Eliminates empty classes from schema.
+balance: false                         # Balances dataset classes.
 
-# ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: CrossEntropyLoss           # Name of the loss function to use.
+# ---+ Optimisers +---------------------------------------------------
 lr: 1.0E-2                            # Learning rate of optimiser.
 optim_func: SGD                       # Name of the optimiser function.
 
@@ -56,6 +55,7 @@ optim_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
+    name: CrossEntropyLoss           # Name of the loss function to use.
     params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
@@ -76,8 +76,10 @@ collator:
 
 # === TASKS ===================================================================
 tasks:
-    train:
+    fit-train:
         type: StandardEpoch
+        train: true
+        record_float: true
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         # logger: STGLogger
         # metrics: SPMetrics
@@ -117,8 +119,10 @@ tasks:
                 params:
                     res: 1.0
 
-    val:
+    fit-val:
         type: StandardEpoch
+        train: false
+        record_float: true
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         # logger: STGLogger
         # metrics: SPMetrics

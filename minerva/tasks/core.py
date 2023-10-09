@@ -50,12 +50,14 @@ else:  # pragma: no cover
 
 import torch
 import torch.distributed as dist
+from torch import Tensor
 from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
 from minerva.logging.tasklog import MinervaTaskLogger, SupervisedTaskLogger
 from minerva.modelio import sup_tg
 from minerva.models import MinervaDataParallel, MinervaModel
+from minerva.utils import utils
 from minerva.utils.utils import fallback_params, func_by_str
 
 
@@ -154,14 +156,14 @@ class MinervaTask(ABC):
         model: Union[MinervaModel, MinervaDataParallel],
         device: torch.device,
         exp_fn: Path,
-        train: bool = False,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
         writer: Optional[Union[SummaryWriter, Run]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        **params,
+        train: bool = False,
+        **global_params,
     ) -> None:
         self.name = name
 
@@ -169,21 +171,27 @@ class MinervaTask(ABC):
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
         loaders, n_batches, class_dist, new_params = make_loaders(
-            rank, world_size, task_name=name, **params
+            rank, world_size, task_name=name, **global_params
         )
+        global_params["tasks"][name] = new_params
+
+        self.global_params = global_params
+        self.params = new_params
+
+        print(new_params["classes"])
 
         self.exp_fn = exp_fn
 
         self.train = train
+        del self.params["train"]
 
         self.gpu = gpu
 
         self.loaders = loaders
-        self.params = new_params
         self.class_dist = class_dist
 
         self.batch_size = fallback_params(
-            "batch_size", params["tasks"][name], self.params
+            "batch_size", self.global_params["tasks"][name], self.params
         )
 
         # Corrects the batch size if this is a distributed job to account for batches being split across devices.
@@ -191,14 +199,20 @@ class MinervaTask(ABC):
             self.batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         self.n_batches = n_batches
-        self.model_type = self.params["model_type"]
-        self.sample_pairs = self.params.get("sample_pairs", False)
-        self.n_classes = self.params.get("n_classes")
+        self.model_type = fallback_params("model_type", self.params, self.global_params)
+        self.sample_pairs = fallback_params(
+            "sample_pairs", self.params, self.global_params
+        )
+        self.n_classes = fallback_params("n_classes", self.params, self.global_params)
 
         self.output_size = model.output_shape
 
-        self.record_int = record_int
-        self.record_float = record_float
+        self.record_int = utils.fallback_params(
+            "record_int", self.params, self.global_params, record_int
+        )
+        self.record_float = utils.fallback_params(
+            "record_float", self.params, self.global_params, record_float
+        )
 
         self.modelio = self.get_io_func()
 
@@ -207,7 +221,54 @@ class MinervaTask(ABC):
         self.writer = writer
         self.step_num = 0
 
+        self.init_wandb_metrics()
+
+        self.model.set_criterion(self.make_criterion())
+
         self.logger: MinervaTaskLogger = self.make_logger()
+
+    def init_wandb_metrics(self) -> None:
+        """Setups up the step counter for :mod:`wandb` logging."""
+        if isinstance(self.writer, Run):
+            self.writer.define_metric(f"{self.name}/step")
+            self.writer.define_metric(f"{self.name}/*", step_metric=f"{self.name}/step")
+
+    def make_criterion(self) -> Any:
+        """Creates a :mod:`torch` loss function based on config parameters.
+
+        Returns:
+            ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
+        """
+        # Gets the loss function requested by config parameters.
+        loss_params: Dict[str, Any] = fallback_params(
+            "loss_params", self.params, self.global_params
+        ).copy()
+        module = loss_params.pop("module", "torch.nn")
+        criterion: Callable[..., Any] = func_by_str(module, loss_params["name"])
+
+        if not utils.check_dict_key(loss_params, "params"):
+            loss_params["params"] = {}
+
+        if fallback_params(
+            "balance", self.params, self.global_params, False
+        ) and utils.check_substrings_in_string(self.model_type, "segmentation"):
+            print(f"Epoch {self.class_dist=}")
+            weights_dict = utils.class_weighting(self.class_dist, normalise=False)
+
+            weights = []
+            if fallback_params("elim", self.params, self.global_params, False):
+                for i in range(len(weights_dict)):
+                    weights.append(weights_dict[i])
+            else:
+                for i in range(self.n_classes):
+                    weights.append(weights_dict.get(i, 0.0))
+
+            loss_params["params"]["weight"] = Tensor(weights)
+
+            return criterion(**loss_params["params"])
+
+        else:
+            return criterion(**loss_params["params"])
 
     def make_logger(self) -> MinervaTaskLogger:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
@@ -254,26 +315,40 @@ class MinervaTask(ABC):
         return io_func
 
     @abc.abstractmethod
-    def step(self, mode: str) -> None:
+    def step(self) -> None:
         raise NotImplementedError
 
-    def _generic_step(self, mode: str) -> Optional[Dict[str, Any]]:
-        self.step(mode)
+    def _generic_step(self, epoch_no: int) -> Optional[Dict[str, Any]]:
+        self.step()
 
         # Send the logs to the metric logger.
         self.logger.calc_metrics()
 
-        if self.record_int or self.record_float:
-            return self.logger.get_results
-        else:
-            return None
+        # Add epoch number to metrics.
+        self.logger.log_epoch_number(epoch_no)
 
-    def __call__(self, mode: str) -> Any:
-        return self._generic_step(mode)
+        if self.record_int or self.record_float:
+            results = self.logger.get_results
+        else:
+            results = None
+
+        self.logger.refresh_step_logger()
+
+        return results
+
+    def __call__(self, epoch_no: int) -> Any:
+        return self._generic_step(epoch_no)
 
     @property
     def get_logs(self) -> Dict[str, Any]:
         return self.logger.get_logs
+
+    @property
+    def get_metrics(self) -> Dict[str, Any]:
+        return self.logger.get_metrics
+
+    def print_epoch_results(self, epoch_no: int) -> None:
+        self.logger.print_epoch_results(epoch_no)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}-{self.name}"

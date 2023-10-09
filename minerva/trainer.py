@@ -264,8 +264,6 @@ class Trainer:
         # Sets the max number of epochs of fitting.
         self.max_epochs = self.params.get("max_epochs", 25)
 
-        self.modes = self.params["dataset_params"].keys()
-
         # Flag for a fine-tuning experiment.
         self.fine_tune = self.params.get("fine_tune", False)
 
@@ -291,7 +289,6 @@ class Trainer:
         if self.params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
             self.writer = wandb_run
-            self.init_wandb_metrics()
         else:
             if _tensorflow_exist:
                 assert TENSORBOARD_WRITER
@@ -319,7 +316,6 @@ class Trainer:
         self.sample_pairs = sample_pairs
         self.model.determine_output_dim(sample_pairs=sample_pairs)
 
-        print(self.device)
         # Transfer to GPU.
         self.model.to(self.device)
 
@@ -332,9 +328,6 @@ class Trainer:
                 trace_func=self.print,
                 **self.params["stopping"],
             )
-
-        # Stores the step number for that mode of fitting. To be used for logging.
-        self.step_num = {mode: 0 for mode in self.modes}
 
         # Creates and sets the optimiser for the model.
         self.make_optimiser()
@@ -382,13 +375,6 @@ class Trainer:
                 self.model
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
-
-    def init_wandb_metrics(self) -> None:
-        """Setups up separate step counters for :mod:`wandb` logging of train, val, etc."""
-        if isinstance(self.writer, Run):
-            for mode in self.n_batches:
-                self.writer.define_metric(f"{mode}/step")
-                self.writer.define_metric(f"{mode}/*", step_metric=f"{mode}/step")
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
@@ -506,30 +492,12 @@ class Trainer:
         # Gets the loss function requested by config parameters.
         loss_params: Dict[str, Any] = self.params["loss_params"].copy()
         module = loss_params.pop("module", "torch.nn")
-        criterion: Callable[..., Any] = utils.func_by_str(
-            module, self.params["loss_func"]
-        )
+        criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
 
         if not utils.check_dict_key(loss_params, "params"):
             loss_params["params"] = {}
 
-        if self.params.get("balance", False) and self.model_type == "segmentation":
-            weights_dict = utils.class_weighting(self.class_dist, normalise=False)
-
-            weights = []
-            if self.params.get("elim", False):
-                for i in range(len(weights_dict)):
-                    weights.append(weights_dict[i])
-            else:
-                for i in range(self.params["n_classes"]):
-                    weights.append(weights_dict.get(i, 0.0))
-
-            loss_params["params"]["weight"] = Tensor(weights)
-
-            return criterion(**loss_params["params"])
-
-        else:
-            return criterion(**loss_params["params"])
+        return criterion(**loss_params["params"])
 
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
@@ -552,21 +520,27 @@ class Trainer:
 
     def fit(self) -> None:
         """Fits the model by running ``max_epochs`` number of training and validation epochs."""
-        fit_params = deepcopy(self.params["tasks"]["fit"])
+        fit_params = deepcopy(
+            {
+                key: self.params["tasks"][key]
+                for key in self.params["tasks"].keys()
+                if utils.check_substrings_in_string(key, "fit")
+            }
+        )
 
         tasks: Dict[str, MinervaTask] = {}
-        for mode in ("train", "val"):
+        for mode in fit_params.keys():
             tasks[mode] = get_task(
                 fit_params[mode].pop("type"),
+                mode,
                 self.model,
-                self.batch_size,
                 self.device,
                 self.exp_fn,
                 self.gpu,
                 self.rank,
                 self.world_size,
                 self.writer,
-                fit_params[mode],
+                **self.params,
             )
 
         for epoch in range(self.max_epochs):
@@ -575,45 +549,50 @@ class Trainer:
             )
 
             # Conduct training or validation epoch.
-            for mode in ("train", "val"):
+            for mode in tasks.keys():
                 # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
-                if mode == "val" and (epoch + 1) % self.val_freq != 0:
+                if (
+                    utils.check_substrings_in_string(mode, "val")
+                    and (epoch + 1) % self.val_freq != 0
+                ):
                     break
 
-                if mode == "train":
+                if tasks[mode].train:
                     self.model.train()
                 else:
                     self.model.eval()
 
                 results: Optional[Dict[str, Any]]
 
-                results = tasks[mode](mode)
-
-                # Add epoch number to metrics.
-                self.metric_logger.log_epoch_number(mode, epoch)
+                results = tasks[mode](epoch)
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    if mode == "val":
-                        epoch_no = epoch // self.val_freq
-                    else:
-                        epoch_no = epoch
-                    self.metric_logger.print_epoch_results(mode, epoch_no)
+                    # if utils.check_substrings_in_string(mode, "val"):
+                    #     epoch_no = epoch // self.val_freq
+                    # else:
+                    #     epoch_no = epoch
+                    tasks[mode].print_epoch_results(epoch)
 
                 # Sends validation loss to the stopper and updates early stop bool.
-                if mode == "val" and self.stopper is not None:
-                    if mode == "val":
-                        epoch_no = epoch // self.val_freq
-                    else:
-                        epoch_no = epoch
+                if (
+                    utils.check_substrings_in_string(mode, "val")
+                    and self.stopper is not None
+                ):
+                    # if utils.check_substrings_in_string(mode, "val"):
+                    #     epoch_no = epoch // self.val_freq
+                    # else:
+                    #     epoch_no = epoch
 
-                    val_loss = self.metric_logger.get_metrics["val_loss"]["y"][epoch_no]
+                    val_loss = tasks[mode].get_metrics[f"{mode}_loss"]["y"][epoch]
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
 
                 # Special case for final train/ val epoch to plot results if configured so.
                 if epoch == (self.max_epochs - 1) or self.early_stop:
-                    if self.early_stop and mode == "val":  # pragma: no cover
+                    if self.early_stop and utils.check_substrings_in_string(
+                        mode, "val"
+                    ):  # pragma: no cover
                         self.print("\nEarly stopping triggered")
 
                     # Ensures that plots likely to cause memory issues are not attempted.
@@ -621,18 +600,26 @@ class Trainer:
                     plots["CM"] = False
                     plots["ROC"] = False
 
-                    if not self.params.get("plot_last_epoch", False):
+                    if not utils.fallback_params(
+                        "plot_last_epoch", tasks[mode].params, self.params, False
+                    ):
                         # If not plotting results, ensure that only history plotting will remain
                         # if originally set to do so.
                         plots["Mask"] = False
                         plots["Pred"] = False
 
-                    # Create a subset of metrics which drops the testing results for plotting model history.
-                    sub_metrics = self.metric_logger.get_sub_metrics()
+                    # Create a subset of metrics for plotting model history.
+                    sub_metrics = {}
+                    for mode in tasks.keys():
+                        sub_metrics | tasks[mode].get_metrics
+
+                    sub_metrics = {
+                        k.replace("fit-", ""): v for k, v in sub_metrics.items()
+                    }
 
                     # Ensures masks are not plotted for model types that do not yield such outputs.
                     if utils.check_substrings_in_string(
-                        self.model_type, "scene classifier", "mlp", "MLP"
+                        tasks[mode].model_type, "scene classifier", "mlp", "MLP"
                     ):
                         plots["Mask"] = False
 
@@ -645,9 +632,14 @@ class Trainer:
                         # Plots the results of this epoch.
                         visutils.plot_results(
                             plots,
+                            task_name=mode,
                             metrics=sub_metrics,
-                            class_names=self.params.get("classes"),
-                            colours=self.params.get("colours"),
+                            class_names=utils.fallback_params(
+                                "classes", tasks[mode].params, self.params
+                            ),
+                            colours=utils.fallback_params(
+                                "colours", tasks[mode].params, self.params
+                            ),
                             save=True,
                             show=False,
                             model_name=self.params["model_name"],
