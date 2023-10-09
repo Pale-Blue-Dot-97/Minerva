@@ -149,16 +149,19 @@ class MinervaTaskLogger(ABC):
             Will overwrite ``self.logger`` with new logger.
         """
         self.step_logger = self.logger_cls(
-            self.task_name,
-            self.n_batches,
-            self.batch_size,
-            self.output_size,
-            self.record_int,
-            self.record_float,
-            self.writer,
-            self.model_type,
+            task_name=self.task_name,
+            n_batches=self.n_batches,
+            batch_size=self.batch_size,
+            output_size=self.output_size,
+            record_int=self.record_int,
+            record_float=self.record_float,
+            writer=self.writer,
+            model_type=self.model_type,
             **self.step_logger_params.get("params", {}),
         )
+
+    def refresh_step_logger(self) -> None:
+        self._make_logger()
 
     def step(
         self,
