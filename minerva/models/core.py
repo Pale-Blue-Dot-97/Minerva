@@ -136,6 +136,14 @@ class MinervaModel(Module, ABC):
         """
         self.optimiser = optimiser
 
+    def set_criterion(self, criterion: Module) -> None:
+        """Set the internal criterion.
+
+        Args:
+            criterion (~torch.nn.Module): Criterion (loss function) to set.
+        """
+        self.criterion = criterion
+
     def determine_output_dim(self, sample_pairs: bool = False) -> None:
         """Uses :func:`get_output_shape` to find the dimensions of the output of this model and sets to attribute."""
 
