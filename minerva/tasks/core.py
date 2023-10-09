@@ -57,7 +57,7 @@ from minerva.datasets import make_loaders
 from minerva.logging.tasklog import MinervaTaskLogger, SupervisedTaskLogger
 from minerva.modelio import sup_tg
 from minerva.models import MinervaDataParallel, MinervaModel
-from minerva.utils import utils
+from minerva.utils import utils, visutils
 from minerva.utils.utils import fallback_params, func_by_str
 
 
@@ -178,12 +178,11 @@ class MinervaTask(ABC):
         self.global_params = global_params
         self.params = new_params
 
-        print(new_params["classes"])
-
         self.exp_fn = exp_fn
 
         self.train = train
-        del self.params["train"]
+        if "train" in self.params:
+            del self.params["train"]
 
         self.gpu = gpu
 
@@ -349,6 +348,59 @@ class MinervaTask(ABC):
 
     def print_epoch_results(self, epoch_no: int) -> None:
         self.logger.print_epoch_results(epoch_no)
+
+    def plot(
+        self,
+        results: Dict[str, Any],
+        metrics: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        # Gets the dict from params that defines which plots to make from the results.
+        plots = utils.fallback_params(
+            "plots", self.params, self.global_params, {}
+        ).copy()
+
+        if not utils.fallback_params(
+            "plot_last_epoch", self.params, self.global_params, False
+        ):
+            # If not plotting results, ensure that only history plotting will remain
+            # if originally set to do so.
+            plots["Mask"] = False
+            plots["Pred"] = False
+
+        # Ensures masks are not plotted for model types that do not yield such outputs.
+        if utils.check_substrings_in_string(
+            self.model_type, "scene classifier", "mlp", "MLP"
+        ):
+            plots["Mask"] = False
+
+        print(metrics)
+        if metrics is None:
+            plots["History"] = False
+
+        elif len(list(metrics.values())[0]["x"]) <= 1:
+            plots["History"] = False
+
+        else:
+            print(list(metrics.values())[0])
+
+        # Amends the results' directory to add a new level for train or validation.
+        self.results_dir = self.exp_fn.parent / self.name
+
+        visutils.plot_results(
+            plots,
+            task_name=self.name,
+            metrics=metrics,
+            class_names=utils.fallback_params(
+                "classes", self.params, self.global_params
+            ),
+            colours=utils.fallback_params("colours", self.params, self.global_params),
+            save=True,
+            show=False,
+            model_name=self.params["model_name"],
+            timestamp=self.params["timestamp"],
+            results_dir=self.results_dir,
+            **results,
+        )
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}-{self.name}"

@@ -595,58 +595,20 @@ class Trainer:
                     ):  # pragma: no cover
                         self.print("\nEarly stopping triggered")
 
-                    # Ensures that plots likely to cause memory issues are not attempted.
-                    plots: Dict[str, bool] = self.params.get("plots", {}).copy()
-                    plots["CM"] = False
-                    plots["ROC"] = False
-
-                    if not utils.fallback_params(
-                        "plot_last_epoch", tasks[mode].params, self.params, False
-                    ):
-                        # If not plotting results, ensure that only history plotting will remain
-                        # if originally set to do so.
-                        plots["Mask"] = False
-                        plots["Pred"] = False
-
                     # Create a subset of metrics for plotting model history.
-                    sub_metrics = {}
+                    fit_metrics = {}
                     for mode in tasks.keys():
-                        sub_metrics | tasks[mode].get_metrics
+                        fit_metrics = {**fit_metrics, **tasks[mode].get_metrics}
 
-                    sub_metrics = {
-                        k.replace("fit-", ""): v for k, v in sub_metrics.items()
+                    fit_metrics = {
+                        k.replace("fit-", ""): v for k, v in fit_metrics.items()
                     }
-
-                    # Ensures masks are not plotted for model types that do not yield such outputs.
-                    if utils.check_substrings_in_string(
-                        tasks[mode].model_type, "scene classifier", "mlp", "MLP"
-                    ):
-                        plots["Mask"] = False
-
-                    # Amends the results' directory to add a new level for train or validation.
-                    results_dir = self.exp_fn.parent / mode
 
                     assert results is not None
 
                     if self.gpu == 0:
                         # Plots the results of this epoch.
-                        visutils.plot_results(
-                            plots,
-                            task_name=mode,
-                            metrics=sub_metrics,
-                            class_names=utils.fallback_params(
-                                "classes", tasks[mode].params, self.params
-                            ),
-                            colours=utils.fallback_params(
-                                "colours", tasks[mode].params, self.params
-                            ),
-                            save=True,
-                            show=False,
-                            model_name=self.params["model_name"],
-                            timestamp=self.params["timestamp"],
-                            results_dir=results_dir,
-                            **results,
-                        )
+                        tasks[mode].plot(results, fit_metrics)
 
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
@@ -669,66 +631,44 @@ class Trainer:
         """
         self.print("\r\nTESTING")
 
-        test_params = deepcopy(self.params["tasks"]["tests"])
+        test_params = deepcopy(
+            {
+                key: self.params["tasks"][key]
+                for key in self.params["tasks"].keys()
+                if utils.check_substrings_in_string(key, "test")
+            }
+        )
 
-        for _task in test_params:
+        for task_name in test_params.keys():
             task = get_task(
-                test_params[_task].pop("type"),
+                test_params[task_name].pop("type"),
+                task_name,
                 self.model,
-                self.batch_size,
                 self.device,
                 self.exp_fn,
                 self.gpu,
                 self.rank,
                 self.world_size,
                 self.writer,
-                test_params[_task],
+                **self.params,
             )
 
             # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
             # and the IDs of the samples supplied.
-            results = task("test")
+            results = task(1)
 
             assert results is not None
 
-            # Prints test loss and accuracy to stdout.
-            self.metric_logger.print_epoch_results("test", 0)
-
-            # Add epoch number to testing results.
-            self.metric_logger.log_epoch_number("test", 0)
-
             if self.gpu == 0:
+                # Print epoch results.
+                task.print_epoch_results(1)
+
                 if "z" in results and "y" in results:
                     self.print("\nMAKING CLASSIFICATION REPORT")
-                    self.compute_classification_report(results["z"], results["y"])
-
-                # Gets the dict from params that defines which plots to make from the results.
-                plots = self.params.get("plots", {}).copy()
-
-                # Ensure history is not plotted again.
-                plots["History"] = False
-
-                if utils.check_substrings_in_string(
-                    self.model_type, "scene classifier", "mlp", "MLP"
-                ):
-                    plots["Mask"] = False
-
-                # Amends the results' directory to add a new level for test results.
-                results_dir = self.exp_fn.parent / "test"
+                    # self.compute_classification_report(results["z"], results["y"])
 
                 # Plots the results.
-                visutils.plot_results(
-                    plots,
-                    mode="test",
-                    class_names=self.params["classes"],
-                    colours=self.params["colours"],
-                    save=save,
-                    show=show,
-                    model_name=self.params["model_name"],
-                    timestamp=self.params["timestamp"],
-                    results_dir=results_dir,
-                    **results,
-                )
+                task.plot(results)
 
         # Now experiment is complete, saves model parameters and config file to disk in case error is
         # encountered in plotting of results.
@@ -819,19 +759,19 @@ class Trainer:
                 yaml.dump(self.params, outfile)
 
             # Writes the recorded training and validation metrics of the experiment to file.
-            self.print("\nSAVING METRICS TO FILE")
-            try:
-                sub_metrics = self.metric_logger.get_sub_metrics()
-                metrics_df = pd.DataFrame(
-                    {key: sub_metrics[key]["y"] for key in sub_metrics.keys()}
-                )
-                metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
-                metrics_df.set_index("Epoch", inplace=True, drop=True)
-                metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
+            # self.print("\nSAVING METRICS TO FILE")
+            # try:
+            #     sub_metrics = self.metric_logger.get_sub_metrics()
+            #     metrics_df = pd.DataFrame(
+            #         {key: sub_metrics[key]["y"] for key in sub_metrics.keys()}
+            #     )
+            #     metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
+            #     metrics_df.set_index("Epoch", inplace=True, drop=True)
+            #     metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
 
-            except (ValueError, KeyError) as err:  # pragma: no cover
-                self.print(err)
-                self.print("\n*ERROR* in saving metrics to file.")
+            # except (ValueError, KeyError) as err:  # pragma: no cover
+            #     self.print(err)
+            #     self.print("\n*ERROR* in saving metrics to file.")
 
             # Checks whether to save the model parameters to file.
             if self.params.get("save_model", False) in (
