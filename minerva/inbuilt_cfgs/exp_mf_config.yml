@@ -20,13 +20,13 @@ dataset_params:
         image:
             module: minerva.datasets.__testing
             name: TestImgDataset
-            root: NAIP
+            paths: NAIP
             params:
                 res: 1.0
         mask:
             module: minerva.datasets.__testing
             name: TestMaskDataset
-            root: Chesapeake7
+            paths: Chesapeake7
             params:
                 res: 1.0
 
