@@ -71,7 +71,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
     exp_dataset_params["mask"] = {
         "module": "minerva.datasets.__testing",
         "name": "TstMaskDataset",
-        "root": "Chesapeake7",
+        "paths": "Chesapeake7",
         "params": {"res": 1.0},
     }
 
