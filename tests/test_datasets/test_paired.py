@@ -52,7 +52,7 @@ from minerva.datasets.__testing import TstImgDataset
 #                                                       TESTS
 # =====================================================================================================================
 def test_paired_datasets(img_root: Path) -> None:
-    dataset1 = PairedDataset(TstImgDataset, img_root)
+    dataset1 = PairedDataset(TstImgDataset, str(img_root))
     dataset2 = TstImgDataset(str(img_root))
 
     with pytest.raises(
@@ -108,8 +108,8 @@ def test_paired_union_datasets(img_root: Path) -> None:
 
     dataset1 = TstImgDataset(str(img_root))
     dataset2 = TstImgDataset(str(img_root))
-    dataset3 = PairedDataset(TstImgDataset, img_root)
-    dataset4 = PairedDataset(TstImgDataset, img_root)
+    dataset3 = PairedDataset(TstImgDataset, str(img_root))
+    dataset4 = PairedDataset(TstImgDataset, str(img_root))
 
     union_dataset1 = PairedDataset(dataset1 | dataset2)
     union_dataset2 = dataset3 | dataset4
