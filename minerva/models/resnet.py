@@ -425,6 +425,7 @@ class ResNetX(MinervaModel):
         )
 
         if torch_weights:
+            print(f"{self.weights_name=}")
             self.network = _preload_weights(
                 self.network, get_torch_weights(self.weights_name), input_size, encoder
             )
