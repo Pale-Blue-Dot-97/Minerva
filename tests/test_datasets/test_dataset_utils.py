@@ -65,7 +65,7 @@ def test_make_bounding_box() -> None:
 
 
 def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
-    imagery = PairedDataset(TstImgDataset, img_root)
-    labels = PairedDataset(TstMaskDataset, lc_root)
+    imagery = PairedDataset(TstImgDataset, str(img_root))
+    labels = PairedDataset(TstMaskDataset, str(lc_root))
 
     assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
