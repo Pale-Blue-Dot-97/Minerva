@@ -128,13 +128,13 @@ dataset_params:
             image1:
                 module: minerva.datasets.__testing
                 name: TstImgDataset
-                root: NAIP
+                paths: NAIP
                 params:
                     res: 1.0
             image2:
                 module: minerva.datasets.__testing
                 name: TstImgDataset
-                root: NAIP
+                paths: NAIP
                 params:
                     res: 1.0
 
@@ -151,14 +151,14 @@ dataset_params:
         image:
             module: minerva.datasets.__testing
             name: TstImgDataset
-            root: NAIP
+            paths: NAIP
             params:
                 res: 1.0
 
         mask:
             module: minerva.datasets.__testing
             name: TstMaskDataset
-            root: Chesapeake7
+            paths: Chesapeake7
             params:
                 res: 1.0
 
@@ -175,14 +175,14 @@ dataset_params:
         image:
             module: minerva.datasets.__testing
             name: TstImgDataset
-            root: NAIP
+            paths: NAIP
             params:
                 res: 1.0
 
         mask:
             module: minerva.datasets.__testing
             name: TstMaskDataset
-            root: Chesapeake7
+            paths: Chesapeake7
             params:
                 res: 1.0
 
