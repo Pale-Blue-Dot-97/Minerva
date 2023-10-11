@@ -192,7 +192,7 @@ def test_make_loaders() -> None:
     # old_params["transform_params"] = transform_params
 
     loader, n_batches, class_dist, params = mdt.make_loaders(
-        **old_params, task_name="val"
+        **old_params, task_name="fit-val"
     )
 
     assert isinstance(loader, DataLoader)
@@ -213,8 +213,12 @@ def test_get_manifest() -> None:
     if manifest_path.exists():
         manifest_path.unlink()
 
-    assert isinstance(mdt.get_manifest(manifest_path, task_name="train"), pd.DataFrame)
-    assert isinstance(mdt.get_manifest(manifest_path, task_name="train"), pd.DataFrame)
+    assert isinstance(
+        mdt.get_manifest(manifest_path, task_name="fit-train"), pd.DataFrame
+    )
+    assert isinstance(
+        mdt.get_manifest(manifest_path, task_name="fit-train"), pd.DataFrame
+    )
 
     new_path = Path("tests", "tmp", "empty", "Chesapeake7_Manifest.csv")
     if new_path.exists():
@@ -223,7 +227,7 @@ def test_get_manifest() -> None:
     if new_path.parent.exists():
         new_path.parent.rmdir()
 
-    assert isinstance(mdt.get_manifest(new_path, task_name="train"), pd.DataFrame)
+    assert isinstance(mdt.get_manifest(new_path, task_name="fit-train"), pd.DataFrame)
 
     if new_path.exists():
         new_path.unlink()
