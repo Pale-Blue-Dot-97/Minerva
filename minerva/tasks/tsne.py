@@ -63,8 +63,8 @@ class TSNEVis(MinervaTask):
 
     def __init__(
         self,
+        name: str,
         model: Union[MinervaModel, MinervaDataParallel],
-        batch_size: int,
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
@@ -76,8 +76,8 @@ class TSNEVis(MinervaTask):
         **params,
     ) -> None:
         super().__init__(
+            name,
             model,
-            batch_size,
             device,
             exp_fn,
             gpu,
@@ -91,7 +91,7 @@ class TSNEVis(MinervaTask):
         if self.params.get("data", None):
             self.loaders["test"] = self.params["data"]
 
-    def step(self, mode: str) -> None:
+    def step(self) -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.
 
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
@@ -101,7 +101,7 @@ class TSNEVis(MinervaTask):
             mode (str): The mode of model fitting that the embeddings come from.
         """
         # Get a batch of data.
-        data = next(iter(self.loaders[mode]))
+        data = next(iter(self.loaders))
 
         # Make sure the model is in evaluation mode.
         self.model.eval()
@@ -112,13 +112,10 @@ class TSNEVis(MinervaTask):
         # Flatten embeddings.
         embeddings = embeddings.flatten(start_dim=1)
 
-        # Get the results directory.
-        results_dir = self.exp_fn.parent / mode
-
         plot_embedding(
             embeddings.detach().cpu(),
             data["bbox"],
-            mode,
+            self.name,
             show=True,
-            filename=str(results_dir / "tsne_cluster_vis.png"),
+            filename=str(self.task_fn / "tsne_cluster_vis.png"),
         )
