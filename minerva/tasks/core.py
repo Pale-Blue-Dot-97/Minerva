@@ -41,7 +41,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 import abc
 from abc import ABC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -50,6 +50,7 @@ else:  # pragma: no cover
 
 import torch
 import torch.distributed as dist
+from nptyping import Int, NDArray
 from torch import Tensor
 from wandb.sdk.wandb_run import Run
 
@@ -178,7 +179,9 @@ class MinervaTask(ABC):
         self.global_params = global_params
         self.params = new_params
 
-        self.exp_fn = exp_fn
+        # Modify `exp_fn` with a sub-directory for this task.
+        self.task_dir = exp_fn / self.name
+        self.task_fn = self.task_dir / exp_fn.name
 
         self.train = train
         if "train" in self.params:
@@ -373,7 +376,6 @@ class MinervaTask(ABC):
         ):
             plots["Mask"] = False
 
-        print(metrics)
         if metrics is None:
             plots["History"] = False
 
@@ -381,10 +383,7 @@ class MinervaTask(ABC):
             plots["History"] = False
 
         else:
-            print(list(metrics.values())[0])
-
-        # Amends the results' directory to add a new level for train or validation.
-        self.results_dir = self.exp_fn.parent / self.name
+            pass
 
         visutils.plot_results(
             plots,
@@ -398,9 +397,28 @@ class MinervaTask(ABC):
             show=False,
             model_name=self.params["model_name"],
             timestamp=self.params["timestamp"],
-            results_dir=self.results_dir,
+            results_dir=self.task_dir,
             **results,
         )
+
+    def compute_classification_report(
+        self, predictions: Sequence[int], labels: Sequence[int]
+    ) -> None:
+        """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
+
+        Args:
+            predictions (~typing.Sequence[int]): List of predicted labels.
+            labels (~typing.Sequence[int]): List of corresponding ground truth label masks.
+        """
+        # Ensures predictions and labels are flattened.
+        preds: NDArray[Any, Int] = utils.batch_flatten(predictions)
+        targets: NDArray[Any, Int] = utils.batch_flatten(labels)
+
+        # Uses utils to create a classification report in a DataFrame.
+        cr_df = utils.make_classification_report(preds, targets, self.params["classes"])
+
+        # Saves classification report DataFrame to a .csv file at fn.
+        cr_df.to_csv(f"{self.task_fn}_classification-report.csv")
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}-{self.name}"

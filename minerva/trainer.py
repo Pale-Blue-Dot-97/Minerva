@@ -665,7 +665,7 @@ class Trainer:
 
                 if "z" in results and "y" in results:
                     self.print("\nMAKING CLASSIFICATION REPORT")
-                    # self.compute_classification_report(results["z"], results["y"])
+                    task.compute_classification_report(results["z"], results["y"])
 
                 # Plots the results.
                 task.plot(results)
@@ -717,16 +717,14 @@ class Trainer:
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
 
-    def tsne_cluster(self, mode: str = "test") -> None:
+    def tsne_cluster(self) -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.
 
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
-
-        Args:
-            mode (str): The mode of model fitting that the embeddings come from.
         """
         task = TSNEVis(
+            "TSNEVis",
             self.model,
             self.batch_size,
             self.device,
@@ -737,7 +735,7 @@ class Trainer:
             self.writer,
         )
 
-        task(mode)
+        task(1)
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
@@ -759,7 +757,7 @@ class Trainer:
                 yaml.dump(self.params, outfile)
 
             # Writes the recorded training and validation metrics of the experiment to file.
-            # self.print("\nSAVING METRICS TO FILE")
+            self.print("\nSAVING METRICS TO FILE")
             # try:
             #     sub_metrics = self.metric_logger.get_sub_metrics()
             #     metrics_df = pd.DataFrame(
@@ -800,25 +798,6 @@ class Trainer:
                 self.print("\nSAVING MODEL PARAMETERS TO FILE")
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
-
-    def compute_classification_report(
-        self, predictions: Sequence[int], labels: Sequence[int]
-    ) -> None:
-        """Creates and saves to file a classification report table of precision, recall, f-1 score and support.
-
-        Args:
-            predictions (~typing.Sequence[int]): List of predicted labels.
-            labels (~typing.Sequence[int]): List of corresponding ground truth label masks.
-        """
-        # Ensures predictions and labels are flattened.
-        preds: NDArray[Any, Int] = utils.batch_flatten(predictions)
-        targets: NDArray[Any, Int] = utils.batch_flatten(labels)
-
-        # Uses utils to create a classification report in a DataFrame.
-        cr_df = utils.make_classification_report(preds, targets, self.params["classes"])
-
-        # Saves classification report DataFrame to a .csv file at fn.
-        cr_df.to_csv(f"{self.exp_fn}_classification-report.csv")
 
     def extract_model_from_distributed(self) -> MinervaModel:
         """Extracts the actual model from any distributed wrapping if this is a distributed run.
