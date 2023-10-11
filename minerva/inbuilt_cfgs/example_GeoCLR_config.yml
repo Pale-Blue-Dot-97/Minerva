@@ -37,7 +37,7 @@ pre_train: true                       # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: NTXentLoss                 # Name of the loss function to use.
+loss_func: &loss_func NTXentLoss      # Name of the loss function to use.
 lr: 1.0E-2                            # Learning rate of optimiser.
 optim_func: SGD                       # Name of the optimiser function.
 
@@ -60,6 +60,7 @@ optim_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
+    name: *loss_func
     module: lightly.loss
     params:
         temperature: 0.5
@@ -76,8 +77,8 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-logger: SSLLogger
-metrics: SSLMetrics
+task_logger: SSLTaskLogger
+step_logger: SSLStepLogger
 model_io: ssl_pair_tg
 
 record_int: true    # Store integer results in memory.
@@ -88,103 +89,130 @@ collator:
     module: torchgeo.datasets
     name: stack_samples
 
-# === DATASET PARAMETERS ======================================================
-dataset_params:
-    # Training Dataset
-    train:
-        sampler:
-            module: minerva.samplers
-            name: RandomPairGeoSampler
-            roi: false
-            params:
-                size: *patch_size
-                length: 120
-                max_r: *max_r
+# === TASKS ===================================================================
+tasks:
+    fit-train:
+        type: StandardEpoch
+        train: true
+        record_float: true
+        sample_pairs: true
 
-        image:
-            transforms:
-                Normalise:
-                    module: minerva.transforms
-                    norm_value: 255
-                RandomApply:
-                    p: 0.25
-                    RandomResizedCrop:
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        task_logger: SSLTaskLogger
+        step_logger: SSLStepLogger
+        model_io: ssl_pair_tg
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                module: minerva.samplers
+                name: RandomPairGeoSampler
+                roi: false
+                params:
+                    size: *patch_size
+                    length: 120
+                    max_r: *max_r
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                    RandomApply:
+                        p: 0.25
+                        RandomResizedCrop:
+                            module: torchvision.transforms
+                            size: *patch_size
+                    DetachedColorJitter:
+                        module: minerva.transforms
+                        brightness: 0.8
+                        contrast: 0.8
+                        saturation: 0.8
+                        hue: 0.2
+                    RandomHorizontalFlip:
                         module: torchvision.transforms
-                        size: *patch_size
-                DetachedColorJitter:
-                    module: minerva.transforms
-                    brightness: 0.8
-                    contrast: 0.8
-                    saturation: 0.8
-                    hue: 0.2
-                RandomHorizontalFlip:
-                    module: torchvision.transforms
-                RandomVerticalFlip:
-                    module: torchvision.transforms
-                GaussianBlur:
-                    module: torchvision.transforms
-                    kernel_size: 25
+                    RandomVerticalFlip:
+                        module: torchvision.transforms
+                    GaussianBlur:
+                        module: torchvision.transforms
+                        kernel_size: 25
 
-            image1:
+                image1:
+                    module: minerva.datasets.__testing
+                    name: TstImgDataset
+                    root: NAIP
+                    params:
+                        res: 1.0
+                image2:
+                    module: minerva.datasets.__testing
+                    name: TstImgDataset
+                    root: NAIP
+                    params:
+                        res: 1.0
+
+    fit-val:
+        type: WeightedKNN
+        train: false
+        sample_pairs: false
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        task_logger: SSLTaskLogger
+        step_logger: KNNStepLogger
+        model_io: ssl_pair_tg
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: *patch_size
+                    length: 32
+
+            image:
                 module: minerva.datasets.__testing
                 name: TstImgDataset
                 root: NAIP
                 params:
                     res: 1.0
-            image2:
+
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                root: Chesapeake7
+                params:
+                    res: 1.0
+
+    test-test:
+        type: StandardEpoch
+        train: false
+        record_float: true
+        sample_pairs: false
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: *patch_size
+                    length: 32
+
+            image:
                 module: minerva.datasets.__testing
                 name: TstImgDataset
                 root: NAIP
                 params:
                     res: 1.0
 
-    # Validation Dataset
-    val:
-        sampler:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: false
-            params:
-                size: *patch_size
-                length: 32
-
-        image:
-            module: minerva.datasets.__testing
-            name: TstImgDataset
-            root: NAIP
-            params:
-                res: 1.0
-
-        mask:
-            module: minerva.datasets.__testing
-            name: TstMaskDataset
-            root: Chesapeake7
-            params:
-                res: 1.0
-
-    # Test Dataset
-    test:
-        sampler:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: false
-            params:
-                size: *patch_size
-                length: 32
-
-        image:
-            module: minerva.datasets.__testing
-            name: TstImgDataset
-            root: NAIP
-            params:
-                res: 1.0
-
-        mask:
-            module: minerva.datasets.__testing
-            name: TstMaskDataset
-            root: Chesapeake7
-            params:
-                res: 1.0
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                root: Chesapeake7
+                params:
+                    res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:
