@@ -1104,7 +1104,7 @@ def make_roc_curves(
 def plot_embedding(
     embeddings: Any,
     bounds: Union[Sequence[BoundingBox], NDArray[Any, Any]],
-    mode: str,
+    task_name: str,
     title: Optional[str] = None,
     show: bool = False,
     save: bool = True,
@@ -1117,7 +1117,7 @@ def plot_embedding(
         bounds (~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | ~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]):  # noqa: E501
             Array of objects describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
-        mode (str): Mode samples are from. Must be ``'train'``, ``'val'`` or ``'test'``.
+        task_name (str): Name of the task that the samples are from.
         title (str): Optional; Title of plot.
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
@@ -1134,7 +1134,9 @@ def plot_embedding(
     from minerva.datasets import make_dataset
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"][mode])
+    dataset, _ = make_dataset(
+        CONFIG["dir"]["data"], CONFIG["tasks"][task_name]["dataset_params"]
+    )
 
     images = []
     targets = []

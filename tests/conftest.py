@@ -356,7 +356,9 @@ def exp_dataset_params() -> Dict[str, Any]:
 
 @pytest.fixture
 def default_dataset() -> IntersectionDataset:
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"]["test"])
+    dataset, _ = make_dataset(
+        CONFIG["dir"]["data"], CONFIG["tasks"]["test-test"]["dataset_params"]
+    )
     assert isinstance(dataset, IntersectionDataset)
     return dataset
 
