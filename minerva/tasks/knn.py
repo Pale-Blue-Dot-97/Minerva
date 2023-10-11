@@ -152,8 +152,7 @@ class WeightedKNN(MinervaTask):
     def __init__(
         self,
         name: str,
-        model: MinervaModel,
-        batch_size: int,
+        model: Union[MinervaModel, MinervaDataParallel],
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
@@ -167,7 +166,6 @@ class WeightedKNN(MinervaTask):
         super().__init__(
             name,
             model,
-            batch_size,
             device,
             exp_fn,
             gpu,
