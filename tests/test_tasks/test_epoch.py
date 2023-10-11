@@ -59,7 +59,7 @@ def test_standard_epoch(default_device, exp_fcn: MinervaModel):
     params = CONFIG.copy()
 
     task = StandardEpoch(
-        name="train",
+        name="fit-train",
         model=exp_fcn,
         device=default_device,
         exp_fn=exp_fn,
@@ -72,4 +72,4 @@ def test_standard_epoch(default_device, exp_fcn: MinervaModel):
 
     assert isinstance(task.get_logs, dict)
 
-    assert repr(task) == "StandardEpoch-train"
+    assert repr(task) == "StandardEpoch-fit-train"
