@@ -48,6 +48,7 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
+import pandas as pd
 import torch
 import torch.distributed as dist
 from nptyping import Int, NDArray
@@ -419,6 +420,23 @@ class MinervaTask(ABC):
 
         # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f"{self.task_fn}_classification-report.csv")
+
+    def save_metrics(self) -> None:
+        print("\nSAVING METRICS TO FILE")
+        try:
+            metrics = self.get_metrics()
+            metrics_df = pd.DataFrame(
+                {key: metrics[key]["y"] for key in metrics.keys()}
+            )
+
+            # Assumes that the length of each metric is the same.
+            metrics_df["Epoch"] = list(metrics.values())[0]["x"]
+            metrics_df.set_index("Epoch", inplace=True, drop=True)
+            metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
+
+        except (ValueError, KeyError) as err:  # pragma: no cover
+            print(err)
+            print("\n*ERROR* in saving metrics to file.")
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}-{self.name}"

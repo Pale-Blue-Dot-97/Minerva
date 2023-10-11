@@ -568,10 +568,6 @@ class Trainer:
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    # if utils.check_substrings_in_string(mode, "val"):
-                    #     epoch_no = epoch // self.val_freq
-                    # else:
-                    #     epoch_no = epoch
                     tasks[mode].print_epoch_results(epoch)
 
                 # Sends validation loss to the stopper and updates early stop bool.
@@ -579,11 +575,6 @@ class Trainer:
                     utils.check_substrings_in_string(mode, "val")
                     and self.stopper is not None
                 ):
-                    # if utils.check_substrings_in_string(mode, "val"):
-                    #     epoch_no = epoch // self.val_freq
-                    # else:
-                    #     epoch_no = epoch
-
                     val_loss = tasks[mode].get_metrics[f"{mode}_loss"]["y"][epoch]
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
@@ -609,6 +600,9 @@ class Trainer:
                     if self.gpu == 0:
                         # Plots the results of this epoch.
                         tasks[mode].plot(results, fit_metrics)
+
+                        # Writes the recorded metrics of the task to file.
+                        tasks[mode].save_metrics()
 
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
@@ -663,12 +657,16 @@ class Trainer:
                 # Print epoch results.
                 task.print_epoch_results(1)
 
+                # Creates a classification report from the results of the task.
                 if "z" in results and "y" in results:
                     self.print("\nMAKING CLASSIFICATION REPORT")
                     task.compute_classification_report(results["z"], results["y"])
 
                 # Plots the results.
                 task.plot(results)
+
+                # Writes the recorded metrics of the task to file.
+                task.save_metrics()
 
         # Now experiment is complete, saves model parameters and config file to disk in case error is
         # encountered in plotting of results.
@@ -755,21 +753,6 @@ class Trainer:
             # Outputs the modified YAML parameters config file used for this experiment to file.
             with open(f"{self.exp_fn}.yml", "w") as outfile:
                 yaml.dump(self.params, outfile)
-
-            # Writes the recorded training and validation metrics of the experiment to file.
-            self.print("\nSAVING METRICS TO FILE")
-            # try:
-            #     sub_metrics = self.metric_logger.get_sub_metrics()
-            #     metrics_df = pd.DataFrame(
-            #         {key: sub_metrics[key]["y"] for key in sub_metrics.keys()}
-            #     )
-            #     metrics_df["Epoch"] = sub_metrics["train_loss"]["x"]
-            #     metrics_df.set_index("Epoch", inplace=True, drop=True)
-            #     metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
-
-            # except (ValueError, KeyError) as err:  # pragma: no cover
-            #     self.print(err)
-            #     self.print("\n*ERROR* in saving metrics to file.")
 
             # Checks whether to save the model parameters to file.
             if self.params.get("save_model", False) in (
