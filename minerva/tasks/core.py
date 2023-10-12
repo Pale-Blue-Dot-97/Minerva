@@ -150,7 +150,7 @@ class MinervaTask(ABC):
     """
 
     logger_cls: MinervaTaskLogger = SupervisedTaskLogger
-    modelio: Callable[..., Any] = sup_tg
+    model_io_name: str = "sup_tg"
 
     def __init__(
         self,
@@ -310,10 +310,11 @@ class MinervaTask(ABC):
         Returns:
             ~typing.Callable[..., ~typing.Any]: Model IO function requested from parameters.
         """
-        io_func: Callable[..., Any] = (
-            func_by_str("minerva.modelio", self.params["model_io"])
-            if "modelio" in self.params
-            else self.modelio
+        io_func: Callable[..., Any] = func_by_str(
+            "minerva.modelio",
+            utils.fallback_params(
+                "model_io", self.params, self.global_params, self.model_io_name
+            ),
         )
         return io_func
 
