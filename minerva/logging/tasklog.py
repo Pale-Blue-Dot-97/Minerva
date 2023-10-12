@@ -463,13 +463,6 @@ class SSLTaskLogger(MinervaTaskLogger):
         )
 
         if check_substrings_in_string(self.model_type, "segmentation"):
-            print(
-                self.n_batches
-                * self.batch_size
-                * self.output_size[0]
-                * self.output_size[1]
-            )
-
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"]
                 / (
