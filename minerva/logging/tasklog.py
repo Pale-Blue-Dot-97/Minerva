@@ -42,7 +42,7 @@ __all__ = [
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -55,12 +55,7 @@ from wandb.sdk.wandb_run import Run
 
 from minerva.utils.utils import check_substrings_in_string
 
-from .steplog import (
-    MinervaStepLogger,
-    SSLStepLogger,
-    SupervisedGeoStepLogger,
-    get_logger,
-)
+from .steplog import get_logger
 
 
 # =====================================================================================================================
@@ -90,7 +85,7 @@ class MinervaTaskLogger(ABC):
 
     metric_types: List[str] = []
     special_metric_types: List[str] = []
-    logger_cls: Callable[..., MinervaStepLogger]
+    logger_cls: str
 
     def __init__(
         self,
@@ -122,9 +117,12 @@ class MinervaTaskLogger(ABC):
 
         self.writer = writer
 
-        if step_logger_params:
-            if step_logger_params.get("name") is not None:
-                self.logger_cls = get_logger(step_logger_params["name"])
+        if isinstance(step_logger_params, dict):
+            self.logger_cls = get_logger(
+                step_logger_params.get("name", self.logger_cls)
+            )
+            if "params" not in step_logger_params:
+                step_logger_params["params"] = {}
 
         else:
             step_logger_params = {"params": {}}
@@ -304,7 +302,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
     """
 
     metric_types: List[str] = ["loss", "acc", "miou"]
-    logger_cls = SupervisedGeoStepLogger
+    logger_cls = "SupervisedGeoStepLogger"
 
     def __init__(
         self,
@@ -415,7 +413,7 @@ class SSLTaskLogger(MinervaTaskLogger):
 
     metric_types = ["loss", "acc", "top5_acc"]
     special_metric_types = ["collapse_level", "euc_dist"]
-    logger_cls = SSLStepLogger
+    logger_cls = "SSLStepLogger"
 
     def __init__(
         self,

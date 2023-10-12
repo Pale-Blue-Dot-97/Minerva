@@ -74,7 +74,8 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
 task_logger: SupervisedTaskLogger
-step_logger: SupervisedGeoStepLogger
+step_logger:
+    name: SupervisedGeoStepLogger
 model_io: sup_tg
 
 record_int: true     # Store integer results in memory.
