@@ -348,7 +348,7 @@ def exp_dataset_params() -> Dict[str, Any]:
             "transforms": {"AutoNorm": {"length": 12}},
             "module": "minerva.datasets.__testing",
             "name": "TstImgDataset",
-            "root": "NAIP",
+            "paths": "NAIP",
             "params": {"res": 1.0, "crs": 26918},
         }
     }

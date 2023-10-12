@@ -57,7 +57,7 @@ from minerva.samplers import (
 #                                                       TESTS
 # =====================================================================================================================
 def test_randompairgeosampler(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
+    dataset = PairedDataset(TstImgDataset, str(img_root), res=1.0)
 
     sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
     loader: DataLoader[Dict[str, Any]] = DataLoader(
@@ -73,7 +73,7 @@ def test_randompairgeosampler(img_root: Path) -> None:
 
 
 def test_randompairbatchgeosampler(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, img_root, res=1.0)
+    dataset = PairedDataset(TstImgDataset, str(img_root), res=1.0)
 
     sampler = RandomPairBatchGeoSampler(
         dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1
