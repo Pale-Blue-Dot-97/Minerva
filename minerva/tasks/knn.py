@@ -177,8 +177,8 @@ class WeightedKNN(MinervaTask):
             **params,
         )
 
-        self.temp = self.params["temp"]
-        self.k = self.params["k"]
+        self.temp = self.params.get("temp")
+        self.k = self.params.get("k")
 
     def generate_feature_bank(self) -> Tuple[Tensor, Tensor]:
         feature_list = []
