@@ -109,6 +109,7 @@ class MinervaTaskLogger(ABC):
         self.n_batches = n_batches
         self.batch_size = batch_size
         self.n_samples = self.n_batches * self.batch_size
+
         self.output_size = output_size
         self.task_name = task_name
 
@@ -430,11 +431,10 @@ class SSLTaskLogger(MinervaTaskLogger):
         sample_pairs: bool = False,
         **params,
     ) -> None:
-        if sample_pairs:
-            if not step_logger_params:
-                step_logger_params = {}
-            if "params" not in step_logger_params:
-                step_logger_params["params"] = {}
+        if not step_logger_params:
+            step_logger_params = {}
+        if "params" not in step_logger_params:
+            step_logger_params["params"] = {}
 
         step_logger_params["params"]["sample_pairs"] = sample_pairs
         step_logger_params["params"]["collapse_level"] = sample_pairs
@@ -471,9 +471,6 @@ class SSLTaskLogger(MinervaTaskLogger):
                 * self.output_size[0]
                 * self.output_size[1]
             )
-            print(f"{self.n_batches=}")
-            print(f"{self.batch_size=}")
-            print(f"{self.output_size=}")
 
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"]
