@@ -163,27 +163,51 @@ tasks:
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
-            sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
-                roi: false
-                params:
-                    size: *patch_size
-                    length: 32
+            features:
+                sampler:
+                    module: torchgeo.samplers
+                    name: RandomGeoSampler
+                    roi: false
+                    params:
+                        size: *patch_size
+                        length: 32
 
-            image:
-                module: minerva.datasets.__testing
-                name: TstImgDataset
-                paths: NAIP
-                params:
-                    res: 1.0
+                image:
+                    module: minerva.datasets.__testing
+                    name: TstImgDataset
+                    paths: NAIP
+                    params:
+                        res: 1.0
 
-            mask:
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
-                paths: Chesapeake7
-                params:
-                    res: 1.0
+                mask:
+                    module: minerva.datasets.__testing
+                    name: TstMaskDataset
+                    paths: Chesapeake7
+                    params:
+                        res: 1.0
+
+            test:
+                sampler:
+                    module: torchgeo.samplers
+                    name: RandomGeoSampler
+                    roi: false
+                    params:
+                        size: *patch_size
+                        length: 32
+
+                image:
+                    module: minerva.datasets.__testing
+                    name: TstImgDataset
+                    paths: NAIP
+                    params:
+                        res: 1.0
+
+                mask:
+                    module: minerva.datasets.__testing
+                    name: TstMaskDataset
+                    paths: Chesapeake7
+                    params:
+                        res: 1.0
 
     test-test:
         type: StandardEpoch

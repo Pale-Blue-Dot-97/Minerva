@@ -57,7 +57,7 @@ else:  # pragma: no cover
 
 from minerva.logging import SSLTaskLogger
 from minerva.models import MinervaDataParallel, MinervaModel, MinervaSiamese
-from minerva.utils import AUX_CONFIGS, utils
+from minerva.utils import utils
 
 from .core import MinervaTask
 
@@ -184,7 +184,7 @@ class WeightedKNN(MinervaTask):
         feature_list = []
         target_list = []
 
-        feat_bar = alive_it(self.loaders["val"])
+        feat_bar = alive_it(self.loaders["features"])
         for batch in feat_bar:
             val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
             val_target: Tensor = batch["mask"].to(self.device, non_blocking=True)
@@ -229,9 +229,6 @@ class WeightedKNN(MinervaTask):
 
         # Puts the model in evaluation mode so no back passes are made.
         self.model.eval()
-
-        # Get the number of classes from the data config.
-        n_classes = len(AUX_CONFIGS["data_config"]["classes"])
 
         total_num = 0
 
@@ -285,7 +282,7 @@ class WeightedKNN(MinervaTask):
 
                 # Counts for each class
                 one_hot_label = torch.zeros(
-                    test_data.size(0) * self.k, n_classes, device=sim_labels.device
+                    test_data.size(0) * self.k, self.n_classes, device=sim_labels.device
                 )
 
                 # [B*K, C]
@@ -295,7 +292,7 @@ class WeightedKNN(MinervaTask):
 
                 # Weighted score ---> [B, C]
                 pred_scores = torch.sum(
-                    one_hot_label.view(test_data.size(0), -1, n_classes)
+                    one_hot_label.view(test_data.size(0), -1, self.n_classes)
                     * sim_weight.unsqueeze(dim=-1),
                     dim=1,
                 )
