@@ -86,8 +86,6 @@ class WeightedKNN(MinervaTask):
         modes (tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run | None): The *writer*
             to perform logging for this experiment. For use with either :mod:`tensorboard` or :mod:`wandb`.
-        stopper (~pytorchtools.EarlyStopping | None): Early stopping function.
-        early_stop (bool): Whether early stopping has been triggered. Will end model training if ``True``.
         n_samples (dict[str, int]): Number of samples in each mode of model fitting.
         metric_logger (~logger.MinervaLogger): Object to calculate and log metrics to track the performance
             of the model.
@@ -102,6 +100,9 @@ class WeightedKNN(MinervaTask):
         writer (~wandb.sdk.wandb_run.Run | RunDisabled): Optional; Run object for Weights and Biases.
         params (dict[str, ~typing.Any]): Dictionary describing all the parameters that define how the model will be
             constructed, trained and evaluated. These should be defined via config ``YAML`` files.
+        record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
+        record_float (bool): Store the floating point results of each epoch in memory
+            such as the raw predicted probabilities.
 
     Keyword Args:
         batch_size (int): Number of samples in each batch.
@@ -115,12 +116,6 @@ class WeightedKNN(MinervaTask):
             Contains the ``module`` key to define the import path and the ``name`` key
             for name of the collation function.
         sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
-        stopping (dict[str, ~typing.Any]): Dictionary to hold the parameters defining the early stopping functionality.
-            If no dictionary is given, it is assumed that there will be no early stopping.
-        pre_train_name (str): Name of the pre-trained model to use.
-        reload (bool): Reloads the weights in the cache matching ``pre_train_name`` to continue model fitting.
-        loss_func (str): Name of the loss function to use.
-        optim_func (str): Name of the optimiser function to use.
         lr (float): Learning rate of optimiser.
         optim_params (dict[str, ~typing.Any]): :class:`dict` to hold any additional parameters for the optimiser,
             other than the already handled learning rate -- ``lr``. Place them in the ``params`` key.
@@ -131,18 +126,8 @@ class WeightedKNN(MinervaTask):
         balance (bool): Activates class balancing. For ``model_type="scene classifer"`` or ``model_type="mlp"``,
             over and under sampling will be used. For ``model_type="segmentation"``, class weighting will be
             used on the loss function.
-        patch_size (tuple[float, float]): Defines the shape of the patches in the dataset.
-        input_size (tuple[int, ...]): Shape of the input to the model. Typically in CxHxW format.
-            Should align with the values given for ``patch_size``.
-        metrics (str): Specify the metric logger to use. Must be the name of a :class:`~metrics.MinervaMetric` class
-            within :mod:`metrics`.
-        logger (str): Specify the logger to use. Must be the name of a :class:`~logger.MinervaLogger` class
-            within :mod:`logger`.
         modelio (str): Specify the IO function to use to handle IO for the model during fitting. Must be the name
             of a function within :mod:`modelio`.
-        record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
-        record_float (bool): Store the floating point results of each epoch in memory
-            such as the raw predicted probabilities.
 
     .. versionadded:: 0.27
     """
@@ -161,6 +146,8 @@ class WeightedKNN(MinervaTask):
         writer: Optional[Union[SummaryWriter, Run]] = None,
         record_int: bool = True,
         record_float: bool = False,
+        k: int = 5,
+        temp: float = 0.5,
         **params,
     ) -> None:
         super().__init__(
@@ -177,8 +164,8 @@ class WeightedKNN(MinervaTask):
             **params,
         )
 
-        self.temp = self.params.get("temp")
-        self.k = self.params.get("k")
+        self.temp = temp
+        self.k = k
 
     def generate_feature_bank(self) -> Tuple[Tensor, Tensor]:
         feature_list = []
@@ -318,3 +305,6 @@ class WeightedKNN(MinervaTask):
 
                 # Update global step number for this mode of model fitting.
                 self.step_num += 1
+
+        # Updates metrics with epoch results.
+        self.logger.calc_metrics()

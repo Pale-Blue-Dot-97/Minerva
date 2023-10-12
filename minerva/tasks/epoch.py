@@ -45,7 +45,6 @@ from contextlib import nullcontext
 import torch.distributed as dist
 from alive_progress import alive_bar
 
-from minerva.logging import SupervisedTaskLogger
 from minerva.utils import utils
 
 from .core import MinervaTask

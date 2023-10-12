@@ -178,7 +178,7 @@ class MinervaTask(ABC):
 
         # If there are multiple modes and therefore number of batches, just take the value of the first one.
         if isinstance(n_batches, dict):
-            n_batches = n_batches.values()[0]
+            n_batches = next(iter(n_batches.values()))
 
         global_params["tasks"][name] = new_params
 
