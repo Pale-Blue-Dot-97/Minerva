@@ -149,7 +149,7 @@ class MinervaTask(ABC):
     .. versionadded:: 0.27
     """
 
-    logger_cls: MinervaTaskLogger = SupervisedTaskLogger
+    logger_cls: str = "SupervisedTaskLogger"
     model_io_name: str = "sup_tg"
 
     def __init__(
@@ -175,6 +175,11 @@ class MinervaTask(ABC):
         loaders, n_batches, class_dist, new_params = make_loaders(
             rank, world_size, task_name=name, **global_params
         )
+
+        # If there are multiple modes and therefore number of batches, just take the value of the first one.
+        if isinstance(n_batches, dict):
+            n_batches = n_batches.values()[0]
+
         global_params["tasks"][name] = new_params
 
         self.global_params = global_params
@@ -281,19 +286,22 @@ class MinervaTask(ABC):
         """
 
         # Gets constructor of the metric logger from name in the config.
-        self.logger_cls = (
-            func_by_str("minerva.logging.tasklog", self.params["logger"])
-            if "logger" in self.params
-            else self.logger_cls
+        _logger_cls = func_by_str(
+            "minerva.logging.tasklog",
+            utils.fallback_params(
+                "task_logger", self.params, self.global_params, self.logger_cls
+            ),
         )
 
         # Initialises the metric logger with arguments.
-        logger: MinervaTaskLogger = self.logger_cls(
+        logger: MinervaTaskLogger = _logger_cls(
             self.name,
             self.n_batches,
             self.batch_size,
             self.output_size,
-            step_logger_params=self.params.get("step_logger"),
+            step_logger_params=utils.fallback_params(
+                "step_logger", self.params, self.global_params, {}
+            ),
             record_int=self.record_int,
             record_float=self.record_float,
             writer=self.writer,

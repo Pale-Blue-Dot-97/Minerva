@@ -60,7 +60,7 @@ class StandardEpoch(MinervaTask):
     .. versionadded:: 0.27
     """
 
-    logger_cls = SupervisedTaskLogger
+    logger_cls = "SupervisedTaskLogger"
 
     def step(self) -> None:
         # Initialises a progress bar for the epoch.
