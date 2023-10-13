@@ -275,15 +275,13 @@ class Trainer:
             self.params["model_name"], self.params["timestamp"]
         )
 
+        # Path to experiment directory and experiment name.
         self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
-        results_dir = self.params["dir"]["results"] / self.params["exp_name"]
+        self.exp_fn: Path = self.params["dir"]["results"] / self.params["exp_name"]
 
         if self.gpu == 0:
             # Makes a directory for this experiment.
             utils.mkexpdir(self.params["exp_name"])
-
-        # Path to experiment directory and experiment name.
-        self.exp_fn: Path = results_dir / self.params["exp_name"]
 
         self.writer: Optional[Union[SummaryWriter, Run]] = None
         if self.params.get("wandb_log", False):
@@ -294,7 +292,7 @@ class Trainer:
                 assert TENSORBOARD_WRITER
 
                 # Initialise TensorBoard logger.
-                self.writer = TENSORBOARD_WRITER(results_dir)
+                self.writer = TENSORBOARD_WRITER(self.exp_fn)
             else:  # pragma: no cover
                 self.writer = None
 

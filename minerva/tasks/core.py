@@ -427,13 +427,16 @@ class MinervaTask(ABC):
         # Uses utils to create a classification report in a DataFrame.
         cr_df = utils.make_classification_report(preds, targets, self.params["classes"])
 
+        # Ensure the parent directories for the classification report exist.
+        self.task_fn.parent.mkdir(parents=True, exist_ok=True)
+
         # Saves classification report DataFrame to a .csv file at fn.
         cr_df.to_csv(f"{self.task_fn}_classification-report.csv")
 
     def save_metrics(self) -> None:
         print("\nSAVING METRICS TO FILE")
         try:
-            metrics = self.get_metrics()
+            metrics = self.get_metrics
             metrics_df = pd.DataFrame(
                 {key: metrics[key]["y"] for key in metrics.keys()}
             )
