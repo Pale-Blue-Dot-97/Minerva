@@ -76,7 +76,7 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 task_logger: SupervisedTaskLogger
 step_logger:
     name: SupervisedGeoStepLogger
-model_io: sup_tg
+model_io: autoencoder_io
 
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
@@ -101,7 +101,7 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 32
+                    length: 36
 
             image:
                 transforms:
@@ -134,7 +134,7 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 16
+                    length: 18
 
             image:
                 transforms:
@@ -167,7 +167,7 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 16
+                    length: 18
 
             image:
                 transforms:
