@@ -76,11 +76,6 @@ project: pytest              # Define the project name for wandb.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
-# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-task_logger: SSLTaskLogger
-step_logger: SSLStepLogger
-model_io: ssl_pair_tg
-
 record_int: true    # Store integer results in memory.
 record_float: true  # Store floating point results too. Beware memory overload!
 
@@ -155,6 +150,7 @@ tasks:
         type: WeightedKNN
         train: false
         sample_pairs: false
+        n_classes: 8
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: SSLTaskLogger
@@ -215,6 +211,11 @@ tasks:
         train: false
         record_float: true
         sample_pairs: false
+        n_classes: 8
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        task_logger: SupervisedTaskLogger
+        model_io: sup_tg
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:

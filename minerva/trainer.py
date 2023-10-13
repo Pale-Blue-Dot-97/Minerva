@@ -713,22 +713,22 @@ class Trainer:
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
 
-    def tsne_cluster(self) -> None:
+    def tsne_cluster(self, task_name: str = "TSNEVis") -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.
 
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
         task = TSNEVis(
-            "TSNEVis",
+            task_name,
             self.model,
-            self.batch_size,
             self.device,
             self.exp_fn,
             self.gpu,
             self.rank,
             self.world_size,
             self.writer,
+            **self.params,
         )
 
         task(1)

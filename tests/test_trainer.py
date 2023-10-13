@@ -183,7 +183,7 @@ def test_trainer_4(
     if kwargs.get("tsne_cluster"):
         trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
 
-        trainer.tsne_cluster()
+        trainer.tsne_cluster("test-test")
 
     if kwargs.get("test"):
         trainer.test()

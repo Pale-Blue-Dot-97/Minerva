@@ -88,8 +88,6 @@ class TSNEVis(MinervaTask):
             record_float,
             **params,
         )
-        if self.params.get("data", None):
-            self.loaders["test"] = self.params["data"]
 
     def step(self) -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.
