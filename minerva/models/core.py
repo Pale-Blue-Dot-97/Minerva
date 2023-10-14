@@ -299,7 +299,7 @@ class MinervaDataParallel(Module):  # pragma: no cover
     def __init__(
         self,
         model: Module,
-        paralleliser: Union[Type[DataParallel], Type[DistributedDataParallel]],
+        paralleliser: Union[Type[DataParallel], Type[DistributedDataParallel]],  # type: ignore[type-arg]
         *args,
         **kwargs,
     ) -> None:

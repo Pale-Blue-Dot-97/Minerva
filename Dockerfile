@@ -9,8 +9,6 @@ ENV PYTHONUNBUFFERED=1
 FROM base AS python-deps
 
 # Copy needed files.
-COPY Pipfile .
-COPY Pipfile.lock .
 COPY setup.py .
 COPY setup.cfg .
 COPY requirements/requirements_dev.txt .

@@ -120,7 +120,7 @@ def make_dataset(
             module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
         )
 
-        # Construct the paths to the sub-dataset's files.
+        # Construct the path to the sub-dataset's files.
         sub_dataset_path: Path = (
             universal_path(data_directory) / sub_dataset_params["paths"]
         )
@@ -130,7 +130,7 @@ def make_dataset(
 
     def create_subdataset(
         dataset_class: Callable[..., GeoDataset],
-        paths: str,
+        paths: Union[str, Iterable[str]],
         subdataset_params: Dict[Literal["params"], Dict[str, Any]],
         _transformations: Optional[Any],
     ) -> GeoDataset:
@@ -142,13 +142,13 @@ def make_dataset(
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
-                paths,
+                paths=paths,
                 transforms=_transformations,
                 **copy_params["params"],
             )
         else:
             return dataset_class(
-                paths,
+                paths=paths,
                 transforms=_transformations,
                 **copy_params["params"],
             )
@@ -189,7 +189,7 @@ def make_dataset(
             else:
                 multi_datasets_exist = True
 
-                _subdataset, subdataset_root = get_subdataset(
+                _subdataset, subdataset_paths = get_subdataset(
                     type_dataset_params, area_key
                 )
 
@@ -204,7 +204,7 @@ def make_dataset(
                 # Send the params for this area key back through this function to make the sub-dataset.
                 sub_dataset = create_subdataset(
                     _subdataset,
-                    subdataset_root,
+                    subdataset_paths,
                     type_dataset_params[area_key],
                     transformations,
                 )
