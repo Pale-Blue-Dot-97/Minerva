@@ -37,7 +37,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 from collections import OrderedDict
-from typing import Any, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch.nn.modules as nn

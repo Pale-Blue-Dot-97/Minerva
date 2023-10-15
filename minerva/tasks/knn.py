@@ -55,7 +55,6 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
-from minerva.logger import SSLTaskLogger
 from minerva.models import MinervaDataParallel, MinervaModel, MinervaSiamese
 from minerva.utils import utils
 

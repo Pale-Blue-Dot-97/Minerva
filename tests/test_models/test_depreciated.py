@@ -54,6 +54,7 @@ def test_mlp(x_entropy_loss) -> None:
     model.set_optimiser(optimiser)
 
     model.determine_output_dim()
+    assert isinstance(model.output_shape, tuple)
     assert model.output_shape[0] is model.n_classes
 
     x = torch.rand(16, (288))
@@ -73,6 +74,7 @@ def test_cnn(x_entropy_loss) -> None:
     model.set_optimiser(optimiser)
 
     model.determine_output_dim()
+    assert isinstance(model.output_shape, tuple)
     assert model.output_shape[0] is model.n_classes
 
     x = torch.rand(6, *input_size)

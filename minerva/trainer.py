@@ -41,14 +41,11 @@ __all__ = ["Trainer"]
 import os
 from copy import deepcopy
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 
-import pandas as pd
 import torch
 import yaml
 from inputimeout import TimeoutOccurred, inputimeout
-from nptyping import Int, NDArray
-from torch import Tensor
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 
@@ -68,7 +65,7 @@ from minerva.models import (
 )
 from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, TSNEVis, get_task
-from minerva.utils import universal_path, utils, visutils
+from minerva.utils import universal_path, utils
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -585,7 +582,7 @@ class Trainer:
                         self.print("\nEarly stopping triggered")
 
                     # Create a subset of metrics for plotting model history.
-                    fit_metrics = {}
+                    fit_metrics: Dict[str, Any] = {}
                     for mode in tasks.keys():
                         fit_metrics = {**fit_metrics, **tasks[mode].get_metrics}
 

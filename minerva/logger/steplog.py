@@ -741,5 +741,5 @@ def get_logger(name) -> Callable[..., Any]:
 
     .. versionadded:: 0.27
     """
-    logger: Callable[..., Any] = func_by_str("minerva.logging.steplog", name)
+    logger: Callable[..., Any] = func_by_str("minerva.logger.steplog", name)
     return logger

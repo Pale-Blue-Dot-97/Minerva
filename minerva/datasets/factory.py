@@ -507,17 +507,17 @@ def make_loaders(
                         "ClassTransform"
                     ] = class_transform["ClassTransform"]
 
-            sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
+            mode_sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
 
             # Calculates number of batches.
-            n_batches[mode] = int(sampler_params["params"]["length"] / batch_size)
+            n_batches[mode] = int(mode_sampler_params["params"]["length"] / batch_size)
 
-            # --+ MAKE DATASETS +=========================================================================================+
+            # --+ MAKE DATASETS +=====================================================================================+
             print(f"CREATING {mode} DATASET")
             loaders[mode] = construct_dataloader(
                 params["dir"]["data"],
                 dataset_params[mode],
-                sampler_params,
+                mode_sampler_params,
                 dataloader_params,
                 batch_size,
                 collator_params=utils.fallback_params("collator", task_params, params),

@@ -76,7 +76,8 @@ class MinervaTaskLogger(ABC):
         n_batches (dict[str, int]): Dictionary of the number of batches in each mode of fitting.
         batch_size (int): Batch size.
         data_size (tuple[int, int, int]): Shape of the input data in ``C x H x W``.
-        logger_params (dict[str, ~typing.Any]): Optional; Parameters for a logger other than the default for these metrics.
+        logger_params (dict[str, ~typing.Any]): Optional; Parameters for a logger
+            other than the default for these metrics.
 
     .. versionadded:: 0.27
     """

@@ -286,7 +286,7 @@ class MinervaTask(ABC):
 
         # Gets constructor of the metric logger from name in the config.
         _logger_cls = func_by_str(
-            "minerva.logging.tasklog",
+            "minerva.logger.tasklog",
             utils.fallback_params(
                 "task_logger", self.params, self.global_params, self.logger_cls
             ),

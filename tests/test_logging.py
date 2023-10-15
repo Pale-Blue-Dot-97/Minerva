@@ -202,11 +202,11 @@ def test_SupervisedGeoStepLogger(
 
         metrics = logger.get_metrics
 
-        assert metrics[f"pytest_loss"] == pytest.approx(correct_loss)
-        assert metrics[f"pytest_acc"] == pytest.approx(correct_acc)
+        assert metrics["pytest_loss"] == pytest.approx(correct_loss)
+        assert metrics["pytest_acc"] == pytest.approx(correct_acc)
 
         if model_type == "segmentation":
-            assert metrics[f"pytest_miou"] == pytest.approx(correct_miou)
+            assert metrics["pytest_miou"] == pytest.approx(correct_miou)
 
         logger._make_logger()
 
@@ -341,23 +341,15 @@ def test_SSLStepLogger(
 
         metrics = logger.get_metrics
 
-        print(metrics)
-        print(correct_loss)
-        print(correct_acc)
-        print(correct_top5)
-
-        assert metrics[f"pytest_loss"] == pytest.approx(correct_loss)
-        assert metrics[f"pytest_acc"] == pytest.approx(correct_acc)
-        assert metrics[f"pytest_top5_acc"] == pytest.approx(correct_top5)
+        assert metrics["pytest_loss"] == pytest.approx(correct_loss)
+        assert metrics["pytest_acc"] == pytest.approx(correct_acc)
+        assert metrics["pytest_top5_acc"] == pytest.approx(correct_top5)
 
         if extra_metrics:
-            print(correct_collapse_level)
-            print(correct_euc_dist)
-
-            assert metrics[f"pytest_collapse_level"] == pytest.approx(
+            assert metrics["pytest_collapse_level"] == pytest.approx(
                 correct_collapse_level
             )
-            assert metrics[f"pytest_euc_dist"] == pytest.approx(correct_euc_dist)
+            assert metrics["pytest_euc_dist"] == pytest.approx(correct_euc_dist)
 
         logger._make_logger()
 

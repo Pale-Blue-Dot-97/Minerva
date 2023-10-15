@@ -65,6 +65,7 @@ def resnet_test(
     model.set_optimiser(optimiser)
 
     model.determine_output_dim()
+    assert isinstance(model.output_shape, tuple)
     assert model.output_shape[0] is model.n_classes
 
     loss, z = model.step(x, y, True)

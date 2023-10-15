@@ -92,6 +92,7 @@ def test_minerva_model(x_entropy_loss, std_n_classes: int, std_n_batches: int) -
     model.set_optimiser(optimiser)
 
     model.determine_output_dim()
+    assert isinstance(model.output_shape, tuple)
     assert model.output_shape[0] is model.n_classes
 
     for train in (True, False):
@@ -133,6 +134,7 @@ def test_minerva_wrapper(
     model.set_optimiser(optimiser)
 
     model.determine_output_dim()
+    assert isinstance(model.output_shape, tuple)
     assert model.output_shape[0] is model.n_classes
 
     x = torch.rand(std_n_batches, *input_size)
