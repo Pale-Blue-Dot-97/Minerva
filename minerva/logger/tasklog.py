@@ -49,6 +49,7 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
+import numpy as np
 from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
@@ -93,7 +94,7 @@ class MinervaTaskLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        output_size: Tuple[int, ...],
         step_logger_params: Optional[Dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
@@ -308,7 +309,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        output_size: Tuple[int, ...],
         step_logger_params: Optional[Dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
@@ -342,12 +343,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
         if self.model_type == "segmentation":
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"]
-                / (
-                    self.n_batches
-                    * self.batch_size
-                    * self.output_size[0]
-                    * self.output_size[1]
-                )
+                / (self.n_batches * self.batch_size * np.prod(self.output_size))
             )
             if logs.get("total_miou") is not None:
                 self.metrics[f"{self.task_name}_miou"]["y"].append(
@@ -419,7 +415,7 @@ class SSLTaskLogger(MinervaTaskLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        output_size: Tuple[int, ...],
         step_logger_params: Optional[Dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
@@ -464,21 +460,11 @@ class SSLTaskLogger(MinervaTaskLogger):
         if check_substrings_in_string(self.model_type, "segmentation"):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"]
-                / (
-                    self.n_batches
-                    * self.batch_size
-                    * self.output_size[0]
-                    * self.output_size[1]
-                )
+                / (self.n_batches * self.batch_size * np.prod(self.output_size))
             )
             self.metrics[f"{self.task_name}_top5_acc"]["y"].append(
                 logs["total_top5"]
-                / (
-                    self.n_batches
-                    * self.batch_size
-                    * self.output_size[0]
-                    * self.output_size[1]
-                )
+                / (self.n_batches * self.batch_size * np.prod(self.output_size))
             )
 
         else:
