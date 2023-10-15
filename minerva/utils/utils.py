@@ -69,6 +69,7 @@ __all__ = [
     "exist_delete_check",
     "mkexpdir",
     "check_dict_key",
+    "check_substrings_in_string",
     "datetime_reformat",
     "get_dataset_name",
     "transform_coordinates",
@@ -105,6 +106,7 @@ __all__ = [
     "print_config",
     "tsne_cluster",
     "calc_norm_euc_dist",
+    "fallback_params",
 ]
 
 # =====================================================================================================================
@@ -548,7 +550,7 @@ def exist_delete_check(fn: Union[str, Path]) -> None:
     """Checks if given file exists then deletes if true.
 
     Args:
-        fn (str): Path to file to have existence checked then deleted.
+        fn (str | ~pathlib.Path): Path to file to have existence checked then deleted.
 
     Returns:
         None
