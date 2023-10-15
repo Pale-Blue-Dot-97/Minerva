@@ -221,7 +221,7 @@ class MinervaTask(ABC):
             "record_float", self.params, self.global_params, record_float
         )
 
-        self.modelio = staticmethod(self.get_io_func())
+        self.modelio = staticmethod(self.get_io_func()).__func__
 
         self.loaders = loaders
         self.device = device
