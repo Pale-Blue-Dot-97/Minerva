@@ -175,7 +175,6 @@ class MinervaTaskLogger(ABC):
         """Abstract method to log a step, using the logger. Must be overwritten.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
@@ -347,12 +346,12 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             )
             if logs.get("total_miou") is not None:
                 self.metrics[f"{self.task_name}_miou"]["y"].append(
-                    logs["total_miou"] / (self.n_samples)
+                    logs["total_miou"] / self.n_samples
                 )
 
         else:
             self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"] / (self.n_samples)
+                logs["total_correct"] / self.n_samples
             )
 
     def log_epoch_number(self, epoch_no: int) -> None:
@@ -469,10 +468,10 @@ class SSLTaskLogger(MinervaTaskLogger):
 
         else:
             self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"] / (self.n_samples)
+                logs["total_correct"] / self.n_samples
             )
             self.metrics[f"{self.task_name}_top5_acc"]["y"].append(
-                logs["total_top5"] / (self.n_samples)
+                logs["total_top5"] / self.n_samples
             )
 
         if self.sample_pairs:
