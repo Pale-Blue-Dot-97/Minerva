@@ -365,6 +365,8 @@ class MinervaTask(ABC):
         self,
         results: Dict[str, Any],
         metrics: Optional[Dict[str, Any]] = None,
+        save: bool = True,
+        show: bool = False,
     ) -> None:
         # Gets the dict from params that defines which plots to make from the results.
         plots = utils.fallback_params(
@@ -402,8 +404,8 @@ class MinervaTask(ABC):
                 "classes", self.params, self.global_params
             ),
             colours=utils.fallback_params("colours", self.params, self.global_params),
-            save=True,
-            show=False,
+            save=save,
+            show=show,
             model_name=self.params["model_name"],
             timestamp=self.params["timestamp"],
             results_dir=self.task_dir,

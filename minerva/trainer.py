@@ -583,8 +583,8 @@ class Trainer:
 
                     # Create a subset of metrics for plotting model history.
                     fit_metrics: Dict[str, Any] = {}
-                    for mode in tasks.keys():
-                        fit_metrics = {**fit_metrics, **tasks[mode].get_metrics}
+                    for _mode in tasks.keys():
+                        fit_metrics = {**fit_metrics, **tasks[_mode].get_metrics}
 
                     fit_metrics = {
                         k.replace("fit-", ""): v for k, v in fit_metrics.items()
@@ -658,7 +658,7 @@ class Trainer:
                     task.compute_classification_report(results["z"], results["y"])
 
                 # Plots the results.
-                task.plot(results)
+                task.plot(results, save=save, show=show)
 
                 # Writes the recorded metrics of the task to file.
                 task.save_metrics()
