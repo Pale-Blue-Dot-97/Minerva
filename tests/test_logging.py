@@ -127,7 +127,6 @@ def test_SupervisedGeoStepLogger(
     correct_miou: Dict[str, List[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
-        print(f"{epoch_no=}")
         data: List[Dict[str, Union[Tensor, List[Any]]]] = []
         for i in range(std_n_batches):
             images = torch.rand(size=(std_batch_size, 4, *small_patch_size))
@@ -183,7 +182,7 @@ def test_SupervisedGeoStepLogger(
         if utils.check_substrings_in_string(model_type, "segmentation"):
             correct_acc["y"].append(
                 logs["total_correct"]
-                / (std_n_batches * std_batch_size * np.prod(small_patch_size))
+                / float(std_n_batches * std_batch_size * np.prod(small_patch_size))
             )
         else:
             correct_acc["y"].append(
@@ -308,17 +307,13 @@ def test_SSLStepLogger(
         correct_loss["y"].append(logs["total_loss"] / std_n_batches)
 
         if utils.check_substrings_in_string(model_type, "segmentation"):
-            print(std_n_batches * std_batch_size * np.prod(output_shape))
-            print(f"{std_n_batches=}")
-            print(f"{std_batch_size=}")
-            print(f"{small_patch_size=}")
             correct_acc["y"].append(
                 logs["total_correct"]
-                / (std_n_batches * std_batch_size * np.prod(small_patch_size))
+                / float(std_n_batches * std_batch_size * np.prod(small_patch_size))
             )
             correct_top5["y"].append(
                 logs["total_top5"]
-                / (std_n_batches * std_batch_size * np.prod(small_patch_size))
+                / float(std_n_batches * std_batch_size * np.prod(small_patch_size))
             )
 
         else:
