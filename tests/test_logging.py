@@ -141,7 +141,7 @@ def test_SupervisedGeoStepLogger(
             }
             data.append(batch)
 
-            logger.step(i, *sup_tg(batch, model, device=default_device, train=train))
+            logger.step(i, *sup_tg(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
 
         logs = logger.get_logs
         assert logs["batch_num"] == std_n_batches
@@ -284,7 +284,7 @@ def test_SSLStepLogger(
 
             logger.step(
                 i,
-                *ssl_pair_tg((batch, batch), model, device=default_device, train=train),
+                *ssl_pair_tg((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]
             )
 
         logs = logger.get_logs
