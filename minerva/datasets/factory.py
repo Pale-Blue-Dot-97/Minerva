@@ -582,6 +582,7 @@ def get_manifest(
     Args:
         manifest_path (str | ~pathlib.Path): Path (including filename and extension) to the manifest
             saved as a ``csv``.
+        task_name (str): Optional; Name of the task to which the dataset to create a manifest of belongs to.
 
     Returns:
         ~pandas.DataFrame: Manifest either loaded from ``manifest_path`` or created from parameters in :data:`CONFIG`.
@@ -616,6 +617,7 @@ def make_manifest(
 
     Args:
         mf_config (dict[~typing.Any, ~typing.Any]): Config to use to construct the manifest with.
+        task_name (str): Optional; Name of the task to which the dataset to create a manifest of belongs to.
 
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
