@@ -94,9 +94,6 @@ class TSNEVis(MinervaTask):
 
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
-
-        Args:
-            mode (str): The mode of model fitting that the embeddings come from.
         """
         # Get a batch of data.
         data = next(iter(self.loaders))
@@ -105,7 +102,7 @@ class TSNEVis(MinervaTask):
         self.model.eval()
 
         # Pass the batch of data through the model to get the embeddings.
-        embeddings: Tensor = self.model(data["image"].to(self.device))[0]
+        embeddings: Tensor = self.model.step(data["image"].to(self.device))[0]
 
         # Flatten embeddings.
         embeddings = embeddings.flatten(start_dim=1)
