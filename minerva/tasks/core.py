@@ -56,8 +56,7 @@ from torch import Tensor
 from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
-from minerva.logging.tasklog import MinervaTaskLogger, SupervisedTaskLogger
-from minerva.modelio import sup_tg
+from minerva.logger.tasklog import MinervaTaskLogger
 from minerva.models import MinervaDataParallel, MinervaModel
 from minerva.utils import utils, visutils
 from minerva.utils.utils import fallback_params, func_by_str
@@ -444,7 +443,7 @@ class MinervaTask(ABC):
             # Assumes that the length of each metric is the same.
             metrics_df["Epoch"] = list(metrics.values())[0]["x"]
             metrics_df.set_index("Epoch", inplace=True, drop=True)
-            metrics_df.to_csv(f"{self.exp_fn}_metrics.csv")
+            metrics_df.to_csv(f"{self.task_fn}_metrics.csv")
 
         except (ValueError, KeyError) as err:  # pragma: no cover
             print(err)

@@ -130,7 +130,7 @@ class MinervaStepLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: int,
+        output_size: Tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,

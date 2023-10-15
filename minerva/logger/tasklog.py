@@ -55,7 +55,7 @@ from wandb.sdk.wandb_run import Run
 
 from minerva.utils.utils import check_substrings_in_string
 
-from .steplog import get_logger
+from .steplog import MinervaStepLogger, get_logger
 
 
 # =====================================================================================================================
@@ -118,9 +118,7 @@ class MinervaTaskLogger(ABC):
         self.writer = writer
 
         if isinstance(step_logger_params, dict):
-            self.logger_cls = get_logger(
-                step_logger_params.get("name", self.logger_cls)
-            )
+            self._logger = get_logger(step_logger_params.get("name", self.logger_cls))
             if "params" not in step_logger_params:
                 step_logger_params["params"] = {}
 
@@ -147,7 +145,7 @@ class MinervaTaskLogger(ABC):
         .. note::
             Will overwrite ``self.logger`` with new logger.
         """
-        self.step_logger = self.logger_cls(
+        self.step_logger: MinervaStepLogger = self._logger(
             task_name=self.task_name,
             n_batches=self.n_batches,
             batch_size=self.batch_size,

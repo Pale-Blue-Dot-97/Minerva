@@ -55,7 +55,7 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
-from minerva.logging import SSLTaskLogger
+from minerva.logger import SSLTaskLogger
 from minerva.models import MinervaDataParallel, MinervaModel, MinervaSiamese
 from minerva.utils import utils
 
@@ -132,7 +132,7 @@ class WeightedKNN(MinervaTask):
     .. versionadded:: 0.27
     """
 
-    logger_cls = SSLTaskLogger
+    logger_cls = "SSLTaskLogger"
 
     def __init__(
         self,

@@ -59,7 +59,7 @@ from torch import Tensor
 from torch.nn.modules import Module
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.logging.tasklog import SSLTaskLogger, SupervisedTaskLogger
+from minerva.logger.tasklog import SSLTaskLogger, SupervisedTaskLogger
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.modelio import ssl_pair_tg, sup_tg
 from minerva.models import FCN16ResNet18, MinervaSiamese, SimCLR18, SimConv
@@ -122,9 +122,9 @@ def test_SupervisedGeoStepLogger(
         step_logger_params={"params": {"n_classes": std_n_classes}},
     )
 
-    correct_loss = {"x": [], "y": []}
-    correct_acc = {"x": [], "y": []}
-    correct_miou = {"x": [], "y": []}
+    correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_acc: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_miou: Dict[str, List[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
         print(f"{epoch_no=}")
@@ -271,11 +271,11 @@ def test_SSLStepLogger(
         sample_pairs=True,
     )
 
-    correct_loss = {"x": [], "y": []}
-    correct_acc = {"x": [], "y": []}
-    correct_top5 = {"x": [], "y": []}
-    correct_collapse_level = {"x": [], "y": []}
-    correct_euc_dist = {"x": [], "y": []}
+    correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_acc: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_top5: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_collapse_level: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_euc_dist: Dict[str, List[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
         for i in range(std_n_batches):
