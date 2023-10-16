@@ -78,7 +78,7 @@ class TSNEVis(MinervaTask):
         backbone = model.get_backbone()  # type: ignore[assignment, operator]
 
         # Set dummy optimiser. It won't be used as this is a test.
-        backbone.set_optimser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))
+        backbone.set_optimiser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))
 
         super().__init__(
             name,
