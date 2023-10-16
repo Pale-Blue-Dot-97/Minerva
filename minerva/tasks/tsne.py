@@ -107,7 +107,7 @@ class TSNEVis(MinervaTask):
         self.model.eval()
 
         # Pass the batch of data through the model to get the embeddings.
-        embeddings: Tensor = self.model.step(data["image"].to(self.device))[0]
+        embeddings: Tensor = self.model.forward(data["image"].to(self.device))[0]
 
         # Flatten embeddings.
         embeddings = embeddings.flatten(start_dim=1)
