@@ -249,6 +249,15 @@ class MinervaTaskLogger(ABC):
         """
         return self.step_logger.get_results
 
+    def log_null(self) -> None:
+        """Log :attr:`numpy.NAN` for this epoch.
+
+        Useful for logging null when a validation epoch was skipped so that
+        the length of the logs remains the same as the training logs.
+        """
+        for metric in self.metrics.keys():
+            self.metrics[metric]["y"].append(np.NAN)
+
     def get_sub_metrics(
         self, pattern: Tuple[str, ...] = ("train", "val")
     ) -> Dict[str, Any]:

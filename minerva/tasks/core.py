@@ -358,6 +358,18 @@ class MinervaTask(ABC):
     def get_metrics(self) -> Dict[str, Any]:
         return self.logger.get_metrics
 
+    def log_null(self, epoch_no: int) -> None:
+        """Log :attr:`numpy.NAN` for this epoch.
+
+        Useful for logging null when a validation epoch was skipped so that
+        the length of the logs remains the same as the training logs.
+
+        Args:
+            epoch_no (int): Epoch number.
+        """
+        self.logger.log_null()
+        self.logger.log_epoch_number(epoch_no)
+
     def print_epoch_results(self, epoch_no: int) -> None:
         self.logger.print_epoch_results(epoch_no)
 

@@ -550,6 +550,7 @@ class Trainer:
                     utils.check_substrings_in_string(mode, "val")
                     and (epoch + 1) % self.val_freq != 0
                 ):
+                    tasks[mode].log_null(epoch)
                     break
 
                 if tasks[mode].train:
