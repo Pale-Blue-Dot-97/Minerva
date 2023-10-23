@@ -304,6 +304,3 @@ class WeightedKNN(MinervaTask):
 
                 # Update global step number for this mode of model fitting.
                 self.step_num += 1
-
-        # Updates metrics with epoch results.
-        self.logger.calc_metrics()

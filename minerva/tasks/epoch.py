@@ -95,9 +95,6 @@ class StandardEpoch(MinervaTask):
                 if self.gpu == 0:
                     bar()  # type: ignore
 
-        # Updates metrics with epoch results.
-        self.logger.calc_metrics()
-
         # If configured to do so, calculates the grad norms.
         if self.params.get("calc_norm", False):
             _ = utils.calc_grad(self.model)
