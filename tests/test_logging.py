@@ -195,8 +195,7 @@ def test_SupervisedGeoStepLogger(
                 logs["total_miou"] / (std_n_batches * std_batch_size)
             )
 
-        logger.calc_metrics()
-        logger.log_epoch_number(epoch_no)
+        logger.calc_metrics(epoch_no)
         logger.print_epoch_results(epoch_no)
 
         metrics = logger.get_metrics
@@ -330,8 +329,7 @@ def test_SSLStepLogger(
             correct_collapse_level["y"].append(logs["collapse_level"])
             correct_euc_dist["y"].append(logs["euc_dist"] / std_n_batches)
 
-        logger.calc_metrics()
-        logger.log_epoch_number(epoch_no)
+        logger.calc_metrics(epoch_no)
         logger.print_epoch_results(epoch_no)
 
         metrics = logger.get_metrics

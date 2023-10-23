@@ -194,9 +194,14 @@ class MinervaTaskLogger(ABC):
             **kwargs,
         )
 
-    def calc_metrics(self) -> None:
-        """Updates metrics with epoch results."""
+    def calc_metrics(self, epoch_no: int) -> None:
+        """Updates metrics with epoch results.
+
+        Args:
+            epoch_no (int): Epoch number to log.
+        """
         self._calc_metrics(self.step_logger.get_logs)
+        self.log_epoch_number(epoch_no)
 
     @abc.abstractmethod
     def _calc_metrics(self, logs: Dict[str, Any]) -> None:

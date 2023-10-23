@@ -333,10 +333,7 @@ class MinervaTask(ABC):
         self.step()
 
         # Send the logs to the metric logger.
-        self.logger.calc_metrics()
-
-        # Add epoch number to metrics.
-        self.logger.log_epoch_number(epoch_no)
+        self.logger.calc_metrics(epoch_no)
 
         if self.record_int or self.record_float:
             results = self.logger.get_results
