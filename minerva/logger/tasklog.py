@@ -209,14 +209,14 @@ class MinervaTaskLogger(ABC):
         """
         pass  # pragma: no cover
 
-    @abc.abstractmethod
     def log_epoch_number(self, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
 
         Args:
             epoch_no (int): Epoch number to log.
         """
-        pass  # pragma: no cover
+        for metric in self.metrics.keys():
+            self.metrics[metric]["x"].append(epoch_no)
 
     @property
     def get_metrics(self) -> Dict[str, Any]:
@@ -363,16 +363,6 @@ class SupervisedTaskLogger(MinervaTaskLogger):
                 logs["total_correct"] / self.n_samples
             )
 
-    def log_epoch_number(self, epoch_no: int) -> None:
-        """Logs the epoch number to ``metrics``.
-
-        Args:
-            epoch_no (int): Epoch number to log.
-        """
-        self.metrics[f"{self.task_name}_loss"]["x"].append(epoch_no + 1)
-        self.metrics[f"{self.task_name}_acc"]["x"].append(epoch_no + 1)
-        self.metrics[f"{self.task_name}_miou"]["x"].append(epoch_no + 1)
-
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
 
@@ -490,20 +480,6 @@ class SSLTaskLogger(MinervaTaskLogger):
             self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
                 logs["euc_dist"] / self.n_batches
             )
-
-    def log_epoch_number(self, epoch_no: int) -> None:
-        """Logs the epoch number to ``metrics``.
-
-        Args:
-            epoch_no (int): Epoch number to log.
-        """
-        self.metrics[f"{self.task_name}_loss"]["x"].append(epoch_no + 1)
-        self.metrics[f"{self.task_name}_acc"]["x"].append(epoch_no + 1)
-        self.metrics[f"{self.task_name}_top5_acc"]["x"].append(epoch_no + 1)
-
-        if self.sample_pairs:
-            self.metrics[f"{self.task_name}_collapse_level"]["x"].append(epoch_no + 1)
-            self.metrics[f"{self.task_name}_euc_dist"]["x"].append(epoch_no + 1)
 
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.

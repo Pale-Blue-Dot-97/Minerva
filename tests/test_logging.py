@@ -175,10 +175,10 @@ def test_SupervisedGeoStepLogger(
 
         assert_array_equal(results["y"], y)
 
-        correct_loss["x"].append(epoch_no + 1)
+        correct_loss["x"].append(epoch_no)
         correct_loss["y"].append(logs["total_loss"] / std_n_batches)
 
-        correct_acc["x"].append(epoch_no + 1)
+        correct_acc["x"].append(epoch_no)
         if utils.check_substrings_in_string(model_type, "segmentation"):
             correct_acc["y"].append(
                 logs["total_correct"]
@@ -190,7 +190,7 @@ def test_SupervisedGeoStepLogger(
             )
 
         if utils.check_substrings_in_string(model_type, "segmentation"):
-            correct_miou["x"].append(epoch_no + 1)
+            correct_miou["x"].append(epoch_no)
             correct_miou["y"].append(
                 logs["total_miou"] / (std_n_batches * std_batch_size)
             )
@@ -300,9 +300,9 @@ def test_SSLStepLogger(
         results = logger.get_results
         assert results == {}
 
-        correct_loss["x"].append(epoch_no + 1)
-        correct_acc["x"].append(epoch_no + 1)
-        correct_top5["x"].append(epoch_no + 1)
+        correct_loss["x"].append(epoch_no)
+        correct_acc["x"].append(epoch_no)
+        correct_top5["x"].append(epoch_no)
 
         correct_loss["y"].append(logs["total_loss"] / std_n_batches)
 
@@ -325,8 +325,8 @@ def test_SSLStepLogger(
             )
 
         if extra_metrics:
-            correct_collapse_level["x"].append(epoch_no + 1)
-            correct_euc_dist["x"].append(epoch_no + 1)
+            correct_collapse_level["x"].append(epoch_no)
+            correct_euc_dist["x"].append(epoch_no)
             correct_collapse_level["y"].append(logs["collapse_level"])
             correct_euc_dist["y"].append(logs["euc_dist"] / std_n_batches)
 

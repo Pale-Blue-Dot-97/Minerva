@@ -645,13 +645,13 @@ class Trainer:
 
             # Runs test epoch on model, returning the predicted labels, ground truth labels supplied
             # and the IDs of the samples supplied.
-            results = task(1)
+            results = task(0)
 
             assert results is not None
 
             if self.gpu == 0:
                 # Print epoch results.
-                task.print_epoch_results(1)
+                task.print_epoch_results(0)
 
                 # Creates a classification report from the results of the task.
                 if "z" in results and "y" in results:
@@ -729,7 +729,7 @@ class Trainer:
             **self.params,
         )
 
-        task(1)
+        task(0)
 
     def close(self) -> None:
         """Closes the experiment, saving experiment parameters and model to file."""
