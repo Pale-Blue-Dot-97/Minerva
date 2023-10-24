@@ -69,16 +69,15 @@ class MinervaTask(ABC):
     """An abstract definition of a task to fit or evalulate a model within :mod:`minerva`.
 
     Attributes:
+        name (str): The name of the task.
         params (dict[str, ~typing.Any]): Dictionary describing all the parameters that define how the model will be
             constructed, trained and evaluated. These should be defined via config ``YAML`` files.
         model (MinervaModel): Model to be fitted of a class contained within :mod:`~minerva.models`.
-        batch_size (int): Size of each batch of samples supplied to the model.
         loaders (dict[str, ~torch.utils.data.DataLoader]): :class:`dict` containing
             :class:`~torch.utils.data.DataLoader` (s) for each dataset.
         n_batches (dict[str, int]): Dictionary of the number of batches to supply to the model for train,
             validation and testing.
-        metrics (dict[str, ~typing.Any]): Dictionary to hold the loss and accuracy results from training,
-            validation and testing.
+        batch_size (int): Number of samples in each batch.
         device: The CUDA device on which to fit the model.
         verbose (bool): Provides more prints to stdout if ``True``.
         class_dist (~typing.Any): Distribution of classes within the data.
@@ -86,29 +85,39 @@ class MinervaTask(ABC):
         modes (tuple[str, ...]): The different *modes* of fitting in this experiment specified by the config.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run | None): The *writer*
             to perform logging for this experiment. For use with either :mod:`tensorboard` or :mod:`wandb`.
-        stopper (~pytorchtools.EarlyStopping | None): Early stopping function.
-        early_stop (bool): Whether early stopping has been triggered. Will end model training if ``True``.
         n_samples (dict[str, int]): Number of samples in each mode of model fitting.
-        metric_logger (~logger.MinervaLogger): Object to calculate and log metrics to track the performance
+        logger (~logger.MinervaTaskLogger): Object to calculate and log metrics to track the performance
             of the model.
         modelio_func (~typing.Callable[..., ~typing.Any]): Function to handle the input/ output to the model.
-        steps (dict[str, int]): :class:`dict` to hold the global step number for each mode of model fitting.
+        step_num (int): Holds the step number for this task.
         model_type (str): Type of the model that determines how to handle IO, metric calculations etc.
+        record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
+        record_float (bool): Store the floating point results of each epoch in memory
+            such as the raw predicted probabilities.
 
     Args:
+        name (str): The name of the task. Should match the key for the task
+            in the ``tasks`` dictionary of the experiment params.
         model (MinervaModel): Model to be fitted of a class contained within :mod:`~minerva.models`.
-        batch_size (int): Number of samples in each batch.
         device: The CUDA device on which to fit the model.
+        exp_fn (~pathlib.Path): The path to the parent directory for the results of the experiment.
+        gpu (int): Optional; CUDA GPU device number. For use in distributed computing. Defaults to ``0``.
         rank (int): Optional; The rank of this process across all devices in the distributed run.
         world_size (int): Optional; The total number of processes across the distributed run.
         writer (~wandb.sdk.wandb_run.Run | RunDisabled): Optional; Run object for Weights and Biases.
         params (dict[str, ~typing.Any]): Dictionary describing all the parameters that define how the model will be
             constructed, trained and evaluated. These should be defined via config ``YAML`` files.
+        record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
+        record_float (bool): Store the floating point results of each epoch in memory
+            such as the raw predicted probabilities.
 
     Keyword Args:
         elim (bool): Will eliminate classes that have no samples in and reorder the class labels so they
             still run from ``0`` to ``n-1`` classes where ``n`` is the reduced number of classes.
             :mod:`minerva` ensures that labels are converted between the old and new schemes seamlessly.
+        balance (bool): Activates class balancing. For ``model_type="scene classifer"`` or ``model_type="mlp"``,
+            over and under sampling will be used. For ``model_type="segmentation"``, class weighting will be
+            used on the loss function.
         model_type (str): Defines the type of the model. If ``siamese``, ensures inappropiate functionality is not used.
         dataset_params (dict[str, ~typing.Any]): Parameters to construct each dataset.
             See documentation on structure of these.
@@ -116,10 +125,6 @@ class MinervaTask(ABC):
             Contains the ``module`` key to define the import path and the ``name`` key
             for name of the collation function.
         sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
-        stopping (dict[str, ~typing.Any]): Dictionary to hold the parameters defining the early stopping functionality.
-            If no dictionary is given, it is assumed that there will be no early stopping.
-        pre_train_name (str): Name of the pre-trained model to use.
-        reload (bool): Reloads the weights in the cache matching ``pre_train_name`` to continue model fitting.
         loss_func (str): Name of the loss function to use.
         optim_func (str): Name of the optimiser function to use.
         lr (float): Learning rate of optimiser.
@@ -129,21 +134,16 @@ class MinervaTask(ABC):
         loss_params (dict[str, ~typing.Any]): :class:`dict` to hold any additional parameters for the loss function
             in the ``params`` key. If using a non-torch loss function, you need to specify the import path
             with the ``module`` key.
-        balance (bool): Activates class balancing. For ``model_type="scene classifer"`` or ``model_type="mlp"``,
-            over and under sampling will be used. For ``model_type="segmentation"``, class weighting will be
-            used on the loss function.
         patch_size (tuple[float, float]): Defines the shape of the patches in the dataset.
         input_size (tuple[int, ...]): Shape of the input to the model. Typically in CxHxW format.
             Should align with the values given for ``patch_size``.
-        metrics (str): Specify the metric logger to use. Must be the name of a :class:`~metrics.MinervaMetric` class
-            within :mod:`metrics`.
-        logger (str): Specify the logger to use. Must be the name of a :class:`~logger.MinervaLogger` class
-            within :mod:`logger`.
+        tasklogger (str): Specify the task logger to use. Must be the name of a :class:`~logger.tasklog.MinervaTaskLogger` class
+            within :mod:`~logger.tasklog`.
+        steplogger (str): Specify the step logger to use. Must be the name of a :class:`~logger.steplog.MinervaStepLogger` class
+            within :mod:`~logger.steplog`.
         modelio (str): Specify the IO function to use to handle IO for the model during fitting. Must be the name
             of a function within :mod:`modelio`.
-        record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
-        record_float (bool): Store the floating point results of each epoch in memory
-            such as the raw predicted probabilities.
+
 
     .. versionadded:: 0.27
     """
@@ -181,7 +181,10 @@ class MinervaTask(ABC):
 
         global_params["tasks"][name] = new_params
 
+        # ``global_params`` is the whole experiment parameters.
         self.global_params = global_params
+
+        # ``params`` is the parameters for just this task.
         self.params = new_params
 
         # Modify `exp_fn` with a sub-directory for this task.
@@ -197,9 +200,8 @@ class MinervaTask(ABC):
         self.loaders = loaders
         self.class_dist = class_dist
 
-        self.batch_size = fallback_params(
-            "batch_size", self.global_params["tasks"][name], self.params
-        )
+        # Try to find parameters first in the task params then fall back to the global level params.
+        self.batch_size = fallback_params("batch_size", self.params, self.global_params)
 
         # Corrects the batch size if this is a distributed job to account for batches being split across devices.
         if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
@@ -221,6 +223,7 @@ class MinervaTask(ABC):
             "record_float", self.params, self.global_params, record_float
         )
 
+        # Ensure the model IO function is treated as static not a class method.
         self.modelio = staticmethod(self.get_io_func()).__func__
 
         self.loaders = loaders
@@ -228,10 +231,13 @@ class MinervaTask(ABC):
         self.writer = writer
         self.step_num = 0
 
+        # Initialise the Weights and Biases metrics for this task.
         self.init_wandb_metrics()
 
+        # Update the loss function of the model.
         self.model.set_criterion(self.make_criterion())
 
+        # Make the logger for this task.
         self.logger: MinervaTaskLogger = self.make_logger()
 
     def init_wandb_metrics(self) -> None:
