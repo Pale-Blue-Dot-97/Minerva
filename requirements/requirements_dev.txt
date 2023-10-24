@@ -25,7 +25,7 @@ overload==1.1
 pandas==2.1.1
 pre-commit==3.5.0
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability.
-psutil==5.9.5
+psutil==5.9.6
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability.
 pytest==7.4.2
 pytest-cov==4.1.0
