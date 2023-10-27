@@ -45,9 +45,9 @@ optim_func: SGD                           # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
-max_r: &max_r 56  # Max distance between patches within a Siamese pair.
-knn_k: 5          # Top-k most similar images used to predict image for KNN val
-val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
+max_r: &max_r 320   # Max distance between patches within a pair.
+knn_k: 5            # Top-k most similar images to predict image for KNN val
+val_freq: 2         # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
@@ -76,11 +76,6 @@ project: pytest        # Define the project name for wandb.
 wandb_dir: *wandb_dir
 
 # === MODEL IO & LOGGING ======================================================
-# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-# task_logger: SSLLogger
-# metrics: SSLMetrics
-# model_io: ssl_pair_tg
-
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
 
@@ -141,6 +136,8 @@ tasks:
                 paths: SSL4EO-S12
                 params:
                     res: 10.0
+                    crs: 25832
+                    bands: [B1, B2, B3, B8A]
 
     fit-val:
         type: WeightedKNN
