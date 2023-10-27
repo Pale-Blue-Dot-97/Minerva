@@ -136,18 +136,11 @@ tasks:
                         module: torchvision.transforms
                         kernel_size: 25
 
-                image1:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
-                        res: 1.0
-                image2:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
-                        res: 1.0
+                module: minerva.datasets
+                name: SSL4EOS12Sentinel2
+                paths: SSL4EO-S12
+                params:
+                    res: 10.0
 
     fit-val:
         type: WeightedKNN
