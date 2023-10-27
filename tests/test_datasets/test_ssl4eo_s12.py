@@ -38,7 +38,6 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 from pathlib import Path
 
-import pytest
 from rasterio.crs import CRS
 
 from minerva.datasets import PairedDataset, SSL4EOS12Sentinel2
