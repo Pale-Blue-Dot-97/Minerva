@@ -20,7 +20,7 @@ nptyping==2.5.0
 numba>=0.57.0 # not directly required but pinned to ensure Python 3.11 compatibility.
 numpy==1.26.1
 onnx==1.14.1
-onnx2torch==1.5.12
+onnx2torch==1.5.13
 overload==1.1
 pandas==2.1.1
 pre-commit==3.5.0
