@@ -116,6 +116,7 @@ __all__ = [
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import cmath
 import functools
+import glob
 import importlib
 import inspect
 import math
@@ -1975,6 +1976,10 @@ def compile_dataset_paths(
         out_paths = [universal_path(data_dir) / path for path in in_paths]
     else:
         out_paths = [universal_path(data_dir) / in_paths]
+
+    compiled_paths = []
+    for path in out_paths:
+        compiled_paths.extend(glob.glob(path, recursive=True))
 
     # For each path, get the absolute path, convert to string and return.
     return [str(path.absolute()) for path in out_paths]
