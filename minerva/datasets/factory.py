@@ -121,12 +121,11 @@ def make_dataset(
         )
 
         # Construct the path to the sub-dataset's files.
-        sub_dataset_path: Path = (
-            universal_path(data_directory) / sub_dataset_params["paths"]
+        sub_dataset_paths = utils.compile_dataset_paths(
+            data_directory, sub_dataset_params["paths"]
         )
-        sub_dataset_path = sub_dataset_path.absolute()
 
-        return _sub_dataset, str(sub_dataset_path)
+        return _sub_dataset, sub_dataset_paths
 
     def create_subdataset(
         dataset_class: Callable[..., GeoDataset],

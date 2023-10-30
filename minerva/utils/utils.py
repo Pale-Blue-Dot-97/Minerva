@@ -107,6 +107,7 @@ __all__ = [
     "tsne_cluster",
     "calc_norm_euc_dist",
     "fallback_params",
+    "compile_dataset_paths",
 ]
 
 # =====================================================================================================================
@@ -1955,3 +1956,25 @@ def fallback_params(
         return params_b[key]
     else:
         return fallback
+
+
+def compile_dataset_paths(
+    data_dir: Union[Path, str],
+    in_paths: Union[List[Union[Path, str]], Union[Path, str]],
+) -> List[str]:
+    """Ensures that a list of paths is returned with the data directory prepended, even if a single string is supplied
+
+    Args:
+        data_dir (~pathlib.Path | str): The parent data directory for all paths.
+        in_paths (list[~pathlib.Path | str] | [~pathlib.Path | str]): Paths to the data to be compilied.
+
+    Returns:
+        list[str]: Compilied paths to the data.
+    """
+    if isinstance(in_paths, list):
+        out_paths = [universal_path(data_dir) / path for path in in_paths]
+    else:
+        out_paths = [universal_path(data_dir) / in_paths]
+
+    # For each path, get the absolute path, convert to string and return.
+    return [str(path.absolute()) for path in out_paths]
