@@ -1979,12 +1979,7 @@ def compile_dataset_paths(
 
     compiled_paths = []
     for path in out_paths:
-        glob_paths = glob.glob(str(path), recursive=True)
-        compiled_paths.extend(glob_paths)
-
-        print(glob_paths)
-
-    print(compiled_paths)
+        compiled_paths.extend(glob.glob(str(path), recursive=True))
 
     # For each path, get the absolute path, convert to string and return.
-    return [str(Path(path).absolute()) for path in out_paths]
+    return [str(Path(path).absolute()) for path in compiled_paths]
