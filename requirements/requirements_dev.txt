@@ -27,7 +27,7 @@ pre-commit==3.5.0
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability.
 psutil==5.9.6
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability.
-pytest==7.4.2
+pytest==7.4.3
 pytest-cov==4.1.0
 pytest-lazy-fixture==0.6.3
 pyyaml==6.0.1
