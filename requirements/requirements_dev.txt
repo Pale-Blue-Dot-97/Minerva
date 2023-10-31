@@ -10,7 +10,7 @@ GitPython>=3.1.35
 imageio==2.31.6
 inputimeout==1.0.4
 internet-sabotage3==0.1.6
-ipykernel==6.25.2
+ipykernel==6.26.0
 lightly==1.4.21
 matplotlib==3.7.2
 mlflow==2.8.0
