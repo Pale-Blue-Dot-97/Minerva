@@ -111,7 +111,7 @@ def make_dataset(
 
     def get_subdataset(
         this_dataset_params: Dict[str, Any], key: str
-    ) -> Tuple[Callable[..., GeoDataset], str]:
+    ) -> Tuple[Callable[..., GeoDataset], List[str]]:
         # Get the params for this sub-dataset.
         sub_dataset_params = this_dataset_params[key]
 
@@ -122,7 +122,7 @@ def make_dataset(
 
         # Construct the path to the sub-dataset's files.
         sub_dataset_paths = utils.compile_dataset_paths(
-            data_directory, sub_dataset_params["paths"]
+            universal_path(data_directory), sub_dataset_params["paths"]
         )
 
         return _sub_dataset, sub_dataset_paths

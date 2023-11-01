@@ -137,10 +137,10 @@ class MinervaTask(ABC):
         patch_size (tuple[float, float]): Defines the shape of the patches in the dataset.
         input_size (tuple[int, ...]): Shape of the input to the model. Typically in CxHxW format.
             Should align with the values given for ``patch_size``.
-        tasklogger (str): Specify the task logger to use. Must be the name of a :class:`~logger.tasklog.MinervaTaskLogger`
-            class within :mod:`~logger.tasklog`.
-        steplogger (str): Specify the step logger to use. Must be the name of a :class:`~logger.steplog.MinervaStepLogger`
-            class within :mod:`~logger.steplog`.
+        tasklogger (str): Specify the task logger to use. Must be the name of a
+            :class:`~logger.tasklog.MinervaTaskLogger` class within :mod:`~logger.tasklog`.
+        steplogger (str): Specify the step logger to use. Must be the name of a
+            :class:`~logger.steplog.MinervaStepLogger` class within :mod:`~logger.steplog`.
         modelio (str): Specify the IO function to use to handle IO for the model during fitting. Must be the name
             of a function within :mod:`modelio`.
 
