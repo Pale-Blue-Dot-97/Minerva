@@ -1,5 +1,5 @@
 alive_progress==3.1.4
-argcomplete==3.1.2
+argcomplete==3.1.4
 catalyst==22.4
 certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerability.
 fastapi>=0.101.0
