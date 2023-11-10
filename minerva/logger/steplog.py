@@ -64,6 +64,7 @@ import torch
 import torch.distributed as dist
 from sklearn.metrics import jaccard_score
 from torch import Tensor
+from torchmetrics.regression import CosineSimilarity
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -671,7 +672,8 @@ class SSLStepLogger(MinervaStepLogger):
         self.logs["total_loss"] += ls
 
         # Compute the TOP1 and TOP5 accuracies.
-        sim_argsort = utils.calc_contrastive_acc(z)
+        cosine_sim = CosineSimilarity(reduction=None)
+        sim_argsort = cosine_sim(*torch.split(z, int(0.5 * len(z)), 0))
         correct = float((sim_argsort == 0).float().mean().cpu().numpy())
         top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
 
