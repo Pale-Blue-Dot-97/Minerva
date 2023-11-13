@@ -635,7 +635,7 @@ def prediction_plot(
 
     gs = GridSpec(nrows=2, ncols=2, figure=fig)
 
-    axes: NDArray[Shape["3"], Axes] = np.array(
+    axes: NDArray[Shape["3"], Axes] = np.array(  # type: ignore[type-var, assignment]
         [
             fig.add_subplot(gs[0, 0]),
             fig.add_subplot(gs[0, 1]),
@@ -868,7 +868,7 @@ def plot_subpopulations(
     plt.figure(figsize=(6, 5))
 
     # Plot a pie chart of the data distribution amongst the classes.
-    patches, _ = plt.pie(
+    patches, _ = plt.pie(  # type: ignore[misc]
         counts, colors=colours, explode=[i * 0.05 for i in range(len(class_data))]
     )
 
