@@ -243,7 +243,7 @@ def test_seg_plot(results_root, default_dataset: GeoDataset, monkeypatch) -> Non
         y=z,
         ids=ids,  # type: ignore[arg-type]
         bounds=bboxes,
-        mode="test",
+        task_name="test-test",
         classes=utils.CLASSES,
         colours=utils.CMAP_DICT,
         fn_prefix=fn_prefix,
@@ -369,7 +369,7 @@ def test_plot_results(default_dataset: GeoDataset) -> None:
         probs=probs,
         bounds=bounds,
         embeddings=embeddings,
-        mode="test",
+        task_name="test-test",
         class_names=utils.CLASSES,
         colours=utils.CMAP_DICT,
         save=False,
@@ -385,7 +385,7 @@ def test_plot_embeddings(results_root: Path, default_dataset: GeoDataset) -> Non
     visutils.plot_embedding(
         embeddings,
         bounds,
-        "test",
+        "test-test",
         show=True,
         filename=results_root / "tsne_cluster_vis.png",
         title="test_plot",

@@ -23,8 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.models._depreciated`.
-"""
+r"""Tests for :mod:`minerva.tasks.core`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -36,52 +35,14 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-import numpy as np
-import torch
-from torch import Tensor
+import pytest
 
-from minerva.models.__depreciated import CNN, MLP
+from minerva.tasks import get_task
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_mlp(x_entropy_loss) -> None:
-    model = MLP(x_entropy_loss, hidden_sizes=128)
-
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
-
-    model.set_optimiser(optimiser)
-
-    model.determine_output_dim()
-    assert isinstance(model.output_shape, tuple)
-    assert model.output_shape[0] is model.n_classes
-
-    x = torch.rand(16, (288))
-
-    z = model(x)
-
-    assert isinstance(z, Tensor)
-    assert z.size() == (16, 8)
-
-
-def test_cnn(x_entropy_loss) -> None:
-    input_size = (4, 64, 64)
-    model = CNN(x_entropy_loss, input_size=input_size)
-
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
-
-    model.set_optimiser(optimiser)
-
-    model.determine_output_dim()
-    assert isinstance(model.output_shape, tuple)
-    assert model.output_shape[0] is model.n_classes
-
-    x = torch.rand(6, *input_size)
-    y = torch.LongTensor(np.random.randint(0, 8, size=6))
-
-    loss, z = model.step(x, y, train=True)
-
-    assert type(loss.item()) is float
-    assert isinstance(z, Tensor)
-    assert z.size() == (6, 8)
+def test_get_task():
+    with pytest.raises(TypeError):
+        _ = get_task("MinervaTask")

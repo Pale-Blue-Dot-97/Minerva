@@ -57,7 +57,7 @@ def sup_tg(
     batch: Dict[Any, Any],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
-    mode: str,
+    train: bool,
     **kwargs,
 ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
@@ -67,7 +67,7 @@ def sup_tg(
             Must have ``"image"``, ``"mask"`` and ``"bbox"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
-        mode (str): Mode of model fitting to use.
+        train (bool): True to run a step of the model in training mode. False for eval mode.
 
     Returns:
         tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]:
@@ -94,13 +94,8 @@ def sup_tg(
     x: Tensor = x_batch.to(device)
     y: Tensor = y_batch.to(device)
 
-    # Runs a training epoch.
-    if mode == "train":
-        loss, z = model.step(x, y, train=True)
-
-    # Runs a validation or test epoch.
-    else:
-        loss, z = model.step(x, y, train=False)
+    # Runs a step of the epoch.
+    loss, z = model.step(x, y, train=train)
 
     bbox: Sequence[BoundingBox] = batch["bbox"]
     assert isinstance(bbox, Sequence)
@@ -111,7 +106,7 @@ def autoencoder_io(
     batch: Dict[Any, Any],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
-    mode: str,
+    train: bool,
     **kwargs,
 ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
     """Provides IO functionality for an autoencoder using :mod:`torchgeo` datasets by only using the same data
@@ -122,7 +117,7 @@ def autoencoder_io(
             Must have ``"image"``, ``"mask"`` and ``"bbox"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
-        mode (str): Mode of model fitting to use.
+        train (bool): True to run a step of the model in training mode. False for eval mode.
 
     Keyword args:
         autoencoder_data_key (str): Key of the data type in the sample dict to use for both input and ground truth.
@@ -180,13 +175,8 @@ def autoencoder_io(
             f"The value of {key=} is not understood. Must be either 'mask' or 'image'"
         )
 
-    # Runs a training epoch.
-    if mode == "train":
-        loss, z = model.step(x, y, train=True)
-
-    # Runs a validation or test epoch.
-    else:
-        loss, z = model.step(x, y, train=False)
+    # Runs a step of the epoch.
+    loss, z = model.step(x, y, train=train)
 
     bbox: Sequence[BoundingBox] = batch["bbox"]
     assert isinstance(bbox, Sequence)
@@ -197,7 +187,7 @@ def ssl_pair_tg(
     batch: Tuple[Dict[str, Any], Dict[str, Any]],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
-    mode: str,
+    train: bool,
     **kwargs,
 ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], None, Sequence[BoundingBox]]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
@@ -207,7 +197,7 @@ def ssl_pair_tg(
             Must have ``"image"`` and ``"bbox"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): :mod:`torch` device object to send data to (e.g. ``CUDA`` device).
-        mode (str): Mode of model fitting to use.
+        train (bool): True to run a step of the model in training mode. False for eval mode.
 
     Returns:
         tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]: The
@@ -228,12 +218,7 @@ def ssl_pair_tg(
     # Transfer to GPU.
     x = x_batch.to(device, non_blocking=True)
 
-    # Runs a training epoch.
-    if mode == "train":
-        loss, z = model.step(x, train=True)
-
-    # Runs a validation epoch.
-    else:
-        loss, z = model.step(x, train=False)
+    # Runs a step of the epoch.
+    loss, z = model.step(x, train=train)
 
     return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]

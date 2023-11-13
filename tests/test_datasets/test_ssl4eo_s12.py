@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.models._depreciated`.
+r"""Tests for :mod:`minerva.datasets.ssl4eo_s12`.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -36,52 +36,36 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-import numpy as np
-import torch
-from torch import Tensor
+from pathlib import Path
 
-from minerva.models.__depreciated import CNN, MLP
+from rasterio.crs import CRS
+
+from minerva.datasets import PairedDataset, SSL4EOS12Sentinel2
+from minerva.utils import CONFIG
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_mlp(x_entropy_loss) -> None:
-    model = MLP(x_entropy_loss, hidden_sizes=128)
+def test_ssl4eos12sentinel2() -> None:
+    path = str(Path(CONFIG["dir"]["data"]) / "SSL4EO-S12")
+    bands = ["B1", "B2", "B3", "B8A"]
+    crs = CRS.from_epsg(25832)
+    res = 10.0
 
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+    all_bands_dataset = SSL4EOS12Sentinel2(paths=path, res=res, crs=crs)
 
-    model.set_optimiser(optimiser)
+    assert isinstance(all_bands_dataset, SSL4EOS12Sentinel2)
 
-    model.determine_output_dim()
-    assert isinstance(model.output_shape, tuple)
-    assert model.output_shape[0] is model.n_classes
+    rgbi_dataset = SSL4EOS12Sentinel2(paths=path, bands=bands, res=res, crs=crs)
+    assert isinstance(rgbi_dataset, SSL4EOS12Sentinel2)
 
-    x = torch.rand(16, (288))
+    paired_dataset = PairedDataset(rgbi_dataset)
 
-    z = model(x)
+    assert isinstance(paired_dataset, PairedDataset)
 
-    assert isinstance(z, Tensor)
-    assert z.size() == (16, 8)
+    init_as_paired = PairedDataset(
+        SSL4EOS12Sentinel2, paths=path, bands=bands, res=res, crs=crs
+    )
 
-
-def test_cnn(x_entropy_loss) -> None:
-    input_size = (4, 64, 64)
-    model = CNN(x_entropy_loss, input_size=input_size)
-
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
-
-    model.set_optimiser(optimiser)
-
-    model.determine_output_dim()
-    assert isinstance(model.output_shape, tuple)
-    assert model.output_shape[0] is model.n_classes
-
-    x = torch.rand(6, *input_size)
-    y = torch.LongTensor(np.random.randint(0, 8, size=6))
-
-    loss, z = model.step(x, y, train=True)
-
-    assert type(loss.item()) is float
-    assert isinstance(z, Tensor)
-    assert z.size() == (6, 8)
+    assert isinstance(init_as_paired, PairedDataset)

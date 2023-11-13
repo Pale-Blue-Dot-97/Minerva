@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module to handle the logging of results from various model types."""
+"""Loggers to handle the logging from each step of a task."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -34,10 +34,11 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 __all__ = [
-    "MinervaLogger",
-    "STGLogger",
-    "SSLLogger",
-    "KNNLogger",
+    "MinervaStepLogger",
+    "SupervisedGeoStepLogger",
+    "SSLStepLogger",
+    "KNNStepLogger",
+    "get_logger",
 ]
 
 # =====================================================================================================================
@@ -60,16 +61,21 @@ from typing import (
 import mlflow
 import numpy as np
 import torch
+import torch.distributed as dist
 from sklearn.metrics import jaccard_score
 from torch import Tensor
+from torchmetrics.regression import CosineSimilarity
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
+else:  # pragma: no cover
+    SummaryWriter = None
 
 from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
 from minerva.utils import utils
+from minerva.utils.utils import check_substrings_in_string, func_by_str
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -91,8 +97,8 @@ except ImportError as err:  # pragma: no cover
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class MinervaLogger(ABC):
-    """Base abstract class for all :mod:`minerva` logger classes to ensure intercompatibility with
+class MinervaStepLogger(ABC):
+    """Base abstract class for all :mod:`minerva` step logger classes to ensure intercompatibility with
     :class:`~trainer.Trainer`.
 
     Attributes:
@@ -115,48 +121,59 @@ class MinervaLogger(ABC):
             Defaults to ``False``.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run): Optional; Writer object
             from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
+
+    .. versionadded:: 0.27
     """
 
     __metaclass__ = abc.ABCMeta
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        n_samples: int,
+        output_size: Tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        model_type: str = "",
         **kwargs,
     ) -> None:
-        super(MinervaLogger, self).__init__()
+        super(MinervaStepLogger, self).__init__()
         self.record_int = record_int
         self.record_float = record_float
         self.n_batches = n_batches
+        self.output_size = output_size
         self.batch_size = batch_size
-        self.n_samples = n_samples
+
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
+            self.batch_size = batch_size // dist.get_world_size()  # type: ignore[attr-defined]
+
+        self.n_samples = self.batch_size * self.n_batches
+
+        self.task_name = task_name
         self.writer = writer
+
+        self.model_type = model_type
 
         self.logs: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}
 
-    def __call__(self, mode: str, step_num: int, loss: Tensor, *args) -> None:
+    def __call__(self, step_num: int, loss: Tensor, *args) -> None:
         """Call :meth:`log`.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
 
         Returns:
             None
         """
-        self.log(mode, step_num, loss, *args)
+        self.log(step_num, loss, *args)
 
     @abc.abstractmethod
     def log(
         self,
-        mode: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -168,7 +185,6 @@ class MinervaLogger(ABC):
         """Abstract logging method, the core functionality of a logger. Must be overwritten.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
@@ -181,12 +197,11 @@ class MinervaLogger(ABC):
         pass  # pragma: no cover
 
     def write_metric(
-        self, mode: str, key: str, value: SupportsFloat, step_num: Optional[int] = None
+        self, key: str, value: SupportsFloat, step_num: Optional[int] = None
     ):
         """Write metric values to logging backends after calculation.
 
         Args:
-            mode (str): Mode of model fitting.
             key (str): Key for the metric that ``value`` belongs to.
             value (SupportsFloat): Metric to write to logger.
             step_num (int): Optional; Global step number for this ``mode`` of fitting.
@@ -202,12 +217,17 @@ class MinervaLogger(ABC):
                     and self.writer
                 ):
                     self.writer.add_scalar(  # type: ignore[attr-defined]
-                        tag=f"{mode}_{key}",
+                        tag=f"{self.task_name}_{key}",
                         scalar_value=value,  # type: ignore[attr-defined]
                         global_step=step_num,
                     )
             if isinstance(self.writer, Run):
-                self.writer.log({f"{mode}/step": step_num, f"{mode}/{key}": value})
+                self.writer.log(
+                    {
+                        f"{self.task_name}/step": step_num,
+                        f"{self.task_name}/{key}": value,
+                    }
+                )
 
         if mlflow.active_run():
             # If running in Azure Machine Learning, tracking URI / experiment ID set already
@@ -233,7 +253,7 @@ class MinervaLogger(ABC):
         return self.results
 
 
-class STGLogger(MinervaLogger):
+class SupervisedGeoStepLogger(MinervaStepLogger):
     """Logger designed for supervised learning using :mod:`torchgeo` datasets.
 
     Attributes:
@@ -272,34 +292,35 @@ class STGLogger(MinervaLogger):
         MemoryError: If trying to allocate memory to hold the probabilites of predictions
             from the model exceeds capacity.
         MemoryError: If trying to allocate memory to hold the bounding boxes of samples would exceed capacity.
+
+    .. versionadded:: 0.27
     """
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        n_samples: int,
-        out_shape: Union[int, Tuple[int, ...]],
-        n_classes: int,
+        output_size: Tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        model_type: str = "",
+        n_classes: Optional[int] = None,
         **kwargs,
     ) -> None:
-        super(STGLogger, self).__init__(
+        super(SupervisedGeoStepLogger, self).__init__(
+            task_name,
             n_batches,
             batch_size,
-            n_samples,
+            output_size,
             record_int,
             record_float,
             writer,
+            model_type,
         )
-        _out_shape: Tuple[int, ...]
-
-        if isinstance(out_shape, int):
-            _out_shape = (out_shape,)
-        else:
-            _out_shape = out_shape
+        if n_classes is None:
+            raise ValueError("`n_classes` must be specified for this type of logger!")
 
         self.logs: Dict[str, Any] = {
             "batch_num": 0,
@@ -314,7 +335,11 @@ class STGLogger(MinervaLogger):
             "ids": [],
             "bounds": None,
         }
-        self.calc_miou = True if kwargs.get("model_type") == "segmentation" else False
+        self.calc_miou = (
+            True
+            if check_substrings_in_string(self.model_type, "segmentation")
+            else False
+        )
 
         if self.calc_miou:
             self.logs["total_miou"] = 0.0
@@ -322,10 +347,10 @@ class STGLogger(MinervaLogger):
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
             int_log_shape: Tuple[int, ...]
-            if kwargs.get("model_type") == "scene classifier":
+            if check_substrings_in_string(self.model_type, "scene classifier"):
                 int_log_shape = (self.n_batches, self.batch_size)
             else:
-                int_log_shape = (self.n_batches, self.batch_size, *_out_shape)
+                int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
 
             self.results["z"] = np.empty(int_log_shape, dtype=np.uint8)
             self.results["y"] = np.empty(int_log_shape, dtype=np.uint8)
@@ -333,14 +358,14 @@ class STGLogger(MinervaLogger):
         # Allocate memory for the floating point values to be recorded.
         if self.record_float:
             float_log_shape: Tuple[int, ...]
-            if kwargs.get("model_type") == "scene classifier":
+            if check_substrings_in_string(self.model_type, "scene classifier"):
                 float_log_shape = (self.n_batches, self.batch_size, n_classes)
             else:
                 float_log_shape = (
                     self.n_batches,
                     self.batch_size,
                     n_classes,
-                    *_out_shape,
+                    *self.output_size,
                 )
 
             try:
@@ -361,7 +386,6 @@ class STGLogger(MinervaLogger):
 
     def log(
         self,
-        mode: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -373,7 +397,6 @@ class STGLogger(MinervaLogger):
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Output tensor from the model.
@@ -428,19 +451,17 @@ class STGLogger(MinervaLogger):
                 )  # noqa: E501 type: ignore[attr-defined]
             self.logs["total_miou"] += miou
 
-            self.write_metric(mode, "miou", miou / len(y), step_num=step_num)
+            self.write_metric("miou", miou / len(y), step_num=step_num)
 
         # Writes loss and correct predictions to the writer.
-        self.write_metric(mode, "loss", ls, step_num=step_num)
-        self.write_metric(
-            mode, "acc", correct / len(torch.flatten(y)), step_num=step_num
-        )
+        self.write_metric("loss", ls, step_num=step_num)
+        self.write_metric("acc", correct / len(torch.flatten(y)), step_num=step_num)
 
         # Adds 1 to batch number (step number).
         self.logs["batch_num"] += 1
 
 
-class KNNLogger(MinervaLogger):
+class KNNStepLogger(MinervaStepLogger):
     """Logger specifically designed for use with the KNN validation in
     :meth:`trainer.Trainer.weighted_knn_validation`.
 
@@ -470,20 +491,30 @@ class KNNLogger(MinervaLogger):
             Defaults to ``False``.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wand_run.Run): Optional; Writer object
             from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
+
+    .. versionadded:: 0.27
     """
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        n_samples: int,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        model_type: str = "",
         **kwargs,
     ) -> None:
         super().__init__(
-            n_batches, batch_size, n_samples, record_int, record_float, writer, **kwargs
+            task_name,
+            n_batches,
+            batch_size,
+            record_int=record_int,
+            record_float=record_float,
+            writer=writer,
+            model_type=model_type,
+            **kwargs,
         )
 
         self.logs: Dict[str, Any] = {
@@ -503,7 +534,6 @@ class KNNLogger(MinervaLogger):
 
     def log(
         self,
-        mode: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -530,15 +560,15 @@ class KNNLogger(MinervaLogger):
         self.logs["total_top5"] += top5
 
         # Write results to the writer.
-        self.write_metric(mode, "loss", loss, step_num)
-        self.write_metric(mode, "acc", top1, step_num)
-        self.write_metric(mode, "top5", top5, step_num)
+        self.write_metric("loss", loss, step_num)
+        self.write_metric("acc", top1, step_num)
+        self.write_metric("top5", top5, step_num)
 
         # Adds 1 to batch number (step number).
         self.logs["batch_num"] += 1
 
 
-class SSLLogger(MinervaLogger):
+class SSLStepLogger(MinervaStepLogger):
     """Logger designed for self-supervised learning.
 
     Attributes:
@@ -568,27 +598,32 @@ class SSLLogger(MinervaLogger):
             Defaults to ``False``.
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wand_run.Run): Optional; Writer object
             from :mod:`tensorboard`, a :mod:`wandb` :class:`~wandb.sdk.wandb_run.Run` object or ``None``.
+
+    .. versionadded:: 0.27
     """
 
     def __init__(
         self,
+        task_name: str,
         n_batches: int,
         batch_size: int,
-        n_samples: int,
-        out_shape: Optional[Tuple[int, ...]] = None,
-        n_classes: Optional[int] = None,
+        output_size: Tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        model_type: str = "",
         **kwargs,
     ) -> None:
-        super(SSLLogger, self).__init__(
+        super(SSLStepLogger, self).__init__(
+            task_name,
             n_batches,
             batch_size,
-            n_samples,
-            record_int,
+            output_size,
+            record_int=record_int,
             record_float=record_float,
             writer=writer,
+            model_type=model_type,
+            **kwargs,
         )
 
         self.logs: Dict[str, Any] = {
@@ -603,8 +638,6 @@ class SSLLogger(MinervaLogger):
         self.collapse_level = kwargs.get("collapse_level", False)
         self.euclidean = kwargs.get("euclidean", False)
 
-        self.model_type = kwargs.get("model_type", "")
-
         if self.collapse_level:
             self.logs["collapse_level"] = 0
         if self.euclidean:
@@ -612,7 +645,6 @@ class SSLLogger(MinervaLogger):
 
     def log(
         self,
-        mode: str,
         step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
@@ -624,7 +656,6 @@ class SSLLogger(MinervaLogger):
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
         Args:
-            mode (str): Mode of model fitting.
             step_num (int): The global step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
@@ -633,7 +664,7 @@ class SSLLogger(MinervaLogger):
         """
         assert z is not None
 
-        if "segmentation" in self.model_type:
+        if check_substrings_in_string(self.model_type, "segmentation"):
             z = z.flatten(1, -1)
 
         # Adds the loss for this step to the logs.
@@ -641,7 +672,8 @@ class SSLLogger(MinervaLogger):
         self.logs["total_loss"] += ls
 
         # Compute the TOP1 and TOP5 accuracies.
-        sim_argsort = utils.calc_contrastive_acc(z)
+        cosine_sim = CosineSimilarity(reduction=None)
+        sim_argsort = cosine_sim(*torch.split(z, int(0.5 * len(z)), 0))
         correct = float((sim_argsort == 0).float().mean().cpu().numpy())
         top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
 
@@ -658,7 +690,7 @@ class SSLLogger(MinervaLogger):
                 )
 
             euc_dist = sum(euc_dists) / len(euc_dists)
-            self.write_metric(mode, "euc_dist", euc_dist, step_num)
+            self.write_metric("euc_dist", euc_dist, step_num)
             self.logs["euc_dist"] += euc_dist
 
         if self.collapse_level:
@@ -683,7 +715,7 @@ class SSLLogger(MinervaLogger):
                 0.0, 1 - math.sqrt(len(output)) * self.logs["avg_output_std"]
             )
 
-            self.write_metric(mode, "collapse_level", collapse_level, step_num)
+            self.write_metric("collapse_level", collapse_level, step_num)
 
             self.logs["collapse_level"] = collapse_level
 
@@ -692,9 +724,25 @@ class SSLLogger(MinervaLogger):
         self.logs["total_top5"] += top5
 
         # Writes the loss to the writer.
-        self.write_metric(mode, "loss", ls, step_num=step_num)
-        self.write_metric(mode, "acc", correct / 2 * len(z[0]), step_num)
-        self.write_metric(mode, "top5_acc", top5 / 2 * len(z[0]), step_num)
+        self.write_metric("loss", ls, step_num=step_num)
+        self.write_metric("acc", correct / 2 * len(z[0]), step_num)
+        self.write_metric("top5_acc", top5 / 2 * len(z[0]), step_num)
 
         # Adds 1 to the batch number (step number).
         self.logs["batch_num"] += 1
+
+
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
+def get_logger(name) -> Callable[..., Any]:
+    """Gets the constructor for a step logger to log the results from each step of model fitting during an epoch.
+
+    Returns:
+        ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logging.step.log.MinervaStepLogger`
+        to be intialised within the epoch.
+
+    .. versionadded:: 0.27
+    """
+    logger: Callable[..., Any] = func_by_str("minerva.logger.steplog", name)
+    return logger

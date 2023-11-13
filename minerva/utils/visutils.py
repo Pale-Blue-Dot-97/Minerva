@@ -739,7 +739,7 @@ def seg_plot(
     y: Union[List[int], NDArray[Any, Any]],
     ids: List[str],
     bounds: Union[Sequence[Any], NDArray[Any, Any]],
-    mode: str,
+    task_name: str,
     classes: Dict[int, str],
     colours: Dict[int, str],
     fn_prefix: Union[str, Path],
@@ -755,7 +755,7 @@ def seg_plot(
         bounds (list[~torchgeo.datasets.utils.BoundingBox] | ~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]):
             Array of objects describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
-        mode (str): Mode samples are from. Must be ``'train'``, ``'val'`` or ``'test'``.
+        task_name (str): Name of the task that samples are from.
         classes (dict[int, str]): Dictionary mapping class labels to class names.
         colours (dict[int, str]): Dictionary mapping class labels to colours.
         fn_prefix (str | ~pathlib.Path): Common filename prefix (including path to file) for all plots of this type
@@ -781,7 +781,9 @@ def seg_plot(
     flat_ids: NDArray[Any, Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"][mode])
+    dataset, _ = make_dataset(
+        CONFIG["dir"]["data"], CONFIG["tasks"][task_name]["dataset_params"]
+    )
 
     # Create a new projection system in lat-lon.
     crs = dataset.crs
@@ -1102,7 +1104,7 @@ def make_roc_curves(
 def plot_embedding(
     embeddings: Any,
     bounds: Union[Sequence[BoundingBox], NDArray[Any, Any]],
-    mode: str,
+    task_name: str,
     title: Optional[str] = None,
     show: bool = False,
     save: bool = True,
@@ -1115,7 +1117,7 @@ def plot_embedding(
         bounds (~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | ~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]):  # noqa: E501
             Array of objects describing a geospatial bounding box.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
-        mode (str): Mode samples are from. Must be ``'train'``, ``'val'`` or ``'test'``.
+        task_name (str): Name of the task that the samples are from.
         title (str): Optional; Title of plot.
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
@@ -1132,7 +1134,9 @@ def plot_embedding(
     from minerva.datasets import make_dataset
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], CONFIG["dataset_params"][mode])
+    dataset, _ = make_dataset(
+        CONFIG["dir"]["data"], CONFIG["tasks"][task_name]["dataset_params"]
+    )
 
     images = []
     targets = []
@@ -1248,7 +1252,7 @@ def plot_results(
     y: Optional[Union[List[int], NDArray[Any, Int]]] = None,
     metrics: Optional[Dict[str, Any]] = None,
     ids: Optional[List[str]] = None,
-    mode: str = "test",
+    task_name: str = "test",
     bounds: Optional[NDArray[Any, Any]] = None,
     probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
     embeddings: Optional[NDArray[Any, Any]] = None,
@@ -1270,7 +1274,7 @@ def plot_results(
             the performance of a model.
         ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
             Maybe either patch IDs or scene tags.
-        mode (str): Optional; Mode samples are from. Must be ``'train'``, ``'val'`` or ``'test'``.
+        task_name (str): Optional; Name of task that samples are from.
         bounds (~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]): Optional; Array of objects describing
             a geospatial bounding box for each sample.
             Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
@@ -1388,7 +1392,7 @@ def plot_results(
         assert y is not None
         assert ids is not None
         assert bounds is not None
-        assert mode is not None
+        assert task_name is not None
 
         figsize = None
         if DATA_CONFIG is not None:
@@ -1401,7 +1405,7 @@ def plot_results(
             y,
             ids,
             flat_bbox,
-            mode,
+            task_name,
             fn_prefix=filenames["Mask"],
             classes=class_names,
             colours=colours,
@@ -1411,13 +1415,13 @@ def plot_results(
     if plots.get("TSNE", False):
         assert embeddings is not None
         assert bounds is not None
-        assert mode is not None
+        assert task_name is not None
 
         print("\nPERFORMING TSNE CLUSTERING")
         plot_embedding(
             embeddings,
             bounds,
-            mode,
+            task_name,
             show=show,
             save=save,
             filename=filenames["TSNE"],

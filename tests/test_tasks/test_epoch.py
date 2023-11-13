@@ -23,8 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.models._depreciated`.
-"""
+r"""Tests for :mod:`minerva.tasks.epoch`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -36,52 +35,41 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-import numpy as np
-import torch
-from torch import Tensor
+from torch.optim import SGD
 
-from minerva.models.__depreciated import CNN, MLP
+from minerva.models import MinervaModel
+from minerva.tasks import MinervaTask, StandardEpoch
+from minerva.utils import CONFIG, universal_path, utils
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_mlp(x_entropy_loss) -> None:
-    model = MLP(x_entropy_loss, hidden_sizes=128)
+def test_standard_epoch(default_device, exp_fcn: MinervaModel):
+    exp_fcn.determine_output_dim()
+    optimiser = SGD(exp_fcn.parameters(), lr=1.0e-3)
+    exp_fcn.set_optimiser(optimiser)
+    exp_fcn.to(default_device)
 
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+    exp_name = "{}_{}".format(
+        CONFIG["model_name"], utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
+    )
+    exp_fn = universal_path(CONFIG["dir"]["results"]) / exp_name / exp_name
 
-    model.set_optimiser(optimiser)
+    params = CONFIG.copy()
 
-    model.determine_output_dim()
-    assert isinstance(model.output_shape, tuple)
-    assert model.output_shape[0] is model.n_classes
+    task = StandardEpoch(
+        name="fit-train",
+        model=exp_fcn,
+        device=default_device,
+        exp_fn=exp_fn,
+        **params,
+    )
 
-    x = torch.rand(16, (288))
+    assert isinstance(task, MinervaTask)
 
-    z = model(x)
+    task.step()
 
-    assert isinstance(z, Tensor)
-    assert z.size() == (16, 8)
+    assert isinstance(task.get_logs, dict)
 
-
-def test_cnn(x_entropy_loss) -> None:
-    input_size = (4, 64, 64)
-    model = CNN(x_entropy_loss, input_size=input_size)
-
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
-
-    model.set_optimiser(optimiser)
-
-    model.determine_output_dim()
-    assert isinstance(model.output_shape, tuple)
-    assert model.output_shape[0] is model.n_classes
-
-    x = torch.rand(6, *input_size)
-    y = torch.LongTensor(np.random.randint(0, 8, size=6))
-
-    loss, z = model.step(x, y, train=True)
-
-    assert type(loss.item()) is float
-    assert isinstance(z, Tensor)
-    assert z.size() == (6, 8)
+    assert repr(task) == "StandardEpoch-fit-train"

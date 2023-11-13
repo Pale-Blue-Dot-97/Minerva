@@ -37,7 +37,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 from collections import OrderedDict
-from typing import Any, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch.nn.modules as nn
@@ -217,13 +217,9 @@ class CNN(MinervaModel):
 
         # Calculate the input of the Linear layer by sending some fake data through the network
         # and getting the shape of the output.
-        out_shape = get_output_shape(self.conv_net, self.input_size)
-
-        if type(out_shape) is int:  # pragma: no cover
-            self.flattened_size = out_shape
-        elif isinstance(out_shape, Iterable):
-            # Calculate the flattened size of the output from the convolutional network.
-            self.flattened_size = int(np.prod(list(out_shape)))
+        self.flattened_size = int(
+            np.prod(get_output_shape(self.conv_net, self.input_size))
+        )
 
         # Constructs the fully connected layers determined by the number of input channels and the features of these.
         for i in range(len(fc_sizes)):

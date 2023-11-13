@@ -111,7 +111,7 @@ def make_dataset(
 
     def get_subdataset(
         this_dataset_params: Dict[str, Any], key: str
-    ) -> Tuple[Callable[..., GeoDataset], str]:
+    ) -> Tuple[Callable[..., GeoDataset], List[str]]:
         # Get the params for this sub-dataset.
         sub_dataset_params = this_dataset_params[key]
 
@@ -121,12 +121,11 @@ def make_dataset(
         )
 
         # Construct the path to the sub-dataset's files.
-        sub_dataset_path: Path = (
-            universal_path(data_directory) / sub_dataset_params["paths"]
+        sub_dataset_paths = utils.compile_dataset_paths(
+            universal_path(data_directory), sub_dataset_params["paths"]
         )
-        sub_dataset_path = sub_dataset_path.absolute()
 
-        return _sub_dataset, str(sub_dataset_path)
+        return _sub_dataset, sub_dataset_paths
 
     def create_subdataset(
         dataset_class: Callable[..., GeoDataset],
@@ -135,8 +134,10 @@ def make_dataset(
         _transformations: Optional[Any],
     ) -> GeoDataset:
         copy_params = deepcopy(subdataset_params)
+
         if "crs" in copy_params["params"]:
             copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
+
         if sample_pairs:
             return PairedDataset(
                 dataset_class,
@@ -169,7 +170,7 @@ def make_dataset(
         master_transforms: Optional[Any] = None
         for area_key in type_dataset_params.keys():
             # If any of these keys are present, this must be a parameter set for a singular dataset at this level.
-            if area_key in ("module", "name", "params", "root", "paths"):
+            if area_key in ("module", "name", "params", "paths"):
                 multi_datasets_exist = False
                 continue
 
@@ -361,10 +362,11 @@ def make_loaders(
     rank: int = 0,
     world_size: int = 1,
     p_dist: bool = False,
+    task_name: Optional[str] = None,
     **params,
 ) -> Tuple[
-    Dict[str, DataLoader[Iterable[Any]]],
-    Dict[str, int],
+    Union[Dict[str, DataLoader[Iterable[Any]]], DataLoader[Iterable[Any]]],
+    Union[Dict[str, int], int],
     List[Tuple[int, int]],
     Dict[Any, Any],
 ]:
@@ -375,6 +377,8 @@ def make_loaders(
         world_size (int): Total number of processes across all nodes. For use with
             :class:`~torch.nn.parallel.DistributedDataParallel`.
         p_dist (bool): Print to screen the distribution of classes within each dataset.
+        task_name (str): Optional; If specified, only create the loaders for this task,
+            overwriting experiment-wode parameters with those found in this task's params if found.
 
     Keyword Args:
         batch_size (int): Number of samples in each batch to be returned by the DataLoaders.
@@ -402,41 +406,51 @@ def make_loaders(
             * The class distribution of the entire dataset, sorted from largest to smallest class.
             * Unused and updated kwargs.
     """
-    # Gets out the parameters for the DataLoaders from params.
-    dataloader_params: Dict[Any, Any] = params["loader_params"]
-    dataset_params: Dict[str, Any] = params["dataset_params"]
-    batch_size: int = params["batch_size"]
+    task_params = params
+    if task_name is not None:
+        task_params = params["tasks"][task_name]
 
-    model_type = params["model_type"]
+    # Gets out the parameters for the DataLoaders from params.
+    dataloader_params: Dict[Any, Any] = utils.fallback_params(
+        "loader_params", task_params, params
+    )
+    dataset_params: Dict[str, Any] = utils.fallback_params(
+        "dataset_params", task_params, params
+    )
+    batch_size: int = utils.fallback_params("batch_size", task_params, params)
+
+    model_type = utils.fallback_params("model_type", task_params, params)
     class_dist: List[Tuple[int, int]] = [(0, 0)]
 
     new_classes: Dict[int, str] = {}
     new_colours: Dict[int, str] = {}
     forwards: Dict[int, int] = {}
 
-    sample_pairs: Union[bool, Any] = params.get("sample_pairs", False)
+    sample_pairs: Union[bool, Any] = utils.fallback_params(
+        "sample_pairs", task_params, params, False
+    )
     if not isinstance(sample_pairs, bool):
         sample_pairs = False
 
+    elim = utils.fallback_params("elim", task_params, params, False)
+
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Load manifest from cache for this dataset.
-        manifest = get_manifest(get_manifest_path())
+        manifest = get_manifest(get_manifest_path(), task_name)
         class_dist = utils.modes_from_manifest(manifest)
 
         # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
         # and new colours.
         new_classes, forwards, new_colours = utils.load_data_specs(
-            class_dist=class_dist, elim=params.get("elim", False)
+            class_dist=class_dist,
+            elim=elim,
         )
 
-    # Inits dicts to hold the variables and lists for train, validation and test.
-    n_batches = {}
-    loaders = {}
+    n_batches: Union[Dict[str, int], int]
+    loaders: Union[Dict[str, DataLoader[Iterable[Any]]], DataLoader[Iterable[Any]]]
 
-    for mode in dataset_params.keys():
-        if params.get("elim", False) and not utils.check_substrings_in_string(
-            model_type, "siamese"
-        ):
+    if "sampler" in dataset_params.keys():
+        if elim and not utils.check_substrings_in_string(model_type, "siamese"):
             class_transform = {
                 "ClassTransform": {
                     "module": "minerva.transforms",
@@ -444,52 +458,98 @@ def make_loaders(
                 }
             }
 
-            if type(dataset_params[mode]["mask"].get("transforms")) != dict:
-                dataset_params[mode]["mask"]["transforms"] = class_transform
+            if type(dataset_params["mask"].get("transforms")) != dict:
+                dataset_params["mask"]["transforms"] = class_transform
             else:
-                dataset_params[mode]["mask"]["transforms"][
+                dataset_params["mask"]["transforms"][
                     "ClassTransform"
                 ] = class_transform["ClassTransform"]
 
-        sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
+        sampler_params: Dict[str, Any] = dataset_params["sampler"]
 
         # Calculates number of batches.
-        n_batches[mode] = int(sampler_params["params"]["length"] / batch_size)
+        n_batches = int(sampler_params["params"]["length"] / batch_size)
 
         # --+ MAKE DATASETS +=========================================================================================+
-        print(f"CREATING {mode} DATASET")
-        loaders[mode] = construct_dataloader(
+        print(f"CREATING {task_name} DATASET")
+        loaders = construct_dataloader(
             params["dir"]["data"],
-            dataset_params[mode],
+            dataset_params,
             sampler_params,
             dataloader_params,
             batch_size,
-            collator_params=params["collator"],
+            collator_params=utils.fallback_params("collator", task_params, params),
             rank=rank,
             world_size=world_size,
-            sample_pairs=sample_pairs if mode == "train" else False,
+            sample_pairs=sample_pairs,
         )
         print("DONE")
 
+    else:
+        # Inits dicts to hold the variables and lists for train, validation and test.
+        n_batches = {}
+        loaders = {}
+
+        for mode in dataset_params.keys():
+            if elim and not utils.check_substrings_in_string(model_type, "siamese"):
+                class_transform = {
+                    "ClassTransform": {
+                        "module": "minerva.transforms",
+                        "transform": forwards,
+                    }
+                }
+
+                if type(dataset_params[mode]["mask"].get("transforms")) != dict:
+                    dataset_params[mode]["mask"]["transforms"] = class_transform
+                else:
+                    dataset_params[mode]["mask"]["transforms"][
+                        "ClassTransform"
+                    ] = class_transform["ClassTransform"]
+
+            mode_sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
+
+            # Calculates number of batches.
+            n_batches[mode] = int(mode_sampler_params["params"]["length"] / batch_size)
+
+            # --+ MAKE DATASETS +=====================================================================================+
+            print(f"CREATING {mode} DATASET")
+            loaders[mode] = construct_dataloader(
+                params["dir"]["data"],
+                dataset_params[mode],
+                mode_sampler_params,
+                dataloader_params,
+                batch_size,
+                collator_params=utils.fallback_params("collator", task_params, params),
+                rank=rank,
+                world_size=world_size,
+                sample_pairs=sample_pairs if mode == "train" else False,
+            )
+            print("DONE")
+
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
-        if params.get("elim", False):
+        if elim:
             class_dist = utils.class_dist_transform(class_dist, forwards)
 
         # Prints class distribution in a pretty text format using tabulate to stdout.
         if p_dist:
             utils.print_class_dist(class_dist)
 
-        params["n_classes"] = len(new_classes)
-        model_params_params = params["model_params"].get("params", {})
-        model_params_params["n_classes"] = len(new_classes)
-        params["model_params"]["params"] = model_params_params
-        params["classes"] = new_classes
-        params["colours"] = new_colours
+        task_params["n_classes"] = len(new_classes)
+        model_params = utils.fallback_params("model_params", task_params, params, {})
+        model_params["n_classes"] = len(new_classes)
 
-    params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
+        if "model_params" in task_params:
+            task_params["model_params"]["params"] = model_params
+        else:
+            task_params["model_params"] = {"params": model_params}
 
-    return loaders, n_batches, class_dist, params
+        task_params["classes"] = new_classes
+        task_params["colours"] = new_colours
+
+    task_params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
+
+    return loaders, n_batches, class_dist, task_params
 
 
 def get_manifest_path() -> str:
@@ -501,7 +561,9 @@ def get_manifest_path() -> str:
     return str(Path(CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"))
 
 
-def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
+def get_manifest(
+    manifest_path: Union[str, Path], task_name: Optional[str] = None
+) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
     If a ``csv`` file is not found at ``manifest_path``, the manifest is constructed from
@@ -519,6 +581,7 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
     Args:
         manifest_path (str | ~pathlib.Path): Path (including filename and extension) to the manifest
             saved as a ``csv``.
+        task_name (str): Optional; Name of the task to which the dataset to create a manifest of belongs to.
 
     Returns:
         ~pandas.DataFrame: Manifest either loaded from ``manifest_path`` or created from parameters in :data:`CONFIG`.
@@ -532,9 +595,7 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
         print("CONSTRUCTING MISSING MANIFEST")
         mf_config = CONFIG.copy()
 
-        mf_config["dataloader_params"] = CONFIG["loader_params"]
-
-        manifest = make_manifest(mf_config)
+        manifest = make_manifest(mf_config, task_name)
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
         path = manifest_path.parent
@@ -546,44 +607,76 @@ def get_manifest(manifest_path: Union[str, Path]) -> DataFrame:
         return manifest
 
 
-def make_manifest(mf_config: Dict[Any, Any]) -> DataFrame:
+def make_manifest(
+    mf_config: Dict[Any, Any], task_name: Optional[str] = None
+) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
     The dataset to construct a manifest of is defined by the ``data_config`` value in the config.
 
     Args:
         mf_config (dict[~typing.Any, ~typing.Any]): Config to use to construct the manifest with.
+        task_name (str): Optional; Name of the task to which the dataset to create a manifest of belongs to.
 
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
-    batch_size: int = mf_config["batch_size"]
-    dataloader_params: Dict[str, Any] = mf_config["dataloader_params"]
-    dataset_params: Dict[str, Any] = mf_config["dataset_params"]
-    collator_params: Dict[str, Any] = mf_config["collator"]
+
+    def delete_class_transform(params: Dict[str, Any]) -> None:
+        if "transforms" in params["mask"]:
+            if isinstance(params["mask"]["transforms"], dict):
+                if "ClassTransform" in params["mask"]["transforms"]:
+                    del params["mask"]["transforms"]["ClassTransform"]
+
+    task_params = mf_config
+    if task_name is not None:
+        task_params = mf_config["tasks"][task_name]
+
+    batch_size: int = utils.fallback_params("batch_size", task_params, mf_config)
+    loader_params: Dict[str, Any] = utils.fallback_params(
+        "loader_params", task_params, mf_config
+    )
+    dataset_params: Dict[str, Any] = utils.fallback_params(
+        "dataset_params", task_params, mf_config
+    )
+    collator_params: Dict[str, Any] = utils.fallback_params(
+        "collator_params", task_params, mf_config
+    )
+    sampler_params = dataset_params["sampler"]
 
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
-    for mode in dataset_params.keys():
-        if "transforms" in dataset_params[mode]["mask"]:
-            if isinstance(dataset_params[mode]["mask"]["transforms"], dict):
-                if "ClassTransform" in dataset_params[mode]["mask"]["transforms"]:
-                    del dataset_params[mode]["mask"]["transforms"]["ClassTransform"]
+    if "sampler" in dataset_params.keys():
+        delete_class_transform(dataset_params)
 
-    keys = list(dataset_params.keys())
-    print("CONSTRUCTING DATASET")
+        print("CONSTRUCTING DATASET")
 
-    sampler_params = dataset_params[keys[0]]["sampler"]
+        loader = construct_dataloader(
+            mf_config["dir"]["data"],
+            dataset_params,
+            sampler_params,
+            loader_params,
+            batch_size,
+            collator_params=collator_params,
+        )
+    else:
+        for mode in dataset_params.keys():
+            delete_class_transform(dataset_params[mode])
 
-    loader = construct_dataloader(
-        mf_config["dir"]["data"],
-        dataset_params[keys[0]],
-        sampler_params,
-        dataloader_params,
-        batch_size,
-        collator_params=collator_params,
-    )
+        keys = list(dataset_params.keys())
+        sampler_params = dataset_params[keys[0]]["sampler"]
+
+        print("CONSTRUCTING DATASET")
+
+        loader = construct_dataloader(
+            mf_config["dir"]["data"],
+            dataset_params[keys[0]],
+            sampler_params,
+            loader_params,
+            batch_size,
+            collator_params=collator_params,
+        )
 
     print("FETCHING SAMPLES")
     df = DataFrame()

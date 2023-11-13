@@ -31,16 +31,16 @@ input_size: &input_size [4, 224, 224]  # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 5                          # Maximum number of training epochs.
+max_epochs: 5                         # Maximum number of training epochs.
 elim: true                            # Eliminates empty classes from schema.
 balance: true                         # Balances dataset classes.
 pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: CrossEntropyLoss            # Name of the loss function to use.
-lr: 1.0E-3                             # Learning rate of optimiser.
-optim_func: SGD                        # Name of the optimiser function.
+loss_func: &loss_func CrossEntropyLoss  # Name of the loss function to use.
+lr: 1.0E-3                              # Learning rate of optimiser.
+optim_func: SGD                         # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
@@ -57,6 +57,7 @@ optim_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
+    name: *loss_func
     params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
@@ -71,9 +72,9 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-logger: STGLogger
-metrics: SPMetrics
-model_io: sup_tg
+# task_logger: SupervisedTaskLogger
+# step_logger: SupervisedGeoStepLogger
+# model_io: sup_tg
 
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
@@ -83,87 +84,102 @@ collator:
     module: torchgeo.datasets
     name: stack_samples
 
-# === DATASET PARAMETERS ======================================================
-dataset_params:
-    # Training Dataset
-    train:
-        sampler:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: false
-            params:
-                size: *patch_size
-                length: 320
+# === TASKS ===================================================================
+tasks:
+    fit-train:
+        type: StandardEpoch
+        train: true
+        record_float: true
 
-        image:
-            transforms:
-                Normalise:
-                    module: minerva.transforms
-                    norm_value: 255
-            module: minerva.datasets.__testing
-            name: TstImgDataset
-            paths: NAIP
-            params:
-                res: 1.0
-        mask:
-            module: minerva.datasets.__testing
-            name: TstMaskDataset
-            paths: Chesapeake7
-            params:
-                res: 1.0
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: *patch_size
+                    length: 320
 
-    # Validation Dataset
-    val:
-        sampler:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: false
-            params:
-                size: *patch_size
-                length: 80
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                module: minerva.datasets.__testing
+                name: TstImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                paths: Chesapeake7
+                params:
+                    res: 1.0
 
-        image:
-            transforms:
-                Normalise:
-                    module: minerva.transforms
-                    norm_value: 255
-            module: minerva.datasets.__testing
-            name: TstImgDataset
-            paths: NAIP
-            params:
-                res: 1.0
-        mask:
-            module: minerva.datasets.__testing
-            name: TstMaskDataset
-            paths: Chesapeake7
-            params:
-                res: 1.0
+    fit-val:
+        type: StandardEpoch
+        train: true
+        record_float: true
 
-    # Test Dataset
-    test:
-        sampler:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: false
-            params:
-                size: *patch_size
-                length: 160
-        image:
-            transforms:
-                Normalise:
-                    module: minerva.transforms
-                    norm_value: 255
-            module: minerva.datasets.__testing
-            name: TstImgDataset
-            paths: NAIP
-            params:
-                res: 1.0
-        mask:
-            module: minerva.datasets.__testing
-            name: TstMaskDataset
-            paths: Chesapeake7
-            params:
-                res: 1.0
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: *patch_size
+                    length: 80
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                module: minerva.datasets.__testing
+                name: TstImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                paths: Chesapeake7
+                params:
+                    res: 1.0
+
+    test-test:
+        type: StandardEpoch
+        train: true
+        record_float: true
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: *patch_size
+                    length: 160
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                module: minerva.datasets.__testing
+                name: TstImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                paths: Chesapeake7
+                params:
+                    res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:

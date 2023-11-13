@@ -23,8 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.trainer`.
-"""
+r"""Tests for :mod:`minerva.trainer`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -182,9 +181,7 @@ def test_trainer_4(
     trainer.fit()
 
     if kwargs.get("tsne_cluster"):
-        trainer.model = trainer.model.get_backbone()  # type: ignore[assignment, operator]
-
-        trainer.tsne_cluster()
+        trainer.tsne_cluster("test-test")
 
     if kwargs.get("test"):
         trainer.test()
