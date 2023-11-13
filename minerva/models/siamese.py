@@ -50,12 +50,13 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Dict, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 import torch.nn.modules as nn
 from torch import Tensor
+from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
 from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
@@ -169,9 +170,12 @@ class SimCLR(MinervaSiamese):
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
+        scaler: Optional[GradScaler] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(SimCLR, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimCLR, self).__init__(
+            criterion=criterion, input_size=input_size, scaler=scaler
+        )
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
@@ -295,9 +299,12 @@ class SimSiam(MinervaSiamese):
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         pred_dim: int = 512,
+        scaler: Optional[GradScaler] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(SimSiam, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimSiam, self).__init__(
+            criterion=criterion, input_size=input_size, scaler=scaler
+        )
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
@@ -434,9 +441,12 @@ class SimConv(MinervaSiamese):
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 2048,
+        scaler: Optional[GradScaler] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(SimConv, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimConv, self).__init__(
+            criterion=criterion, input_size=input_size, scaler=scaler
+        )
 
         # Set of required kwargs for the `PSPNet` adapted from `minerva` style kwargs.
         new_kwargs = {

@@ -57,6 +57,7 @@ import torch
 import torch.nn.functional as F
 import torch.nn.modules as nn
 from torch import Tensor
+from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
 from .core import MinervaModel, get_model
@@ -268,9 +269,13 @@ class UNet(MinervaModel):
         input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
+        scaler: Optional[GradScaler] = None,
     ) -> None:
         super(UNet, self).__init__(
-            criterion=criterion, input_size=input_size, n_classes=n_classes
+            criterion=criterion,
+            input_size=input_size,
+            n_classes=n_classes,
+            scaler=scaler,
         )
 
         self.bilinear = bilinear
@@ -353,12 +358,16 @@ class UNetR(MinervaModel):
         input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
+        scaler: Optional[GradScaler] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(UNetR, self).__init__(
-            criterion=criterion, input_size=input_size, n_classes=n_classes
+            criterion=criterion,
+            input_size=input_size,
+            n_classes=n_classes,
+            scaler=scaler,
         )
 
         factor = 2 if bilinear else 1

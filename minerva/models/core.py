@@ -68,6 +68,7 @@ import numpy as np
 import torch
 from nptyping import NDArray
 from torch import Tensor
+from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel, DistributedDataParallel
 from torch.optim import Optimizer
@@ -107,6 +108,7 @@ class MinervaModel(Module, ABC):
         criterion: Optional[Module] = None,
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
+        scaler: Optional[GradScaler] = None,
     ) -> None:
         super(MinervaModel, self).__init__()
 
@@ -115,6 +117,7 @@ class MinervaModel(Module, ABC):
 
         self.input_size = input_size
         self.n_classes = n_classes
+        self.scaler = scaler
 
         # Output shape initialised as None. Should be set by calling determine_output_dim.
         self.output_shape: Optional[Tuple[int, ...]] = None
@@ -200,16 +203,31 @@ class MinervaModel(Module, ABC):
         if train:
             self.optimiser.zero_grad()
 
-        # Forward pass.
-        z: Union[Tensor, Tuple[Tensor, ...]] = self.forward(x)
+        if self.scaler:
+            with torch.cuda.amp.autocast():
+                # Forward pass.
+                z: Union[Tensor, Tuple[Tensor, ...]] = self.forward(x)
 
-        # Compute Loss.
-        loss: Tensor = self.criterion(z, y)
+                # Compute Loss.
+                loss: Tensor = self.criterion(z, y)
 
-        # Performs a backward pass if this is a training step.
-        if train:
-            loss.backward()
-            self.optimiser.step()
+            # Performs a backward pass if this is a training step.
+            if train:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+        else:
+            # Forward pass.
+            z: Union[Tensor, Tuple[Tensor, ...]] = self.forward(x)
+
+            # Compute Loss.
+            loss: Tensor = self.criterion(z, y)
+
+            # Performs a backward pass if this is a training step.
+            if train:
+                loss.backward()
+                self.optimiser.step()
 
         return loss, z
 
@@ -236,10 +254,11 @@ class MinervaWrapper(MinervaModel):
         criterion: Optional[Module] = None,
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
+        scaler: Optional[GradScaler] = None,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(criterion, input_size, n_classes)
+        super().__init__(criterion, input_size, n_classes, scaler)
 
         self.model = model_cls(*args, **kwargs)
 

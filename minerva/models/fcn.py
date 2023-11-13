@@ -57,6 +57,7 @@ from typing import Any, Dict, Literal, Optional, Sequence, Tuple
 import torch
 import torch.nn.modules as nn
 from torch import Tensor
+from torch.cuda.amp.grad_scaler import GradScaler
 
 from .core import MinervaBackbone, MinervaModel, bilinear_init, get_model
 
@@ -101,12 +102,16 @@ class FCN(MinervaBackbone):
         criterion: Any,
         input_size: Tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
+        scaler: Optional[GradScaler] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(FCN, self).__init__(
-            criterion=criterion, input_size=input_size, n_classes=n_classes
+            criterion=criterion,
+            input_size=input_size,
+            n_classes=n_classes,
+            scaler=scaler,
         )
 
         # Initialises the selected Minerva backbone.
