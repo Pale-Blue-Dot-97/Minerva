@@ -203,13 +203,16 @@ class MinervaModel(Module, ABC):
         if train:
             self.optimiser.zero_grad()
 
+        z: Union[Tensor, Tuple[Tensor, ...]]
+        loss: Tensor
+
         if self.scaler:
-            with torch.cuda.amp.autocast():
+            with torch.cuda.amp.autocast_mode.autocast():
                 # Forward pass.
-                z: Union[Tensor, Tuple[Tensor, ...]] = self.forward(x)
+                z = self.forward(x)
 
                 # Compute Loss.
-                loss: Tensor = self.criterion(z, y)
+                loss = self.criterion(z, y)
 
             # Performs a backward pass if this is a training step.
             if train:
@@ -219,10 +222,10 @@ class MinervaModel(Module, ABC):
 
         else:
             # Forward pass.
-            z: Union[Tensor, Tuple[Tensor, ...]] = self.forward(x)
+            z = self.forward(x)
 
             # Compute Loss.
-            loss: Tensor = self.criterion(z, y)
+            loss = self.criterion(z, y)
 
             # Performs a backward pass if this is a training step.
             if train:

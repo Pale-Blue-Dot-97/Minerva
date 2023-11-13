@@ -465,6 +465,7 @@ class SimConv(MinervaSiamese):
             input_size=input_size,
             criterion=None,
             n_classes=None,
+            scaler=None,
             **new_kwargs,
         )
 
