@@ -238,16 +238,33 @@ class SimCLR(MinervaSiamese):
         if train:
             self.optimiser.zero_grad()
 
-        # Forward pass.
-        z, z_a, z_b, _, _ = self.forward(x)
+        loss: Tensor
 
-        # Compute Loss.
-        loss: Tensor = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+        if self.scaler:
+            with torch.cuda.amp.autocast_mode.autocast():
+                # Forward pass.
+                z, z_a, z_b, _, _ = self.forward(x)
 
-        # Performs a backward pass if this is a training step.
-        if train:
-            loss.backward()
-            self.optimiser.step()
+                # Compute Loss.
+                loss = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+
+            # Performs a backward pass if this is a training step.
+            if train:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+        else:
+            # Forward pass.
+            z, z_a, z_b, _, _ = self.forward(x)
+
+            # Compute Loss.
+            loss = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+
+            # Performs a backward pass if this is a training step.
+            if train:
+                loss.backward()
+                self.optimiser.step()
 
         return loss, z
 
@@ -381,16 +398,33 @@ class SimSiam(MinervaSiamese):
         if train:
             self.optimiser.zero_grad()
 
-        # Forward pass.
-        p, p_a, p_b, z_a, z_b = self.forward(x)
+        loss: Tensor
 
-        # Compute Loss.
-        loss: Tensor = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))  # type: ignore[arg-type]
+        if self.scaler:
+            with torch.cuda.amp.autocast_mode.autocast():
+                # Forward pass.
+                p, p_a, p_b, z_a, z_b = self.forward(x)
 
-        # Performs a backward pass if this is a training step.
-        if train:
-            loss.backward()
-            self.optimiser.step()
+                # Compute Loss.
+                loss = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))  # type: ignore[arg-type]
+
+            # Performs a backward pass if this is a training step.
+            if train:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+        else:
+            # Forward pass.
+            p, p_a, p_b, z_a, z_b = self.forward(x)
+
+            # Compute Loss.
+            loss = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))  # type: ignore[arg-type]
+
+            # Performs a backward pass if this is a training step.
+            if train:
+                loss.backward()
+                self.optimiser.step()
 
         return loss, p
 
@@ -529,15 +563,32 @@ class SimConv(MinervaSiamese):
         if train:
             self.optimiser.zero_grad()
 
-        # Forward pass.
-        z, z_a, z_b, _, _ = self.forward(x)
+        loss: Tensor
 
-        # Compute Loss.
-        loss: Tensor = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+        if self.scaler:
+            with torch.cuda.amp.autocast_mode.autocast():
+                # Forward pass.
+                z, z_a, z_b, _, _ = self.forward(x)
 
-        # Performs a backward pass if this is a training step.
-        if train:
-            loss.backward()
-            self.optimiser.step()
+                # Compute Loss.
+                loss = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+
+            # Performs a backward pass if this is a training step.
+            if train:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+        else:
+            # Forward pass.
+            z, z_a, z_b, _, _ = self.forward(x)
+
+            # Compute Loss.
+            loss = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+
+            # Performs a backward pass if this is a training step.
+            if train:
+                loss.backward()
+                self.optimiser.step()
 
         return loss, z
