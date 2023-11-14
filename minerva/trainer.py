@@ -434,6 +434,9 @@ class Trainer:
             # Updates the number of classes in case it has been altered by class balancing.
             params["num_classes"] = self.params["n_classes"]
 
+        if self.params.get("mix_precision", False):
+            params["scaler"] = torch.cuda.amp.grad_scaler.GradScaler()
+
         # Initialise model.
         model: MinervaModel
         if is_minerva:

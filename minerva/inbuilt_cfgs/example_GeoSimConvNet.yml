@@ -26,10 +26,11 @@ model_name: SimConv-test
 model_type: siamese-segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 2                         # Number of samples in each batch.
-patch_size: &patch_size [32, 32]     # 2D tuple or float.
-input_size: &input_size [4, 32, 32]  # patch_size plus leading channel dim.
+batch_size: 2                          # Number of samples in each batch.
+patch_size: &patch_size [32, 32]       # 2D tuple or float.
+input_size: &input_size [4, 32, 32]    # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
+mix_precision: true                    # Activate mixed precision (16-bit)
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 4                         # Maximum number of training epochs.

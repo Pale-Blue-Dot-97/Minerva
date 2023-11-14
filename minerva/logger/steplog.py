@@ -64,7 +64,7 @@ import torch
 import torch.distributed as dist
 from sklearn.metrics import jaccard_score
 from torch import Tensor
-from torchmetrics.regression import CosineSimilarity
+from torchmetrics.regression.cosine_similarity import CosineSimilarity
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
