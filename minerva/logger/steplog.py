@@ -667,6 +667,10 @@ class SSLStepLogger(MinervaStepLogger):
         if check_substrings_in_string(self.model_type, "segmentation"):
             z = z.flatten(1, -1)
 
+        assert (
+            z is not None
+        )  # Need the extra assertion here with mypy>=1.7.0 due to work on z above.
+
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
@@ -674,8 +678,8 @@ class SSLStepLogger(MinervaStepLogger):
         # Compute the TOP1 and TOP5 accuracies.
         cosine_sim = CosineSimilarity(reduction=None)
         sim_argsort = cosine_sim(*torch.split(z, int(0.5 * len(z)), 0))
-        correct = float((sim_argsort == 0).float().mean().cpu().numpy())
-        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
+        correct = float((sim_argsort == 0).float().mean().cpu().numpy())  # type: ignore[attr-defined]
+        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())  # type: ignore[attr-defined]
 
         if self.euclidean:
             z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
