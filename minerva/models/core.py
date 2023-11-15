@@ -206,29 +206,27 @@ class MinervaModel(Module, ABC):
         z: Union[Tensor, Tuple[Tensor, ...]]
         loss: Tensor
 
-        if self.scaler:
-            with torch.cuda.amp.autocast_mode.autocast():
-                # Forward pass.
-                z = self.forward(x)
+        mix_precision: bool = True if self.scaler else False
 
-                # Compute Loss.
-                loss = self.criterion(z, y)
-
-            # Performs a backward pass if this is a training step.
-            if train:
-                self.scaler.scale(loss).backward()
-                self.scaler.step(self.optimiser)
-                self.scaler.update()
-
-        else:
+        # Will enable mixed precision (if a Scaler has been set).
+        with torch.amp.autocast_mode.autocast(
+            device_type=str(x.device), dtype=torch.float16, enabled=mix_precision
+        ):
             # Forward pass.
             z = self.forward(x)
 
             # Compute Loss.
             loss = self.criterion(z, y)
 
-            # Performs a backward pass if this is a training step.
-            if train:
+        # Performs a backward pass if this is a training step.
+        if train:
+            # Scales the gradients if using mixed precision training.
+            if self.scaler:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+            else:
                 loss.backward()
                 self.optimiser.step()
 
