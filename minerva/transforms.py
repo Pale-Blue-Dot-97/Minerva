@@ -110,7 +110,7 @@ class ClassTransform:
         Returns:
             ~torch.LongTensor: Mask transformed into new label schema.
         """
-        transformed: LongTensor = mask_transform(mask, self.transform)
+        transformed: LongTensor = mask_transform(mask, self.transform)  # type: ignore[assignment]
         return transformed
 
 
@@ -168,7 +168,9 @@ class Normalise:
         Returns:
             ~torch.Tensor: Input image tensor normalised by ``norm_value``.
         """
-        return img / self.norm_value
+        norm_img = img / self.norm_value
+        assert isinstance(norm_img, Tensor)
+        return norm_img
 
 
 class AutoNorm(Normalize):
@@ -395,7 +397,9 @@ class ToRGB:
             if len(img) < 3:
                 raise ValueError("Image has less than 3 channels! Cannot be RGB!")
 
-            return img[:3]
+            rgb_img = img[:3]
+            assert isinstance(rgb_img, Tensor)
+            return rgb_img
 
 
 class SingleLabel:

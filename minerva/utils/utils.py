@@ -1127,7 +1127,7 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
 
 
 @overload
-def mask_transform(
+def mask_transform(  # type: ignore[overload-overlap]
     array: NDArray[Any, Int], matrix: Dict[int, int]
 ) -> NDArray[Any, Int]:
     ...  # pragma: no cover
