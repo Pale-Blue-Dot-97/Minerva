@@ -207,10 +207,14 @@ class MinervaModel(Module, ABC):
         loss: Tensor
 
         mix_precision: bool = True if self.scaler else False
+        device_type = "cpu" if x.device.type == "cpu" else "cuda"
+
+        # CUDA does not support ``torch.bfloat16`` while CPU does not support ``torch.float16`` for autocasting.
+        autocast_dtype = torch.float16 if device_type == "cuda" else torch.bfloat16
 
         # Will enable mixed precision (if a Scaler has been set).
         with torch.amp.autocast_mode.autocast(
-            device_type=str(x.device), dtype=torch.float16, enabled=mix_precision
+            device_type=device_type, dtype=autocast_dtype, enabled=mix_precision
         ):
             # Forward pass.
             z = self.forward(x)

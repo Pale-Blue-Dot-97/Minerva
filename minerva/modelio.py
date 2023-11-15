@@ -43,7 +43,7 @@ from typing import Any, Dict, Sequence, Tuple, Union
 
 import numpy as np
 import torch
-from torch import ShortTensor, Tensor
+from torch import LongTensor, Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
@@ -78,7 +78,7 @@ def sup_tg(
         The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
         of the input images supplied.
     """
-    float_dtype = torch.half if kwargs.get("mix_precision") is True else torch.float
+    float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
 
     # Extracts the x and y batches from the dict.
     images: Tensor = batch["image"]
@@ -94,7 +94,7 @@ def sup_tg(
 
     if isinstance(masks, Tensor):
         masks = masks.detach().cpu().numpy()
-    y_batch = torch.tensor(masks, dtype=torch.short)  # type: ignore[attr-defined]
+    y_batch = torch.tensor(masks, dtype=torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
     x: Tensor = x_batch.to(device)
@@ -144,25 +144,25 @@ def autoencoder_io(
     x: Tensor
     y: Tensor
     key = kwargs.get("autoencoder_data_key")
-    float_dtype = torch.half if kwargs.get("mix_precision") is True else torch.float
+    float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
 
     # Extracts the images and masks from the batch sample dict.
     images: Tensor = batch["image"]
-    masks: ShortTensor = batch["mask"]
+    masks: LongTensor = batch["mask"]
 
     if key == "mask":
         # Squeeze out axis 1 if only 1 element wide.
         if masks.shape[1] == 1:
             _masks = torch.tensor(
-                np.squeeze(masks.detach().cpu().numpy(), axis=1), dtype=torch.short
+                np.squeeze(masks.detach().cpu().numpy(), axis=1), dtype=torch.long
             )
-            assert isinstance(_masks, ShortTensor)
+            assert isinstance(_masks, LongTensor)
             masks = _masks
 
         input_masks: Tensor = torch.stack(
             tuple([mask_to_ohe(mask, kwargs.get("n_classes", None)) for mask in masks])
         )
-        output_masks: ShortTensor = masks
+        output_masks: LongTensor = masks
 
         if isinstance(input_masks, Tensor):
             input_masks = input_masks.detach().cpu().numpy()
@@ -172,7 +172,7 @@ def autoencoder_io(
 
         # Transfer to GPU and cast to correct dtypes.
         x = torch.tensor(input_masks, dtype=float_dtype, device=device)
-        y = torch.tensor(output_masks, dtype=torch.short, device=device)
+        y = torch.tensor(output_masks, dtype=torch.long, device=device)
 
     elif key == "image":
         # Extract the images from the batch, set to float, transfer to GPU and make x and y.
@@ -217,7 +217,7 @@ def ssl_pair_tg(
         ``loss``, the model output ``z``, the ``y`` supplied and the bounding boxes
         of the original input images supplied.
     """
-    float_dtype = torch.half if kwargs.get("mix_precision") is True else torch.float
+    float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
 
     # Extracts the x_i batch from the dict.
     x_i_batch: Tensor = batch[0]["image"]
@@ -237,3 +237,10 @@ def ssl_pair_tg(
     loss, z = model.step(x, train=train)
 
     return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]
+
+
+def _determine_float_dtype(device: torch.device, mix_precision: bool) -> torch.dtype:
+    if mix_precision is True:
+        return torch.bfloat16 if device.type == "cpu" else torch.float16
+    else:
+        return torch.float
