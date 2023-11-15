@@ -636,9 +636,8 @@ class SSLLogger(MinervaLogger):
         if "segmentation" in self.model_type:
             z = z.flatten(1, -1)
 
-        assert (
-            z is not None
-        )  # Need the extra assertion here with mypy>=1.7.0 due to work on z above.
+        # Need the extra assertion here with mypy>=1.7.0 due to work on z above.
+        assert z is not None
 
         # Adds the loss for this step to the logs.
         ls = loss.item()
