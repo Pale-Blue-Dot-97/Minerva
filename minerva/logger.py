@@ -636,14 +636,17 @@ class SSLLogger(MinervaLogger):
         if "segmentation" in self.model_type:
             z = z.flatten(1, -1)
 
+        # Need the extra assertion here with mypy>=1.7.0 due to work on z above.
+        assert z is not None
+
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
 
         # Compute the TOP1 and TOP5 accuracies.
         sim_argsort = utils.calc_contrastive_acc(z)
-        correct = float((sim_argsort == 0).float().mean().cpu().numpy())
-        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
+        correct = float((sim_argsort == 0).float().mean().cpu().numpy())  # type: ignore[attr-defined]
+        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())  # type: ignore[attr-defined]
 
         if self.euclidean:
             z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
