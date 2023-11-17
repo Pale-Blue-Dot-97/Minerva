@@ -10,9 +10,9 @@
    :hidden:
    :caption: Source Documentation 📙:
 
-   source/minerva/datasets
-   source/minerva/logger
-   source/minerva/metrics
+   source/minerva/datasets/index
+   source/minerva/logger/index
+   source/minerva/tasks/index
    source/minerva/modelio
    source/minerva/optimisers
    source/minerva/pytorchtools
