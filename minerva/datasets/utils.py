@@ -39,6 +39,8 @@ __all__ = [
     "get_random_sample",
 ]
 
+import pickle
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -164,3 +166,16 @@ def get_random_sample(
         dict[str, ~typing.Any]: Random sample from the dataset.
     """
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]
+
+
+def load_dataset_from_cache(config_hash: str) -> GeoDataset:
+    with open(f"{config_hash}.obj", "wb") as fp:
+        dataset = pickle.load(fp)
+
+    assert isinstance(dataset, GeoDataset)
+    return dataset
+
+
+def cache_dataset(dataset: GeoDataset, config_hash: str) -> None:
+    with open(f"{config_hash}.obj", "wb") as fp:
+        pickle.dump(dataset, fp)
