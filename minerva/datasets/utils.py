@@ -40,6 +40,7 @@ __all__ = [
 ]
 
 import pickle
+from pathlib import Path
 
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -168,14 +169,14 @@ def get_random_sample(
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]
 
 
-def load_dataset_from_cache(config_hash: str) -> GeoDataset:
-    with open(f"{config_hash}.obj", "wb") as fp:
+def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
+    with open(cached_dataset_path, "wb") as fp:
         dataset = pickle.load(fp)
 
     assert isinstance(dataset, GeoDataset)
     return dataset
 
 
-def cache_dataset(dataset: GeoDataset, config_hash: str) -> None:
-    with open(f"{config_hash}.obj", "wb") as fp:
+def cache_dataset(dataset: GeoDataset, cached_dataset_path: Path) -> None:
+    with open(cached_dataset_path, "wb") as fp:
         pickle.dump(dataset, fp)
