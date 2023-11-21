@@ -12,7 +12,7 @@ inputimeout==1.0.4
 internet-sabotage3==0.1.6
 ipykernel==6.26.0
 lightly==1.4.21
-matplotlib==3.8.1
+matplotlib==3.8.2
 mlflow==2.8.0
 mypy==1.7.0
 myst_parser==2.0.0
