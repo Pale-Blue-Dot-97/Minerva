@@ -488,14 +488,10 @@ def get_output_shape(
     output: Tensor = model(random_input.to(next(model.parameters()).device))
 
     if len(output[0].data.shape) == 1:
-        output_shape: int = output[0].data.shape[0]
-        assert isinstance(output_shape, int)
+        return (output[0].data.shape[0],)
 
     else:
-        output_shape = output[0].data.shape[1:]
-        assert isinstance(output_shape, Sequence)
-
-    return output_shape
+        return tuple(output[0].data.shape[1:])
 
 
 def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tensor:
