@@ -1996,7 +1996,7 @@ def make_hash(obj: Any) -> Union[int, Tuple[int, ...]]:
 
     if isinstance(obj, (set, tuple, list)):
         if all(isinstance(x, Hashable) for x in obj):
-            return abs(hash(obj))
+            return abs(hash(frozenset(obj)))
         else:
             return tuple([abs(make_hash(e)) for e in obj])    
 
