@@ -143,13 +143,13 @@ def get_subdataset(
     sub_dataset: GeoDataset
 
     if cache or sub_dataset_params.get("cache_dataset"):
-        this_hash = hash(sub_dataset_params)
+        this_hash = utils.make_hash(sub_dataset_params)
 
         cached_dataset_path = Path(CACHE_DIR) / f"{this_hash}.obj"
 
         if cached_dataset_path.exists():
             sub_dataset = load_dataset_from_cache(cached_dataset_path)
-            assert isinstance(sub_dataset, _sub_dataset)
+            assert type(sub_dataset) == _sub_dataset
 
         else:
             sub_dataset = create_subdataset(
@@ -244,6 +244,7 @@ def make_dataset(
                     area_key,
                     transformations,
                     sample_pairs=sample_pairs,
+                    cache=cache,
                 )
 
                 # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
@@ -274,6 +275,7 @@ def make_dataset(
                 type_key,
                 master_transforms,
                 sample_pairs=sample_pairs,
+                cache=cache,
             )
 
             # Performs an auto-normalisation initialisation which finds the mean and std of the dataset

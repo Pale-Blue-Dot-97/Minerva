@@ -114,6 +114,7 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
+import copy
 import cmath
 import functools
 import glob
@@ -143,6 +144,7 @@ from typing import (
     Tuple,
     Union,
     overload,
+    Hashable,
 )
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
@@ -1983,3 +1985,26 @@ def compile_dataset_paths(
 
     # For each path, get the absolute path, convert to string and return.
     return [str(Path(path).absolute()) for path in compiled_paths]
+
+
+def make_hash(obj: Any) -> Union[int, Tuple[int, ...]]:
+    """
+    Makes a hash from a dictionary, list, tuple or set to any level, that contains
+    only other hashable types (including any lists, tuples, sets, and
+    dictionaries).
+    """
+
+    if isinstance(obj, (set, tuple, list)):
+        if all(isinstance(x, Hashable) for x in obj):
+            return abs(hash(obj))
+        else:
+            return tuple([abs(make_hash(e)) for e in obj])    
+
+    elif not isinstance(obj, dict):
+        return abs(hash(obj))
+
+    new_obj = copy.deepcopy(obj)
+    for k, v in new_obj.items():
+        new_obj[k] = make_hash(v)
+
+    return abs(hash(tuple(frozenset(sorted(new_obj.items())))))

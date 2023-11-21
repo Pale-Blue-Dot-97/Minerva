@@ -170,7 +170,7 @@ def get_random_sample(
 
 
 def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
-    with open(cached_dataset_path, "wb") as fp:
+    with open(cached_dataset_path, "rb") as fp:
         dataset = pickle.load(fp)
 
     assert isinstance(dataset, GeoDataset)

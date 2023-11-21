@@ -63,6 +63,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
         data_root,
         exp_dataset_params,
         sample_pairs=True,
+        cache=False,
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
