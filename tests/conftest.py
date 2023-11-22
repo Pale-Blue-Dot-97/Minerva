@@ -87,6 +87,17 @@ def results_dir() -> Generator[Path, None, None]:
         shutil.rmtree(path, ignore_errors=True)
 
 
+@pytest.fixture(scope="session", autouse=True)
+def cache_dir() -> Generator[Path, None, None]:
+    path = Path(__file__).parent / "tmp" / "cache"
+    if not path.exists():
+        path.mkdir(parents=True)
+
+    yield path
+    if path.exists():
+        shutil.rmtree(path, ignore_errors=True)
+
+
 @pytest.fixture
 def results_root() -> Path:
     return Path(__file__).parent / "tmp" / "results"
