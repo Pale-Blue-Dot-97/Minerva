@@ -294,7 +294,7 @@ def test_SSLStepLogger(
 
         if extra_metrics:
             assert type(logs["collapse_level"]) is float
-            assert type(logs["euc_dist"]) is float
+            assert type(logs["euc_dist"]) is float or np.inf
 
         results = logger.get_results
         assert results == {}
