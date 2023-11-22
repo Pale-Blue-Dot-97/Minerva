@@ -130,7 +130,7 @@ def test_caching_datasets(exp_dataset_params: Dict[str, Any], data_root: Path) -
     )
 
     # Datasets from calls 1 should be the same as those from 2.
-    assert type(dataset_1) == type(dataset_2)
+    assert type(dataset_1) == type(dataset_2)  # noqa: E721
 
 
 @pytest.mark.parametrize(
