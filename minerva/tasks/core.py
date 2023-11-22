@@ -86,7 +86,7 @@ class MinervaTask(ABC):
         writer (~torch.utils.tensorboard.writer.SummaryWriter | ~wandb.sdk.wandb_run.Run | None): The *writer*
             to perform logging for this experiment. For use with either :mod:`tensorboard` or :mod:`wandb`.
         n_samples (dict[str, int]): Number of samples in each mode of model fitting.
-        logger (~logger.MinervaTaskLogger): Object to calculate and log metrics to track the performance
+        logger (~logger.tasklog.MinervaTaskLogger): Object to calculate and log metrics to track the performance
             of the model.
         modelio_func (~typing.Callable[..., ~typing.Any]): Function to handle the input/ output to the model.
         step_num (int): Holds the step number for this task.
@@ -287,7 +287,7 @@ class MinervaTask(ABC):
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
 
         Returns:
-            MinervaTaskLogger: Constructed task logger.
+            ~logger.tasklog.MinervaTaskLogger: Constructed task logger.
         """
 
         # Gets constructor of the metric logger from name in the config.
@@ -478,7 +478,7 @@ def get_task(task: str, *args, **params) -> MinervaTask:
 
     Args:
         task (str): Name of the task.
-        params (Dict[str, Any]): Parameters for the task to be initialised.
+        params (dict[str, ~typing.Any]): Parameters for the task to be initialised.
 
     Returns:
         MinervaTask: Constructed :class:`MinervaTask` object.

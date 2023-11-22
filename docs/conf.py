@@ -25,6 +25,8 @@ copyright = "2023, Harry Baker"
 author = minerva.__author__
 version = minerva.__version__  # type: ignore[attr-defined]
 
+# Fix strange bug.
+autodoc_mock_imports = ["minerva.logger"]
 
 # -- General configuration ---------------------------------------------------
 

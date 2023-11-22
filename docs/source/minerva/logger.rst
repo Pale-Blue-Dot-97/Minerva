@@ -1,5 +1,0 @@
-logger
-=======
-
-.. automodule:: logger
-   :members:
