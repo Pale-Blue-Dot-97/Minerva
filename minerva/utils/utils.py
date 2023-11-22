@@ -114,7 +114,6 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
-import copy
 import cmath
 import functools
 import glob
@@ -144,8 +143,9 @@ from typing import (
     Tuple,
     Union,
     overload,
-    Hashable,
 )
+import hashlib
+import json
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import numpy as np
@@ -1987,24 +1987,24 @@ def compile_dataset_paths(
     return [str(Path(path).absolute()) for path in compiled_paths]
 
 
-def make_hash(obj: Any) -> Union[int, Tuple[int, ...]]:
+def make_hash(obj: Dict[Any, Any]) -> str:
+    """Make a deterministic MD5 hash of a serialisable object using JSON.
+
+    Source: https://death.andgravity.com/stable-hashing
+    
+    Args:
+        obj (dict[~typing.Any, ~typing.Any]): Serialisable object (known to work with dictionairies) to make a hash from.
+    
+    Returns:
+        str: MD5 hexidecimal hash representing the signature of ``obj``.
     """
-    Makes a hash from a dictionary, list, tuple or set to any level, that contains
-    only other hashable types (including any lists, tuples, sets, and
-    dictionaries).
-    """
+    def json_dumps(obj):
+        return json.dumps(
+            obj,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=None,
+            separators=(',', ':'),
+        )
+    return hashlib.md5(json_dumps(obj).encode('utf-8')).digest().hex()
 
-    if isinstance(obj, (set, tuple, list)):
-        if all(isinstance(x, Hashable) for x in obj):
-            return abs(hash(frozenset(obj)))
-        else:
-            return tuple([abs(make_hash(e)) for e in obj])    
-
-    elif not isinstance(obj, dict):
-        return abs(hash(obj))
-
-    new_obj = copy.deepcopy(obj)
-    for k, v in new_obj.items():
-        new_obj[k] = make_hash(v)
-
-    return abs(hash(tuple(frozenset(sorted(new_obj.items())))))
