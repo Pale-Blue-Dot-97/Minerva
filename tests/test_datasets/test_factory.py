@@ -200,24 +200,6 @@ def test_construct_dataloader(
 def test_make_loaders() -> None:
     old_params = CONFIG.copy()
 
-    # mask_transforms = {"RandomHorizontalFlip": {"module": "torchvision.transforms"}}
-    # transform_params = {
-    #     "train": {
-    #         "image": False,
-    #         "mask": mask_transforms,
-    #     },
-    #     "val": {
-    #         "image": False,
-    #         "mask": mask_transforms,
-    #     },
-    #     "test": {
-    #         "image": False,
-    #         "mask": False,
-    #     },
-    # }
-
-    # old_params["transform_params"] = transform_params
-
     loader, n_batches, class_dist, params = mdt.make_loaders(
         **old_params, task_name="fit-val"
     )
