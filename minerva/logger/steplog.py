@@ -667,6 +667,9 @@ class SSLStepLogger(MinervaStepLogger):
         if check_substrings_in_string(self.model_type, "segmentation"):
             z = z.flatten(1, -1)
 
+        # Need the extra assertion here with mypy>=1.7.0 due to work on z above.
+        assert z is not None
+
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
@@ -674,8 +677,8 @@ class SSLStepLogger(MinervaStepLogger):
         # Compute the TOP1 and TOP5 accuracies.
         cosine_sim = CosineSimilarity(reduction=None)
         sim_argsort = cosine_sim(*torch.split(z, int(0.5 * len(z)), 0))
-        correct = float((sim_argsort == 0).float().mean().cpu().numpy())
-        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())
+        correct = float((sim_argsort == 0).float().mean().cpu().numpy())  # type: ignore[attr-defined]
+        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())  # type: ignore[attr-defined]
 
         if self.euclidean:
             z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
@@ -684,8 +687,16 @@ class SSLStepLogger(MinervaStepLogger):
             for i in range(len(z_a)):
                 euc_dists.append(
                     utils.calc_norm_euc_dist(
-                        torch.nan_to_num(z_a[i]).detach().cpu().numpy(),
-                        torch.nan_to_num(z_b[i]).detach().cpu().numpy(),
+                        torch.nan_to_num(z_a[i])
+                        .detach()
+                        .cpu()
+                        .to(dtype=torch.half)
+                        .numpy(),
+                        torch.nan_to_num(z_b[i])
+                        .detach()
+                        .cpu()
+                        .to(dtype=torch.half)
+                        .numpy(),
                     )
                 )
 

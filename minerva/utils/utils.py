@@ -117,8 +117,10 @@ __all__ = [
 import cmath
 import functools
 import glob
+import hashlib
 import importlib
 import inspect
+import json
 import math
 import os
 import random
@@ -1131,7 +1133,7 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
 
 
 @overload
-def mask_transform(
+def mask_transform(  # type: ignore[overload-overlap]
     array: NDArray[Any, Int], matrix: Dict[int, int]
 ) -> NDArray[Any, Int]:
     ...  # pragma: no cover
@@ -1983,3 +1985,28 @@ def compile_dataset_paths(
 
     # For each path, get the absolute path, convert to string and return.
     return [str(Path(path).absolute()) for path in compiled_paths]
+
+
+def make_hash(obj: Dict[Any, Any]) -> str:
+    """Make a deterministic MD5 hash of a serialisable object using JSON.
+
+    Source: https://death.andgravity.com/stable-hashing
+
+    Args:
+        obj (dict[~typing.Any, ~typing.Any]): Serialisable object (known to work with dictionairies)
+            to make a hash from.
+
+    Returns:
+        str: MD5 hexidecimal hash representing the signature of ``obj``.
+    """
+
+    def json_dumps(obj):
+        return json.dumps(
+            obj,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=None,
+            separators=(",", ":"),
+        )
+
+    return hashlib.md5(json_dumps(obj).encode("utf-8")).digest().hex()  # nosec: B324

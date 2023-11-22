@@ -273,3 +273,4 @@ save_model: false
 # None etc to not
 run_tensorboard: false
 calc_norm: false
+cache_dataset: false  # Cache the dataset objects to speed up dataset init.

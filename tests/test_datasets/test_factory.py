@@ -47,7 +47,7 @@ from torchgeo.datasets import IntersectionDataset, UnionDataset
 from minerva import datasets as mdt
 from minerva.datasets import PairedDataset
 from minerva.datasets.__testing import TstImgDataset
-from minerva.utils.utils import CONFIG
+from minerva.utils.utils import CACHE_DIR, CONFIG, make_hash
 
 
 # =====================================================================================================================
@@ -63,6 +63,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
         data_root,
         exp_dataset_params,
         sample_pairs=True,
+        cache=False,
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
@@ -104,6 +105,32 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
 
     assert isinstance(dataset_5, IntersectionDataset)
     assert isinstance(subdatasets_5[0], UnionDataset)
+
+
+def test_caching_datasets(exp_dataset_params: Dict[str, Any], data_root: Path) -> None:
+    # Make the path to the cached dataset.
+    cached_dataset_path = Path(
+        CACHE_DIR, make_hash(exp_dataset_params["image"]) + ".obj"
+    )
+
+    # Ensure that any previous caches are deleted.
+    cached_dataset_path.unlink(missing_ok=True)
+
+    # This first call will make the dataset from scratch then cache it.
+    dataset_1, subdatasets_1 = mdt.make_dataset(
+        data_root, exp_dataset_params, cache=True
+    )
+
+    # The cached dataset should now exist.
+    assert cached_dataset_path.exists()
+
+    # Second call to make dataset with the same args should now load that cached dataset.
+    dataset_2, subdatasets_2 = mdt.make_dataset(
+        data_root, exp_dataset_params, cache=True
+    )
+
+    # Datasets from calls 1 should be the same as those from 2.
+    assert type(dataset_1) == type(dataset_2)  # noqa: E721
 
 
 @pytest.mark.parametrize(
@@ -172,24 +199,6 @@ def test_construct_dataloader(
 
 def test_make_loaders() -> None:
     old_params = CONFIG.copy()
-
-    # mask_transforms = {"RandomHorizontalFlip": {"module": "torchvision.transforms"}}
-    # transform_params = {
-    #     "train": {
-    #         "image": False,
-    #         "mask": mask_transforms,
-    #     },
-    #     "val": {
-    #         "image": False,
-    #         "mask": mask_transforms,
-    #     },
-    #     "test": {
-    #         "image": False,
-    #         "mask": False,
-    #     },
-    # }
-
-    # old_params["transform_params"] = transform_params
 
     loader, n_batches, class_dist, params = mdt.make_loaders(
         **old_params, task_name="fit-val"

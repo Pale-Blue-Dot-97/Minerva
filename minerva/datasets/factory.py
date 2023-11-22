@@ -72,8 +72,10 @@ from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 from .collators import get_collator, stack_sample_pairs
 from .paired import PairedDataset
 from .utils import (
+    cache_dataset,
     intersect_datasets,
     load_all_samples,
+    load_dataset_from_cache,
     make_bounding_box,
     unionise_datasets,
 )
@@ -90,10 +92,122 @@ CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def create_subdataset(
+    dataset_class: Callable[..., GeoDataset],
+    paths: Union[str, Iterable[str]],
+    subdataset_params: Dict[Literal["params"], Dict[str, Any]],
+    transformations: Optional[Any],
+    sample_pairs: bool = False,
+) -> GeoDataset:
+    """Creates a sub-dataset based on the parameters supplied.
+
+    Args:
+        dataset_class (Callable[..., ~typing.datasets.GeoDataset]): Constructor for the sub-dataset.
+        paths (str | ~typing.Iterable[str]): Paths to where the data for the dataset is located.
+        subdataset_params (dict[Literal[params], dict[str, ~typing.Any]]): Parameters for the sub-dataset.
+        transformations (~typing.Any): Transformations to apply to this sub-dataset.
+        sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
+
+    Returns:
+        ~torchgeo.datasets.GeoDataset: Subdataset requested.
+    """
+    copy_params = deepcopy(subdataset_params)
+
+    if "crs" in copy_params["params"]:
+        copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
+
+    if sample_pairs:
+        return PairedDataset(
+            dataset_class,
+            paths=paths,
+            transforms=transformations,
+            **copy_params["params"],
+        )
+    else:
+        return dataset_class(
+            paths=paths,
+            transforms=transformations,
+            **copy_params["params"],
+        )
+
+
+def get_subdataset(
+    data_directory: Union[Iterable[str], str, Path],
+    dataset_params: Dict[str, Any],
+    key: str,
+    transformations: Optional[Any],
+    sample_pairs: bool = False,
+    cache: bool = True,
+) -> GeoDataset:
+    """Get a subdataset based on the parameters specified.
+
+    If ``cache==True``, this will attempt to load a cached version of the dataset instance.
+    If ``cache==False`` or the cached dataset does not exist, uses :func:`create_subdataset` to create it instead.
+
+    Args:
+        data_directory (~typing.Iterable[str] | str | ~pathlib.Path): Path to the parent data directory
+            that the dataset being fetched should be in.
+        dataset_params (dict[str, ~typing.Any]): Parameters defining the sub-datasets that will be unionised together.
+        key (str): The key for this subdataset within ``dataset_params``.
+        transformations (~typing.Any): Transformations to apply to this sub-dataset.
+        sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
+        cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
+
+    Returns:
+        ~torchgeo.datasets.GeoDataset: Subdataset requested.
+    """
+    # Get the params for this sub-dataset.
+    sub_dataset_params = dataset_params[key]
+
+    # Get the constructor for the class of dataset defined in params.
+    _sub_dataset: Callable[..., GeoDataset] = utils.func_by_str(
+        module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
+    )
+
+    # Construct the path to the sub-dataset's files.
+    sub_dataset_paths = utils.compile_dataset_paths(
+        universal_path(data_directory), sub_dataset_params["paths"]
+    )
+
+    sub_dataset: GeoDataset
+
+    if cache or sub_dataset_params.get("cache_dataset"):
+        this_hash = utils.make_hash(sub_dataset_params)
+
+        cached_dataset_path = Path(CACHE_DIR) / f"{this_hash}.obj"
+
+        if cached_dataset_path.exists():
+            sub_dataset = load_dataset_from_cache(cached_dataset_path)
+            assert type(sub_dataset) == _sub_dataset  # noqa: E721
+
+        else:
+            sub_dataset = create_subdataset(
+                _sub_dataset,
+                sub_dataset_paths,
+                sub_dataset_params,
+                transformations,
+                sample_pairs=sample_pairs,
+            )
+
+            cache_dataset(sub_dataset, cached_dataset_path)
+
+    else:
+        sub_dataset = create_subdataset(
+            _sub_dataset,
+            sub_dataset_paths,
+            sub_dataset_params,
+            transformations,
+            sample_pairs=sample_pairs,
+        )
+
+    return sub_dataset
+
+
 def make_dataset(
     data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
     sample_pairs: bool = False,
+    cache: bool = True,
 ) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from ``n`` sub-datasets given by the parameters supplied.
 
@@ -108,50 +222,6 @@ def make_dataset(
         tuple[~typing.Any, list[~typing.Any]]: Tuple of Dataset object formed by the parameters given and list of
         the sub-datasets created that constitute ``dataset``.
     """
-
-    def get_subdataset(
-        this_dataset_params: Dict[str, Any], key: str
-    ) -> Tuple[Callable[..., GeoDataset], List[str]]:
-        # Get the params for this sub-dataset.
-        sub_dataset_params = this_dataset_params[key]
-
-        # Get the constructor for the class of dataset defined in params.
-        _sub_dataset: Callable[..., GeoDataset] = utils.func_by_str(
-            module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
-        )
-
-        # Construct the path to the sub-dataset's files.
-        sub_dataset_paths = utils.compile_dataset_paths(
-            universal_path(data_directory), sub_dataset_params["paths"]
-        )
-
-        return _sub_dataset, sub_dataset_paths
-
-    def create_subdataset(
-        dataset_class: Callable[..., GeoDataset],
-        paths: Union[str, Iterable[str]],
-        subdataset_params: Dict[Literal["params"], Dict[str, Any]],
-        _transformations: Optional[Any],
-    ) -> GeoDataset:
-        copy_params = deepcopy(subdataset_params)
-
-        if "crs" in copy_params["params"]:
-            copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
-
-        if sample_pairs:
-            return PairedDataset(
-                dataset_class,
-                paths=paths,
-                transforms=_transformations,
-                **copy_params["params"],
-            )
-        else:
-            return dataset_class(
-                paths=paths,
-                transforms=_transformations,
-                **copy_params["params"],
-            )
-
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
     sub_datasets: List[GeoDataset] = []
@@ -188,10 +258,6 @@ def make_dataset(
             else:
                 multi_datasets_exist = True
 
-                _subdataset, subdataset_paths = get_subdataset(
-                    type_dataset_params, area_key
-                )
-
                 if isinstance(type_dataset_params[area_key].get("transforms"), dict):
                     transform_params = type_dataset_params[area_key]["transforms"]
                     auto_norm = transform_params.get("AutoNorm")
@@ -201,11 +267,13 @@ def make_dataset(
                 transformations = make_transformations(transform_params, type_key)
 
                 # Send the params for this area key back through this function to make the sub-dataset.
-                sub_dataset = create_subdataset(
-                    _subdataset,
-                    subdataset_paths,
-                    type_dataset_params[area_key],
+                sub_dataset = get_subdataset(
+                    data_directory,
+                    type_dataset_params,
+                    area_key,
                     transformations,
+                    sample_pairs=sample_pairs,
+                    cache=cache,
                 )
 
                 # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
@@ -230,10 +298,13 @@ def make_dataset(
 
         # Add the subdataset of this modality to the list.
         else:
-            sub_dataset = create_subdataset(
-                *get_subdataset(dataset_params, type_key),
-                type_dataset_params,
+            sub_dataset = get_subdataset(
+                data_directory,
+                dataset_params,
+                type_key,
                 master_transforms,
+                sample_pairs=sample_pairs,
+                cache=cache,
             )
 
             # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
@@ -270,6 +341,7 @@ def construct_dataloader(
     rank: int = 0,
     world_size: int = 1,
     sample_pairs: bool = False,
+    cache: bool = True,
 ) -> DataLoader[Iterable[Any]]:
     """Constructs a :class:`~torch.utils.data.DataLoader` object from the parameters provided for the
     datasets, sampler, collator and transforms.
@@ -293,7 +365,10 @@ def construct_dataloader(
         ~torch.utils.data.DataLoader: Object to handle the returning of batched samples from the dataset.
     """
     dataset, subdatasets = make_dataset(
-        data_directory, dataset_params, sample_pairs=sample_pairs
+        data_directory,
+        dataset_params,
+        sample_pairs=sample_pairs,
+        cache=cache,
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
@@ -433,6 +508,7 @@ def make_loaders(
         sample_pairs = False
 
     elim = utils.fallback_params("elim", task_params, params, False)
+    cache = utils.fallback_params("cache_dataset", task_params, params, True)
 
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Load manifest from cache for this dataset.
@@ -482,6 +558,7 @@ def make_loaders(
             rank=rank,
             world_size=world_size,
             sample_pairs=sample_pairs,
+            cache=cache,
         )
         print("DONE")
 
@@ -523,6 +600,7 @@ def make_loaders(
                 rank=rank,
                 world_size=world_size,
                 sample_pairs=sample_pairs if mode == "train" else False,
+                cache=cache,
             )
             print("DONE")
 

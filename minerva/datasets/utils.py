@@ -39,6 +39,9 @@ __all__ = [
     "get_random_sample",
 ]
 
+import pickle
+from pathlib import Path
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
@@ -164,3 +167,34 @@ def get_random_sample(
         dict[str, ~typing.Any]: Random sample from the dataset.
     """
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]
+
+
+def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
+    """Load a pickled dataset object in from a cache.
+
+    Args:
+        cached_dataset_path (~pathlib.Path): Path to the cached dataset object
+
+    Returns:
+        ~torchgeo.datasets.GeoDataset: Dataset object loaded from cache
+    """
+
+    with open(cached_dataset_path, "rb") as fp:
+        dataset = pickle.load(fp)
+
+    assert isinstance(dataset, GeoDataset)
+    return dataset
+
+
+def cache_dataset(dataset: GeoDataset, cached_dataset_path: Path) -> None:
+    """Pickle and cache a dataset object.
+
+    Args:
+        dataset (~torchgeo.datasets.GeoDataset): Dataset object to cache.
+        cached_dataset_path (~pathlib.Path): Path to save dataset to.
+    """
+    # Create missing directories in the path if they don't exist.
+    cached_dataset_path.parent.mkdir(parents=True, exist_ok=True)
+
+    with open(cached_dataset_path, "xb") as fp:
+        pickle.dump(dataset, fp)
