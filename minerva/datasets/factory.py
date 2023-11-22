@@ -99,6 +99,18 @@ def create_subdataset(
     transformations: Optional[Any],
     sample_pairs: bool = False,
 ) -> GeoDataset:
+    """Creates a sub-dataset based on the parameters supplied.
+
+    Args:
+        dataset_class (Callable[..., ~typing.datasets.GeoDataset]): Constructor for the sub-dataset.
+        paths (str | ~typing.Iterable[str]): Paths to where the data for the dataset is located.
+        subdataset_params (dict[Literal[params], dict[str, ~typing.Any]]): Parameters for the sub-dataset.
+        transformations (~typing.Any): Transformations to apply to this sub-dataset.
+        sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
+
+    Returns:
+        ~torchgeo.datasets.GeoDataset: Subdataset requested.
+    """
     copy_params = deepcopy(subdataset_params)
 
     if "crs" in copy_params["params"]:
@@ -127,6 +139,23 @@ def get_subdataset(
     sample_pairs: bool = False,
     cache: bool = True,
 ) -> GeoDataset:
+    """Get a subdataset based on the parameters specified.
+
+    If ``cache==True``, this will attempt to load a cached version of the dataset instance.
+    If ``cache==False`` or the cached dataset does not exist, uses :func:`create_subdataset` to create it instead.
+
+    Args:
+        data_directory (~typing.Iterable[str] | str | ~pathlib.Path): Path to the parent data directory
+            that the dataset being fetched should be in.
+        dataset_params (dict[str, ~typing.Any]): Parameters defining the sub-datasets that will be unionised together.
+        key (str): The key for this subdataset within ``dataset_params``.
+        transformations (~typing.Any): Transformations to apply to this sub-dataset.
+        sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
+        cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
+
+    Returns:
+        ~torchgeo.datasets.GeoDataset: Subdataset requested.
+    """
     # Get the params for this sub-dataset.
     sub_dataset_params = dataset_params[key]
 
@@ -149,7 +178,7 @@ def get_subdataset(
 
         if cached_dataset_path.exists():
             sub_dataset = load_dataset_from_cache(cached_dataset_path)
-            assert type(sub_dataset) == _sub_dataset
+            assert type(sub_dataset) == _sub_dataset  # noqa: E721
 
         else:
             sub_dataset = create_subdataset(
