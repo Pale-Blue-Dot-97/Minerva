@@ -178,7 +178,7 @@ def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
     Returns:
         ~torchgeo.datasets.GeoDataset: Dataset object loaded from cache
     """
-    
+
     with open(cached_dataset_path, "rb") as fp:
         dataset = pickle.load(fp)
 
