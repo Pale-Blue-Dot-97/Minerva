@@ -178,7 +178,6 @@ def get_subdataset(
 
         if cached_dataset_path.exists():
             sub_dataset = load_dataset_from_cache(cached_dataset_path)
-            assert type(sub_dataset) == _sub_dataset  # noqa: E721
 
         else:
             sub_dataset = create_subdataset(

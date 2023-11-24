@@ -84,6 +84,9 @@ class PairedDataset(RasterDataset):
         else:
             return super(PairedDataset, cls).__new__(cls)
 
+    def __getnewargs__(self):
+        return self.dataset, self._args, self._kwargs
+
     @overload
     def __init__(self, dataset: Callable[..., GeoDataset], *args, **kwargs) -> None:
         ...  # pragma: no cover
@@ -98,6 +101,10 @@ class PairedDataset(RasterDataset):
         *args,
         **kwargs,
     ) -> None:
+        # Needed for pickling/ unpickling.
+        self._args = args
+        self._kwargs = kwargs
+
         if isinstance(dataset, GeoDataset):
             self.dataset = dataset
             self._res = dataset.res

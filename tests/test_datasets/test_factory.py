@@ -107,7 +107,10 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
     assert isinstance(subdatasets_5[0], UnionDataset)
 
 
-def test_caching_datasets(exp_dataset_params: Dict[str, Any], data_root: Path) -> None:
+@pytest.mark.parametrize("sample_pairs", (False, True))
+def test_caching_datasets(
+    exp_dataset_params: Dict[str, Any], data_root: Path, sample_pairs: bool
+) -> None:
     # Make the path to the cached dataset.
     cached_dataset_path = Path(
         CACHE_DIR, make_hash(exp_dataset_params["image"]) + ".obj"
@@ -118,7 +121,7 @@ def test_caching_datasets(exp_dataset_params: Dict[str, Any], data_root: Path) -
 
     # This first call will make the dataset from scratch then cache it.
     dataset_1, subdatasets_1 = mdt.make_dataset(
-        data_root, exp_dataset_params, cache=True
+        data_root, exp_dataset_params, sample_pairs=sample_pairs, cache=True
     )
 
     # The cached dataset should now exist.
@@ -126,11 +129,16 @@ def test_caching_datasets(exp_dataset_params: Dict[str, Any], data_root: Path) -
 
     # Second call to make dataset with the same args should now load that cached dataset.
     dataset_2, subdatasets_2 = mdt.make_dataset(
-        data_root, exp_dataset_params, cache=True
+        data_root, exp_dataset_params, sample_pairs=sample_pairs, cache=True
     )
 
     # Datasets from calls 1 should be the same as those from 2.
-    assert type(dataset_1) == type(dataset_2)  # noqa: E721
+    assert isinstance(dataset_1, type(dataset_2))
+    for i in range(len(subdatasets_1)):
+        assert isinstance(subdatasets_1[i], type(subdatasets_2[i]))
+
+    # Clean-up.
+    cached_dataset_path.unlink()
 
 
 @pytest.mark.parametrize(
