@@ -39,6 +39,7 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+import warnings
 from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
@@ -46,6 +47,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 import torch
 import yaml
 from inputimeout import TimeoutOccurred, inputimeout
+from packaging.version import Version
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 
@@ -370,6 +372,16 @@ class Trainer:
                 self.model
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
+
+        # Wraps the model in `torch.compile` to speed up computation time.
+        # Python 3.11+ is not yet supported though, hence the exception clause.
+        if Version(torch.__version__) > Version("2.0.0"):  # pragma: no cover
+            try:
+                _compiled_model = torch.compile(self.model)
+                assert isinstance(_compiled_model, (MinervaModel, MinervaDataParallel))
+                self.model = _compiled_model
+            except RuntimeError as err:
+                warnings.warn(str(err))
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
