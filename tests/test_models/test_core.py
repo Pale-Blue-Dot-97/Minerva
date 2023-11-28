@@ -61,6 +61,8 @@ from torchvision.models._api import WeightsEnum
 from torchvision.models.resnet import resnet18
 
 from minerva.models import (
+    MinervaBackbone,
+    MinervaSiamese,
     MinervaWrapper,
     SimCLR18,
     bilinear_init,
@@ -200,3 +202,22 @@ def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> N
         model = torch.compile(model)
 
     assert is_minerva_model(model) == answer
+
+
+@pytest.mark.parametrize(
+    ("model", "subtype", "answer"),
+    [
+        (lazy_fixture("exp_fcn"), MinervaBackbone, True),
+        (lazy_fixture("exp_cnn"), MinervaSiamese, False),
+        (lazy_fixture("exp_simconv"), MinervaSiamese, True),
+        (resnet18(), MinervaBackbone, False),
+    ],
+)
+@pytest.mark.parametrize("compile_model", (True, False))
+def test_is_minerva_subtype(
+    model: Module, subtype: type, compile_model: bool, answer: bool
+) -> None:
+    if compile_model:
+        model = torch.compile(model)
+
+    assert is_minerva_subtype(model, subtype) == answer
