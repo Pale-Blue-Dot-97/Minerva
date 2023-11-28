@@ -5,7 +5,7 @@ certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerabil
 fastapi>=0.101.0
 fiona>=1.9.1
 flake8==6.1.0
-geopy==2.4.0
+geopy==2.4.1
 GitPython>=3.1.35
 imageio==2.33.0
 inputimeout==1.0.4
