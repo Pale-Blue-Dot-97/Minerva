@@ -195,6 +195,7 @@ class Trainer:
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
+        torch_compile (bool): Uses :meth:`torch.compile` on the model.
         plots (dict[str, bool]): :class:`dict` to define plots to make from results of testing. Possible plot types are:
 
             * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs.
@@ -382,15 +383,16 @@ class Trainer:
         # Wraps the model in `torch.compile` to speed up computation time.
         # Python 3.11+ is not yet supported though, hence the exception clause.
         if Version(torch.__version__) > Version("2.0.0"):  # pragma: no cover
-            try:
-                _compiled_model: OptimizedModule = torch.compile(
-                    self.model
-                )  # type:ignore[assignment]
-                assert is_minerva_model(_compiled_model)
-                assert isinstance(_compiled_model, OptimizedModule)
-                self.model = _compiled_model
-            except RuntimeError as err:
-                warnings.warn(str(err))
+            if self.params.get("torch_compile", False):
+                try:
+                    _compiled_model: OptimizedModule = torch.compile(
+                        self.model
+                    )  # type:ignore[assignment]
+                    assert is_minerva_model(_compiled_model)
+                    assert isinstance(_compiled_model, OptimizedModule)
+                    self.model = _compiled_model
+                except RuntimeError as err:
+                    warnings.warn(str(err))
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
