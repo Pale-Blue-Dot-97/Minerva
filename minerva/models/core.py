@@ -43,6 +43,9 @@ __all__ = [
     "get_torch_weights",
     "get_output_shape",
     "bilinear_init",
+    "is_minerva_model",
+    "is_minerva_subtype",
+    "extract_wrapped_model",
 ]
 
 # =====================================================================================================================
@@ -68,6 +71,7 @@ import numpy as np
 import torch
 from nptyping import NDArray
 from torch import Tensor
+from torch._dynamo.eval_frame import OptimizedModule
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel, DistributedDataParallel
@@ -525,3 +529,70 @@ def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tens
     weights = torch.from_numpy(weight)  # type: ignore[attr-defined]
     assert isinstance(weights, Tensor)
     return weights
+
+
+def is_minerva_model(model: Module) -> bool:
+    """
+    Checks if model is a :class:`MinervaModel` while accounting for models that are
+    :class:~`torch._dynamo.eval_frame.OptimizedModule` from :meth:`torch.compile` usage.
+
+    Args:
+        model (~torch.module.Module): Torch model to be evaluated.
+
+    Returns:
+        bool: ``True`` if model (or model wrapped in a compiled model) is a :class:`MinervaModel`
+        or :class:`MinervaDataParallel`, else ``False``.
+
+    .. versionadded:: 0.27
+    """
+    if isinstance(model, OptimizedModule):
+        return isinstance(model._orig_mod, (MinervaModel, MinervaDataParallel))
+    else:
+        return isinstance(model, (MinervaModel, MinervaDataParallel))
+
+
+def is_minerva_subtype(model: Module, subtype: type) -> bool:
+    """
+    Checks if model is a specific type while accounting for models that are
+    :class:~`torch._dynamo.eval_frame.OptimizedModule` from :meth:`torch.compile` usage.
+
+    Args:
+        model (Module): Torch model to be evaluated.
+        subtype (type): Type to check model against.
+
+    Returns:
+        bool: ``True`` if model (or model wrapped in a compiled model) is ``subtype`` else ``False``.
+
+    .. versionadded:: 0.27
+    """
+    if isinstance(model, OptimizedModule):
+        return isinstance(model._orig_mod, subtype)
+    else:
+        return isinstance(model, subtype)
+
+
+def extract_wrapped_model(
+    model: Union[MinervaModel, MinervaDataParallel, OptimizedModule]
+) -> MinervaModel:
+    """
+    Extracts the actual model object from within :class:`MinervaDataParallel` or
+    :class:~`torch._dynamo.eval_frame.OptimizedModule` and returns.
+
+    Args:
+        model (MinervaModel | MinervaDataParallel | OptimizedModule): Model that may or may not be wrapped.
+
+    Returns:
+        MinervaModel: Extracted model.
+
+    .. versionadded:: 0.27
+    """
+    if isinstance(model, OptimizedModule):
+        _model = model._orig_mod
+        assert isinstance(_model, (MinervaModel, MinervaDataParallel))
+        model = _model
+
+    if isinstance(model, MinervaDataParallel):
+        model = model.model.module
+
+    assert isinstance(model, MinervaModel)
+    return model

@@ -48,6 +48,7 @@ import torch
 import yaml
 from inputimeout import TimeoutOccurred, inputimeout
 from packaging.version import Version
+from torch._dynamo.eval_frame import OptimizedModule
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 
@@ -64,6 +65,9 @@ from minerva.models import (
     MinervaModel,
     MinervaOnnxModel,
     MinervaWrapper,
+    extract_wrapped_model,
+    is_minerva_model,
+    is_minerva_subtype,
 )
 from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, TSNEVis, get_task
@@ -295,7 +299,9 @@ class Trainer:
             else:  # pragma: no cover
                 self.writer = None
 
-        self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
+        self.model: Union[
+            MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
+        ]
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
@@ -377,8 +383,11 @@ class Trainer:
         # Python 3.11+ is not yet supported though, hence the exception clause.
         if Version(torch.__version__) > Version("2.0.0"):  # pragma: no cover
             try:
-                _compiled_model = torch.compile(self.model)
-                assert isinstance(_compiled_model, (MinervaModel, MinervaDataParallel))
+                _compiled_model: OptimizedModule = torch.compile(
+                    self.model
+                )  # type:ignore[assignment]
+                assert is_minerva_model(_compiled_model)
+                assert isinstance(_compiled_model, OptimizedModule)
                 self.model = _compiled_model
             except RuntimeError as err:
                 warnings.warn(str(err))
@@ -732,9 +741,10 @@ class Trainer:
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
+        model = extract_wrapped_model(self.model)
         task = TSNEVis(
             task_name,
-            self.model,
+            model,
             self.device,
             self.exp_fn,
             self.gpu,
@@ -802,7 +812,7 @@ class Trainer:
         model = self.model
 
         # Checks if this is a distributed run.
-        if isinstance(model, MinervaDataParallel):  # type: ignore[attr-defined]  # pragma: no cover
+        if is_minerva_subtype(model, MinervaDataParallel):  # type: ignore[attr-defined]  # pragma: no cover
             # Extracts the actual model instance from the distributed wrapping.
             model = model.model.module  # type: ignore[assignment]
 

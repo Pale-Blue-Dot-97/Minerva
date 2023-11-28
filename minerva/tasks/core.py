@@ -53,6 +53,7 @@ import torch
 import torch.distributed as dist
 from nptyping import Int, NDArray
 from torch import Tensor
+from torch._dynamo.eval_frame import OptimizedModule
 from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
@@ -154,7 +155,7 @@ class MinervaTask(ABC):
     def __init__(
         self,
         name: str,
-        model: Union[MinervaModel, MinervaDataParallel],
+        model: Union[MinervaModel, MinervaDataParallel, OptimizedModule],
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,

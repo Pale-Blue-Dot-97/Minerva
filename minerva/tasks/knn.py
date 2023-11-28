@@ -55,7 +55,13 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
-from minerva.models import MinervaDataParallel, MinervaModel, MinervaSiamese
+from minerva.models import (
+    MinervaDataParallel,
+    MinervaModel,
+    MinervaSiamese,
+    extract_wrapped_model,
+    is_minerva_subtype,
+)
 from minerva.utils import utils
 
 from .core import MinervaTask
@@ -181,10 +187,12 @@ class WeightedKNN(MinervaTask):
             # Get features from passing the input data through the model.
             if utils.check_substrings_in_string(self.model_type, "siamese"):
                 # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                if isinstance(self.model, MinervaDataParallel):  # pragma: no cover
-                    assert isinstance(self.model.model.module, MinervaSiamese)
+                if is_minerva_subtype(
+                    self.model, MinervaDataParallel
+                ):  # pragma: no cover
+                    assert isinstance(extract_wrapped_model(self.model), MinervaSiamese)
                 else:
-                    assert isinstance(self.model, MinervaSiamese)
+                    assert is_minerva_subtype(self.model, MinervaSiamese)
 
                 # Ensures that the data is parsed through a single head of the model rather than paired.
                 feature, _ = self.model.forward_single(val_data)  # type: ignore[operator]
@@ -235,10 +243,14 @@ class WeightedKNN(MinervaTask):
                 # Get features from passing the input data through the model.
                 if utils.check_substrings_in_string(self.model_type, "siamese"):
                     # Checks that the model is of type ``MinervaSiamese`` so a call to `forward_single` will work.
-                    if isinstance(self.model, MinervaDataParallel):  # pragma: no cover
-                        assert isinstance(self.model.model.module, MinervaSiamese)
+                    if is_minerva_subtype(
+                        self.model, MinervaDataParallel
+                    ):  # pragma: no cover
+                        assert isinstance(
+                            extract_wrapped_model(self.model), MinervaSiamese
+                        )
                     else:
-                        assert isinstance(self.model, MinervaSiamese)
+                        assert is_minerva_subtype(self.model, MinervaSiamese)
 
                     # Ensures that the data is parsed through a single head of the model rather than paired.
                     feature, _ = self.model.forward_single(test_data)  # type: ignore[operator]
