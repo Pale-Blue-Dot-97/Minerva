@@ -57,11 +57,14 @@ except (OSError, NewConnectionError, MaxRetryError):
     NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 from torch import LongTensor, Tensor
 from torch.nn.modules import Module
+from torch.nn.parallel import DataParallel as DP
 from torchvision.models._api import WeightsEnum
 from torchvision.models.resnet import resnet18
 
 from minerva.models import (
     MinervaBackbone,
+    MinervaDataParallel,
+    MinervaModel,
     MinervaSiamese,
     MinervaWrapper,
     SimCLR18,
@@ -221,3 +224,19 @@ def test_is_minerva_subtype(
         model = torch.compile(model)
 
     assert is_minerva_subtype(model, subtype) == answer
+
+
+@pytest.mark.parametrize(
+    "model",
+    (lazy_fixture("exp_fcn"), lazy_fixture("exp_cnn"), lazy_fixture("exp_simconv")),
+)
+@pytest.mark.parametrize("compile_model", (True, False))
+@pytest.mark.parametrize("distributed", (True, False))
+def test_extract_wrapped_model(model, compile_model: bool, distributed: bool) -> None:
+    if distributed:
+        model = MinervaDataParallel(model, DP)
+
+    if compile_model:
+        model = torch.compile(model)
+
+    assert isinstance(extract_wrapped_model(model), MinervaModel)
