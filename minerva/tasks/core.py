@@ -95,6 +95,9 @@ class MinervaTask(ABC):
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
+        train (bool): Mark this as a training task. Will activate backward passes.
+        task_dir (~pathlib.Path): Path to the sub-directory to hold the results of this task.
+        task_fn (~pathlib.Path): Path and filename prefix for this task.
 
     Args:
         name (str): The name of the task. Should match the key for the task
@@ -106,11 +109,10 @@ class MinervaTask(ABC):
         rank (int): Optional; The rank of this process across all devices in the distributed run.
         world_size (int): Optional; The total number of processes across the distributed run.
         writer (~wandb.sdk.wandb_run.Run | RunDisabled): Optional; Run object for Weights and Biases.
-        params (dict[str, ~typing.Any]): Dictionary describing all the parameters that define how the model will be
-            constructed, trained and evaluated. These should be defined via config ``YAML`` files.
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
+        train (bool): Mark this as a training task. Will activate backward passes.
 
     Keyword Args:
         elim (bool): Will eliminate classes that have no samples in and reorder the class labels so they
@@ -144,7 +146,6 @@ class MinervaTask(ABC):
             :class:`~logger.steplog.MinervaStepLogger` class within :mod:`~logger.steplog`.
         modelio (str): Specify the IO function to use to handle IO for the model during fitting. Must be the name
             of a function within :mod:`modelio`.
-
 
     .. versionadded:: 0.27
     """
