@@ -37,6 +37,7 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                      IMPORTS
 # =====================================================================================================================
 import importlib
+import os
 from typing import Tuple
 
 import internet_sabotage
@@ -199,7 +200,7 @@ def test_bilinear_init() -> None:
 )
 @pytest.mark.parametrize("compile_model", (True, False))
 def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> None:
-    if compile_model:
+    if compile_model and os.name != "nt":
         model = torch.compile(model)
 
     assert is_minerva_model(model) == answer
@@ -218,7 +219,7 @@ def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> N
 def test_is_minerva_subtype(
     model: Module, subtype: type, compile_model: bool, answer: bool
 ) -> None:
-    if compile_model:
+    if compile_model and os.name != "nt":
         model = torch.compile(model)
 
     assert is_minerva_subtype(model, subtype) == answer
@@ -230,7 +231,7 @@ def test_is_minerva_subtype(
 )
 @pytest.mark.parametrize("compile_model", (True, False))
 def test_extract_wrapped_model(model, compile_model: bool) -> None:
-    if compile_model:
+    if compile_model and os.name != "nt":
         model = torch.compile(model)
 
     assert isinstance(extract_wrapped_model(model), MinervaModel)

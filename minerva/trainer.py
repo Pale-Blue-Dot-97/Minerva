@@ -380,18 +380,20 @@ class Trainer:
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
 
         # Wraps the model in `torch.compile` to speed up computation time.
-        # Python 3.11+ is not yet supported though, hence the exception clause.
-        if Version(torch.__version__) > Version("2.0.0"):  # pragma: no cover
-            if self.params.get("torch_compile", False):
-                try:
-                    _compiled_model: OptimizedModule = torch.compile(
-                        self.model
-                    )  # type:ignore[assignment]
-                    assert is_minerva_model(_compiled_model)
-                    assert isinstance(_compiled_model, OptimizedModule)
-                    self.model = _compiled_model
-                except RuntimeError as err:
-                    warnings.warn(str(err))
+        if (
+            Version(torch.__version__) > Version("2.0.0")
+            and self.params.get("torch_compile", False)
+            and os.name != "nt"
+        ):
+            try:
+                _compiled_model: OptimizedModule = torch.compile(
+                    self.model
+                )  # type:ignore[assignment]
+                assert is_minerva_model(_compiled_model)
+                assert isinstance(_compiled_model, OptimizedModule)
+                self.model = _compiled_model
+            except RuntimeError as err:
+                warnings.warn(str(err))
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
