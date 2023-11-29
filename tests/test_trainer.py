@@ -43,7 +43,7 @@ from typing import Any, Dict
 import pytest
 import torch
 
-from minerva.models import MinervaModel, MinervaOnnxModel
+from minerva.models import MinervaModel, MinervaOnnxModel, is_minerva_subtype
 from minerva.trainer import Trainer
 from minerva.utils import CONFIG, config_load, runner, utils
 
@@ -125,9 +125,9 @@ def test_trainer_2() -> None:
 
     trainer2 = Trainer(0, **params2)
     if suffix == "onnx":
-        assert isinstance(trainer2.model, MinervaOnnxModel)
+        assert is_minerva_subtype(trainer2.model, MinervaOnnxModel)
     else:
-        assert isinstance(trainer2.model, MinervaModel)
+        assert is_minerva_subtype(trainer2.model, MinervaModel)
 
     trainer2.fit()
     trainer2.test()

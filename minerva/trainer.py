@@ -39,6 +39,7 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+import warnings
 from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
@@ -46,6 +47,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 import torch
 import yaml
 from inputimeout import TimeoutOccurred, inputimeout
+from packaging.version import Version
+from torch._dynamo.eval_frame import OptimizedModule
 from torch.nn.modules import Module
 from torch.nn.parallel import DistributedDataParallel as DDP
 
@@ -62,6 +65,8 @@ from minerva.models import (
     MinervaModel,
     MinervaOnnxModel,
     MinervaWrapper,
+    extract_wrapped_model,
+    is_minerva_model,
 )
 from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, TSNEVis, get_task
@@ -189,6 +194,7 @@ class Trainer:
         record_int (bool): Store the integer results of each epoch in memory such the predictions, ground truth etc.
         record_float (bool): Store the floating point results of each epoch in memory
             such as the raw predicted probabilities.
+        torch_compile (bool): Uses :meth:`torch.compile` on the model.
         plots (dict[str, bool]): :class:`dict` to define plots to make from results of testing. Possible plot types are:
 
             * History: Plot a graph of any metrics with keys containing ``"train"`` or ``"val"`` over epochs.
@@ -293,7 +299,9 @@ class Trainer:
             else:  # pragma: no cover
                 self.writer = None
 
-        self.model: Union[MinervaModel, MinervaDataParallel, MinervaBackbone]
+        self.model: Union[
+            MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
+        ]
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
@@ -370,6 +378,22 @@ class Trainer:
                 self.model
             )
             self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
+
+        # Wraps the model in `torch.compile` to speed up computation time.
+        if (
+            Version(torch.__version__) > Version("2.0.0")
+            and self.params.get("torch_compile", False)
+            and os.name != "nt"
+        ):
+            try:
+                _compiled_model: OptimizedModule = torch.compile(
+                    self.model
+                )  # type:ignore[assignment]
+                assert is_minerva_model(_compiled_model)
+                assert isinstance(_compiled_model, OptimizedModule)
+                self.model = _compiled_model
+            except RuntimeError as err:
+                warnings.warn(str(err))
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
@@ -720,9 +744,10 @@ class Trainer:
         Passes a batch from the test dataset through the model in eval mode to get the embeddings.
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
+        model = extract_wrapped_model(self.model)
         task = TSNEVis(
             task_name,
-            self.model,
+            model,
             self.device,
             self.exp_fn,
             self.gpu,
@@ -781,22 +806,6 @@ class Trainer:
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
 
-    def extract_model_from_distributed(self) -> MinervaModel:
-        """Extracts the actual model from any distributed wrapping if this is a distributed run.
-
-        Returns:
-            MinervaModel: Unwrapped model.
-        """
-        model = self.model
-
-        # Checks if this is a distributed run.
-        if isinstance(model, MinervaDataParallel):  # type: ignore[attr-defined]  # pragma: no cover
-            # Extracts the actual model instance from the distributed wrapping.
-            model = model.model.module  # type: ignore[assignment]
-
-        assert isinstance(model, MinervaModel)
-        return model
-
     def save_model_weights(self, fn: Optional[str] = None) -> None:
         """Saves model state dict to :mod:`torch` file.
 
@@ -806,7 +815,7 @@ class Trainer:
         if fn is None:
             fn = str(self.exp_fn)
 
-        model = self.extract_model_from_distributed()
+        model = extract_wrapped_model(self.model)
 
         torch.save(model.state_dict(), f"{fn}.pt")
 
@@ -822,7 +831,7 @@ class Trainer:
         Raises:
             ValueError: If format is not recognised.
         """
-        model = self.extract_model_from_distributed()
+        model = extract_wrapped_model(self.model)
 
         if fn is None:
             fn = str(self.exp_fn)

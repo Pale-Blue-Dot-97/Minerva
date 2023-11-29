@@ -26,14 +26,15 @@ model_name: SimConv-test
 model_type: siamese-segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 2                          # Number of samples in each batch.
-patch_size: &patch_size [32, 32]       # 2D tuple or float.
-input_size: &input_size [4, 32, 32]    # patch_size plus leading channel dim.
+batch_size: 1                          # Number of samples in each batch.
+patch_size: &patch_size [16, 16]       # 2D tuple or float.
+input_size: &input_size [4, 16, 16]    # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
 mix_precision: true                    # Activate mixed precision (16-bit)
+torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 4                         # Maximum number of training epochs.
+max_epochs: 2                         # Maximum number of training epochs.
 elim: false                           # Eliminates empty classes from schema.
 balance: false                        # Balances dataset classes.
 pre_train: true                       # Activate pre-training mode.
@@ -48,7 +49,7 @@ optim_func: SGD                           # Name of the optimiser function.
 sample_pairs: true                    # Activates Siamese paired sampling.
 max_r: &max_r 320   # Max distance between patches within a pair.
 knn_k: 5            # Top-k most similar images to predict image for KNN val
-val_freq: 2         # Validation epoch every ``val_freq`` training epochs.
+val_freq: 1         # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
@@ -105,7 +106,7 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 120
+                    length: 32
                     max_r: *max_r
 
             image:
@@ -161,7 +162,7 @@ tasks:
                     roi: false
                     params:
                         size: *patch_size
-                        length: 32
+                        length: 16
 
                 image:
                     module: minerva.datasets.__testing
@@ -184,7 +185,7 @@ tasks:
                     roi: false
                     params:
                         size: *patch_size
-                        length: 32
+                        length: 16
 
                 image:
                     module: minerva.datasets.__testing
@@ -218,7 +219,7 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 32
+                    length: 16
 
             image:
                 module: minerva.datasets.__testing

@@ -37,12 +37,14 @@ __copyright__ = "Copyright (C) 2023 Harry Baker"
 #                                                      IMPORTS
 # =====================================================================================================================
 import importlib
+import os
 from typing import Tuple
 
 import internet_sabotage
 import numpy as np
 import pytest
 import torch
+from pytest_lazyfixture import lazy_fixture
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 
 # Needed to avoid connection error when importing lightly.
@@ -57,13 +59,20 @@ except (OSError, NewConnectionError, MaxRetryError):
 from torch import LongTensor, Tensor
 from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum
+from torchvision.models.resnet import resnet18
 
 from minerva.models import (
+    MinervaBackbone,
+    MinervaModel,
+    MinervaSiamese,
     MinervaWrapper,
     SimCLR18,
     bilinear_init,
+    extract_wrapped_model,
     get_output_shape,
     get_torch_weights,
+    is_minerva_model,
+    is_minerva_subtype,
 )
 from minerva.models.__depreciated import MLP
 
@@ -179,3 +188,50 @@ def test_get_output_shape(exp_mlp, std_n_classes: int) -> None:
 def test_bilinear_init() -> None:
     weights = bilinear_init(12, 12, 5)
     assert isinstance(weights, Tensor)
+
+
+@pytest.mark.parametrize(
+    ("model", "answer"),
+    [
+        (lazy_fixture("exp_fcn"), True),
+        (lazy_fixture("exp_cnn"), True),
+        (resnet18(), False),
+    ],
+)
+@pytest.mark.parametrize("compile_model", (True, False))
+def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> None:
+    if compile_model and os.name != "nt":
+        model = torch.compile(model)
+
+    assert is_minerva_model(model) == answer
+
+
+@pytest.mark.parametrize(
+    ("model", "subtype", "answer"),
+    [
+        (lazy_fixture("exp_fcn"), MinervaBackbone, True),
+        (lazy_fixture("exp_cnn"), MinervaSiamese, False),
+        (lazy_fixture("exp_simconv"), MinervaSiamese, True),
+        (resnet18(), MinervaBackbone, False),
+    ],
+)
+@pytest.mark.parametrize("compile_model", (True, False))
+def test_is_minerva_subtype(
+    model: Module, subtype: type, compile_model: bool, answer: bool
+) -> None:
+    if compile_model and os.name != "nt":
+        model = torch.compile(model)
+
+    assert is_minerva_subtype(model, subtype) == answer
+
+
+@pytest.mark.parametrize(
+    "model",
+    (lazy_fixture("exp_fcn"), lazy_fixture("exp_cnn"), lazy_fixture("exp_simconv")),
+)
+@pytest.mark.parametrize("compile_model", (True, False))
+def test_extract_wrapped_model(model, compile_model: bool) -> None:
+    if compile_model and os.name != "nt":
+        model = torch.compile(model)
+
+    assert isinstance(extract_wrapped_model(model), MinervaModel)

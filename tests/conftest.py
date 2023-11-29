@@ -54,7 +54,8 @@ from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
-from minerva.models import CNN, MLP, FCN32ResNet18
+from minerva.loss import SegBarlowTwinsLoss
+from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
 from minerva.utils import CONFIG, utils
 
 
@@ -204,6 +205,13 @@ def exp_fcn(
     std_n_classes: int,
 ) -> FCN32ResNet18:
     return FCN32ResNet18(x_entropy_loss, rgbi_input_size, std_n_classes)
+
+
+@pytest.fixture
+def exp_simconv(
+    rgbi_input_size: Tuple[int, int, int],
+) -> SimConv:
+    return SimConv(SegBarlowTwinsLoss(), rgbi_input_size, feature_dim=128)
 
 
 @pytest.fixture
