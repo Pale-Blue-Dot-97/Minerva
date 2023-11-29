@@ -229,7 +229,7 @@ def test_is_minerva_subtype(
     (lazy_fixture("exp_fcn"), lazy_fixture("exp_cnn"), lazy_fixture("exp_simconv")),
 )
 @pytest.mark.parametrize("compile_model", (True, False))
-def test_extract_wrapped_model(model, compile_model: bool, distributed: bool) -> None:
+def test_extract_wrapped_model(model, compile_model: bool) -> None:
     if compile_model:
         model = torch.compile(model)
 
