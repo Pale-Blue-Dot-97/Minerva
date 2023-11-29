@@ -591,7 +591,7 @@ def extract_wrapped_model(
         assert isinstance(_model, (MinervaModel, MinervaDataParallel))
         model = _model
 
-    if isinstance(model, MinervaDataParallel):
+    if isinstance(model, MinervaDataParallel):  # pragma: no cover
         model = model.model.module
 
     assert isinstance(model, MinervaModel)
