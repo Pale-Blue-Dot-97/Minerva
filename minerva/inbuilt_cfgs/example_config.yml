@@ -36,6 +36,7 @@ pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 elim: false                            # Eliminates empty classes from schema.
 balance: false                         # Balances dataset classes.
+torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Optimisers +---------------------------------------------------
 lr: 1.0E-2                            # Learning rate of optimiser.
@@ -80,10 +81,6 @@ tasks:
         type: StandardEpoch
         train: true
         record_float: true
-        # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        # logger: STGLogger
-        # metrics: SPMetrics
-        # model_io: sup_tg
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:

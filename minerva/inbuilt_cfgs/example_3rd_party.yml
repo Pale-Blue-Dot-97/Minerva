@@ -36,6 +36,7 @@ pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 elim: false                           # Eliminates empty classes from schema.
 balance: false                        # Balances dataset classes.
+torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: &loss_func CrossEntropyLoss  # Name of the loss function to use.
