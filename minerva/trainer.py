@@ -67,7 +67,6 @@ from minerva.models import (
     MinervaWrapper,
     extract_wrapped_model,
     is_minerva_model,
-    is_minerva_subtype,
 )
 from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, TSNEVis, get_task
@@ -805,22 +804,6 @@ class Trainer:
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
 
-    def extract_model_from_distributed(self) -> MinervaModel:
-        """Extracts the actual model from any distributed wrapping if this is a distributed run.
-
-        Returns:
-            MinervaModel: Unwrapped model.
-        """
-        model = self.model
-
-        # Checks if this is a distributed run.
-        if is_minerva_subtype(model, MinervaDataParallel):  # type: ignore[attr-defined]  # pragma: no cover
-            # Extracts the actual model instance from the distributed wrapping.
-            model = model.model.module  # type: ignore[assignment]
-
-        assert isinstance(model, MinervaModel)
-        return model
-
     def save_model_weights(self, fn: Optional[str] = None) -> None:
         """Saves model state dict to :mod:`torch` file.
 
@@ -830,7 +813,7 @@ class Trainer:
         if fn is None:
             fn = str(self.exp_fn)
 
-        model = self.extract_model_from_distributed()
+        model = extract_wrapped_model(self.model)
 
         torch.save(model.state_dict(), f"{fn}.pt")
 
@@ -846,7 +829,7 @@ class Trainer:
         Raises:
             ValueError: If format is not recognised.
         """
-        model = self.extract_model_from_distributed()
+        model = extract_wrapped_model(self.model)
 
         if fn is None:
             fn = str(self.exp_fn)
