@@ -33,9 +33,11 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2023 Harry Baker"
 
+
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict
 
@@ -206,10 +208,11 @@ def test_construct_dataloader(
 
 
 def test_make_loaders() -> None:
-    old_params = CONFIG.copy()
+    old_params = deepcopy(CONFIG)
 
     loader, n_batches, class_dist, params = mdt.make_loaders(
-        **old_params, task_name="fit-val"
+        **old_params,
+        task_name="fit-val",
     )
 
     assert isinstance(loader, DataLoader)

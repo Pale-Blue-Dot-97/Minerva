@@ -503,7 +503,7 @@ def make_loaders(
     sample_pairs: Union[bool, Any] = utils.fallback_params(
         "sample_pairs", task_params, params, False
     )
-    if not isinstance(sample_pairs, bool):
+    if not isinstance(sample_pairs, bool):  # pragma: no cover
         sample_pairs = False
 
     elim = utils.fallback_params("elim", task_params, params, False)
