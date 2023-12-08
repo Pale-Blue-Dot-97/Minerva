@@ -58,7 +58,12 @@ from wandb.sdk.wandb_run import Run
 
 from minerva.datasets import make_loaders
 from minerva.logger.tasklog import MinervaTaskLogger
-from minerva.models import MinervaDataParallel, MinervaModel
+from minerva.models import (
+    MinervaDataParallel,
+    MinervaModel,
+    extract_wrapped_model,
+    wrap_model,
+)
 from minerva.utils import utils, visutils
 from minerva.utils.utils import fallback_params, func_by_str
 
@@ -225,6 +230,11 @@ class MinervaTask(ABC):
             "record_float", self.params, self.global_params, record_float
         )
 
+        self.elim = fallback_params("elim", self.params, self.global_params, False)
+        self.balance = fallback_params(
+            "balance", self.params, self.global_params, False
+        )
+
         # Ensure the model IO function is treated as static not a class method.
         self.modelio = staticmethod(self.get_io_func()).__func__
 
@@ -235,6 +245,27 @@ class MinervaTask(ABC):
 
         # Initialise the Weights and Biases metrics for this task.
         self.init_wandb_metrics()
+
+        # To eliminate classes, we're going to have to do a fair bit of rebuilding of the model...
+        if self.elim:
+            # Update the stored number of classes within the model and
+            # then rebuild the classification layers that are dependent on the number of classes.
+            self.model.update_n_classes(self.n_classes)
+
+            # The optimser is dependent on the model parameters so shall have to be rebuilt.
+            self.make_optimiser()
+
+            # The new parts of the model will need transfering to the GPU.
+            self.model.to(self.device)
+
+            # And finally the model will need re-wrapping for distributed computing and/ or torch compilation.
+            self.model = wrap_model(
+                extract_wrapped_model(self.model),
+                gpu,
+                torch_compile=fallback_params(
+                    "torch_compile", self.params, self.global_params, False
+                ),
+            )
 
         # Update the loss function of the model.
         self.model.set_criterion(self.make_criterion())
@@ -264,14 +295,13 @@ class MinervaTask(ABC):
         if not utils.check_dict_key(loss_params, "params"):
             loss_params["params"] = {}
 
-        if fallback_params(
-            "balance", self.params, self.global_params, False
-        ) and utils.check_substrings_in_string(self.model_type, "segmentation"):
-            print(f"Epoch {self.class_dist=}")
+        if self.balance and utils.check_substrings_in_string(
+            self.model_type, "segmentation"
+        ):
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
-            if fallback_params("elim", self.params, self.global_params, False):
+            if self.elim:
                 for i in range(len(weights_dict)):
                     weights.append(weights_dict[i])
             else:
@@ -284,6 +314,25 @@ class MinervaTask(ABC):
 
         else:
             return criterion(**loss_params["params"])
+
+    def make_optimiser(self) -> None:
+        """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
+
+        # Gets the optimiser requested by config parameters.
+        optimiser_params: Dict[str, Any] = self.params["optim_params"].copy()
+        module = optimiser_params.pop("module", "torch.optim")
+        optimiser = utils.func_by_str(module, self.params["optim_func"])
+
+        if not utils.check_dict_key(optimiser_params, "params"):
+            optimiser_params["params"] = {}
+
+        # Add learning rate from top-level of config to the optimiser parameters.
+        optimiser_params["params"]["lr"] = self.params["lr"]
+
+        # Constructs and sets the optimiser for the model based on supplied config parameters.
+        self.model.set_optimiser(  # type: ignore
+            optimiser(self.model.parameters(), **optimiser_params["params"])
+        )
 
     def make_logger(self) -> MinervaTaskLogger:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.

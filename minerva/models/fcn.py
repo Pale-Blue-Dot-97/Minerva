@@ -131,13 +131,19 @@ class FCN(MinervaBackbone):
         # for the proceeding layers of the network.
         self.backbone.determine_output_dim()
 
+        self._make_dcn()
+
+    def _make_dcn(self) -> None:
         backbone_out_shape = self.backbone.output_shape
         assert isinstance(backbone_out_shape, Sequence)
         self.decoder = DCN(
             in_channel=backbone_out_shape[0],
-            n_classes=n_classes,
+            n_classes=self.n_classes,
             variant=self.decoder_variant,
         )
+
+    def _remake_classifier(self) -> None:
+        self._make_dcn()
 
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the FCN by using the forward methods of the backbone and
