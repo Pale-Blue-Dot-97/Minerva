@@ -36,6 +36,7 @@ balance: false                        # Balances dataset classes.
 pre_train: true                       # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 torch_compile: true                    # Wrap model in `torch.compile`.
+mix_precision: true
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: &loss_func NTXentLoss      # Name of the loss function to use.

@@ -558,7 +558,7 @@ class SimConv(MinervaSiamese):
             with both projection's logits.
         """
 
-        if self.optimiser is None:
+        if self.optimiser is None:  # pragma: no cover
             raise NotImplementedError("Optimiser has not been set!")
 
         assert self.criterion

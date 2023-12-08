@@ -237,9 +237,6 @@ class Trainer:
     ) -> None:
         assert not isinstance(wandb_run, RunDisabled)
 
-        print(params)
-        print(params["tasks"]["fit-train"])
-
         # Sets the global GPU number for distributed computing. In single process, this will just be 0.
         self.gpu: int = gpu
         self.rank = rank
