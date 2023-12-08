@@ -46,6 +46,7 @@ __all__ = [
     "is_minerva_model",
     "is_minerva_subtype",
     "extract_wrapped_model",
+    "wrap_model",
 ]
 
 # =====================================================================================================================
@@ -53,6 +54,7 @@ __all__ = [
 # =====================================================================================================================
 import abc
 import os
+import warnings
 from abc import ABC
 from pathlib import Path
 from typing import (
@@ -70,11 +72,14 @@ from typing import (
 import numpy as np
 import torch
 from nptyping import NDArray
+from packaging.version import Version
 from torch import Tensor
 from torch._dynamo.eval_frame import OptimizedModule
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
-from torch.nn.parallel import DataParallel, DistributedDataParallel
+from torch.nn.parallel import DataParallel
+from torch.nn.parallel import DistributedDataParallel
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
 from torchvision.models._api import WeightsEnum
 
@@ -159,6 +164,13 @@ class MinervaModel(Module, ABC):
         self.output_shape = get_output_shape(
             self, self.input_size, sample_pairs=sample_pairs
         )
+
+    def _remake_classifier(self) -> None:
+        raise NotImplementedError  # pragma: no cover
+
+    def update_n_classes(self, n_classes: int) -> None:
+        self.n_classes = n_classes
+        self._remake_classifier()
 
     @overload
     def step(
@@ -595,4 +607,35 @@ def extract_wrapped_model(
         model = model.model.module
 
     assert isinstance(model, MinervaModel)
+    return model
+
+
+def wrap_model(model, gpu: int, torch_compile: bool = False):
+    # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
+    if torch.cuda.device_count() > 1:  # pragma: no cover
+        print(f"{torch.cuda.device_count()} GPUs detected")
+        model = MinervaDataParallel(
+            torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(  # type: ignore
+                model
+            ),
+            DDP,
+            device_ids=[gpu],
+        )
+
+    # Wraps the model in `torch.compile` to speed up computation time.
+    if (
+        Version(torch.__version__) > Version("2.0.0")
+        and torch_compile
+        and os.name != "nt"
+    ):
+        try:
+            _compiled_model: OptimizedModule = torch.compile(
+                model
+            )  # type:ignore[assignment]
+            assert is_minerva_model(_compiled_model)
+            assert isinstance(_compiled_model, OptimizedModule)
+            model = _compiled_model
+        except RuntimeError as err:
+            warnings.warn(str(err))
+
     return model
