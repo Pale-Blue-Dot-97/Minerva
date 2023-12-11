@@ -198,7 +198,7 @@ class MinervaTask(ABC):
         self.task_dir = exp_fn / self.name
         self.task_fn = self.task_dir / exp_fn.name
 
-        self.train = train
+        self.train = self.params.get("train", train)
         if "train" in self.params:
             del self.params["train"]
 
