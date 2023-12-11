@@ -84,6 +84,10 @@ def sup_tg(
     images: Tensor = batch["image"]
     masks: Tensor = batch["mask"]
 
+    # Check that none of the data is NaN.
+    assert not images.isnan().any()
+    assert not masks.isnan().any()
+
     # Re-arranges the x and y batches.
     x_batch: Tensor = images.to(float_dtype)  # type: ignore[attr-defined]
     y_batch: Tensor
@@ -149,6 +153,10 @@ def autoencoder_io(
     # Extracts the images and masks from the batch sample dict.
     images: Tensor = batch["image"]
     masks: LongTensor = batch["mask"]
+
+    # Check that none of the data is NaN.
+    assert not images.isnan().any()
+    assert not masks.isnan().any()
 
     if key == "mask":
         # Squeeze out axis 1 if only 1 element wide.
@@ -222,6 +230,10 @@ def ssl_pair_tg(
     # Extracts the x_i batch from the dict.
     x_i_batch: Tensor = batch[0]["image"]
     x_j_batch: Tensor = batch[1]["image"]
+
+    # Check that none of the data is NaN.
+    assert not x_i_batch.isnan().any()
+    assert not x_j_batch.isnan().any()
 
     # Ensures images are floats.
     x_i_batch = x_i_batch.to(float_dtype)  # type: ignore[attr-defined]
