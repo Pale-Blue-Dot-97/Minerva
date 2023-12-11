@@ -259,7 +259,7 @@ class SimCLR(MinervaSiamese):
         # Performs a backward pass if this is a training step.
         if train:
             # Scales the gradients if using mixed precision training.
-            if self.scaler:
+            if mix_precision:
                 self.scaler.scale(loss).backward()
                 self.scaler.step(self.optimiser)
                 self.scaler.update()
@@ -421,7 +421,7 @@ class SimSiam(MinervaSiamese):
         # Performs a backward pass if this is a training step.
         if train:
             # Scales the gradients if using mixed precision training.
-            if self.scaler:
+            if mix_precision:
                 self.scaler.scale(loss).backward()
                 self.scaler.step(self.optimiser)
                 self.scaler.update()
@@ -588,7 +588,7 @@ class SimConv(MinervaSiamese):
         # Performs a backward pass if this is a training step.
         if train:
             # Scales the gradients if using mixed precision training.
-            if self.scaler:
+            if mix_precision:
                 self.scaler.scale(loss).backward()
                 self.scaler.step(self.optimiser)
                 self.scaler.update()
