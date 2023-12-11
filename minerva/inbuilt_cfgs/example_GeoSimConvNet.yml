@@ -26,7 +26,7 @@ model_name: SimConv-test
 model_type: siamese-segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 1                          # Number of samples in each batch.
+batch_size: 2                          # Number of samples in each batch.
 patch_size: &patch_size [16, 16]       # 2D tuple or float.
 input_size: &input_size [4, 16, 16]    # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
