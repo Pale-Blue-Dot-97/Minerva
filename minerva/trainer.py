@@ -39,7 +39,6 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
-import warnings
 from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
@@ -47,10 +46,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 import torch
 import yaml
 from inputimeout import TimeoutOccurred, inputimeout
-from packaging.version import Version
 from torch._dynamo.eval_frame import OptimizedModule
 from torch.nn.modules import Module
-from torch.nn.parallel import DistributedDataParallel as DDP
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -66,7 +63,7 @@ from minerva.models import (
     MinervaOnnxModel,
     MinervaWrapper,
     extract_wrapped_model,
-    is_minerva_model,
+    wrap_model,
 )
 from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, TSNEVis, get_task
@@ -372,28 +369,10 @@ class Trainer:
             self.writer.watch(self.model)
 
         # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
-        if torch.cuda.device_count() > 1:  # pragma: no cover
-            self.print(f"{torch.cuda.device_count()} GPUs detected")
-            self.model = torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(  # type: ignore
-                self.model
-            )
-            self.model = MinervaDataParallel(self.model, DDP, device_ids=[gpu])
-
-        # Wraps the model in `torch.compile` to speed up computation time.
-        if (
-            Version(torch.__version__) > Version("2.0.0")
-            and self.params.get("torch_compile", False)
-            and os.name != "nt"
-        ):
-            try:
-                _compiled_model: OptimizedModule = torch.compile(
-                    self.model
-                )  # type:ignore[assignment]
-                assert is_minerva_model(_compiled_model)
-                assert isinstance(_compiled_model, OptimizedModule)
-                self.model = _compiled_model
-            except RuntimeError as err:
-                warnings.warn(str(err))
+        # Will also wrap the model in torch.compile if specified to do so in params.
+        self.model = wrap_model(
+            self.model, gpu, self.params.get("torch_compile", False)
+        )
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
