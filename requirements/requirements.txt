@@ -5,7 +5,7 @@ fastapi>=0.101.0
 fiona>=1.9.1
 geopy==2.4.1
 GitPython>=3.1.35
-imageio==2.33.0
+imageio==2.33.1
 inputimeout==1.0.4
 ipykernel==6.27.1
 lightly==1.4.23
