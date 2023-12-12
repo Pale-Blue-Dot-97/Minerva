@@ -136,6 +136,7 @@ class FCN(MinervaBackbone):
     def _make_dcn(self) -> None:
         backbone_out_shape = self.backbone.output_shape
         assert isinstance(backbone_out_shape, Sequence)
+        assert self.n_classes
         self.decoder = DCN(
             in_channel=backbone_out_shape[0],
             n_classes=self.n_classes,
