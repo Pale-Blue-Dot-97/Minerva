@@ -35,7 +35,7 @@ max_epochs: 5                         # Maximum number of training epochs.
 pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 elim: true                            # Eliminates empty classes from schema.
-balance: false                         # Balances dataset classes.
+balance: true                         # Balances dataset classes.
 torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Optimisers +---------------------------------------------------
