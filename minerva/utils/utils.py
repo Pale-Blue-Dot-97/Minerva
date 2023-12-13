@@ -1931,6 +1931,13 @@ def calc_norm_euc_dist(
         float: Normalised Euclidean distance between vectors ``A`` and ``B``.
     """
     assert len(a) == len(b)
+
+    # Check that none of the data is NaN or infinity.
+    assert not np.isnan(np.sum(a))
+    assert not np.isinf(np.sum(a))
+    assert not np.isnan(np.sum(b))
+    assert not np.isinf(np.sum(b))
+
     euc_dist: float = distance.euclidean(a, b) / float(len(a))
 
     return euc_dist
