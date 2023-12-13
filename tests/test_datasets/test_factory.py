@@ -220,6 +220,24 @@ def test_make_loaders() -> None:
     assert type(class_dist) is list
     assert isinstance(params, dict)
 
+    old_params_2 = deepcopy(CONFIG)
+    dataset_params = old_params_2["tasks"]["fit-val"]["dataset_params"].copy()
+    old_params_2["tasks"]["fit-val"]["dataset_params"] = {}
+    old_params_2["tasks"]["fit-val"]["dataset_params"]["val-1"] = dataset_params
+    old_params_2["tasks"]["fit-val"]["dataset_params"]["val-2"] = dataset_params
+
+    loaders, n_batches, class_dist, params = mdt.make_loaders(
+        **old_params_2,
+        task_name="fit-val",
+    )
+
+    assert isinstance(loaders, dict)
+    assert isinstance(loaders["val-1"], DataLoader)
+    assert type(n_batches) is dict
+    assert type(n_batches["val-2"]) is int
+    assert type(class_dist) is list
+    assert isinstance(params, dict)
+
 
 def test_get_manifest_path() -> None:
     assert mdt.get_manifest_path() == str(
