@@ -246,6 +246,12 @@ class MinervaTask(ABC):
         # Initialise the Weights and Biases metrics for this task.
         self.init_wandb_metrics()
 
+        # Update the loss function of the model.
+        self.model.set_criterion(self.make_criterion())
+
+        # Loss function needs to be on the same device as the rest of the model and the data.
+        self.model.to(self.device)
+
         # To eliminate classes, we're going to have to do a fair bit of rebuilding of the model...
         if self.elim:
             # Update the stored number of classes within the model and
@@ -266,9 +272,6 @@ class MinervaTask(ABC):
                     "torch_compile", self.params, self.global_params, False
                 ),
             )
-
-        # Update the loss function of the model.
-        self.model.set_criterion(self.make_criterion())
 
         # Make the logger for this task.
         self.logger: MinervaTaskLogger = self.make_logger()
