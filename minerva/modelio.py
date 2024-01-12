@@ -43,6 +43,7 @@ from typing import Any, Dict, Sequence, Tuple, Union
 
 import numpy as np
 import torch
+from numpy.testing import assert_array_equal, assert_raises
 from torch import LongTensor, Tensor
 from torchgeo.datasets.utils import BoundingBox
 
@@ -238,6 +239,11 @@ def ssl_pair_tg(
     # Ensures images are floats.
     x_i_batch = x_i_batch.to(float_dtype)  # type: ignore[attr-defined]
     x_j_batch = x_j_batch.to(float_dtype)  # type: ignore[attr-defined]
+
+    try:
+        assert_raises(AssertionError, assert_array_equal, x_i_batch, x_j_batch)
+    except AssertionError:
+        print("WARNING: Batches are the same!")
 
     # Stacks each side of the pair batches together.
     x_batch = torch.stack([x_i_batch, x_j_batch])
