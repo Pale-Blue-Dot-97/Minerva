@@ -1934,9 +1934,9 @@ def calc_norm_euc_dist(
 
     # Check that none of the data is NaN or infinity.
     assert not np.isnan(np.sum(a))
-    assert not np.isinf(np.sum(a))
+    assert not np.isinf(a).any()
     assert not np.isnan(np.sum(b))
-    assert not np.isinf(np.sum(b))
+    assert not np.isinf(b).any()
 
     euc_dist: float = distance.euclidean(a, b) / float(len(a))
 
