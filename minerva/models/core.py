@@ -501,7 +501,9 @@ def get_output_shape(
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([4, *_image_dim])
 
-    output: Tensor = model(random_input.to(next(model.parameters()).device))
+    random_input = random_input.nan_to_num()
+    with torch.no_grad():
+        output: Tensor = model(random_input.to(next(model.parameters()).device))
 
     if len(output[0].data.shape) == 1:
         return (output[0].data.shape[0],)
