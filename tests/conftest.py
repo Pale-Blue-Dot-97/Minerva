@@ -60,6 +60,14 @@ from minerva.utils import CONFIG, utils
 
 
 # =====================================================================================================================
+#                                                      METHODS
+# =====================================================================================================================
+def pytest_addoption(parser):
+    """Adds a custom CLI option to activate :func:`torch.autograd.set_detect_anomaly`"""
+    parser.addoption("--detect-anomaly", action="store_const", const=True)
+
+
+# =====================================================================================================================
 #                                                     FIXTURES
 # =====================================================================================================================
 @pytest.fixture(scope="session", autouse=True)
@@ -75,6 +83,18 @@ def set_multiprocessing_to_fork():
     except ValueError:
         # Raises ValueError on Windows so just bypass this.
         pass
+
+
+@pytest.fixture(scope="session", autouse=True)
+def use_detect_anomaly(request):
+    if request.config.getoption("--detect-anomaly"):
+        # Activates PyTorch's anomaly detection.
+        yield torch.autograd.set_detect_anomaly(True, True)
+
+        # Deactivate anomaly detection after tests.
+        torch.autograd.set_detect_anomaly(False)
+    else:
+        yield torch.autograd.set_detect_anomaly(False)
 
 
 @pytest.fixture(scope="session", autouse=True)
