@@ -30,7 +30,7 @@ batch_size: 2                          # Number of samples in each batch.
 patch_size: &patch_size [16, 16]       # 2D tuple or float.
 input_size: &input_size [4, 16, 16]    # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
-mix_precision: true                    # Activate mixed precision (16-bit)
+mix_precision: false                    # Activate mixed precision (16-bit)
 torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Experiment Execution +--------------------------------------------------
