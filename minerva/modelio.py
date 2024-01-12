@@ -235,12 +235,6 @@ def ssl_pair_tg(
     x_i_batch: Tensor = batch[0]["image"]
     x_j_batch: Tensor = batch[1]["image"]
 
-    # Check that none of the data is NaN or infinity.
-    assert not x_i_batch.isnan().any()
-    assert not x_i_batch.isinf().any()
-    assert not x_j_batch.isnan().any()
-    assert not x_j_batch.isinf().any()
-
     # Ensures images are floats.
     x_i_batch = x_i_batch.to(float_dtype)  # type: ignore[attr-defined]
     x_j_batch = x_j_batch.to(float_dtype)  # type: ignore[attr-defined]
@@ -250,6 +244,10 @@ def ssl_pair_tg(
 
     # Transfer to GPU.
     x = x_batch.to(device, non_blocking=True)
+
+    # Check that none of the data is NaN or infinity.
+    assert not x.isnan().any()
+    assert not x.isinf().any()
 
     # Runs a step of the epoch.
     loss, z = model.step(x, train=train)
