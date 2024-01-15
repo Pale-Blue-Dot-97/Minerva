@@ -290,7 +290,6 @@ class MinervaTaskLogger(ABC):
         Args:
             epoch_no (int): Epoch number to print results from.
         """
-        pass  # pragma: no cover
 
 
 class SupervisedTaskLogger(MinervaTaskLogger):

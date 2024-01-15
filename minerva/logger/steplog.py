@@ -194,7 +194,6 @@ class MinervaStepLogger(ABC):
         Returns:
             None
         """
-        pass  # pragma: no cover
 
     def write_metric(
         self, key: str, value: SupportsFloat, step_num: Optional[int] = None
