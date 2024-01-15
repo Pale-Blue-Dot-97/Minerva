@@ -3,43 +3,34 @@
 
 # === PATHS ===================================================================
 dir:
-    data:
-        - tests
-        - fixtures
-        - data
+    data: tests/fixtures/data
     configs:
         data_config: minerva/inbuilt_cfgs/Chesapeake7.yml
-    output:
-        - tests
-        - tmp
-        - cache
+    output: tests/tmp/cache
 
 # === DATASET PARAMETERS ======================================================
-dataset_params:
-    make:
-        image:
-            module: minerva.datasets.__testing
-            name: TestImgDataset
-            paths: NAIP
-            params:
-                res: 1.0
-        mask:
-            module: minerva.datasets.__testing
-            name: TestMaskDataset
-            paths: Chesapeake7
-            params:
-                res: 1.0
-
-
-# === SAMPLER PARAMETERS ======================================================
-sampler_params:
-    make:
-        module: torchgeo.samplers
-        name: GridGeoSampler
-        params:
-            size: [1000, 1000]
-            stride: [1000, 1000]
-
+tasks:
+    manifest:
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: GridGeoSampler
+                params:
+                    size: [1000, 1000]
+                    stride: [1000, 1000]
+            image:
+                module: minerva.datasets.__testing
+                name: TestImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
+            mask:
+                module: minerva.datasets.__testing
+                name: TestMaskDataset
+                paths: Chesapeake7
+                params:
+                    res: 1.0
+# Collator
 collator:
     module: torchgeo.datasets
     name: stack_samples

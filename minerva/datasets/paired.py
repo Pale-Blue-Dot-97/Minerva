@@ -84,6 +84,9 @@ class PairedDataset(RasterDataset):
         else:
             return super(PairedDataset, cls).__new__(cls)
 
+    def __getnewargs__(self):
+        return self.dataset, self._args, self._kwargs
+
     @overload
     def __init__(self, dataset: Callable[..., GeoDataset], *args, **kwargs) -> None:
         ...  # pragma: no cover
@@ -98,6 +101,10 @@ class PairedDataset(RasterDataset):
         *args,
         **kwargs,
     ) -> None:
+        # Needed for pickling/ unpickling.
+        self._args = args
+        self._kwargs = kwargs
+
         if isinstance(dataset, GeoDataset):
             self.dataset = dataset
             self._res = dataset.res
@@ -109,10 +116,10 @@ class PairedDataset(RasterDataset):
                 key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
             }
 
-            if issubclass(dataset, RasterDataset):  # type: ignore[arg-type]
-                # This is very sketchy but an unavoidable workaround due to TorchGeo's behaviour.
-                RasterDataset.filename_glob = dataset.filename_glob  # type: ignore[attr-defined]
-                RasterDataset.filename_regex = dataset.filename_regex  # type: ignore[attr-defined]
+            # Make sure PairedDataset has access to the `all_bands` attribute of the dataset.
+            # Needed for a subset of the bands to be selected if so desired.
+            if hasattr(dataset, "all_bands"):
+                self.all_bands = dataset.all_bands
 
             super().__init__(*args, **super_kwargs)
             self.dataset = dataset(*args, **kwargs)

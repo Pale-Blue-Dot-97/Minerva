@@ -41,6 +41,10 @@ __all__ = [
     "bilinear_init",
     "get_output_shape",
     "get_torch_weights",
+    "is_minerva_model",
+    "is_minerva_subtype",
+    "extract_wrapped_model",
+    "wrap_model",
     "FCN8ResNet18",
     "FCN8ResNet34",
     "FCN8ResNet50",
@@ -88,8 +92,12 @@ from .core import (
     MinervaOnnxModel,
     MinervaWrapper,
     bilinear_init,
+    extract_wrapped_model,
     get_output_shape,
     get_torch_weights,
+    is_minerva_model,
+    is_minerva_subtype,
+    wrap_model,
 )
 from .fcn import (
     FCN8ResNet18,

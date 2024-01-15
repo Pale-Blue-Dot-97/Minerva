@@ -74,7 +74,7 @@ def test_sup_tg(
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
-    for mode in ("train", "val", "test"):
+    for train in (True, False):
         bboxes = [simple_bbox] * std_batch_size
         batch: Dict[str, Union[Tensor, List[Any]]] = {
             "image": random_rgbi_batch,
@@ -82,7 +82,7 @@ def test_sup_tg(
             "bbox": bboxes,
         }
 
-        results = sup_tg(batch, model, default_device, mode)
+        results = sup_tg(batch, model, default_device, train)
 
         assert isinstance(results[0], Tensor)
         assert isinstance(results[1], Tensor)
@@ -106,7 +106,7 @@ def test_ssl_pair_tg(
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
-    for mode in ("train", "val"):
+    for train in (True, False):
         images_1 = torch.rand(size=(std_batch_size, *rgbi_input_size))
         bboxes_1 = [simple_bbox] * std_batch_size
 
@@ -123,7 +123,7 @@ def test_ssl_pair_tg(
             "bbox": bboxes_2,
         }
 
-        results = ssl_pair_tg((batch_1, batch_2), model, default_device, mode)
+        results = ssl_pair_tg((batch_1, batch_2), model, default_device, train)
 
         assert isinstance(results[0], Tensor)
         assert isinstance(results[1], Tensor)
@@ -148,7 +148,7 @@ def test_mask_autoencoder_io(
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
-    for mode in ("train", "val", "test"):
+    for train in (True, False):
         images = torch.rand(size=(std_batch_size, *rgbi_input_size))
         masks = torch.randint(0, 8, (std_batch_size, *rgbi_input_size[1:]))  # type: ignore[attr-defined]
         bboxes = [simple_bbox] * std_batch_size
@@ -163,11 +163,11 @@ def test_mask_autoencoder_io(
             match="The value of key='wrong' is not understood. Must be either 'mask' or 'image'",
         ):
             autoencoder_io(
-                batch, model, default_device, mode, autoencoder_data_key="wrong"
+                batch, model, default_device, train, autoencoder_data_key="wrong"
             )
 
         results = autoencoder_io(
-            batch, model, default_device, mode, autoencoder_data_key="mask"
+            batch, model, default_device, train, autoencoder_data_key="mask"
         )
 
         assert isinstance(results[0], Tensor)
@@ -196,7 +196,7 @@ def test_image_autoencoder_io(
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
-    for mode in ("train", "val", "test"):
+    for train in (True, False):
         bboxes = [simple_bbox] * std_batch_size
         batch: Dict[str, Union[Tensor, List[Any]]] = {
             "image": random_rgbi_batch,
@@ -205,7 +205,7 @@ def test_image_autoencoder_io(
         }
 
         results = autoencoder_io(
-            batch, model, default_device, mode, autoencoder_data_key="image"
+            batch, model, default_device, train, autoencoder_data_key="image"
         )
 
         assert isinstance(results[0], Tensor)

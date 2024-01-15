@@ -69,6 +69,7 @@ __all__ = [
     "exist_delete_check",
     "mkexpdir",
     "check_dict_key",
+    "check_substrings_in_string",
     "datetime_reformat",
     "get_dataset_name",
     "transform_coordinates",
@@ -105,6 +106,8 @@ __all__ = [
     "print_config",
     "tsne_cluster",
     "calc_norm_euc_dist",
+    "fallback_params",
+    "compile_dataset_paths",
 ]
 
 # =====================================================================================================================
@@ -113,8 +116,11 @@ __all__ = [
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import cmath
 import functools
+import glob
+import hashlib
 import importlib
 import inspect
+import json
 import math
 import os
 import random
@@ -548,7 +554,7 @@ def exist_delete_check(fn: Union[str, Path]) -> None:
     """Checks if given file exists then deletes if true.
 
     Args:
-        fn (str): Path to file to have existence checked then deleted.
+        fn (str | ~pathlib.Path): Path to file to have existence checked then deleted.
 
     Returns:
         None
@@ -1925,6 +1931,89 @@ def calc_norm_euc_dist(
         float: Normalised Euclidean distance between vectors ``A`` and ``B``.
     """
     assert len(a) == len(b)
+
+    # Check that none of the data is NaN or infinity.
+    assert not np.isnan(np.sum(a))
+    assert not np.isinf(a).any()
+    assert not np.isnan(np.sum(b))
+    assert not np.isinf(b).any()
+
     euc_dist: float = distance.euclidean(a, b) / float(len(a))
 
     return euc_dist
+
+
+def fallback_params(
+    key: str,
+    params_a: Dict[str, Any],
+    params_b: Dict[str, Any],
+    fallback: Optional[Any] = None,
+) -> Any:
+    """Search for a value associated with ``key`` from
+
+    Args:
+        key (str): _description_
+        params_a (dict[str, ~typing.Any]): _description_
+        params_b (dict[str, ~typing.Any]): _description_
+        fallback (~typing.Any): Optional; _description_. Defaults to None.
+
+    Returns:
+        ~typing.Any: _description_
+    """
+    if key in params_a:
+        return params_a[key]
+    elif key in params_b:
+        return params_b[key]
+    else:
+        return fallback
+
+
+def compile_dataset_paths(
+    data_dir: Union[Path, str],
+    in_paths: Union[List[Union[Path, str]], Union[Path, str]],
+) -> List[str]:
+    """Ensures that a list of paths is returned with the data directory prepended, even if a single string is supplied
+
+    Args:
+        data_dir (~pathlib.Path | str): The parent data directory for all paths.
+        in_paths (list[~pathlib.Path | str] | [~pathlib.Path | str]): Paths to the data to be compilied.
+
+    Returns:
+        list[str]: Compilied paths to the data.
+    """
+    if isinstance(in_paths, list):
+        out_paths = [universal_path(data_dir) / path for path in in_paths]
+    else:
+        out_paths = [universal_path(data_dir) / in_paths]
+
+    compiled_paths = []
+    for path in out_paths:
+        compiled_paths.extend(glob.glob(str(path), recursive=True))
+
+    # For each path, get the absolute path, convert to string and return.
+    return [str(Path(path).absolute()) for path in compiled_paths]
+
+
+def make_hash(obj: Dict[Any, Any]) -> str:
+    """Make a deterministic MD5 hash of a serialisable object using JSON.
+
+    Source: https://death.andgravity.com/stable-hashing
+
+    Args:
+        obj (dict[~typing.Any, ~typing.Any]): Serialisable object (known to work with dictionairies)
+            to make a hash from.
+
+    Returns:
+        str: MD5 hexidecimal hash representing the signature of ``obj``.
+    """
+
+    def json_dumps(obj):
+        return json.dumps(
+            obj,
+            ensure_ascii=False,
+            sort_keys=True,
+            indent=None,
+            separators=(",", ":"),
+        )
+
+    return hashlib.md5(json_dumps(obj).encode("utf-8")).digest().hex()  # nosec: B324

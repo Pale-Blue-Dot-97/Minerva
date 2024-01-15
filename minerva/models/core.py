@@ -43,6 +43,10 @@ __all__ = [
     "get_torch_weights",
     "get_output_shape",
     "bilinear_init",
+    "is_minerva_model",
+    "is_minerva_subtype",
+    "extract_wrapped_model",
+    "wrap_model",
 ]
 
 # =====================================================================================================================
@@ -50,6 +54,7 @@ __all__ = [
 # =====================================================================================================================
 import abc
 import os
+import warnings
 from abc import ABC
 from pathlib import Path
 from typing import (
@@ -67,9 +72,13 @@ from typing import (
 import numpy as np
 import torch
 from nptyping import NDArray
+from packaging.version import Version
 from torch import Tensor
+from torch._dynamo.eval_frame import OptimizedModule
+from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
-from torch.nn.parallel import DataParallel, DistributedDataParallel
+from torch.nn.parallel import DataParallel
+from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
 from torchvision.models._api import WeightsEnum
 
@@ -89,7 +98,8 @@ class MinervaModel(Module, ABC):
         input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
             number of channels, image width, image height but may vary dependant on model specs.
         n_classes (int): Number of classes in input data.
-        output_shape: The shape of the output of the network. Determined and set by :meth:`determine_output_dim`.
+        output_shape (tuple[int, ...]): The shape of the output of the network.
+            Determined and set by :meth:`determine_output_dim`.
         optimiser: :mod:`torch` optimiser model will use, to be initialised with inherited model's parameters.
 
     Args:
@@ -106,6 +116,7 @@ class MinervaModel(Module, ABC):
         criterion: Optional[Module] = None,
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
+        scaler: Optional[GradScaler] = None,
     ) -> None:
         super(MinervaModel, self).__init__()
 
@@ -114,9 +125,10 @@ class MinervaModel(Module, ABC):
 
         self.input_size = input_size
         self.n_classes = n_classes
+        self.scaler = scaler
 
         # Output shape initialised as None. Should be set by calling determine_output_dim.
-        self.output_shape: Optional[Union[int, Iterable[int]]] = None
+        self.output_shape: Optional[Tuple[int, ...]] = None
 
         # Optimiser initialised as None as the model parameters created by its init is required to init a
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
@@ -135,6 +147,14 @@ class MinervaModel(Module, ABC):
         """
         self.optimiser = optimiser
 
+    def set_criterion(self, criterion: Module) -> None:
+        """Set the internal criterion.
+
+        Args:
+            criterion (~torch.nn.Module): Criterion (loss function) to set.
+        """
+        self.criterion = criterion
+
     def determine_output_dim(self, sample_pairs: bool = False) -> None:
         """Uses :func:`get_output_shape` to find the dimensions of the output of this model and sets to attribute."""
 
@@ -143,6 +163,13 @@ class MinervaModel(Module, ABC):
         self.output_shape = get_output_shape(
             self, self.input_size, sample_pairs=sample_pairs
         )
+
+    def _remake_classifier(self) -> None:
+        raise NotImplementedError  # pragma: no cover
+
+    def update_n_classes(self, n_classes: int) -> None:
+        self.n_classes = n_classes
+        self._remake_classifier()
 
     @overload
     def step(
@@ -191,16 +218,36 @@ class MinervaModel(Module, ABC):
         if train:
             self.optimiser.zero_grad()
 
-        # Forward pass.
-        z: Union[Tensor, Tuple[Tensor, ...]] = self.forward(x)
+        z: Union[Tensor, Tuple[Tensor, ...]]
+        loss: Tensor
 
-        # Compute Loss.
-        loss: Tensor = self.criterion(z, y)
+        mix_precision: bool = True if self.scaler else False
+        device_type = "cpu" if x.device.type == "cpu" else "cuda"
+
+        # CUDA does not support ``torch.bfloat16`` while CPU does not support ``torch.float16`` for autocasting.
+        autocast_dtype = torch.float16 if device_type == "cuda" else torch.bfloat16
+
+        # Will enable mixed precision (if a Scaler has been set).
+        with torch.amp.autocast_mode.autocast(
+            device_type=device_type, dtype=autocast_dtype, enabled=mix_precision
+        ):
+            # Forward pass.
+            z = self.forward(x)
+
+            # Compute Loss.
+            loss = self.criterion(z, y)
 
         # Performs a backward pass if this is a training step.
         if train:
-            loss.backward()
-            self.optimiser.step()
+            # Scales the gradients if using mixed precision training.
+            if self.scaler:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+            else:
+                loss.backward()
+                self.optimiser.step()
 
         return loss, z
 
@@ -227,10 +274,11 @@ class MinervaWrapper(MinervaModel):
         criterion: Optional[Module] = None,
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
+        scaler: Optional[GradScaler] = None,
         *args,
         **kwargs,
     ) -> None:
-        super().__init__(criterion, input_size, n_classes)
+        super().__init__(criterion, input_size, n_classes, scaler)
 
         self.model = model_cls(*args, **kwargs)
 
@@ -290,7 +338,7 @@ class MinervaDataParallel(Module):  # pragma: no cover
     def __init__(
         self,
         model: Module,
-        paralleliser: Union[Type[DataParallel], Type[DistributedDataParallel]],  # type: ignore[type-arg]
+        paralleliser: Union[Type[DataParallel], Type[DDP]],  # type: ignore[type-arg]
         *args,
         **kwargs,
     ) -> None:
@@ -421,7 +469,7 @@ def get_output_shape(
     model: Module,
     image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
-) -> Union[int, Sequence[int]]:
+) -> Tuple[int, ...]:
     """Gets the output shape of a model.
 
     Args:
@@ -431,7 +479,7 @@ def get_output_shape(
             Will send a paired sample through the model.
 
     Returns:
-        int | ~typing.Sequence[int]: The shape of the output data from the model.
+        tuple[int, ...]: The shape of the output data from the model.
     """
     _image_dim: Union[Sequence[int], int] = image_dim
     try:
@@ -452,17 +500,15 @@ def get_output_shape(
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([4, *_image_dim])
 
-    output: Tensor = model(random_input.to(next(model.parameters()).device))
+    random_input = random_input.nan_to_num()
+    with torch.no_grad():
+        output: Tensor = model(random_input.to(next(model.parameters()).device))
 
     if len(output[0].data.shape) == 1:
-        output_shape: int = output[0].data.shape[0]
-        assert isinstance(output_shape, int)
+        return (output[0].data.shape[0],)
 
     else:
-        output_shape = output[0].data.shape[1:]
-        assert isinstance(output_shape, Sequence)
-
-    return output_shape
+        return tuple(output[0].data.shape[1:])
 
 
 def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tensor:
@@ -496,3 +542,101 @@ def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tens
     weights = torch.from_numpy(weight)  # type: ignore[attr-defined]
     assert isinstance(weights, Tensor)
     return weights
+
+
+def is_minerva_model(model: Module) -> bool:
+    """
+    Checks if model is a :class:`MinervaModel` while accounting for models that are
+    :class:~`torch._dynamo.eval_frame.OptimizedModule` from :meth:`torch.compile` usage.
+
+    Args:
+        model (~torch.module.Module): Torch model to be evaluated.
+
+    Returns:
+        bool: ``True`` if model (or model wrapped in a compiled model) is a :class:`MinervaModel`
+        or :class:`MinervaDataParallel`, else ``False``.
+
+    .. versionadded:: 0.27
+    """
+    if isinstance(model, OptimizedModule):
+        return isinstance(model._orig_mod, (MinervaModel, MinervaDataParallel))
+    else:
+        return isinstance(model, (MinervaModel, MinervaDataParallel))
+
+
+def is_minerva_subtype(model: Module, subtype: type) -> bool:
+    """
+    Checks if model is a specific type while accounting for models that are
+    :class:~`torch._dynamo.eval_frame.OptimizedModule` from :meth:`torch.compile` usage.
+
+    Args:
+        model (Module): Torch model to be evaluated.
+        subtype (type): Type to check model against.
+
+    Returns:
+        bool: ``True`` if model (or model wrapped in a compiled model) is ``subtype`` else ``False``.
+
+    .. versionadded:: 0.27
+    """
+    if isinstance(model, OptimizedModule):
+        return isinstance(model._orig_mod, subtype)
+    else:
+        return isinstance(model, subtype)
+
+
+def extract_wrapped_model(
+    model: Union[MinervaModel, MinervaDataParallel, OptimizedModule]
+) -> MinervaModel:
+    """
+    Extracts the actual model object from within :class:`MinervaDataParallel` or
+    :class:~`torch._dynamo.eval_frame.OptimizedModule` and returns.
+
+    Args:
+        model (MinervaModel | MinervaDataParallel | OptimizedModule): Model that may or may not be wrapped.
+
+    Returns:
+        MinervaModel: Extracted model.
+
+    .. versionadded:: 0.27
+    """
+    if isinstance(model, OptimizedModule):
+        _model = model._orig_mod
+        assert isinstance(_model, (MinervaModel, MinervaDataParallel))
+        model = _model
+
+    if isinstance(model, MinervaDataParallel):  # pragma: no cover
+        model = model.model.module
+
+    assert isinstance(model, MinervaModel)
+    return model
+
+
+def wrap_model(model, gpu: int, torch_compile: bool = False):
+    # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
+    if torch.cuda.device_count() > 1:  # pragma: no cover
+        print(f"{torch.cuda.device_count()} GPUs detected")
+        model = MinervaDataParallel(
+            torch.nn.modules.SyncBatchNorm.convert_sync_batchnorm(  # type: ignore
+                model
+            ),
+            DDP,
+            device_ids=[gpu],
+        )
+
+    # Wraps the model in `torch.compile` to speed up computation time.
+    if (
+        Version(torch.__version__) > Version("2.0.0")
+        and torch_compile
+        and os.name != "nt"
+    ):
+        try:
+            _compiled_model: OptimizedModule = torch.compile(
+                model
+            )  # type:ignore[assignment]
+            assert is_minerva_model(_compiled_model)
+            assert isinstance(_compiled_model, OptimizedModule)
+            model = _compiled_model
+        except RuntimeError as err:
+            warnings.warn(str(err))
+
+    return model

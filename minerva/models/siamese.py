@@ -50,12 +50,13 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Dict, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import numpy as np
 import torch
 import torch.nn.modules as nn
 from torch import Tensor
+from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
 from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
@@ -169,9 +170,12 @@ class SimCLR(MinervaSiamese):
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
+        scaler: Optional[GradScaler] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(SimCLR, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimCLR, self).__init__(
+            criterion=criterion, input_size=input_size, scaler=scaler
+        )
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
@@ -234,16 +238,35 @@ class SimCLR(MinervaSiamese):
         if train:
             self.optimiser.zero_grad()
 
-        # Forward pass.
-        z, z_a, z_b, _, _ = self.forward(x)
+        loss: Tensor
 
-        # Compute Loss.
-        loss: Tensor = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+        mix_precision: bool = True if self.scaler else False
+        device_type = "cpu" if x.device.type == "cpu" else "cuda"
+
+        # CUDA does not support ``torch.bfloat16`` while CPU does not support ``torch.float16`` for autocasting.
+        autocast_dtype = torch.float16 if device_type == "cuda" else torch.bfloat16
+
+        # Will enable mixed precision (if a Scaler has been set).
+        with torch.amp.autocast_mode.autocast(
+            device_type=device_type, dtype=autocast_dtype, enabled=mix_precision
+        ):
+            # Forward pass.
+            z, z_a, z_b, _, _ = self.forward(x)
+
+            # Compute Loss.
+            loss = self.criterion(z_a, z_b)  # type: ignore[arg-type]
 
         # Performs a backward pass if this is a training step.
         if train:
-            loss.backward()
-            self.optimiser.step()
+            # Scales the gradients if using mixed precision training.
+            if self.scaler is not None:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+            else:
+                loss.backward()
+                self.optimiser.step()
 
         return loss, z
 
@@ -295,9 +318,12 @@ class SimSiam(MinervaSiamese):
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         pred_dim: int = 512,
+        scaler: Optional[GradScaler] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(SimSiam, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimSiam, self).__init__(
+            criterion=criterion, input_size=input_size, scaler=scaler
+        )
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
@@ -374,16 +400,35 @@ class SimSiam(MinervaSiamese):
         if train:
             self.optimiser.zero_grad()
 
-        # Forward pass.
-        p, p_a, p_b, z_a, z_b = self.forward(x)
+        loss: Tensor
 
-        # Compute Loss.
-        loss: Tensor = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))  # type: ignore[arg-type]
+        mix_precision: bool = True if self.scaler else False
+        device_type = "cpu" if x.device.type == "cpu" else "cuda"
+
+        # CUDA does not support ``torch.bfloat16`` while CPU does not support ``torch.float16`` for autocasting.
+        autocast_dtype = torch.float16 if device_type == "cuda" else torch.bfloat16
+
+        # Will enable mixed precision (if a Scaler has been set).
+        with torch.amp.autocast_mode.autocast(
+            device_type=device_type, dtype=autocast_dtype, enabled=mix_precision
+        ):
+            # Forward pass.
+            p, p_a, p_b, z_a, z_b = self.forward(x)
+
+            # Compute Loss.
+            loss = 0.5 * (self.criterion(z_a, p_b) + self.criterion(z_b, p_a))  # type: ignore[arg-type]
 
         # Performs a backward pass if this is a training step.
         if train:
-            loss.backward()
-            self.optimiser.step()
+            # Scales the gradients if using mixed precision training.
+            if self.scaler is not None:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+            else:
+                loss.backward()
+                self.optimiser.step()
 
         return loss, p
 
@@ -434,9 +479,12 @@ class SimConv(MinervaSiamese):
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 2048,
+        scaler: Optional[GradScaler] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
-        super(SimConv, self).__init__(criterion=criterion, input_size=input_size)
+        super(SimConv, self).__init__(
+            criterion=criterion, input_size=input_size, scaler=scaler
+        )
 
         # Set of required kwargs for the `PSPNet` adapted from `minerva` style kwargs.
         new_kwargs = {
@@ -455,6 +503,7 @@ class SimConv(MinervaSiamese):
             input_size=input_size,
             criterion=None,
             n_classes=None,
+            scaler=None,
             **new_kwargs,
         )
 
@@ -509,7 +558,7 @@ class SimConv(MinervaSiamese):
             with both projection's logits.
         """
 
-        if self.optimiser is None:
+        if self.optimiser is None:  # pragma: no cover
             raise NotImplementedError("Optimiser has not been set!")
 
         assert self.criterion
@@ -518,15 +567,34 @@ class SimConv(MinervaSiamese):
         if train:
             self.optimiser.zero_grad()
 
-        # Forward pass.
-        z, z_a, z_b, _, _ = self.forward(x)
+        loss: Tensor
 
-        # Compute Loss.
-        loss: Tensor = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+        mix_precision: bool = True if self.scaler else False
+        device_type = "cpu" if x.device.type == "cpu" else "cuda"
+
+        # CUDA does not support ``torch.bfloat16`` while CPU does not support ``torch.float16`` for autocasting.
+        autocast_dtype = torch.float16 if device_type == "cuda" else torch.bfloat16
+
+        # Will enable mixed precision (if a Scaler has been set).
+        with torch.amp.autocast_mode.autocast(
+            device_type=device_type, dtype=autocast_dtype, enabled=mix_precision
+        ):
+            # Forward pass.
+            z, z_a, z_b, _, _ = self.forward(x)
+
+            # Compute Loss.
+            loss = self.criterion(z_a, z_b)  # type: ignore[arg-type]
 
         # Performs a backward pass if this is a training step.
         if train:
-            loss.backward()
-            self.optimiser.step()
+            # Scales the gradients if using mixed precision training.
+            if self.scaler is not None:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+            else:
+                loss.backward()
+                self.optimiser.step()
 
         return loss, z
