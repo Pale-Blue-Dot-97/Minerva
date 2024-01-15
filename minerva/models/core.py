@@ -78,7 +78,6 @@ from torch._dynamo.eval_frame import OptimizedModule
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel
-from torch.nn.parallel import DistributedDataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
 from torchvision.models._api import WeightsEnum
@@ -339,7 +338,7 @@ class MinervaDataParallel(Module):  # pragma: no cover
     def __init__(
         self,
         model: Module,
-        paralleliser: Union[Type[DataParallel], Type[DistributedDataParallel]],  # type: ignore[type-arg]
+        paralleliser: Union[Type[DataParallel], Type[DDP]],  # type: ignore[type-arg]
         *args,
         **kwargs,
     ) -> None:
