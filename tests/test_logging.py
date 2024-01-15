@@ -145,11 +145,11 @@ def test_SupervisedGeoStepLogger(
 
         logs = logger.get_logs
         assert logs["batch_num"] == std_n_batches
-        assert type(logs["total_loss"]) is float
-        assert type(logs["total_correct"]) is float
+        assert isinstance(logs["total_loss"], float)
+        assert isinstance(logs["total_correct"], float)
 
         if model_type == "segmentation":
-            assert type(logs["total_miou"]) is float
+            assert isinstance(logs["total_miou"], float)
 
         results = logger.get_results
         assert results["z"].shape == (
@@ -288,13 +288,13 @@ def test_SSLStepLogger(
 
         logs = logger.get_logs
         assert logs["batch_num"] == std_n_batches
-        assert type(logs["total_loss"]) is float
-        assert type(logs["total_correct"]) is float
-        assert type(logs["total_top5"]) is float
+        assert isinstance(logs["total_loss"], float)
+        assert isinstance(logs["total_correct"], float)
+        assert isinstance(logs["total_top5"], float)
 
         if extra_metrics:
-            assert type(logs["collapse_level"]) is float
-            assert type(logs["euc_dist"]) is float or np.inf
+            assert isinstance(logs["collapse_level"], float)
+            assert isinstance(logs["euc_dist"], (float, np.inf))
 
         results = logger.get_results
         assert results == {}

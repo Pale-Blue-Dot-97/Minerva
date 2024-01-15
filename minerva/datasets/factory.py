@@ -533,7 +533,7 @@ def make_loaders(
                 }
             }
 
-            if type(dataset_params["mask"].get("transforms")) != dict:
+            if not isinstance(dataset_params["mask"].get("transforms"), dict):
                 dataset_params["mask"]["transforms"] = class_transform
             else:
                 dataset_params["mask"]["transforms"][

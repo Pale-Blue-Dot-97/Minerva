@@ -216,8 +216,8 @@ def test_make_loaders() -> None:
     )
 
     assert isinstance(loader, DataLoader)
-    assert type(n_batches) is int
-    assert type(class_dist) is list
+    assert isinstance(n_batches, int)
+    assert isinstance(class_dist, list)
     assert isinstance(params, dict)
 
     old_params_2 = deepcopy(CONFIG)
