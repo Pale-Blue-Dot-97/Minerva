@@ -212,7 +212,6 @@ class MinervaTaskLogger(ABC):
         Args:
             logs (dict[str, ~typing.Any]): Logs of the results from the epoch of the task to calculate metrics from.
         """
-        pass  # pragma: no cover
 
     def log_epoch_number(self, epoch_no: int) -> None:
         """Logs the epoch number to ``metrics``.
