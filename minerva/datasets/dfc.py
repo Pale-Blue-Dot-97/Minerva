@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023  Harry Baker
+# Copyright (C) 2024  Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ r"""Implementation for the DFC2020 competition dataset using Sentinel 1&2 data a
 __author__ = ["Lukas Liebel", "Harry Baker"]
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
-__copyright__ = "Copyright (C) 2023 Harry Baker"
+__copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "DFC2020",
     "SEN12MS",

@@ -2,7 +2,7 @@
 # Copyright (C) 2023 Harry Baker
 # MIT License
 
-# Copyright (c) 2023 Harry Baker
+# Copyright (c) 2024 Harry Baker
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -32,7 +32,7 @@
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
-__copyright__ = "Copyright (C) 2023 Harry Baker"
+__copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "MinervaSiamese",
     "SimCLR",

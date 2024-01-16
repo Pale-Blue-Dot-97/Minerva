@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
+# Copyright (C) 2024 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License as published by
@@ -45,7 +45,7 @@ Run the testing epoch and output results.
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
-__copyright__ = "Copyright (C) 2023 Harry Baker"
+__copyright__ = "Copyright (C) 2024 Harry Baker"
 
 try:
     from ._version import version as __version__

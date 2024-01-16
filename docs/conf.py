@@ -21,7 +21,7 @@ import minerva  # noqa: E402
 # -- Project information -----------------------------------------------------
 
 project = "minerva"
-copyright = "2023, Harry Baker"
+copyright = "2024, Harry Baker"
 author = minerva.__author__
 version = minerva.__version__  # type: ignore[attr-defined]
 

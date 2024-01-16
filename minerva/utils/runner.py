@@ -2,7 +2,7 @@
 # PYTHON_ARGCOMPLETE_OK
 # MIT License
 
-# Copyright (c) 2023 Harry Baker
+# Copyright (c) 2024 Harry Baker
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -36,7 +36,7 @@ Attributes:
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
-__copyright__ = "Copyright (C) 2023 Harry Baker"
+__copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "GENERIC_PARSER",
     "WandbConnectionManager",
@@ -61,10 +61,10 @@ import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.utils import CONFIG, MASTER_PARSER, utils
 
 # =====================================================================================================================
