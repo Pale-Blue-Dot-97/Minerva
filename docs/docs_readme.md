@@ -20,7 +20,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> v0.26</b>
+    <b style="font-size:26px;"> v0.27</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
@@ -38,7 +38,7 @@ Minerva is a package to aid in the building, fitting and testing of neural netwo
 ## Getting Started ▶
 
 If one wishes to use [torchgeo](https://pypi.org/project/torchgeo/), installation on Linux is recommended to handle the
-compilation of the required C-based libraries.
+compilation of the required C-based libraries -- though `minerva` is also tested with MacOS and Windows runners.
 
 ### Installation ⬇
 
