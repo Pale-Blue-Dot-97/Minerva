@@ -198,7 +198,7 @@ def get_subdataset(
 
         else:
             # Ensure that no conflicts from caching datasets made in multiple processes arises.
-            if dist.is_available() and dist.is_initialized():
+            if dist.is_available() and dist.is_initialized():  # pragma: no cover
                 # Get this process#s rank.
                 rank = dist.get_rank()
 
