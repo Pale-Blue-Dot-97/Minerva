@@ -191,6 +191,8 @@ def get_subdataset(
         this_hash = utils.make_hash(sub_dataset_params)
 
         cached_dataset_path = Path(CACHE_DIR) / f"{this_hash}.obj"
+        print(f"{cached_dataset_path=}")
+        print(f"{cached_dataset_path.exists()=}")
 
         if cached_dataset_path.exists():
             print(f"\nLoad cached dataset {this_hash}")
