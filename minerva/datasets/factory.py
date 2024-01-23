@@ -175,11 +175,9 @@ def get_subdataset(
         this_hash = utils.make_hash(sub_dataset_params)
 
         cached_dataset_path = Path(CACHE_DIR) / f"{this_hash}.obj"
-        print(f"{cached_dataset_path=}")
-        print(f"{cached_dataset_path.exists()=}")
 
         if cached_dataset_path.exists():
-            print("\nLoad cached dataset")
+            print(f"\nLoad cached dataset {this_hash}")
             sub_dataset = load_dataset_from_cache(cached_dataset_path)
 
         else:
@@ -202,6 +200,7 @@ def get_subdataset(
                         sample_pairs=sample_pairs,
                     )
 
+                    print(f"\nSaving dataset {this_hash}")
                     cache_dataset(sub_dataset, cached_dataset_path)
 
                 # Other processes wait...
@@ -213,7 +212,7 @@ def get_subdataset(
 
                 # Now the other processes can load the newly created cached dataset from 0.
                 if rank != 0:
-                    print(f"\nLoading dataset from cache on {rank}")
+                    print(f"\nLoading dataset from cache {this_hash} on {rank}")
                     sub_dataset = load_dataset_from_cache(cached_dataset_path)
 
             else:
@@ -226,6 +225,7 @@ def get_subdataset(
                     sample_pairs=sample_pairs,
                 )
 
+                print(f"\nSaving dataset {this_hash}")
                 cache_dataset(sub_dataset, cached_dataset_path)
 
     else:
