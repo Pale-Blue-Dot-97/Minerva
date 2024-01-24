@@ -209,7 +209,7 @@ def get_subdataset(
                     sub_dataset = None
 
                 # End of blocking action.
-                dist.barrier()
+                dist.monitored_barrier()
 
                 # Now the other processes can load the newly created cached dataset from 0.
                 if rank != 0:
