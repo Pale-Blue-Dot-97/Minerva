@@ -72,9 +72,9 @@ def test_config_env_vars() -> None:
     args.ngpus_per_node = 1
 
     with pytest.raises(AttributeError):
-        args.rank
-        args.dist_url
-        args.world_size
+        _ = args.rank
+        _ = args.dist_url
+        _ = args.world_size
 
     new_args = runner.config_env_vars(args)
 

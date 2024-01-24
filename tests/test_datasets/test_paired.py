@@ -86,7 +86,7 @@ def test_paired_datasets(img_root: Path) -> None:
         assert isinstance(dataset.__getattr__("dataset"), TstImgDataset)
 
         with pytest.raises(AttributeError):
-            dataset.roi
+            _ = dataset.roi
 
         assert isinstance(dataset.__repr__(), str)
 
