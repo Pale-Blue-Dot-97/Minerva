@@ -55,16 +55,17 @@ import shlex
 import signal
 import subprocess
 from argparse import Namespace
+from datetime import timedelta
 from typing import Any, Callable, Optional, Union
 
 import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.utils import CONFIG, MASTER_PARSER, utils
 
 # =====================================================================================================================
@@ -297,6 +298,14 @@ GENERIC_PARSER.add_argument(
     + "training epochs for SSL or Siamese models.",
 )
 
+GENERIC_PARSER.add_argument(
+    "--timeout",
+    dest="timeout",
+    type=int,
+    default=4,
+    help="Timeout for the distributed process group in hours.",
+)
+
 
 # =====================================================================================================================
 #                                                     CLASSES
@@ -513,6 +522,7 @@ def _run_preamble(
             init_method=args.dist_url,
             world_size=args.world_size,
             rank=args.rank,
+            timeout=timedelta(hours=args.timeout),
         )
         print(f"INITIALISED PROCESS ON {args.rank}")
 
