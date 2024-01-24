@@ -93,7 +93,7 @@ class MLP(MinervaModel):
         self._layers: OrderedDict[str, Module] = OrderedDict()
 
         # Constructs layers of the network based on the input size, the hidden sizes and the number of classes.
-        for i in range(len(hidden_sizes)):
+        for i, _ in enumerate(hidden_sizes):
             if i == 0:
                 self._layers["Linear-0"] = nn.Linear(input_size, hidden_sizes[i])
             else:
@@ -187,7 +187,7 @@ class CNN(MinervaModel):
 
         # Constructs the convolutional layers determined by the number of input channels and the features of these.
         assert self.input_size is not None
-        for i in range(len(features)):
+        for i, _ in enumerate(features):
             if i == 0:
                 self._conv_layers["Conv-0"] = nn.Conv2d(
                     self.input_size[0],
@@ -222,7 +222,7 @@ class CNN(MinervaModel):
         )
 
         # Constructs the fully connected layers determined by the number of input channels and the features of these.
-        for i in range(len(fc_sizes)):
+        for i, _ in enumerate(fc_sizes):
             if i == 0:
                 self._fc_layers["Linear-0"] = nn.Linear(
                     self.flattened_size, fc_sizes[i]

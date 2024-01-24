@@ -1175,7 +1175,7 @@ def plot_embedding(
         # only print thumbnails with matplotlib > 1.0
         shown_images: NDArray[Any, Any] = np.array([[1.0, 1.0]])  # just something big
 
-        for i in range(len(images)):
+        for i, image in enumerate(images):
             dist = np.sum((x[i] - shown_images) ** 2, 1)
             if np.min(dist) < 4e-3:
                 # don’t show points that are too close
@@ -1183,7 +1183,7 @@ def plot_embedding(
 
             shown_images = np.r_[shown_images, [x[i]]]
             imagebox = offsetbox.AnnotationBbox(
-                offsetbox.OffsetImage(images[i], cmap=plt.cm.gray_r), x[i]  # type: ignore
+                offsetbox.OffsetImage(image, cmap=plt.cm.gray_r), x[i]  # type: ignore
             )
 
             ax.add_artist(imagebox)
