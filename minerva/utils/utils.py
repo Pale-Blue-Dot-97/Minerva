@@ -733,7 +733,7 @@ def transform_coordinates(
     single = False
 
     # Checks if x is a float. Places x in a list if True.
-    if type(x) is float:
+    if isinstance(x, float):
         x = [x]
         single = True
 

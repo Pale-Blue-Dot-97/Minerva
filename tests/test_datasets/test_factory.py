@@ -233,9 +233,9 @@ def test_make_loaders() -> None:
 
     assert isinstance(loaders, dict)
     assert isinstance(loaders["val-1"], DataLoader)
-    assert type(n_batches) is dict
-    assert type(n_batches["val-2"]) is int
-    assert type(class_dist) is list
+    assert isinstance(n_batches, dict)
+    assert isinstance(n_batches["val-2"], int)
+    assert isinstance(class_dist, list)
     assert isinstance(params, dict)
 
 

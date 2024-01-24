@@ -151,7 +151,7 @@ def test_stack_rgb() -> None:
 def test_make_rgb_image(random_image) -> None:
     rgb = {"R": 0, "G": 1, "B": 2}
 
-    assert type(visutils.make_rgb_image(random_image, rgb)) is AxesImage
+    assert isinstance(visutils.make_rgb_image(random_image, rgb), AxesImage)
 
 
 def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> None:

@@ -216,7 +216,7 @@ class DCN(MinervaModel):
         super(DCN, self).__init__(n_classes=n_classes)
         self.variant: Literal["32", "16", "8"] = variant
 
-        assert type(self.n_classes) is int
+        assert isinstance(self.n_classes, int)
 
         # Common to all variants.
         self.relu = nn.ReLU(inplace=True)

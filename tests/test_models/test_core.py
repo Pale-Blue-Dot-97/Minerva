@@ -107,7 +107,7 @@ def test_minerva_model(x_entropy_loss, std_n_classes: int, std_n_batches: int) -
     for train in (True, False):
         loss, z = model.step(x, y, train=train)
 
-        assert type(loss.item()) is float
+        assert isinstance(loss.item(), float)
         assert isinstance(z, Tensor)
         assert z.size() == (std_n_batches, std_n_classes)
 

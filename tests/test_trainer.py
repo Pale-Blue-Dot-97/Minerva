@@ -135,7 +135,7 @@ def test_trainer_2() -> None:
     trainer2.fit()
     trainer2.test()
 
-    assert type(repr(trainer2.model)) is str
+    assert isinstance(repr(trainer2.model), str)
 
 
 def test_trainer_3() -> None:

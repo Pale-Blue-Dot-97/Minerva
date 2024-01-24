@@ -116,7 +116,7 @@ def test_return_updated_kwargs() -> None:
     results = example_func(arg1, arg2, **old_kwargs)
 
     assert results[0] == 37
-    assert type(results[1]) is dict
+    assert isinstance(results[1], dict)
     assert results[1] == new_kwargs
 
 
@@ -129,9 +129,9 @@ def test_pair_collate() -> None:
 
     output = collator(batch)
 
-    assert type(output) is tuple
-    assert type(output[0]) is defaultdict
-    assert type(output[1]) is defaultdict
+    assert isinstance(output, tuple)
+    assert isinstance(output[0], defaultdict)
+    assert isinstance(output[1], defaultdict)
     assert len(output[0]["image"]) == len(output[1]["image"])
     assert len(output[1]["mask"]) == len(output[0]["image"])
 
@@ -155,12 +155,12 @@ def test_pair_return() -> None:
 
 
 def test_cuda_device() -> None:
-    assert type(utils.get_cuda_device()) is torch.device  # type: ignore[attr-defined]
+    assert isinstance(utils.get_cuda_device(), torch.device)  # type: ignore[attr-defined]
 
 
 def test_config_loading() -> None:
-    assert type(CONFIG) is dict
-    assert type(AUX_CONFIGS) is dict
+    assert isinstance(CONFIG, dict)
+    assert isinstance(AUX_CONFIGS, dict)
 
 
 @pytest.mark.parametrize(
@@ -332,7 +332,7 @@ def test_find_geo_similar() -> None:
 
     bbox = BoundingBox(10, 20, 20, 30, 1, 2)
 
-    assert type(utils.find_geo_similar(bbox, max_r)) is BoundingBox
+    assert isinstance(utils.find_geo_similar(bbox, max_r), BoundingBox)
 
 
 @pytest.mark.parametrize(
@@ -825,7 +825,7 @@ def test_calc_grad(exp_mlp: MinervaModel) -> None:
     _ = exp_mlp.step(x, y, train=True)
 
     grad = utils.calc_grad(exp_mlp)
-    assert type(grad) is float
+    assert isinstance(grad, float)
     assert grad != 0.0
     assert utils.calc_grad(42) is None  # type: ignore[arg-type]
 
