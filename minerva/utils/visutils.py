@@ -540,9 +540,9 @@ def make_gif(
     with alive_bar(len(dates), bar="blocks") as bar:
         # List to hold filenames and paths of images created.
         frames = []
-        for i in range(len(dates)):
+        for i, date in enumerate(dates):
             # Update progress bar with current scene.
-            bar.text("SCENE ON %s" % dates[i])
+            bar.text("SCENE ON %s" % date)
 
             # Create a frame of the GIF for a scene of the patch.
             frame = labelled_rgb_image(
