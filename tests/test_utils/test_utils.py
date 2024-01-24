@@ -73,10 +73,10 @@ def test_print_banner() -> None:
 
 
 @pytest.mark.parametrize(
-    ["input", "expected"], [(1, int), ("we want a shrubery...", str), (str, str)]
+    ["x", "expected"], [(1, int), ("we want a shrubery...", str), (str, str)]
 )
-def test_extract_class_type(input: Any, expected: type) -> None:
-    assert utils.extract_class_type(input) == expected
+def test_extract_class_type(x: Any, expected: type) -> None:
+    assert utils.extract_class_type(x) == expected
 
 
 def test_is_notebook() -> None:
@@ -280,11 +280,11 @@ def test_file_check() -> None:
     assert fn.exists() is False
 
 
-@pytest.mark.parametrize(["input", "output"], [(1, 1), (5, 0), (3, 3), (4, 2)])
-def test_class_transform(input: int, output: int) -> None:
+@pytest.mark.parametrize(["in_class", "out_class"], [(1, 1), (5, 0), (3, 3), (4, 2)])
+def test_class_transform(in_class: int, out_class: int) -> None:
     matrix = {1: 1, 3: 3, 4: 2, 5: 0}
 
-    assert utils.class_transform(input, matrix) == output
+    assert utils.class_transform(in_class, matrix) == out_class
 
 
 @pytest.mark.parametrize(
@@ -336,15 +336,15 @@ def test_find_geo_similar() -> None:
 
 
 @pytest.mark.parametrize(
-    ["input", "exp_len"],
+    ["x", "exp_len"],
     [
         (np.random.rand(256, 256), 256 * 256),
         (np.random.rand(16, 128, 128), 16 * 128 * 128),
         (list(np.random.rand(256, 256)), 256 * 256),
     ],
 )
-def test_batch_flatten(input, exp_len: int) -> None:
-    assert len(utils.batch_flatten(input)) == exp_len
+def test_batch_flatten(x, exp_len: int) -> None:
+    assert len(utils.batch_flatten(x)) == exp_len
 
 
 @pytest.mark.parametrize(

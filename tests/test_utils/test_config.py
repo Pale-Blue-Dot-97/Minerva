@@ -109,8 +109,8 @@ def test_check_paths(config_root: Path):
 
 
 def test_chdir_to_default(inbuilt_cfg_root):
-    def run_chdir(input, output):
-        assert output == chdir_to_default(input)
+    def run_chdir(input_path, output_path):
+        assert output_path == chdir_to_default(input_path)
         assert Path(os.getcwd()) == inbuilt_cfg_root
         os.chdir(cwd)
 
