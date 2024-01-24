@@ -1807,7 +1807,6 @@ def compute_roc_curves(
                 )
             except MemoryError:
                 print("Aborting micro averaging.")
-                pass
 
     if macro:
         # Aggregate all false positive rates.

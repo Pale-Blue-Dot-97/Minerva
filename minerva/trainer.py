@@ -774,7 +774,6 @@ class Trainer:
                         self.print("MODEL PARAMETERS SAVED")
                     elif res in ("N", "n", "no", "No", "NO"):
                         self.print("Model will NOT be saved to file")
-                        pass
                     else:
                         self.print("Input not recognised. Please try again")
                 except TimeoutOccurred:  # pragma: no cover
