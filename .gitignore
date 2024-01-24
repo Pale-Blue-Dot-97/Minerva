@@ -139,6 +139,11 @@ dmypy.json
 *.xml
 *.iml
 
+# npm
+package-lock.json
+package.json
+node_modules/*
+
 # Weights and Biases stuff
 /wandb
 
