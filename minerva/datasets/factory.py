@@ -800,10 +800,10 @@ def make_manifest(
 
     modes = load_all_samples(loader)
 
-    df["MODES"] = [np.array([]) for _ in range(len(modes))]
+    df["MODES"] = [np.array([]) for _ in modes]
 
-    for i in range(len(modes)):
-        df["MODES"][i] = modes[i]
+    for i, mode in enumerate(modes):
+        df["MODES"][i] = mode
 
     print("CALCULATING CLASS FRACTIONS")
     # Calculates the fractional size of each class in each patch.
