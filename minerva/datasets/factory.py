@@ -52,6 +52,7 @@ import os
 import platform
 import re
 from copy import deepcopy
+from datetime import timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -188,7 +189,7 @@ def get_subdataset(
 
                 # Start a blocking action, ensuring only process 0 can create and cache the dataset.
                 # All other processes will wait till 0 is finished.
-                dist.barrier()
+                dist.monitored_barrier(timeout=timedelta(hours=4))
 
                 if rank == 0:
                     print(f"\nCreating dataset on {rank}...")
