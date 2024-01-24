@@ -305,7 +305,7 @@ class MinervaTask(ABC):
 
             weights = []
             if self.elim:
-                for weight in weights_dict:
+                for weight in weights_dict.values():
                     weights.append(weight)
             else:
                 for i in range(self.n_classes):
