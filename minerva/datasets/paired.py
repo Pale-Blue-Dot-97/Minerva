@@ -32,7 +32,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "PairedDataset",
+    "PairedGeoDataset",
     "PairedUnionDataset",
 ]
 
@@ -60,7 +60,7 @@ from .utils import get_random_sample
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class PairedDataset(RasterDataset):
+class PairedGeoDataset(RasterDataset):
     """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
 
     Attributes:
@@ -76,13 +76,13 @@ class PairedDataset(RasterDataset):
         dataset: Union[Callable[..., GeoDataset], GeoDataset],
         *args,
         **kwargs,
-    ) -> Union["PairedDataset", "PairedUnionDataset"]:
+    ) -> Union["PairedGeoDataset", "PairedUnionDataset"]:
         if isinstance(dataset, UnionDataset):
             return PairedUnionDataset(
                 dataset.datasets[0], dataset.datasets[1], *args, **kwargs
             )
         else:
-            return super(PairedDataset, cls).__new__(cls)
+            return super(PairedGeoDataset, cls).__new__(cls)
 
     def __getnewargs__(self):
         return self.dataset, self._args, self._kwargs
@@ -116,7 +116,7 @@ class PairedDataset(RasterDataset):
                 key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
             }
 
-            # Make sure PairedDataset has access to the `all_bands` attribute of the dataset.
+            # Make sure PairedGeoDataset has access to the `all_bands` attribute of the dataset.
             # Needed for a subset of the bands to be selected if so desired.
             if hasattr(dataset, "all_bands"):
                 self.all_bands = dataset.all_bands
@@ -136,34 +136,34 @@ class PairedDataset(RasterDataset):
             queries[1]
         )
 
-    def __and__(self, other: "PairedDataset") -> IntersectionDataset:  # type: ignore[override]
-        """Take the intersection of two :class:`PairedDataset`.
+    def __and__(self, other: "PairedGeoDataset") -> IntersectionDataset:  # type: ignore[override]
+        """Take the intersection of two :class:`PairedGeoDataset`.
 
         Args:
-            other (PairedDataset): Another dataset.
+            other (PairedGeoDataset): Another dataset.
 
         Returns:
             IntersectionDataset: A single dataset.
 
         Raises:
-            ValueError: If other is not a :class:`PairedDataset`
+            ValueError: If other is not a :class:`PairedGeoDataset`
 
         .. versionadded:: 0.24
         """
-        if not isinstance(other, PairedDataset):
+        if not isinstance(other, PairedGeoDataset):
             raise ValueError(
-                f"Intersecting a dataset of {type(other)} and a PairedDataset is not supported!"
+                f"Intersecting a dataset of {type(other)} and a PairedGeoDataset is not supported!"
             )
 
         return IntersectionDataset(
             self, other, collate_fn=utils.pair_collate(concat_samples)
         )
 
-    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":  # type: ignore[override]
-        """Take the union of two :class:`PairedDataset`.
+    def __or__(self, other: "PairedGeoDataset") -> "PairedUnionDataset":  # type: ignore[override]
+        """Take the union of two :class:`PairedGeoDataset`.
 
         Args:
-            other (PairedDataset): Another dataset.
+            other (PairedGeoDataset): Another dataset.
 
         Returns:
             PairedUnionDataset: A single dataset.
@@ -253,7 +253,7 @@ class PairedUnionDataset(UnionDataset):
 
     ..warning::
 
-        Do not use with :class:`PairedDataset` as this will essentially account for paired sampling twice
+        Do not use with :class:`PairedGeoDataset` as this will essentially account for paired sampling twice
         and cause a :class:`TypeError`.
     """
 
@@ -270,7 +270,7 @@ class PairedUnionDataset(UnionDataset):
 
         new_datasets = []
         for _dataset in self.datasets:
-            if isinstance(_dataset, PairedDataset):
+            if isinstance(_dataset, PairedGeoDataset):
                 new_datasets.append(_dataset.dataset)
             elif isinstance(_dataset, PairedUnionDataset):
                 new_datasets.append(_dataset.datasets[0] | _dataset.datasets[1])
@@ -296,11 +296,11 @@ class PairedUnionDataset(UnionDataset):
         """
         return super().__getitem__(query[0]), super().__getitem__(query[1])
 
-    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":  # type: ignore[override]
-        """Take the union of a PairedUnionDataset and a :class:`PairedDataset`.
+    def __or__(self, other: "PairedGeoDataset") -> "PairedUnionDataset":  # type: ignore[override]
+        """Take the union of a PairedUnionDataset and a :class:`PairedGeoDataset`.
 
         Args:
-            other (PairedDataset): Another dataset.
+            other (PairedGeoDataset): Another dataset.
 
         Returns:
             PairedUnionDataset: A single dataset.

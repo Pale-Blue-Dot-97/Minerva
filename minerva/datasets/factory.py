@@ -70,7 +70,7 @@ from minerva.transforms import init_auto_norm, make_transformations
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
-from .paired import PairedDataset
+from .paired import PairedGeoDataset
 from .utils import (
     cache_dataset,
     intersect_datasets,
@@ -117,7 +117,7 @@ def create_subdataset(
         copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
 
     if sample_pairs:
-        return PairedDataset(
+        return PairedGeoDataset(
             dataset_class,
             paths=paths,
             transforms=transformations,

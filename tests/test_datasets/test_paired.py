@@ -44,7 +44,7 @@ from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 
-from minerva.datasets import PairedDataset, PairedUnionDataset
+from minerva.datasets import PairedGeoDataset, PairedUnionDataset
 from minerva.datasets.__testing import TstImgDataset
 
 
@@ -52,23 +52,23 @@ from minerva.datasets.__testing import TstImgDataset
 #                                                       TESTS
 # =====================================================================================================================
 def test_paired_datasets(img_root: Path) -> None:
-    dataset1 = PairedDataset(TstImgDataset, str(img_root))
+    dataset1 = PairedGeoDataset(TstImgDataset, str(img_root))
     dataset2 = TstImgDataset(str(img_root))
 
     with pytest.raises(
         ValueError,
-        match=f"Intersecting a dataset of {type(dataset2)} and a PairedDataset is not supported!",
+        match=f"Intersecting a dataset of {type(dataset2)} and a PairedGeoDataset is not supported!",
     ):
         _ = dataset1 & dataset2  # type: ignore[operator]
 
-    dataset3 = PairedDataset(dataset2)
+    dataset3 = PairedGeoDataset(dataset2)
 
     non_dataset = 42
     with pytest.raises(
         ValueError,
         match=f"``dataset`` is of unsupported type {type(non_dataset)} not GeoDataset",
     ):
-        _ = PairedDataset(42)  # type: ignore[call-overload]
+        _ = PairedGeoDataset(42)  # type: ignore[call-overload]
 
     bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
@@ -108,10 +108,10 @@ def test_paired_union_datasets(img_root: Path) -> None:
 
     dataset1 = TstImgDataset(str(img_root))
     dataset2 = TstImgDataset(str(img_root))
-    dataset3 = PairedDataset(TstImgDataset, str(img_root))
-    dataset4 = PairedDataset(TstImgDataset, str(img_root))
+    dataset3 = PairedGeoDataset(TstImgDataset, str(img_root))
+    dataset4 = PairedGeoDataset(TstImgDataset, str(img_root))
 
-    union_dataset1 = PairedDataset(dataset1 | dataset2)
+    union_dataset1 = PairedGeoDataset(dataset1 | dataset2)
     union_dataset2 = dataset3 | dataset4
     union_dataset3 = union_dataset1 | dataset3
     union_dataset4 = union_dataset1 | dataset2  # type: ignore[operator]

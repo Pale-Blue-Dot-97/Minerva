@@ -40,7 +40,7 @@ from pathlib import Path
 
 from rasterio.crs import CRS
 
-from minerva.datasets import PairedDataset, SSL4EOS12Sentinel2
+from minerva.datasets import PairedGeoDataset, SSL4EOS12Sentinel2
 from minerva.utils import CONFIG
 
 
@@ -60,12 +60,12 @@ def test_ssl4eos12sentinel2() -> None:
     rgbi_dataset = SSL4EOS12Sentinel2(paths=path, bands=bands, res=res, crs=crs)
     assert isinstance(rgbi_dataset, SSL4EOS12Sentinel2)
 
-    paired_dataset = PairedDataset(rgbi_dataset)
+    paired_dataset = PairedGeoDataset(rgbi_dataset)
 
-    assert isinstance(paired_dataset, PairedDataset)
+    assert isinstance(paired_dataset, PairedGeoDataset)
 
-    init_as_paired = PairedDataset(
+    init_as_paired = PairedGeoDataset(
         SSL4EOS12Sentinel2, paths=path, bands=bands, res=res, crs=crs
     )
 
-    assert isinstance(init_as_paired, PairedDataset)
+    assert isinstance(init_as_paired, PairedGeoDataset)

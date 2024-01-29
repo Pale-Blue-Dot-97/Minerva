@@ -366,7 +366,7 @@ def pair_return(cls):
 
     .. warning::
         *NOT* compatible with :class:`~torch.nn.parallel.DistributedDataParallel` due to it's use of :mod:`pickle`.
-        Use :class:`~minerva.datasets.PairedDataset` directly instead, supplying the dataset to `wrap` on init.
+        Use :class:`~minerva.datasets.PairedGeoDataset` directly instead, supplying the dataset to `wrap` on init.
 
     Raises:
         AttributeError: If an attribute cannot be found in either the :class:`Wrapper` or the wrapped ``dataset``.

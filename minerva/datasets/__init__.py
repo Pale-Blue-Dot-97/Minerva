@@ -33,7 +33,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "PairedDataset",
+    "PairedGeoDataset",
     "PairedUnionDataset",
     "SSL4EOS12Sentinel2",
     "NAIPChesapeakeCVPR",
@@ -65,7 +65,7 @@ from .factory import (
     make_manifest,
 )
 from .naip import NAIPChesapeakeCVPR
-from .paired import PairedDataset, PairedUnionDataset
+from .paired import PairedGeoDataset, PairedUnionDataset
 from .ssl4eos12 import SSL4EOS12Sentinel2
 from .utils import (
     get_random_sample,
