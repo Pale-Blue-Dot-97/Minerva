@@ -40,13 +40,16 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import inspect
+import random
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
 
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
+from torch.utils.data import ConcatDataset
 from torchgeo.datasets import (
     GeoDataset,
     IntersectionDataset,
+    NonGeoDataset,
     RasterDataset,
     UnionDataset,
 )
@@ -308,3 +311,226 @@ class PairedUnionDataset(UnionDataset):
         .. versionadded:: 0.24
         """
         return PairedUnionDataset(self, other)
+
+
+class PairedNonGeoDataset(NonGeoDataset):
+    """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
+
+    Attributes:
+        dataset (~torchgeo.datasets.RasterDataset): Wrapped dataset to sampled from.
+
+    Args:
+        dataset_cls (~typing.Callable[..., ~torchgeo.datasets.GeoDataset]): Constructor for a
+            :class:`~torchgeo.datasets.RasterDataset` to be wrapped for paired sampling.
+
+    .. versionadded:: 0.28
+    """
+
+    def __new__(  # type: ignore[misc]
+        cls,
+        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
+        *args,
+        **kwargs,
+    ) -> Union["PairedNonGeoDataset", "PairedConcatDataset"]:
+        if isinstance(dataset, ConcatDataset):
+            return PairedConcatDataset(
+                dataset.datasets[0], dataset.datasets[1], *args, **kwargs
+            )
+        else:
+            return super(PairedNonGeoDataset, cls).__new__(cls)
+
+    def __getnewargs__(self):
+        return self.dataset, self._args, self._kwargs
+
+    @overload
+    def __init__(self, dataset: Callable[..., NonGeoDataset], *args, **kwargs) -> None:
+        ...  # pragma: no cover
+
+    @overload
+    def __init__(self, dataset: NonGeoDataset, *args, **kwargs) -> None:
+        ...  # pragma: no cover
+
+    def __init__(
+        self,
+        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
+        *args,
+        **kwargs,
+    ) -> None:
+        # Needed for pickling/ unpickling.
+        self._args = args
+        self._kwargs = kwargs
+
+        if isinstance(dataset, NonGeoDataset):
+            self.dataset = dataset
+
+        elif callable(dataset):
+            super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
+            super_kwargs = {
+                key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
+            }
+
+            # Make sure PairedNonGeoDataset has access to the `all_bands` attribute of the dataset.
+            # Needed for a subset of the bands to be selected if so desired.
+            if hasattr(dataset, "all_bands"):
+                self.all_bands = dataset.all_bands
+
+            super().__init__(*args, **super_kwargs)
+            self.dataset = dataset(*args, **kwargs)
+
+        else:
+            raise ValueError(
+                f"``dataset`` is of unsupported type {type(dataset)} not GeoDataset"
+            )
+
+    def __getitem__(  # type: ignore[override]
+        self, indices: Tuple[int, int]
+    ) -> Tuple[Dict[str, Any], ...]:
+        return self.dataset.__getitem__(indices[0]), self.dataset.__getitem__(
+            indices[1]
+        )
+
+    def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
+        """Take the union of two :class:`PairedNonGeoDataset`.
+
+        Args:
+            other (PairedNonGeoDataset): Another dataset.
+
+        Returns:
+            PairedConcatDataset: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return PairedConcatDataset(self, other)
+
+    def __getattr__(self, item):
+        if item in self.dataset.__dict__:
+            return getattr(self.dataset, item)  # pragma: no cover
+        elif item in self.__dict__:
+            return getattr(self, item)
+        else:
+            raise AttributeError
+
+    def __repr__(self) -> Any:
+        return self.dataset.__repr__()
+
+    @staticmethod
+    def plot(
+        sample: Dict[str, Any],
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> Figure:
+        """Plots a sample from the dataset.
+
+        Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
+
+        Args:
+            sample (dict[str, ~typing.Any]): Sample to plot.
+            show_titles (bool): Optional; Add title to the figure. Defaults to True.
+            suptitle (str): Optional; Super title to add to figure. Defaults to None.
+
+        Returns:
+            ~matplotlib.figure.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+        """
+
+        image = sample["image"][0:3, :, :].permute(1, 2, 0)
+
+        # Setup the figure.
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+
+        # Plot the image.
+        ax.imshow(image)
+
+        # Turn the axis off.
+        ax.axis("off")
+
+        # Add title to figure.
+        if show_titles:
+            ax.set_title("Image")
+
+        if suptitle is not None:
+            plt.suptitle(suptitle)
+
+        return fig
+
+    def plot_random_sample(
+        self,
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> Figure:
+        """Plots a random sample the dataset at a given size and resolution.
+
+        Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
+
+        Args:
+            show_titles (bool): Optional; Add title to the figure. Defaults to ``True``.
+            suptitle (str): Optional; Super title to add to figure. Defaults to ``None``.
+
+        Returns:
+            ~matplotlib.figure.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+        """
+
+        # Get a random sample from the dataset.
+        sample = self.dataset[random.randint(0, len(self.dataset))]
+        return self.plot(sample, show_titles, suptitle)
+
+
+class PairedConcatDataset(ConcatDataset):
+    """Adapted form of :class:`~torch.utils.data.ConcatDataset` to handle paired samples.
+
+    ..warning::
+
+        Do not use with :class:`PairedNonGeoDataset` as this will essentially account for paired sampling twice
+        and cause a :class:`TypeError`.
+    """
+
+    def __init__(
+        self,
+        dataset1: NonGeoDataset,
+        dataset2: NonGeoDataset,
+        collate_fn: Callable[
+            [Sequence[dict[str, Any]]], dict[str, Any]
+        ] = merge_samples,
+        transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+    ) -> None:
+        super().__init__([dataset1, dataset2])
+
+        new_datasets = []
+        for _dataset in self.datasets:
+            if isinstance(_dataset, PairedNonGeoDataset):
+                new_datasets.append(_dataset.dataset)
+            elif isinstance(_dataset, PairedConcatDataset):
+                new_datasets.append(_dataset.datasets[0] | _dataset.datasets[1])
+            else:
+                new_datasets.append(_dataset)
+
+        self.datasets = new_datasets
+
+    def __getitem__(  # type: ignore[override]
+        self, query: Tuple[BoundingBox, BoundingBox]
+    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Retrieve image and metadata indexed by query.
+
+        Uses :meth:`torchgeo.datasets.UnionDataset.__getitem__` to send each query of the pair off to get a
+        sample for each and returns as a tuple.
+
+        Args:
+            query (tuple[~torchgeo.datasets.utils.BoundingBox, ~torchgeo.datasets.utils.BoundingBox]): Coordinates
+                to index in the form (minx, maxx, miny, maxy, mint, maxt).
+
+        Returns:
+            tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]: Sample of data/labels and metadata at that index.
+        """
+        return super().__getitem__(query[0]), super().__getitem__(query[1])
+
+    def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
+        """Take the union of a PairedUnionDataset and a :class:`PairedGeoDataset`.
+
+        Args:
+            other (PairedNonGeoDataset): Another dataset.
+
+        Returns:
+            PairedConcatDataset: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return PairedConcatDataset(self, other)
