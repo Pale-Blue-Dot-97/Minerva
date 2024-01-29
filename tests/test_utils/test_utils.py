@@ -460,8 +460,9 @@ def test_lat_lon_to_loc(
         except GeocoderUnavailable:
             pass
 
-    with no_connection(), pytest.raises(
-        GeocoderUnavailable, match="Geocoder unavailable"
+    with (
+        no_connection(),
+        pytest.raises(GeocoderUnavailable, match="Geocoder unavailable"),
     ):
         _ = utils.lat_lon_to_loc(lat, lon)
 

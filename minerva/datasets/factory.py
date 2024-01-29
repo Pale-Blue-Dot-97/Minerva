@@ -536,9 +536,9 @@ def make_loaders(
             if not isinstance(dataset_params["mask"].get("transforms"), dict):
                 dataset_params["mask"]["transforms"] = class_transform
             else:
-                dataset_params["mask"]["transforms"][
-                    "ClassTransform"
-                ] = class_transform["ClassTransform"]
+                dataset_params["mask"]["transforms"]["ClassTransform"] = (
+                    class_transform["ClassTransform"]
+                )
 
         sampler_params: Dict[str, Any] = dataset_params["sampler"]
 
@@ -578,9 +578,9 @@ def make_loaders(
                 if type(dataset_params[mode]["mask"].get("transforms")) != dict:
                     dataset_params[mode]["mask"]["transforms"] = class_transform
                 else:
-                    dataset_params[mode]["mask"]["transforms"][
-                        "ClassTransform"
-                    ] = class_transform["ClassTransform"]
+                    dataset_params[mode]["mask"]["transforms"]["ClassTransform"] = (
+                        class_transform["ClassTransform"]
+                    )
 
             mode_sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
 

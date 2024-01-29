@@ -331,12 +331,12 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
             self.keys = keys
 
         @overload
-        def __call__(self, batch: Dict[str, Any]) -> Dict[str, Any]:
-            ...  # pragma: no cover
+        def __call__(
+            self, batch: Dict[str, Any]
+        ) -> Dict[str, Any]: ...  # pragma: no cover
 
         @overload
-        def __call__(self, batch: Tensor) -> Dict[str, Any]:
-            ...  # pragma: no cover
+        def __call__(self, batch: Tensor) -> Dict[str, Any]: ...  # pragma: no cover
 
         def __call__(self, batch: Union[Dict[str, Any], Tensor]) -> Dict[str, Any]:
             if isinstance(batch, Tensor):
@@ -417,8 +417,7 @@ def _optional_import(
     *,
     name: None,
     package: str,
-) -> ModuleType:
-    ...  # pragma: no cover
+) -> ModuleType: ...  # pragma: no cover
 
 
 @overload
@@ -427,8 +426,7 @@ def _optional_import(
     *,
     name: str,
     package: str,
-) -> Callable[..., Any]:
-    ...  # pragma: no cover
+) -> Callable[..., Any]: ...  # pragma: no cover
 
 
 @overload
@@ -437,8 +435,7 @@ def _optional_import(
     *,
     name: None,
     package: None,
-) -> ModuleType:
-    ...  # pragma: no cover
+) -> ModuleType: ...  # pragma: no cover
 
 
 @overload
@@ -447,8 +444,7 @@ def _optional_import(
     *,
     name: str,
     package: None,
-) -> Callable[..., Any]:
-    ...  # pragma: no cover
+) -> Callable[..., Any]: ...  # pragma: no cover
 
 
 @overload
@@ -456,8 +452,7 @@ def _optional_import(
     module: str,
     *,
     name: str,
-) -> Callable[..., Any]:
-    ...  # pragma: no cover
+) -> Callable[..., Any]: ...  # pragma: no cover
 
 
 @overload
@@ -465,8 +460,7 @@ def _optional_import(
     module: str,
     *,
     package: str,
-) -> ModuleType:
-    ...  # pragma: no cover
+) -> ModuleType: ...  # pragma: no cover
 
 
 def _optional_import(
@@ -679,8 +673,7 @@ def transform_coordinates(
     y: Sequence[float],
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]:
-    ...  # pragma: no cover
+) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
@@ -689,8 +682,7 @@ def transform_coordinates(
     y: float,
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]:
-    ...  # pragma: no cover
+) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
@@ -699,15 +691,13 @@ def transform_coordinates(
     y: Sequence[float],
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]:
-    ...  # pragma: no cover
+) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
 def transform_coordinates(
     x: float, y: float, src_crs: CRS, new_crs: CRS = WGS84
-) -> Tuple[float, float]:
-    ...  # pragma: no cover
+) -> Tuple[float, float]: ...  # pragma: no cover
 
 
 def transform_coordinates(
@@ -1135,13 +1125,13 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
 @overload
 def mask_transform(  # type: ignore[overload-overlap]
     array: NDArray[Any, Int], matrix: Dict[int, int]
-) -> NDArray[Any, Int]:
-    ...  # pragma: no cover
+) -> NDArray[Any, Int]: ...  # pragma: no cover
 
 
 @overload
-def mask_transform(array: LongTensor, matrix: Dict[int, int]) -> LongTensor:
-    ...  # pragma: no cover
+def mask_transform(
+    array: LongTensor, matrix: Dict[int, int]
+) -> LongTensor: ...  # pragma: no cover
 
 
 def mask_transform(
