@@ -113,22 +113,37 @@ tasks:
                         norm_value: 4095
                     RandomApply:
                         p: 0.25
-                        RandomResizedCrop:
-                            module: torchvision.transforms
-                            size: *patch_size
-                    DetachedColorJitter:
-                        module: minerva.transforms
-                        brightness: 0.8
-                        contrast: 0.8
-                        saturation: 0.8
-                        hue: 0.2
+                        DetachedColorJitter:
+                            module: minerva.transforms
+                            brightness: 0.8
+                            contrast: 0.8
+                            saturation: 0.8
+                            hue: 0.2
+                    RandomResizedCrop:
+                        module: kornia.augmentation
+                        p: 0.4
+                        size: *patch_size
+                        cropping_mode: resample
+                        keepdim: true
+                    RandomErasing:
+                        module: kornia.augmentation
+                        p: 0.4
+                        keepdim: true
                     RandomHorizontalFlip:
-                        module: torchvision.transforms
-                    RandomVerticalFlip:
-                        module: torchvision.transforms
-                    GaussianBlur:
-                        module: torchvision.transforms
-                        kernel_size: 9
+                        module: kornia.augmentation
+                        p: 0.4
+                        keepdim: true
+                    RandomGaussianBlur:
+                        module: kornia.augmentation
+                        kernel_size: 7
+                        p: 0.4
+                        sigma: [0.1, 0.4]
+                        keepdim: true
+                    RandomGaussianNoise:
+                        module: kornia.augmentation
+                        p: 1.0
+                        std: 0.1
+                        keepdim: true
 
                 module: minerva.datasets
                 name: NonGeoSSL4EOS12Sentinel2
