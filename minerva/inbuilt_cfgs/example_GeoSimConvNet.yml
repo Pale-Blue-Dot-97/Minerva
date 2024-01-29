@@ -27,7 +27,7 @@ model_type: siamese-segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 2                          # Number of samples in each batch.
-patch_size: &patch_size [160, 160]       # 2D tuple or float.
+patch_size: &patch_size [16, 16]     # 2D tuple or float.
 input_size: &input_size [4, 16, 16]    # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
 mix_precision: false                    # Activate mixed precision (16-bit)
@@ -114,24 +114,38 @@ tasks:
                     Normalise:
                         module: minerva.transforms
                         norm_value: 255
-                    RandomApply:
-                        p: 0.25
-                        RandomResizedCrop:
-                            module: torchvision.transforms
-                            size: *patch_size
-                    DetachedColorJitter:
-                        module: minerva.transforms
-                        brightness: 0.8
-                        contrast: 0.8
-                        saturation: 0.8
-                        hue: 0.2
+                    RandomResizedCrop:
+                        module: kornia.augmentation
+                        p: 0.4
+                        size: *patch_size
+                        cropping_mode: resample
+                        keepdim: true
+                    # ColorJiggle:
+                    #    module: kornia.augmentation
+                    #    p: 0.5
+                    #    brightness: 0.3
+                    #    contrast: 0.2
+                    #    saturation: 0.3
+                    #    hue: 0.0
+                    RandomErasing:
+                        module: kornia.augmentation
+                        p: 0.4
+                        keepdim: true
                     RandomHorizontalFlip:
-                        module: torchvision.transforms
-                    RandomVerticalFlip:
-                        module: torchvision.transforms
-                    GaussianBlur:
-                        module: torchvision.transforms
-                        kernel_size: 9
+                        module: kornia.augmentation
+                        p: 0.4
+                        keepdim: true
+                    RandomGaussianBlur:
+                        module: kornia.augmentation
+                        kernel_size: 7
+                        p: 0.4
+                        sigma: [0.1, 0.4]
+                        keepdim: true
+                    RandomGaussianNoise:
+                        module: kornia.augmentation
+                        p: 1.0
+                        std: 0.1
+                        keepdim: true
 
                 module: minerva.datasets
                 name: SSL4EOS12Sentinel2
@@ -139,7 +153,7 @@ tasks:
                 params:
                     res: 10.0
                     crs: 25832
-                    bands: [B1, B2, B3, B8A]
+                    bands: [B2, B3, B4, B8]
 
     fit-val:
         type: WeightedKNN
