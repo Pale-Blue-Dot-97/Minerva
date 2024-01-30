@@ -364,17 +364,12 @@ class PairedNonGeoDataset(NonGeoDataset):
             self.dataset = dataset
 
         elif callable(dataset):
-            super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
-            super_kwargs = {
-                key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
-            }
-
             # Make sure PairedNonGeoDataset has access to the `all_bands` attribute of the dataset.
             # Needed for a subset of the bands to be selected if so desired.
             if hasattr(dataset, "all_bands"):
                 self.all_bands = dataset.all_bands
 
-            super().__init__(*args, **super_kwargs)
+            super().__init__(*args)
             self.dataset = dataset(*args, **kwargs)
 
         else:
@@ -409,6 +404,9 @@ class PairedNonGeoDataset(NonGeoDataset):
             return getattr(self, item)
         else:
             raise AttributeError
+
+    def __len__(self) -> int:
+        return self.dataset.__len__()
 
     def __repr__(self) -> Any:
         return self.dataset.__repr__()
