@@ -133,13 +133,15 @@ tasks:
                         module: torchvision.transforms
                         kernel_size: 9
 
-                module: minerva.datasets
-                name: SSL4EOS12Sentinel2
+                module: torchgeo.datasets
+                name: SSL4EOS12
                 paths: SSL4EO-S12
                 params:
-                    res: 10.0
-                    crs: 25832
-                    bands: [B1, B2, B3, B8A]
+                    split: s2a
+                    seasons: 2
+                    # res: 10.0
+                    # crs: 25832
+                    # bands: [B1, B2, B3, B8A]
 
     fit-val:
         type: WeightedKNN
