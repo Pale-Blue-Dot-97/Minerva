@@ -63,14 +63,14 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from pandas import DataFrame
 from rasterio.crs import CRS
 from torch.utils.data import DataLoader
-from torchgeo.datasets import GeoDataset, RasterDataset
+from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 
 from minerva.transforms import init_auto_norm, make_transformations
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
-from .paired import PairedGeoDataset
+from .paired import PairedGeoDataset, PairedNonGeoDataset
 from .utils import (
     cache_dataset,
     intersect_datasets,
@@ -93,12 +93,12 @@ CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
 #                                                     METHODS
 # =====================================================================================================================
 def create_subdataset(
-    dataset_class: Callable[..., GeoDataset],
+    dataset_class: Union[Callable[..., GeoDataset], Callable[..., NonGeoDataset]],
     paths: Union[str, Iterable[str]],
     subdataset_params: Dict[Literal["params"], Dict[str, Any]],
     transformations: Optional[Any],
     sample_pairs: bool = False,
-) -> GeoDataset:
+) -> Union[GeoDataset, NonGeoDataset]:
     """Creates a sub-dataset based on the parameters supplied.
 
     Args:
@@ -117,12 +117,25 @@ def create_subdataset(
         copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
 
     if sample_pairs:
-        return PairedGeoDataset(
-            dataset_class,
-            paths=paths,
-            transforms=transformations,
-            **copy_params["params"],
-        )
+        if issubclass(dataset_class, RasterDataset):
+            return PairedGeoDataset(
+                dataset_class,
+                paths=paths,
+                transforms=transformations,
+                **copy_params["params"],
+            )
+        elif issubclass(dataset_class, NonGeoDataset):
+            if isinstance(paths, list):
+                paths = paths[0]
+            assert isinstance(paths, str)
+            return PairedNonGeoDataset(
+                dataset_class,
+                root=paths,
+                transforms=transformations,
+                **copy_params["params"],
+            )
+        else:
+            raise TypeError
     else:
         return dataset_class(
             paths=paths,
