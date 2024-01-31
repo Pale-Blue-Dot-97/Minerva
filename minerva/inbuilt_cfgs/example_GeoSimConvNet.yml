@@ -101,8 +101,8 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: minerva.samplers
-                name: RandomPairGeoSampler
+                module: torch.utils.data
+                name: RandomSampler
                 roi: false
                 params:
                     size: *patch_size

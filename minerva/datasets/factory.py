@@ -404,7 +404,7 @@ def construct_dataloader(
             ] = per_device_batch_size  # pragma: no cover
 
     sampler: Union[BatchGeoSampler, GeoSampler, DistributedSamplerWrapper] = _sampler(
-        dataset=subdatasets[0],
+        subdatasets[0],
         roi=make_bounding_box(sampler_params["roi"]),
         **sampler_params["params"],
     )
