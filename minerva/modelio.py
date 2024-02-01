@@ -39,7 +39,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Sequence, Tuple, Union
+from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -211,7 +211,12 @@ def ssl_pair_tg(
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], None, Sequence[BoundingBox]]:
+) -> Tuple[
+    Tensor,
+    Union[Tensor, Tuple[Tensor, ...]],
+    None,
+    Optional[Union[Sequence[BoundingBox], Sequence[int]]],
+]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
     Args:
@@ -258,7 +263,12 @@ def ssl_pair_tg(
     # Runs a step of the epoch.
     loss, z = model.step(x, train=train)
 
-    return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]
+    if "bbox" in batch:
+        return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]
+    elif "index" in batch:
+        return loss, z, None, batch[0]["index"] + batch[1]["index"]
+    else:
+        return loss, z, None, None
 
 
 def _determine_float_dtype(device: torch.device, mix_precision: bool) -> torch.dtype:
