@@ -28,17 +28,20 @@ r"""Functionality for constructing datasets, samplers and :class:`~torch.utils.d
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
-__author__ = "Harry Baker"
+__author__ = ["Harry Baker", "Jonathon Hare"]
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "PairedGeoDataset",
+    "PairedNonGeoDataset",
     "PairedUnionDataset",
-    "SSL4EOS12Sentinel2",
+    "GeoSSL4EOS12Sentinel2",
+    "NonGeoSSL4EOS12Sentinel2",
     "NAIPChesapeakeCVPR",
     "DFC2020",
     "SEN12MS",
+    "MultiSpectralDataset",
     "construct_dataloader",
     "get_collator",
     "get_manifest",
@@ -64,9 +67,10 @@ from .factory import (
     make_loaders,
     make_manifest,
 )
+from .multispectral import MultiSpectralDataset
 from .naip import NAIPChesapeakeCVPR
-from .paired import PairedGeoDataset, PairedUnionDataset
-from .ssl4eos12 import SSL4EOS12Sentinel2
+from .paired import PairedGeoDataset, PairedNonGeoDataset, PairedUnionDataset
+from .ssl4eos12 import GeoSSL4EOS12Sentinel2, NonGeoSSL4EOS12Sentinel2
 from .utils import (
     get_random_sample,
     intersect_datasets,
