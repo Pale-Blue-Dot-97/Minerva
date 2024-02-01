@@ -597,7 +597,7 @@ class SamplePair:
         self.size = size
 
         # Calculate the global max width between samples in a pair, accounting for the max_r.
-        self.max_width = int(np.sqrt(2 * (self.size + self.max_r) ** 2))
+        self.max_width = int(1.4 * (self.size + self.max_r))
 
         # Transform to cut samples out at the desired output size.
         self.random_crop = RandomCrop(self.size)
