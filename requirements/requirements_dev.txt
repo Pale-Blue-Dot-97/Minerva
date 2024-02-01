@@ -1,5 +1,5 @@
 alive_progress==3.1.5
-argcomplete==3.2.1
+argcomplete==3.2.2
 catalyst==22.4
 certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerability.
 fastapi>=0.101.0
@@ -13,7 +13,7 @@ internet-sabotage3==0.1.6
 ipykernel==6.29.0
 lightly==1.4.25
 matplotlib==3.8.2
-mlflow==2.9.2
+mlflow==2.10.0
 mypy==1.8.0
 myst_parser==2.0.0
 nptyping==2.5.0
@@ -50,7 +50,7 @@ tornado>=6.3.3
 tox==4.12.0
 tqdm==4.66.1
 types-PyYAML==6.0.12.12
-types-requests==2.31.0.20240106
+types-requests==2.31.0.20240125
 types-tabulate==0.9.0.20240106
 wandb==0.16.2
 Werkzeug>=2.2.3 # Patches a potential security vulnerability.
