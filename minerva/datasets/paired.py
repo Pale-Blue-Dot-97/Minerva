@@ -46,7 +46,7 @@ import random
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
 
 import matplotlib.pyplot as plt
-import torch
+import numpy as np
 from matplotlib.figure import Figure
 from torch import Tensor
 from torch.utils.data import ConcatDataset
@@ -58,6 +58,7 @@ from torchgeo.datasets import (
     UnionDataset,
 )
 from torchgeo.datasets.utils import BoundingBox, concat_samples, merge_samples
+from torchvision.transforms import RandomCrop
 
 from minerva.utils import utils
 
@@ -595,21 +596,27 @@ class SamplePair:
         self.max_r = max_r
         self.size = size
 
+        # Calculate the global max width between samples in a pair, accounting for the max_r.
+        self.max_width = int(np.sqrt(2 * (self.size + self.max_r) ** 2))
+
+        # Transform to cut samples out at the desired output size.
+        self.random_crop = RandomCrop(self.size)
+
     def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
-        c1 = (torch.rand(2) * (x.shape[-1] - self.size)).floor().int()
-        p1 = x[:, c1[0] : c1[0] + self.size, c1[1] : c1[1] + self.size]
+        max_width = self.max_width
 
-        # compute all the possible places we could sample within bounds and max_r
-        possible_c2 = []
-        for j in range(x.shape[-1] - self.size):
-            for i in range(x.shape[-2] - self.size):
-                c2 = torch.tensor([j, i])
-                if sum((c2 - c1) ** 2) < self.max_r**2:
-                    possible_c2.append(c2)
-        # then pick one of them
-        idx = torch.randperm(len(possible_c2))[0]
-        c2 = possible_c2[idx]
+        # Checks that the ``max_width`` will not exceed the size of this inital patch.
+        # If so, set to the maxium width/ height of ``x``.
+        if max_width > x.shape[-1]:
+            max_width = x.shape[-1]
+        if max_width > x.shape[-2]:
+            max_width = x.shape[-2]
 
-        p2 = x[:, c2[0] : c2[0] + self.size, c2[1] : c2[1] + self.size]
+        # Transform to randomly cut out an area to sample the pair of samples from
+        # that will ensure that the distance between the centres of the samples is
+        # no more than ``max_r`` pixels apart.
+        crop_to_sampling_area = RandomCrop(max_width)
+        sampling_area = crop_to_sampling_area(x)
 
-        return p1, p2
+        # Now cut out 2 random samples from within that sampling area and return.
+        return self.random_crop(sampling_area), self.random_crop(sampling_area)
