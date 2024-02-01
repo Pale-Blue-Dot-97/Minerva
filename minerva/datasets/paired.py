@@ -46,7 +46,6 @@ import random
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
 
 import matplotlib.pyplot as plt
-import numpy as np
 from matplotlib.figure import Figure
 from torch import Tensor
 from torch.utils.data import ConcatDataset
