@@ -62,7 +62,7 @@ import torch.distributed as dist
 from catalyst.data.sampler import DistributedSamplerWrapper
 from pandas import DataFrame
 from rasterio.crs import CRS
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Sampler
 from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 
@@ -403,11 +403,15 @@ def construct_dataloader(
                 "batch_size"
             ] = per_device_batch_size  # pragma: no cover
 
-    sampler: Union[BatchGeoSampler, GeoSampler, DistributedSamplerWrapper] = _sampler(
-        subdatasets[0],
-        roi=make_bounding_box(sampler_params["roi"]),
-        **sampler_params["params"],
-    )
+    sampler: Sampler
+    if isinstance(_sampler, GeoSampler):
+        sampler = _sampler(
+            subdatasets[0],
+            roi=make_bounding_box(sampler_params["roi"]),
+            **sampler_params["params"],
+        )
+    else:
+        sampler = _sampler(subdatasets[0], **sampler_params["params"])
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
@@ -555,9 +559,6 @@ def make_loaders(
 
         sampler_params: Dict[str, Any] = dataset_params["sampler"]
 
-        # Calculates number of batches.
-        n_batches = int(sampler_params["params"]["length"] / batch_size)
-
         # --+ MAKE DATASETS +=========================================================================================+
         print(f"CREATING {task_name} DATASET")
         loaders = construct_dataloader(
@@ -573,6 +574,15 @@ def make_loaders(
             cache=cache,
         )
         print("DONE")
+
+        # Calculates number of batches.
+        n_batches = int(
+            sampler_params["params"].get(
+                "length",
+                sampler_params["params"].get("num_samples", len(loaders.dataset)),
+            )
+            / batch_size
+        )
 
     else:
         # Inits dicts to hold the variables and lists for train, validation and test.
