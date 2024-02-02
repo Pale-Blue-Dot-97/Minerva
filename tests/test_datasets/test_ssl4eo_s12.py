@@ -40,32 +40,63 @@ from pathlib import Path
 
 from rasterio.crs import CRS
 
-from minerva.datasets import PairedGeoDataset, SSL4EOS12Sentinel2
+from minerva.datasets import (
+    GeoSSL4EOS12Sentinel2,
+    NonGeoSSL4EOS12Sentinel2,
+    PairedGeoDataset,
+    PairedNonGeoDataset,
+)
 from minerva.utils import CONFIG
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_ssl4eos12sentinel2() -> None:
+def test_geossl4eos12sentinel2() -> None:
     path = str(Path(CONFIG["dir"]["data"]) / "SSL4EO-S12")
-    bands = ["B1", "B2", "B3", "B8A"]
+    bands = ["B2", "B3", "B4", "B8"]
     crs = CRS.from_epsg(25832)
     res = 10.0
 
-    all_bands_dataset = SSL4EOS12Sentinel2(paths=path, res=res, crs=crs)
+    all_bands_dataset = GeoSSL4EOS12Sentinel2(paths=path, res=res, crs=crs)
 
-    assert isinstance(all_bands_dataset, SSL4EOS12Sentinel2)
+    assert isinstance(all_bands_dataset, GeoSSL4EOS12Sentinel2)
 
-    rgbi_dataset = SSL4EOS12Sentinel2(paths=path, bands=bands, res=res, crs=crs)
-    assert isinstance(rgbi_dataset, SSL4EOS12Sentinel2)
+    rgbi_dataset = GeoSSL4EOS12Sentinel2(paths=path, bands=bands, res=res, crs=crs)
+    assert isinstance(rgbi_dataset, GeoSSL4EOS12Sentinel2)
 
     paired_dataset = PairedGeoDataset(rgbi_dataset)
 
     assert isinstance(paired_dataset, PairedGeoDataset)
 
     init_as_paired = PairedGeoDataset(
-        SSL4EOS12Sentinel2, paths=path, bands=bands, res=res, crs=crs
+        GeoSSL4EOS12Sentinel2, paths=path, bands=bands, res=res, crs=crs
     )
 
     assert isinstance(init_as_paired, PairedGeoDataset)
+
+
+def test_nongeossl4eos12sentinel2() -> None:
+    path = str(Path(CONFIG["dir"]["data"]) / "SSL4EO-S12")
+    bands = ["B2", "B3", "B4", "B8"]
+
+    all_bands_dataset = NonGeoSSL4EOS12Sentinel2(root=path)
+
+    assert isinstance(all_bands_dataset, NonGeoSSL4EOS12Sentinel2)
+
+    rgbi_dataset = NonGeoSSL4EOS12Sentinel2(root=path, bands=bands)
+    assert isinstance(rgbi_dataset, NonGeoSSL4EOS12Sentinel2)
+
+    paired_dataset = PairedNonGeoDataset(rgbi_dataset, 32, 32)
+
+    assert isinstance(paired_dataset, PairedNonGeoDataset)
+
+    init_as_paired = PairedNonGeoDataset(
+        NonGeoSSL4EOS12Sentinel2,
+        root=path,
+        bands=bands,
+        size=32,
+        max_r=32,
+    )
+
+    assert isinstance(init_as_paired, PairedNonGeoDataset)
