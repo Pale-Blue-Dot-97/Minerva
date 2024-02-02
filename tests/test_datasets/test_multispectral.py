@@ -43,6 +43,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import RandomSampler
 
 from minerva.datasets import MultiSpectralDataset, NonGeoSSL4EOS12Sentinel2
+from minerva.transforms import Normalise
 
 
 # =====================================================================================================================
@@ -50,7 +51,9 @@ from minerva.datasets import MultiSpectralDataset, NonGeoSSL4EOS12Sentinel2
 # =====================================================================================================================
 def test_multispectraldataset(data_root: Path) -> None:
     path = str(data_root / "SSL4EO-S12")
-    dataset = NonGeoSSL4EOS12Sentinel2(path, bands=["B2", "B3", "B4", "B8"])
+    dataset = NonGeoSSL4EOS12Sentinel2(
+        path, transforms=Normalise(4095), bands=["B2", "B3", "B4", "B8"]
+    )
 
     assert isinstance(dataset, MultiSpectralDataset)
 
