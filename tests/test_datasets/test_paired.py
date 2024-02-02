@@ -44,14 +44,20 @@ from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 
-from minerva.datasets import PairedGeoDataset, PairedUnionDataset
+from minerva.datasets import (
+    NonGeoSSL4EOS12Sentinel2,
+    PairedGeoDataset,
+    PairedNonGeoDataset,
+    PairedUnionDataset,
+)
 from minerva.datasets.__testing import TstImgDataset
+from minerva.transforms import MinervaCompose, Normalise
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_paired_datasets(img_root: Path) -> None:
+def test_paired_geodatasets(img_root: Path) -> None:
     dataset1 = PairedGeoDataset(TstImgDataset, str(img_root))
     dataset2 = TstImgDataset(str(img_root))
 
@@ -126,3 +132,27 @@ def test_paired_union_datasets(img_root: Path) -> None:
     ):
         assert isinstance(dataset, PairedUnionDataset)
         dataset_test(dataset)
+
+
+def test_paired_nongeodatasets(data_root: Path) -> None:
+    path = str(data_root / "SSL4EO-S12")
+    dataset = NonGeoSSL4EOS12Sentinel2(
+        path,
+        transforms=MinervaCompose(Normalise(4095), key="image"),
+        bands=["B2", "B3", "B4", "B8"],
+    )
+    paired_dataset = PairedNonGeoDataset(dataset, size=32, max_r=32)
+
+    sample_1, sample_2 = paired_dataset[0]
+
+    assert isinstance(sample_1, dict)
+    assert isinstance(sample_2, dict)
+
+    assert isinstance(paired_dataset.dataset, NonGeoSSL4EOS12Sentinel2)
+    assert isinstance(paired_dataset.__getattr__("dataset"), NonGeoSSL4EOS12Sentinel2)
+
+    assert isinstance(paired_dataset.__repr__(), str)
+
+    assert isinstance(
+        paired_dataset.plot_random_sample(suptitle="test"), plt.Figure  # type: ignore[attr-defined]
+    )
