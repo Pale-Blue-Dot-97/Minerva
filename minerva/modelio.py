@@ -263,9 +263,9 @@ def ssl_pair_tg(
     # Runs a step of the epoch.
     loss, z = model.step(x, train=train)
 
-    if "bbox" in batch:
+    if "bbox" in batch[0].keys():
         return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]
-    elif "index" in batch:
+    elif "index" in batch[0].keys():
         return loss, z, None, batch[0]["index"] + batch[1]["index"]
     else:
         return loss, z, None, None
