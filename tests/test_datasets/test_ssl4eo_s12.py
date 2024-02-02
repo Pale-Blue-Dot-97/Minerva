@@ -46,14 +46,13 @@ from minerva.datasets import (
     PairedGeoDataset,
     PairedNonGeoDataset,
 )
-from minerva.utils import CONFIG
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_geossl4eos12sentinel2() -> None:
-    path = str(Path(CONFIG["dir"]["data"]) / "SSL4EO-S12")
+def test_geossl4eos12sentinel2(data_root: Path) -> None:
+    path = str(data_root / "SSL4EO-S12")
     bands = ["B2", "B3", "B4", "B8"]
     crs = CRS.from_epsg(25832)
     res = 10.0
@@ -76,8 +75,8 @@ def test_geossl4eos12sentinel2() -> None:
     assert isinstance(init_as_paired, PairedGeoDataset)
 
 
-def test_nongeossl4eos12sentinel2() -> None:
-    path = str(Path(CONFIG["dir"]["data"]) / "SSL4EO-S12")
+def test_nongeossl4eos12sentinel2(data_root: Path) -> None:
+    path = str(data_root / "SSL4EO-S12")
     bands = ["B2", "B3", "B4", "B8"]
 
     all_bands_dataset = NonGeoSSL4EOS12Sentinel2(root=path)
