@@ -126,8 +126,9 @@ University of Southampton. Funded by the Ordnance Survey Ltd.
 Contributions also provided by:
 
 - [Jo Walsh](https://github.com/metazool)
-- [Navid Rahimi](https://github.com/NavidCOMSC)
+- [Jonathon Hare](https://github.com/jonhare)
 - [Isabel Sargent](https://github.com/PenguinJunk)
+- [Navid Rahimi](https://github.com/NavidCOMSC)
 - [Steve Coupland](https://github.com/scoupland-os)
 - [Joe Guyatt](https://github.com/joeguyatt97)
 - [Ben Dickens](https://github.com/BenDickens)
