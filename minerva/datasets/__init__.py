@@ -33,9 +33,11 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
+    "MinervaNonGeoDataset",
     "PairedGeoDataset",
     "PairedNonGeoDataset",
     "PairedUnionDataset",
+    "PairedConcatDataset",
     "GeoSSL4EOS12Sentinel2",
     "NonGeoSSL4EOS12Sentinel2",
     "NAIPChesapeakeCVPR",
@@ -69,9 +71,15 @@ from .factory import (
 )
 from .multispectral import MultiSpectralDataset
 from .naip import NAIPChesapeakeCVPR
-from .paired import PairedGeoDataset, PairedNonGeoDataset, PairedUnionDataset
+from .paired import (
+    PairedConcatDataset,
+    PairedGeoDataset,
+    PairedNonGeoDataset,
+    PairedUnionDataset,
+)
 from .ssl4eos12 import GeoSSL4EOS12Sentinel2, NonGeoSSL4EOS12Sentinel2
 from .utils import (
+    MinervaNonGeoDataset,
     get_random_sample,
     intersect_datasets,
     load_all_samples,

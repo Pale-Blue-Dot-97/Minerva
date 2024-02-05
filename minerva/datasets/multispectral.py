@@ -44,15 +44,16 @@ from typing import Any, Callable, Dict, List, Optional
 import numpy as np
 import tifffile
 import torch
-from torchgeo.datasets import NonGeoDataset
 from torchvision.datasets import VisionDataset
 from torchvision.transforms.functional import resize
+
+from .utils import MinervaNonGeoDataset
 
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class MultiSpectralDataset(VisionDataset, NonGeoDataset):
+class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
     """Generic dataset class for multi-spectral images that works within :mod:`torchgeo`"""
 
     all_bands = []

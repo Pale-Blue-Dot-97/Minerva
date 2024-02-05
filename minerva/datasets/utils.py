@@ -32,6 +32,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
+    "MinervaNonGeoDataset",
     "load_all_samples",
     "make_bounding_box",
     "intersect_datasets",
@@ -50,12 +51,35 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tupl
 import numpy as np
 from alive_progress import alive_it
 from nptyping import NDArray
-from torch.utils.data import DataLoader
-from torchgeo.datasets import GeoDataset, IntersectionDataset, UnionDataset
+from torch.utils.data import ConcatDataset, DataLoader
+from torchgeo.datasets import (
+    GeoDataset,
+    IntersectionDataset,
+    NonGeoDataset,
+    UnionDataset,
+)
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 
 from minerva.utils import utils
+
+
+# =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class MinervaNonGeoDataset(NonGeoDataset):
+    def __or__(self, other: "MinervaNonGeoDataset") -> ConcatDataset:  # type: ignore[override]
+        """Take the union of two :class:`MinervaNonGeoDataset`.
+
+        Args:
+            other (MinervaNonGeoDataset): Another dataset.
+
+        Returns:
+            ConcatDataset: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return ConcatDataset([self, other])
 
 
 # =====================================================================================================================
