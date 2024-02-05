@@ -35,6 +35,7 @@ __all__ = [
     "PairedGeoDataset",
     "PairedUnionDataset",
     "PairedNonGeoDataset",
+    "PairedConcatDataset",
     "SamplePair",
 ]
 
@@ -337,20 +338,20 @@ class PairedNonGeoDataset(NonGeoDataset):
     .. versionadded:: 0.28
     """
 
-    # def __new__(  # type: ignore[misc]
-    #     cls,
-    #     dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
-    #     size: Union[Tuple[int, int], int],
-    #     max_r: int,
-    #     *args,
-    #     **kwargs,
-    # ) -> Union["PairedNonGeoDataset", "PairedConcatDataset"]:
-    #     if isinstance(dataset, ConcatDataset):
-    #         return PairedConcatDataset(
-    #             dataset.datasets[0], dataset.datasets[1], size, max_r, *args, **kwargs
-    #         )
-    #     else:
-    #         return super(PairedNonGeoDataset, cls).__new__(cls)
+    def __new__(  # type: ignore[misc]
+        cls,
+        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
+        size: Union[Tuple[int, int], int],
+        max_r: int,
+        *args,
+        **kwargs,
+    ) -> Union["PairedNonGeoDataset", "PairedConcatDataset"]:
+        if isinstance(dataset, ConcatDataset):
+            return PairedConcatDataset(
+                dataset.datasets[0], dataset.datasets[1], size, max_r, *args, **kwargs
+            )
+        else:
+            return super(PairedNonGeoDataset, cls).__new__(cls)
 
     def __getnewargs__(self):
         return self.dataset, self.size, self.max_r, self._args, self._kwargs
@@ -404,12 +405,12 @@ class PairedNonGeoDataset(NonGeoDataset):
             if hasattr(dataset, "all_bands"):
                 self.all_bands = dataset.all_bands
 
-            super().__init__(*args)
+            # super().__init__(*args)
             self.dataset = dataset(*args, **kwargs)
 
         else:
             raise ValueError(
-                f"``dataset`` is of unsupported type {type(dataset)} not GeoDataset"
+                f"``dataset`` is of unsupported type {type(dataset)} not NonGeoDataset"
             )
 
         # Move the transforms to this wrapper from the dataset
@@ -423,20 +424,25 @@ class PairedNonGeoDataset(NonGeoDataset):
         patch = self.dataset[index]
         image_a, image_b = self.make_geo_pair(patch["image"])
 
-        return self.transforms({"image": image_a}), self.transforms({"image": image_b})
+        if self.transforms:
+            return self.transforms({"image": image_a}), self.transforms(
+                {"image": image_b}
+            )
+        else:
+            return {"image": image_a}, {"image": image_b}
 
-    # def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
-    #     """Take the union of two :class:`PairedNonGeoDataset`.
+    def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
+        """Take the union of two :class:`PairedNonGeoDataset`.
 
-    #     Args:
-    #         other (PairedNonGeoDataset): Another dataset.
+        Args:
+            other (PairedNonGeoDataset): Another dataset.
 
-    #     Returns:
-    #         PairedConcatDataset: A single dataset.
+        Returns:
+            PairedConcatDataset: A single dataset.
 
-    #     .. versionadded:: 0.28
-    #     """
-    #     return PairedConcatDataset(self, other)
+        .. versionadded:: 0.28
+        """
+        return PairedConcatDataset(self, other)
 
     def __getattr__(self, item):
         if item in self.dataset.__dict__:
@@ -513,66 +519,67 @@ class PairedNonGeoDataset(NonGeoDataset):
         return self.plot(sample, show_titles, suptitle)
 
 
-# class PairedConcatDataset(ConcatDataset):
-#     """Adapted form of :class:`~torch.utils.data.ConcatDataset` to handle paired samples.
+class PairedConcatDataset(ConcatDataset):
+    """Adapted form of :class:`~torch.utils.data.ConcatDataset` to handle paired samples."""
 
-#     ..warning::
+    def __init__(
+        self,
+        dataset1: NonGeoDataset,
+        dataset2: NonGeoDataset,
+        size: Optional[int] = None,
+        max_r: Optional[int] = None,
+    ) -> None:
+        _datasets = [dataset1, dataset2]
+        datasets = []
+        for dataset in _datasets:
+            if isinstance(dataset, GeoDataset):
+                raise TypeError("Cannot concatenate geo and non-geo datasets!")
+            elif isinstance(dataset, PairedConcatDataset):
+                datasets.extend(dataset.datasets)
+            elif not isinstance(dataset, PairedNonGeoDataset):
+                try:
+                    assert size is not None
+                    assert max_r is not None
+                except AssertionError:
+                    raise ValueError(
+                        "Dataset is not paired. Cannot imply ``size`` and ``max_r``."
+                        + "\nIf dataset is unpaired, you must specify ``size`` and ``max_r``."
+                    )
+                datasets.append(PairedNonGeoDataset(dataset, size, max_r))
 
-#         Do not use with :class:`PairedNonGeoDataset` as this will essentially account for paired sampling twice
-#         and cause a :class:`TypeError`.
-#     """
+            elif isinstance(dataset, PairedNonGeoDataset):
+                datasets.append(dataset)
+            else:
+                raise TypeError(f"Unknown type {type(dataset)} in concatenation.")
 
-#     def __init__(
-#         self,
-#         dataset1: NonGeoDataset,
-#         dataset2: NonGeoDataset,
-#         collate_fn: Callable[
-#             [Sequence[dict[str, Any]]], dict[str, Any]
-#         ] = merge_samples,
-#         transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
-#     ) -> None:
-#         super().__init__([dataset1, dataset2])
+        super().__init__(datasets)
 
-#         new_datasets = []
-#         for _dataset in self.datasets:
-#             if isinstance(_dataset, PairedNonGeoDataset):
-#                 new_datasets.append(_dataset.dataset)
-#             elif isinstance(_dataset, PairedConcatDataset):
-#                 new_datasets.append(_dataset.datasets[0] | _dataset.datasets[1])
-#             else:
-#                 new_datasets.append(_dataset)
+    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Retrieve image and metadata indexed by query.
 
-#         self.datasets = new_datasets
+        Uses :meth:`torch.utils.data.ConcatDataset.__getitem__` to get the pair of samples from
+        the concatenated :class:`~datasets.paired.PairedNonGeoDataset`
 
-#     def __getitem__(  # type: ignore[override]
-#         self, query: Tuple[BoundingBox, BoundingBox]
-#     ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
-#         """Retrieve image and metadata indexed by query.
+        Args:
+            index (int): Index of the the concatenated datasets to sample.
 
-#         Uses :meth:`torchgeo.datasets.UnionDataset.__getitem__` to send each query of the pair off to get a
-#         sample for each and returns as a tuple.
+        Returns:
+            tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]: Sample of data/labels and metadata at that index.
+        """
+        return super().__getitem__(index)
 
-#         Args:
-#             query (tuple[~torchgeo.datasets.utils.BoundingBox, ~torchgeo.datasets.utils.BoundingBox]): Coordinates
-#                 to index in the form (minx, maxx, miny, maxy, mint, maxt).
+    def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
+        """Take the union of a PairedUnionDataset and a :class:`PairedGeoDataset`.
 
-#         Returns:
-#             tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]: Sample of data/labels and metadata at that index.
-#         """
-#         return super().__getitem__(query[0]), super().__getitem__(query[1])
+        Args:
+            other (PairedNonGeoDataset): Another dataset.
 
-#     def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
-#         """Take the union of a PairedUnionDataset and a :class:`PairedGeoDataset`.
+        Returns:
+            PairedConcatDataset: A single dataset.
 
-#         Args:
-#             other (PairedNonGeoDataset): Another dataset.
-
-#         Returns:
-#             PairedConcatDataset: A single dataset.
-
-#         .. versionadded:: 0.28
-#         """
-#         return PairedConcatDataset(self, other)
+        .. versionadded:: 0.28
+        """
+        return PairedConcatDataset(self, other)
 
 
 class SamplePair:

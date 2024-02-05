@@ -33,19 +33,23 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
+from pathlib import Path
+
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from pathlib import Path
+from typing import Tuple
 
 import matplotlib.pyplot as plt
 import pytest
 from rasterio.crs import CRS
+from torch.utils.data import RandomSampler
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 
 from minerva.datasets import (
     NonGeoSSL4EOS12Sentinel2,
+    PairedConcatDataset,
     PairedGeoDataset,
     PairedNonGeoDataset,
     PairedUnionDataset,
@@ -156,3 +160,40 @@ def test_paired_nongeodatasets(data_root: Path) -> None:
     assert isinstance(
         paired_dataset.plot_random_sample(suptitle="test"), plt.Figure  # type: ignore[attr-defined]
     )
+
+
+def test_paired_concat_datasets(
+    data_root: Path, small_patch_size: Tuple[int, int]
+) -> None:
+    def dataset_test(_dataset) -> None:
+        for sub_dataset in _dataset.datasets:
+            assert isinstance(sub_dataset, (PairedNonGeoDataset, PairedConcatDataset))
+        sampler = RandomSampler(_dataset)
+        sample_1, sample_2 = _dataset[next(iter(sampler))]
+
+        assert isinstance(sample_1, dict)
+        assert isinstance(sample_2, dict)
+
+    root = str(data_root / "SSL4EO-S12")
+    dataset1 = NonGeoSSL4EOS12Sentinel2(root)
+    dataset2 = NonGeoSSL4EOS12Sentinel2(root)
+    dataset3 = PairedNonGeoDataset(NonGeoSSL4EOS12Sentinel2, small_patch_size, 32, root)
+    dataset4 = PairedNonGeoDataset(NonGeoSSL4EOS12Sentinel2, small_patch_size, 64, root)
+
+    concat_dataset1 = PairedNonGeoDataset(dataset1 | dataset2, small_patch_size, 16)
+    concat_dataset2 = dataset3 | dataset4
+    concat_dataset3 = concat_dataset1 | dataset3
+
+    with pytest.raises(ValueError):
+        _ = concat_dataset1 | dataset2
+
+    with pytest.raises(ValueError):
+        _ = dataset3 | dataset2
+
+    for dataset in (
+        concat_dataset1,
+        concat_dataset2,
+        concat_dataset3,
+    ):
+        assert isinstance(dataset, PairedConcatDataset)
+        dataset_test(dataset)
