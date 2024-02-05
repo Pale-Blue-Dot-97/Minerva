@@ -70,7 +70,6 @@ class GeoSSL4EOS12Sentinel2(Sentinel2):
         "B8",
         "B8A",
         "B9",
-        "B10",
         "B11",
         "B12",
     ]
@@ -89,7 +88,6 @@ class NonGeoSSL4EOS12Sentinel2(MultiSpectralDataset):
         "B8",
         "B8A",
         "B9",
-        "B10",
         "B11",
         "B12",
     ]
