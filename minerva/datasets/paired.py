@@ -62,7 +62,7 @@ from torchvision.transforms import RandomCrop
 
 from minerva.utils import utils
 
-from .utils import get_random_sample
+from .utils import MinervaConcatDataset, get_random_sample
 
 
 # =====================================================================================================================
@@ -340,7 +340,9 @@ class PairedNonGeoDataset(NonGeoDataset):
 
     def __new__(  # type: ignore[misc]
         cls,
-        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
+        dataset: Union[
+            Callable[..., NonGeoDataset], NonGeoDataset, ConcatDataset[NonGeoDataset]
+        ],
         size: Union[Tuple[int, int], int],
         max_r: int,
         *args,
@@ -348,7 +350,7 @@ class PairedNonGeoDataset(NonGeoDataset):
     ) -> Union["PairedNonGeoDataset", "PairedConcatDataset"]:
         if isinstance(dataset, ConcatDataset):
             return PairedConcatDataset(
-                dataset.datasets[0], dataset.datasets[1], size, max_r, *args, **kwargs
+                dataset.datasets[0], dataset.datasets[1], size, max_r, *args, **kwargs  # type: ignore[arg-type]
             )
         else:
             return super(PairedNonGeoDataset, cls).__new__(cls)
@@ -390,7 +392,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         self._args = args
         self._kwargs = kwargs
 
-        if hasattr(size, "__len__"):
+        if isinstance(size, Sequence):
             size = size[0]
 
         self.size = size
@@ -405,7 +407,6 @@ class PairedNonGeoDataset(NonGeoDataset):
             if hasattr(dataset, "all_bands"):
                 self.all_bands = dataset.all_bands
 
-            # super().__init__(*args)
             self.dataset = dataset(*args, **kwargs)
 
         else:
@@ -415,12 +416,13 @@ class PairedNonGeoDataset(NonGeoDataset):
 
         # Move the transforms to this wrapper from the dataset
         # Need to do this for the paired sampling to work correctly.
-        self.transforms = self.dataset.transform
-        self.dataset.transform = None
+        if hasattr(self.dataset, "transform"):
+            self.transforms = self.dataset.transform
+            self.dataset.transform = None
 
         self.make_geo_pair = SamplePair(self.size, self.max_r)
 
-    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], ...]:
+    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], ...]:  # type: ignore[override]
         patch = self.dataset[index]
         image_a, image_b = self.make_geo_pair(patch["image"])
 
@@ -519,20 +521,20 @@ class PairedNonGeoDataset(NonGeoDataset):
         return self.plot(sample, show_titles, suptitle)
 
 
-class PairedConcatDataset(ConcatDataset):
+class PairedConcatDataset(MinervaConcatDataset):  # type: ignore[type-arg]
     """Adapted form of :class:`~torch.utils.data.ConcatDataset` to handle paired samples."""
 
     def __init__(
         self,
-        dataset1: NonGeoDataset,
-        dataset2: NonGeoDataset,
+        dataset1: Union[NonGeoDataset, "PairedConcatDataset"],
+        dataset2: Union[NonGeoDataset, "PairedConcatDataset"],
         size: Optional[int] = None,
         max_r: Optional[int] = None,
     ) -> None:
         _datasets = [dataset1, dataset2]
         datasets = []
         for dataset in _datasets:
-            if isinstance(dataset, GeoDataset):
+            if isinstance(dataset, GeoDataset):  # type: ignore[unreachable]
                 raise TypeError("Cannot concatenate geo and non-geo datasets!")
             elif isinstance(dataset, PairedConcatDataset):
                 datasets.extend(dataset.datasets)
@@ -566,7 +568,10 @@ class PairedConcatDataset(ConcatDataset):
         Returns:
             tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]: Sample of data/labels and metadata at that index.
         """
-        return super().__getitem__(index)
+        sample_a, sample_b = super().__getitem__(index)
+        assert isinstance(sample_a, dict)
+        assert isinstance(sample_b, dict)
+        return sample_a, sample_b
 
     def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
         """Take the union of a PairedUnionDataset and a :class:`PairedGeoDataset`.
@@ -598,7 +603,7 @@ class SamplePair:
     .. versionadded:: 0.28
     """
 
-    def __init__(self, size: Optional[int] = 64, max_r: Optional[int] = 20):
+    def __init__(self, size: int = 64, max_r: int = 20):
         self.max_r = max_r
         self.size = size
 

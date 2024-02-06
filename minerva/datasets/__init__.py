@@ -34,6 +34,7 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "MinervaNonGeoDataset",
+    "MinervaConcatDataset",
     "PairedGeoDataset",
     "PairedNonGeoDataset",
     "PairedUnionDataset",
@@ -79,6 +80,7 @@ from .paired import (
 )
 from .ssl4eos12 import GeoSSL4EOS12Sentinel2, NonGeoSSL4EOS12Sentinel2
 from .utils import (
+    MinervaConcatDataset,
     MinervaNonGeoDataset,
     get_random_sample,
     intersect_datasets,
