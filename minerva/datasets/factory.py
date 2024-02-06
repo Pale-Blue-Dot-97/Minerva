@@ -185,7 +185,7 @@ def get_subdataset(
         universal_path(data_directory), sub_dataset_params["paths"]
     )
 
-    sub_dataset: Union[GeoDataset, NonGeoDataset]
+    sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
 
     if cache or sub_dataset_params.get("cache_dataset"):
         this_hash = utils.make_hash(sub_dataset_params)
@@ -193,18 +193,56 @@ def get_subdataset(
         cached_dataset_path = Path(CACHE_DIR) / f"{this_hash}.obj"
 
         if cached_dataset_path.exists():
+            print(f"\nLoad cached dataset {this_hash}")
             sub_dataset = load_dataset_from_cache(cached_dataset_path)
 
         else:
-            sub_dataset = create_subdataset(
-                _sub_dataset,
-                sub_dataset_paths,
-                sub_dataset_params,
-                transformations,
-                sample_pairs=sample_pairs,
-            )
+            # Ensure that no conflicts from caching datasets made in multiple processes arises.
+            if dist.is_available() and dist.is_initialized():  # pragma: no cover
+                # Get this process#s rank.
+                rank = dist.get_rank()
 
-            cache_dataset(sub_dataset, cached_dataset_path)
+                # Start a blocking action, ensuring only process 0 can create and cache the dataset.
+                # All other processes will wait till 0 is finished.
+                dist.barrier()
+
+                if rank == 0:
+                    print(f"\nCreating dataset on {rank}...")
+                    sub_dataset = create_subdataset(
+                        _sub_dataset,
+                        sub_dataset_paths,
+                        sub_dataset_params,
+                        transformations,
+                        sample_pairs=sample_pairs,
+                    )
+
+                    print(f"\nSaving dataset {this_hash}")
+                    cache_dataset(sub_dataset, cached_dataset_path)
+
+                # Other processes wait...
+                else:
+                    sub_dataset = None
+
+                # End of blocking action.
+                dist.barrier()
+
+                # Now the other processes can load the newly created cached dataset from 0.
+                if rank != 0:
+                    print(f"\nLoading dataset from cache {this_hash} on {rank}")
+                    sub_dataset = load_dataset_from_cache(cached_dataset_path)
+
+            else:
+                print("\nCreating dataset...")
+                sub_dataset = create_subdataset(
+                    _sub_dataset,
+                    sub_dataset_paths,
+                    sub_dataset_params,
+                    transformations,
+                    sample_pairs=sample_pairs,
+                )
+
+                print(f"\nSaving dataset {this_hash}")
+                cache_dataset(sub_dataset, cached_dataset_path)
 
     else:
         sub_dataset = create_subdataset(
@@ -215,6 +253,7 @@ def get_subdataset(
             sample_pairs=sample_pairs,
         )
 
+    assert sub_dataset is not None
     return sub_dataset
 
 
