@@ -115,34 +115,34 @@ tasks:
                         p: 0.25
                         DetachedColorJitter:
                             module: minerva.transforms
-                            brightness: 0.8
-                            contrast: 0.8
-                            saturation: 0.8
-                            hue: 0.2
+                            brightness: 0.2
+                            contrast: 0.1
+                            saturation: 0.1
+                            hue: 0.15
                     RandomResizedCrop:
                         module: kornia.augmentation
-                        p: 0.4
+                        p: 0.2
                         size: *patch_size
                         cropping_mode: resample
                         keepdim: true
-                    RandomErasing:
-                        module: kornia.augmentation
-                        p: 0.4
-                        keepdim: true
                     RandomHorizontalFlip:
                         module: kornia.augmentation
-                        p: 0.4
+                        p: 0.2
                         keepdim: true
                     RandomGaussianBlur:
                         module: kornia.augmentation
-                        kernel_size: 7
-                        p: 0.4
-                        sigma: [0.1, 0.4]
+                        kernel_size: 9
+                        p: 0.2
+                        sigma: [0.01, 0.2]
                         keepdim: true
                     RandomGaussianNoise:
                         module: kornia.augmentation
-                        p: 1.0
-                        std: 0.1
+                        p: 0.2
+                        std: 0.05
+                        keepdim: true
+                    RandomErasing:
+                        module: kornia.augmentation
+                        p: 0.2
                         keepdim: true
 
                 module: minerva.datasets
