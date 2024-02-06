@@ -69,7 +69,7 @@ loss_params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    num_workers: 1
+    num_workers: 0
     pin_memory: true
 
 # === WANDB LOGGING ===========================================================
