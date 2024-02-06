@@ -110,7 +110,7 @@ tasks:
                 transforms:
                     Normalise:
                         module: minerva.transforms
-                        norm_value: 4095
+                        norm_value: 10000
                     RandomApply:
                         p: 0.25
                         DetachedColorJitter:
