@@ -23,68 +23,44 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Functionality for constructing datasets, samplers and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
+r"""Tests for :mod:`minerva.datasets.multispectral`.
 """
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
-__author__ = ["Harry Baker", "Jonathon Hare"]
+__author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = [
-    "MinervaNonGeoDataset",
-    "MinervaConcatDataset",
-    "PairedGeoDataset",
-    "PairedNonGeoDataset",
-    "PairedUnionDataset",
-    "PairedConcatDataset",
-    "GeoSSL4EOS12Sentinel2",
-    "NonGeoSSL4EOS12Sentinel2",
-    "NAIPChesapeakeCVPR",
-    "DFC2020",
-    "SEN12MS",
-    "MultiSpectralDataset",
-    "construct_dataloader",
-    "get_collator",
-    "get_manifest",
-    "load_all_samples",
-    "make_bounding_box",
-    "make_dataset",
-    "make_loaders",
-    "make_manifest",
-    "stack_sample_pairs",
-    "intersect_datasets",
-    "unionise_datasets",
-    "get_manifest_path",
-    "get_random_sample",
-]
 
-from .collators import get_collator, stack_sample_pairs
-from .dfc import DFC2020, SEN12MS
-from .factory import (
-    construct_dataloader,
-    get_manifest,
-    get_manifest_path,
-    make_dataset,
-    make_loaders,
-    make_manifest,
-)
-from .multispectral import MultiSpectralDataset
-from .naip import NAIPChesapeakeCVPR
-from .paired import (
-    PairedConcatDataset,
-    PairedGeoDataset,
-    PairedNonGeoDataset,
-    PairedUnionDataset,
-)
-from .ssl4eos12 import GeoSSL4EOS12Sentinel2, NonGeoSSL4EOS12Sentinel2
-from .utils import (
-    MinervaConcatDataset,
-    MinervaNonGeoDataset,
-    get_random_sample,
-    intersect_datasets,
-    load_all_samples,
-    make_bounding_box,
-    unionise_datasets,
-)
+# =====================================================================================================================
+#                                                      IMPORTS
+# =====================================================================================================================
+from pathlib import Path
+
+from torch import FloatTensor
+from torch.utils.data import DataLoader
+from torch.utils.data.sampler import RandomSampler
+
+from minerva.datasets import MultiSpectralDataset, NonGeoSSL4EOS12Sentinel2
+from minerva.transforms import Normalise
+
+
+# =====================================================================================================================
+#                                                       TESTS
+# =====================================================================================================================
+def test_multispectraldataset(data_root: Path) -> None:
+    path = str(data_root / "SSL4EO-S12")
+    dataset = NonGeoSSL4EOS12Sentinel2(
+        path, transforms=Normalise(4095), bands=["B2", "B3", "B4", "B8"]
+    )
+
+    assert isinstance(dataset, MultiSpectralDataset)
+
+    sampler = RandomSampler(dataset)
+    dataloader = DataLoader(dataset, sampler=sampler)
+
+    batch = next(iter(dataloader))
+
+    assert isinstance(batch, dict)
+    assert isinstance(batch["image"], FloatTensor)

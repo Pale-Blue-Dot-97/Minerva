@@ -51,6 +51,7 @@ dependencies = [
     "types-tabulate",
     "wandb",
     "segmentation-models-pytorch",
+    "tifffile",
 ]
 
 [project.optional-dependencies]

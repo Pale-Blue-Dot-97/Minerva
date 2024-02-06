@@ -27,7 +27,7 @@ model_type: siamese-segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 2                          # Number of samples in each batch.
-patch_size: &patch_size [160, 160]       # 2D tuple or float.
+patch_size: &patch_size [16, 16]       # 2D tuple or float.
 input_size: &input_size [4, 16, 16]    # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
 mix_precision: false                    # Activate mixed precision (16-bit)
@@ -47,7 +47,7 @@ optim_func: SGD                           # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
-max_r: &max_r 320   # Max distance between patches within a pair.
+max_r: &max_r 400   # Max distance between patches within a pair.
 knn_k: 5            # Top-k most similar images to predict image for KNN val
 val_freq: 1         # Validation epoch every ``val_freq`` training epochs.
 
@@ -69,7 +69,7 @@ loss_params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    num_workers: 1
+    num_workers: 0
     pin_memory: true
 
 # === WANDB LOGGING ===========================================================
@@ -101,19 +101,16 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: minerva.samplers
-                name: RandomPairGeoSampler
-                roi: false
+                module: torch.utils.data
+                name: RandomSampler
                 params:
-                    size: *patch_size
-                    length: 32
-                    max_r: *max_r
+                    num_samples: 32
 
             image:
                 transforms:
                     Normalise:
                         module: minerva.transforms
-                        norm_value: 255
+                        norm_value: 4095
                     RandomApply:
                         p: 0.25
                         RandomResizedCrop:
@@ -134,12 +131,12 @@ tasks:
                         kernel_size: 9
 
                 module: minerva.datasets
-                name: SSL4EOS12Sentinel2
+                name: NonGeoSSL4EOS12Sentinel2
                 paths: SSL4EO-S12
                 params:
-                    res: 10.0
-                    crs: 25832
-                    bands: [B1, B2, B3, B8A]
+                    bands: [B2, B3, B4, B8]
+                    size: *patch_size
+                    max_r: *max_r
 
     fit-val:
         type: WeightedKNN

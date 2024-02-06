@@ -23,72 +23,89 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Simple adaption of the :mod:`~torchgeo.datasets.Sentinel2` dataset for use with the SSL4EO-S12 dataset.
+r"""Adaption of :class:`~torchvision.datasets.VisionDataset` for use with :class:`~torchgeo.datasets.NonGeoDataset`.
 """
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
-__author__ = "Harry Baker"
+__author__ = ["Jonathon Hare", "Harry Baker"]
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2"]
+__all__ = ["MultiSpectralDataset"]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from torchgeo.datasets import Sentinel2
+import os
+from functools import partial
+from typing import Any, Callable, Dict, List, Optional
 
-from .multispectral import MultiSpectralDataset
+import numpy as np
+import tifffile
+import torch
+from torchvision.datasets import VisionDataset
+from torchvision.transforms.functional import resize
+
+from .utils import MinervaNonGeoDataset
 
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class GeoSSL4EOS12Sentinel2(Sentinel2):
-    """Adapted version of :class:~`torchgeo.datasets.Sentinel2` that works with the SSL4EO-S12 data format.
+class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
+    """Generic dataset class for multi-spectral images that works within :mod:`torchgeo`"""
 
-    Attributes:
-        filename_glob (str): Adapted pattern from :class:`~torchgeo.datasets.Sentinel2` that looks just for band ID.
-        filename_regex (str): Adapted regex from :class:`~torchgeo.datasets.Sentinel2` that looks just for band IDs
-            with either ``B0x`` (like standard Sentinel2) or ``Bx`` (like SSL4EO-S12) format.
-        all_bands (list[str]): Sentinel2 bands with the leading 0 ommitted.
-        rgb_bands (list[str]): RGB Sentinel2 bands with the leading 0 omitted.
-    """
+    all_bands: List[str] = []
+    rgb_bands: List[str] = []
 
-    filename_glob = "{}.*"
-    filename_regex = r"""(?P<band>B[^[0-1]?[0-9]|B[^[1]?[0-9][\dA])\..*$"""
-    date_format = ""
-    all_bands = [
-        "B1",
-        "B2",
-        "B3",
-        "B4",
-        "B5",
-        "B6",
-        "B7",
-        "B8",
-        "B8A",
-        "B9",
-        "B11",
-        "B12",
-    ]
-    rgb_bands = ["B4", "B3", "B2"]
+    def __init__(
+        self,
+        root: str,
+        transforms: Optional[Callable[..., Any]] = None,
+        bands: Optional[List[str]] = None,
+    ) -> None:
+        super().__init__(root, transform=transforms, target_transform=None)
 
+        if bands is None:
+            bands = self.all_bands
 
-class NonGeoSSL4EOS12Sentinel2(MultiSpectralDataset):
-    all_bands = [
-        "B1",
-        "B2",
-        "B3",
-        "B4",
-        "B5",
-        "B6",
-        "B7",
-        "B8",
-        "B8A",
-        "B9",
-        "B11",
-        "B12",
-    ]
-    rgb_bands = ["B4", "B3", "B2"]
+        self.loader = partial(tifffile.imread, key=0)
+        self.bands = bands
+        self.samples = self.make_dataset()
+
+    def make_dataset(self) -> List[str]:
+        directory = os.path.expanduser(self.root)
+
+        dirs = set()
+        for root, _, fnames in sorted(os.walk(directory, followlinks=True)):
+            for fname in sorted(fnames):
+                if fname == f"{self.bands[0]}.tif":
+                    dirs.add(root)
+        return sorted(list(dirs))
+
+    def __getitem__(self, index: int) -> Dict[str, Any]:
+        path = self.samples[index]
+
+        images = []
+        h, w = 0, 0
+        for b in self.bands:
+            img = torch.from_numpy(self.loader(f"{path}/{b}.tif").astype(np.float32))
+            h = max(img.shape[0], h)
+            w = max(img.shape[1], w)
+            images.append(img.unsqueeze(0))
+
+        for i in range(len(images)):
+            images[i] = resize(images[i], [h, w], antialias=True)
+
+        bands = torch.cat(images, dim=0)
+
+        if self.transform is not None:
+            bands = self.transform(bands)
+
+        sample = {"image": bands}
+
+        return sample
+
+    def __len__(self) -> int:
+        return len(self.samples)
