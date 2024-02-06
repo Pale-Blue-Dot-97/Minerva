@@ -147,6 +147,8 @@ def test_paired_nongeodatasets(data_root: Path) -> None:
     )
     paired_dataset = PairedNonGeoDataset(dataset, size=32, max_r=32)
 
+    assert isinstance(paired_dataset, PairedNonGeoDataset)
+
     sample_1, sample_2 = paired_dataset[0]
 
     assert isinstance(sample_1, dict)
@@ -157,9 +159,7 @@ def test_paired_nongeodatasets(data_root: Path) -> None:
 
     assert isinstance(paired_dataset.__repr__(), str)
 
-    assert isinstance(
-        paired_dataset.plot_random_sample(suptitle="test"), plt.Figure  # type: ignore[attr-defined]
-    )
+    assert isinstance(paired_dataset.plot_random_sample(suptitle="test"), plt.Figure)
 
 
 def test_paired_concat_datasets(
