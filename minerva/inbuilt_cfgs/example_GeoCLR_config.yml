@@ -118,22 +118,37 @@ tasks:
                         norm_value: 255
                     RandomApply:
                         p: 0.25
-                        RandomResizedCrop:
-                            module: torchvision.transforms
-                            size: *patch_size
-                    DetachedColorJitter:
-                        module: minerva.transforms
-                        brightness: 0.8
-                        contrast: 0.8
-                        saturation: 0.8
-                        hue: 0.2
+                        DetachedColorJitter:
+                            module: minerva.transforms
+                            brightness: 0.2
+                            contrast: 0.1
+                            saturation: 0.1
+                            hue: 0.15
+                    RandomResizedCrop:
+                        module: kornia.augmentation
+                        p: 0.2
+                        size: *patch_size
+                        cropping_mode: resample
+                        keepdim: true
                     RandomHorizontalFlip:
-                        module: torchvision.transforms
-                    RandomVerticalFlip:
-                        module: torchvision.transforms
-                    GaussianBlur:
-                        module: torchvision.transforms
-                        kernel_size: 25
+                        module: kornia.augmentation
+                        p: 0.2
+                        keepdim: true
+                    RandomGaussianBlur:
+                        module: kornia.augmentation
+                        kernel_size: 9
+                        p: 0.2
+                        sigma: [0.01, 0.2]
+                        keepdim: true
+                    RandomGaussianNoise:
+                        module: kornia.augmentation
+                        p: 0.2
+                        std: 0.05
+                        keepdim: true
+                    RandomErasing:
+                        module: kornia.augmentation
+                        p: 0.2
+                        keepdim: true
 
                 image1:
                     module: minerva.datasets.__testing
