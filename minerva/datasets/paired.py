@@ -447,7 +447,9 @@ class PairedNonGeoDataset(NonGeoDataset):
         return PairedConcatDataset(self, other)
 
     def __getattr__(self, item):
-        if item in self.dataset.__dict__:
+        if item == "dataset":
+            return self.dataset
+        elif item in self.dataset.__dict__:
             return getattr(self.dataset, item)  # pragma: no cover
         elif item in self.__dict__:
             return getattr(self, item)
