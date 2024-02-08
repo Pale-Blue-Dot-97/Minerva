@@ -92,10 +92,10 @@ class MinervaConcatDataset(ConcatDataset):  # type: ignore[type-arg]
         """Take the union of two :class:`MinervaNonGeoDataset`.
 
         Args:
-            other (MinervaNonGeoDataset | ~torch.utils.data.ConcatDataset): Another dataset.
+            other (MinervaNonGeoDataset | MinervaConcatDataset): Another dataset.
 
         Returns:
-            ~torch.utils.data.ConcatDataset[MinervaNonGeoDataset]: A single dataset.
+            MinervaConcatDataset: A single dataset.
 
         .. versionadded:: 0.28
         """
