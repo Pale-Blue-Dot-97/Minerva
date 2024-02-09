@@ -1917,18 +1917,15 @@ def tsne_cluster(
     return tsne.fit_transform(embeddings)
 
 
-def calc_norm_euc_dist(
-    a: Union[Sequence[int], NDArray[Shape["*"], Int]],  # noqa: F722
-    b: Union[Sequence[int], NDArray[Shape["*"], Int]],  # noqa: F722
-) -> float:
+def calc_norm_euc_dist(a: Tensor, b: Tensor) -> Tensor:
     """Calculates the normalised Euclidean distance between two vectors.
 
     Args:
-        a (~typing.Sequence[int] | ~numpy.ndarray[int]): Vector ``A``.
-        b (~typing.Sequence[int] | ~numpy.ndarray[int]): Vector ``B``.
+        a (~torch.Tensor): Vector ``A``.
+        b (~torch.Tensor): Vector ``B``.
 
     Returns:
-        float: Normalised Euclidean distance between vectors ``A`` and ``B``.
+        ~torch.Tensor: Normalised Euclidean distance between vectors ``A`` and ``B``.
     """
     assert len(a) == len(b)
 
@@ -1938,7 +1935,11 @@ def calc_norm_euc_dist(
     assert not np.isnan(np.sum(b))
     assert not np.isinf(b).any()
 
-    euc_dist: float = distance.euclidean(a, b) / float(len(a))
+    euc_dist: float = torch.linalg.norm(a - b)
+
+    # Check that the calculated Euclidean distance is not infinite or NaN.
+    assert not np.isnan(euc_dist)
+    assert not np.isinf(euc_dist)
 
     return euc_dist
 
