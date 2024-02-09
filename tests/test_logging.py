@@ -294,7 +294,7 @@ def test_SSLStepLogger(
 
         if extra_metrics:
             assert isinstance(logs["collapse_level"], float)
-            assert isinstance(logs["euc_dist"], (float, np.inf))
+            assert isinstance(logs["euc_dist"], float)
 
         results = logger.get_results
         assert results == {}

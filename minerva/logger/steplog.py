@@ -682,26 +682,18 @@ class SSLStepLogger(MinervaStepLogger):
         if self.euclidean:
             z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
 
-            euc_dists = []
+            euc_dist = 0.0
             for i in range(len(z_a)):
-                euc_dists.append(
+                euc_dist += float(
                     utils.calc_norm_euc_dist(
-                        torch.nan_to_num(z_a[i])
-                        .detach()
-                        .cpu()
-                        .to(dtype=torch.half)
-                        .numpy(),
-                        torch.nan_to_num(z_b[i])
-                        .detach()
-                        .cpu()
-                        .to(dtype=torch.half)
-                        .numpy(),
+                        z_a[i].detach().cpu(),
+                        z_b[i].detach().cpu(),
                     )
                 )
 
-            euc_dist = sum(euc_dists) / len(euc_dists)
-            self.write_metric("euc_dist", euc_dist, step_num)
-            self.logs["euc_dist"] += euc_dist
+            avg_euc_dist = euc_dist / len(z_a)
+            self.write_metric("euc_dist", avg_euc_dist, step_num)
+            self.logs["euc_dist"] += avg_euc_dist
 
         if self.collapse_level:
             # calculate the per-dimension standard deviation of the outputs
