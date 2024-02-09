@@ -1930,16 +1930,16 @@ def calc_norm_euc_dist(a: Tensor, b: Tensor) -> Tensor:
     assert len(a) == len(b)
 
     # Check that none of the data is NaN or infinity.
-    assert not np.isnan(np.sum(a))
-    assert not np.isinf(a).any()
-    assert not np.isnan(np.sum(b))
-    assert not np.isinf(b).any()
+    assert not torch.isnan(torch.sum(a))
+    assert not torch.isinf(a).any()
+    assert not torch.isnan(torch.sum(b))
+    assert not torch.isinf(b).any()
 
-    euc_dist: float = torch.linalg.norm(a - b)
+    euc_dist: Tensor = torch.linalg.norm(a - b)
 
     # Check that the calculated Euclidean distance is not infinite or NaN.
-    assert not np.isnan(euc_dist)
-    assert not np.isinf(euc_dist)
+    assert not torch.isnan(euc_dist)
+    assert not torch.isinf(euc_dist)
 
     return euc_dist
 
