@@ -162,7 +162,6 @@ from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
 from pandas import DataFrame
 from rasterio.crs import CRS
-from scipy.spatial import distance
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.manifold import TSNE
 from sklearn.metrics import auc, classification_report, roc_curve
