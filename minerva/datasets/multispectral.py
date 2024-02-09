@@ -64,6 +64,7 @@ class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
         root: str,
         transforms: Optional[Callable[..., Any]] = None,
         bands: Optional[List[str]] = None,
+        as_type=np.float32,
     ) -> None:
         super().__init__(root, transform=transforms, target_transform=None)
 
@@ -72,6 +73,7 @@ class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
 
         self.loader = partial(tifffile.imread, key=0)
         self.bands = bands
+        self.as_type = as_type
         self.samples = self.make_dataset()
 
     def make_dataset(self) -> List[str]:
@@ -90,7 +92,7 @@ class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
         images = []
         h, w = 0, 0
         for b in self.bands:
-            img = torch.from_numpy(self.loader(f"{path}/{b}.tif").astype(np.float32))
+            img = torch.from_numpy(self.loader(f"{path}/{b}.tif").astype(self.as_type))
             h = max(img.shape[0], h)
             w = max(img.shape[1], w)
             images.append(img.unsqueeze(0))
