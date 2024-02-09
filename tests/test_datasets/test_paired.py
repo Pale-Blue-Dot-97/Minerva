@@ -44,6 +44,7 @@ import matplotlib.pyplot as plt
 import pytest
 from rasterio.crs import CRS
 from torch.utils.data import RandomSampler
+from torchgeo.datasets import NonGeoDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 
@@ -73,12 +74,12 @@ def test_paired_geodatasets(img_root: Path) -> None:
 
     dataset3 = PairedGeoDataset(dataset2)
 
-    non_dataset = 42
+    non_dataset = NonGeoDataset
     with pytest.raises(
         ValueError,
         match=f"``dataset`` is of unsupported type {type(non_dataset)} not GeoDataset",
     ):
-        _ = PairedGeoDataset(42)  # type: ignore[call-overload]
+        _ = PairedGeoDataset(non_dataset)  # type: ignore[call-overload]
 
     bounds = BoundingBox(411248.0, 412484.0, 4058102.0, 4059399.0, 0, 1e12)
     query_1 = get_random_bounding_box(bounds, (32, 32), 10.0)
