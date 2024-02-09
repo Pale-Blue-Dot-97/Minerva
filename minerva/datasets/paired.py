@@ -42,8 +42,8 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import inspect
 import random
+from inspect import signature
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
 
 import matplotlib.pyplot as plt
@@ -118,8 +118,8 @@ class PairedGeoDataset(RasterDataset):
             self._res = dataset.res
             self._crs = dataset.crs
 
-        elif callable(dataset):
-            super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
+        elif "paths" in signature(dataset).parameters:
+            super_sig = signature(RasterDataset.__init__).parameters.values()
             super_kwargs = {
                 key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
             }
@@ -401,7 +401,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         if isinstance(dataset, NonGeoDataset):
             self.dataset = dataset
 
-        elif callable(dataset):
+        elif "root" in signature(dataset).parameters:
             # Make sure PairedNonGeoDataset has access to the `all_bands` attribute of the dataset.
             # Needed for a subset of the bands to be selected if so desired.
             if hasattr(dataset, "all_bands"):
