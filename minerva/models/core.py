@@ -636,7 +636,7 @@ def wrap_model(model, gpu: int, torch_compile: bool = False):
             assert is_minerva_model(_compiled_model)
             assert isinstance(_compiled_model, OptimizedModule)
             model = _compiled_model
-        except RuntimeError as err:
+        except RuntimeError as err:  # pragma: no cover
             warnings.warn(str(err))
 
     return model

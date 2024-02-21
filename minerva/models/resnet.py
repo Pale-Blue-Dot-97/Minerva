@@ -506,12 +506,12 @@ class ResNet152(ResNetX):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def _preload_weights(  # pragma: no cover
+def _preload_weights(
     resnet: ResNet,
     weights: Optional[Union[WeightsEnum, Any]],
     input_shape: Tuple[int, int, int],
     encoder_on: bool,
-) -> ResNet:
+) -> ResNet:  # pragma: no cover
     if not weights:
         print("Weights are None! The original resnet will be used")
         return resnet
