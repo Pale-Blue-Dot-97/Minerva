@@ -245,27 +245,33 @@ def test_get_manifest_path() -> None:
     )
 
 
-def test_get_manifest() -> None:
-    manifest_path = Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
+@pytest.mark.parametrize(
+    ["cache_name", "task_name"],
+    [
+        ("Chesapeake7_Manifest.csv", "fit-train"),
+    ],
+)
+def test_get_manifest(cache_name: str, task_name: str) -> None:
+    manifest_path = Path("tests", "tmp", "cache", cache_name)
 
     if manifest_path.exists():
         manifest_path.unlink()
 
     assert isinstance(
-        mdt.get_manifest(manifest_path, task_name="fit-train"), pd.DataFrame
+        mdt.get_manifest(manifest_path, task_name=task_name), pd.DataFrame
     )
     assert isinstance(
-        mdt.get_manifest(manifest_path, task_name="fit-train"), pd.DataFrame
+        mdt.get_manifest(manifest_path, task_name=task_name), pd.DataFrame
     )
 
-    new_path = Path("tests", "tmp", "empty", "Chesapeake7_Manifest.csv")
+    new_path = Path("tests", "tmp", "empty", cache_name)
     if new_path.exists():
         new_path.unlink()
 
     if new_path.parent.exists():
         new_path.parent.rmdir()
 
-    assert isinstance(mdt.get_manifest(new_path, task_name="fit-train"), pd.DataFrame)
+    assert isinstance(mdt.get_manifest(new_path, task_name=task_name), pd.DataFrame)
 
     if new_path.exists():
         new_path.unlink()
