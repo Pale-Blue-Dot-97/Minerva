@@ -169,7 +169,7 @@ class MinervaStepLogger(ABC):
         Returns:
             None
         """
-        self.log(step_num, loss, *args)
+        self.log(step_num, loss, *args)  # pragma: no cover
 
     @abc.abstractmethod
     def log(

@@ -59,6 +59,7 @@ from torch import Tensor
 from torch.nn.modules import Module
 from torchgeo.datasets.utils import BoundingBox
 
+from minerva.logger.steplog import SupervisedGeoStepLogger
 from minerva.logger.tasklog import SSLTaskLogger, SupervisedTaskLogger
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.modelio import ssl_pair_tg, sup_tg
@@ -108,6 +109,20 @@ def test_SupervisedGeoStepLogger(
 
     output_shape = model.output_shape
     assert isinstance(output_shape, tuple)
+
+    with pytest.raises(
+        ValueError, match="`n_classes` must be specified for this type of logger!"
+    ):
+        _ = SupervisedGeoStepLogger(
+            task_name="pytest",
+            n_batches=std_n_batches,
+            batch_size=std_batch_size,
+            output_size=output_shape,
+            record_int=True,
+            record_float=True,
+            writer=writer,
+            model_type=model_type,
+        )
 
     logger = SupervisedTaskLogger(
         task_name="pytest",
