@@ -424,7 +424,7 @@ class ResNetX(MinervaModel):
             encoder=encoder,
         )
 
-        if torch_weights:
+        if torch_weights:  # pragma: no cover
             self.network = _preload_weights(
                 self.network, get_torch_weights(self.weights_name), input_size, encoder
             )
@@ -506,7 +506,7 @@ class ResNet152(ResNetX):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def _preload_weights(
+def _preload_weights(  # pragma: no cover
     resnet: ResNet,
     weights: Optional[Union[WeightsEnum, Any]],
     input_shape: Tuple[int, int, int],
