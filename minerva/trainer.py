@@ -323,6 +323,10 @@ class Trainer:
         self.stopper = None
         self.early_stop = False
         if "stopping" in self.params:
+            # Modifies the `patience` to account for the frequency of validation epochs with respect to training.
+            self.params["stopping"]["patience"] = (
+                self.params["stopping"].get("patience", 10) // self.val_freq
+            )
             self.stopper = EarlyStopping(
                 path=f"{self.exp_fn}.pt",
                 trace_func=self.print,
