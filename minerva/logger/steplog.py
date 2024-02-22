@@ -628,8 +628,6 @@ class SSLStepLogger(MinervaStepLogger):
         self.logs: Dict[str, Any] = {
             "batch_num": 0,
             "total_loss": 0.0,
-            "total_correct": 0.0,
-            "total_top5": 0.0,
             "avg_loss": 0.0,
             "avg_output_std": 0.0,
         }
@@ -641,6 +639,9 @@ class SSLStepLogger(MinervaStepLogger):
             self.logs["collapse_level"] = 0
         if self.euclidean:
             self.logs["euc_dist"] = 0
+        if not check_substrings_in_string(self.model_type, "siamese"):
+            self.logs["total_correct"] = 0.0
+            self.logs["total_top5"] = 0.0
 
     def log(
         self,
@@ -672,12 +673,6 @@ class SSLStepLogger(MinervaStepLogger):
         # Adds the loss for this step to the logs.
         ls = loss.item()
         self.logs["total_loss"] += ls
-
-        # Compute the TOP1 and TOP5 accuracies.
-        cosine_sim = CosineSimilarity(reduction=None)
-        sim_argsort = cosine_sim(*torch.split(z, int(0.5 * len(z)), 0))
-        correct = float((sim_argsort == 0).float().mean().cpu().numpy())  # type: ignore[attr-defined]
-        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())  # type: ignore[attr-defined]
 
         if self.euclidean:
             z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
@@ -721,14 +716,23 @@ class SSLStepLogger(MinervaStepLogger):
 
             self.logs["collapse_level"] = collapse_level
 
-        # Add accuracies to log.
-        self.logs["total_correct"] += correct
-        self.logs["total_top5"] += top5
+        if not check_substrings_in_string(self.model_type, "siamese"):
+            # Compute the TOP1 and TOP5 accuracies.
+            cosine_sim = CosineSimilarity(reduction=None)
+            sim_argsort = cosine_sim(*torch.split(z, int(0.5 * len(z)), 0))
+            correct = float((sim_argsort == 0).float().mean().cpu().numpy())  # type: ignore[attr-defined]
+            top5 = float((sim_argsort < 5).float().mean().cpu().numpy())  # type: ignore[attr-defined]
+
+            # Add accuracies to log.
+            self.logs["total_correct"] += correct
+            self.logs["total_top5"] += top5
+
+            # Write the accuracy and top5 accuracy to the writer.
+            self.write_metric("acc", correct / 2 * len(z[0]), step_num)
+            self.write_metric("top5_acc", top5 / 2 * len(z[0]), step_num)
 
         # Writes the loss to the writer.
         self.write_metric("loss", ls, step_num=step_num)
-        self.write_metric("acc", correct / 2 * len(z[0]), step_num)
-        self.write_metric("top5_acc", top5 / 2 * len(z[0]), step_num)
 
         # Adds 1 to the batch number (step number).
         self.logs["batch_num"] += 1

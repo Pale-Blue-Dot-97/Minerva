@@ -285,8 +285,6 @@ def test_SSLStepLogger(
     )
 
     correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_acc: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_top5: Dict[str, List[float]] = {"x": [], "y": []}
     correct_collapse_level: Dict[str, List[float]] = {"x": [], "y": []}
     correct_euc_dist: Dict[str, List[float]] = {"x": [], "y": []}
 
@@ -304,8 +302,6 @@ def test_SSLStepLogger(
         logs = logger.get_logs
         assert logs["batch_num"] == std_n_batches
         assert isinstance(logs["total_loss"], float)
-        assert isinstance(logs["total_correct"], float)
-        assert isinstance(logs["total_top5"], float)
 
         if extra_metrics:
             assert isinstance(logs["collapse_level"], float)
@@ -315,28 +311,7 @@ def test_SSLStepLogger(
         assert results == {}
 
         correct_loss["x"].append(epoch_no)
-        correct_acc["x"].append(epoch_no)
-        correct_top5["x"].append(epoch_no)
-
         correct_loss["y"].append(logs["total_loss"] / std_n_batches)
-
-        if utils.check_substrings_in_string(model_type, "segmentation"):
-            correct_acc["y"].append(
-                logs["total_correct"]
-                / float(std_n_batches * std_batch_size * np.prod(small_patch_size))
-            )
-            correct_top5["y"].append(
-                logs["total_top5"]
-                / float(std_n_batches * std_batch_size * np.prod(small_patch_size))
-            )
-
-        else:
-            correct_acc["y"].append(
-                logs["total_correct"] / (std_n_batches * std_batch_size)
-            )
-            correct_top5["y"].append(
-                logs["total_top5"] / (std_n_batches * std_batch_size)
-            )
 
         if extra_metrics:
             correct_collapse_level["x"].append(epoch_no)
@@ -350,8 +325,6 @@ def test_SSLStepLogger(
         metrics = logger.get_metrics
 
         assert metrics["pytest_loss"] == pytest.approx(correct_loss)
-        assert metrics["pytest_acc"] == pytest.approx(correct_acc)
-        assert metrics["pytest_top5_acc"] == pytest.approx(correct_top5)
 
         if extra_metrics:
             assert metrics["pytest_collapse_level"] == pytest.approx(
