@@ -86,6 +86,10 @@ tensorflow = [
     "tensorflow",
 ]
 
+dfc = [
+    "torchdata",
+]
+
 [project.urls]
 "Homepage" = "https://github.com/Pale-Blue-Dot-97/Minerva"
 "Bug Tracker" = "https://github.com/Pale-Blue-Dot-97/Minerva/issues"
