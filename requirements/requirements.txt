@@ -37,7 +37,7 @@ torchvision==0.17.0
 tornado>=6.3.3
 tqdm==4.66.2
 types-PyYAML==6.0.12.12
-types-requests==2.31.0.20240125
+types-requests==2.31.0.20240218
 types-tabulate==0.9.0.20240106
 wandb==0.16.2
 Werkzeug>=2.2.3 # Patches a potential security vulnerability.
