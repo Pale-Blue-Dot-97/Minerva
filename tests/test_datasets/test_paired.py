@@ -143,7 +143,7 @@ def test_paired_nongeodatasets(data_root: Path) -> None:
     path = str(data_root / "SSL4EO-S12")
     dataset = NonGeoSSL4EOS12Sentinel2(
         path,
-        transforms=MinervaCompose(Normalise(4095), key="image"),
+        transforms=MinervaCompose({"image": Normalise(4095)}),
         bands=["B2", "B3", "B4", "B8"],
     )
     paired_dataset = PairedNonGeoDataset(dataset, size=32, max_r=32)
