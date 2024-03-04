@@ -569,7 +569,8 @@ class MinervaCompose:
 
         else:
             raise TypeError(
-                f"Cannot add together transforms of {type(new_transform)=} to the existing type of {type(self.transforms)=}"
+                f"Cannot add together transforms of {type(new_transform)=} to the existing"
+                + f" type of {type(self.transforms)=}"
             )
 
     def __add__(
