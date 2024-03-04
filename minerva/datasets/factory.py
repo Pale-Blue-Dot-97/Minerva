@@ -305,10 +305,18 @@ def make_dataset(
                 if isinstance(type_dataset_params[area_key], dict):
                     transform_params = type_dataset_params[area_key]
                     auto_norm = transform_params.get("AutoNorm")
+
+                    # If transforms aren't specified for a particular modality of the sample,
+                    # assume they're for the same type as the dataset.
+                    if (
+                        not ("image", "mask", "label")
+                        in type_dataset_params[area_key].keys()
+                    ):
+                        transform_params = {type_key: type_dataset_params[area_key]}
                 else:
                     transform_params = False
 
-                master_transforms = make_transformations(transform_params, type_key)
+                master_transforms = make_transformations(transform_params)
 
             # Assuming that these keys are names of datasets.
             else:
@@ -320,7 +328,7 @@ def make_dataset(
                 else:
                     transform_params = False
 
-                transformations = make_transformations(transform_params, type_key)
+                transformations = make_transformations({type_key: transform_params})
 
                 # Send the params for this area key back through this function to make the sub-dataset.
                 sub_dataset = get_subdataset(
