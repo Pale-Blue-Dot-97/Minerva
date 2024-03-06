@@ -163,6 +163,7 @@ def test_trainer_3() -> None:
         ("example_3rd_party.yml", {}, {}),
         ("example_autoencoder_config.yml", {}, {}),
         ("example_GeoSimConvNet.yml", {}, {}),
+        ("example_GSConvNet-II.yml", {}, {}),
     ],
 )
 def test_trainer_4(
