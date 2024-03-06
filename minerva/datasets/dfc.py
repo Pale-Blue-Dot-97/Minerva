@@ -369,9 +369,18 @@ class DFC2020(BaseSenS12MS):
         use_s2lr=False,
         use_s1=False,
         labels=False,
+        transforms: Optional[Callable[..., Any]] = None,
     ) -> None:
         super(DFC2020, self).__init__(
-            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
+            root,
+            split,
+            no_savanna,
+            use_s2hr,
+            use_s2mr,
+            use_s2lr,
+            use_s1,
+            labels,
+            transforms,
         )
 
         # Build list of sample paths.
@@ -424,9 +433,18 @@ class SEN12MS(BaseSenS12MS):  # pragma: no cover
         use_s2lr=False,
         use_s1=False,
         labels=False,
+        transforms: Optional[Callable[..., Any]] = None,
     ) -> None:
         super(SEN12MS, self).__init__(
-            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
+            root,
+            split,
+            no_savanna,
+            use_s2hr,
+            use_s2mr,
+            use_s2lr,
+            use_s1,
+            labels,
+            transforms,
         )
 
         # Find and index samples.
