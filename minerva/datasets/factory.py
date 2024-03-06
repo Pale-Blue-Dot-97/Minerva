@@ -140,11 +140,21 @@ def create_subdataset(
         else:
             raise TypeError
     else:
-        return dataset_class(
-            paths=paths,
-            transforms=transformations,
-            **copy_params["params"],
-        )
+        if "paths" in signature(dataset_class).parameters:
+            return dataset_class(
+                paths=paths,
+                transforms=transformations,
+                **copy_params["params"],
+            )
+        elif "root" in signature(dataset_class).parameters:
+            if isinstance(paths, list):
+                paths = paths[0]
+            assert isinstance(paths, str)
+            return dataset_class(
+                root=paths,
+                transforms=transformations,
+                **copy_params["params"],
+            )
 
 
 def get_subdataset(
@@ -184,6 +194,7 @@ def get_subdataset(
     sub_dataset_paths = utils.compile_dataset_paths(
         universal_path(data_directory), sub_dataset_params["paths"]
     )
+    print(sub_dataset_params["paths"])
 
     sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
 
@@ -663,9 +674,6 @@ def make_loaders(
 
             mode_sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
 
-            # Calculates number of batches.
-            n_batches[mode] = int(mode_sampler_params["params"]["length"] / batch_size)
-
             # --+ MAKE DATASETS +=====================================================================================+
             print(f"CREATING {mode} DATASET")
             loaders[mode] = construct_dataloader(
@@ -681,6 +689,17 @@ def make_loaders(
                 cache=cache,
             )
             print("DONE")
+
+            # Calculates number of batches.
+            n_batches[mode] = int(
+                mode_sampler_params["params"].get(
+                    "length",
+                    mode_sampler_params["params"].get(
+                        "num_samples", len(loaders[mode].dataset)
+                    ),
+                )
+                / batch_size
+            )
 
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Transform class dist if elimination of classes has occurred.
