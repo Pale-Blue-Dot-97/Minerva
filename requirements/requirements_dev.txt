@@ -13,7 +13,7 @@ internet-sabotage3==0.1.6
 ipykernel==6.29.3
 lightly==1.4.25
 matplotlib==3.8.2
-mlflow==2.10.0
+mlflow==2.11.1
 mypy==1.8.0
 myst_parser==2.0.0
 nptyping==2.5.0
