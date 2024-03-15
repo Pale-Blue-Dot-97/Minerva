@@ -107,11 +107,19 @@ GENERIC_PARSER.add_argument(
 )
 
 GENERIC_PARSER.add_argument(
-    "--max_epochs",
+    "--max-epochs",
     dest="max_epochs",
     type=int,
     default=100,
     help="Maximum number of training epochs.",
+)
+
+GENERIC_PARSER.add_argument(
+    "--max-r",
+    dest="max_r",
+    type=int,
+    default=32,
+    help="Maximum distance in pixels between samples in a pair.",
 )
 
 GENERIC_PARSER.add_argument(

@@ -49,7 +49,6 @@ from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overlo
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from torch import Tensor
-from torch.utils.data import ConcatDataset
 from torchgeo.datasets import (
     GeoDataset,
     IntersectionDataset,
@@ -338,23 +337,6 @@ class PairedNonGeoDataset(NonGeoDataset):
     .. versionadded:: 0.28
     """
 
-    def __new__(  # type: ignore[misc]
-        cls,
-        dataset: Union[
-            Callable[..., NonGeoDataset], NonGeoDataset, ConcatDataset[NonGeoDataset]
-        ],
-        size: Union[Tuple[int, int], int],
-        max_r: int,
-        *args,
-        **kwargs,
-    ) -> Union["PairedNonGeoDataset", "PairedConcatDataset"]:
-        if isinstance(dataset, ConcatDataset):
-            return PairedConcatDataset(
-                dataset.datasets[0], dataset.datasets[1], size, max_r, *args, **kwargs  # type: ignore[arg-type]
-            )
-        else:
-            return super(PairedNonGeoDataset, cls).__new__(cls)
-
     def __getnewargs__(self):
         return self.dataset, self.size, self.max_r, self._args, self._kwargs
 
@@ -397,6 +379,9 @@ class PairedNonGeoDataset(NonGeoDataset):
 
         self.size = size
         self.max_r = max_r
+
+        if isinstance(dataset, PairedNonGeoDataset):
+            raise ValueError("Cannot pair an already paired dataset!")
 
         if isinstance(dataset, NonGeoDataset):
             self.dataset = dataset
@@ -445,16 +430,6 @@ class PairedNonGeoDataset(NonGeoDataset):
         .. versionadded:: 0.28
         """
         return PairedConcatDataset(self, other)
-
-    def __getattr__(self, item):
-        if item == "dataset":
-            return self.dataset
-        elif item in self.dataset.__dict__:
-            return getattr(self.dataset, item)  # pragma: no cover
-        elif item in self.__dict__:
-            return getattr(self, item)
-        else:
-            raise AttributeError
 
     def __len__(self) -> int:
         return self.dataset.__len__()

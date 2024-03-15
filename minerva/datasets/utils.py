@@ -243,7 +243,9 @@ def get_random_sample(
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]
 
 
-def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
+def load_dataset_from_cache(
+    cached_dataset_path: Path,
+) -> Union[NonGeoDataset, GeoDataset]:
     """Load a pickled dataset object in from a cache.
 
     Args:
@@ -256,7 +258,7 @@ def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
     with open(cached_dataset_path, "rb") as fp:
         dataset = pickle.load(fp)
 
-    assert isinstance(dataset, GeoDataset)
+    assert isinstance(dataset, (NonGeoDataset, GeoDataset))
     return dataset
 
 

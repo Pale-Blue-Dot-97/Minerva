@@ -155,6 +155,8 @@ def create_subdataset(
                 transforms=transformations,
                 **copy_params["params"],
             )
+        else:
+            raise TypeError
 
 
 def get_subdataset(
@@ -695,7 +697,7 @@ def make_loaders(
                 mode_sampler_params["params"].get(
                     "length",
                     mode_sampler_params["params"].get(
-                        "num_samples", len(loaders[mode].dataset)
+                        "num_samples", len(loaders[mode].dataset)  # type: ignore[arg-type]
                     ),
                 )
                 / batch_size

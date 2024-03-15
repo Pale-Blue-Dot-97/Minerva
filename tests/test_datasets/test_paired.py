@@ -156,7 +156,6 @@ def test_paired_nongeodatasets(data_root: Path) -> None:
     assert isinstance(sample_2, dict)
 
     assert isinstance(paired_dataset.dataset, NonGeoSSL4EOS12Sentinel2)
-    assert isinstance(paired_dataset.__getattr__("dataset"), NonGeoSSL4EOS12Sentinel2)
 
     assert isinstance(paired_dataset.__repr__(), str)
 
@@ -181,9 +180,8 @@ def test_paired_concat_datasets(
     dataset3 = PairedNonGeoDataset(NonGeoSSL4EOS12Sentinel2, small_patch_size, 32, root)
     dataset4 = PairedNonGeoDataset(NonGeoSSL4EOS12Sentinel2, small_patch_size, 64, root)
 
-    concat_dataset1 = PairedNonGeoDataset(dataset1 | dataset2, small_patch_size, 16)
+    concat_dataset1 = PairedConcatDataset(dataset1, dataset2, small_patch_size, 16)
     concat_dataset2 = dataset3 | dataset4
-    concat_dataset3 = concat_dataset1 | dataset3
 
     with pytest.raises(ValueError):
         _ = concat_dataset1 | dataset2
@@ -194,7 +192,6 @@ def test_paired_concat_datasets(
     for dataset in (
         concat_dataset1,
         concat_dataset2,
-        concat_dataset3,
     ):
         assert isinstance(dataset, PairedConcatDataset)
         dataset_test(dataset)
