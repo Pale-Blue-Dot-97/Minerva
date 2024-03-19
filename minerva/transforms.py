@@ -39,6 +39,7 @@ __all__ = [
     "DetachedColorJitter",
     "SingleLabel",
     "ToRGB",
+    "SelectChannels",
     "MinervaCompose",
     "SwapKeys",
     "get_transform",
@@ -400,6 +401,34 @@ class ToRGB:
             rgb_img = img[:3]
             assert isinstance(rgb_img, Tensor)
             return rgb_img
+
+
+class SelectChannels:
+    """Transform to select which channels to keep by passing a list of indices
+
+    Attributes:
+        channels (list[int]): Channel indices to keep.
+
+    Args:
+        channels (list[int]): Channel indices to keep.
+    """
+
+    def __init__(self, channels: List[int]) -> None:
+        self.channels = channels
+
+    def __call__(self, img: Tensor) -> Tensor:
+        return self.forward(img)
+
+    def forward(self, img: Tensor) -> Tensor:
+        """Select the desired channels from the input image and return.
+
+        Args:
+            img (Tensor): Input image.
+
+        Returns:
+            Tensor: Selected channels of the input image.
+        """
+        return img[self.channels]
 
 
 class SingleLabel:
