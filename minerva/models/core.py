@@ -259,8 +259,8 @@ class MinervaWrapper(MinervaModel):
         model (~torch.nn.Module): The wrapped :mod:`torch` model that is now compatible with :mod:`minerva`.
 
     Args:
-        model_cls (~typing.Callable[..., ~torch.nn.Module]): The :mod:`torch` model class to wrap, initialise
-            and place in :attr:`~MinervaWrapper.model`.
+        model (~torch.nn.Module | ~typing.Callable[..., ~torch.nn.Module]): The :mod:`torch` model object or
+            constructor to, initialise and then wrap in :attr:`~MinervaWrapper.model`.
         criterion (~torch.nn.Module): Optional; :mod:`torch` loss function model will use.
         input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
             number of channels, image width, image height but may vary dependant on model specs.
@@ -270,7 +270,7 @@ class MinervaWrapper(MinervaModel):
 
     def __init__(
         self,
-        model_cls: Callable[..., Module],
+        model: Union[Module, Callable[..., Module]],
         criterion: Optional[Module] = None,
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
@@ -280,7 +280,10 @@ class MinervaWrapper(MinervaModel):
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)
 
-        self.model = model_cls(*args, **kwargs)
+        if isinstance(model, Module):
+            self.model = model
+        else:
+            self.model = model(*args, **kwargs)
 
     def __call__(self, *inputs) -> Any:
         return self.forward(*inputs)
