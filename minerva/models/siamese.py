@@ -493,6 +493,7 @@ class SimConv(MinervaSiamese):
             "psp_out_channels": feature_dim,
             "in_channels": input_size[0],
             "encoder_weights": None,
+            "encoder_depth": 5,
         }
 
         # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
