@@ -34,6 +34,7 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
 __all__ = [
+    "FilterOutputs",
     "MinervaModel",
     "MinervaWrapper",
     "MinervaDataParallel",
@@ -61,6 +62,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    List,
     Optional,
     Sequence,
     Tuple,
@@ -88,6 +90,23 @@ from minerva.utils.utils import func_by_str
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
+class FilterOutputs(Module):
+    """Helper class for use in :class:~`torch.nn.Sequential` to filter previous layer's outputs by index.
+
+    Attributes:
+        indexes (int | list[int]): Index(es) of the inputs to pass forward.
+
+    Args:
+        indexes (int | list[int]): Index(es) of the inputs to pass forward.
+    """
+
+    def __init__(self, indexes: Union[int, List[int]]) -> None:
+        self.indexes = indexes
+
+    def forward(self, inputs: Sequence[Tensor]) -> Tensor:
+        return inputs[self.indexes]
+
+
 class MinervaModel(Module, ABC):
     """Abstract class to act as a base for all Minerva Models.
 

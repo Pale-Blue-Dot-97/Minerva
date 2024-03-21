@@ -33,6 +33,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
+    "FilterOutputs",
     "MinervaBackbone",
     "MinervaDataParallel",
     "MinervaModel",
@@ -86,6 +87,7 @@ __all__ = [
 from .__depreciated import CNN as CNN
 from .__depreciated import MLP as MLP
 from .core import (
+    FilterOutputs,
     MinervaBackbone,
     MinervaDataParallel,
     MinervaModel,
