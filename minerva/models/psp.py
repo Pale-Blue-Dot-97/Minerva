@@ -34,13 +34,17 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "PSPEncoder",
+    "DownstreamPSP",
 ]
 
-import segmentation_models_pytorch as smp
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Optional, Union
+
+import segmentation_models_pytorch as smp
+import torch
 from torch import Tensor
 
 
@@ -53,3 +57,44 @@ class PSPEncoder(smp.PSPNet):
         z = self.decoder(*f)
         assert isinstance(z, Tensor)
         return z
+
+
+class DownstreamPSP(smp.PSPNet):
+    def __init__(
+        self,
+        encoder_name: str = "resnet34",
+        encoder_weights: Optional[str] = "imagenet",
+        encoder_depth: int = 5,
+        psp_out_channels: int = 512,
+        psp_use_batchnorm: bool = True,
+        psp_dropout: float = 0.2,
+        in_channels: int = 3,
+        classes: int = 1,
+        activation: Optional[Union[str, callable]] = None,
+        upsampling: int = 8,
+        aux_params: Optional[dict] = None,
+        backbone_weight_path=None,
+        freeze_backbone: bool = False,
+    ):
+        super().__init__(
+            encoder_name,
+            encoder_weights,
+            encoder_depth,
+            psp_out_channels,
+            psp_use_batchnorm,
+            psp_dropout,
+            in_channels,
+            classes,
+            activation,
+            upsampling,
+            aux_params,
+        )
+
+        # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
+        if backbone_weight_path is not None:  # pragma: no cover
+            backbone = torch.load(backbone_weight_path)
+            self.encoder = backbone.encoder
+            self.decoder = backbone.decoder
+
+            # Freezes the weights of backbone to avoid end-to-end training.
+            self.backbone.requires_grad_(False if freeze_backbone else True)
