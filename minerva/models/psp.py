@@ -124,6 +124,10 @@ class DynamicPSP(smp.PSPNet):
             activation=activation,
             upsampling=upsampling,
             aux_params=aux_params,
+            criterion=criterion,
+            input_size=input_size,
+            n_classes=n_classes,
+            scaler=scaler,
         )
 
         self.encoder_mode = encoder
