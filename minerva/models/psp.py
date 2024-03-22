@@ -91,6 +91,10 @@ class DynamicPSP(smp.PSPNet):
 
     def __init__(
         self,
+        criterion: Optional[Module] = None,
+        input_size: Optional[Tuple[int, ...]] = None,
+        n_classes: Optional[int] = None,
+        scaler: Optional[GradScaler] = None,
         encoder_name: str = "resnet34",
         encoder_weights: Optional[str] = "imagenet",
         encoder_depth: int = 5,
