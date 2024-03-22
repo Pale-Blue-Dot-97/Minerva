@@ -41,11 +41,15 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Optional, Union
+from typing import Optional, Tuple, Union
 
 import segmentation_models_pytorch as smp
 import torch
 from torch import Tensor
+from torch.cuda.amp.grad_scaler import GradScaler
+from torch.nn.modules import Module
+
+from minerva.models import MinervaModel
 
 
 # =====================================================================================================================
@@ -59,17 +63,19 @@ class PSPEncoder(smp.PSPNet):
         return z
 
 
-class DownstreamPSP(smp.PSPNet):
+class DownstreamPSP(smp.PSPNet, MinervaModel):
     def __init__(
         self,
+        criterion: Optional[Module] = None,
+        input_size: Optional[Tuple[int, ...]] = None,
+        n_classes: Optional[int] = None,
+        scaler: Optional[GradScaler] = None,
         encoder_name: str = "resnet34",
         encoder_weights: Optional[str] = "imagenet",
         encoder_depth: int = 5,
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
-        in_channels: int = 3,
-        classes: int = 1,
         activation: Optional[Union[str, callable]] = None,
         upsampling: int = 8,
         aux_params: Optional[dict] = None,
@@ -77,17 +83,21 @@ class DownstreamPSP(smp.PSPNet):
         freeze_backbone: bool = False,
     ):
         super().__init__(
-            encoder_name,
-            encoder_weights,
-            encoder_depth,
-            psp_out_channels,
-            psp_use_batchnorm,
-            psp_dropout,
-            in_channels,
-            classes,
-            activation,
-            upsampling,
-            aux_params,
+            criterion=criterion,
+            input_size=input_size,
+            n_classes=n_classes,
+            scaler=scaler,
+            encoder_name=encoder_name,
+            encoder_weights=encoder_weights,
+            encoder_depth=encoder_depth,
+            psp_out_channels=psp_out_channels,
+            psp_use_batchnorm=psp_use_batchnorm,
+            psp_dropout=psp_dropout,
+            in_channels=input_size[0],
+            classes=n_classes,
+            activation=activation,
+            upsampling=upsampling,
+            aux_params=aux_params,
         )
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
