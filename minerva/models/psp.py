@@ -105,7 +105,9 @@ class DownstreamPSP(smp.PSPNet, MinervaModel):
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:  # pragma: no cover
-            backbone = torch.load(backbone_weight_path)
+            backbone = torch.load(
+                backbone_weight_path, map_location=torch.device("cpu")
+            )
             self.encoder = backbone.encoder
             self.decoder = backbone.decoder
 
