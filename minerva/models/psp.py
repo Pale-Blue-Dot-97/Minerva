@@ -124,6 +124,8 @@ class DynamicPSP(smp.PSPNet):
             activation=activation,
             upsampling=upsampling,
             aux_params=aux_params,
+        )
+        MinervaModel.__init__(
             criterion=criterion,
             input_size=input_size,
             n_classes=n_classes,
