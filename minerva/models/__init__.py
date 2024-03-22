@@ -114,7 +114,7 @@ from .fcn import (
     FCN32ResNet34,
     FCN32ResNet50,
 )
-from .psp import PSPEncoder
+from .psp import DownstreamPSP, PSPEncoder
 from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNetX
 from .siamese import (
     MinervaSiamese,
