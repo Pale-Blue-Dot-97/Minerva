@@ -96,6 +96,7 @@ class DownstreamPSP(smp.PSPNet, MinervaModel):
             aux_params=aux_params,
         )
         MinervaModel.__init__(
+            self,
             criterion=criterion,
             input_size=input_size,
             n_classes=n_classes,
