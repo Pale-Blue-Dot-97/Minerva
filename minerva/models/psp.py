@@ -83,10 +83,6 @@ class DownstreamPSP(smp.PSPNet, MinervaModel):
         freeze_backbone: bool = False,
     ):
         super().__init__(
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            scaler=scaler,
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
             encoder_depth=encoder_depth,
@@ -98,6 +94,10 @@ class DownstreamPSP(smp.PSPNet, MinervaModel):
             activation=activation,
             upsampling=upsampling,
             aux_params=aux_params,
+            criterion=criterion,
+            input_size=input_size,
+            n_classes=n_classes,
+            scaler=scaler,
         )
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
