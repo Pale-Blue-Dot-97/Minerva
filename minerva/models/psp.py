@@ -34,14 +34,14 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "PSPEncoder",
-    "DownstreamPSP",
+    "DynamicPSP",
 ]
 
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, Optional, Tuple, Union
 
 import segmentation_models_pytorch as smp
 import torch
@@ -63,7 +63,43 @@ class PSPEncoder(smp.PSPNet):
         return z
 
 
-class DownstreamPSP(smp.PSPNet, MinervaModel):
+class DynamicPSP(smp.PSPNet, MinervaModel):
+    """Adaptation of the :class:`segmentation_models_pytorch.PSPNet` that also inherits :class:`~models.MinervaModel`.
+
+    Designed to be flexible and dynamic for pre-training and downstream applications.
+
+    Args:
+        criterion (~torch.nn.Module): :mod:`torch` loss function model will use.
+        input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
+            number of channels, image width, image height but may vary dependant on model specs.
+        n_classes (int): Number of classes in input data.
+        encoder_name (str): Name of the classification model that will be used as an encoder (a.k.a backbone)
+            to extract features of different spatial resolution
+        encoder_depth (int): A number of stages used in encoder in range [3, 5]. Each stage generate features
+            two times smaller in spatial dimensions than previous one (e.g. for depth 0 we will have features
+            with shapes [(N, C, H, W),], for depth 1 - [(N, C, H, W), (N, C, H // 2, W // 2)] and so on).
+            Default is 5
+        encoder_weights (str): One of **None** (random initialization), **"imagenet"** (pre-training on ImageNet) and
+            other pretrained weights (see table with available weights for each encoder_name)
+        psp_out_channels (int): A number of filters in Spatial Pyramid
+        psp_use_batchnorm (bool): If **True**, BatchNorm2d layer between Conv2D and Activation layers
+            is used. If **"inplace"** InplaceABN will be used, allows to decrease memory consumption.
+            Available options are **True, False, "inplace"**
+        psp_dropout (float): Spatial dropout rate in [0, 1) used in Spatial Pyramid
+        activation (str | callable): An activation function to apply after the final convolution layer.
+            Available options are **"sigmoid"**, **"softmax"**, **"logsoftmax"**, **"tanh"**, **"identity"**,
+                **callable** and **None**.
+            Default is **None**
+        upsampling (int): Final upsampling factor. Default is 8 to preserve input-output spatial shape identity
+        aux_params (dict): Dictionary with parameters of the auxiliary output (classification head).
+            Auxiliary output is build on top of encoder if **aux_params** is not **None** (default). Supported params:
+                - classes (int): A number of classes
+                - pooling (str): One of "max", "avg". Default is "avg"
+                - dropout (float): Dropout factor in [0, 1)
+                - activation (str): An activation function to apply "sigmoid"/"softmax"
+                    (could be **None** to return logits)
+    """
+
     def __init__(
         self,
         criterion: Optional[Module] = None,
@@ -78,9 +114,12 @@ class DownstreamPSP(smp.PSPNet, MinervaModel):
         psp_dropout: float = 0.2,
         activation: Optional[Union[str, callable]] = None,
         upsampling: int = 8,
-        aux_params: Optional[dict] = None,
+        aux_params: Optional[Dict[str, Any]] = None,
         backbone_weight_path=None,
         freeze_backbone: bool = False,
+        encoder: bool = False,
+        segmentation_on: bool = True,
+        classification_on: bool = False,
     ):
         super().__init__(
             encoder_name=encoder_name,
@@ -103,6 +142,10 @@ class DownstreamPSP(smp.PSPNet, MinervaModel):
             scaler=scaler,
         )
 
+        self.encoder_mode = encoder
+        self.segmentation_on = segmentation_on
+        self.classification_on = classification_on
+
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:  # pragma: no cover
             backbone = torch.load(
@@ -113,3 +156,46 @@ class DownstreamPSP(smp.PSPNet, MinervaModel):
 
             # Freezes the weights of backbone to avoid end-to-end training.
             self.backbone.requires_grad_(False if freeze_backbone else True)
+
+    def make_classification_head(self, aux_params: Dict[str, Any]) -> None:
+        # Makes the classification head.
+        self.classification_head = smp.base.ClassificationHead(
+            in_channels=self.encoder.out_channels[-1], **aux_params
+        )
+
+        # Initialise classification head weights.
+        smp.initialization.init.initialize_head(self.classification_head)
+
+        # Ensure the forward pass goes through the entire model.
+        self.encoder_mode = False
+        self.segmentation_on = True
+        self.classification_on = True
+
+    def set_encoder_mode(self, encode: bool) -> None:
+        self.encoder_mode = encode
+
+    def set_segmentation_on(self, on: bool) -> None:
+        self.segmentation_on = on
+
+    def set_classification_on(self, on: bool) -> None:
+        self.classification_on = on
+
+    def forward(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, ...]]:
+        f = self.encoder(x)
+
+        if self.encoder_mode:
+            return f[-1]
+
+        g = self.decoder(*f)
+
+        if self.segmentation_on:
+            masks = self.segmentation_head(g)
+
+        else:
+            return g
+
+        if self.classification_on:
+            labels = self.classification_head(f[-1])
+            return masks, labels
+
+        return masks
