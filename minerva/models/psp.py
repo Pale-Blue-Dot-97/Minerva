@@ -32,10 +32,7 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = [
-    "PSPEncoder",
-    "DynamicPSP",
-]
+__all__ = ["DynamicPSP"]
 
 
 # =====================================================================================================================
@@ -55,14 +52,6 @@ from minerva.models import MinervaModel
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class PSPEncoder(smp.PSPNet):
-    def forward(self, x: Tensor) -> Tensor:
-        f = self.encoder(x)
-        z = self.decoder(*f)
-        assert isinstance(z, Tensor)
-        return z
-
-
 class DynamicPSP(smp.PSPNet, MinervaModel):
     """Adaptation of the :class:`segmentation_models_pytorch.PSPNet` that also inherits :class:`~models.MinervaModel`.
 
