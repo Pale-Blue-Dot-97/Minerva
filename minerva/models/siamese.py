@@ -59,7 +59,7 @@ from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
-from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
+from .core import MinervaBackbone, MinervaModel, get_model
 from .psp import DynamicPSP
 
 
@@ -487,26 +487,16 @@ class SimConv(MinervaSiamese):
             criterion=criterion, input_size=input_size, scaler=scaler
         )
 
-        # Set of required kwargs for the `PSPNet` adapted from `minerva` style kwargs.
-        new_kwargs = {
-            "encoder_name": self.backbone_name,
-            "psp_out_channels": feature_dim,
-            "input_size": input_size,
-            "encoder_weights": None,
-            "encoder_depth": 5,
-        }
-
-        # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
-        if backbone_kwargs is not None:
-            new_kwargs.update(backbone_kwargs)
-
-        self.backbone = MinervaWrapper(
-            DynamicPSP,
-            input_size=input_size,
-            criterion=None,
-            n_classes=None,
-            scaler=None,
-            **new_kwargs,
+        self.backbone = DynamicPSP(
+            in_channels=input_size[0],
+            encoder_name=self.backbone_name,
+            psp_out_channels=feature_dim,
+            encoder_weights=None,
+            encoder_depth=5,
+            encoder=False,
+            segmentation_on=False,
+            classification_on=False,
+            **backbone_kwargs,
         )
 
         self.proj_head = nn.Sequential(
