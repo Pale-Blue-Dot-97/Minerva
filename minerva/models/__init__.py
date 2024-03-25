@@ -57,7 +57,6 @@ __all__ = [
     "FCN32ResNet18",
     "FCN32ResNet34",
     "FCN32ResNet50",
-    "PSPEncoder",
     "DynamicPSP",
     "ResNetX",
     "ResNet18",
@@ -115,7 +114,7 @@ from .fcn import (
     FCN32ResNet34,
     FCN32ResNet50,
 )
-from .psp import DynamicPSP, PSPEncoder
+from .psp import DynamicPSP
 from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNetX
 from .siamese import (
     MinervaSiamese,

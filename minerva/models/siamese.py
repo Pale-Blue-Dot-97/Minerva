@@ -60,7 +60,7 @@ from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
 from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
-from .psp import PSPEncoder
+from .psp import DynamicPSP
 
 
 # =====================================================================================================================
@@ -491,7 +491,7 @@ class SimConv(MinervaSiamese):
         new_kwargs = {
             "encoder_name": self.backbone_name,
             "psp_out_channels": feature_dim,
-            "in_channels": input_size[0],
+            "input_size": input_size,
             "encoder_weights": None,
             "encoder_depth": 5,
         }
@@ -501,7 +501,7 @@ class SimConv(MinervaSiamese):
             new_kwargs.update(backbone_kwargs)
 
         self.backbone = MinervaWrapper(
-            PSPEncoder,
+            DynamicPSP,
             input_size=input_size,
             criterion=None,
             n_classes=None,
