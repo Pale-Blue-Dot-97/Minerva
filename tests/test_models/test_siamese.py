@@ -134,7 +134,7 @@ def test_simsiam() -> None:
 def test_simconv() -> None:
     loss_func = SegBarlowTwinsLoss()
 
-    input_size = (4, 32, 32)
+    input_size = (4, 64, 64)
 
     x = torch.rand((3, *input_size))
 
@@ -146,10 +146,10 @@ def test_simconv() -> None:
     model.set_optimiser(optimiser)
 
     model.determine_output_dim(sample_pairs=True)
-    assert model.output_shape == (512, input_size[1], input_size[2])
+    assert model.output_shape == (512, input_size[1] / 4, input_size[2] / 4)
 
     loss, z = model.step(x, train=True)
 
     assert type(loss.item()) is float
     assert isinstance(z, torch.Tensor)
-    assert z.size() == (6, 512, input_size[1], input_size[2])
+    assert z.size() == (6, 512, input_size[1] / 4, input_size[2] / 4)

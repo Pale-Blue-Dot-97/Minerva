@@ -24,7 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-"""Module containing PSPNetss adapted for use in :mod:`minerva`."""
+"""Module containing a PSPNet adapted for use in :mod:`minerva`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -42,25 +42,19 @@ from typing import Any, Dict, Optional, Tuple, Union
 
 import segmentation_models_pytorch as smp
 import torch
+from segmentation_models_pytorch.base import ClassificationHead, SegmentationHead
 from torch import Tensor
-from torch.cuda.amp.grad_scaler import GradScaler
-from torch.nn.modules import Module
-
-from minerva.models import MinervaModel
 
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class DynamicPSP(smp.PSPNet, MinervaModel):
-    """Adaptation of the :class:`segmentation_models_pytorch.PSPNet` that also inherits :class:`~models.MinervaModel`.
+class DynamicPSP(smp.PSPNet):
+    """Adaptation of the :class:`segmentation_models_pytorch.PSPNet`.
 
     Designed to be flexible and dynamic for pre-training and downstream applications.
 
     Args:
-        criterion (~torch.nn.Module): :mod:`torch` loss function model will use.
-        input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
-            number of channels, image width, image height but may vary dependant on model specs.
         n_classes (int): Number of classes in input data.
         encoder_name (str): Name of the classification model that will be used as an encoder (a.k.a backbone)
             to extract features of different spatial resolution
@@ -75,6 +69,8 @@ class DynamicPSP(smp.PSPNet, MinervaModel):
             is used. If **"inplace"** InplaceABN will be used, allows to decrease memory consumption.
             Available options are **True, False, "inplace"**
         psp_dropout (float): Spatial dropout rate in [0, 1) used in Spatial Pyramid
+        in_channels (int): Optional; Defines the shape of the input data. Typically in order of
+            number of channels, image width, image height but may vary dependant on model specs.
         activation (str | callable): An activation function to apply after the final convolution layer.
             Available options are **"sigmoid"**, **"softmax"**, **"logsoftmax"**, **"tanh"**, **"identity"**,
                 **callable** and **None**.
@@ -84,32 +80,30 @@ class DynamicPSP(smp.PSPNet, MinervaModel):
             Auxiliary output is build on top of encoder if **aux_params** is not **None** (default). Supported params:
                 - classes (int): A number of classes
                 - pooling (str): One of "max", "avg". Default is "avg"
-                - dropout (float): Dropout factor in [0, 1)
+                - dropout (float): Dropout factor in [0, 1]
                 - activation (str): An activation function to apply "sigmoid"/"softmax"
                     (could be **None** to return logits)
     """
 
     def __init__(
         self,
-        criterion: Optional[Module] = None,
-        input_size: Optional[Tuple[int, ...]] = None,
-        n_classes: Optional[int] = None,
-        scaler: Optional[GradScaler] = None,
         encoder_name: str = "resnet34",
         encoder_weights: Optional[str] = "imagenet",
         encoder_depth: int = 5,
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
+        in_channels: int = None,
+        n_classes: int = 1,
         activation: Optional[Union[str, callable]] = None,
         upsampling: int = 8,
         aux_params: Optional[Dict[str, Any]] = None,
-        backbone_weight_path=None,
+        backbone_weight_path: str = None,
         freeze_backbone: bool = False,
         encoder: bool = False,
         segmentation_on: bool = True,
         classification_on: bool = False,
-    ):
+    ) -> None:
         super().__init__(
             encoder_name=encoder_name,
             encoder_weights=encoder_weights,
@@ -117,23 +111,18 @@ class DynamicPSP(smp.PSPNet, MinervaModel):
             psp_out_channels=psp_out_channels,
             psp_use_batchnorm=psp_use_batchnorm,
             psp_dropout=psp_dropout,
-            in_channels=input_size[0],
+            in_channels=in_channels,
             classes=n_classes,
             activation=activation,
             upsampling=upsampling,
             aux_params=aux_params,
         )
-        MinervaModel.__init__(
-            self,
-            criterion=criterion,
-            input_size=input_size,
-            n_classes=n_classes,
-            scaler=scaler,
-        )
 
         self.encoder_mode = encoder
         self.segmentation_on = segmentation_on
         self.classification_on = classification_on
+
+        self.psp_out_channels = psp_out_channels
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:  # pragma: no cover
@@ -146,9 +135,23 @@ class DynamicPSP(smp.PSPNet, MinervaModel):
             # Freezes the weights of backbone to avoid end-to-end training.
             self.backbone.requires_grad_(False if freeze_backbone else True)
 
+    def make_segmentation_head(
+        self,
+        n_classes: int,
+        activation: Optional[Union[str, callable]] = None,
+        upsampling: int = 8,
+    ) -> None:
+        self.segmentation_head = SegmentationHead(
+            in_channels=self.psp_out_channels,
+            out_channels=n_classes,
+            kernel_size=3,
+            activation=activation,
+            upsampling=upsampling,
+        )
+
     def make_classification_head(self, aux_params: Dict[str, Any]) -> None:
         # Makes the classification head.
-        self.classification_head = smp.base.ClassificationHead(
+        self.classification_head = ClassificationHead(
             in_channels=self.encoder.out_channels[-1], **aux_params
         )
 
