@@ -60,7 +60,7 @@ from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
 from .core import MinervaBackbone, MinervaModel, get_model
-from .psp import DynamicPSP
+from .psp import MinervaPSP
 
 
 # =====================================================================================================================
@@ -487,8 +487,8 @@ class SimConv(MinervaSiamese):
             criterion=criterion, input_size=input_size, scaler=scaler
         )
 
-        self.backbone = DynamicPSP(
-            in_channels=input_size[0],
+        self.backbone = MinervaPSP(
+            input_size=input_size,
             encoder_name=self.backbone_name,
             psp_out_channels=feature_dim,
             encoder_weights=None,
