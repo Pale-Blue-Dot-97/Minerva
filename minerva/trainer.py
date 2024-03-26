@@ -761,6 +761,11 @@ class Trainer:
             with open(f"{self.exp_fn}.yml", "w") as outfile:
                 yaml.dump(self.params, outfile)
 
+            try:
+                assert self.exp_fn.append_suffix("yml").exists()
+            except AssertionError:
+                print(f"Failed to save config file to {self.exp_fn}.yml!")
+
             # Checks whether to save the model parameters to file.
             if self.params.get("save_model", False) in (
                 "opt",
