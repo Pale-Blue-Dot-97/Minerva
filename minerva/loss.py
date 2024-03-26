@@ -31,7 +31,7 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["SegBarlowTwinsLoss"]
+__all__ = ["SegBarlowTwinsLoss", "AuxCELoss"]
 
 # =====================================================================================================================
 #                                                     IMPORTS
@@ -39,6 +39,8 @@ __all__ = ["SegBarlowTwinsLoss"]
 import importlib
 
 from torch import Tensor
+from torch.nn import CrossEntropyLoss
+from torch.nn.modules import Module
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 
 # Needed to avoid connection error when importing lightly.
@@ -77,3 +79,33 @@ class SegBarlowTwinsLoss(BarlowTwinsLoss):
         loss = super().forward(z_a, z_b)
         assert isinstance(loss, Tensor)
         return loss
+
+
+class AuxCELoss(Module):
+    """Cross Entropy loss for using auxilary inputs for use in PSPNets.
+
+    Adapted from the PSPNet paper and for use in PyTorch.
+
+    Source: https://github.com/xitongpu/PSPNet/blob/main/src/model/cell.py
+    """
+
+    def __init__(self, ignore_index=255) -> None:
+        super().__init__()
+        self.loss = CrossEntropyLoss(ignore_index=ignore_index)
+
+    def forward(self, net_out: Tensor, target: Tensor) -> Tensor:
+        # If length of ``net_out==2``, assume it is a tuple of the output of
+        # the segmentation head (predict) and the classification head (predict_aux).
+        if len(net_out) == 2:
+            predict_aux, predict = net_out
+
+            # Calculate the CrossEntropyLoss of both outputs.
+            CE_loss = self.loss(predict, target)
+            CE_loss_aux = self.loss(predict_aux, target)
+
+            # Weighted sum the losses together and return
+            return CE_loss + (0.4 * CE_loss_aux)
+
+        # Else, assume this is just the loss from the segmentation head
+        # so perform a standard CrossEntropyLoss op.
+        return self.loss(net_out, target)
