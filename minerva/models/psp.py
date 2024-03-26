@@ -32,7 +32,7 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["DynamicPSP"]
+__all__ = ["DynamicPSP", "MinervaPSP"]
 
 
 # =====================================================================================================================
@@ -153,6 +153,9 @@ class DynamicPSP(smp.PSPNet):
             upsampling=upsampling,
         )
 
+        self.encoder_mode = False
+        self.segmentation_on = True
+
     def make_classification_head(self, aux_params: Dict[str, Any]) -> None:
         # Makes the classification head.
         self.classification_head = ClassificationHead(
@@ -160,7 +163,7 @@ class DynamicPSP(smp.PSPNet):
         )
 
         # Initialise classification head weights.
-        smp.initialization.init.initialize_head(self.classification_head)
+        smp.base.initialization.initialize_head(self.classification_head)
 
         # Ensure the forward pass goes through the entire model.
         self.encoder_mode = False
