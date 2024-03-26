@@ -939,8 +939,8 @@ class Trainer:
         except FileExistsError:
             pass
 
-        torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}.pt")
-        torch.save(pre_trained_backbone.state_dict(), f"{self.exp_fn}.pt")
+        torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-backbone.pt")
+        torch.save(pre_trained_backbone.state_dict(), f"{self.exp_fn}-backbone.pt")
 
     def run_tensorboard(self) -> None:
         """Opens :mod:`tensorboard` log of the current experiment in a locally hosted webpage."""
