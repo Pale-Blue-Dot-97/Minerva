@@ -448,6 +448,16 @@ class SSLTaskLogger(MinervaTaskLogger):
             **params,
         )
 
+        # Delete space in the metrics log for metrics that will not be calculated for Siamese models.
+        if check_substrings_in_string(self.model_type, "siamese"):
+            del self.metrics[f"{self.task_name}_acc"]
+            del self.metrics[f"{self.task_name}_top5_acc"]
+
+        # Delete space in the metrics log for metrics that will not be calculated if NOT a Siamese model.
+        if not self.sample_pairs:
+            del self.metrics[f"{self.task_name}_collapse_level"]
+            del self.metrics[f"{self.task_name}_euc_dist"]
+
     def _calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
