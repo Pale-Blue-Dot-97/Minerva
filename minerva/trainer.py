@@ -924,6 +924,7 @@ class Trainer:
             pass
 
         torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}.pt")
+        torch.save(pre_trained_backbone.state_dict(), f"{self.exp_fn}.pt")
 
     def run_tensorboard(self) -> None:
         """Opens :mod:`tensorboard` log of the current experiment in a locally hosted webpage."""
