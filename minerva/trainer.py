@@ -268,7 +268,7 @@ class Trainer:
         self.fine_tune = self.params.get("fine_tune", False)
 
         # Sets the timestamp of the experiment.
-        self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
+        self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M%S")
 
         # Sets experiment name and adds this to the path to the results' directory.
         self.params["exp_name"] = "{}_{}".format(
