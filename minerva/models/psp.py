@@ -44,6 +44,10 @@ import segmentation_models_pytorch as smp
 import torch
 from segmentation_models_pytorch.base import ClassificationHead, SegmentationHead
 from torch import Tensor
+from torch.cuda.amp.grad_scaler import GradScaler
+from torch.nn.modules import Module
+
+from minerva.models import MinervaWrapper
 
 
 # =====================================================================================================================
@@ -191,3 +195,49 @@ class DynamicPSP(smp.PSPNet):
             return masks, labels
 
         return masks
+
+
+class MinervaPSP(MinervaWrapper):
+    def __init__(
+        self,
+        criterion: Optional[Module] = None,
+        input_size: Optional[Tuple[int, ...]] = None,
+        n_classes: Optional[int] = None,
+        scaler: Optional[GradScaler] = None,
+        encoder_name: str = "resnet34",
+        encoder_weights: Optional[str] = "imagenet",
+        encoder_depth: int = 5,
+        psp_out_channels: int = 512,
+        psp_use_batchnorm: bool = True,
+        psp_dropout: float = 0.2,
+        activation: Optional[Union[str, callable]] = None,
+        upsampling: int = 8,
+        aux_params: Optional[Dict[str, Any]] = None,
+        backbone_weight_path: str = None,
+        freeze_backbone: bool = False,
+        encoder: bool = False,
+        segmentation_on: bool = True,
+        classification_on: bool = False,
+    ) -> None:
+        super().__init__(
+            DynamicPSP,
+            criterion=criterion,
+            input_size=input_size,
+            scaler=scaler,
+            encoder_name=encoder_name,
+            encoder_weights=encoder_weights,
+            encoder_depth=encoder_depth,
+            psp_out_channels=psp_out_channels,
+            psp_use_batchnorm=psp_use_batchnorm,
+            psp_dropout=psp_dropout,
+            in_channels=input_size[0],
+            n_classes=n_classes,
+            activation=activation,
+            upsampling=upsampling,
+            aux_params=aux_params,
+            backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
+            encoder=encoder,
+            segmentation_on=segmentation_on,
+            classification_on=classification_on,
+        )
