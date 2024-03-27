@@ -38,6 +38,7 @@ __all__ = ["SegBarlowTwinsLoss", "AuxCELoss"]
 # =====================================================================================================================
 import importlib
 
+import torch
 from torch import Tensor
 from torch.nn import CrossEntropyLoss
 from torch.nn.modules import Module
@@ -89,22 +90,25 @@ class AuxCELoss(Module):
     Source: https://github.com/xitongpu/PSPNet/blob/main/src/model/cell.py
     """
 
-    def __init__(self, ignore_index=255) -> None:
+    def __init__(self, ignore_index=255, alpha: int = 0.4) -> None:
         super().__init__()
         self.loss = CrossEntropyLoss(ignore_index=ignore_index)
+        self.alpha = alpha
 
     def forward(self, net_out: Tensor, target: Tensor) -> Tensor:
         # If length of ``net_out==2``, assume it is a tuple of the output of
         # the segmentation head (predict) and the classification head (predict_aux).
         if len(net_out) == 2:
-            predict_aux, predict = net_out
+            predicted_masks, predicted_labels = net_out
+
+            labels = torch.mode(torch.flatten(target, start_dim=1)).values
 
             # Calculate the CrossEntropyLoss of both outputs.
-            CE_loss = self.loss(predict, target)
-            CE_loss_aux = self.loss(predict_aux, target)
+            CE_loss = self.loss(predicted_masks, target)
+            CE_loss_aux = self.loss(predicted_labels, labels)
 
             # Weighted sum the losses together and return
-            return CE_loss + (0.4 * CE_loss_aux)
+            return CE_loss + (self.alpha * CE_loss_aux)
 
         # Else, assume this is just the loss from the segmentation head
         # so perform a standard CrossEntropyLoss op.
