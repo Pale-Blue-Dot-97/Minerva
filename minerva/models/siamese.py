@@ -590,3 +590,21 @@ class SimConv(MinervaSiamese):
                 self.optimiser.step()
 
         return loss, z
+
+
+class SimConv18(SimConv):
+    """:class:`SimConv` network using a ResNet18 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet18"
+
+
+class SimConv34(SimConv):
+    """:class:`SimConv` network using a ResNet34 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet34"
+
+
+class SimConv50(SimConv):
+    """:class:`SimConv` network using a ResNet50 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet50"
