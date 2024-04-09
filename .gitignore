@@ -147,9 +147,10 @@ dmypy.json
 !tests/fixtures/data/**/*.tif
 
 lightning_logs/
-data/*
-results/*
-cache/*
+**/data/*
+**/results/*
+**/cache/*
+**/outputs/*
 tests/tmp/cache/*
 tests/tmp/results/*
 user_cfgs/*
