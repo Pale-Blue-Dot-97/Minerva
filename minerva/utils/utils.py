@@ -49,13 +49,6 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "IMAGERY_CONFIG_PATH",
-    "DATA_CONFIG_PATH",
-    "DATA_CONFIG",
-    "IMAGERY_CONFIG",
-    "CLASSES",
-    "CONFIG",
-    "CMAP_DICT",
     "return_updated_kwargs",
     "pair_collate",
     "dublicator",
@@ -71,7 +64,6 @@ __all__ = [
     "check_dict_key",
     "check_substrings_in_string",
     "datetime_reformat",
-    "get_dataset_name",
     "transform_coordinates",
     "check_within_bounds",
     "deg_to_dms",
@@ -84,7 +76,6 @@ __all__ = [
     "class_weighting",
     "find_empty_classes",
     "eliminate_classes",
-    "load_data_specs",
     "class_transform",
     "mask_transform",
     "check_test_empty",
@@ -124,7 +115,6 @@ import json
 import math
 import os
 import random
-import re as regex
 import shlex
 import sys
 import webbrowser
@@ -139,7 +129,6 @@ from typing import (
     Dict,
     Iterable,
     List,
-    Match,
     Optional,
     Sequence,
     Tuple,
@@ -176,57 +165,11 @@ from torchgeo.datasets.utils import BoundingBox
 from urllib3.exceptions import NewConnectionError
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
-from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, visutils
+from minerva.utils import universal_path, visutils
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
-    "imagery_config"
-]
-
-DATA_CONFIG_PATH: Optional[Path]
-_data_config_path: Optional[Union[str, Path]] = CONFIG["dir"]["configs"].get(
-    "data_config"
-)
-if _data_config_path:
-    DATA_CONFIG_PATH = universal_path(_data_config_path)
-else:  # pragma: no cover
-    assert _data_config_path is None
-    DATA_CONFIG_PATH = _data_config_path
-
-DATA_CONFIG: Optional[Dict[str, Any]] = AUX_CONFIGS.get("data_config")
-IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
-
-# Path to directory holding dataset.
-DATA_DIR: Path = universal_path(CONFIG["dir"]["data"])
-
-# Path to cache directory.
-CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
-
-# Path to directory to output plots to.
-RESULTS_DIR: Path = universal_path(CONFIG["dir"]["results"])
-
-# Band IDs and position in sample image.
-BAND_IDS: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
-    "band_ids"
-]
-
-# Defines size of the images to determine the number of batches.
-IMAGE_SIZE: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
-    "image_size"
-]
-
-CLASSES: Dict[int, str]
-CMAP_DICT: Dict[int, str]
-
-if DATA_CONFIG:
-    CLASSES = DATA_CONFIG["classes"]
-    CMAP_DICT = DATA_CONFIG["colours"]
-else:  # pragma: no cover
-    CLASSES = {}
-    CMAP_DICT = {}
-
 # WGS84 co-ordinate reference system acting as a default CRS for transformations.
 WGS84: CRS = CRS.from_epsg(4326)
 
@@ -557,18 +500,20 @@ def exist_delete_check(fn: Union[str, Path]) -> None:
     Path(fn).unlink(missing_ok=True)
 
 
-def mkexpdir(name: str) -> None:
+def mkexpdir(name: str, results_dir: Union[Path, str] = "results") -> None:
     """Makes a new directory below the results directory with name provided. If directory already exists,
     no action is taken.
 
     Args:
         name (str): Name of new directory.
+        results_dir (~pathlib.Path | str): Path to the results directory. Defaults to ``results``.
 
     Returns:
         None
     """
+    results_dir = universal_path(results_dir)
     try:
-        (RESULTS_DIR / name).mkdir(parents=True)
+        (results_dir / name).mkdir(parents=True)
     except FileExistsError:
         pass
 
@@ -639,32 +584,6 @@ def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
         str: Datetime reformatted to ``fmt2``.
     """
     return datetime.strptime(timestamp, fmt1).strftime(fmt2)
-
-
-def get_dataset_name() -> Optional[Union[str, Any]]:
-    """Gets the name of the dataset to be used from the config name.
-
-    Returns:
-        ~typing.Optional[str | ~typing.Any]: Name of dataset as string.
-    """
-    data_config_fn: str = ""
-    try:
-        assert DATA_CONFIG_PATH is not None
-        data_config_fn = DATA_CONFIG_PATH.name
-    except AssertionError as err:  # pragma: no cover
-        print(err)
-        print(
-            "DATA_CONFIG_PATH is empty! This is needed here to obtain the dataset name."
-            + "\nSpecify the path to the data config in the experiment config"
-        )
-
-    match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
-
-    if match is None:  # pragma: no cover
-        print("\nDataset not found!")
-        return None
-    else:
-        return match.group(1)
 
 
 @overload
@@ -927,7 +846,7 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
     return ohe_labels
 
 
-def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor:
+def mask_to_ohe(mask: LongTensor, n_classes: int) -> LongTensor:
     """Converts a segmentation mask to one-hot-encoding (OHE).
 
     Args:
@@ -947,9 +866,6 @@ def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor
 
     .. versionadded:: 0.23
     """
-    if not n_classes:
-        n_classes = len(CLASSES)
-
     ohe_mask = torch.movedim(F.one_hot(mask, num_classes=n_classes), 2, 0)
     assert isinstance(ohe_mask, LongTensor)
     return ohe_mask
@@ -990,9 +906,7 @@ def class_weighting(
     return class_weights
 
 
-def find_empty_classes(
-    class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = CLASSES
-) -> List[int]:
+def find_empty_classes(class_dist: List[Tuple[int, int]], class_names: Dict[int, str]) -> List[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
     Args:
@@ -1016,7 +930,7 @@ def find_empty_classes(
 
 def eliminate_classes(
     empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any, Int]],
-    old_classes: Optional[Dict[int, str]] = None,
+    old_classes: Dict[int, str],
     old_cmap: Optional[Dict[int, str]] = None,
 ) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
@@ -1034,10 +948,8 @@ def eliminate_classes(
             * Mapping from old to new classes.
             * Mapping of remaining class labels to RGB colours.
     """
-    if old_classes is None:
-        old_classes = CLASSES
     if old_cmap is None:
-        old_cmap = CMAP_DICT
+        old_cmap = {}
 
     if len(empty_classes) == 0:
         return old_classes, {}, old_cmap
@@ -1088,27 +1000,6 @@ def eliminate_classes(
         return reordered_classes, conversion, reordered_colours
 
 
-def load_data_specs(
-    class_dist: List[Tuple[int, int]], elim: bool = False
-) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
-    """Loads the ``classes``, ``forwards`` (if ``elim`` is true) and ``cmap_dict`` dictionaries.
-
-    Args:
-        class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
-            from :func:`Counter.most_common`.
-        elim (bool): Whether to eliminate classes with no samples in.
-
-    Returns:
-        tuple[dict[int, str], dict[int, int], dict[int, str]]: The ``classes``, ``forwards`` and ``cmap_dict``
-        dictionaries transformed to new classes if ``elim`` is true. Else, the ``forwards`` dict is empty
-        and ``classes`` and ``cmap_dict`` are unaltered.
-    """
-    if elim:
-        return eliminate_classes(find_empty_classes(class_dist=class_dist))
-    else:
-        return CLASSES, {}, CMAP_DICT
-
-
 def class_transform(label: int, matrix: Dict[int, int]) -> int:
     """Transforms labels from one schema to another mapped by a supplied dictionary.
 
@@ -1156,7 +1047,7 @@ def mask_transform(
 def check_test_empty(
     pred: Union[Sequence[int], NDArray[Any, Int]],
     labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_labels: Dict[int, str],
+    class_labels: Optional[Dict[int, str]] = None,
     p_dist: bool = True,
 ) -> Tuple[NDArray[Any, Int], NDArray[Any, Int], Dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
@@ -1165,7 +1056,7 @@ def check_test_empty(
     Args:
         pred (~typing.Sequence[int] | ~numpy.ndarray[int]): List of predicted labels.
         labels (~typing.Sequence[int] | ~numpy.ndarray[int]): List of corresponding ground truth labels.
-        class_labels (dict[int, str]): Dictionary mapping class labels to class names.
+        class_labels (dict[int, str]): Optional; Dictionary mapping class labels to class names.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
@@ -1177,6 +1068,10 @@ def check_test_empty(
     # Finds the distribution of the classes within the data.
     labels_dist = find_modes(labels)
     pred_dist = find_modes(pred)
+
+    if class_labels is None:
+        class_numbers = [x[0] for x in labels_dist]
+        class_labels = {i: f"class {i}" for i in class_numbers}
 
     if p_dist:
         # Prints class distributions of ground truth and predicted labels to stdout.
@@ -1316,7 +1211,11 @@ def timestamp_now(fmt: str = "%d-%m-%Y_%H%M") -> str:
     return datetime.now().strftime(fmt)
 
 
-def find_modes(labels: Iterable[int], plot: bool = False) -> List[Tuple[int, int]]:
+def find_modes(
+    labels: Iterable[int], plot: bool = False,
+    classes: Optional[Dict[int, str]] = None,
+    cmap_dict: Optional[Dict[int, str]] = None,
+) -> List[Tuple[int, int]]:
     """Finds the modal distribution of the classes within the labels provided.
 
     Can plot the results as a pie chart if ``plot=True``.
@@ -1336,14 +1235,14 @@ def find_modes(labels: Iterable[int], plot: bool = False) -> List[Tuple[int, int
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
         visutils.plot_subpopulations(
-            class_dist, class_names=CLASSES, cmap_dict=CMAP_DICT, save=False, show=True
+            class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True
         )
 
     return class_dist
 
 
 def modes_from_manifest(
-    manifest: DataFrame, plot: bool = False
+    manifest: DataFrame, classes: Dict[int, str], plot: bool = False, cmap_dict: Optional[Dict[int, str]] = None,
 ) -> List[Tuple[int, int]]:
     """Uses the dataset manifest to calculate the fractional size of the classes.
 
@@ -1363,7 +1262,7 @@ def modes_from_manifest(
             return manifest[f"{cls}"].sum() / len(manifest)
 
     class_counter: CounterType[int] = Counter()
-    for classification in CLASSES.keys():
+    for classification in classes.keys():
         try:
             count = count_samples(classification)
             if count == 0.0 or count == 0:
@@ -1377,7 +1276,7 @@ def modes_from_manifest(
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
         visutils.plot_subpopulations(
-            class_dist, class_names=CLASSES, cmap_dict=CMAP_DICT, save=False, show=True
+            class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True
         )
 
     return class_dist
@@ -1460,14 +1359,14 @@ def calc_grad(model: Module) -> Optional[float]:
 
 
 def print_class_dist(
-    class_dist: List[Tuple[int, int]], class_labels: Dict[int, str] = CLASSES
+    class_dist: List[Tuple[int, int]], class_labels: Optional[Dict[int, str]] = None,
 ) -> None:
     """Prints the supplied ``class_dist`` in a pretty table format using :mod:`tabulate`.
 
     Args:
         class_dist (list[tuple[int, int]]): 2D iterable which should be of the form as that
             created from :meth:`collections.Counter.most_common`.
-        class_labels (dict[int, str]): Mapping of class labels to class names.
+        class_labels (dict[int, str]): Optional; Mapping of class labels to class names.
 
     """
 
@@ -1482,6 +1381,10 @@ def print_class_dist(
             str: Formatted string of the percentage size to 2 decimal places.
         """
         return "{:.2f}%".format(count * 100.0 / total)
+
+    if class_labels is None:
+        class_numbers = [x[0] for x in class_dist]
+        class_labels = {i: f"class {i}" for i in class_numbers}
 
     # Convert class_dist to dict with class labels.
     rows = [
@@ -1529,7 +1432,7 @@ def batch_flatten(
 def make_classification_report(
     pred: Union[Sequence[int], NDArray[Any, Int]],
     labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_labels: Dict[int, str],
+    class_labels: Optional[Dict[int, str]] = None,
     print_cr: bool = True,
     p_dist: bool = False,
 ) -> DataFrame:
@@ -1636,7 +1539,7 @@ def calc_contrastive_acc(z: Tensor) -> Tensor:
 
 def run_tensorboard(
     exp_name: str,
-    path: Optional[Union[str, List[str], Tuple[str, ...], Path]] = None,
+    path: Union[str, List[str], Tuple[str, ...], Path] = "",
     env_name: str = "env",
     host_num: Union[str, int] = 6006,
     _testing: bool = False,
@@ -1656,14 +1559,6 @@ def run_tensorboard(
     Returns:
         int | None: Exitcode for testing purposes. ``None`` under normal use.
     """
-    if not path:
-        try:
-            path = universal_path(CONFIG["dir"]["results"]).parent
-        except KeyError:
-            print("KeyError: Path not specified and default cannot be found.")
-            print("ABORT OPERATION")
-            return None
-
     # Get current working directory.
     cwd = os.getcwd()
 
@@ -1857,15 +1752,12 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     )
 
 
-def print_config(conf: Optional[Dict[Any, Any]] = None) -> None:
+def print_config(conf: Dict[Any, Any]) -> None:
     """Print function for the configuration file using ``YAML`` dump.
 
     Args:
         conf (dict[str, ~typing.Any]]): Optional; Config file to print. If ``None``, uses the ``global`` config.
     """
-    if conf is None:
-        conf = CONFIG
-
     print(yaml.dump(conf))
 
 

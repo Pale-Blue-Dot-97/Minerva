@@ -24,9 +24,6 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Functionality for constructing datasets, manifests and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
-
-Attributes:
-    IMAGERY_CONFIG (dict[str, ~typing.Any]): Config defining the properties of the imagery used in the experiment.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -39,7 +36,6 @@ __all__ = [
     "construct_dataloader",
     "make_dataset",
     "make_loaders",
-    "get_manifest_path",
     "get_manifest",
     "make_manifest",
 ]
@@ -67,7 +63,7 @@ from torchgeo.datasets import GeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 
 from minerva.transforms import init_auto_norm, make_transformations
-from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
+from minerva.utils import universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
 from .paired import PairedDataset
@@ -79,14 +75,6 @@ from .utils import (
     make_bounding_box,
     unionise_datasets,
 )
-
-# =====================================================================================================================
-#                                                     GLOBALS
-# =====================================================================================================================
-IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
-
-# Path to cache directory.
-CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
 
 
 # =====================================================================================================================
@@ -138,6 +126,7 @@ def get_subdataset(
     transformations: Optional[Any],
     sample_pairs: bool = False,
     cache: bool = True,
+    cache_dir: Union[str, Path] = "",
 ) -> GeoDataset:
     """Get a subdataset based on the parameters specified.
 
@@ -174,7 +163,7 @@ def get_subdataset(
     if cache or sub_dataset_params.get("cache_dataset"):
         this_hash = utils.make_hash(sub_dataset_params)
 
-        cached_dataset_path = Path(CACHE_DIR) / f"{this_hash}.obj"
+        cached_dataset_path = universal_path(cache_dir) / f"{this_hash}.obj"
 
         if cached_dataset_path.exists():
             sub_dataset = load_dataset_from_cache(cached_dataset_path)
@@ -496,6 +485,15 @@ def make_loaders(
     model_type = utils.fallback_params("model_type", task_params, params)
     class_dist: List[Tuple[int, int]] = [(0, 0)]
 
+    classes = utils.fallback_params("classes", task_params, params, None)
+    cmap_dict = utils.fallback_params("colours", task_params, params, None)
+
+    # If no taxonomy is specified, create a basic one from the ``n_classes`` (if given).
+    if classes is None:
+        n_classes = utils.fallback_params("n_classes", task_params, params)
+        if n_classes:
+            classes = {i: f"class {i}" for i in range(n_classes)}
+
     new_classes: Dict[int, str] = {}
     new_colours: Dict[int, str] = {}
     forwards: Dict[int, int] = {}
@@ -511,14 +509,15 @@ def make_loaders(
 
     if not utils.check_substrings_in_string(model_type, "siamese"):
         # Load manifest from cache for this dataset.
-        manifest = get_manifest(get_manifest_path(), task_name)
-        class_dist = utils.modes_from_manifest(manifest)
+        manifest = get_manifest(params["dir"]["cache"], task_name)
+        class_dist = utils.modes_from_manifest(manifest, classes)
 
         # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
         # and new colours.
-        new_classes, forwards, new_colours = utils.load_data_specs(
-            class_dist=class_dist,
-            elim=elim,
+        new_classes, forwards, new_colours = utils.eliminate_classes(
+            utils.find_empty_classes(class_dist, classes),
+            classes,
+            cmap_dict,
         )
 
     n_batches: Union[Dict[str, int], int]
@@ -624,22 +623,23 @@ def make_loaders(
         task_params["classes"] = new_classes
         task_params["colours"] = new_colours
 
-    task_params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
+    if task_params.get("max_pixel_value") is None:
+        task_params["max_pixel_value"] = params.get("max_pixel_value", 256)
 
     return loaders, n_batches, class_dist, task_params
 
 
-def get_manifest_path() -> str:
-    """Gets the path to the manifest for the dataset to be used.
+# def get_manifest_path() -> str:
+#     """Gets the path to the manifest for the dataset to be used.
 
-    Returns:
-        str: Path to manifest as string.
-    """
-    return str(Path(CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"))
+#     Returns:
+#         str: Path to manifest as string.
+#     """
+#     return str(Path(CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"))
 
 
 def get_manifest(
-    manifest_path: Union[str, Path], task_name: Optional[str] = None
+    manifest_path: Union[str, Path], task_name: Optional[str] = None, cfg: Optional[Dict[str, Any]] = None,
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
@@ -670,7 +670,8 @@ def get_manifest(
         print(err)
 
         print("CONSTRUCTING MISSING MANIFEST")
-        mf_config = CONFIG.copy()
+        assert cfg
+        mf_config = cfg.copy()
 
         manifest = make_manifest(mf_config, task_name)
 
