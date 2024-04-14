@@ -64,8 +64,10 @@ import torch.multiprocessing as mp
 import wandb
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
+import hydra
+from omegaconf import DictConfig, OmegaConf
 
-from minerva.utils import CONFIG, MASTER_PARSER, utils
+from minerva.utils import MASTER_PARSER, DEFAULT_CONFIG_NAME, DEFAULT_CONF_DIR_PATH, utils
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -336,7 +338,7 @@ def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
     pass
 
 
-def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisabled]]:
+def setup_wandb_run(gpu: int, args: Namespace, cfg) -> Optional[Union[Run, RunDisabled]]:
     """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
 
     Note:
@@ -358,39 +360,39 @@ def setup_wandb_run(gpu: int, args: Namespace) -> Optional[Union[Run, RunDisable
         for this process or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
     run: Optional[Union[Run, RunDisabled]] = None
-    if CONFIG.get("wandb_log", False) or CONFIG.get("project", None):
+    if cfg.get("wandb_log", False) or cfg.get("project", None):
         try:
-            if CONFIG.get("log_all", False) and args.world_size > 1:
+            if cfg.get("log_all", False) and args.world_size > 1:
                 run = wandb.init(  # pragma: no cover
-                    entity=CONFIG.get("entity", None),
-                    project=CONFIG.get("project", None),
-                    group=CONFIG.get("group", "DDP"),
-                    dir=CONFIG.get("wandb_dir", None),
+                    entity=cfg.get("entity", None),
+                    project=cfg.get("project", None),
+                    group=cfg.get("group", "DDP"),
+                    dir=cfg.get("wandb_dir", None),
                     name=args.jobid,
                 )
             else:
                 if gpu == 0:
                     run = wandb.init(
-                        entity=CONFIG.get("entity", None),
-                        project=CONFIG.get("project", None),
-                        dir=CONFIG.get("wandb_dir", None),
+                        entity=cfg.get("entity", None),
+                        project=cfg.get("project", None),
+                        dir=cfg.get("wandb_dir", None),
                         name=args.jobid,
                     )
-            CONFIG["wandb_log"] = True
+            cfg["wandb_log"] = True
         except wandb.UsageError:  # type: ignore[attr-defined]  # pragma: no cover
             print(
                 "wandb API Key has not been inited.",
                 "\nEither call wandb.login(key=[your_api_key]) or use `wandb login` in the shell.",
                 "\nOr if not using wandb, safely ignore this message.",
             )
-            CONFIG["wandb_log"] = False
+            cfg["wandb_log"] = False
         except wandb.errors.Error as err:  # type: ignore[attr-defined]  # pragma: no cover
             print(err)
-            CONFIG["wandb_log"] = False
+            cfg["wandb_log"] = False
     else:
         print("Weights and Biases logging OFF")
 
-    return run
+    return run, cfg
 
 
 def config_env_vars(args: Namespace) -> Namespace:
@@ -453,7 +455,7 @@ def config_env_vars(args: Namespace) -> Namespace:
     return args
 
 
-def config_args(args: Namespace) -> Namespace:
+def config_args(args: Namespace, cfg) -> Namespace:
     """Prepare the arguments generated from the :mod:`argparse` CLI for the job run.
 
     * Finds and sets ``args.ngpus_per_node``;
@@ -474,10 +476,10 @@ def config_args(args: Namespace) -> Namespace:
     args_dict = vars(args)
 
     # Find which CLI arguments are not in the config.
-    new_args = {key: args_dict[key] for key in args_dict if key not in CONFIG}
+    new_args = {key: args_dict[key] for key in args_dict if key not in cfg}
 
     # Updates the config with new arguments from the CLI.
-    CONFIG.update(new_args)
+    cfg.update(new_args)
 
     # Overrides the arguments from the config with those of the CLI where they overlap.
     # WARNING: This will include the use of the default CLI arguments.
@@ -485,27 +487,27 @@ def config_args(args: Namespace) -> Namespace:
         updated_args = {
             key: args_dict[key]
             for key in args_dict
-            if args_dict[key] != CONFIG[key] and args_dict[key] is not None
+            if args_dict[key] != cfg[key] and args_dict[key] is not None
         }
-        CONFIG.update(updated_args)
+        cfg.update(updated_args)
 
     # Get seed from config.
-    seed = CONFIG.get("seed", 42)
+    seed = cfg.get("seed", 42)
 
     # Set torch, numpy and inbuilt seeds for reproducibility.
     utils.set_seeds(seed)
 
-    return config_env_vars(args)
+    return cfg, config_env_vars(args)
 
 
 def _run_preamble(
-    gpu: int, run: Callable[[int, Namespace], Any], args: Namespace
+    gpu: int, run: Callable[[int, Namespace], Any], args: Namespace, cfg,
 ) -> None:  # pragma: no cover
     # Calculates the global rank of this process.
     args.rank += gpu
 
     # Setups the `wandb` run for this process.
-    args.wandb_run = setup_wandb_run(gpu, args)
+    args.wandb_run, cfg = setup_wandb_run(gpu, args, cfg)
 
     if args.world_size > 1:
         dist.init_process_group(  # type: ignore[attr-defined]
@@ -521,10 +523,11 @@ def _run_preamble(
         torch.backends.cudnn.benchmark = True  # type: ignore
 
     # Start this process run.
-    run(gpu, args)
+    run(gpu, args, cfg)
 
 
-def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> None:
+@hydra.main(config_path=str(DEFAULT_CONF_DIR_PATH), config_name=DEFAULT_CONFIG_NAME)
+def distributed_run(cfg: DictConfig, run: Callable[[int, Namespace], Any], args: Namespace) -> None:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
     :func:`_run_preamble` adds some additional commands to initialise the process group for each run
@@ -538,15 +541,19 @@ def distributed_run(run: Callable[[int, Namespace], Any], args: Namespace) -> No
         run (~typing.Callable[[int, ~argparse.Namespace], ~typing.Any]): Function to run with distributed computing.
         args (~argparse.Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
+    cfg, args = config_args(args, cfg)
+
+    print(OmegaConf.to_yaml(cfg))
+
     if args.world_size <= 1:
         # Setups up the `wandb` run.
-        args.wandb_run = setup_wandb_run(0, args)
+        args.wandb_run, cfg = setup_wandb_run(0, args, cfg)
 
         # Run the experiment.
-        run(0, args)
+        run(0, args, cfg)
 
     else:  # pragma: no cover
         try:
-            mp.spawn(_run_preamble, (run, args), args.ngpus_per_node)  # type: ignore[attr-defined]
+            mp.spawn(_run_preamble, (run, args, cfg), args.ngpus_per_node)  # type: ignore[attr-defined]
         except KeyboardInterrupt:
             dist.destroy_process_group()  # type: ignore[attr-defined]
