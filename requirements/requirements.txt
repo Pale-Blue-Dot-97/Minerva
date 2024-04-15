@@ -26,7 +26,7 @@ requests==2.31.0
 scikit-learn==1.4.0
 segmentation-models-pytorch==0.3.3
 setuptools==69.1.1
-starlette==0.37.1 # not directly required, pinned by Dependabot to avoid a vulnerability.
+starlette==0.37.2 # not directly required, pinned by Dependabot to avoid a vulnerability.
 tabulate==0.9.0
 tensorflow==2.16.1
 timm==0.9.2
