@@ -62,7 +62,7 @@ from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
 
 from minerva.models import MinervaModel
-from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
+from minerva.utils import utils, visutils
 
 
 # =====================================================================================================================
@@ -156,11 +156,6 @@ def test_pair_return() -> None:
 
 def test_cuda_device() -> None:
     assert type(utils.get_cuda_device()) is torch.device  # type: ignore[attr-defined]
-
-
-def test_config_loading() -> None:
-    assert type(CONFIG) is dict
-    assert type(AUX_CONFIGS) is dict
 
 
 @pytest.mark.parametrize(
@@ -542,7 +537,7 @@ def test_find_best_of() -> None:
     assert scene == ["2018_06_21"]
 
 
-def test_modes_from_manifest() -> None:
+def test_modes_from_manifest(exp_classes: Dict[int, str]) -> None:
     df = pd.DataFrame()
 
     class_dist = [
@@ -567,7 +562,7 @@ def test_modes_from_manifest() -> None:
     for mode in counts:
         df[mode[0]] = mode[1]
 
-    assert utils.modes_from_manifest(df, plot=True) == class_dist
+    assert utils.modes_from_manifest(df, exp_classes, plot=True) == class_dist
 
 
 def test_make_classification_report() -> None:
@@ -718,57 +713,30 @@ def test_check_dict_key(key: str, outcome: bool) -> None:
     assert utils.check_dict_key(dictionary, key) is outcome
 
 
-def test_load_data_specs() -> None:
-    class_dist = [(3, 321), (4, 112), (1, 671), (5, 456)]
-
-    new_classes = {
-        0: "Surfaces",
-        1: "Water",
-        2: "Barren",
-        3: "Low Vegetation",
-    }
-    new_cmap = {0: "#9c9c9c", 1: "#00c5ff", 2: "#ffaa00", 3: "#a3ff73"}
-    conversion = {1: 1, 3: 3, 4: 2, 5: 0}
-
-    results_1 = utils.load_data_specs(class_dist, elim=False)
-    results_2 = utils.load_data_specs(class_dist, elim=True)
-
-    assert results_1[0] == utils.CLASSES
-    assert results_1[1] == {}
-    assert results_1[2] == utils.CMAP_DICT
-    assert new_classes == results_2[0]
-    assert conversion == results_2[1]
-    assert new_cmap == results_2[2]
-
-
-def test_mkexpdir() -> None:
+def test_mkexpdir(results_root: Path) -> None:
     name = "exp1"
 
     try:
-        utils.RESULTS_DIR.mkdir(parents=True)
+        results_root.mkdir(parents=True)
     except FileExistsError:
         pass
 
-    utils.mkexpdir(name)
+    utils.mkexpdir(name, results_root)
 
-    assert (utils.RESULTS_DIR / name).is_dir()
+    assert (results_root / name).is_dir()
 
-    utils.mkexpdir(name)
+    utils.mkexpdir(name, results_root)
 
-    (utils.RESULTS_DIR / name).rmdir()
-
-
-def test_get_dataset_name() -> None:
-    assert utils.get_dataset_name() == "Chesapeake7"
+    (results_root / name).rmdir()
 
 
-def test_run_tensorboard() -> None:
+def test_run_tensorboard(results_root: Path) -> None:
     try:
         env_name = Path(os.environ["CONDA_DEFAULT_ENV"]).name
     except KeyError:
         env_name = "base"
 
-    assert utils.run_tensorboard("non_exp", env_name=env_name) is None
+    assert utils.run_tensorboard("non_exp", results_root, env_name=env_name) is None
 
     exp_name = "exp1"
 
@@ -784,12 +752,7 @@ def test_run_tensorboard() -> None:
         == 0
     )
 
-    results_dir = CONFIG["dir"]["results"]
-    del CONFIG["dir"]["results"]
-
-    assert utils.run_tensorboard(exp_name, env_name=env_name) is None
-
-    utils.CONFIG["dir"]["results"] = results_dir
+    assert utils.run_tensorboard(exp_name, results_root, env_name=env_name) is None
 
     path.rmdir()
 
@@ -809,11 +772,6 @@ def test_calc_constrastive_acc() -> None:
     results = utils.calc_contrastive_acc(pred).tolist()
 
     assert results == correct
-
-
-def test_print_config() -> None:
-    utils.print_config()
-    utils.print_config(utils.CLASSES)
 
 
 def test_calc_grad(exp_mlp: MinervaModel) -> None:
