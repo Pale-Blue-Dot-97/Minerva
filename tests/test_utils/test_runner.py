@@ -45,8 +45,9 @@ import pytest
 import requests
 import torch
 from internet_sabotage import no_connection
+from omegaconf import DictConfig
 
-from minerva.utils import CONFIG, runner
+from minerva.utils import runner
 
 
 # =====================================================================================================================
@@ -103,21 +104,21 @@ def test_config_env_vars() -> None:
         assert new_args.dist_url == "tcp://localhost:58472"
 
 
-def test_config_args() -> None:
+def test_config_args(default_config: DictConfig) -> None:
     args, _ = runner.GENERIC_PARSER.parse_known_args()
 
     args_dict = vars(args)
 
     # Find which CLI arguments are not in the config.
-    new_args = {key: args_dict[key] for key in args_dict if key not in CONFIG}
+    new_args = {key: args_dict[key] for key in args_dict if key not in default_config}
 
-    returned_args = runner.config_args(args)
+    returned_args, returned_cfg = runner.config_args(args, default_config)
 
     assert returned_args.ngpus_per_node == torch.cuda.device_count()
-    assert CONFIG["seed"] is not None
+    assert returned_cfg["seed"] is not None
 
     for key in new_args.keys():
-        assert CONFIG[key] == new_args[key]
+        assert returned_cfg[key] == new_args[key]
 
 
 def _run(gpu: int, args) -> None:
@@ -125,9 +126,7 @@ def _run(gpu: int, args) -> None:
     return
 
 
-def test_distributed_run() -> None:
+def test_distributed_run(default_config: DictConfig) -> None:
     args, _ = runner.GENERIC_PARSER.parse_known_args()
 
-    args = runner.config_args(args)
-
-    runner.distributed_run(_run, args)
+    runner.distributed_run(_run, args, default_config)

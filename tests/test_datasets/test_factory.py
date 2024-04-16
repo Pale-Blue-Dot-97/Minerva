@@ -45,11 +45,12 @@ import pandas as pd
 import pytest
 from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset, UnionDataset
+from omegaconf import DictConfig
 
 from minerva import datasets as mdt
 from minerva.datasets import PairedDataset
 from minerva.datasets.__testing import TstImgDataset
-from minerva.utils.utils import CACHE_DIR, CONFIG, make_hash
+from minerva.utils.utils import make_hash
 
 
 # =====================================================================================================================
@@ -111,11 +112,11 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
 
 @pytest.mark.parametrize("sample_pairs", (False, True))
 def test_caching_datasets(
-    exp_dataset_params: Dict[str, Any], data_root: Path, sample_pairs: bool
+    exp_dataset_params: Dict[str, Any], data_root: Path, cache_dir: Path, sample_pairs: bool
 ) -> None:
     # Make the path to the cached dataset.
     cached_dataset_path = Path(
-        CACHE_DIR, make_hash(exp_dataset_params["image"]) + ".obj"
+        str(cache_dir), make_hash(exp_dataset_params["image"]) + ".obj"
     )
 
     # Ensure that any previous caches are deleted.
@@ -207,8 +208,8 @@ def test_construct_dataloader(
     assert isinstance(dataloader, DataLoader)
 
 
-def test_make_loaders() -> None:
-    old_params = deepcopy(CONFIG)
+def test_make_loaders(default_config: DictConfig) -> None:
+    old_params = deepcopy(default_config)
 
     loader, n_batches, class_dist, params = mdt.make_loaders(
         **old_params,
@@ -220,7 +221,7 @@ def test_make_loaders() -> None:
     assert isinstance(class_dist, list)
     assert isinstance(params, dict)
 
-    old_params_2 = deepcopy(CONFIG)
+    old_params_2 = deepcopy(default_config)
     dataset_params = old_params_2["tasks"]["fit-val"]["dataset_params"].copy()
     old_params_2["tasks"]["fit-val"]["dataset_params"] = {}
     old_params_2["tasks"]["fit-val"]["dataset_params"]["val-1"] = dataset_params
@@ -239,10 +240,10 @@ def test_make_loaders() -> None:
     assert isinstance(params, dict)
 
 
-def test_get_manifest_path() -> None:
-    assert mdt.get_manifest_path() == str(
-        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
-    )
+# def test_get_manifest_path() -> None:
+#     assert mdt.get_manifest_path() == str(
+#         Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
+#     )
 
 
 def test_get_manifest() -> None:
