@@ -43,18 +43,20 @@ from typing import Any, Dict
 
 import pytest
 import torch
+import hydra
+from omegaconf import DictConfig
 
 from minerva.models import MinervaModel, MinervaOnnxModel, is_minerva_subtype
 from minerva.trainer import Trainer
-from minerva.utils import CONFIG, config_load, runner, utils
+from minerva.utils import runner, utils
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def run_trainer(gpu: int, args: argparse.Namespace):
+def run_trainer(gpu: int, args: argparse.Namespace, cfg: DictConfig):
     args.gpu = gpu
-    params = deepcopy(CONFIG)
+    params = deepcopy(cfg)
     params["calc_norm"] = True
 
     trainer = Trainer(
@@ -79,13 +81,13 @@ def run_trainer(gpu: int, args: argparse.Namespace):
     shutil.rmtree(trainer.exp_fn.parent)
 
 
-def test_trainer_1() -> None:
+def test_trainer_1(default_config: DictConfig) -> None:
     args = argparse.Namespace()
 
     with runner.WandbConnectionManager():
         if torch.distributed.is_available():  # type: ignore
             # Configure the arguments and environment variables.
-            runner.config_args(args)
+            runner.config_args(args, default_config)
 
             args.log_all = False
             args.entity = None
@@ -98,11 +100,11 @@ def test_trainer_1() -> None:
         else:
             args.gpu = 0
             args.wandb_run = None
-            run_trainer(args.gpu, args)
+            run_trainer(args.gpu, args, default_config)
 
 
-def test_trainer_2() -> None:
-    params1 = deepcopy(CONFIG)
+def test_trainer_2(default_config: DictConfig) -> None:
+    params1 = deepcopy(default_config)
     params1["elim"] = False
 
     trainer1 = Trainer(0, **params1)
@@ -138,13 +140,13 @@ def test_trainer_2() -> None:
     assert type(repr(trainer2.model)) is str
 
 
-def test_trainer_3() -> None:
-    params1 = deepcopy(CONFIG)
+def test_trainer_3(default_config: DictConfig) -> None:
+    params1 = deepcopy(default_config)
 
     trainer1 = Trainer(0, **params1)
     trainer1.save_model(fn=trainer1.get_model_cache_path())
 
-    params2 = deepcopy(CONFIG)
+    params2 = deepcopy(default_config)
     params2["pre_train_name"] = params1["model_name"]
     params2["fine_tune"] = True
     params2["max_epochs"] = 2
@@ -171,20 +173,19 @@ def test_trainer_4(
     cfg_args: Dict[str, Any],
     kwargs: Dict[str, Any],
 ) -> None:
-    cfg_path = inbuilt_cfg_root / cfg_name
 
-    with config_load.ToDefaultConfDir():
-        cfg, _ = config_load.load_configs(cfg_path)
+    with hydra.initialize(version_base=None, config_path=str(inbuilt_cfg_root)):
+        cfg = hydra.compose(config_name=cfg_name)
 
-    for key in cfg_args.keys():
-        cfg[key] = cfg_args[key]
+        for key in cfg_args.keys():
+            cfg[key] = cfg_args[key]
 
-    trainer = Trainer(0, **cfg)
+        trainer = Trainer(0, **cfg)
 
-    trainer.fit()
+        trainer.fit()
 
-    if kwargs.get("tsne_cluster"):
-        trainer.tsne_cluster("test-test")
+        if kwargs.get("tsne_cluster"):
+            trainer.tsne_cluster("test-test")
 
-    if kwargs.get("test"):
-        trainer.test()
+        if kwargs.get("test"):
+            trainer.test()
