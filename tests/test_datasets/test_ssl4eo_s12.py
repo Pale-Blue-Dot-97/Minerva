@@ -41,14 +41,13 @@ from pathlib import Path
 from rasterio.crs import CRS
 
 from minerva.datasets import PairedDataset, SSL4EOS12Sentinel2
-from minerva.utils import CONFIG
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_ssl4eos12sentinel2() -> None:
-    path = str(Path(CONFIG["dir"]["data"]) / "SSL4EO-S12")
+def test_ssl4eos12sentinel2(data_root: Path) -> None:
+    path = str(data_root / "SSL4EO-S12")
     bands = ["B1", "B2", "B3", "B8A"]
     crs = CRS.from_epsg(25832)
     res = 10.0
