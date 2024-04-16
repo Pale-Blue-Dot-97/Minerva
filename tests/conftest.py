@@ -58,7 +58,7 @@ from omegaconf import DictConfig
 from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
-from minerva.utils import utils, DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME
+from minerva.utils import utils, DEFAULT_CONFIG_NAME
 
 
 # =====================================================================================================================
@@ -170,7 +170,7 @@ def config_here(inbuilt_cfg_root: Path) -> Generator[Path, None, None]:
 
 @pytest.fixture
 def default_config() -> DictConfig:
-    with hydra.initialize(version_base=None, config_path=str(DEFAULT_CONF_DIR_PATH)):
+    with hydra.initialize(config_path="../minerva/inbuilt_cfgs"):
         # config is relative to a module
         cfg = hydra.compose(config_name=DEFAULT_CONFIG_NAME)
         return cfg
@@ -362,7 +362,7 @@ def bounds_for_test_img() -> BoundingBox:
 
 @pytest.fixture
 def exp_classes() -> Dict[int, str]:
-    return {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+    return {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7"}
 
 
 @pytest.fixture
