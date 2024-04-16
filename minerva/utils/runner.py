@@ -55,19 +55,24 @@ import shlex
 import signal
 import subprocess
 from argparse import Namespace
-from typing import Any, Callable, Optional, Union, Tuple
+from typing import Any, Callable, Optional, Tuple, Union
 
+import hydra
 import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
+from omegaconf import DictConfig
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
-import hydra
-from omegaconf import DictConfig, OmegaConf
 
-from minerva.utils import MASTER_PARSER, DEFAULT_CONFIG_NAME, DEFAULT_CONF_DIR_PATH, utils
+import wandb
+from minerva.utils import (
+    DEFAULT_CONF_DIR_PATH,
+    DEFAULT_CONFIG_NAME,
+    MASTER_PARSER,
+    utils,
+)
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -338,7 +343,9 @@ def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
     pass
 
 
-def setup_wandb_run(gpu: int, args: Namespace, cfg) -> Tuple[Optional[Union[Run, RunDisabled]], DictConfig]:
+def setup_wandb_run(
+    gpu: int, args: Namespace, cfg
+) -> Tuple[Optional[Union[Run, RunDisabled]], DictConfig]:
     """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
 
     Note:
@@ -501,7 +508,10 @@ def config_args(args: Namespace, cfg: DictConfig) -> Tuple[Namespace, DictConfig
 
 
 def _run_preamble(
-    gpu: int, run: Callable[[int, Namespace, DictConfig], Any], args: Namespace, cfg,
+    gpu: int,
+    run: Callable[[int, Namespace, DictConfig], Any],
+    args: Namespace,
+    cfg,
 ) -> None:  # pragma: no cover
     # Calculates the global rank of this process.
     args.rank += gpu
@@ -527,7 +537,9 @@ def _run_preamble(
 
 
 @hydra.main(config_path=str(DEFAULT_CONF_DIR_PATH), config_name=DEFAULT_CONFIG_NAME)
-def distributed_run(cfg: DictConfig, run: Callable[[int, Namespace, DictConfig], Any], args: Namespace) -> None:
+def distributed_run(
+    cfg: DictConfig, run: Callable[[int, Namespace, DictConfig], Any], args: Namespace
+) -> None:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
     :func:`_run_preamble` adds some additional commands to initialise the process group for each run
@@ -542,8 +554,6 @@ def distributed_run(cfg: DictConfig, run: Callable[[int, Namespace, DictConfig],
         args (~argparse.Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
     args, cfg = config_args(args, cfg)
-
-    print(OmegaConf.to_yaml(cfg))
 
     if args.world_size <= 1:
         # Setups up the `wandb` run.

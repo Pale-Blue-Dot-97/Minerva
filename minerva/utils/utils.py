@@ -125,16 +125,7 @@ from subprocess import Popen
 from types import ModuleType
 from typing import Any, Callable
 from typing import Counter as CounterType
-from typing import (
-    Dict,
-    Iterable,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    overload,
-)
+from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union, overload
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import numpy as np
@@ -142,13 +133,13 @@ import pandas as pd
 import psutil
 import rasterio as rt
 import torch
-import yaml
 from alive_progress import alive_bar
 from geopy.adapters import AdapterHTTPError
 from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Photon
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
+from omegaconf import DictConfig, OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
 from scipy.spatial import distance
@@ -906,7 +897,9 @@ def class_weighting(
     return class_weights
 
 
-def find_empty_classes(class_dist: List[Tuple[int, int]], class_names: Dict[int, str]) -> List[int]:
+def find_empty_classes(
+    class_dist: List[Tuple[int, int]], class_names: Dict[int, str]
+) -> List[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
     Args:
@@ -1212,7 +1205,8 @@ def timestamp_now(fmt: str = "%d-%m-%Y_%H%M") -> str:
 
 
 def find_modes(
-    labels: Iterable[int], plot: bool = False,
+    labels: Iterable[int],
+    plot: bool = False,
     classes: Optional[Dict[int, str]] = None,
     cmap_dict: Optional[Dict[int, str]] = None,
 ) -> List[Tuple[int, int]]:
@@ -1242,7 +1236,10 @@ def find_modes(
 
 
 def modes_from_manifest(
-    manifest: DataFrame, classes: Dict[int, str], plot: bool = False, cmap_dict: Optional[Dict[int, str]] = None,
+    manifest: DataFrame,
+    classes: Dict[int, str],
+    plot: bool = False,
+    cmap_dict: Optional[Dict[int, str]] = None,
 ) -> List[Tuple[int, int]]:
     """Uses the dataset manifest to calculate the fractional size of the classes.
 
@@ -1359,7 +1356,8 @@ def calc_grad(model: Module) -> Optional[float]:
 
 
 def print_class_dist(
-    class_dist: List[Tuple[int, int]], class_labels: Optional[Dict[int, str]] = None,
+    class_dist: List[Tuple[int, int]],
+    class_labels: Optional[Dict[int, str]] = None,
 ) -> None:
     """Prints the supplied ``class_dist`` in a pretty table format using :mod:`tabulate`.
 
@@ -1752,13 +1750,13 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     )
 
 
-def print_config(conf: Dict[Any, Any]) -> None:
+def print_config(conf: DictConfig) -> None:
     """Print function for the configuration file using ``YAML`` dump.
 
     Args:
         conf (dict[str, ~typing.Any]]): Optional; Config file to print. If ``None``, uses the ``global`` config.
     """
-    print(yaml.dump(conf))
+    print(OmegaConf.to_yaml(conf))
 
 
 def tsne_cluster(
