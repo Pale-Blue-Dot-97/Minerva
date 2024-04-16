@@ -43,22 +43,22 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Generator, Tuple
 
+import hydra
 import numpy as np
 import pytest
 import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
+from omegaconf import DictConfig
 from rasterio.crs import CRS
 from torch import LongTensor, Tensor
 from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
-import hydra
-from omegaconf import DictConfig
 
 from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
-from minerva.utils import utils, DEFAULT_CONFIG_NAME
+from minerva.utils import DEFAULT_CONFIG_NAME, utils
 
 
 # =====================================================================================================================
@@ -362,7 +362,30 @@ def bounds_for_test_img() -> BoundingBox:
 
 @pytest.fixture
 def exp_classes() -> Dict[int, str]:
-    return {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6", 7: "7"}
+    return {
+        0: "No Data",
+        1: "Water",
+        2: "Trees/Shrub",
+        3: "Low Vegetation",
+        4: "Barren",
+        5: "Surfaces",
+        6: "Roads",
+        7: "Military\nBase",
+    }
+
+
+@pytest.fixture
+def exp_cmap_dict() -> Dict[int, str]:
+    return {
+        0: "#000000",  # Transparent
+        1: "#00c5ff",  # Light Blue
+        2: "#267300",  # Dark green
+        3: "#a3ff73",  # v. Light green
+        4: "#ffaa00",  # Orange
+        5: "#9c9c9c",  # Light grey
+        6: "#000000",  # Black
+        7: "#c500ff",  # Purple
+    }
 
 
 @pytest.fixture
@@ -406,14 +429,17 @@ def exp_dataset_params() -> Dict[str, Any]:
 @pytest.fixture
 def default_dataset(default_config: DictConfig) -> IntersectionDataset:
     dataset, _ = make_dataset(
-        default_config["dir"]["data"], default_config["tasks"]["test-test"]["dataset_params"]
+        default_config["dir"]["data"],
+        default_config["tasks"]["test-test"]["dataset_params"],
     )
     assert isinstance(dataset, IntersectionDataset)
     return dataset
 
 
 @pytest.fixture
-def default_image_dataset(default_config: DictConfig, exp_dataset_params: Dict[str, Any]) -> RasterDataset:
+def default_image_dataset(
+    default_config: DictConfig, exp_dataset_params: Dict[str, Any]
+) -> RasterDataset:
     dataset, _ = make_dataset(default_config["dir"]["data"], exp_dataset_params)
     assert isinstance(dataset, RasterDataset)
     return dataset
