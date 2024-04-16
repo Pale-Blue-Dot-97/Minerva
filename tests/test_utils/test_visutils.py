@@ -40,7 +40,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict
 
 import matplotlib as mlp
 import numpy as np
@@ -114,11 +114,11 @@ def test_get_mlp_cmap() -> None:
     assert isinstance(cmap, Colormap)
 
 
-def test_discrete_heatmap(random_mask) -> None:
-    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
-    visutils.discrete_heatmap(
-        random_mask, list(utils.CLASSES.values()), cmap_style=cmap
-    )
+def test_discrete_heatmap(
+    random_mask, exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]
+) -> None:
+    cmap = ListedColormap(exp_cmap_dict.values())  # type: ignore
+    visutils.discrete_heatmap(random_mask, list(exp_classes.values()), cmap_style=cmap)
 
 
 def test_stack_rgb() -> None:
@@ -154,10 +154,16 @@ def test_make_rgb_image(random_image) -> None:
     assert type(visutils.make_rgb_image(random_image, rgb)) is AxesImage
 
 
-def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> None:
+def test_labelled_rgb_image(
+    random_mask,
+    random_image,
+    bounds_for_test_img,
+    exp_classes: Dict[int, str],
+    exp_cmap_dict: Dict[int, str],
+) -> None:
     path = tempfile.gettempdir()
     name = "pretty_pic"
-    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
+    cmap = ListedColormap(exp_cmap_dict.values())  # type: ignore
 
     fn = visutils.labelled_rgb_image(
         random_image,
@@ -166,7 +172,7 @@ def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> N
         visutils.WGS84,
         path,
         name,
-        list(utils.CLASSES.values()),
+        list(exp_classes.values()),
         cmap_style=cmap,
     )
 
@@ -174,7 +180,9 @@ def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> N
     assert fn == correct_fn
 
 
-def test_make_gif(bounds_for_test_img) -> None:
+def test_make_gif(
+    bounds_for_test_img, exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]
+) -> None:
     dates = ["2018-01-15", "2018-07-03", "2018-11-30"]
     images = np.random.rand(3, 32, 32, 3)
     masks = np.random.randint(0, 7, size=(3, 32, 32))
@@ -186,7 +194,7 @@ def test_make_gif(bounds_for_test_img) -> None:
     # Creates the GIF filename.
     gif_fn = f"{path}/new_gif.gif"
 
-    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
+    cmap = ListedColormap(exp_cmap_dict.values())  # type: ignore
 
     visutils.make_gif(
         dates,
@@ -194,7 +202,7 @@ def test_make_gif(bounds_for_test_img) -> None:
         masks,
         bounds_for_test_img,
         visutils.WGS84,
-        list(utils.CLASSES.values()),
+        list(exp_classes.values()),
         gif_fn,
         path,
         cmap,
@@ -204,7 +212,9 @@ def test_make_gif(bounds_for_test_img) -> None:
     shutil.rmtree(path)
 
 
-def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None:
+def test_prediction_plot(
+    random_image, random_mask, bounds_for_test_img, exp_classes: Dict[int, str]
+) -> None:
     pred = np.random.randint(0, 8, size=(32, 32))
 
     src_crs = utils.WGS84
@@ -215,10 +225,17 @@ def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None
         "pred": pred,
         "bounds": bounds_for_test_img,
     }
-    visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
+    visutils.prediction_plot(sample, "101", exp_classes, src_crs)
 
 
-def test_seg_plot(results_root, default_dataset: GeoDataset, monkeypatch) -> None:
+def test_seg_plot(
+    results_root: Path,
+    default_dataset: GeoDataset,
+    exp_classes: Dict[int, str],
+    exp_cmap_dict: Dict[int, str],
+    monkeypatch,
+) -> None:
+
     batch_size = 2
     n_batches = 2
 
@@ -244,20 +261,22 @@ def test_seg_plot(results_root, default_dataset: GeoDataset, monkeypatch) -> Non
         ids=ids,  # type: ignore[arg-type]
         bounds=bboxes,
         task_name="test-test",
-        classes=utils.CLASSES,
-        colours=utils.CMAP_DICT,
+        classes=exp_classes,
+        colours=exp_cmap_dict,
         fn_prefix=fn_prefix,
         frac=1.0,
     )
 
 
-def test_plot_subpopulations() -> None:
+def test_plot_subpopulations(
+    exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]
+) -> None:
     class_dist = [(1, 25000), (0, 1300), (2, 100), (3, 2)]
 
     fn = Path("plot.png")
 
     visutils.plot_subpopulations(
-        class_dist, utils.CLASSES, cmap_dict=utils.CMAP_DICT, filename=fn, save=True
+        class_dist, exp_classes, cmap_dict=exp_cmap_dict, filename=fn, save=True
     )
 
     fn.unlink(missing_ok=True)
@@ -284,7 +303,7 @@ def test_plot_history() -> None:
     filename.unlink(missing_ok=True)
 
 
-def test_make_confusion_matrix() -> None:
+def test_make_confusion_matrix(exp_classes: Dict[int, str]) -> None:
     batch_size = 2
     patch_size = (32, 32)
 
@@ -296,10 +315,10 @@ def test_make_confusion_matrix() -> None:
     fn = Path("cm.png")
 
     visutils.make_confusion_matrix(
-        pred_1, labels_1, utils.CLASSES, filename=fn, save=True
+        pred_1, labels_1, exp_classes, filename=fn, save=True
     )
 
-    visutils.make_confusion_matrix(pred_2, labels_1, utils.CLASSES)
+    visutils.make_confusion_matrix(pred_2, labels_1, exp_classes)
 
     fn.unlink(missing_ok=True)
 
