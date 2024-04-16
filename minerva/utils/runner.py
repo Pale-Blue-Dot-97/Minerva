@@ -55,7 +55,7 @@ import shlex
 import signal
 import subprocess
 from argparse import Namespace
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, Optional, Union, Tuple
 
 import requests
 import torch
@@ -338,7 +338,7 @@ def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
     pass
 
 
-def setup_wandb_run(gpu: int, args: Namespace, cfg) -> Optional[Union[Run, RunDisabled]]:
+def setup_wandb_run(gpu: int, args: Namespace, cfg) -> Tuple[Optional[Union[Run, RunDisabled]], DictConfig]:
     """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
 
     Note:
@@ -455,7 +455,7 @@ def config_env_vars(args: Namespace) -> Namespace:
     return args
 
 
-def config_args(args: Namespace, cfg) -> Namespace:
+def config_args(args: Namespace, cfg: DictConfig) -> Tuple[Namespace, DictConfig]:
     """Prepare the arguments generated from the :mod:`argparse` CLI for the job run.
 
     * Finds and sets ``args.ngpus_per_node``;
@@ -497,11 +497,11 @@ def config_args(args: Namespace, cfg) -> Namespace:
     # Set torch, numpy and inbuilt seeds for reproducibility.
     utils.set_seeds(seed)
 
-    return cfg, config_env_vars(args)
+    return config_env_vars(args), cfg
 
 
 def _run_preamble(
-    gpu: int, run: Callable[[int, Namespace], Any], args: Namespace, cfg,
+    gpu: int, run: Callable[[int, Namespace, DictConfig], Any], args: Namespace, cfg,
 ) -> None:  # pragma: no cover
     # Calculates the global rank of this process.
     args.rank += gpu
@@ -527,7 +527,7 @@ def _run_preamble(
 
 
 @hydra.main(config_path=str(DEFAULT_CONF_DIR_PATH), config_name=DEFAULT_CONFIG_NAME)
-def distributed_run(cfg: DictConfig, run: Callable[[int, Namespace], Any], args: Namespace) -> None:
+def distributed_run(cfg: DictConfig, run: Callable[[int, Namespace, DictConfig], Any], args: Namespace) -> None:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
     :func:`_run_preamble` adds some additional commands to initialise the process group for each run
@@ -541,7 +541,7 @@ def distributed_run(cfg: DictConfig, run: Callable[[int, Namespace], Any], args:
         run (~typing.Callable[[int, ~argparse.Namespace], ~typing.Any]): Function to run with distributed computing.
         args (~argparse.Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
-    cfg, args = config_args(args, cfg)
+    args, cfg = config_args(args, cfg)
 
     print(OmegaConf.to_yaml(cfg))
 
