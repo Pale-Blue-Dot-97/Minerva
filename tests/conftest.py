@@ -52,11 +52,13 @@ from rasterio.crs import CRS
 from torch import LongTensor, Tensor
 from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
+import hydra
+from omegaconf import DictConfig
 
 from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
-from minerva.utils import CONFIG, utils
+from minerva.utils import utils, DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME
 
 
 # =====================================================================================================================
@@ -89,12 +91,12 @@ def set_multiprocessing_to_fork():
 def use_detect_anomaly(request):
     if request.config.getoption("--detect-anomaly"):
         # Activates PyTorch's anomaly detection.
-        yield torch.autograd.set_detect_anomaly(True, True)
+        yield torch.autograd.set_detect_anomaly(True, True)  # type: ignore[attr-defined]
 
         # Deactivate anomaly detection after tests.
-        torch.autograd.set_detect_anomaly(False)
+        torch.autograd.set_detect_anomaly(False)  # type: ignore[attr-defined]
     else:
-        yield torch.autograd.set_detect_anomaly(False)
+        yield torch.autograd.set_detect_anomaly(False)  # type: ignore[attr-defined]
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -164,6 +166,14 @@ def config_here(inbuilt_cfg_root: Path) -> Generator[Path, None, None]:
     yield here
 
     os.unlink(here / "exp_mf_config.yml")
+
+
+@pytest.fixture
+def default_config() -> DictConfig:
+    with hydra.initialize(version_base=None, config_path=str(DEFAULT_CONF_DIR_PATH)):
+        # config is relative to a module
+        cfg = hydra.compose(config_name=DEFAULT_CONFIG_NAME)
+        return cfg
 
 
 @pytest.fixture
@@ -394,17 +404,17 @@ def exp_dataset_params() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def default_dataset() -> IntersectionDataset:
+def default_dataset(default_config: DictConfig) -> IntersectionDataset:
     dataset, _ = make_dataset(
-        CONFIG["dir"]["data"], CONFIG["tasks"]["test-test"]["dataset_params"]
+        default_config["dir"]["data"], default_config["tasks"]["test-test"]["dataset_params"]
     )
     assert isinstance(dataset, IntersectionDataset)
     return dataset
 
 
 @pytest.fixture
-def default_image_dataset(exp_dataset_params: Dict[str, Any]) -> RasterDataset:
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], exp_dataset_params)
+def default_image_dataset(default_config: DictConfig, exp_dataset_params: Dict[str, Any]) -> RasterDataset:
+    dataset, _ = make_dataset(default_config["dir"]["data"], exp_dataset_params)
     assert isinstance(dataset, RasterDataset)
     return dataset
 
