@@ -41,9 +41,9 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict
 
+import hydra
 import pytest
 import torch
-import hydra
 from omegaconf import DictConfig
 
 from minerva.models import MinervaModel, MinervaOnnxModel, is_minerva_subtype
@@ -174,7 +174,7 @@ def test_trainer_4(
     kwargs: Dict[str, Any],
 ) -> None:
 
-    with hydra.initialize(version_base=None, config_path=str(inbuilt_cfg_root)):
+    with hydra.initialize(config_path=str(inbuilt_cfg_root)):
         cfg = hydra.compose(config_name=cfg_name)
 
         for key in cfg_args.keys():

@@ -169,8 +169,8 @@ def config_here(inbuilt_cfg_root: Path) -> Generator[Path, None, None]:
 
 
 @pytest.fixture
-def default_config() -> DictConfig:
-    with hydra.initialize(config_path="../minerva/inbuilt_cfgs"):
+def default_config(inbuilt_cfg_root: Path) -> DictConfig:
+    with hydra.initialize(config_path=str(inbuilt_cfg_root)):
         # config is relative to a module
         cfg = hydra.compose(config_name=DEFAULT_CONFIG_NAME)
         return cfg
@@ -178,7 +178,7 @@ def default_config() -> DictConfig:
 
 @pytest.fixture
 def inbuilt_cfg_root() -> Path:
-    return (Path(__file__).parent.parent / "minerva" / "inbuilt_cfgs").resolve()
+    return Path("..", "minerva", "inbuilt_cfgs")
 
 
 @pytest.fixture
