@@ -35,16 +35,17 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-import argparse
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Union
 
 import hydra
 import pytest
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
 from minerva.models import MinervaModel, MinervaOnnxModel, is_minerva_subtype
 from minerva.trainer import Trainer
@@ -54,16 +55,16 @@ from minerva.utils import runner, utils
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def run_trainer(gpu: int, args: argparse.Namespace, cfg: DictConfig):
-    args.gpu = gpu
+@runner.distributed_run
+def run_trainer(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+):
     params = deepcopy(cfg)
     params["calc_norm"] = True
 
     trainer = Trainer(
-        gpu=args.gpu,
-        rank=args.rank,
-        world_size=args.world_size,
-        wandb_run=args.wandb_run,
+        gpu=gpu,
+        wandb_run=wandb_run,
         **params,
     )
     assert isinstance(trainer, Trainer)
@@ -72,7 +73,7 @@ def run_trainer(gpu: int, args: argparse.Namespace, cfg: DictConfig):
 
     trainer.test()
 
-    if args.gpu == 0:
+    if gpu == 0:
         trainer.save_model()
 
         trainer.save_backbone()
@@ -82,25 +83,20 @@ def run_trainer(gpu: int, args: argparse.Namespace, cfg: DictConfig):
 
 
 def test_trainer_1(default_config: DictConfig) -> None:
-    args = argparse.Namespace()
-
     with runner.WandbConnectionManager():
         if torch.distributed.is_available():  # type: ignore
-            # Configure the arguments and environment variables.
-            runner.config_args(args, default_config)
 
-            args.log_all = False
-            args.entity = None
-            args.project = "pytest"
-            args.wandb_log = True
+            # Configure the arguments and environment variables.
+            OmegaConf.update(default_config, "log_all", False, force_add=True)
+            OmegaConf.update(default_config, "entity", None, force_add=True)
+            OmegaConf.update(default_config, "project", "pytest", force_add=True)
+            OmegaConf.update(default_config, "wandb_log", True, force_add=True)
 
             # Run the specified main with distributed computing and the arguments provided.
-            runner.distributed_run(run_trainer, args)
+            run_trainer(default_config)
 
         else:
-            args.gpu = 0
-            args.wandb_run = None
-            run_trainer(args.gpu, args, default_config)
+            run_trainer(default_config)
 
 
 def test_trainer_2(default_config: DictConfig) -> None:
