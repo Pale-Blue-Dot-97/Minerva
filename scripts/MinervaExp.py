@@ -40,23 +40,28 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import argparse
+from typing import Optional, Union
 
-import argcomplete
+import hydra
+from omegaconf import DictConfig
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
 from minerva.trainer import Trainer
-from minerva.utils import runner, utils
+from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, utils
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-def main(gpu: int, args, cfg) -> None:
+@hydra.main(config_path=str(DEFAULT_CONF_DIR_PATH), config_name=DEFAULT_CONFIG_NAME)
+@runner.distributed_run
+def main(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+) -> None:
     trainer = Trainer(
         gpu=gpu,
-        rank=args.rank,
-        world_size=args.world_size,
-        wandb_run=args.wandb_run,
+        wandb_run=wandb_run,
         **cfg,
     )
 
@@ -72,17 +77,9 @@ def main(gpu: int, args, cfg) -> None:
 
 
 if __name__ == "__main__":
-    # ---+ CLI +--------------------------------------------------------------+
-    parser = argparse.ArgumentParser(parents=[runner.GENERIC_PARSER], add_help=False)
-    argcomplete.autocomplete(parser)
-    # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
-
-    # Export args from CLI.
-    cli_args = parser.parse_args()
-
     # Print Minerva banner.
     utils._print_banner()
 
     with runner.WandbConnectionManager():
         # Run the specified main with distributed computing and the arguments provided.
-        runner.distributed_run(main, cli_args)
+        main()
