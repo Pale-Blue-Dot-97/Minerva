@@ -52,6 +52,7 @@ from torch.nn.modules import Module
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
+from omegaconf import OmegaConf
 from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
@@ -414,7 +415,9 @@ class Trainer:
         Returns:
             MinervaModel: Initialised model.
         """
-        model_params: Dict[str, Any] = self.params["model_params"]
+        model_params: Dict[str, Any] = deepcopy(self.params["model_params"])
+        if OmegaConf.is_config(model_params):
+            model_params = OmegaConf.to_object(model_params)
 
         module = model_params.pop("module", "minerva.models")
         if not module:
@@ -491,7 +494,11 @@ class Trainer:
             ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = self.params["loss_params"].copy()
+        loss_params: Dict[str, Any] = deepcopy(self.params["loss_params"])
+
+        if OmegaConf.is_config(loss_params):
+            loss_params = OmegaConf.to_object(loss_params)
+
         module = loss_params.pop("module", "torch.nn")
         criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
 
@@ -504,7 +511,11 @@ class Trainer:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
         # Gets the optimiser requested by config parameters.
-        optimiser_params: Dict[str, Any] = self.params["optim_params"].copy()
+        optimiser_params: Dict[str, Any] = deepcopy(self.params["optim_params"])
+
+        if OmegaConf.is_config(optimiser_params):
+            optimiser_params = OmegaConf.to_object(optimiser_params)
+
         module = optimiser_params.pop("module", "torch.optim")
         optimiser = utils.func_by_str(module, self.params["optim_func"])
 
@@ -532,7 +543,7 @@ class Trainer:
         tasks: Dict[str, MinervaTask] = {}
         for mode in fit_params.keys():
             tasks[mode] = get_task(
-                fit_params[mode].pop("type"),
+                fit_params[mode]["type"],
                 mode,
                 self.model,
                 self.device,
@@ -637,7 +648,7 @@ class Trainer:
 
         for task_name in test_params.keys():
             task = get_task(
-                test_params[task_name].pop("type"),
+                test_params[task_name]["type"],
                 task_name,
                 self.model,
                 self.device,
