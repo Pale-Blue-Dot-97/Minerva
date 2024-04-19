@@ -340,7 +340,7 @@ class Trainer:
 
         if self.gpu == 0:
             if isinstance(self.writer, Run):
-                self.writer.config.update(self.params)
+                self.writer.config.update(OmegaConf.to_object(self.params))
 
             # Determines the input size of the model.
             input_size = self.get_input_size()
