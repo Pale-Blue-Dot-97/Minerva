@@ -117,12 +117,12 @@ def test_trainer_2(default_config: DictConfig) -> None:
     trainer1.save_model(fn=trainer1.get_model_cache_path(), fmt=suffix)
 
     params2 = deepcopy(params1)
-    params2["pre_train_name"] = f"{params1['model_name'].split('-')[0]}.{suffix}"
-    params2["sample_pairs"] = "false"
-    params2["plot_last_epoch"] = False
-    params2["wandb_log"] = False
-    params2["project"] = False
-    params2["max_epochs"] = 2
+    OmegaConf.update(params2, "pre_train_name", f"{params1['model_name'].split('-')[0]}.{suffix}", force_add=True)
+    OmegaConf.update(params2, "sample_pairs", "false", force_add=True)
+    params2.plot_last_epoch = False
+    params2.wandb_log = False
+    params2.project = False
+    params2.max_epochs = 2
 
     trainer2 = Trainer(0, **params2)
     if suffix == "onnx":
@@ -143,7 +143,7 @@ def test_trainer_3(default_config: DictConfig) -> None:
     trainer1.save_model(fn=trainer1.get_model_cache_path())
 
     params2 = deepcopy(default_config)
-    params2["pre_train_name"] = params1["model_name"]
+    OmegaConf.update(params2, "pre_train_name", params1["model_name"], force_add=True)
     params2["fine_tune"] = True
     params2["max_epochs"] = 2
     params2["elim"] = False
@@ -155,12 +155,12 @@ def test_trainer_3(default_config: DictConfig) -> None:
 @pytest.mark.parametrize(
     ["cfg_name", "cfg_args", "kwargs"],
     [
-        ("example_CNN_config.yml", {}, {}),
-        ("example_GeoCLR_config.yml", {}, {"tsne_cluster": True}),
-        ("example_GeoCLR_config.yml", {"plot_last_epoch": False}, {}),
-        ("example_3rd_party.yml", {}, {}),
-        ("example_autoencoder_config.yml", {}, {}),
-        ("example_GeoSimConvNet.yml", {}, {}),
+        ("example_CNN_config.yaml", {}, {}),
+        ("example_GeoCLR_config.yaml", {}, {"tsne_cluster": True}),
+        ("example_GeoCLR_config.yaml", {"plot_last_epoch": False}, {}),
+        ("example_3rd_party.yaml", {}, {}),
+        ("example_autoencoder_config.yaml", {}, {}),
+        ("example_GeoSimConvNet.yaml", {}, {}),
     ],
 )
 def test_trainer_4(

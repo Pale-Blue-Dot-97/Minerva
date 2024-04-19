@@ -55,7 +55,7 @@ from typing import Any
 # =====================================================================================================================
 # Default values for the path to the config directory and config name.
 DEFAULT_CONF_DIR_PATH = Path(__file__).parent / ".." / "inbuilt_cfgs"
-DEFAULT_CONFIG_NAME: str = "example_config.yml"
+DEFAULT_CONFIG_NAME: str = "example_config.yaml"
 
 
 # =====================================================================================================================
