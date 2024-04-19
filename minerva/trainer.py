@@ -52,7 +52,7 @@ from torch.nn.modules import Module
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
@@ -234,7 +234,7 @@ class Trainer:
         world_size: int = 1,
         verbose: bool = True,
         wandb_run: Optional[Union[Run, RunDisabled]] = None,
-        **params: Dict[str, Any],
+        **params,
     ) -> None:
         assert not isinstance(wandb_run, RunDisabled)
 
@@ -246,6 +246,9 @@ class Trainer:
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
 
+        # Convert the config back to DictConfig after being used as kwargs.
+        self.params = OmegaConf.create(params)
+
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
 
@@ -254,9 +257,11 @@ class Trainer:
             print(
                 "\n==+ Experiment Parameters +====================================================="
             )
-            utils.print_config(dict(params))
+            utils.print_config(self.params)
 
-        self.params: Dict[str, Any] = dict(params)
+        # Ensure that the config can have new fields added dynamically.
+        OmegaConf.set_struct(self.params, False)
+
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
