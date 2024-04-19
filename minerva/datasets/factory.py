@@ -61,6 +61,7 @@ from rasterio.crs import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datasets import GeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
+from omegaconf import OmegaConf
 
 from minerva.transforms import init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
@@ -387,10 +388,9 @@ def construct_dataloader(
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
-    _dataloader_params = dataloader_params.copy()
 
     # Add batch size from top-level parameters to the dataloader parameters.
-    _dataloader_params["batch_size"] = batch_size
+    dataloader_params["batch_size"] = batch_size
 
     if world_size > 1:
         # Wraps sampler for distributed computing.
@@ -399,7 +399,7 @@ def construct_dataloader(
         # Splits batch size across devices.
         assert batch_size % world_size == 0
         per_device_batch_size = batch_size // world_size
-        _dataloader_params["batch_size"] = per_device_batch_size
+        dataloader_params["batch_size"] = per_device_batch_size
 
     if sample_pairs:
         if not torch.cuda.device_count() > 1 and platform.system() != "Windows":
@@ -412,12 +412,12 @@ def construct_dataloader(
             collator = stack_sample_pairs
 
     if batch_sampler:
-        _dataloader_params["batch_sampler"] = sampler
-        del _dataloader_params["batch_size"]
+        dataloader_params["batch_sampler"] = sampler
+        del dataloader_params["batch_size"]
     else:
-        _dataloader_params["sampler"] = sampler
+        dataloader_params["sampler"] = sampler
 
-    return DataLoader(dataset, collate_fn=collator, **_dataloader_params)
+    return DataLoader(dataset, collate_fn=collator, **dataloader_params)
 
 
 @utils.return_updated_kwargs
@@ -474,9 +474,13 @@ def make_loaders(
         task_params = params["tasks"][task_name]
 
     # Gets out the parameters for the DataLoaders from params.
-    dataloader_params: Dict[Any, Any] = utils.fallback_params(
+    dataloader_params: Dict[Any, Any] = deepcopy(utils.fallback_params(
         "loader_params", task_params, params
-    )
+    ))
+
+    if OmegaConf.is_config(dataloader_params):
+        dataloader_params = OmegaConf.to_object(dataloader_params)
+
     dataset_params: Dict[str, Any] = utils.fallback_params(
         "dataset_params", task_params, params
     )
@@ -544,6 +548,10 @@ def make_loaders(
         # Calculates number of batches.
         n_batches = int(sampler_params["params"]["length"] / batch_size)
 
+        collator_params = deepcopy(utils.fallback_params("collator", task_params, params))
+        if OmegaConf.is_config(collator_params):
+            collator_params = OmegaConf.to_object(collator_params)
+
         # --+ MAKE DATASETS +=========================================================================================+
         print(f"CREATING {task_name} DATASET")
         loaders = construct_dataloader(
@@ -552,7 +560,7 @@ def make_loaders(
             sampler_params,
             dataloader_params,
             batch_size,
-            collator_params=utils.fallback_params("collator", task_params, params),
+            collator_params=collator_params,
             rank=rank,
             world_size=world_size,
             sample_pairs=sample_pairs,
