@@ -711,7 +711,7 @@ def seg_plot(
     y: Union[List[int], NDArray[Any, Any]],
     ids: List[str],
     bounds: Union[Sequence[Any], NDArray[Any, Any]],
-    data_dir: str,
+    data_dir: Union[Path, str],
     dataset_params: Dict[str, Any],
     classes: Dict[int, str],
     colours: Dict[int, str],
