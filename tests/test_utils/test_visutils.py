@@ -222,7 +222,9 @@ def test_prediction_plot(
 
 def test_seg_plot(
     results_root: Path,
+    data_root: Path,
     default_dataset: GeoDataset,
+    exp_dataset_params: Dict[str, Any],
     exp_classes: Dict[int, str],
     exp_cmap_dict: Dict[int, str],
     monkeypatch,
@@ -252,7 +254,8 @@ def test_seg_plot(
         y=z,
         ids=ids,  # type: ignore[arg-type]
         bounds=bboxes,
-        task_name="test-test",
+        data_dir=data_root,
+        dataset_params=exp_dataset_params,
         classes=exp_classes,
         colours=exp_cmap_dict,
         fn_prefix=fn_prefix,
