@@ -1089,13 +1089,14 @@ def make_roc_curves(
 def plot_embedding(
     embeddings: Any,
     bounds: Union[Sequence[BoundingBox], NDArray[Any, Any]],
-    data_dir: str,
+    data_dir: Union[Path, str],
     dataset_params: Dict[str, Any],
     title: Optional[str] = None,
     show: bool = False,
     save: bool = True,
     filename: Optional[Union[Path, str]] = None,
     max_pixel_value: int = 255,
+    cache_dir: Optional[Union[Path, str]] = None,
 ) -> None:
     """Using TSNE Clustering, visualises the embeddings from a model.
 
@@ -1109,6 +1110,8 @@ def plot_embedding(
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
         filename (str): Optional; Name of file to save plot to.
+        cache_dir (str | ~pathlib.Path): Optional; Path to the directory to load the cached dataset from. 
+            Defaults to None (so will create dataset from scratch).
 
     Returns:
         None
@@ -1121,7 +1124,8 @@ def plot_embedding(
     from minerva.datasets import make_dataset
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = make_dataset(data_dir, dataset_params)
+    cache = True if cache_dir else False
+    dataset, _ = make_dataset(data_dir, dataset_params, cache=cache, cache_dir=cache_dir)
 
     images = []
     targets = []

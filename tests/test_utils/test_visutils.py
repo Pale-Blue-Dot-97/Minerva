@@ -392,7 +392,7 @@ def test_plot_results(default_dataset: GeoDataset, exp_classes: Dict[int, str], 
     )
 
 
-def test_plot_embeddings(results_root: Path, default_dataset: GeoDataset) -> None:
+def test_plot_embeddings(results_root: Path, default_dataset: GeoDataset, exp_dataset_params: Dict[str, Any], data_root: Path, cache_dir: Path) -> None:
     embeddings = torch.rand([4, 152])
     bounds = [
         get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)
@@ -401,8 +401,10 @@ def test_plot_embeddings(results_root: Path, default_dataset: GeoDataset) -> Non
     visutils.plot_embedding(
         embeddings,
         bounds,
-        "test-test",
+        data_root,
+        exp_dataset_params,
         show=True,
         filename=results_root / "tsne_cluster_vis.png",
         title="test_plot",
+        cache_dir=cache_dir,
     )
