@@ -135,23 +135,15 @@ def test_stack_rgb() -> None:
     )
 
     image_1: NDArray[Shape["3, 3, 3"], Any] = np.array([red, green, blue])
-    rgb_1 = {"R": 0, "G": 1, "B": 2}
-
-    image_2: NDArray[Shape["3, 3, 3"], Any] = np.array([blue, red, green])
-    rgb_2 = {"G": 2, "B": 0, "R": 1}
 
     correct = np.dstack((blue, green, red)) / 255.0
-    result_1 = visutils.stack_rgb(image_1, rgb_1, max_value=255)
-    result_2 = visutils.stack_rgb(image_2, rgb_2, max_value=255)
+    result_1 = visutils.stack_rgb(image_1, max_value=255)
 
     assert_array_equal(result_1, correct)
-    assert_array_equal(result_2, correct)
 
 
 def test_make_rgb_image(random_image) -> None:
-    rgb = {"R": 0, "G": 1, "B": 2}
-
-    assert type(visutils.make_rgb_image(random_image, rgb)) is AxesImage
+    assert type(visutils.make_rgb_image(random_image)) is AxesImage
 
 
 def test_labelled_rgb_image(
@@ -342,7 +334,7 @@ def test_format_names() -> None:
     assert filenames == names
 
 
-def test_plot_results(default_dataset: GeoDataset) -> None:
+def test_plot_results(default_dataset: GeoDataset, exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]) -> None:
     batch_size = 2
     patch_size = (32, 32)
     n_classes = 8
@@ -373,7 +365,7 @@ def test_plot_results(default_dataset: GeoDataset) -> None:
         "val_acc": val_acc,
     }
 
-    probs = np.random.rand(batch_size, *patch_size, len(utils.CLASSES))
+    probs = np.random.rand(batch_size, *patch_size, len(exp_classes))
 
     embeddings = torch.rand([4, 152]).numpy()
     bounds = np.array(
@@ -389,8 +381,8 @@ def test_plot_results(default_dataset: GeoDataset) -> None:
         bounds=bounds,
         embeddings=embeddings,
         task_name="test-test",
-        class_names=utils.CLASSES,
-        colours=utils.CMAP_DICT,
+        class_names=exp_classes,
+        colours=exp_cmap_dict,
         save=False,
     )
 
