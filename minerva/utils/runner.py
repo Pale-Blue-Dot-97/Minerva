@@ -285,7 +285,7 @@ def _run_preamble(
 
 def distributed_run(
     run: Callable[[int, Optional[Union[Run, RunDisabled]], DictConfig], Any]
-) -> None:
+) -> Callable:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
     :func:`_run_preamble` adds some additional commands to initialise the process group for each run
