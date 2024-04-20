@@ -49,7 +49,7 @@ import pytest
 import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from rasterio.crs import CRS
 from torch import LongTensor, Tensor
 from torchgeo.datasets import IntersectionDataset, RasterDataset
@@ -427,10 +427,11 @@ def exp_dataset_params() -> Dict[str, Any]:
 
 
 @pytest.fixture
-def default_dataset(default_config: DictConfig) -> IntersectionDataset:
+def default_dataset(default_config: DictConfig, data_root: Path, cache_dir: Path) -> IntersectionDataset:
     dataset, _ = make_dataset(
-        default_config["dir"]["data"],
-        default_config["tasks"]["test-test"]["dataset_params"],
+        data_root,
+        OmegaConf.to_object(default_config["tasks"]["test-test"]["dataset_params"]),  # type: ignore[arg-type]
+        cache_dir=cache_dir,
     )
     assert isinstance(dataset, IntersectionDataset)
     return dataset
