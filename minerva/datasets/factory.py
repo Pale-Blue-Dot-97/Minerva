@@ -142,6 +142,8 @@ def get_subdataset(
         transformations (~typing.Any): Transformations to apply to this sub-dataset.
         sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
         cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
+        cache_dir (str | ~pathlib.Path): Path to the directory to save the cached dataset (if ``cache==True``).
+            Defaults to CWD. 
 
     Returns:
         ~torchgeo.datasets.GeoDataset: Subdataset requested.
@@ -197,6 +199,7 @@ def make_dataset(
     dataset_params: Dict[Any, Any],
     sample_pairs: bool = False,
     cache: bool = True,
+    cache_dir: Union[str, Path] = "",
 ) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from ``n`` sub-datasets given by the parameters supplied.
 
@@ -206,6 +209,9 @@ def make_dataset(
         dataset_params (dict[~typing.Any, ~typing.Any]): Dictionary of parameters defining each sub-datasets to be used.
         sample_pairs (bool): Optional; ``True`` if paired sampling. This will ensure paired samples are handled
             correctly in the datasets.
+        cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
+        cache_dir (str | ~pathlib.Path): Path to the directory to save the cached dataset (if ``cache==True``).
+            Defaults to CWD. 
 
     Returns:
         tuple[~typing.Any, list[~typing.Any]]: Tuple of Dataset object formed by the parameters given and list of
@@ -263,6 +269,7 @@ def make_dataset(
                     transformations,
                     sample_pairs=sample_pairs,
                     cache=cache,
+                    cache_dir=cache_dir,
                 )
 
                 # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
@@ -294,6 +301,7 @@ def make_dataset(
                 master_transforms,
                 sample_pairs=sample_pairs,
                 cache=cache,
+                cache_dir=cache_dir,
             )
 
             # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
