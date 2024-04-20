@@ -721,6 +721,7 @@ def seg_plot(
     model_name: str = "",
     path: str = "",
     max_pixel_value: int = 255,
+    cache_dir: Optional[Union[str, Path]] = None,
 ) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -738,6 +739,8 @@ def seg_plot(
             from this experiment to use.
         frac (float): Optional; Fraction of patch samples to plot.
         fig_dim (tuple[float, float]): Optional; Figure (height, width) in inches.
+        cache_dir (str | ~pathlib.Path): Optional; Path to the directory to load the cached dataset from. 
+            Defaults to None (so will create dataset from scratch).
 
     Returns:
         None
@@ -757,7 +760,8 @@ def seg_plot(
     flat_ids: NDArray[Any, Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
-    dataset, _ = make_dataset(data_dir, dataset_params)
+    cache = True if cache_dir else False
+    dataset, _ = make_dataset(data_dir, dataset_params, cache=cache, cache_dir=cache_dir)
 
     # Create a new projection system in lat-lon.
     crs = dataset.crs

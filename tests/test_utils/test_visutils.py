@@ -227,6 +227,7 @@ def test_seg_plot(
     exp_dataset_params: Dict[str, Any],
     exp_classes: Dict[int, str],
     exp_cmap_dict: Dict[int, str],
+    cache_dir: Path,
     monkeypatch,
 ) -> None:
 
@@ -260,6 +261,7 @@ def test_seg_plot(
         colours=exp_cmap_dict,
         fn_prefix=fn_prefix,
         frac=1.0,
+        cache_dir=cache_dir,
     )
 
 
