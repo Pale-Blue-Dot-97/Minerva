@@ -97,10 +97,7 @@ class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
             w = max(img.shape[1], w)
             images.append(img.unsqueeze(0))
 
-        for i in range(len(images)):
-            images[i] = resize(images[i], [h, w], antialias=True)
-
-        bands = torch.cat(images, dim=0)
+        bands = resize(torch.cat(images, dim=0), [h, w])
 
         if self.transform is not None:
             bands = self.transform(bands)
