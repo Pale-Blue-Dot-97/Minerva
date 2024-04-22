@@ -264,6 +264,9 @@ class Trainer:
         # Sets the max number of epochs of fitting.
         self.max_epochs = self.params.get("max_epochs", 25)
 
+        # Current epoch number counter.
+        self.epoch_no = 0
+
         # Flag for a fine-tuning experiment.
         self.fine_tune = self.params.get("fine_tune", False)
 
@@ -720,6 +723,32 @@ class Trainer:
             self.print(
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
+
+    def save_checkpoint(self) -> None:
+        optimiser = self.model.optimiser
+        assert optimiser
+        torch.save(
+            {
+                "epoch": self.epoch_no,
+                "model_state_dict": self.model.state_dict(),
+                "optimiser_state_dict": optimiser.state_dict(),
+                "params": self.params,
+            },
+            f"{self.exp_fn}-checkpoint.pt",
+        )
+
+    def load_checkpoint(self) -> None:
+        checkpoint = torch.load(f"{self.exp_fn}-checkpoint.pt")
+
+        self.model = self.make_model()
+        self.make_optimiser()
+
+        self.model.load_state_dict(checkpoint["model-state-dict"])
+        self.model.optimiser.load_state_dict(checkpoint["optimiser-state-dict"])  # type: ignore[union-attr]
+
+        self.params = checkpoint["params"]
+
+        self.epoch_no = checkpoint["epoch"]
 
     def tsne_cluster(self, task_name: str = "TSNEVis") -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.
