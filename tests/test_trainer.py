@@ -189,3 +189,21 @@ def test_trainer_4(
 
     if kwargs.get("test"):
         trainer.test()
+
+
+def test_trainer_resume() -> None:
+    params1 = deepcopy(CONFIG)
+    params1["checkpoint_experiment"] = True
+
+    trainer1 = Trainer(0, **params1)
+    while trainer1.epoch_no < trainer1.max_epochs - 1:
+        trainer1.fit()
+
+    params2 = deepcopy(params1)
+    params2["exp_name"] = params1["exp_name"]
+    params2["resume"] = True
+
+    trainer2 = Trainer(0, **params2)
+
+    trainer2.fit()
+    trainer2.test()
