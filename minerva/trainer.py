@@ -245,6 +245,8 @@ class Trainer:
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
 
+        self.params: Dict[str, Any] = dict(params)
+
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
 
@@ -260,7 +262,6 @@ class Trainer:
         self.print(f"\nExperiment checkpointing: {self.checkpoint_experiment}")
         self.resume: bool = self.params.get("resume_experiment", False)
 
-        self.params: Dict[str, Any] = dict(params)
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
@@ -278,7 +279,12 @@ class Trainer:
         # Sets the timestamp of the experiment.
         self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
 
-        if not self.resume:
+        if self.resume:
+            try:
+                assert self.params["exp_name"]
+            except AssertionError:
+                raise ValueError("You must add the `exp_name` to the config of the experiment to resume")
+        else:
             # Sets experiment name and adds this to the path to the results' directory.
             self.params["exp_name"] = "{}_{}".format(
                 self.params["model_name"], self.params["timestamp"]
