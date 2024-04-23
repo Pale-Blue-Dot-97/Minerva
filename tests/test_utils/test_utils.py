@@ -443,7 +443,11 @@ def test_get_centre_loc() -> None:
         ),  # City of London.
         (36.53849331792166, -102.65475905788739, ""),  # Random point in Ohio.
         (30.45028570174185, -76.49581035362436, ""),  # Bermuda Triangle.
-        (41.90204312927206, 12.45644780021287, "Civitas Vaticana"),  # Vatican City.
+        (
+            41.90204312927206,
+            12.45644780021287,
+            "Città del Vaticano, Civitas Vaticana",
+        ),  # Vatican City.
         (-77.844504, 166.707506, "McMurdo Station"),  # McMurdo Station, Antartica.
     ],
 )
