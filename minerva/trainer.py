@@ -258,7 +258,9 @@ class Trainer:
             utils.print_config(dict(params))
 
         # Set variables for checkpointing the experiment or loading from a previous checkpoint.
-        self.checkpoint_experiment: bool = self.params.get("checkpoint_experiment", False)
+        self.checkpoint_experiment: bool = self.params.get(
+            "checkpoint_experiment", False
+        )
         self.print(f"\nExperiment checkpointing: {self.checkpoint_experiment}")
         self.resume: bool = self.params.get("resume_experiment", False)
 
@@ -277,13 +279,15 @@ class Trainer:
         self.fine_tune = self.params.get("fine_tune", False)
 
         # Sets the timestamp of the experiment.
-        self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
+        self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M%S")
 
         if self.resume:
             try:
                 assert self.params["exp_name"]
             except AssertionError:
-                raise ValueError("You must add the `exp_name` to the config of the experiment to resume")
+                raise ValueError(
+                    "You must add the `exp_name` to the config of the experiment to resume"
+                )
         else:
             # Sets experiment name and adds this to the path to the results' directory.
             self.params["exp_name"] = "{}_{}".format(
@@ -318,6 +322,7 @@ class Trainer:
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
         elif self.resume:
+            print(f"\nResuming Experiment {self.params['exp_name']}...")
             self.load_checkpoint()
         else:
             # Creates model (and loss function) from specified parameters in params.
@@ -440,7 +445,7 @@ class Trainer:
         Returns:
             MinervaModel: Initialised model.
         """
-        model_params: Dict[str, Any] = self.params["model_params"]
+        model_params: Dict[str, Any] = deepcopy(self.params["model_params"])
 
         module = model_params.pop("module", "minerva.models")
         if not module:
@@ -517,7 +522,7 @@ class Trainer:
             ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = self.params["loss_params"].copy()
+        loss_params: Dict[str, Any] = deepcopy(self.params["loss_params"])
         module = loss_params.pop("module", "torch.nn")
         criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
 
@@ -530,7 +535,7 @@ class Trainer:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
         # Gets the optimiser requested by config parameters.
-        optimiser_params: Dict[str, Any] = self.params["optim_params"].copy()
+        optimiser_params: Dict[str, Any] = deepcopy(self.params["optim_params"])
         module = optimiser_params.pop("module", "torch.optim")
         optimiser = utils.func_by_str(module, self.params["optim_func"])
 
@@ -570,9 +575,13 @@ class Trainer:
                 **self.params,
             )
 
+            if tasks[mode].params.get("elim", False):
+                self.params["n_classes"] = tasks[mode].n_classes
+
         while self.epoch_no < self.max_epochs:
+            self.epoch_no += 1
             self.print(
-                f"\nEpoch: {self.epoch_no + 1}/{self.max_epochs} ======================================================"
+                f"\nEpoch: {self.epoch_no}/{self.max_epochs} ======================================================"
             )
 
             # Conduct training or validation epoch.
@@ -580,9 +589,9 @@ class Trainer:
                 # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
                 if (
                     utils.check_substrings_in_string(mode, "val")
-                    and (self.epoch_no + 1) % self.val_freq != 0
+                    and (self.epoch_no) % self.val_freq != 0
                 ):
-                    tasks[mode].log_null(self.epoch_no)
+                    tasks[mode].log_null(self.epoch_no - 1)
                     break
 
                 if tasks[mode].train:
@@ -592,12 +601,13 @@ class Trainer:
 
                 results: Optional[Dict[str, Any]]
 
-                results = tasks[mode](self.epoch_no)
+                results = tasks[mode](self.epoch_no - 1)
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    tasks[mode].print_epoch_results(self.epoch_no)
+                    tasks[mode].print_epoch_results(self.epoch_no - 1)
                     if not self.stopper and self.checkpoint_experiment:
+                        print("Saving checkpoint")
                         self.save_checkpoint()
 
                 # Sends validation loss to the stopper and updates early stop bool.
@@ -605,14 +615,16 @@ class Trainer:
                     utils.check_substrings_in_string(mode, "val")
                     and self.stopper is not None
                 ):
-                    val_loss = tasks[mode].get_metrics[f"{mode}_loss"]["y"][self.epoch_no]
+                    val_loss = tasks[mode].get_metrics[f"{mode}_loss"]["y"][
+                        self.epoch_no - 1
+                    ]
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
                     if self.stopper.save_model and self.gpu == 0:
                         self.save_checkpoint()
 
                 # Special case for final train/ val epoch to plot results if configured so.
-                if self.epoch_no == (self.max_epochs - 1) or self.early_stop:
+                if self.epoch_no == self.max_epochs or self.early_stop:
                     if self.early_stop and utils.check_substrings_in_string(
                         mode, "val"
                     ):  # pragma: no cover
@@ -639,6 +651,7 @@ class Trainer:
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
                 if self.early_stop:  # pragma: no cover
+                    print("Loading checkpoint")
                     self.load_checkpoint()
                     return
 
@@ -754,6 +767,7 @@ class Trainer:
                 "epoch": self.epoch_no,
                 "model_state_dict": extract_wrapped_model(self.model).state_dict(),
                 "optimiser_state_dict": optimiser.state_dict(),
+                "n_classes": self.params.get("n_classes"),
             },
             f"{self.exp_fn}-checkpoint.pt",
         )
@@ -761,11 +775,16 @@ class Trainer:
     def load_checkpoint(self) -> None:
         checkpoint = torch.load(f"{self.exp_fn}-checkpoint.pt")
 
+        # Update the number of classes in case it was altered by class balancing.
+        self.params["n_classes"] = checkpoint["n_classes"]
+
+        # Remake model and optimiser objects.
         self.model = self.make_model()
         self.make_optimiser()
 
-        self.model.load_state_dict(checkpoint["model-state-dict"])
-        self.model.optimiser.load_state_dict(checkpoint["optimiser-state-dict"])  # type: ignore[union-attr]
+        # Load the state dicts for the model and optimiser.
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+        self.model.optimiser.load_state_dict(checkpoint["optimiser_state_dict"])  # type: ignore[union-attr]
 
         # Transfer to GPU.
         self.model.to(self.device)
