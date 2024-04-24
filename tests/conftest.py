@@ -422,12 +422,21 @@ def exp_dataset_params() -> Dict[str, Any]:
             "name": "TstImgDataset",
             "paths": "NAIP",
             "params": {"res": 1.0, "crs": 26918},
-        }
+        },
+        "mask": {
+            "transforms": False,
+            "module": "minerva.datasets.__testing",
+            "name": "TstMaskDataset",
+            "paths": "Chesapeake7",
+            "params": {"res": 1.0},
+        },
     }
 
 
 @pytest.fixture
-def default_dataset(default_config: DictConfig, data_root: Path, cache_dir: Path) -> IntersectionDataset:
+def default_dataset(
+    default_config: DictConfig, data_root: Path, cache_dir: Path
+) -> IntersectionDataset:
     dataset, _ = make_dataset(
         data_root,
         OmegaConf.to_object(default_config["tasks"]["test-test"]["dataset_params"]),  # type: ignore[arg-type]
@@ -441,7 +450,10 @@ def default_dataset(default_config: DictConfig, data_root: Path, cache_dir: Path
 def default_image_dataset(
     default_config: DictConfig, exp_dataset_params: Dict[str, Any]
 ) -> RasterDataset:
-    dataset, _ = make_dataset(default_config["dir"]["data"], exp_dataset_params)
+    del exp_dataset_params["mask"]
+    dataset, _ = make_dataset(
+        default_config["dir"]["data"], exp_dataset_params, cache=False
+    )
     assert isinstance(dataset, RasterDataset)
     return dataset
 

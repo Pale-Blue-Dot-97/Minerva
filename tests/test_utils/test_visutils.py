@@ -339,7 +339,14 @@ def test_format_names() -> None:
     assert filenames == names
 
 
-def test_plot_results(default_dataset: GeoDataset, exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]) -> None:
+def test_plot_results(
+    default_dataset: GeoDataset,
+    exp_classes: Dict[int, str],
+    exp_cmap_dict: Dict[int, str],
+    results_dir: Path,
+    default_config: Dict[str, Any],
+) -> None:
+
     batch_size = 2
     patch_size = (32, 32)
     n_classes = 8
@@ -389,10 +396,18 @@ def test_plot_results(default_dataset: GeoDataset, exp_classes: Dict[int, str], 
         class_names=exp_classes,
         colours=exp_cmap_dict,
         save=False,
+        results_dir=results_dir,
+        cfg=default_config,
     )
 
 
-def test_plot_embeddings(results_root: Path, default_dataset: GeoDataset, exp_dataset_params: Dict[str, Any], data_root: Path, cache_dir: Path) -> None:
+def test_plot_embeddings(
+    results_root: Path,
+    default_dataset: GeoDataset,
+    exp_dataset_params: Dict[str, Any],
+    data_root: Path,
+    cache_dir: Path,
+) -> None:
     embeddings = torch.rand([4, 152])
     bounds = [
         get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)

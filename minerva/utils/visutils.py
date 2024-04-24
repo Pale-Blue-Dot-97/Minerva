@@ -739,7 +739,7 @@ def seg_plot(
             from this experiment to use.
         frac (float): Optional; Fraction of patch samples to plot.
         fig_dim (tuple[float, float]): Optional; Figure (height, width) in inches.
-        cache_dir (str | ~pathlib.Path): Optional; Path to the directory to load the cached dataset from. 
+        cache_dir (str | ~pathlib.Path): Optional; Path to the directory to load the cached dataset from.
             Defaults to None (so will create dataset from scratch).
 
     Returns:
@@ -761,7 +761,9 @@ def seg_plot(
 
     print("\nRE-CONSTRUCTING DATASET")
     cache = True if cache_dir else False
-    dataset, _ = make_dataset(data_dir, dataset_params, cache=cache, cache_dir=cache_dir)
+    dataset, _ = make_dataset(
+        data_dir, dataset_params, cache=cache, cache_dir=cache_dir
+    )
 
     # Create a new projection system in lat-lon.
     crs = dataset.crs
@@ -849,7 +851,7 @@ def plot_subpopulations(
         counts.append(label[1])
 
         if cmap_dict:
-            assert colours
+            assert colours is not None
             colours.append(cmap_dict[label[0]])
 
     if cmap_dict is None:
@@ -1110,7 +1112,7 @@ def plot_embedding(
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
         filename (str): Optional; Name of file to save plot to.
-        cache_dir (str | ~pathlib.Path): Optional; Path to the directory to load the cached dataset from. 
+        cache_dir (str | ~pathlib.Path): Optional; Path to the directory to load the cached dataset from.
             Defaults to None (so will create dataset from scratch).
 
     Returns:
@@ -1125,7 +1127,9 @@ def plot_embedding(
 
     print("\nRE-CONSTRUCTING DATASET")
     cache = True if cache_dir else False
-    dataset, _ = make_dataset(data_dir, dataset_params, cache=cache, cache_dir=cache_dir)
+    dataset, _ = make_dataset(
+        data_dir, dataset_params, cache=cache, cache_dir=cache_dir
+    )
 
     images = []
     targets = []
@@ -1318,6 +1322,7 @@ def plot_results(
                 results_dir = cfg["dir"]["results"]
             except KeyError:
                 results_dir = ""
+
         assert isinstance(results_dir, (Sequence, str, Path))
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
@@ -1346,7 +1351,7 @@ def plot_results(
             filename=filenames["CM"],
             save=save,
             show=show,
-            figsize=cfg["figsizes"]["CM"]
+            figsize=cfg["figsizes"]["CM"],
         )
 
     if plots.get("Pred", False):
