@@ -342,7 +342,6 @@ class Trainer:
 
         assert isinstance(sample_pairs, bool)
         self.sample_pairs = sample_pairs
-        self.model.determine_output_dim(sample_pairs=sample_pairs)
 
         # Sets up the early stopping functionality.
         self.stopper = None
@@ -364,6 +363,8 @@ class Trainer:
         if not self.resume:
             # Creates and sets the optimiser for the model.
             self.make_optimiser()
+
+            self.model.determine_output_dim(sample_pairs=self.sample_pairs)
 
             # Transfer to GPU.
             self.model.to(self.device)
@@ -798,9 +799,16 @@ class Trainer:
         self.model = self.make_model()
         self.make_optimiser()
 
+        # Have to delete the weight for the loss function from the checkpoint as there
+        # is no way to replicate it here. It will be correctly added back when the model is
+        # sent to a task that uses class balancing.
+        del checkpoint["model_state_dict"]["criterion.weight"]
+
         # Load the state dicts for the model and optimiser.
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.model.optimiser.load_state_dict(checkpoint["optimiser_state_dict"])  # type: ignore[union-attr]
+
+        self.model.determine_output_dim(sample_pairs=self.sample_pairs)
 
         # Transfer to GPU.
         self.model.to(self.device)
@@ -858,7 +866,7 @@ class Trainer:
                 yaml.dump(self.params, outfile)
 
             try:
-                assert self.exp_fn.append_suffix("yml").exists()
+                assert self.exp_fn.with_suffix(".yml").exists()
             except AssertionError:
                 print(f"Failed to save config file to {self.exp_fn}.yml!")
 
