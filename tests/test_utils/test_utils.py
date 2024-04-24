@@ -234,13 +234,13 @@ def test_eliminate_classes(
             [1, 4, 1, 5, 1, 4, 1, 5, 1],
             [1, 1, 3, 0, 1, 2, 1, 0, 3],
             [1, 2, 1, 0, 1, 2, 1, 0, 1],
-            {0: "5", 1: "1", 2: "4", 3: "3"},
+            {0: "Surfaces", 1: "Water", 2: "Barren", 3: "Low Vegetation"},
         ),
         (
-            [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
-            [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
-            [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
-            [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
+            [2, 4, 5, 1, 6, 3, 0, 2, 1, 5, 7],
+            [2, 1, 5, 1, 6, 3, 0, 1, 1, 5, 7],
+            [2, 4, 5, 1, 6, 3, 0, 2, 1, 5, 7],
+            [2, 1, 5, 1, 6, 3, 0, 1, 1, 5, 7],
             lazy_fixture("exp_classes"),
         ),
     ],
@@ -258,10 +258,6 @@ def test_check_test_empty(
     assert_array_equal(results[0], out_pred)
     assert_array_equal(results[1], out_labels)
     assert results[2] == out_classes
-
-    assert_array_equal(np.array(results[0]), np.array(out_pred))
-    assert_array_equal(np.array(results[1]), np.array(out_labels))
-    assert np.array(results[2]) == np.array(out_classes)
 
 
 def test_find_modes(exp_classes: Dict[int, str]) -> None:
