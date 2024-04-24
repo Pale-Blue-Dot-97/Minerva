@@ -624,7 +624,6 @@ class Trainer:
                 if self.gpu == 0:
                     tasks[mode].print_epoch_results(self.epoch_no - 1)
                     if not self.stopper and self.checkpoint_experiment:
-                        print("Saving checkpoint")
                         self.save_checkpoint()
 
                 # Sends validation loss to the stopper and updates early stop bool.
@@ -777,8 +776,13 @@ class Trainer:
             )
 
     def save_checkpoint(self) -> None:
+        fn = f"{self.exp_fn}-checkpoint.pt"
+
+        self.print(f"Saving checkpoint to {fn}")
+
         optimiser = self.model.optimiser
         assert optimiser
+
         torch.save(
             {
                 "epoch": self.epoch_no,
@@ -786,7 +790,7 @@ class Trainer:
                 "optimiser_state_dict": optimiser.state_dict(),
                 "n_classes": self.params.get("n_classes"),
             },
-            f"{self.exp_fn}-checkpoint.pt",
+            fn,
         )
 
     def load_checkpoint(self) -> None:
