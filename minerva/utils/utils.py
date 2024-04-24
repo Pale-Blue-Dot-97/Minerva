@@ -119,6 +119,7 @@ import shlex
 import sys
 import webbrowser
 from collections import Counter, OrderedDict
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from subprocess import Popen
@@ -941,21 +942,23 @@ def eliminate_classes(
             * Mapping from old to new classes.
             * Mapping of remaining class labels to RGB colours.
     """
-    if old_cmap is None:
-        old_cmap = {}
+    # if old_cmap is None:
+    #     old_cmap = {}
 
     if len(empty_classes) == 0:
         return old_classes, {}, old_cmap
 
     else:
         # Makes deep copies of the class and cmap dicts.
-        new_classes = {key: value[:] for key, value in old_classes.items()}
-        new_colours = {key: value[:] for key, value in old_cmap.items()}
+        new_classes = deepcopy(old_classes)
+        if old_cmap is not None:
+            new_colours = deepcopy(old_cmap)
 
         # Deletes empty classes from copied dicts.
         for label in empty_classes:
             del new_classes[label]
-            del new_colours[label]
+            if old_cmap is not None:
+                del new_colours[label]
 
         # Holds keys that are over the length of the shortened dict.
         # i.e If there were 8 classes before and now there are 6 but class number 7 remains, it is an over key.
@@ -965,7 +968,8 @@ def eliminate_classes(
 
         # Creates OrderedDicts of the key-value pairs of the over keys.
         over_classes = OrderedDict({key: new_classes[key] for key in over_keys})
-        over_colours = OrderedDict({key: new_colours[key] for key in over_keys})
+        if old_cmap is not None:
+            over_colours = OrderedDict({key: new_colours[key] for key in over_keys})
 
         reordered_classes = {}
         reordered_colours = {}
@@ -976,19 +980,20 @@ def eliminate_classes(
             # If there is a remaining class present at this number, copy those corresponding values across to new dicts.
             if i in new_classes:
                 reordered_classes[i] = new_classes[i]
-                reordered_colours[i] = new_colours[i]
                 conversion[i] = i
+                if old_cmap is not None:
+                    reordered_colours[i] = new_colours[i]
 
             # If there is no remaining class at this number (because it has been deleted),
             # fill this gap with one of the over-key classes.
             if i not in new_classes:
                 class_key, class_value = over_classes.popitem()
-                _, colour_value = over_colours.popitem()
-
                 reordered_classes[i] = class_value
-                reordered_colours[i] = colour_value
-
                 conversion[class_key] = i
+
+                if old_cmap is not None:
+                    _, colour_value = over_colours.popitem()
+                    reordered_colours[i] = colour_value
 
         return reordered_classes, conversion, reordered_colours
 

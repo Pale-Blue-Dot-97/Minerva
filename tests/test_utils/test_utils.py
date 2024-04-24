@@ -197,19 +197,28 @@ def test_ohe_labels() -> None:
 
 
 def test_empty_classes(exp_classes: Dict[int, str]) -> None:
-    labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
-    assert utils.find_empty_classes(labels, exp_classes) == [0, 2]
+    class_distribution = [(3, 321), (4, 112), (1, 671), (5, 456)]
+    assert utils.find_empty_classes(class_distribution, exp_classes) == [0, 2, 6, 7]
 
 
-def test_eliminate_classes(exp_classes: Dict[int, str]) -> None:
-    empty = [0, 2]
-    old_cmap = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
-    new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
-    new_cmap = {0: "5", 1: "1", 2: "4", 3: "3"}
-    conversion = {1: 1, 3: 3, 4: 2, 5: 0}
+def test_eliminate_classes(
+    exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]
+) -> None:
+    empty = [0, 2, 7]
+    new_classes = {
+        0: "Roads",
+        1: "Water",
+        2: "Surfaces",
+        3: "Low Vegetation",
+        4: "Barren",
+    }
+    new_cmap = {0: "#000000", 1: "#00c5ff", 2: "#9c9c9c", 3: "#a3ff73", 4: "#ffaa00"}
+    conversion = {6: 0, 1: 1, 5: 2, 3: 3, 4: 4}
 
     results = utils.eliminate_classes(
-        empty_classes=empty, old_classes=exp_classes, old_cmap=old_cmap
+        empty_classes=empty,
+        old_classes=exp_classes,
+        old_cmap=exp_cmap_dict,
     )
 
     assert new_classes == results[0]
