@@ -113,17 +113,22 @@ def test_caching_datasets(
     cache_dir: Path,
     sample_pairs: bool,
 ) -> None:
+    # Just want to test with an imagery dataset.
+    del exp_dataset_params["mask"]
+
     # Make the path to the cached dataset.
-    cached_dataset_path = Path(
-        str(cache_dir), make_hash(exp_dataset_params["image"]) + ".obj"
-    )
+    cached_dataset_path = cache_dir / (make_hash(exp_dataset_params["image"]) + ".obj")
 
     # Ensure that any previous caches are deleted.
     cached_dataset_path.unlink(missing_ok=True)
 
     # This first call will make the dataset from scratch then cache it.
     dataset_1, subdatasets_1 = mdt.make_dataset(
-        data_root, exp_dataset_params, sample_pairs=sample_pairs, cache=True
+        data_root,
+        exp_dataset_params,
+        sample_pairs=sample_pairs,
+        cache=True,
+        cache_dir=cache_dir,
     )
 
     # The cached dataset should now exist.
@@ -131,7 +136,11 @@ def test_caching_datasets(
 
     # Second call to make dataset with the same args should now load that cached dataset.
     dataset_2, subdatasets_2 = mdt.make_dataset(
-        data_root, exp_dataset_params, sample_pairs=sample_pairs, cache=True
+        data_root,
+        exp_dataset_params,
+        sample_pairs=sample_pairs,
+        cache=True,
+        cache_dir=cache_dir,
     )
 
     # Datasets from calls 1 should be the same as those from 2.
