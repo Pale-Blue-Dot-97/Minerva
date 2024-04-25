@@ -43,9 +43,9 @@ from typing import Any, Dict
 
 import pandas as pd
 import pytest
+from omegaconf import DictConfig
 from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset, UnionDataset
-from omegaconf import DictConfig
 
 from minerva import datasets as mdt
 from minerva.datasets import PairedDataset
@@ -57,27 +57,6 @@ from minerva.utils.utils import make_hash
 #                                                       TESTS
 # =====================================================================================================================
 def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> None:
-    dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params)
-
-    assert isinstance(dataset_1, type(subdatasets_1[0]))
-    assert isinstance(dataset_1, TstImgDataset)
-
-    dataset_2, subdatasets_2 = mdt.make_dataset(
-        data_root,
-        exp_dataset_params,
-        sample_pairs=True,
-        cache=False,
-    )
-
-    assert isinstance(dataset_2, type(subdatasets_2[0]))
-    assert isinstance(dataset_2, PairedDataset)
-
-    exp_dataset_params["mask"] = {
-        "module": "minerva.datasets.__testing",
-        "name": "TstMaskDataset",
-        "paths": "Chesapeake7",
-        "params": {"res": 1.0},
-    }
 
     dataset_params2 = {
         "image": {
@@ -109,10 +88,30 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
     assert isinstance(dataset_5, IntersectionDataset)
     assert isinstance(subdatasets_5[0], UnionDataset)
 
+    del exp_dataset_params["mask"]
+
+    dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params)
+
+    assert isinstance(dataset_1, type(subdatasets_1[0]))
+    assert isinstance(dataset_1, TstImgDataset)
+
+    dataset_2, subdatasets_2 = mdt.make_dataset(
+        data_root,
+        exp_dataset_params,
+        sample_pairs=True,
+        cache=False,
+    )
+
+    assert isinstance(dataset_2, type(subdatasets_2[0]))
+    assert isinstance(dataset_2, PairedDataset)
+
 
 @pytest.mark.parametrize("sample_pairs", (False, True))
 def test_caching_datasets(
-    exp_dataset_params: Dict[str, Any], data_root: Path, cache_dir: Path, sample_pairs: bool
+    exp_dataset_params: Dict[str, Any],
+    data_root: Path,
+    cache_dir: Path,
+    sample_pairs: bool,
 ) -> None:
     # Make the path to the cached dataset.
     cached_dataset_path = Path(
