@@ -240,7 +240,6 @@ class MinervaTask(ABC):
         # Ensure the model IO function is treated as static not a class method.
         self.modelio = staticmethod(self.get_io_func()).__func__
 
-        self.loaders = loaders
         self.device = device
         self.writer = writer
         self.step_num = 0
