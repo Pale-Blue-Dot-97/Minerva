@@ -179,6 +179,10 @@ class DynamicPSP(smp.PSPNet):
     def set_classification_on(self, on: bool) -> None:
         self.classification_on = on
 
+    def _remake_classifier(self) -> None:
+        self.make_segmentation_head(self.n_classes, upsampling=32, activation=torch.nn.PReLU)
+        self.make_classification_head({"classes": self.n_classes, "activation": torch.nn.PReLU})
+
     def forward(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, ...]]:
         f = self.encoder(x)
 
