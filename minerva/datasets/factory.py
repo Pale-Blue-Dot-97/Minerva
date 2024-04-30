@@ -62,6 +62,7 @@ from rasterio.crs import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datasets import GeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
+from torchgeo.samplers.utils import _to_tuple
 
 from minerva.transforms import init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
@@ -470,6 +471,7 @@ def _make_loader(
 
     if elim and not utils.check_substrings_in_string(model_type, "siamese"):
         dataset_params = _add_class_transform(class_matrix, dataset_params, target_key)
+        print(dataset_params)
 
     # Calculates number of batches.
     n_batches = int(sampler_params["params"]["length"] / batch_size)
@@ -831,15 +833,20 @@ def make_manifest(
                     del params[target_key]["transforms"]["ClassTransform"]
 
     _sampler_params = deepcopy(sampler_params)
+    if OmegaConf.is_config(_sampler_params):
+        _sampler_params = OmegaConf.to_object(_sampler_params)
 
     if _sampler_params["name"] in (
         "RandomGeoSampler",
         "RandomPairGeoSampler",
-        "RandomGeoBatchSampler",
-        "RandomPairGeoBatchSampler",
+        "RandomBatchGeoSampler",
+        "RandomPairBatchGeoSampler",
     ):
         _sampler_params["module"] = "torchgeo.samplers"
-        _sampler_params["name"] = "GridSampler"
+        _sampler_params["name"] = "GridGeoSampler"
+        _sampler_params["params"]["stride"] = [
+            0.9 * x for x in _to_tuple(_sampler_params["params"]["size"])
+        ]
 
     if _sampler_params["name"] == "RandomSampler":
         _sampler_params["name"] = "SequentialSampler"
@@ -857,7 +864,7 @@ def make_manifest(
     loader = construct_dataloader(
         data_dir,
         dataset_params,
-        sampler_params,
+        _sampler_params,
         loader_params,
         batch_size,
         collator_params=collator_params,
