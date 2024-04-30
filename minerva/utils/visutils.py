@@ -1192,7 +1192,7 @@ def plot_embedding(
     if save:
         if filename is None:  # pragma: no cover
             filename = "tsne_cluster_vis.png"
-        os.makedirs(Path(filename).parent, exist_ok=True)
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(filename)
         print("TSNE cluster visualisation SAVED")
         plt.close()
@@ -1310,14 +1310,14 @@ def plot_results(
         timestamp = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
 
     if model_name is None:
-        if isinstance(cfg, dict):
+        if cfg:
             model_name = cfg.get("model_name", "_name_")
         else:
             model_name = "_name_"
     assert model_name is not None
 
     if results_dir is None:
-        if isinstance(cfg, dict):
+        if cfg:
             try:
                 results_dir = cfg["dir"]["results"]
             except KeyError:
@@ -1328,7 +1328,7 @@ def plot_results(
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
     try:
-        os.mkdir(universal_path(results_dir))
+        universal_path(results_dir).mkdir(parents=True, exist_ok=True)
     except FileExistsError as err:
         print(err)
 
@@ -1351,7 +1351,7 @@ def plot_results(
             filename=filenames["CM"],
             save=save,
             show=show,
-            figsize=cfg["figsizes"]["CM"],
+            figsize=cfg["data_config"]["fig_sizes"]["CM"],
         )
 
     if plots.get("Pred", False):
@@ -1397,16 +1397,16 @@ def plot_results(
         assert bounds is not None
         assert task_name is not None
 
-        if isinstance(cfg, dict):
+        if cfg:
             try:
-                figsize = cfg["fig_sizes"]["Mask"]
+                figsize = cfg["data_config"]["fig_sizes"]["Mask"]
             except KeyError:
                 figsize = None
         else:
             figsize = None
 
         flat_bbox = utils.batch_flatten(bounds)
-        os.makedirs(universal_path(results_dir) / "Masks", exist_ok=True)
+        (universal_path(results_dir) / "Masks").mkdir(parents=True, exist_ok=True)
         seg_plot(
             z,
             y,

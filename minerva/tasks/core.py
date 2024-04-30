@@ -486,6 +486,7 @@ class MinervaTask(ABC):
             model_name=self.params["model_name"],
             timestamp=self.params["timestamp"],
             results_dir=self.task_dir,
+            cfg=self.params,
             **results,
         )
 
