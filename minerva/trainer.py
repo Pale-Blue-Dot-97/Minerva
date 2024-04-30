@@ -52,7 +52,7 @@ from torch.nn.modules import Module
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
@@ -247,7 +247,7 @@ class Trainer:
         self.device = utils.get_cuda_device(gpu)
 
         # Convert the config back to DictConfig after being used as kwargs.
-        self.params = OmegaConf.create(params)
+        params = OmegaConf.create(params)
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
@@ -257,10 +257,10 @@ class Trainer:
             print(
                 "\n==+ Experiment Parameters +====================================================="
             )
-            utils.print_config(self.params)
+            utils.print_config(params)
 
-        # Ensure that the config can have new fields added dynamically.
-        OmegaConf.set_struct(self.params, False)
+        # Now that we have pretty printed the config, it is easier to handle as a dict.
+        self.params = OmegaConf.to_object(params)
 
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
@@ -340,7 +340,7 @@ class Trainer:
 
         if self.gpu == 0:
             if isinstance(self.writer, Run):
-                self.writer.config.update(OmegaConf.to_object(self.params))
+                self.writer.config.update(self.params)
 
             # Determines the input size of the model.
             input_size = self.get_input_size()

@@ -474,7 +474,6 @@ def _make_loader(
 
     if elim and not utils.check_substrings_in_string(model_type, "siamese"):
         dataset_params = _add_class_transform(class_matrix, dataset_params, target_key)
-        print(dataset_params)
 
     # Calculates number of batches.
     n_batches = int(sampler_params["params"]["length"] / batch_size)
