@@ -202,7 +202,6 @@ def cache_dataset(dataset: GeoDataset, cached_dataset_path: Path) -> None:
 
 
 def masks_or_labels(dataset_params: Dict[str, Any]) -> str:
-    print(dataset_params.keys())
     for key in dataset_params.keys():
         if key not in ("sampler", "image", "imagery_config", "data_config"):
             if key == "mask" or key == "label":
