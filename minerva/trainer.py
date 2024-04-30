@@ -311,7 +311,7 @@ class Trainer:
                 assert TENSORBOARD_WRITER
 
                 # Initialise TensorBoard logger.
-                self.writer = TENSORBOARD_WRITER(self.exp_fn)
+                self.writer = TENSORBOARD_WRITER(self.exp_fn / self.params["exp_name"])
             else:  # pragma: no cover
                 self.writer = None
 
@@ -346,7 +346,7 @@ class Trainer:
                 self.params["stopping"].get("patience", 10) // self.val_freq
             )
             self.stopper = EarlyStopping(
-                path=f"{self.exp_fn}.pt",
+                path=(self.exp_fn / self.params["exp_name"]).with_suffix(".pt"),
                 trace_func=self.print,
                 external_save=True,
                 **self.params["stopping"],
@@ -429,7 +429,7 @@ class Trainer:
             (model name excluding version and file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
-        return Path(cache_dir / Path(self.params["model_name"].split("-")[0]))
+        return cache_dir / self.params["model_name"].split("-")[0]
 
     def get_weights_path(self) -> Path:
         """Get the path to the cached version of the pre-trained model.
@@ -438,7 +438,7 @@ class Trainer:
             ~pathlib.Path: :class:`~pathlib.Path` to the cached model (excluding file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
-        return Path(cache_dir / Path(self.params["pre_train_name"]).with_suffix(""))
+        return cache_dir / Path(self.params["pre_train_name"]).with_suffix("")
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
@@ -760,7 +760,7 @@ class Trainer:
             )
 
     def save_checkpoint(self) -> None:
-        fn = f"{self.exp_fn}-checkpoint.pt"
+        fn = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
 
         self.print(f"Saving checkpoint to {fn}")
 
@@ -778,7 +778,9 @@ class Trainer:
         )
 
     def load_checkpoint(self) -> None:
-        checkpoint = torch.load(f"{self.exp_fn}-checkpoint.pt")
+        checkpoint = torch.load(
+            self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+        )
 
         # Update the number of classes in case it was altered by class balancing.
         self.params["n_classes"] = checkpoint["n_classes"]
@@ -850,14 +852,15 @@ class Trainer:
 
         if self.gpu == 0:
             self.print("\nSAVING EXPERIMENT CONFIG TO FILE")
+            fn = self.exp_fn / self.params["exp_name"]
             # Outputs the modified YAML parameters config file used for this experiment to file.
-            with open(f"{self.exp_fn}.yml", "w") as outfile:
+            with open(f"{fn}.yml", "w") as outfile:
                 yaml.dump(self.params, outfile)
 
             try:
-                assert self.exp_fn.with_suffix(".yml").exists()
+                assert fn.with_suffix(".yml").exists()
             except AssertionError:
-                print(f"Failed to save config file to {self.exp_fn}.yml!")
+                print(f"Failed to save config file to {fn}.yml!")
 
             # Checks whether to save the model parameters to file.
             if self.params.get("save_model", False) in (
@@ -887,14 +890,14 @@ class Trainer:
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
 
-    def save_model_weights(self, fn: Optional[str] = None) -> None:
+    def save_model_weights(self, fn: Optional[Union[str, Path]] = None) -> None:
         """Saves model state dict to :mod:`torch` file.
 
         Args:
             fn (str): Optional; Filename and path (excluding extension) to save weights to.
         """
         if fn is None:
-            fn = str(self.exp_fn)
+            fn = self.exp_fn / self.params["exp_name"]
 
         model = extract_wrapped_model(self.model)
 
@@ -915,7 +918,7 @@ class Trainer:
         model = extract_wrapped_model(self.model)
 
         if fn is None:
-            fn = str(self.exp_fn)
+            fn = self.exp_fn / self.params["exp_name"]
 
         if fmt == "pt":
             torch.save(model, f"{fn}.pt")
@@ -942,7 +945,10 @@ class Trainer:
             pass
 
         torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-backbone.pt")
-        torch.save(pre_trained_backbone.state_dict(), f"{self.exp_fn}-backbone.pt")
+        torch.save(
+            pre_trained_backbone.state_dict(),
+            self.exp_fn / (self.params["exp_name"] + "-backbone.pt"),
+        )
 
     def run_tensorboard(self) -> None:
         """Opens :mod:`tensorboard` log of the current experiment in a locally hosted webpage."""
