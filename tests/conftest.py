@@ -59,6 +59,7 @@ from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
 from minerva.utils import DEFAULT_CONFIG_NAME, utils
+from minerva.utils.runner import _config_load_resolver
 
 
 # =====================================================================================================================
@@ -170,6 +171,8 @@ def config_here(inbuilt_cfg_root: Path) -> Generator[Path, None, None]:
 
 @pytest.fixture
 def default_config(inbuilt_cfg_root: Path) -> DictConfig:
+    OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
+
     with hydra.initialize(config_path=str(inbuilt_cfg_root)):
         # config is relative to a module
         cfg = hydra.compose(config_name=DEFAULT_CONFIG_NAME)
