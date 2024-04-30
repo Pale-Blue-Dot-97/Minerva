@@ -790,7 +790,8 @@ class Trainer:
         # Have to delete the weight for the loss function from the checkpoint as there
         # is no way to replicate it here. It will be correctly added back when the model is
         # sent to a task that uses class balancing.
-        del checkpoint["model_state_dict"]["criterion.weight"]
+        if "criterion.weight" in checkpoint["model_state_dict"]:
+            del checkpoint["model_state_dict"]["criterion.weight"]
 
         # Load the state dicts for the model and optimiser.
         self.model.load_state_dict(checkpoint["model_state_dict"])
