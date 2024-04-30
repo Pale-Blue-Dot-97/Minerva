@@ -223,6 +223,9 @@ def make_dataset(
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
     sub_datasets: List[GeoDataset] = []
 
+    if OmegaConf.is_config(dataset_params):
+        dataset_params = OmegaConf.to_object(dataset_params)
+
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
         if type_key == "sampler":
