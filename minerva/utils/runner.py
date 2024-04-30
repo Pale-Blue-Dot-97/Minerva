@@ -53,12 +53,14 @@ import os
 import shlex
 import signal
 import subprocess
+from pathlib import Path
 from typing import Any, Callable, Optional, Tuple, Union
 
 import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import yaml
 from omegaconf import DictConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
@@ -103,6 +105,12 @@ def _handle_sigusr1(signum, frame) -> None:  # pragma: no cover
 
 def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
     pass
+
+
+def _config_load_resolver(path: str):
+    with open(Path(path)) as f:
+        cfg = yaml.safe_load(f)
+    return cfg
 
 
 def setup_wandb_run(
@@ -300,8 +308,11 @@ def distributed_run(
         args (~argparse.Namespace): Arguments for the run and to specify the variables for distributed computing.
     """
 
+    OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
+
     @functools.wraps(run)
     def inner_decorator(cfg: DictConfig):
+        OmegaConf.resolve(cfg)
         OmegaConf.set_struct(cfg, False)
         cfg = config_args(cfg)
 
