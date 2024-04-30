@@ -1901,4 +1901,7 @@ def make_hash(obj: Dict[Any, Any]) -> str:
             separators=(",", ":"),
         )
 
+    if OmegaConf.is_config(obj):
+        obj = OmegaConf.to_object(obj)
+
     return hashlib.md5(json_dumps(obj).encode("utf-8")).digest().hex()  # nosec: B324
