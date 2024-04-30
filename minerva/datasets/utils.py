@@ -37,6 +37,7 @@ __all__ = [
     "intersect_datasets",
     "unionise_datasets",
     "get_random_sample",
+    "masks_or_labels",
 ]
 
 import pickle
@@ -198,3 +199,15 @@ def cache_dataset(dataset: GeoDataset, cached_dataset_path: Path) -> None:
 
     with open(cached_dataset_path, "xb") as fp:
         pickle.dump(dataset, fp)
+
+
+def masks_or_labels(dataset_params: Dict[str, Any]) -> str:
+    print(dataset_params.keys())
+    for key in dataset_params.keys():
+        if key not in ("sampler", "image", "imagery_config", "data_config"):
+            if key == "mask" or key == "label":
+                return key
+            else:
+                raise ValueError("Invalid keys in dataset params!")
+
+    raise ValueError("No mask or label data was specified in the dataset parameters")
