@@ -340,6 +340,7 @@ def construct_dataloader(
     world_size: int = 1,
     sample_pairs: bool = False,
     cache: bool = True,
+    cache_dir: Union[Path, str] = "",
 ) -> DataLoader[Iterable[Any]]:
     """Constructs a :class:`~torch.utils.data.DataLoader` object from the parameters provided for the
     datasets, sampler, collator and transforms.
@@ -367,6 +368,7 @@ def construct_dataloader(
         dataset_params,
         sample_pairs=sample_pairs,
         cache=cache,
+        cache_dir=cache_dir,
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
@@ -452,6 +454,7 @@ def _make_loader(
     rank,
     world_size,
     data_dir,
+    cache_dir,
     dataset_params,
     sampler_params,
     dataloader_params,
@@ -483,6 +486,7 @@ def _make_loader(
         world_size=world_size,
         sample_pairs=sample_pairs,
         cache=cache,
+        cache_dir=cache_dir,
     )
 
     return loaders, n_batches
@@ -542,7 +546,7 @@ def make_loaders(
         task_params = params["tasks"][task_name]
 
     data_dir = params["dir"]["data"]
-    cache_dir = params["dir"]["data"]
+    cache_dir = params["dir"]["cache"]
 
     # Gets out the parameters for the DataLoaders from params.
     dataloader_params: Dict[Any, Any] = deepcopy(
@@ -615,6 +619,7 @@ def make_loaders(
             rank,
             world_size,
             data_dir,
+            cache_dir,
             dataset_params,
             sampler_params,
             dataloader_params,
@@ -658,6 +663,7 @@ def make_loaders(
                 rank,
                 world_size,
                 data_dir,
+                cache_dir,
                 dataset_params[mode],
                 mode_sampler_params,
                 dataloader_params,
@@ -679,7 +685,7 @@ def make_loaders(
 
         # Prints class distribution in a pretty text format using tabulate to stdout.
         if p_dist:
-            utils.print_class_dist(class_dist)
+            utils.print_class_dist(class_dist, new_classes)
 
         task_params["n_classes"] = len(new_classes)
         model_params = utils.fallback_params("model_params", task_params, params, {})
@@ -721,6 +727,7 @@ def get_data_specs(
         collator_params=collator_params,
         batch_size=batch_size,
     )
+
     class_dist = utils.modes_from_manifest(manifest, classes)
 
     # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
