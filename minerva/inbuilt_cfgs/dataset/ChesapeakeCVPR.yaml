@@ -1,4 +1,6 @@
 ---
+name: ChesapeakeCVPR
+
 # Chesapeake Bay Watershed land cover classes reformatted
 # to split across two lines for neater plots
 classes:

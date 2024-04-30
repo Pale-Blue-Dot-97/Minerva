@@ -1,4 +1,6 @@
 ---
+name: Sentinel-2
+
 co_sys:
     id: 4326
     name: WGS84_4326

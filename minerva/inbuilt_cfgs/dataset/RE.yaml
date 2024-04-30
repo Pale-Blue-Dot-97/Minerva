@@ -1,4 +1,6 @@
 ---
+name: RE
+
 # Radiant Earth land cover classes reformatted to
 # split across two lines for neater plots
 classes:
