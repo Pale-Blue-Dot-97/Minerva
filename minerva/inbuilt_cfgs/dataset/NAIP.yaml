@@ -1,3 +1,6 @@
+---
+name: NAIP
+
 co_sys:
     id: 4326
     name: WGS84_4326
