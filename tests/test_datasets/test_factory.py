@@ -212,6 +212,7 @@ def test_construct_dataloader(
         batch_size,
         sample_pairs=kwargs.get("sample_pairs", False),
         world_size=kwargs.get("world_size", 1),
+        cache=False,
     )
 
     assert isinstance(dataloader, DataLoader)
@@ -220,7 +221,7 @@ def test_construct_dataloader(
 def test_make_loaders(default_config: DictConfig) -> None:
     old_params = OmegaConf.to_object(deepcopy(default_config))
 
-    loader, n_batches, class_dist, params = mdt.make_loaders(
+    loader, n_batches, class_dist, params = mdt.make_loaders(  # type: ignore[arg-type]
         **old_params,
         task_name="fit-val",
     )
@@ -231,12 +232,13 @@ def test_make_loaders(default_config: DictConfig) -> None:
     assert isinstance(params, dict)
 
     old_params_2 = OmegaConf.to_object(deepcopy(default_config))
+    assert isinstance(old_params_2, dict)
     dataset_params = old_params_2["tasks"]["fit-val"]["dataset_params"].copy()
     old_params_2["tasks"]["fit-val"]["dataset_params"] = {}
     old_params_2["tasks"]["fit-val"]["dataset_params"]["val-1"] = dataset_params
     old_params_2["tasks"]["fit-val"]["dataset_params"]["val-2"] = dataset_params
 
-    loaders, n_batches, class_dist, params = mdt.make_loaders(
+    loaders, n_batches, class_dist, params = mdt.make_loaders(  # type: ignore[arg-type]
         **old_params_2,
         task_name="fit-val",
     )
