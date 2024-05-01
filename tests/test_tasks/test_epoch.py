@@ -37,7 +37,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 from torch.optim import SGD
 
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from minerva.models import MinervaModel
 from minerva.tasks import MinervaTask, StandardEpoch
@@ -58,9 +58,10 @@ def test_standard_epoch(default_device, default_config: DictConfig, exp_fcn: Min
     )
     exp_fn = universal_path(default_config["dir"]["results"]) / exp_name / exp_name
 
-    params = default_config.copy()
+    params = OmegaConf.to_object(default_config)
+    assert isinstance(params, dict)
 
-    task = StandardEpoch(
+    task = StandardEpoch(  # type: ignore[arg-type]
         name="fit-train",
         model=exp_fcn,
         device=default_device,
