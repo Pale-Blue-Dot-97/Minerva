@@ -437,6 +437,24 @@ def exp_dataset_params() -> Dict[str, Any]:
 
 
 @pytest.fixture
+def exp_sampler_params(small_patch_size: Tuple[int, int]):
+    return {
+        "module": "torchgeo.samplers",
+        "name": "RandomGeoSampler",
+        "roi": False,
+        "params": {
+            "size": small_patch_size,
+            "length": 120,
+        },
+    }
+
+
+@pytest.fixture
+def exp_loader_params(default_config):
+    return OmegaConf.to_object(default_config)["loader_params"]  # type: ignore[call-overload, index]
+
+
+@pytest.fixture
 def default_dataset(
     default_config: DictConfig, data_root: Path, cache_dir: Path
 ) -> IntersectionDataset:
