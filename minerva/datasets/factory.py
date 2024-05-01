@@ -683,7 +683,7 @@ def make_loaders(
 
             print("DONE")
 
-    if not utils.check_substrings_in_string(model_type, "siamese"):
+    if not utils.check_substrings_in_string(model_type, "siamese") and "sampler" in dataset_params:
         # Transform class dist if elimination of classes has occurred.
         if elim:
             class_dist = utils.class_dist_transform(class_dist, class_matrix)
