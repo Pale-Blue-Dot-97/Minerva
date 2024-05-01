@@ -83,6 +83,7 @@ from matplotlib.transforms import Bbox
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
 from rasterio.crs import CRS
+from omegaconf import OmegaConf
 from scipy import stats
 from sklearn.metrics import ConfusionMatrixDisplay
 from torchgeo.datasets.utils import BoundingBox
@@ -1296,6 +1297,11 @@ def plot_results(
             mlp.use("agg")
         except ImportError:  # pragma: no cover
             pass
+
+    if OmegaConf.is_config(cfg):
+        cfg = OmegaConf.to_object(cfg)  # type: ignore[assignment]
+
+    assert isinstance(cfg, dict)
 
     flat_z = None
     flat_y = None

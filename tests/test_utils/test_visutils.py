@@ -51,6 +51,7 @@ from matplotlib.image import AxesImage
 from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
 from rasterio.crs import CRS
+from omegaconf import OmegaConf
 from torchgeo.datasets import GeoDataset
 from torchgeo.samplers import get_random_bounding_box
 
@@ -384,6 +385,10 @@ def test_plot_results(
         [get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)]
     )
 
+    cfg = OmegaConf.to_object(default_config)
+    assert isinstance(cfg, dict)
+    cfg["data_config"] = cfg["tasks"]["fit-train"]["data_config"]
+
     visutils.plot_results(
         plots,
         z,
@@ -397,7 +402,7 @@ def test_plot_results(
         colours=exp_cmap_dict,
         save=False,
         results_dir=results_dir,
-        cfg=default_config,
+        cfg=cfg,  # type: ignore[arg-type]
     )
 
 
