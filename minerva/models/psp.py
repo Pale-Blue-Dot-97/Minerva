@@ -137,7 +137,7 @@ class DynamicPSP(smp.PSPNet):
             self.decoder = backbone.decoder
 
             # Freezes the weights of backbone to avoid end-to-end training.
-            self.backbone.requires_grad_(False if freeze_backbone else True)
+            self.encoder.requires_grad_(False if freeze_backbone else True)
 
     def make_segmentation_head(
         self,
@@ -178,10 +178,6 @@ class DynamicPSP(smp.PSPNet):
 
     def set_classification_on(self, on: bool) -> None:
         self.classification_on = on
-
-    def _remake_classifier(self) -> None:
-        self.make_segmentation_head(self.n_classes, upsampling=32, activation=torch.nn.PReLU)
-        self.make_classification_head({"classes": self.n_classes, "activation": torch.nn.PReLU})
 
     def forward(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, ...]]:
         f = self.encoder(x)
@@ -250,3 +246,7 @@ class MinervaPSP(MinervaWrapper):
             n_classes=n_classes,
             scaler=scaler,
         )
+
+    def _remake_classifier(self) -> None:
+        self.make_segmentation_head(self.n_classes, upsampling=32, activation=torch.nn.PReLU)
+        self.make_classification_head({"classes": self.n_classes, "activation": torch.nn.PReLU})
