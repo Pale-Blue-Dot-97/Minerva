@@ -470,9 +470,8 @@ def _make_loader(
     sample_pairs,
     cache,
 ):
-    target_key = masks_or_labels(dataset_params)
-
     if elim and not utils.check_substrings_in_string(model_type, "siamese"):
+        target_key = masks_or_labels(dataset_params)
         dataset_params = _add_class_transform(class_matrix, dataset_params, target_key)
 
     # Calculates number of batches.
@@ -607,6 +606,8 @@ def make_loaders(
         if not utils.check_substrings_in_string(model_type, "siamese"):
             new_classes, class_matrix, new_colours, class_dist = get_data_specs(
                 data_config["name"],
+                classes,
+                cmap_dict,
                 cache_dir,
                 data_dir,
                 dataset_params,
@@ -614,8 +615,7 @@ def make_loaders(
                 dataloader_params,
                 collator_params,
                 batch_size,
-                classes,
-                cmap_dict,
+                elim=elim,
             )
 
         print(f"CREATING {task_name} DATASET")
@@ -650,6 +650,8 @@ def make_loaders(
             ):
                 new_classes, class_matrix, new_colours, class_dist = get_data_specs(
                     data_config["name"],
+                    classes,
+                    cmap_dict,
                     cache_dir,
                     data_dir,
                     dataset_params[mode],
@@ -657,8 +659,7 @@ def make_loaders(
                     dataloader_params,
                     collator_params,
                     batch_size,
-                    classes,
-                    cmap_dict,
+                    elim=elim,
                 )
 
             # --+ MAKE DATASETS +=====================================================================================+
@@ -710,16 +711,17 @@ def make_loaders(
 
 
 def get_data_specs(
-    manifest_name,
-    cache_dir,
-    data_dir,
-    dataset_params,
-    sampler_params,
-    dataloader_params,
-    collator_params,
-    batch_size,
-    classes,
-    cmap_dict,
+    manifest_name: Union[str, Path],
+    classes: Dict[int, str],
+    cmap_dict: Dict[int, str],
+    cache_dir: Optional[Union[str, Path]] = None,
+    data_dir: Optional[Union[str, Path]] = None,
+    dataset_params: Optional[Dict[str, Any]] = None,
+    sampler_params: Optional[Dict[str, Any]] = None,
+    dataloader_params: Optional[Dict[str, Any]] = None,
+    collator_params: Optional[Dict[str, Any]] = None,
+    batch_size: int = 8,
+    elim: bool = True,
 ):
     # Load manifest from cache for this dataset.
     manifest = get_manifest(
@@ -734,13 +736,18 @@ def get_data_specs(
 
     class_dist = utils.modes_from_manifest(manifest, classes)
 
-    # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
-    # and new colours.
-    new_classes, class_matrix, new_colours = utils.eliminate_classes(
-        utils.find_empty_classes(class_dist, classes),
-        classes,
-        cmap_dict,
-    )
+    if elim:
+        # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
+        # and new colours.
+        new_classes, class_matrix, new_colours = utils.eliminate_classes(
+            utils.find_empty_classes(class_dist, classes),
+            classes,
+            cmap_dict,
+        )
+    else:
+        new_classes = classes
+        class_matrix = {}
+        new_colours = cmap_dict
 
     return new_classes, class_matrix, new_colours, class_dist
 
@@ -826,9 +833,8 @@ def make_manifest(
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
-    target_key = masks_or_labels(dataset_params)
-
     def delete_class_transform(params: Dict[str, Any]) -> None:
+        target_key = masks_or_labels(dataset_params)
         if "transforms" in params[target_key]:
             if isinstance(params[target_key]["transforms"], dict):
                 if "ClassTransform" in params[target_key]["transforms"]:
@@ -859,7 +865,8 @@ def make_manifest(
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
-    delete_class_transform(dataset_params)
+    if "mask" in dataset_params or "label" in dataset_params:
+        delete_class_transform(dataset_params)
 
     print("CONSTRUCTING DATASET")
 
