@@ -432,13 +432,12 @@ class Trainer:
         return cache_dir / self.params["model_name"].split("-")[0]
 
     def get_weights_path(self) -> Path:
-        """Get the path to the cached version of the pre-trained model.
+        """Get the path to the saved version of the pre-trained model.
 
         Returns:
-            ~pathlib.Path: :class:`~pathlib.Path` to the cached model (excluding file extension).
+            ~pathlib.Path: :class:`~pathlib.Path` to the saved model (excluding file extension).
         """
-        cache_dir = universal_path(self.params["dir"]["cache"])
-        return cache_dir / Path(self.params["pre_train_name"]).with_suffix("")
+        return Path(self.params["pre_train_name"]).with_suffix("")
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
