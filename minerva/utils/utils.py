@@ -926,7 +926,7 @@ def eliminate_classes(
     empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any, Int]],
     old_classes: Dict[int, str],
     old_cmap: Optional[Dict[int, str]] = None,
-) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
+) -> Tuple[Dict[int, str], Dict[int, int], Optional[Dict[int, str]]]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
 
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
@@ -942,9 +942,6 @@ def eliminate_classes(
             * Mapping from old to new classes.
             * Mapping of remaining class labels to RGB colours.
     """
-    # if old_cmap is None:
-    #     old_cmap = {}
-
     if len(empty_classes) == 0:
         return old_classes, {}, old_cmap
 
@@ -1902,6 +1899,6 @@ def make_hash(obj: Dict[Any, Any]) -> str:
         )
 
     if OmegaConf.is_config(obj):
-        obj = OmegaConf.to_object(obj)
+        obj = OmegaConf.to_object(obj)  # type: ignore[assignment]
 
     return hashlib.md5(json_dumps(obj).encode("utf-8")).digest().hex()  # nosec: B324
