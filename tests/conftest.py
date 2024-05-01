@@ -455,6 +455,11 @@ def exp_loader_params(default_config):
 
 
 @pytest.fixture
+def exp_collator_params(default_config):
+    return OmegaConf.to_object(default_config)["collator"]  # type: ignore[call-overload, index]
+
+
+@pytest.fixture
 def default_dataset(
     default_config: DictConfig, data_root: Path, cache_dir: Path
 ) -> IntersectionDataset:
