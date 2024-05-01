@@ -43,7 +43,7 @@ from typing import Any, Dict
 
 import pandas as pd
 import pytest
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset, UnionDataset
 
@@ -217,7 +217,7 @@ def test_construct_dataloader(
 
 
 def test_make_loaders(default_config: DictConfig) -> None:
-    old_params = deepcopy(default_config)
+    old_params = OmegaConf.to_object(deepcopy(default_config))
 
     loader, n_batches, class_dist, params = mdt.make_loaders(
         **old_params,
@@ -229,7 +229,7 @@ def test_make_loaders(default_config: DictConfig) -> None:
     assert isinstance(class_dist, list)
     assert isinstance(params, dict)
 
-    old_params_2 = deepcopy(default_config)
+    old_params_2 = OmegaConf.to_object(deepcopy(default_config))
     dataset_params = old_params_2["tasks"]["fit-val"]["dataset_params"].copy()
     old_params_2["tasks"]["fit-val"]["dataset_params"] = {}
     old_params_2["tasks"]["fit-val"]["dataset_params"]["val-1"] = dataset_params
@@ -246,12 +246,6 @@ def test_make_loaders(default_config: DictConfig) -> None:
     assert type(n_batches["val-2"]) is int
     assert type(class_dist) is list
     assert isinstance(params, dict)
-
-
-# def test_get_manifest_path() -> None:
-#     assert mdt.get_manifest_path() == str(
-#         Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
-#     )
 
 
 def test_get_manifest() -> None:
