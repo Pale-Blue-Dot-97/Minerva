@@ -824,7 +824,7 @@ def make_manifest(
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
-    if "sampler" in dataset_params.keys():
+    if "sampler" in dataset_params.keys() and "mask" in dataset_params.keys():
         delete_class_transform(dataset_params)
 
         print("CONSTRUCTING DATASET")
