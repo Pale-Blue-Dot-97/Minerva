@@ -224,7 +224,7 @@ def make_dataset(
     sub_datasets: List[GeoDataset] = []
 
     if OmegaConf.is_config(dataset_params):
-        dataset_params = OmegaConf.to_object(dataset_params)
+        dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
@@ -557,7 +557,7 @@ def make_loaders(
     )
 
     if OmegaConf.is_config(dataloader_params):
-        dataloader_params = OmegaConf.to_object(dataloader_params)
+        dataloader_params = OmegaConf.to_object(dataloader_params)  # type: ignore[assignment]
 
     dataset_params: Dict[str, Any] = utils.fallback_params(
         "dataset_params", task_params, params
@@ -842,7 +842,7 @@ def make_manifest(
 
     _sampler_params = deepcopy(sampler_params)
     if OmegaConf.is_config(_sampler_params):
-        _sampler_params = OmegaConf.to_object(_sampler_params)
+        _sampler_params = OmegaConf.to_object(_sampler_params)  # type: ignore[assignment]
 
     if _sampler_params["name"] in (
         "RandomGeoSampler",
