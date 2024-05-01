@@ -66,7 +66,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
         "mask": exp_dataset_params["mask"],
     }
 
-    dataset_3, subdatasets_3 = mdt.make_dataset(data_root, dataset_params2)
+    dataset_3, subdatasets_3 = mdt.make_dataset(data_root, dataset_params2, cache=False)
     assert isinstance(dataset_3, IntersectionDataset)
     assert isinstance(subdatasets_3[0], UnionDataset)
 
@@ -74,6 +74,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
         data_root,
         dataset_params2,
         sample_pairs=True,
+        cache=False,
     )
     assert isinstance(dataset_4, IntersectionDataset)
     assert isinstance(subdatasets_4[0], UnionDataset)
@@ -83,14 +84,14 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
     dataset_params3["image"]["image_2"]["transforms"] = {"AutoNorm": {"length": 12}}
     dataset_params3["image"]["transforms"] = {"AutoNorm": {"length": 12}}
 
-    dataset_5, subdatasets_5 = mdt.make_dataset(data_root, dataset_params3)
+    dataset_5, subdatasets_5 = mdt.make_dataset(data_root, dataset_params3, cache=False)
 
     assert isinstance(dataset_5, IntersectionDataset)
     assert isinstance(subdatasets_5[0], UnionDataset)
 
     del exp_dataset_params["mask"]
 
-    dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params)
+    dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params, cache=False)
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, TstImgDataset)
@@ -248,18 +249,30 @@ def test_make_loaders(default_config: DictConfig) -> None:
     assert isinstance(params, dict)
 
 
-def test_get_manifest() -> None:
+def test_get_manifest(
+    data_root: Path,
+    exp_dataset_params: Dict[str, Any],
+    exp_loader_params: Dict[str, Any],
+    exp_sampler_params: Dict[str, Any],
+) -> None:
     manifest_path = Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
 
     if manifest_path.exists():
         manifest_path.unlink()
 
+    # Make a manifest.
     assert isinstance(
-        mdt.get_manifest(manifest_path, task_name="fit-train"), pd.DataFrame
+        mdt.get_manifest(
+            manifest_path,
+            data_dir=data_root,
+            dataset_params=exp_dataset_params,
+            sampler_params=exp_sampler_params,
+            loader_params={"num_workers": 0},
+        ), pd.DataFrame
     )
-    assert isinstance(
-        mdt.get_manifest(manifest_path, task_name="fit-train"), pd.DataFrame
-    )
+
+    # Now try fetching it from cache.
+    assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
 
     new_path = Path("tests", "tmp", "empty", "Chesapeake7_Manifest.csv")
     if new_path.exists():
@@ -268,7 +281,15 @@ def test_get_manifest() -> None:
     if new_path.parent.exists():
         new_path.parent.rmdir()
 
-    assert isinstance(mdt.get_manifest(new_path, task_name="fit-train"), pd.DataFrame)
+    assert isinstance(
+        mdt.get_manifest(
+            manifest_path,
+            data_dir=data_root,
+            dataset_params=exp_dataset_params,
+            sampler_params=exp_sampler_params,
+            loader_params={"num_workers": 0},
+        ), pd.DataFrame
+    )
 
     if new_path.exists():
         new_path.unlink()
