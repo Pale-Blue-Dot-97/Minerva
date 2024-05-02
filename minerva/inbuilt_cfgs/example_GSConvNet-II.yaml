@@ -158,9 +158,7 @@ tasks:
         train: false
         record_float: true
         sample_pairs: false
-
-        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
-        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+        n_classes: 11
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: SSLTaskLogger
@@ -172,58 +170,41 @@ tasks:
         dataset_params:
             features:
                 sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
-                    roi: false
+                    module: torch.utils.data
+                    name: RandomSampler
                     params:
-                        size: *patch_size
-                        length: 16
+                        num_samples: 16
 
                 image:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
+                    module: minerva.datasets
+                    name: DFC2020
+                    paths: DFC/DFC2020
                     params:
-                        res: 1.0
-
-                mask:
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
-                    paths: Chesapeake7
-                    params:
-                        res: 1.0
+                        split: val
+                        use_s2hr: true
+                        labels: true
 
             test:
                 sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
-                    roi: false
+                    module: torch.utils.data
+                    name: RandomSampler
                     params:
-                        size: *patch_size
-                        length: 16
+                        num_samples: 16
 
                 image:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
+                    module: minerva.datasets
+                    name: DFC2020
+                    paths: DFC/DFC2020
                     params:
-                        res: 1.0
-
-                mask:
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
-                    paths: Chesapeake7
-                    params:
-                        res: 1.0
+                        split: test
+                        use_s2hr: true
+                        labels: true
 
     test-test:
         type: StandardEpoch
         train: false
         record_float: true
         sample_pairs: false
-
-        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
-        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: SSLTaskLogger

@@ -161,6 +161,7 @@ def test_trainer_3(default_config: DictConfig) -> None:
         ("example_3rd_party.yaml", {}, {}),
         ("example_autoencoder_config.yaml", {}, {}),
         ("example_GeoSimConvNet.yaml", {}, {}),
+        ("example_GSConvNet-II.yaml", {}, {}),
     ],
 )
 def test_trainer_4(
@@ -185,3 +186,24 @@ def test_trainer_4(
 
         if kwargs.get("test"):
             trainer.test()
+
+
+def test_trainer_resume(default_config: DictConfig) -> None:
+    params1 = OmegaConf.to_object(default_config)
+    assert isinstance(params1, dict)
+
+    params1["checkpoint_experiment"] = True
+    del params1["stopping"]
+
+    trainer1 = Trainer(0, **params1)
+    while trainer1.epoch_no < trainer1.max_epochs - 1:
+        trainer1.fit()
+
+    params2 = deepcopy(params1)
+    params2["exp_name"] = trainer1.params["exp_name"]
+    params2["resume"] = True
+
+    trainer2 = Trainer(0, **params2)
+
+    trainer2.fit()
+    trainer2.test()

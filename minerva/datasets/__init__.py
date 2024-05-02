@@ -28,17 +28,23 @@ r"""Functionality for constructing datasets, samplers and :class:`~torch.utils.d
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
-__author__ = "Harry Baker"
+__author__ = ["Harry Baker", "Jonathon Hare"]
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "PairedDataset",
+    "MinervaNonGeoDataset",
+    "MinervaConcatDataset",
+    "PairedGeoDataset",
+    "PairedNonGeoDataset",
     "PairedUnionDataset",
-    "SSL4EOS12Sentinel2",
+    "PairedConcatDataset",
+    "GeoSSL4EOS12Sentinel2",
+    "NonGeoSSL4EOS12Sentinel2",
     "NAIPChesapeakeCVPR",
     "DFC2020",
-    "SEN12MS",
+    # "SEN12MS",
+    "MultiSpectralDataset",
     "construct_dataloader",
     "get_collator",
     "get_manifest",
@@ -54,7 +60,7 @@ __all__ = [
 ]
 
 from .collators import get_collator, stack_sample_pairs
-from .dfc import DFC2020, SEN12MS
+from .dfc import DFC2020  # , SEN12MS
 from .factory import (
     construct_dataloader,
     get_manifest,
@@ -62,10 +68,18 @@ from .factory import (
     make_loaders,
     make_manifest,
 )
+from .multispectral import MultiSpectralDataset
 from .naip import NAIPChesapeakeCVPR
-from .paired import PairedDataset, PairedUnionDataset
-from .ssl4eos12 import SSL4EOS12Sentinel2
+from .paired import (
+    PairedConcatDataset,
+    PairedGeoDataset,
+    PairedNonGeoDataset,
+    PairedUnionDataset,
+)
+from .ssl4eos12 import GeoSSL4EOS12Sentinel2, NonGeoSSL4EOS12Sentinel2
 from .utils import (
+    MinervaConcatDataset,
+    MinervaNonGeoDataset,
     get_random_sample,
     intersect_datasets,
     load_all_samples,

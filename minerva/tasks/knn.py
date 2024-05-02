@@ -285,7 +285,9 @@ class WeightedKNN(MinervaTask):
 
                 # [B*K, C]
                 one_hot_label = one_hot_label.scatter(
-                    dim=-1, index=sim_labels.view(-1, 1), value=1.0
+                    dim=-1,
+                    index=sim_labels.to(dtype=torch.int64).view(-1, 1),
+                    value=1.0,
                 )
 
                 # Weighted score ---> [B, C]
@@ -300,7 +302,7 @@ class WeightedKNN(MinervaTask):
 
                 # Calculate loss between predicted and ground truth labels by KNN.
                 criterion = torch.nn.CrossEntropyLoss()
-                loss = criterion(pred_scores, test_target)
+                loss = criterion(pred_scores, test_target.to(dtype=torch.long))
 
                 # Pack results together for the logger.
                 results = (loss, pred_scores, test_target, _)

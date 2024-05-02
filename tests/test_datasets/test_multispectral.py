@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.datasets.utils`.
+r"""Tests for :mod:`minerva.datasets.multispectral`.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -38,34 +38,29 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 from pathlib import Path
 
-import pytest
-from torchgeo.datasets import IntersectionDataset
-from torchgeo.datasets.utils import BoundingBox
+from torch import FloatTensor
+from torch.utils.data import DataLoader
+from torch.utils.data.sampler import RandomSampler
 
-from minerva import datasets as mdt
-from minerva.datasets import PairedGeoDataset
-from minerva.datasets.__testing import TstImgDataset, TstMaskDataset
+from minerva.datasets import MultiSpectralDataset, NonGeoSSL4EOS12Sentinel2
+from minerva.transforms import Normalise
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_make_bounding_box() -> None:
-    assert mdt.make_bounding_box() is None
-    assert mdt.make_bounding_box(False) is None
+def test_multispectraldataset(data_root: Path) -> None:
+    path = str(data_root / "SSL4EO-S12")
+    dataset = NonGeoSSL4EOS12Sentinel2(
+        path, transforms=Normalise(4095), bands=["B2", "B3", "B4", "B8"]
+    )
 
-    bbox = (1.0, 2.0, 1.0, 2.0, 1.0, 2.0)
-    assert mdt.make_bounding_box(bbox) == BoundingBox(*bbox)
+    assert isinstance(dataset, MultiSpectralDataset)
 
-    with pytest.raises(
-        ValueError,
-        match="``roi`` must be a sequence of floats or ``False``, not ``True``",
-    ):
-        _ = mdt.make_bounding_box(True)
+    sampler = RandomSampler(dataset)
+    dataloader = DataLoader(dataset, sampler=sampler)
 
+    batch = next(iter(dataloader))
 
-def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
-    imagery = PairedGeoDataset(TstImgDataset, str(img_root))
-    labels = PairedGeoDataset(TstMaskDataset, str(lc_root))
-
-    assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)
+    assert isinstance(batch, dict)
+    assert isinstance(batch["image"], FloatTensor)

@@ -48,7 +48,7 @@ from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset, UnionDataset
 
 from minerva import datasets as mdt
-from minerva.datasets import PairedDataset
+from minerva.datasets import PairedGeoDataset
 from minerva.datasets.__testing import TstImgDataset
 from minerva.utils.utils import make_hash
 
@@ -104,7 +104,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
-    assert isinstance(dataset_2, PairedDataset)
+    assert isinstance(dataset_2, PairedGeoDataset)
 
 
 @pytest.mark.parametrize("sample_pairs", (False, True))

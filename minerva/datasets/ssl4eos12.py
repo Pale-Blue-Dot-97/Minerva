@@ -32,18 +32,20 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["SSL4EOS12Sentinel2"]
+__all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2"]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 from torchgeo.datasets import Sentinel2
 
+from .multispectral import MultiSpectralDataset
+
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class SSL4EOS12Sentinel2(Sentinel2):
+class GeoSSL4EOS12Sentinel2(Sentinel2):
     """Adapted version of :class:~`torchgeo.datasets.Sentinel2` that works with the SSL4EO-S12 data format.
 
     Attributes:
@@ -68,7 +70,24 @@ class SSL4EOS12Sentinel2(Sentinel2):
         "B8",
         "B8A",
         "B9",
-        "B10",
+        "B11",
+        "B12",
+    ]
+    rgb_bands = ["B4", "B3", "B2"]
+
+
+class NonGeoSSL4EOS12Sentinel2(MultiSpectralDataset):
+    all_bands = [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "B8A",
+        "B9",
         "B11",
         "B12",
     ]

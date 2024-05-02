@@ -38,7 +38,7 @@ __all__ = [
 # =====================================================================================================================
 from glob import glob
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -94,8 +94,11 @@ class BaseSenS12MS(NonGeoDataset):
         use_s2lr=False,
         use_s1=False,
         labels=False,
+        transforms: Optional[Callable[..., Any]] = None,
     ) -> None:
         super().__init__()
+
+        self.transforms = transforms
 
         # Make sure at least one of the band sets are requested.
         if not (use_s2hr or use_s2mr or use_s2lr or use_s1):
@@ -233,9 +236,9 @@ class BaseSenS12MS(NonGeoDataset):
         with rasterio.open(path) as data:
             s2 = data.read(bands_selected)
 
-        s2 = s2.astype(np.float32)
-        s2 = np.clip(s2, 0, 10000)
-        s2 /= 10000
+        # s2 = s2.astype(np.float16)
+        # s2 = np.clip(s2, 0, 10000)
+        # s2 /= 10000
 
         # Cast to 32-bit float.
         s2 = s2.astype(np.float32)
@@ -314,7 +317,10 @@ class BaseSenS12MS(NonGeoDataset):
 
         # Get and load sample from index file.
         sample = self.samples[index]
-        return self.load_sample(sample)
+        sample = self.load_sample(sample)
+        if self.transforms:
+            sample = self.transforms(sample)
+        return sample
 
     def __len__(self) -> int:
         """Get number of samples in the dataset"""
@@ -323,6 +329,32 @@ class BaseSenS12MS(NonGeoDataset):
 
 class DFC2020(BaseSenS12MS):
     """PyTorch dataset class for the DFC2020 dataset"""
+
+    classes = {
+        1: "Forest",
+        2: "Shrubland",
+        3: "Savana",
+        4: "Grassland",
+        5: "Wetlands",
+        6: "Croplands",
+        7: "Urban",
+        8: "Snow/Ice",
+        9: "Barren",
+        10: "Water",
+    }
+
+    colours = {
+        1: "#009900",
+        2: "#c6b044",
+        3: "#fbff13",
+        4: "#bbff05",
+        5: "#27ff87",
+        6: "#c24f44",
+        7: "#a5a5a5",
+        8: "#69fff8",
+        9: "#f9ffa4",
+        10: "#1c0dff",
+    }
 
     splits = ["val", "test"]
     igbp = False
@@ -337,9 +369,18 @@ class DFC2020(BaseSenS12MS):
         use_s2lr=False,
         use_s1=False,
         labels=False,
+        transforms: Optional[Callable[..., Any]] = None,
     ) -> None:
         super(DFC2020, self).__init__(
-            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
+            root,
+            split,
+            no_savanna,
+            use_s2hr,
+            use_s2mr,
+            use_s2lr,
+            use_s1,
+            labels,
+            transforms,
         )
 
         # Build list of sample paths.
@@ -392,9 +433,18 @@ class SEN12MS(BaseSenS12MS):  # pragma: no cover
         use_s2lr=False,
         use_s1=False,
         labels=False,
+        transforms: Optional[Callable[..., Any]] = None,
     ) -> None:
         super(SEN12MS, self).__init__(
-            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
+            root,
+            split,
+            no_savanna,
+            use_s2hr,
+            use_s2mr,
+            use_s2lr,
+            use_s1,
+            labels,
+            transforms,
         )
 
         # Find and index samples.

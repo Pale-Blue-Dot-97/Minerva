@@ -458,17 +458,7 @@ class SSLTaskLogger(MinervaTaskLogger):
             logs["total_loss"] / self.n_batches
         )
 
-        if check_substrings_in_string(self.model_type, "segmentation"):
-            self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"]
-                / (self.n_batches * self.batch_size * np.prod(self.output_size))
-            )
-            self.metrics[f"{self.task_name}_top5_acc"]["y"].append(
-                logs["total_top5"]
-                / (self.n_batches * self.batch_size * np.prod(self.output_size))
-            )
-
-        else:
+        if not check_substrings_in_string(self.model_type, "siamese"):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"] / self.n_samples
             )
@@ -490,21 +480,24 @@ class SSLTaskLogger(MinervaTaskLogger):
         Args:
             epoch_no (int): Epoch number to print results from.
         """
-        msg = "{} | Loss: {} | Accuracy: {}% | Top5 Accuracy: {}% ".format(
+        msg = "{} | Loss: {} ".format(
             self.task_name,
             self.metrics[f"{self.task_name}_loss"]["y"][epoch_no],
-            self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
-            self.metrics[f"{self.task_name}_top5_acc"]["y"][epoch_no] * 100.0,
         )
 
         if self.sample_pairs:
-            msg += "\n"
-
             msg += "| Collapse Level: {}%".format(
                 self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no] * 100.0
             )
             msg += "| Avg. Euclidean Distance: {}".format(
                 self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
+            )
+
+        if not check_substrings_in_string(self.model_type, "siamese"):
+            msg += "\n"
+            msg += "| Accuracy: {}% | Top5 Accuracy: {}% ".format(
+                self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
+                self.metrics[f"{self.task_name}_top5_acc"]["y"][epoch_no] * 100.0,
             )
 
         msg += "\n"

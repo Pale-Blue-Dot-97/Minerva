@@ -143,7 +143,6 @@ from numpy.typing import ArrayLike
 from omegaconf import DictConfig, OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
-from scipy.spatial import distance
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.manifold import TSNE
 from sklearn.metrics import auc, classification_report, roc_curve
@@ -301,7 +300,7 @@ def pair_return(cls):
 
     .. warning::
         *NOT* compatible with :class:`~torch.nn.parallel.DistributedDataParallel` due to it's use of :mod:`pickle`.
-        Use :class:`~minerva.datasets.PairedDataset` directly instead, supplying the dataset to `wrap` on init.
+        Use :class:`~minerva.datasets.PairedGeoDataset` directly instead, supplying the dataset to `wrap` on init.
 
     Raises:
         AttributeError: If an attribute cannot be found in either the :class:`Wrapper` or the wrapped ``dataset``.
@@ -1799,28 +1798,29 @@ def tsne_cluster(
     return tsne.fit_transform(embeddings)
 
 
-def calc_norm_euc_dist(
-    a: Union[Sequence[int], NDArray[Shape["*"], Int]],  # noqa: F722
-    b: Union[Sequence[int], NDArray[Shape["*"], Int]],  # noqa: F722
-) -> float:
+def calc_norm_euc_dist(a: Tensor, b: Tensor) -> Tensor:
     """Calculates the normalised Euclidean distance between two vectors.
 
     Args:
-        a (~typing.Sequence[int] | ~numpy.ndarray[int]): Vector ``A``.
-        b (~typing.Sequence[int] | ~numpy.ndarray[int]): Vector ``B``.
+        a (~torch.Tensor): Vector ``A``.
+        b (~torch.Tensor): Vector ``B``.
 
     Returns:
-        float: Normalised Euclidean distance between vectors ``A`` and ``B``.
+        ~torch.Tensor: Normalised Euclidean distance between vectors ``A`` and ``B``.
     """
     assert len(a) == len(b)
 
     # Check that none of the data is NaN or infinity.
-    assert not np.isnan(np.sum(a))
-    assert not np.isinf(a).any()
-    assert not np.isnan(np.sum(b))
-    assert not np.isinf(b).any()
+    assert not torch.isnan(torch.sum(a))
+    assert not torch.isinf(a).any()
+    assert not torch.isnan(torch.sum(b))
+    assert not torch.isinf(b).any()
 
-    euc_dist: float = distance.euclidean(a, b) / float(len(a))
+    euc_dist: Tensor = torch.linalg.norm(a - b)
+
+    # Check that the calculated Euclidean distance is not infinite or NaN.
+    assert not torch.isnan(euc_dist)
+    assert not torch.isinf(euc_dist)
 
     return euc_dist
 

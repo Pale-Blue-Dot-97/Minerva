@@ -394,7 +394,7 @@ class MinervaTask(ABC):
         return io_func
 
     @abc.abstractmethod
-    def step(self) -> None:
+    def step(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
     def _generic_step(self, epoch_no: int) -> Optional[Dict[str, Any]]:

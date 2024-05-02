@@ -39,6 +39,7 @@ __all__ = [
     "DetachedColorJitter",
     "SingleLabel",
     "ToRGB",
+    "SelectChannels",
     "MinervaCompose",
     "SwapKeys",
     "get_transform",
@@ -74,7 +75,7 @@ from torch import LongTensor, Tensor
 from torchgeo.datasets import BoundingBox, RasterDataset
 from torchgeo.samplers import RandomGeoSampler
 from torchvision.transforms import ColorJitter, Normalize, RandomApply
-from torchvision.transforms.v2 import functional as ft
+from torchvision.transforms import functional as ft
 
 from minerva.utils.utils import find_tensor_mode, func_by_str, mask_transform
 
@@ -402,6 +403,34 @@ class ToRGB:
             return rgb_img
 
 
+class SelectChannels:
+    """Transform to select which channels to keep by passing a list of indices
+
+    Attributes:
+        channels (list[int]): Channel indices to keep.
+
+    Args:
+        channels (list[int]): Channel indices to keep.
+    """
+
+    def __init__(self, channels: List[int]) -> None:
+        self.channels = channels
+
+    def __call__(self, img: Tensor) -> Tensor:
+        return self.forward(img)
+
+    def forward(self, img: Tensor) -> Tensor:
+        """Select the desired channels from the input image and return.
+
+        Args:
+            img (Tensor): Input image.
+
+        Returns:
+            Tensor: Selected channels of the input image.
+        """
+        return img[self.channels]
+
+
 class SingleLabel:
     """Reduces a mask to a single label using transform mode provided.
 
@@ -454,7 +483,6 @@ class MinervaCompose:
     Attributes:
         transforms (list[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
             List of composed transforms.
-        key (str): The key of the data type in the sample dict to transform for use with :mod:`torchgeo` samples.
     Args:
         transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
             List of transforms to compose.
@@ -471,18 +499,32 @@ class MinervaCompose:
 
     def __init__(
         self,
-        transforms: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
-        key: Optional[str] = None,
+        transforms: Union[
+            List[Callable[..., Any]],
+            Callable[..., Any],
+            Dict[str, Union[List[Callable[..., Any]], Callable[..., Any]]],
+        ],
     ) -> None:
+        self.transforms: Union[
+            List[Callable[..., Any]], Dict[str, List[Callable[..., Any]]]
+        ]
+
         if isinstance(transforms, Sequence):
             self.transforms = list(transforms)
         elif callable(transforms):
             self.transforms = [transforms]
+        elif isinstance(transforms, dict):
+            self.transforms = transforms  # type: ignore[assignment]
+            assert isinstance(self.transforms, dict)
+            for key in transforms.keys():
+                if callable(transforms[key]):
+                    _transform = transforms[key]
+                    assert callable(_transform)
+                    self.transforms[key] = [_transform]
         else:
             raise TypeError(
                 f"`transforms` has type {type(transforms)}, not callable or sequence of callables"
             )
-        self.key = key
 
     @overload
     def __call__(self, sample: Tensor) -> Tensor: ...  # pragma: no cover
@@ -496,57 +538,104 @@ class MinervaCompose:
         self, sample: Union[Tensor, Dict[str, Any]]
     ) -> Union[Tensor, Dict[str, Any]]:
         if isinstance(sample, Tensor):
-            return self._transform_input(sample)
+            assert not isinstance(self.transforms, dict)
+            return self._transform_input(sample, self.transforms)
         elif isinstance(sample, dict):
-            assert self.key is not None
-            sample[self.key] = self._transform_input(sample[self.key])
+            assert isinstance(self.transforms, dict)
+            for key in self.transforms.keys():
+                sample[key] = self._transform_input(sample[key], self.transforms[key])
             return sample
         else:
             raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
 
-    def _transform_input(self, img: Tensor) -> Tensor:
-        if isinstance(self.transforms, Sequence):
-            for t in self.transforms:
+    @staticmethod
+    def _transform_input(img: Tensor, transforms: List[Callable[..., Any]]) -> Tensor:
+        if isinstance(transforms, Sequence):
+            for t in transforms:
                 img = t(img)
 
         else:
             raise TypeError(
-                f"`transforms` has type {type(self.transforms)}, not sequence of callables"
+                f"`transforms` has type {type(transforms)}, not sequence of callables"
             )
 
         return img
 
     def _add(
-        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
-    ) -> List[Callable[..., Any]]:
+        self,
+        new_transform: Union[
+            Sequence[Callable[..., Any]],
+            Callable[..., Any],
+            Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
+        ],
+    ) -> Union[Dict[str, List[Callable[..., Any]]], List[Callable[..., Any]]]:
+        def add_transforms(
+            _new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
+            old_transform: List[Callable[..., Any]],
+        ) -> List[Callable[..., Any]]:
+            if isinstance(_new_transform, Sequence):
+                old_transform.extend(_new_transform)
+                return old_transform
+            elif callable(_new_transform):
+                old_transform.append(_new_transform)
+                return old_transform
+            else:
+                raise TypeError(
+                    f"`new_transform` has type {type(new_transform)}, not callable or sequence of callables"
+                )
+
         _transforms = deepcopy(self.transforms)
-        if isinstance(new_transform, Sequence):
-            _transforms.extend(new_transform)
+
+        if isinstance(new_transform, dict) and isinstance(_transforms, dict):
+            for key in new_transform.keys():
+                _transforms[key] = add_transforms(new_transform[key], _transforms[key])
             return _transforms
-        elif callable(new_transform):
-            _transforms.append(new_transform)
-            return _transforms
+
+        elif (
+            isinstance(new_transform, Sequence) or callable(new_transform)
+        ) and not isinstance(_transforms, dict):
+            return add_transforms(new_transform, _transforms)
+
         else:
             raise TypeError(
-                f"`new_transform` has type {type(new_transform)}, not callable or sequence of callables"
+                f"Cannot add together transforms of {type(new_transform)=} to the existing"
+                + f" type of {type(self.transforms)=}"
             )
 
     def __add__(
-        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+        self,
+        new_transform: Union[
+            Sequence[Callable[..., Any]],
+            Callable[..., Any],
+            Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
+        ],
     ) -> "MinervaCompose":
         new_compose = deepcopy(self)
         new_compose.transforms = self._add(new_transform)
         return new_compose
 
     def __iadd__(
-        self, new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]]
+        self,
+        new_transform: Union[
+            Sequence[Callable[..., Any]],
+            Callable[..., Any],
+            Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
+        ],
     ) -> "MinervaCompose":
         self.transforms = self._add(new_transform)
         return self
 
     def __repr__(self) -> str:
         format_string = self.__class__.__name__ + "("
-        if hasattr(self.transforms, "__len__"):
+        if isinstance(self.transforms, dict):
+            for key in self.transforms.keys():
+                format_string += "\n"
+                format_string += f"    {key}:"
+                for t in self.transforms[key]:
+                    format_string += "\n"
+                    format_string += "        {0}".format(t)
+
+        elif isinstance(self.transforms, list):
             if len(self.transforms) > 1:
                 for t in self.transforms:
                     format_string += "\n"
@@ -558,7 +647,7 @@ class MinervaCompose:
 
         else:
             raise TypeError(
-                f"`transforms` has type {type(self.transforms)}, not sequence of callables"
+                f"`transforms` has type {type(self.transforms)}, not sequence of callables or dictionary"
             )
 
         format_string += "\n)"
@@ -618,20 +707,19 @@ def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
     return RandomApply(random_transforms, p=p)
 
 
-def _manual_compose(
-    manual_params: Dict[str, Any],
-    key: str,
-    other_transforms: Optional[List[Any]] = None,
-) -> MinervaCompose:
-    manual_transforms = []
+# def _manual_compose(
+#     manual_params: Dict[str, Any],
+#     other_transforms: Optional[List[Any]] = None,
+# ) -> MinervaCompose:
+#     manual_transforms = []
 
-    for manual_name in manual_params:
-        manual_transforms.append(get_transform(manual_name, manual_params[manual_name]))
+#     for manual_name in manual_params:
+#         manual_transforms.append(get_transform(manual_name, manual_params[manual_name]))
 
-    if other_transforms:
-        manual_transforms = manual_transforms + other_transforms
+#     if other_transforms:
+#         manual_transforms = manual_transforms + other_transforms
 
-    return MinervaCompose(manual_transforms, key=key)
+#     return MinervaCompose(manual_transforms)
 
 
 def init_auto_norm(
@@ -656,7 +744,10 @@ def init_auto_norm(
     else:
         # If the existing transforms are already `MinervaCompose`, we can just add the AutoNorm transform on.
         if isinstance(dataset.transforms, MinervaCompose):
-            dataset.transforms += auto_norm
+            if isinstance(dataset.transforms.transforms, dict):
+                dataset.transforms += {"image": auto_norm}
+            else:
+                dataset.transforms += auto_norm
 
         # If existing transforms are a callable, place in a list with AutoNorm and make in `MinervaCompose`.
         elif callable(dataset.transforms):
@@ -705,16 +796,14 @@ def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., 
 
 
 def make_transformations(
-    transform_params: Union[Dict[str, Any], Literal[False]], key: Optional[str] = None
-) -> Optional[Any]:
+    transform_params: Union[Dict[str, Any], Literal[False]]
+) -> Optional[MinervaCompose]:
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:
         transform_params (dict[str, ~typing.Any] | ~typing.Literal[False]): Parameters defining transforms desired.
             The name of each transform should be the key, while the kwargs for the transform should
             be the value of that key as a dict.
-        key (str): Optional; Key of the type of data within the sample to be transformed.
-            Must be ``"image"`` or ``"mask"``.
 
     Example:
         >>> transform_params = {
@@ -728,37 +817,47 @@ def make_transformations(
         If only one transform is defined by the parameters, returns a Transforms object.
         If multiple transforms are defined, a Compose object of Transform objects is returned.
     """
-    transformations = []
+
+    def construct(type_transform_params: Dict[str, Any]) -> List[Callable[..., Any]]:
+        type_transformations = []
+
+        # Get each transform.
+        for _name in type_transform_params:
+            if _name == "RandomApply":
+                random_params = type_transform_params[_name].copy()
+                type_transformations.append(_construct_random_transforms(random_params))
+
+            # AutoNorm needs to be handled separately.
+            elif _name == "AutoNorm":
+                continue
+
+            else:
+                type_transformations.append(
+                    get_transform(_name, type_transform_params[_name])
+                )
+
+        return type_transformations
 
     # If no transforms are specified, return None.
     if not transform_params:
         return None
+    if all(transform_params.values()) is None:
+        return None
 
-    manual_compose = False
+    transformations: Dict[str, Any] = {}
 
-    # Get each transform.
     for name in transform_params:
-        if name == "MinervaCompose":
-            manual_compose = True
-
-        elif name == "RandomApply":
-            random_params = transform_params[name].copy()
-            transformations.append(_construct_random_transforms(random_params))
-
-        # AutoNorm needs to be handled separately.
-        elif name == "AutoNorm":
-            continue
-
+        # if name == "MinervaCompose":
+        #     return _manual_compose(
+        #         transform_params["MinervaCompose"].copy(),
+        #         other_transforms=transformations,
+        #     )
+        if name in ("image", "mask", "label"):
+            if not transform_params[name]:
+                pass
+            else:
+                transformations[name] = construct(transform_params[name])
         else:
-            transformations.append(get_transform(name, transform_params[name]))
+            return MinervaCompose(construct(transform_params))
 
-    # Compose transforms together and return.
-    if manual_compose:
-        assert key is not None
-        return _manual_compose(
-            transform_params["MinervaCompose"].copy(),
-            key=key,
-            other_transforms=transformations,
-        )
-    else:
-        return MinervaCompose(transformations, key)
+    return MinervaCompose(transformations)

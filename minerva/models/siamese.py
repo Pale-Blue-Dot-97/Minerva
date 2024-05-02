@@ -479,6 +479,7 @@ class SimConv(MinervaSiamese):
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 2048,
+        projection_dim: int = 512,
         scaler: Optional[GradScaler] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
@@ -492,6 +493,7 @@ class SimConv(MinervaSiamese):
             "psp_out_channels": feature_dim,
             "in_channels": input_size[0],
             "encoder_weights": None,
+            "encoder_depth": 5,
         }
 
         # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
@@ -508,16 +510,16 @@ class SimConv(MinervaSiamese):
         )
 
         self.proj_head = nn.Sequential(
-            nn.Conv2d(feature_dim, 512, 3, 2, padding=1),  # 3x3 Conv
-            nn.BatchNorm2d(512),
+            nn.Conv2d(feature_dim, projection_dim, 3, 2, padding=1),  # 3x3 Conv
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, 1, padding=0),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, 1, padding=0),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
         )

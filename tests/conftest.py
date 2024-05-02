@@ -55,7 +55,7 @@ from torch import LongTensor, Tensor
 from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
+from minerva.datasets import GeoSSL4EOS12Sentinel2, make_dataset
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
 from minerva.utils import DEFAULT_CONFIG_NAME, utils
@@ -486,7 +486,7 @@ def default_image_dataset(
 
 @pytest.fixture
 def ssl4eo_s12_dataset(data_root: Path, epsg3857: CRS) -> RasterDataset:
-    return SSL4EOS12Sentinel2(
+    return GeoSSL4EOS12Sentinel2(
         str(data_root / "SSL4EO-S12"), epsg3857, 10.0, bands=["B2", "B3", "B4", "B8"]
     )
 

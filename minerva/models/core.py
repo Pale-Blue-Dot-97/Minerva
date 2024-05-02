@@ -34,6 +34,7 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
 __all__ = [
+    "FilterOutputs",
     "MinervaModel",
     "MinervaWrapper",
     "MinervaDataParallel",
@@ -61,6 +62,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    List,
     Optional,
     Sequence,
     Tuple,
@@ -88,6 +90,23 @@ from minerva.utils.utils import func_by_str
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
+class FilterOutputs(Module):
+    """Helper class for use in :class:~`torch.nn.Sequential` to filter previous layer's outputs by index.
+
+    Attributes:
+        indexes (int | list[int]): Index(es) of the inputs to pass forward.
+
+    Args:
+        indexes (int | list[int]): Index(es) of the inputs to pass forward.
+    """
+
+    def __init__(self, indexes: Union[int, List[int]]) -> None:
+        self.indexes = indexes
+
+    def forward(self, inputs: Sequence[Tensor]) -> Tensor:
+        return inputs[self.indexes]
+
+
 class MinervaModel(Module, ABC):
     """Abstract class to act as a base for all Minerva Models.
 
@@ -257,8 +276,8 @@ class MinervaWrapper(MinervaModel):
         model (~torch.nn.Module): The wrapped :mod:`torch` model that is now compatible with :mod:`minerva`.
 
     Args:
-        model_cls (~typing.Callable[..., ~torch.nn.Module]): The :mod:`torch` model class to wrap, initialise
-            and place in :attr:`~MinervaWrapper.model`.
+        model (~torch.nn.Module | ~typing.Callable[..., ~torch.nn.Module]): The :mod:`torch` model object or
+            constructor to, initialise and then wrap in :attr:`~MinervaWrapper.model`.
         criterion (~torch.nn.Module): Optional; :mod:`torch` loss function model will use.
         input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
             number of channels, image width, image height but may vary dependant on model specs.
@@ -268,7 +287,7 @@ class MinervaWrapper(MinervaModel):
 
     def __init__(
         self,
-        model_cls: Callable[..., Module],
+        model: Union[Module, Callable[..., Module]],
         criterion: Optional[Module] = None,
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
@@ -278,7 +297,10 @@ class MinervaWrapper(MinervaModel):
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)
 
-        self.model = model_cls(*args, **kwargs)
+        if isinstance(model, Module):
+            self.model = model
+        else:
+            self.model = model(*args, **kwargs)
 
     def __call__(self, *inputs) -> Any:
         return self.forward(*inputs)
@@ -634,7 +656,7 @@ def wrap_model(model, gpu: int, torch_compile: bool = False):
             assert is_minerva_model(_compiled_model)
             assert isinstance(_compiled_model, OptimizedModule)
             model = _compiled_model
-        except RuntimeError as err:
+        except RuntimeError as err:  # pragma: no cover
             warnings.warn(str(err))
 
     return model

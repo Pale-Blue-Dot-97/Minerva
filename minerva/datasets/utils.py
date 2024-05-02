@@ -32,6 +32,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
+    "MinervaNonGeoDataset",
     "load_all_samples",
     "make_bounding_box",
     "intersect_datasets",
@@ -40,23 +41,66 @@ __all__ = [
     "masks_or_labels",
 ]
 
-import pickle
-from pathlib import Path
-
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import pickle
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 from alive_progress import alive_it
 from nptyping import NDArray
-from torch.utils.data import DataLoader
-from torchgeo.datasets import GeoDataset, IntersectionDataset, UnionDataset
+from torch.utils.data import ConcatDataset, DataLoader
+from torchgeo.datasets import (
+    GeoDataset,
+    IntersectionDataset,
+    NonGeoDataset,
+    UnionDataset,
+)
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 
 from minerva.utils import utils
+
+
+# =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class MinervaNonGeoDataset(NonGeoDataset):
+    def __or__(
+        self,
+        other: Union["MinervaNonGeoDataset", "MinervaConcatDataset"],
+    ) -> "MinervaConcatDataset":
+        """Take the union of two :class:`MinervaNonGeoDataset`.
+
+        Args:
+            other (MinervaNonGeoDataset | ~torch.utils.data.ConcatDataset): Another dataset.
+
+        Returns:
+            ~torch.utils.data.ConcatDataset[MinervaNonGeoDataset]: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return MinervaConcatDataset([self, other])
+
+
+class MinervaConcatDataset(ConcatDataset):  # type: ignore[type-arg]
+    def __or__(
+        self,
+        other: Union[MinervaNonGeoDataset, "MinervaConcatDataset"],
+    ) -> "MinervaConcatDataset":
+        """Take the union of two :class:`MinervaNonGeoDataset`.
+
+        Args:
+            other (MinervaNonGeoDataset | MinervaConcatDataset): Another dataset.
+
+        Returns:
+            MinervaConcatDataset: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return MinervaConcatDataset([self, other])
 
 
 # =====================================================================================================================
@@ -108,6 +152,36 @@ def unionise_datasets(
 
     master_dataset.transforms = transforms
     assert isinstance(master_dataset, UnionDataset)
+    return master_dataset
+
+
+def concatenate_datasets(
+    datasets: Sequence[NonGeoDataset],
+    transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+) -> MinervaConcatDataset:
+    """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
+
+    Args:
+        datasets (list[~minerva.datasets.MinervaNonGeoDataset]): List of datasets to concatenate together.
+        transforms (): Optional; Function that will transform any sample yielded from the union.
+
+    .. note::
+        The transforms of ``transforms`` will be applied to the sample after any transforms applied to it by
+        the constituent dataset of the union the dataset came from. Therefore, ``transforms`` needs to compatible
+        with all possible samples of the union.
+
+    Returns:
+        ~minerva.datasets.MinervaConcatDataset: Final dataset object representing an union of all the parsed datasets.
+    """
+    assert isinstance(datasets[0], MinervaNonGeoDataset)
+    master_dataset: Union[MinervaNonGeoDataset, MinervaConcatDataset] = datasets[0]
+
+    for i in range(len(datasets) - 1):
+        master_dataset = master_dataset | datasets[i + 1]  # type: ignore[operator]
+
+    if hasattr(master_dataset, "transforms"):
+        master_dataset.transforms = transforms
+    assert isinstance(master_dataset, MinervaConcatDataset)
     return master_dataset
 
 
@@ -170,7 +244,9 @@ def get_random_sample(
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]
 
 
-def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
+def load_dataset_from_cache(
+    cached_dataset_path: Path,
+) -> Union[NonGeoDataset, GeoDataset]:
     """Load a pickled dataset object in from a cache.
 
     Args:
@@ -183,15 +259,17 @@ def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
     with open(cached_dataset_path, "rb") as fp:
         dataset = pickle.load(fp)
 
-    assert isinstance(dataset, GeoDataset)
+    assert isinstance(dataset, (NonGeoDataset, GeoDataset))
     return dataset
 
 
-def cache_dataset(dataset: GeoDataset, cached_dataset_path: Path) -> None:
+def cache_dataset(
+    dataset: Union[GeoDataset, NonGeoDataset], cached_dataset_path: Path
+) -> None:
     """Pickle and cache a dataset object.
 
     Args:
-        dataset (~torchgeo.datasets.GeoDataset): Dataset object to cache.
+        dataset (~torchgeo.datasets.GeoDataset | ~torchgeo.datasets.NonGeoDataset): Dataset object to cache.
         cached_dataset_path (~pathlib.Path): Path to save dataset to.
     """
     # Create missing directories in the path if they don't exist.

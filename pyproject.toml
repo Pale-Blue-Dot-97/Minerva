@@ -31,6 +31,7 @@ dependencies = [
     "imageio",
     "inputimeout",
     "lightly",
+    "kornia",
     "matplotlib",
     "mlflow",
     "nptyping",
@@ -51,6 +52,7 @@ dependencies = [
     "types-tabulate",
     "wandb",
     "segmentation-models-pytorch",
+    "tifffile",
 ]
 
 [project.optional-dependencies]
@@ -82,6 +84,10 @@ onnx = [
 
 tensorflow = [
     "tensorflow",
+]
+
+dfc = [
+    "torchdata",
 ]
 
 [project.urls]

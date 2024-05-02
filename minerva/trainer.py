@@ -263,6 +263,13 @@ class Trainer:
         self.params: Dict[str, Any] = OmegaConf.to_object(params)  # type: ignore[assignment]
         assert isinstance(self.params, dict)
 
+        # Set variables for checkpointing the experiment or loading from a previous checkpoint.
+        self.checkpoint_experiment: bool = self.params.get(
+            "checkpoint_experiment", False
+        )
+        self.print(f"\nExperiment checkpointing: {self.checkpoint_experiment}")
+        self.resume: bool = self.params.get("resume_experiment", False)
+
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
@@ -271,16 +278,27 @@ class Trainer:
         # Sets the max number of epochs of fitting.
         self.max_epochs = self.params.get("max_epochs", 25)
 
+        # Current epoch number counter.
+        self.epoch_no = 0
+
         # Flag for a fine-tuning experiment.
         self.fine_tune = self.params.get("fine_tune", False)
 
         # Sets the timestamp of the experiment.
-        self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
+        self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M%S")
 
-        # Sets experiment name and adds this to the path to the results' directory.
-        self.params["exp_name"] = "{}_{}".format(
-            self.params["model_name"], self.params["timestamp"]
-        )
+        if self.resume:
+            try:
+                assert self.params["exp_name"]
+            except AssertionError:
+                raise ValueError(
+                    "You must add the `exp_name` to the config of the experiment to resume"
+                )
+        else:
+            # Sets experiment name and adds this to the path to the results' directory.
+            self.params["exp_name"] = "{}_{}".format(
+                self.params["model_name"], self.params["timestamp"]
+            )
 
         # Path to experiment directory and experiment name.
         self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
@@ -309,6 +327,9 @@ class Trainer:
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
+        elif self.resume:
+            print(f"\nResuming Experiment {self.params['exp_name']}...")
+            self.load_checkpoint()
         else:
             # Creates model (and loss function) from specified parameters in params.
             self.model = self.make_model()
@@ -323,22 +344,41 @@ class Trainer:
         self.sample_pairs = sample_pairs
         self.model.determine_output_dim(sample_pairs=sample_pairs)
 
-        # Transfer to GPU.
-        self.model.to(self.device)
-
         # Sets up the early stopping functionality.
         self.stopper = None
         self.early_stop = False
         if "stopping" in self.params:
+            # Modifies the `patience` to account for the frequency of validation epochs with respect to training.
+            self.params["stopping"]["patience"] = (
+                self.params["stopping"].get("patience", 10) // self.val_freq
+            )
             self.stopper = EarlyStopping(
                 path=f"{self.exp_fn}.pt",
                 trace_func=self.print,
+                external_save=True,
                 **self.params["stopping"],
             )
 
-        # Creates and sets the optimiser for the model.
-        self.make_optimiser()
+        self._setup_writer()
 
+        if not self.resume:
+            # Creates and sets the optimiser for the model.
+            self.make_optimiser()
+
+            # Transfer to GPU.
+            self.model.to(self.device)
+
+            # If writer is `wandb`, `watch` the model to log gradients.
+            if isinstance(self.writer, Run):
+                self.writer.watch(self.model)
+
+            # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
+            # Will also wrap the model in torch.compile if specified to do so in params.
+            self.model = wrap_model(
+                self.model, gpu, self.params.get("torch_compile", False)
+            )
+
+    def _setup_writer(self) -> None:
         if self.gpu == 0:
             if isinstance(self.writer, Run):
                 self.writer.config.update(self.params)
@@ -370,16 +410,6 @@ class Trainer:
                     except RuntimeError as err:  # pragma: no cover
                         print(err)
                         print("ABORT adding graph to writer")
-
-        # If writer is `wandb`, `watch` the model to log gradients.
-        if isinstance(self.writer, Run):
-            self.writer.watch(self.model)
-
-        # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
-        # Will also wrap the model in torch.compile if specified to do so in params.
-        self.model = wrap_model(
-            self.model, gpu, self.params.get("torch_compile", False)
-        )
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
@@ -561,9 +591,13 @@ class Trainer:
                 **self.params,
             )
 
-        for epoch in range(self.max_epochs):
+            if tasks[mode].params.get("elim", False):
+                self.params["n_classes"] = tasks[mode].n_classes
+
+        while self.epoch_no < self.max_epochs:
+            self.epoch_no += 1
             self.print(
-                f"\nEpoch: {epoch + 1}/{self.max_epochs} =========================================================="
+                f"\nEpoch: {self.epoch_no}/{self.max_epochs} ======================================================"
             )
 
             # Conduct training or validation epoch.
@@ -571,9 +605,9 @@ class Trainer:
                 # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
                 if (
                     utils.check_substrings_in_string(mode, "val")
-                    and (epoch + 1) % self.val_freq != 0
+                    and (self.epoch_no) % self.val_freq != 0
                 ):
-                    tasks[mode].log_null(epoch)
+                    tasks[mode].log_null(self.epoch_no - 1)
                     break
 
                 if tasks[mode].train:
@@ -583,23 +617,30 @@ class Trainer:
 
                 results: Optional[Dict[str, Any]]
 
-                results = tasks[mode](epoch)
+                results = tasks[mode](self.epoch_no - 1)
 
                 # Print epoch results.
                 if self.gpu == 0:
-                    tasks[mode].print_epoch_results(epoch)
+                    tasks[mode].print_epoch_results(self.epoch_no - 1)
+                    if not self.stopper and self.checkpoint_experiment:
+                        print("Saving checkpoint")
+                        self.save_checkpoint()
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if (
                     utils.check_substrings_in_string(mode, "val")
                     and self.stopper is not None
                 ):
-                    val_loss = tasks[mode].get_metrics[f"{mode}_loss"]["y"][epoch]
+                    val_loss = tasks[mode].get_metrics[f"{mode}_loss"]["y"][
+                        self.epoch_no - 1
+                    ]
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
+                    if self.stopper.save_model and self.gpu == 0:
+                        self.save_checkpoint()
 
                 # Special case for final train/ val epoch to plot results if configured so.
-                if epoch == (self.max_epochs - 1) or self.early_stop:
+                if self.epoch_no == self.max_epochs or self.early_stop:
                     if self.early_stop and utils.check_substrings_in_string(
                         mode, "val"
                     ):  # pragma: no cover
@@ -626,8 +667,8 @@ class Trainer:
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
                 if self.early_stop:  # pragma: no cover
-                    if self.gpu == 0:
-                        self.model.load_state_dict(torch.load(f"{self.exp_fn}.pt"))
+                    print("Loading checkpoint")
+                    self.load_checkpoint()
                     return
 
     def test(self, save: bool = True, show: bool = False) -> None:
@@ -733,6 +774,48 @@ class Trainer:
             self.print(
                 "providing the path to this experiment's results directory and unique experiment ID"
             )
+
+    def save_checkpoint(self) -> None:
+        optimiser = self.model.optimiser
+        assert optimiser
+        torch.save(
+            {
+                "epoch": self.epoch_no,
+                "model_state_dict": extract_wrapped_model(self.model).state_dict(),
+                "optimiser_state_dict": optimiser.state_dict(),
+                "n_classes": self.params.get("n_classes"),
+            },
+            f"{self.exp_fn}-checkpoint.pt",
+        )
+
+    def load_checkpoint(self) -> None:
+        checkpoint = torch.load(f"{self.exp_fn}-checkpoint.pt")
+
+        # Update the number of classes in case it was altered by class balancing.
+        self.params["n_classes"] = checkpoint["n_classes"]
+
+        # Remake model and optimiser objects.
+        self.model = self.make_model()
+        self.make_optimiser()
+
+        # Load the state dicts for the model and optimiser.
+        self.model.load_state_dict(checkpoint["model_state_dict"])
+        self.model.optimiser.load_state_dict(checkpoint["optimiser_state_dict"])  # type: ignore[union-attr]
+
+        # Transfer to GPU.
+        self.model.to(self.device)
+
+        # If writer is `wandb`, `watch` the model to log gradients.
+        if isinstance(self.writer, Run):
+            self.writer.watch(self.model)
+
+        # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
+        # Will also wrap the model in torch.compile if specified to do so in params.
+        self.model = wrap_model(
+            self.model, self.gpu, self.params.get("torch_compile", False)
+        )
+
+        self.epoch_no = checkpoint["epoch"]
 
     def tsne_cluster(self, task_name: str = "TSNEVis") -> None:
         """Perform TSNE clustering on the embeddings from the model and visualise.

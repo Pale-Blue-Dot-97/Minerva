@@ -48,6 +48,7 @@ import os
 import platform
 import re
 from copy import deepcopy
+from inspect import signature
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
@@ -59,8 +60,8 @@ from catalyst.data.sampler import DistributedSamplerWrapper
 from omegaconf import OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
-from torch.utils.data import DataLoader
-from torchgeo.datasets import GeoDataset, RasterDataset
+from torch.utils.data import DataLoader, Sampler
+from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
 
@@ -68,9 +69,11 @@ from minerva.transforms import init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
-from .paired import PairedDataset
+from .paired import PairedGeoDataset, PairedNonGeoDataset
 from .utils import (
+    MinervaConcatDataset,
     cache_dataset,
+    concatenate_datasets,
     intersect_datasets,
     load_all_samples,
     load_dataset_from_cache,
@@ -84,12 +87,12 @@ from .utils import (
 #                                                     METHODS
 # =====================================================================================================================
 def create_subdataset(
-    dataset_class: Callable[..., GeoDataset],
+    dataset_class: Union[Callable[..., GeoDataset], Callable[..., NonGeoDataset]],
     paths: Union[str, Iterable[str]],
     subdataset_params: Dict[Literal["params"], Dict[str, Any]],
     transformations: Optional[Any],
     sample_pairs: bool = False,
-) -> GeoDataset:
+) -> Union[GeoDataset, NonGeoDataset]:
     """Creates a sub-dataset based on the parameters supplied.
 
     Args:
@@ -108,18 +111,43 @@ def create_subdataset(
         copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
 
     if sample_pairs:
-        return PairedDataset(
-            dataset_class,
-            paths=paths,
-            transforms=transformations,
-            **copy_params["params"],
-        )
+        if "paths" in signature(dataset_class).parameters:
+            return PairedGeoDataset(
+                dataset_class,  # type: ignore[arg-type]
+                paths=paths,
+                transforms=transformations,
+                **copy_params["params"],
+            )
+        elif "root" in signature(dataset_class).parameters:
+            if isinstance(paths, list):
+                paths = paths[0]
+            assert isinstance(paths, str)
+            return PairedNonGeoDataset(
+                dataset_class,  # type: ignore[arg-type]
+                root=paths,
+                transforms=transformations,
+                **copy_params["params"],
+            )
+        else:
+            raise TypeError
     else:
-        return dataset_class(
-            paths=paths,
-            transforms=transformations,
-            **copy_params["params"],
-        )
+        if "paths" in signature(dataset_class).parameters:
+            return dataset_class(
+                paths=paths,
+                transforms=transformations,
+                **copy_params["params"],
+            )
+        elif "root" in signature(dataset_class).parameters:
+            if isinstance(paths, list):
+                paths = paths[0]
+            assert isinstance(paths, str)
+            return dataset_class(
+                root=paths,
+                transforms=transformations,
+                **copy_params["params"],
+            )
+        else:
+            raise TypeError
 
 
 def get_subdataset(
@@ -130,7 +158,7 @@ def get_subdataset(
     sample_pairs: bool = False,
     cache: bool = True,
     cache_dir: Union[str, Path] = "",
-) -> GeoDataset:
+) -> Union[GeoDataset, NonGeoDataset]:
     """Get a subdataset based on the parameters specified.
 
     If ``cache==True``, this will attempt to load a cached version of the dataset instance.
@@ -148,7 +176,7 @@ def get_subdataset(
             Defaults to CWD.
 
     Returns:
-        ~torchgeo.datasets.GeoDataset: Subdataset requested.
+        ~torchgeo.datasets.GeoDataset | ~torchgeo.datasets.NonGeoDataset: Subdataset requested.
     """
     # Get the params for this sub-dataset.
     sub_dataset_params = dataset_params[key]
@@ -162,8 +190,9 @@ def get_subdataset(
     sub_dataset_paths = utils.compile_dataset_paths(
         universal_path(data_directory), sub_dataset_params["paths"]
     )
+    print(sub_dataset_params["paths"])
 
-    sub_dataset: GeoDataset
+    sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
 
     if cache or sub_dataset_params.get("cache_dataset"):
         this_hash = utils.make_hash(sub_dataset_params)
@@ -171,18 +200,56 @@ def get_subdataset(
         cached_dataset_path = universal_path(cache_dir) / f"{this_hash}.obj"
 
         if cached_dataset_path.exists():
+            print(f"\nLoad cached dataset {this_hash}")
             sub_dataset = load_dataset_from_cache(cached_dataset_path)
 
         else:
-            sub_dataset = create_subdataset(
-                _sub_dataset,
-                sub_dataset_paths,
-                sub_dataset_params,
-                transformations,
-                sample_pairs=sample_pairs,
-            )
+            # Ensure that no conflicts from caching datasets made in multiple processes arises.
+            if dist.is_available() and dist.is_initialized():  # pragma: no cover
+                # Get this process#s rank.
+                rank = dist.get_rank()
 
-            cache_dataset(sub_dataset, cached_dataset_path)
+                # Start a blocking action, ensuring only process 0 can create and cache the dataset.
+                # All other processes will wait till 0 is finished.
+                dist.barrier()
+
+                if rank == 0:
+                    print(f"\nCreating dataset on {rank}...")
+                    sub_dataset = create_subdataset(
+                        _sub_dataset,
+                        sub_dataset_paths,
+                        sub_dataset_params,
+                        transformations,
+                        sample_pairs=sample_pairs,
+                    )
+
+                    print(f"\nSaving dataset {this_hash}")
+                    cache_dataset(sub_dataset, cached_dataset_path)
+
+                # Other processes wait...
+                else:
+                    sub_dataset = None
+
+                # End of blocking action.
+                dist.barrier()
+
+                # Now the other processes can load the newly created cached dataset from 0.
+                if rank != 0:
+                    print(f"\nLoading dataset from cache {this_hash} on {rank}")
+                    sub_dataset = load_dataset_from_cache(cached_dataset_path)
+
+            else:
+                print("\nCreating dataset...")
+                sub_dataset = create_subdataset(
+                    _sub_dataset,
+                    sub_dataset_paths,
+                    sub_dataset_params,
+                    transformations,
+                    sample_pairs=sample_pairs,
+                )
+
+                print(f"\nSaving dataset {this_hash}")
+                cache_dataset(sub_dataset, cached_dataset_path)
 
     else:
         sub_dataset = create_subdataset(
@@ -193,6 +260,7 @@ def get_subdataset(
             sample_pairs=sample_pairs,
         )
 
+    assert sub_dataset is not None
     return sub_dataset
 
 
@@ -221,7 +289,9 @@ def make_dataset(
     """
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
-    sub_datasets: List[GeoDataset] = []
+    sub_datasets: Union[
+        List[GeoDataset], List[Union[NonGeoDataset, MinervaConcatDataset]]
+    ] = []
 
     if OmegaConf.is_config(dataset_params):
         dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
@@ -232,7 +302,7 @@ def make_dataset(
             continue
         type_dataset_params = dataset_params[type_key]
 
-        type_subdatasets = []
+        type_subdatasets: Union[List[GeoDataset], List[NonGeoDataset]] = []
 
         multi_datasets_exist = False
 
@@ -249,10 +319,18 @@ def make_dataset(
                 if isinstance(type_dataset_params[area_key], dict):
                     transform_params = type_dataset_params[area_key]
                     auto_norm = transform_params.get("AutoNorm")
+
+                    # If transforms aren't specified for a particular modality of the sample,
+                    # assume they're for the same type as the dataset.
+                    if (
+                        not ("image", "mask", "label")
+                        in type_dataset_params[area_key].keys()
+                    ):
+                        transform_params = {type_key: type_dataset_params[area_key]}
                 else:
                     transform_params = False
 
-                master_transforms = make_transformations(transform_params, type_key)
+                master_transforms = make_transformations(transform_params)
 
             # Assuming that these keys are names of datasets.
             else:
@@ -264,7 +342,7 @@ def make_dataset(
                 else:
                     transform_params = False
 
-                transformations = make_transformations(transform_params, type_key)
+                transformations = make_transformations({type_key: transform_params})
 
                 # Send the params for this area key back through this function to make the sub-dataset.
                 sub_dataset = get_subdataset(
@@ -291,11 +369,14 @@ def make_dataset(
                     # Reset back to None.
                     auto_norm = None
 
-                type_subdatasets.append(sub_dataset)
+                type_subdatasets.append(sub_dataset)  # type: ignore[arg-type]
 
         # Unionise all the sub-datsets of this modality together.
         if multi_datasets_exist:
-            sub_datasets.append(unionise_datasets(type_subdatasets, master_transforms))
+            if isinstance(type_subdatasets[0], GeoDataset):
+                sub_datasets.append(unionise_datasets(type_subdatasets, master_transforms))  # type: ignore[arg-type]
+            else:
+                sub_datasets.append(concatenate_datasets(type_subdatasets, master_transforms))  # type: ignore[arg-type]
 
         # Add the subdataset of this modality to the list.
         else:
@@ -322,13 +403,13 @@ def make_dataset(
                         f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
                     )
 
-            sub_datasets.append(sub_dataset)
+            sub_datasets.append(sub_dataset)  # type: ignore[arg-type]
 
     # Intersect sub-datasets of differing modalities together to form single dataset
     # if more than one sub-dataset exists. Else, just set that to dataset.
     dataset = sub_datasets[0]
-    if len(sub_datasets) > 1:
-        dataset = intersect_datasets(sub_datasets)
+    if len(sub_datasets) > 1 and all(isinstance(x, GeoDataset) for x in sub_datasets):
+        dataset = intersect_datasets(sub_datasets)  # type: ignore[arg-type]
 
     return dataset, sub_datasets
 
@@ -395,11 +476,15 @@ def construct_dataloader(
                 "batch_size"
             ] = per_device_batch_size  # pragma: no cover
 
-    sampler: Union[BatchGeoSampler, GeoSampler, DistributedSamplerWrapper] = _sampler(
-        dataset=subdatasets[0],
-        roi=make_bounding_box(sampler_params["roi"]),
-        **sampler_params["params"],
-    )
+    sampler: Sampler[Any]
+    if "roi" in signature(_sampler).parameters:
+        sampler = _sampler(
+            subdatasets[0],
+            roi=make_bounding_box(sampler_params["roi"]),
+            **sampler_params["params"],
+        )
+    else:
+        sampler = _sampler(subdatasets[0], **sampler_params["params"])
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
@@ -474,9 +559,6 @@ def _make_loader(
         target_key = masks_or_labels(dataset_params)
         dataset_params = _add_class_transform(class_matrix, dataset_params, target_key)
 
-    # Calculates number of batches.
-    n_batches = int(sampler_params["params"]["length"] / batch_size)
-
     # --+ MAKE DATASETS +=========================================================================================+
     loaders = construct_dataloader(
         data_dir,
@@ -490,6 +572,16 @@ def _make_loader(
         sample_pairs=sample_pairs,
         cache=cache,
         cache_dir=cache_dir,
+    )
+
+    # Calculates number of batches.
+    assert hasattr(loaders.dataset, "__len__")
+    n_batches = int(
+        sampler_params["params"].get(
+            "length",
+            sampler_params["params"].get("num_samples", len(loaders.dataset)),
+        )
+        / batch_size
     )
 
     return loaders, n_batches
@@ -887,8 +979,8 @@ def make_manifest(
 
     df["MODES"] = [np.array([]) for _ in range(len(modes))]
 
-    for i in range(len(modes)):
-        df["MODES"][i] = modes[i]
+    for i, mode in enumerate(modes):
+        df.loc[i, "MODES"] = mode
 
     print("CALCULATING CLASS FRACTIONS")
     # Calculates the fractional size of each class in each patch.
