@@ -65,7 +65,7 @@ from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
 
-from minerva.transforms import init_auto_norm, make_transformations
+from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
@@ -190,7 +190,6 @@ def get_subdataset(
     sub_dataset_paths = utils.compile_dataset_paths(
         universal_path(data_directory), sub_dataset_params["paths"]
     )
-    print(sub_dataset_params["paths"])
 
     sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
 
@@ -296,11 +295,26 @@ def make_dataset(
     if OmegaConf.is_config(dataset_params):
         dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
 
+    add_target_transforms = None
+
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
+        # If this the sampler params, skip.
         if type_key == "sampler":
             continue
         type_dataset_params = dataset_params[type_key]
+
+        # If there are no params, assume this is just a marker and no datasets are defined so skip.
+        if type_dataset_params is None:
+            continue
+
+        # If the only params in the type are transforms, store them for later and skip making datasets for this type.
+        if (
+            len(type_dataset_params.keys()) == 1
+            and "transforms" in type_dataset_params.keys()
+        ):
+            add_target_transforms = type_dataset_params["transforms"]
+            continue
 
         type_subdatasets: Union[List[GeoDataset], List[NonGeoDataset]] = []
 
@@ -410,6 +424,15 @@ def make_dataset(
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1 and all(isinstance(x, GeoDataset) for x in sub_datasets):
         dataset = intersect_datasets(sub_datasets)  # type: ignore[arg-type]
+
+    if add_target_transforms is not None:
+        target_key = masks_or_labels(dataset_params)
+        target_transforms = make_transformations({target_key: add_target_transforms})
+
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += target_transforms
+        else:
+            dataset.transforms = target_transforms
 
     return dataset, sub_datasets
 
@@ -529,8 +552,9 @@ def _add_class_transform(
             "transform": class_matrix,
         }
     }
-
-    if not isinstance(dataset_params[target_key].get("transforms"), dict):
+    if dataset_params[target_key] is None:
+        dataset_params[target_key] = {"transforms": class_transform}
+    elif not isinstance(dataset_params[target_key].get("transforms"), dict):
         dataset_params[target_key]["transforms"] = class_transform
     else:
         dataset_params[target_key]["transforms"]["ClassTransform"] = class_transform[
@@ -927,6 +951,9 @@ def make_manifest(
 
     def delete_class_transform(params: Dict[str, Any]) -> None:
         target_key = masks_or_labels(dataset_params)
+        if params[target_key] is None:
+            return
+
         if "transforms" in params[target_key]:
             if isinstance(params[target_key]["transforms"], dict):
                 if "ClassTransform" in params[target_key]["transforms"]:
