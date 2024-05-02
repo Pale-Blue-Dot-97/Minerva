@@ -954,6 +954,7 @@ def make_manifest(
 
     if _sampler_params["name"] == "RandomSampler":
         _sampler_params["name"] = "SequentialSampler"
+        _sampler_params["params"] = {}
 
     if "length" in _sampler_params["params"]:
         del _sampler_params["params"]["length"]
