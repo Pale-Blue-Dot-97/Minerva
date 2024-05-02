@@ -99,7 +99,7 @@ def test_trainer_1(default_config: DictConfig) -> None:
             run_trainer(default_config)
 
 
-def test_trainer_2(default_config: DictConfig) -> None:
+def test_trainer_2(default_config: DictConfig, cache_dir: Path) -> None:
     params1 = deepcopy(default_config)
     params1["elim"] = False
 
@@ -120,7 +120,7 @@ def test_trainer_2(default_config: DictConfig) -> None:
     OmegaConf.update(
         params2,
         "pre_train_name",
-        f"{params1['model_name'].split('-')[0]}.{suffix}",
+        cache_dir / f"{params1['model_name'].split('-')[0]}.{suffix}",
         force_add=True,
     )
     OmegaConf.update(params2, "sample_pairs", "false", force_add=True)
