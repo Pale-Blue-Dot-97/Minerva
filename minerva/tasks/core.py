@@ -274,8 +274,9 @@ class MinervaTask(ABC):
                 ),
             )
 
-        # Refresh the output size of the model and set to `output_size`.
-        self.model.determine_output_dim(sample_pairs=self.sample_pairs)
+            # Refresh the output size of the model and set to `output_size`.
+            self.model.determine_output_dim(sample_pairs=self.sample_pairs)
+
         self.output_size = self.model.output_shape
 
         # Make the logger for this task.
