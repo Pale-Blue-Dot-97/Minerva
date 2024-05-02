@@ -294,7 +294,7 @@ class MinervaTask(ABC):
             fallback_params("loss_params", self.params, self.global_params)
         )
         if OmegaConf.is_config(loss_params):
-            loss_params = OmegaConf.to_object(loss_params)
+            loss_params = OmegaConf.to_object(loss_params)  # type: ignore[assignment]
 
         module = loss_params.pop("module", "torch.nn")
         criterion: Callable[..., Any] = func_by_str(module, loss_params["name"])
@@ -329,7 +329,7 @@ class MinervaTask(ABC):
         optimiser_params: Dict[str, Any] = deepcopy(self.params["optim_params"])
 
         if OmegaConf.is_config(optimiser_params):
-            optimiser_params = OmegaConf.to_object(optimiser_params)
+            optimiser_params = OmegaConf.to_object(optimiser_params)  # type: ignore[assignment]
 
         module = optimiser_params.pop("module", "torch.optim")
         optimiser = utils.func_by_str(module, self.params["optim_func"])
