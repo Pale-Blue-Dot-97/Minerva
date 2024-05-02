@@ -224,8 +224,6 @@ class MinervaTask(ABC):
         )
         self.n_classes = fallback_params("n_classes", self.params, self.global_params)
 
-        self.output_size = model.output_shape
-
         self.record_int = utils.fallback_params(
             "record_int", self.params, self.global_params, record_int
         )
@@ -274,6 +272,10 @@ class MinervaTask(ABC):
                     "torch_compile", self.params, self.global_params, False
                 ),
             )
+
+        # Refresh the output size of the model and set to `output_size`.
+        self.model.determine_output_dim()
+        self.output_size = self.model.output_shape
 
         # Make the logger for this task.
         self.logger: MinervaTaskLogger = self.make_logger()
