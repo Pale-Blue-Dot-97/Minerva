@@ -781,7 +781,7 @@ class Trainer:
 
         # Make sure that the path to the checkpoint exists.
         if not fn.parent.exists():
-            fn.mkdir(parents=True, exist_ok=True)
+            fn.parent.mkdir(parents=True, exist_ok=True)
 
         optimiser = self.model.optimiser
         assert optimiser
