@@ -564,6 +564,7 @@ class MinervaCompose:
     def _add(
         self,
         new_transform: Union[
+            "MinervaCompose",
             Sequence[Callable[..., Any]],
             Callable[..., Any],
             Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
@@ -586,9 +587,17 @@ class MinervaCompose:
 
         _transforms = deepcopy(self.transforms)
 
+        if isinstance(new_transform, MinervaCompose):
+            return self._add(new_transform.transforms)
+
         if isinstance(new_transform, dict) and isinstance(_transforms, dict):
             for key in new_transform.keys():
-                _transforms[key] = add_transforms(new_transform[key], _transforms[key])
+                if key not in _transforms:
+                    _transforms[key] = new_transform[key]
+                else:
+                    _transforms[key] = add_transforms(
+                        new_transform[key], _transforms[key]
+                    )
             return _transforms
 
         elif (
@@ -605,6 +614,7 @@ class MinervaCompose:
     def __add__(
         self,
         new_transform: Union[
+            "MinervaCompose",
             Sequence[Callable[..., Any]],
             Callable[..., Any],
             Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
@@ -617,6 +627,7 @@ class MinervaCompose:
     def __iadd__(
         self,
         new_transform: Union[
+            "MinervaCompose",
             Sequence[Callable[..., Any]],
             Callable[..., Any],
             Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
