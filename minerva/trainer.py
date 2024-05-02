@@ -52,7 +52,7 @@ from torch.nn.modules import Module
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
@@ -247,7 +247,7 @@ class Trainer:
         self.device = utils.get_cuda_device(gpu)
 
         # Convert the config back to DictConfig after being used as kwargs.
-        params = OmegaConf.create(params)
+        params = OmegaConf.create(params)  # type: ignore[assignment]
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
@@ -257,10 +257,11 @@ class Trainer:
             print(
                 "\n==+ Experiment Parameters +====================================================="
             )
-            utils.print_config(params)
+            utils.print_config(params)  # type: ignore[arg-type]
 
         # Now that we have pretty printed the config, it is easier to handle as a dict.
-        self.params = OmegaConf.to_object(params)
+        self.params: Dict[str, Any] = OmegaConf.to_object(params)  # type: ignore[assignment]
+        assert isinstance(self.params, dict)
 
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
@@ -422,7 +423,7 @@ class Trainer:
         """
         model_params: Dict[str, Any] = deepcopy(self.params["model_params"])
         if OmegaConf.is_config(model_params):
-            model_params = OmegaConf.to_object(model_params)
+            model_params = OmegaConf.to_object(model_params)  # type: ignore[assignment]
 
         module = model_params.pop("module", "minerva.models")
         if not module:
@@ -502,7 +503,7 @@ class Trainer:
         loss_params: Dict[str, Any] = deepcopy(self.params["loss_params"])
 
         if OmegaConf.is_config(loss_params):
-            loss_params = OmegaConf.to_object(loss_params)
+            loss_params = OmegaConf.to_object(loss_params)  # type: ignore[assignment]
 
         module = loss_params.pop("module", "torch.nn")
         criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
@@ -519,7 +520,7 @@ class Trainer:
         optimiser_params: Dict[str, Any] = deepcopy(self.params["optim_params"])
 
         if OmegaConf.is_config(optimiser_params):
-            optimiser_params = OmegaConf.to_object(optimiser_params)
+            optimiser_params = OmegaConf.to_object(optimiser_params)  # type: ignore[assignment]
 
         module = optimiser_params.pop("module", "torch.optim")
         optimiser = utils.func_by_str(module, self.params["optim_func"])
