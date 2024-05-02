@@ -761,7 +761,12 @@ def seg_plot(
     flat_ids: NDArray[Any, Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
-    cache = True if cache_dir else False
+    if cache_dir is not None:
+        cache = True
+    else:
+        cache = False
+        cache_dir = ""
+
     dataset, _ = make_dataset(
         data_dir, dataset_params, cache=cache, cache_dir=cache_dir
     )
@@ -1127,7 +1132,12 @@ def plot_embedding(
     from minerva.datasets import make_dataset
 
     print("\nRE-CONSTRUCTING DATASET")
-    cache = True if cache_dir else False
+    if cache_dir is not None:
+        cache = True
+    else:
+        cache = False
+        cache_dir = ""
+
     dataset, _ = make_dataset(
         data_dir, dataset_params, cache=cache, cache_dir=cache_dir
     )
