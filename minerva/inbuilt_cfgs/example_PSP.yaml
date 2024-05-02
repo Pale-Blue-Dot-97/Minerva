@@ -22,9 +22,9 @@ model_name: MinervaPSP-test
 model_type: segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 6                          # Number of samples in each batch.
-patch_size: &patch_size [128, 128]     # 2D tuple or float.
-input_size: &input_size [4, 128, 128]  # patch_size plus leading channel dim.
+batch_size: 2                          # Number of samples in each batch.
+patch_size: &patch_size [256, 256]     # 2D tuple or float.
+input_size: &input_size [4, 256, 256]  # patch_size plus leading channel dim.
 n_classes: &n_classes 11               # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
@@ -63,7 +63,7 @@ loss_params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    num_workers: 2
+    num_workers: 1
     pin_memory: true
 
 # === WANDB LOGGING ===========================================================
@@ -97,7 +97,7 @@ tasks:
                 module: torch.utils.data
                 name: RandomSampler
                 params:
-                    num_samples: 5120
+                    num_samples: 32
 
             image:
                 transforms:
@@ -160,7 +160,7 @@ tasks:
                 module: torch.utils.data
                 name: RandomSampler
                 params:
-                    num_samples: 960
+                    num_samples: 16
 
             image:
                 transforms:
@@ -173,7 +173,7 @@ tasks:
                 paths: DFC/DFC2020
                 target_key: mask
                 params:
-                    split: val
+                    split: test
                     use_s2hr: true
                     labels: true
 
@@ -184,9 +184,9 @@ plots:
     History: true   # Plot of the training and validation metrics over epochs.
     CM: true        # Confusion matrix.
     Pred: true      # Pie chart of the distribution of the predicted classes.
-    ROC: true       # Receiver Operator Characteristics for each class.
+    ROC: false      # Receiver Operator Characteristics for each class.
     micro: false    # Include micro averaging in ROC plot.
-    macro: true     # Include macro averaging in ROC plot.
+    macro: false    # Include macro averaging in ROC plot.
     Mask: true      # Plot predicted masks against ground truth and imagery.
 
 # === MISCELLANEOUS OPTIONS ===================================================
