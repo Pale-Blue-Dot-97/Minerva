@@ -52,7 +52,7 @@ from torch.nn.modules import Module
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
