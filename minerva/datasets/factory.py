@@ -581,9 +581,13 @@ def _make_loader(
 ):
     target_key = None
 
-    if elim and not utils.check_substrings_in_string(model_type, "siamese"):
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         target_key = masks_or_labels(dataset_params)
-        dataset_params = _add_class_transform(class_matrix, dataset_params, target_key)
+
+        if elim:
+            dataset_params = _add_class_transform(
+                class_matrix, dataset_params, target_key
+            )
 
     # --+ MAKE DATASETS +=========================================================================================+
     loaders = construct_dataloader(
