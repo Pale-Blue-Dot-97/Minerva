@@ -56,7 +56,6 @@ __all__ = [
     "stack_sample_pairs",
     "intersect_datasets",
     "unionise_datasets",
-    "get_manifest_path",
     "get_random_sample",
 ]
 
@@ -65,7 +64,6 @@ from .dfc import DFC2020  # , SEN12MS
 from .factory import (
     construct_dataloader,
     get_manifest,
-    get_manifest_path,
     make_dataset,
     make_loaders,
     make_manifest,

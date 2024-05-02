@@ -5,7 +5,7 @@
 #   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
 #    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
 #
-#               EXAMPLE MASTER CONFIG FILE FOR A UNETR18 MODEL
+#               EXAMPLE MASTER CONFIG FILE FOR AN AUTOENCODER
 #
 # === PATHS ===================================================================
 dir:
@@ -25,17 +25,18 @@ model_name: UNetR18-test
 model_type: segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 8                          # Number of samples in each batch.
+batch_size: 6                          # Number of samples in each batch.
 patch_size: &patch_size [224, 224]     # 2D tuple or float.
-input_size: &input_size [4, 224, 224]  # patch_size plus leading channel dim.
+input_size: &input_size [8, 224, 224]  # patch_size plus leading channel dim.
 n_classes: &n_classes 8                # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 5                         # Maximum number of training epochs.
-elim: true                            # Eliminates empty classes from schema.
-balance: true                         # Balances dataset classes.
-pre_train: false                      # Activate pre-training mode.
-fine_tune: false                      # Activate fine-tuning mode.
+max_epochs: 2                          # Maximum number of training epochs.
+elim: false                            # Eliminates empty classes from schema.
+balance: false                         # Balances dataset classes.
+pre_train: false                       # Activate pre-training mode.
+fine_tune: false                       # Activate fine-tuning mode.
+autoencoder_data_key: mask
 torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
@@ -50,7 +51,7 @@ model_params:
         input_size: *input_size
         n_classes: *n_classes
         backbone_kwargs:
-            torch_weights: true
+            torch_weights: false
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
@@ -73,9 +74,10 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-# task_logger: SupervisedTaskLogger
-# step_logger: SupervisedGeoStepLogger
-# model_io: sup_tg
+task_logger: SupervisedTaskLogger
+step_logger:
+    name: SupervisedGeoStepLogger
+model_io: autoencoder_io
 
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
@@ -92,7 +94,10 @@ tasks:
         train: true
         record_float: true
 
-        # ---+ Dataset Parameters +----------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -100,7 +105,7 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 320
+                    length: 36
 
             image:
                 transforms:
@@ -112,6 +117,7 @@ tasks:
                 paths: NAIP
                 params:
                     res: 1.0
+
             mask:
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
@@ -124,7 +130,10 @@ tasks:
         train: true
         record_float: true
 
-        # ---+ Dataset Parameters +----------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -132,7 +141,7 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 80
+                    length: 18
 
             image:
                 transforms:
@@ -144,6 +153,7 @@ tasks:
                 paths: NAIP
                 params:
                     res: 1.0
+
             mask:
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
@@ -156,7 +166,10 @@ tasks:
         train: true
         record_float: true
 
-        # ---+ Dataset Parameters +----------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -164,7 +177,8 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 160
+                    length: 18
+
             image:
                 transforms:
                     Normalise:
@@ -175,6 +189,7 @@ tasks:
                 paths: NAIP
                 params:
                     res: 1.0
+
             mask:
                 module: minerva.datasets.__testing
                 name: TstMaskDataset

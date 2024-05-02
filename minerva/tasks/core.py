@@ -40,6 +40,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 import abc
 from abc import ABC
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Union
 
@@ -52,6 +53,7 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 from nptyping import Int, NDArray
+from omegaconf import OmegaConf
 from torch import Tensor
 from torch._dynamo.eval_frame import OptimizedModule
 from wandb.sdk.wandb_run import Run
@@ -238,7 +240,6 @@ class MinervaTask(ABC):
         # Ensure the model IO function is treated as static not a class method.
         self.modelio = staticmethod(self.get_io_func()).__func__
 
-        self.loaders = loaders
         self.device = device
         self.writer = writer
         self.step_num = 0
@@ -289,9 +290,12 @@ class MinervaTask(ABC):
             ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = fallback_params(
-            "loss_params", self.params, self.global_params
-        ).copy()
+        loss_params: Dict[str, Any] = deepcopy(
+            fallback_params("loss_params", self.params, self.global_params)
+        )
+        if OmegaConf.is_config(loss_params):
+            loss_params = OmegaConf.to_object(loss_params)  # type: ignore[assignment]
+
         module = loss_params.pop("module", "torch.nn")
         criterion: Callable[..., Any] = func_by_str(module, loss_params["name"])
 
@@ -322,7 +326,11 @@ class MinervaTask(ABC):
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
         # Gets the optimiser requested by config parameters.
-        optimiser_params: Dict[str, Any] = self.params["optim_params"].copy()
+        optimiser_params: Dict[str, Any] = deepcopy(self.params["optim_params"])
+
+        if OmegaConf.is_config(optimiser_params):
+            optimiser_params = OmegaConf.to_object(optimiser_params)  # type: ignore[assignment]
+
         module = optimiser_params.pop("module", "torch.optim")
         optimiser = utils.func_by_str(module, self.params["optim_func"])
 
@@ -478,6 +486,7 @@ class MinervaTask(ABC):
             model_name=self.params["model_name"],
             timestamp=self.params["timestamp"],
             results_dir=self.task_dir,
+            cfg=self.params,
             **results,
         )
 

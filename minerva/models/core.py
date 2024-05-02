@@ -193,14 +193,12 @@ class MinervaModel(Module, ABC):
     @overload
     def step(
         self, x: Tensor, y: Tensor, train: bool = False
-    ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]:
-        ...  # pragma: no cover
+    ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]: ...  # pragma: no cover
 
     @overload
     def step(
         self, x: Tensor, *, train: bool = False
-    ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]:
-        ...  # pragma: no cover
+    ) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]]]: ...  # pragma: no cover
 
     def step(
         self,

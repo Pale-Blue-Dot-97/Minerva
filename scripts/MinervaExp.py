@@ -40,52 +40,46 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import argparse
+from typing import Optional, Union
 
-import argcomplete
+import hydra
+from omegaconf import DictConfig
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
 from minerva.trainer import Trainer
-from minerva.utils import CONFIG, runner, utils
+from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, utils
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-def main(gpu: int, args) -> None:
+@hydra.main(config_path=str(DEFAULT_CONF_DIR_PATH), config_name=DEFAULT_CONFIG_NAME)
+@runner.distributed_run
+def main(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+) -> None:
     trainer = Trainer(
         gpu=gpu,
-        rank=args.rank,
-        world_size=args.world_size,
-        wandb_run=args.wandb_run,
-        **CONFIG,
+        wandb_run=wandb_run,
+        **cfg,
     )
 
-    if not CONFIG.get("eval", False):
+    if not cfg.get("eval", False):
         trainer.fit()
 
-    if CONFIG.get("pre_train", False) and gpu == 0:
+    if cfg.get("pre_train", False) and gpu == 0:
         trainer.save_backbone()
         trainer.close()
 
-    if not CONFIG.get("pre_train", False):
+    if not cfg.get("pre_train", False):
         trainer.test()
 
 
 if __name__ == "__main__":
-    # ---+ CLI +--------------------------------------------------------------+
-    parser = argparse.ArgumentParser(parents=[runner.GENERIC_PARSER], add_help=False)
-    argcomplete.autocomplete(parser)
-    # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
-
-    # Export args from CLI.
-    cli_args = parser.parse_args()
-
     # Print Minerva banner.
     utils._print_banner()
 
     with runner.WandbConnectionManager():
-        # Configure the arguments and environment variables.
-        runner.config_args(cli_args)
-
         # Run the specified main with distributed computing and the arguments provided.
-        runner.distributed_run(main, cli_args)
+        main()

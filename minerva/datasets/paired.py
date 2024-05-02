@@ -95,12 +95,14 @@ class PairedGeoDataset(RasterDataset):
         return self.dataset, self._args, self._kwargs
 
     @overload
-    def __init__(self, dataset: Callable[..., GeoDataset], *args, **kwargs) -> None:
-        ...  # pragma: no cover
+    def __init__(
+        self, dataset: Callable[..., GeoDataset], *args, **kwargs
+    ) -> None: ...  # pragma: no cover
 
     @overload
-    def __init__(self, dataset: GeoDataset, *args, **kwargs) -> None:
-        ...  # pragma: no cover
+    def __init__(
+        self, dataset: GeoDataset, *args, **kwargs
+    ) -> None: ...  # pragma: no cover
 
     def __init__(
         self,
@@ -348,8 +350,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         max_r: int,
         *args,
         **kwargs,
-    ) -> None:
-        ...  # pragma: no cover
+    ) -> None: ...  # pragma: no cover
 
     @overload
     def __init__(
@@ -359,8 +360,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         max_r: int,
         *args,
         **kwargs,
-    ) -> None:
-        ...  # pragma: no cover
+    ) -> None: ...  # pragma: no cover
 
     def __init__(
         self,

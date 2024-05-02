@@ -52,6 +52,7 @@ from torch.nn.modules import Module
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 
+from omegaconf import OmegaConf
 from torchinfo import summary
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
@@ -233,7 +234,7 @@ class Trainer:
         world_size: int = 1,
         verbose: bool = True,
         wandb_run: Optional[Union[Run, RunDisabled]] = None,
-        **params: Dict[str, Any],
+        **params,
     ) -> None:
         assert not isinstance(wandb_run, RunDisabled)
 
@@ -245,7 +246,8 @@ class Trainer:
         # Finds and sets the CUDA device to be used.
         self.device = utils.get_cuda_device(gpu)
 
-        self.params: Dict[str, Any] = dict(params)
+        # Convert the config back to DictConfig after being used as kwargs.
+        params = OmegaConf.create(params)  # type: ignore[assignment]
 
         # Verbose level. Always 0 if this is not the primary GPU to avoid duplicate stdout statements.
         self.verbose: bool = verbose if gpu == 0 else False
@@ -255,7 +257,11 @@ class Trainer:
             print(
                 "\n==+ Experiment Parameters +====================================================="
             )
-            utils.print_config(dict(params))
+            utils.print_config(params)  # type: ignore[arg-type]
+
+        # Now that we have pretty printed the config, it is easier to handle as a dict.
+        self.params: Dict[str, Any] = OmegaConf.to_object(params)  # type: ignore[assignment]
+        assert isinstance(self.params, dict)
 
         # Set variables for checkpointing the experiment or loading from a previous checkpoint.
         self.checkpoint_experiment: bool = self.params.get(
@@ -446,6 +452,8 @@ class Trainer:
             MinervaModel: Initialised model.
         """
         model_params: Dict[str, Any] = deepcopy(self.params["model_params"])
+        if OmegaConf.is_config(model_params):
+            model_params = OmegaConf.to_object(model_params)  # type: ignore[assignment]
 
         module = model_params.pop("module", "minerva.models")
         if not module:
@@ -523,6 +531,10 @@ class Trainer:
         """
         # Gets the loss function requested by config parameters.
         loss_params: Dict[str, Any] = deepcopy(self.params["loss_params"])
+
+        if OmegaConf.is_config(loss_params):
+            loss_params = OmegaConf.to_object(loss_params)  # type: ignore[assignment]
+
         module = loss_params.pop("module", "torch.nn")
         criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
 
@@ -536,6 +548,10 @@ class Trainer:
 
         # Gets the optimiser requested by config parameters.
         optimiser_params: Dict[str, Any] = deepcopy(self.params["optim_params"])
+
+        if OmegaConf.is_config(optimiser_params):
+            optimiser_params = OmegaConf.to_object(optimiser_params)  # type: ignore[assignment]
+
         module = optimiser_params.pop("module", "torch.optim")
         optimiser = utils.func_by_str(module, self.params["optim_func"])
 
@@ -563,7 +579,7 @@ class Trainer:
         tasks: Dict[str, MinervaTask] = {}
         for mode in fit_params.keys():
             tasks[mode] = get_task(
-                fit_params[mode].pop("type"),
+                fit_params[mode]["type"],
                 mode,
                 self.model,
                 self.device,
@@ -679,7 +695,7 @@ class Trainer:
 
         for task_name in test_params.keys():
             task = get_task(
-                test_params[task_name].pop("type"),
+                test_params[task_name]["type"],
                 task_name,
                 self.model,
                 self.device,

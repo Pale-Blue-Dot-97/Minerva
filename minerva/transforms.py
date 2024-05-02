@@ -527,12 +527,12 @@ class MinervaCompose:
             )
 
     @overload
-    def __call__(self, sample: Tensor) -> Tensor:
-        ...  # pragma: no cover
+    def __call__(self, sample: Tensor) -> Tensor: ...  # pragma: no cover
 
     @overload
-    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
-        ...  # pragma: no cover
+    def __call__(
+        self, sample: Dict[str, Any]
+    ) -> Dict[str, Any]: ...  # pragma: no cover
 
     def __call__(
         self, sample: Union[Tensor, Dict[str, Any]]

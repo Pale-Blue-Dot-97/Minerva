@@ -35,33 +35,36 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-import argparse
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional, Union
 
+import hydra
 import pytest
 import torch
+from omegaconf import DictConfig, OmegaConf
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
 from minerva.models import MinervaModel, MinervaOnnxModel, is_minerva_subtype
 from minerva.trainer import Trainer
-from minerva.utils import CONFIG, config_load, runner, utils
+from minerva.utils import runner, utils
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def run_trainer(gpu: int, args: argparse.Namespace):
-    args.gpu = gpu
-    params = deepcopy(CONFIG)
+@runner.distributed_run
+def run_trainer(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+):
+    params = deepcopy(cfg)
     params["calc_norm"] = True
 
     trainer = Trainer(
-        gpu=args.gpu,
-        rank=args.rank,
-        world_size=args.world_size,
-        wandb_run=args.wandb_run,
+        gpu=gpu,
+        wandb_run=wandb_run,
         **params,
     )
     assert isinstance(trainer, Trainer)
@@ -70,7 +73,7 @@ def run_trainer(gpu: int, args: argparse.Namespace):
 
     trainer.test()
 
-    if args.gpu == 0:
+    if gpu == 0:
         trainer.save_model()
 
         trainer.save_backbone()
@@ -79,30 +82,25 @@ def run_trainer(gpu: int, args: argparse.Namespace):
     shutil.rmtree(trainer.exp_fn.parent)
 
 
-def test_trainer_1() -> None:
-    args = argparse.Namespace()
-
+def test_trainer_1(default_config: DictConfig) -> None:
     with runner.WandbConnectionManager():
         if torch.distributed.is_available():  # type: ignore
-            # Configure the arguments and environment variables.
-            runner.config_args(args)
 
-            args.log_all = False
-            args.entity = None
-            args.project = "pytest"
-            args.wandb_log = True
+            # Configure the arguments and environment variables.
+            OmegaConf.update(default_config, "log_all", False, force_add=True)
+            OmegaConf.update(default_config, "entity", None, force_add=True)
+            OmegaConf.update(default_config, "project", "pytest", force_add=True)
+            OmegaConf.update(default_config, "wandb_log", True, force_add=True)
 
             # Run the specified main with distributed computing and the arguments provided.
-            runner.distributed_run(run_trainer, args)
+            run_trainer(default_config)
 
         else:
-            args.gpu = 0
-            args.wandb_run = None
-            run_trainer(args.gpu, args)
+            run_trainer(default_config)
 
 
-def test_trainer_2() -> None:
-    params1 = deepcopy(CONFIG)
+def test_trainer_2(default_config: DictConfig) -> None:
+    params1 = deepcopy(default_config)
     params1["elim"] = False
 
     trainer1 = Trainer(0, **params1)
@@ -119,12 +117,17 @@ def test_trainer_2() -> None:
     trainer1.save_model(fn=trainer1.get_model_cache_path(), fmt=suffix)
 
     params2 = deepcopy(params1)
-    params2["pre_train_name"] = f"{params1['model_name'].split('-')[0]}.{suffix}"
-    params2["sample_pairs"] = "false"
-    params2["plot_last_epoch"] = False
-    params2["wandb_log"] = False
-    params2["project"] = False
-    params2["max_epochs"] = 2
+    OmegaConf.update(
+        params2,
+        "pre_train_name",
+        f"{params1['model_name'].split('-')[0]}.{suffix}",
+        force_add=True,
+    )
+    OmegaConf.update(params2, "sample_pairs", "false", force_add=True)
+    params2.plot_last_epoch = False
+    params2.wandb_log = False
+    params2.project = False
+    params2.max_epochs = 2
 
     trainer2 = Trainer(0, **params2)
     if suffix == "onnx":
@@ -138,14 +141,14 @@ def test_trainer_2() -> None:
     assert type(repr(trainer2.model)) is str
 
 
-def test_trainer_3() -> None:
-    params1 = deepcopy(CONFIG)
+def test_trainer_3(default_config: DictConfig) -> None:
+    params1 = deepcopy(default_config)
 
     trainer1 = Trainer(0, **params1)
     trainer1.save_model(fn=trainer1.get_model_cache_path())
 
-    params2 = deepcopy(CONFIG)
-    params2["pre_train_name"] = params1["model_name"]
+    params2 = deepcopy(default_config)
+    OmegaConf.update(params2, "pre_train_name", params1["model_name"], force_add=True)
     params2["fine_tune"] = True
     params2["max_epochs"] = 2
     params2["elim"] = False
@@ -157,13 +160,13 @@ def test_trainer_3() -> None:
 @pytest.mark.parametrize(
     ["cfg_name", "cfg_args", "kwargs"],
     [
-        ("example_CNN_config.yml", {}, {}),
-        ("example_GeoCLR_config.yml", {}, {"tsne_cluster": True}),
-        ("example_GeoCLR_config.yml", {"plot_last_epoch": False}, {}),
-        ("example_3rd_party.yml", {}, {}),
-        ("example_autoencoder_config.yml", {}, {}),
-        ("example_GeoSimConvNet.yml", {}, {}),
-        ("example_GSConvNet-II.yml", {}, {}),
+        ("example_CNN_config.yaml", {}, {}),
+        ("example_GeoCLR_config.yaml", {}, {"tsne_cluster": True}),
+        ("example_GeoCLR_config.yaml", {"plot_last_epoch": False}, {}),
+        ("example_3rd_party.yaml", {}, {}),
+        ("example_autoencoder_config.yaml", {}, {}),
+        ("example_GeoSimConvNet.yaml", {}, {}),
+        ("example_GSConvNet-II.yaml", {}, {}),
     ],
 )
 def test_trainer_4(
@@ -172,27 +175,28 @@ def test_trainer_4(
     cfg_args: Dict[str, Any],
     kwargs: Dict[str, Any],
 ) -> None:
-    cfg_path = inbuilt_cfg_root / cfg_name
 
-    with config_load.ToDefaultConfDir():
-        cfg, _ = config_load.load_configs(cfg_path)
+    with hydra.initialize(config_path=str(inbuilt_cfg_root)):
+        cfg = hydra.compose(config_name=cfg_name)
 
-    for key in cfg_args.keys():
-        cfg[key] = cfg_args[key]
+        for key in cfg_args.keys():
+            cfg[key] = cfg_args[key]
 
-    trainer = Trainer(0, **cfg)
+        trainer = Trainer(0, **cfg)
 
-    trainer.fit()
+        trainer.fit()
 
-    if kwargs.get("tsne_cluster"):
-        trainer.tsne_cluster("test-test")
+        if kwargs.get("tsne_cluster"):
+            trainer.tsne_cluster("test-test")
 
-    if kwargs.get("test"):
-        trainer.test()
+        if kwargs.get("test"):
+            trainer.test()
 
 
-def test_trainer_resume() -> None:
-    params1 = deepcopy(CONFIG)
+def test_trainer_resume(default_config: DictConfig) -> None:
+    params1 = OmegaConf.to_object(default_config)
+    assert isinstance(params1, dict)
+
     params1["checkpoint_experiment"] = True
     del params1["stopping"]
 

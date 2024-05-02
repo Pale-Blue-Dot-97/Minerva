@@ -167,7 +167,12 @@ def test_mask_autoencoder_io(
             )
 
         results = autoencoder_io(
-            batch, model, default_device, train, autoencoder_data_key="mask"
+            batch,
+            model,
+            default_device,
+            train,
+            autoencoder_data_key="mask",
+            n_classes=std_n_classes,
         )
 
         assert isinstance(results[0], Tensor)

@@ -5,52 +5,47 @@
 #   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
 #    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
 #
-#             EXAMPLE MASTER CONFIG FILE FOR THIRD PARTY MODELS
+#                          EXAMPLE MASTER CONFIG FILE
 #
 # === PATHS ===================================================================
 dir:
     data: tests/fixtures/data
-    configs:
-        data_config: Chesapeake7.yml
-        imagery_config: NAIP.yml
     results: tests/tmp/results
     cache: tests/tmp/cache
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: ResNetGenerator-R9
+model_name: FCN32ResNet18-test
 
 # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
-model_type: scene classifier
+model_type: segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 8                         # Number of samples in each batch.
 patch_size: &patch_size [32, 32]      # 2D tuple or float.
-input_size: &input_size [3, 32, 32]   # patch_size plus leading channel dim.
+input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
 n_classes: &n_classes 8               # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 3                         # Maximum number of training epochs.
+max_epochs: 5                         # Maximum number of training epochs.
 pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
-elim: false                           # Eliminates empty classes from schema.
-balance: false                        # Balances dataset classes.
+elim: true                            # Eliminates empty classes from schema.
+balance: true                         # Balances dataset classes.
 torch_compile: true                    # Wrap model in `torch.compile`.
 
-# ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: &loss_func CrossEntropyLoss  # Name of the loss function to use.
-lr: 1.0E-2                              # Learning rate of optimiser.
-optim_func: SGD                         # Name of the optimiser function.
+# ---+ Optimisers +---------------------------------------------------
+lr: 1.0E-2                            # Learning rate of optimiser.
+optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module: lightly.models
+    module:
     params:
         input_size: *input_size
         n_classes: *n_classes
-        num_classes: *n_classes
-        name: resnet-9
+        # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
@@ -58,7 +53,7 @@ optim_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
+    name: CrossEntropyLoss           # Name of the loss function to use.
     params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
@@ -72,14 +67,6 @@ wandb_log: true              # Activates wandb logging.
 project: pytest              # Define the project name for wandb.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
-# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-# task_logger: SupervisedTaskLogger
-# step_logger: SupervisedGeoStepLogger
-# model_io: sup_tg
-
-record_int: true    # Store integer results in memory.
-record_float: true  # Store floating point results too. Beware memory overload!
-
 # ---+ Collator +--------------------------------------------------------------
 collator:
     module: torchgeo.datasets
@@ -92,7 +79,10 @@ tasks:
         train: true
         record_float: true
 
-        # ---+ Dataset Parameters +--------------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -103,10 +93,7 @@ tasks:
                     length: 120
 
             image:
-                transforms:
-                    ToRGB:
-                        module: minerva.transforms
-
+                transforms: false
                 images_1:
                     module: minerva.datasets.__testing
                     name: TstImgDataset
@@ -122,9 +109,7 @@ tasks:
                         res: 1.0
 
             mask:
-                transforms:
-                    SingleLabel:
-                        module: minerva.transforms
+                transforms: false
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7
@@ -133,10 +118,18 @@ tasks:
 
     fit-val:
         type: StandardEpoch
-        train: true
+        train: false
         record_float: true
 
-        # ---+ Dataset Parameters +--------------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        # logger: STGLogger
+        # metrics: SPMetrics
+        # model_io: sup_tg
+
+        # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -147,9 +140,7 @@ tasks:
                     length: 32
 
             image:
-                transforms:
-                    ToRGB:
-                        module: minerva.transforms
+                transforms: false
                 module: minerva.datasets.__testing
                 name: TstImgDataset
                 paths: NAIP
@@ -157,9 +148,7 @@ tasks:
                     res: 1.0
 
             mask:
-                transforms:
-                    SingleLabel:
-                        module: minerva.transforms
+                transforms: false
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7
@@ -168,10 +157,17 @@ tasks:
 
     test-test:
         type: StandardEpoch
-        train: true
         record_float: true
 
-        # ---+ Dataset Parameters +--------------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        # logger: STGLogger
+        # metrics: SPMetrics
+        # model_io: sup_tg
+
+        # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -182,9 +178,7 @@ tasks:
                     length: 32
 
             image:
-                transforms:
-                    ToRGB:
-                        module: minerva.transforms
+                transforms: false
                 module: minerva.datasets.__testing
                 name: TstImgDataset
                 paths: NAIP
@@ -192,9 +186,7 @@ tasks:
                     res: 1.0
 
             mask:
-                transforms:
-                    SingleLabel:
-                        module: minerva.transforms
+                transforms: false
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7

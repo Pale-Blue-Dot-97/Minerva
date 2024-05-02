@@ -24,9 +24,6 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Functionality for constructing datasets, manifests and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
-
-Attributes:
-    IMAGERY_CONFIG (dict[str, ~typing.Any]): Config defining the properties of the imagery used in the experiment.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -39,7 +36,6 @@ __all__ = [
     "construct_dataloader",
     "make_dataset",
     "make_loaders",
-    "get_manifest_path",
     "get_manifest",
     "make_manifest",
 ]
@@ -61,14 +57,16 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 from catalyst.data.sampler import DistributedSamplerWrapper
+from omegaconf import OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
 from torch.utils.data import DataLoader, Sampler
 from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
+from torchgeo.samplers.utils import _to_tuple
 
 from minerva.transforms import init_auto_norm, make_transformations
-from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
+from minerva.utils import universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
 from .paired import PairedGeoDataset, PairedNonGeoDataset
@@ -80,16 +78,9 @@ from .utils import (
     load_all_samples,
     load_dataset_from_cache,
     make_bounding_box,
+    masks_or_labels,
     unionise_datasets,
 )
-
-# =====================================================================================================================
-#                                                     GLOBALS
-# =====================================================================================================================
-IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
-
-# Path to cache directory.
-CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
 
 
 # =====================================================================================================================
@@ -166,6 +157,7 @@ def get_subdataset(
     transformations: Optional[Any],
     sample_pairs: bool = False,
     cache: bool = True,
+    cache_dir: Union[str, Path] = "",
 ) -> Union[GeoDataset, NonGeoDataset]:
     """Get a subdataset based on the parameters specified.
 
@@ -180,6 +172,8 @@ def get_subdataset(
         transformations (~typing.Any): Transformations to apply to this sub-dataset.
         sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
         cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
+        cache_dir (str | ~pathlib.Path): Path to the directory to save the cached dataset (if ``cache==True``).
+            Defaults to CWD.
 
     Returns:
         ~torchgeo.datasets.GeoDataset | ~torchgeo.datasets.NonGeoDataset: Subdataset requested.
@@ -203,7 +197,7 @@ def get_subdataset(
     if cache or sub_dataset_params.get("cache_dataset"):
         this_hash = utils.make_hash(sub_dataset_params)
 
-        cached_dataset_path = Path(CACHE_DIR) / f"{this_hash}.obj"
+        cached_dataset_path = universal_path(cache_dir) / f"{this_hash}.obj"
 
         if cached_dataset_path.exists():
             print(f"\nLoad cached dataset {this_hash}")
@@ -275,6 +269,7 @@ def make_dataset(
     dataset_params: Dict[Any, Any],
     sample_pairs: bool = False,
     cache: bool = True,
+    cache_dir: Union[str, Path] = "",
 ) -> Tuple[Any, List[Any]]:
     """Constructs a dataset object from ``n`` sub-datasets given by the parameters supplied.
 
@@ -284,6 +279,9 @@ def make_dataset(
         dataset_params (dict[~typing.Any, ~typing.Any]): Dictionary of parameters defining each sub-datasets to be used.
         sample_pairs (bool): Optional; ``True`` if paired sampling. This will ensure paired samples are handled
             correctly in the datasets.
+        cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
+        cache_dir (str | ~pathlib.Path): Path to the directory to save the cached dataset (if ``cache==True``).
+            Defaults to CWD.
 
     Returns:
         tuple[~typing.Any, list[~typing.Any]]: Tuple of Dataset object formed by the parameters given and list of
@@ -294,6 +292,9 @@ def make_dataset(
     sub_datasets: Union[
         List[GeoDataset], List[Union[NonGeoDataset, MinervaConcatDataset]]
     ] = []
+
+    if OmegaConf.is_config(dataset_params):
+        dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
@@ -351,6 +352,7 @@ def make_dataset(
                     transformations,
                     sample_pairs=sample_pairs,
                     cache=cache,
+                    cache_dir=cache_dir,
                 )
 
                 # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
@@ -385,6 +387,7 @@ def make_dataset(
                 master_transforms,
                 sample_pairs=sample_pairs,
                 cache=cache,
+                cache_dir=cache_dir,
             )
 
             # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
@@ -422,6 +425,7 @@ def construct_dataloader(
     world_size: int = 1,
     sample_pairs: bool = False,
     cache: bool = True,
+    cache_dir: Union[Path, str] = "",
 ) -> DataLoader[Iterable[Any]]:
     """Constructs a :class:`~torch.utils.data.DataLoader` object from the parameters provided for the
     datasets, sampler, collator and transforms.
@@ -449,6 +453,7 @@ def construct_dataloader(
         dataset_params,
         sample_pairs=sample_pairs,
         cache=cache,
+        cache_dir=cache_dir,
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
@@ -483,10 +488,9 @@ def construct_dataloader(
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
-    _dataloader_params = dataloader_params.copy()
 
     # Add batch size from top-level parameters to the dataloader parameters.
-    _dataloader_params["batch_size"] = batch_size
+    dataloader_params["batch_size"] = batch_size
 
     if world_size > 1:
         # Wraps sampler for distributed computing.
@@ -495,7 +499,7 @@ def construct_dataloader(
         # Splits batch size across devices.
         assert batch_size % world_size == 0
         per_device_batch_size = batch_size // world_size
-        _dataloader_params["batch_size"] = per_device_batch_size
+        dataloader_params["batch_size"] = per_device_batch_size
 
     if sample_pairs:
         if not torch.cuda.device_count() > 1 and platform.system() != "Windows":
@@ -508,12 +512,79 @@ def construct_dataloader(
             collator = stack_sample_pairs
 
     if batch_sampler:
-        _dataloader_params["batch_sampler"] = sampler
-        del _dataloader_params["batch_size"]
+        dataloader_params["batch_sampler"] = sampler
+        del dataloader_params["batch_size"]
     else:
-        _dataloader_params["sampler"] = sampler
+        dataloader_params["sampler"] = sampler
 
-    return DataLoader(dataset, collate_fn=collator, **_dataloader_params)
+    return DataLoader(dataset, collate_fn=collator, **dataloader_params)
+
+
+def _add_class_transform(
+    class_matrix: Dict[int, int], dataset_params: Dict[str, Any], target_key: str
+) -> Dict[str, Any]:
+    class_transform = {
+        "ClassTransform": {
+            "module": "minerva.transforms",
+            "transform": class_matrix,
+        }
+    }
+
+    if not isinstance(dataset_params[target_key].get("transforms"), dict):
+        dataset_params[target_key]["transforms"] = class_transform
+    else:
+        dataset_params[target_key]["transforms"]["ClassTransform"] = class_transform[
+            "ClassTransform"
+        ]
+    return dataset_params
+
+
+def _make_loader(
+    rank,
+    world_size,
+    data_dir,
+    cache_dir,
+    dataset_params,
+    sampler_params,
+    dataloader_params,
+    collator_params,
+    class_matrix,
+    batch_size,
+    model_type,
+    elim,
+    sample_pairs,
+    cache,
+):
+    if elim and not utils.check_substrings_in_string(model_type, "siamese"):
+        target_key = masks_or_labels(dataset_params)
+        dataset_params = _add_class_transform(class_matrix, dataset_params, target_key)
+
+    # --+ MAKE DATASETS +=========================================================================================+
+    loaders = construct_dataloader(
+        data_dir,
+        dataset_params,
+        sampler_params,
+        dataloader_params,
+        batch_size,
+        collator_params=collator_params,
+        rank=rank,
+        world_size=world_size,
+        sample_pairs=sample_pairs,
+        cache=cache,
+        cache_dir=cache_dir,
+    )
+
+    # Calculates number of batches.
+    assert hasattr(loaders.dataset, "__len__")
+    n_batches = int(
+        sampler_params["params"].get(
+            "length",
+            sampler_params["params"].get("num_samples", len(loaders.dataset)),
+        )
+        / batch_size
+    )
+
+    return loaders, n_batches
 
 
 @utils.return_updated_kwargs
@@ -569,21 +640,41 @@ def make_loaders(
     if task_name is not None:
         task_params = params["tasks"][task_name]
 
+    data_dir = params["dir"]["data"]
+    cache_dir = params["dir"]["cache"]
+
     # Gets out the parameters for the DataLoaders from params.
-    dataloader_params: Dict[Any, Any] = utils.fallback_params(
-        "loader_params", task_params, params
+    dataloader_params: Dict[Any, Any] = deepcopy(
+        utils.fallback_params("loader_params", task_params, params)
     )
+
+    if OmegaConf.is_config(dataloader_params):
+        dataloader_params = OmegaConf.to_object(dataloader_params)  # type: ignore[assignment]
+
     dataset_params: Dict[str, Any] = utils.fallback_params(
         "dataset_params", task_params, params
     )
+
+    imagery_config = task_params.get("imagery_config", {})
+    data_config = task_params.get("data_config", {})
+
     batch_size: int = utils.fallback_params("batch_size", task_params, params)
 
     model_type = utils.fallback_params("model_type", task_params, params)
     class_dist: List[Tuple[int, int]] = [(0, 0)]
 
+    classes = utils.fallback_params("classes", data_config, params, None)
+    cmap_dict = utils.fallback_params("colours", data_config, params, None)
+
+    # If no taxonomy is specified, create a basic one from the ``n_classes`` (if given).
+    if classes is None:
+        n_classes = utils.fallback_params("n_classes", task_params, params)
+        if n_classes:
+            classes = {i: f"class {i}" for i in range(n_classes)}
+
     new_classes: Dict[int, str] = {}
     new_colours: Dict[int, str] = {}
-    forwards: Dict[int, int] = {}
+    class_matrix: Dict[int, int] = {}
 
     sample_pairs: Union[bool, Any] = utils.fallback_params(
         "sample_pairs", task_params, params, False
@@ -594,63 +685,47 @@ def make_loaders(
     elim = utils.fallback_params("elim", task_params, params, False)
     cache = utils.fallback_params("cache_dataset", task_params, params, True)
 
-    if not utils.check_substrings_in_string(model_type, "siamese"):
-        # Load manifest from cache for this dataset.
-        manifest = get_manifest(get_manifest_path(), task_name)
-        class_dist = utils.modes_from_manifest(manifest)
-
-        # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
-        # and new colours.
-        new_classes, forwards, new_colours = utils.load_data_specs(
-            class_dist=class_dist,
-            elim=elim,
-        )
-
     n_batches: Union[Dict[str, int], int]
     loaders: Union[Dict[str, DataLoader[Iterable[Any]]], DataLoader[Iterable[Any]]]
 
+    collator_params = deepcopy(utils.fallback_params("collator", task_params, params))
+    if OmegaConf.is_config(collator_params):
+        collator_params = OmegaConf.to_object(collator_params)
+
     if "sampler" in dataset_params.keys():
-        if elim and not utils.check_substrings_in_string(model_type, "siamese"):
-            class_transform = {
-                "ClassTransform": {
-                    "module": "minerva.transforms",
-                    "transform": forwards,
-                }
-            }
-
-            if not isinstance(dataset_params["mask"].get("transforms"), dict):
-                dataset_params["mask"]["transforms"] = class_transform
-            else:
-                dataset_params["mask"]["transforms"][
-                    "ClassTransform"
-                ] = class_transform["ClassTransform"]
-
         sampler_params: Dict[str, Any] = dataset_params["sampler"]
 
-        # --+ MAKE DATASETS +=========================================================================================+
+        if not utils.check_substrings_in_string(model_type, "siamese"):
+            new_classes, class_matrix, new_colours, class_dist = get_data_specs(
+                data_config["name"],
+                classes,
+                cmap_dict,
+                cache_dir,
+                data_dir,
+                dataset_params,
+                sampler_params,
+                dataloader_params,
+                collator_params,
+                batch_size,
+                elim=elim,
+            )
+
         print(f"CREATING {task_name} DATASET")
-        loaders = construct_dataloader(
-            params["dir"]["data"],
+        loaders, n_batches = _make_loader(
+            rank,
+            world_size,
+            data_dir,
+            cache_dir,
             dataset_params,
             sampler_params,
             dataloader_params,
+            collator_params,
+            class_matrix,
             batch_size,
-            collator_params=utils.fallback_params("collator", task_params, params),
-            rank=rank,
-            world_size=world_size,
+            model_type,
+            elim=elim,
             sample_pairs=sample_pairs,
             cache=cache,
-        )
-        print("DONE")
-
-        # Calculates number of batches.
-        assert hasattr(loaders.dataset, "__len__")
-        n_batches = int(
-            sampler_params["params"].get(
-                "length",
-                sampler_params["params"].get("num_samples", len(loaders.dataset)),
-            )
-            / batch_size
         )
 
     else:
@@ -659,58 +734,58 @@ def make_loaders(
         loaders = {}
 
         for mode in dataset_params.keys():
-            if elim and not utils.check_substrings_in_string(model_type, "siamese"):
-                class_transform = {
-                    "ClassTransform": {
-                        "module": "minerva.transforms",
-                        "transform": forwards,
-                    }
-                }
-
-                if type(dataset_params[mode]["mask"].get("transforms")) != dict:
-                    dataset_params[mode]["mask"]["transforms"] = class_transform
-                else:
-                    dataset_params[mode]["mask"]["transforms"][
-                        "ClassTransform"
-                    ] = class_transform["ClassTransform"]
-
             mode_sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
+
+            if (
+                not utils.check_substrings_in_string(model_type, "siamese")
+                and mode == "train"
+            ):
+                new_classes, class_matrix, new_colours, class_dist = get_data_specs(
+                    data_config["name"],
+                    classes,
+                    cmap_dict,
+                    cache_dir,
+                    data_dir,
+                    dataset_params[mode],
+                    mode_sampler_params,
+                    dataloader_params,
+                    collator_params,
+                    batch_size,
+                    elim=elim,
+                )
 
             # --+ MAKE DATASETS +=====================================================================================+
             print(f"CREATING {mode} DATASET")
-            loaders[mode] = construct_dataloader(
-                params["dir"]["data"],
+            loaders[mode], n_batches[mode] = _make_loader(
+                rank,
+                world_size,
+                data_dir,
+                cache_dir,
                 dataset_params[mode],
                 mode_sampler_params,
                 dataloader_params,
+                collator_params,
+                class_matrix,
                 batch_size,
-                collator_params=utils.fallback_params("collator", task_params, params),
-                rank=rank,
-                world_size=world_size,
+                model_type,
+                elim=elim,
                 sample_pairs=sample_pairs if mode == "train" else False,
                 cache=cache,
             )
+
             print("DONE")
 
-            # Calculates number of batches.
-            n_batches[mode] = int(
-                mode_sampler_params["params"].get(
-                    "length",
-                    mode_sampler_params["params"].get(
-                        "num_samples", len(loaders[mode].dataset)  # type: ignore[arg-type]
-                    ),
-                )
-                / batch_size
-            )
-
-    if not utils.check_substrings_in_string(model_type, "siamese"):
+    if (
+        not utils.check_substrings_in_string(model_type, "siamese")
+        and "sampler" in dataset_params
+    ):
         # Transform class dist if elimination of classes has occurred.
         if elim:
-            class_dist = utils.class_dist_transform(class_dist, forwards)
+            class_dist = utils.class_dist_transform(class_dist, class_matrix)
 
         # Prints class distribution in a pretty text format using tabulate to stdout.
         if p_dist:
-            utils.print_class_dist(class_dist)
+            utils.print_class_dist(class_dist, new_classes)
 
         task_params["n_classes"] = len(new_classes)
         model_params = utils.fallback_params("model_params", task_params, params, {})
@@ -724,22 +799,62 @@ def make_loaders(
         task_params["classes"] = new_classes
         task_params["colours"] = new_colours
 
-    task_params["max_pixel_value"] = IMAGERY_CONFIG["data_specs"]["max_value"]
+    if task_params.get("max_pixel_value") is None:
+        task_params["max_pixel_value"] = imagery_config.get("max_pixel_value", 256)
 
     return loaders, n_batches, class_dist, task_params
 
 
-def get_manifest_path() -> str:
-    """Gets the path to the manifest for the dataset to be used.
+def get_data_specs(
+    manifest_name: Union[str, Path],
+    classes: Dict[int, str],
+    cmap_dict: Dict[int, str],
+    cache_dir: Optional[Union[str, Path]] = None,
+    data_dir: Optional[Union[str, Path]] = None,
+    dataset_params: Optional[Dict[str, Any]] = None,
+    sampler_params: Optional[Dict[str, Any]] = None,
+    dataloader_params: Optional[Dict[str, Any]] = None,
+    collator_params: Optional[Dict[str, Any]] = None,
+    batch_size: int = 8,
+    elim: bool = True,
+):
+    # Load manifest from cache for this dataset.
+    manifest = get_manifest(
+        universal_path(cache_dir) / manifest_name,
+        data_dir,
+        dataset_params,
+        sampler_params,
+        dataloader_params,
+        collator_params=collator_params,
+        batch_size=batch_size,
+    )
 
-    Returns:
-        str: Path to manifest as string.
-    """
-    return str(Path(CACHE_DIR, f"{utils.get_dataset_name()}_Manifest.csv"))
+    class_dist = utils.modes_from_manifest(manifest, classes)
+
+    if elim:
+        # Finds the empty classes and returns modified classes, a dict to convert between the old and new systems
+        # and new colours.
+        new_classes, class_matrix, new_colours = utils.eliminate_classes(
+            utils.find_empty_classes(class_dist, classes),
+            classes,
+            cmap_dict,
+        )
+    else:
+        new_classes = classes
+        class_matrix = {}
+        new_colours = cmap_dict
+
+    return new_classes, class_matrix, new_colours, class_dist
 
 
 def get_manifest(
-    manifest_path: Union[str, Path], task_name: Optional[str] = None
+    manifest_path: Union[str, Path],
+    data_dir: Optional[Union[str, Path]] = None,
+    dataset_params: Optional[Dict[str, Any]] = None,
+    sampler_params: Optional[Dict[str, Any]] = None,
+    loader_params: Optional[Dict[str, Any]] = None,
+    collator_params: Optional[Dict[str, Any]] = None,
+    batch_size: int = 8,
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
@@ -763,16 +878,26 @@ def get_manifest(
     Returns:
         ~pandas.DataFrame: Manifest either loaded from ``manifest_path`` or created from parameters in :data:`CONFIG`.
     """
-    manifest_path = Path(manifest_path)
+    manifest_path = universal_path(manifest_path).with_suffix(".csv")
     try:
         return pd.read_csv(manifest_path)
     except FileNotFoundError as err:
         print(err)
 
         print("CONSTRUCTING MISSING MANIFEST")
-        mf_config = CONFIG.copy()
+        assert data_dir
+        assert dataset_params
+        assert sampler_params
+        assert loader_params
 
-        manifest = make_manifest(mf_config, task_name)
+        manifest = make_manifest(
+            data_dir,
+            dataset_params,
+            sampler_params,
+            loader_params,
+            collator_params=collator_params,
+            batch_size=batch_size,
+        )
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
         path = manifest_path.parent
@@ -785,7 +910,12 @@ def get_manifest(
 
 
 def make_manifest(
-    mf_config: Dict[Any, Any], task_name: Optional[str] = None
+    data_dir: Union[str, Path],
+    dataset_params: Dict[str, Any],
+    sampler_params: Dict[str, Any],
+    loader_params: Dict[str, Any],
+    collator_params: Optional[Dict[str, Any]] = None,
+    batch_size: int = 8,
 ) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -800,60 +930,51 @@ def make_manifest(
     """
 
     def delete_class_transform(params: Dict[str, Any]) -> None:
-        if "transforms" in params["mask"]:
-            if isinstance(params["mask"]["transforms"], dict):
-                if "ClassTransform" in params["mask"]["transforms"]:
-                    del params["mask"]["transforms"]["ClassTransform"]
+        target_key = masks_or_labels(dataset_params)
+        if "transforms" in params[target_key]:
+            if isinstance(params[target_key]["transforms"], dict):
+                if "ClassTransform" in params[target_key]["transforms"]:
+                    del params[target_key]["transforms"]["ClassTransform"]
 
-    task_params = mf_config
-    if task_name is not None:
-        task_params = mf_config["tasks"][task_name]
+    _sampler_params = deepcopy(sampler_params)
+    if OmegaConf.is_config(_sampler_params):
+        _sampler_params = OmegaConf.to_object(_sampler_params)  # type: ignore[assignment]
 
-    batch_size: int = utils.fallback_params("batch_size", task_params, mf_config)
-    loader_params: Dict[str, Any] = utils.fallback_params(
-        "loader_params", task_params, mf_config
-    )
-    dataset_params: Dict[str, Any] = utils.fallback_params(
-        "dataset_params", task_params, mf_config
-    )
-    collator_params: Dict[str, Any] = utils.fallback_params(
-        "collator_params", task_params, mf_config
-    )
-    sampler_params = dataset_params["sampler"]
+    if _sampler_params["name"] in (
+        "RandomGeoSampler",
+        "RandomPairGeoSampler",
+        "RandomBatchGeoSampler",
+        "RandomPairBatchGeoSampler",
+    ):
+        _sampler_params["module"] = "torchgeo.samplers"
+        _sampler_params["name"] = "GridGeoSampler"
+        _sampler_params["params"]["stride"] = [
+            0.9 * x for x in _to_tuple(_sampler_params["params"]["size"])
+        ]
+
+    if _sampler_params["name"] == "RandomSampler":
+        _sampler_params["name"] = "SequentialSampler"
+
+    if "length" in _sampler_params["params"]:
+        del _sampler_params["params"]["length"]
 
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
-    if "sampler" in dataset_params.keys():
+    if "mask" in dataset_params or "label" in dataset_params:
         delete_class_transform(dataset_params)
 
-        print("CONSTRUCTING DATASET")
+    print("CONSTRUCTING DATASET")
 
-        loader = construct_dataloader(
-            mf_config["dir"]["data"],
-            dataset_params,
-            sampler_params,
-            loader_params,
-            batch_size,
-            collator_params=collator_params,
-        )
-    else:
-        for mode in dataset_params.keys():
-            delete_class_transform(dataset_params[mode])
-
-        keys = list(dataset_params.keys())
-        sampler_params = dataset_params[keys[0]]["sampler"]
-
-        print("CONSTRUCTING DATASET")
-
-        loader = construct_dataloader(
-            mf_config["dir"]["data"],
-            dataset_params[keys[0]],
-            sampler_params,
-            loader_params,
-            batch_size,
-            collator_params=collator_params,
-        )
+    loader = construct_dataloader(
+        data_dir,
+        dataset_params,
+        _sampler_params,
+        loader_params,
+        batch_size,
+        collator_params=collator_params,
+        cache=False,
+    )
 
     print("FETCHING SAMPLES")
     df = DataFrame()

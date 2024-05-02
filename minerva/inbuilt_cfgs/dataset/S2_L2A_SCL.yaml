@@ -1,4 +1,6 @@
 ---
+name: S2_L2A
+
 # ======= SENTINEL-2 L2A SCL PRESETS ==========================================
 # SCL land cover classes reformatted to split across two lines for neater plots
 classes:

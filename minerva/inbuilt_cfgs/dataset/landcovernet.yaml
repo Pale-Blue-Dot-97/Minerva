@@ -1,4 +1,6 @@
 ---
+name: landcovernet
+
 # Prefix to every patch ID in every patch directory name
 patch_dir_prefix: ref_landcovernet_v1_labels_
 

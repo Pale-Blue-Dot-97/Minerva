@@ -94,6 +94,8 @@ tasks:
         record_float: true
         sample_pairs: true
 
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: SSLTaskLogger
         step_logger:
@@ -169,6 +171,9 @@ tasks:
         sample_pairs: false
         n_classes: 8
 
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: SSLTaskLogger
         step_logger:
@@ -229,6 +234,9 @@ tasks:
         record_float: true
         sample_pairs: false
         n_classes: 8
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: SupervisedTaskLogger

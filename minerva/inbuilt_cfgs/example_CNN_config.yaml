@@ -5,7 +5,7 @@
 #   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
 #    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
 #
-#                          EXAMPLE MASTER CONFIG FILE
+#                   EXAMPLE MASTER CONFIG FILE FOR A CNN
 #
 # === PATHS ===================================================================
 dir:
@@ -19,28 +19,29 @@ dir:
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: FCN32ResNet18-test
+model_name: CNN-test
 
 # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
-model_type: segmentation
+model_type: scene classifier
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 8                         # Number of samples in each batch.
-patch_size: &patch_size [32, 32]      # 2D tuple or float.
-input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
-n_classes: &n_classes 8               # Number of classes in dataset.
+batch_size: 8                          # Number of samples in each batch.
+patch_size: &patch_size [32, 32]       # 2D tuple or float.
+input_size: &input_size [4, 32, 32]    # patch_size plus leading channel dim.
+n_classes: &n_classes 8                # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 5                         # Maximum number of training epochs.
+max_epochs: 3                         # Maximum number of training epochs.
+elim: false                           # Eliminates empty classes from schema.
+balance: false                        # Balances dataset classes.
 pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
-elim: true                            # Eliminates empty classes from schema.
-balance: true                         # Balances dataset classes.
 torch_compile: true                    # Wrap model in `torch.compile`.
 
-# ---+ Optimisers +---------------------------------------------------
-lr: 1.0E-2                            # Learning rate of optimiser.
-optim_func: SGD                       # Name of the optimiser function.
+# ---+ Loss and Optimisers +---------------------------------------------------
+loss_func: &loss_func CrossEntropyLoss  # Name of the loss function to use.
+lr: 1.0E-3                              # Learning rate of optimiser.
+optim_func: SGD                         # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
@@ -48,7 +49,6 @@ model_params:
     params:
         input_size: *input_size
         n_classes: *n_classes
-        # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
@@ -56,19 +56,26 @@ optim_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: CrossEntropyLoss           # Name of the loss function to use.
+    name: *loss_func
     params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    num_workers: 1
+    num_workers: 2
     pin_memory: true
 
-# === MODEL IO & LOGGING ======================================================
-# ---+ wandb Logging +---------------------------------------------------------
+# === WANDB LOGGING ===========================================================
 wandb_log: true              # Activates wandb logging.
 project: pytest              # Define the project name for wandb.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
+
+# === MODEL IO & LOGGING ======================================================
+# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
+task_logger: SupervisedTaskLogger
+model_io: sup_tg
+
+record_int: true     # Store integer results in memory.
+record_float: false  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
 collator:
@@ -82,7 +89,9 @@ tasks:
         train: true
         record_float: true
 
-        # ---+ Dataset Parameters +----------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -90,26 +99,23 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 120
+                    length: 320
 
             image:
-                transforms: false
-                images_1:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
-                        res: 1.0
-
-                image2:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
-                        res: 1.0
-
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                module: minerva.datasets.__testing
+                name: TstImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
             mask:
-                transforms: false
+                transforms:
+                    SingleLabel:
+                        module: minerva.transforms
+                        mode: modal
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7
@@ -120,12 +126,10 @@ tasks:
         type: StandardEpoch
         train: false
         record_float: true
-        # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        # logger: STGLogger
-        # metrics: SPMetrics
-        # model_io: sup_tg
 
-        # ---+ Dataset Parameters +----------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -133,10 +137,13 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 32
+                    length: 80
 
             image:
-                transforms: false
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
                 module: minerva.datasets.__testing
                 name: TstImgDataset
                 paths: NAIP
@@ -144,7 +151,10 @@ tasks:
                     res: 1.0
 
             mask:
-                transforms: false
+                transforms:
+                    SingleLabel:
+                        module: minerva.transforms
+                        mode: modal
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7
@@ -154,12 +164,10 @@ tasks:
     test-test:
         type: StandardEpoch
         record_float: true
-        # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        # logger: STGLogger
-        # metrics: SPMetrics
-        # model_io: sup_tg
 
-        # ---+ Dataset Parameters +----------------------------------------
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
         dataset_params:
             sampler:
                 module: torchgeo.samplers
@@ -167,10 +175,13 @@ tasks:
                 roi: false
                 params:
                     size: *patch_size
-                    length: 32
+                    length: 160
 
             image:
-                transforms: false
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
                 module: minerva.datasets.__testing
                 name: TstImgDataset
                 paths: NAIP
@@ -178,7 +189,10 @@ tasks:
                     res: 1.0
 
             mask:
-                transforms: false
+                transforms:
+                    SingleLabel:
+                        module: minerva.transforms
+                        mode: modal
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7
@@ -205,12 +219,12 @@ stopping:
 verbose: true           # Verbosity of Trainer print statements to stdout.
 save: true              # Saves created figures to file.
 show: false             # Shows created figures in a pop-up window.
-p_dist: true            # Shows the distribution of classes to stdout.
-plot_last_epoch: true   # Plot the results of the last training and val epochs.
+p_dist: false           # Shows the distribution of classes to stdout.
+plot_last_epoch: false  # Plot the results of the last training and val epochs.
 
 # opt to ask at runtime; auto or True to automatically do so; or False,
 # None etc to not
-save_model: true
+save_model: false
 
 # ---+ Other +-----------------------------------------------------------------
 # opt to ask at runtime; auto or True to automatically do so; or False,
