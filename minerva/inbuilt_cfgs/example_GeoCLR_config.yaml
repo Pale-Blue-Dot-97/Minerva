@@ -10,9 +10,6 @@
 # === PATHS ===================================================================
 dir:
     data: tests/fixtures/data
-    configs:
-        imagery_config: NAIP.yml
-        data_config: Chesapeake7.yml
     results: tests/tmp/results
     cache: tests/tmp/cache
 
