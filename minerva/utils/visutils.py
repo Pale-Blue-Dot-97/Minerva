@@ -1096,7 +1096,7 @@ def make_roc_curves(
 
 def plot_embedding(
     embeddings: Any,
-    bounds: Union[Sequence[BoundingBox], NDArray[Any, Any]],
+    index: Union[Sequence[BoundingBox], Sequence[int]],
     data_dir: Union[Path, str],
     dataset_params: Dict[str, Any],
     title: Optional[str] = None,
@@ -1149,7 +1149,7 @@ def plot_embedding(
     with alive_bar(len(x), bar="blocks") as bar:
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in range(len(x)):
-            sample = dataset[bounds[i]]
+            sample = dataset[index[i]]
             images.append(stack_rgb(sample["image"].numpy(), max_pixel_value))
             targets.append(
                 [
@@ -1257,7 +1257,7 @@ def plot_results(
     metrics: Optional[Dict[str, Any]] = None,
     ids: Optional[List[str]] = None,
     task_name: str = "test",
-    bounds: Optional[NDArray[Any, Any]] = None,
+    index: Optional[NDArray[Any, Any]] = None,
     probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
     embeddings: Optional[NDArray[Any, Any]] = None,
     class_names: Optional[Dict[int, str]] = None,
@@ -1280,9 +1280,8 @@ def plot_results(
         ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
             Maybe either patch IDs or scene tags.
         task_name (str): Optional; Name of task that samples are from.
-        bounds (~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]): Optional; Array of objects describing
-            a geospatial bounding box for each sample.
-            Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
+        index (~numpy.ndarray[int] | ~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]): Optional; Array of objects
+            describing a geospatial bounding box for each sample or a sequence of indexes.
         probs (list[float] | ~numpy.ndarray[float]): Optional; Array of probabilistic predicted classes
             from model where each sample should have a list of the predicted probability for each class.
         embeddings (~numpy.ndarray[~typing.Any]): Embeddings from the model to visualise with TSNE clustering.
@@ -1410,7 +1409,7 @@ def plot_results(
         assert z is not None
         assert y is not None
         assert ids is not None
-        assert bounds is not None
+        assert index is not None
         assert task_name is not None
 
         if cfg:
@@ -1421,7 +1420,7 @@ def plot_results(
         else:
             figsize = None
 
-        flat_bbox = utils.batch_flatten(bounds)
+        flat_bbox = utils.batch_flatten(index)
         (universal_path(results_dir) / "Masks").mkdir(parents=True, exist_ok=True)
         seg_plot(
             z,
@@ -1439,13 +1438,13 @@ def plot_results(
 
     if plots.get("TSNE", False):
         assert embeddings is not None
-        assert bounds is not None
+        assert index is not None
         assert task_name is not None
 
         print("\nPERFORMING TSNE CLUSTERING")
         plot_embedding(
             embeddings,
-            bounds,
+            index,
             cfg["dir"]["data"],
             cfg["tasks"][task_name]["dataset_params"],
             show=show,

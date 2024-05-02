@@ -395,7 +395,7 @@ def test_plot_results(
         y,
         metrics,
         probs=probs,
-        bounds=bounds,
+        index=bounds,
         embeddings=embeddings,
         task_name="test-test",
         class_names=exp_classes,
