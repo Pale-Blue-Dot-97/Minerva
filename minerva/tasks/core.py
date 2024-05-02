@@ -222,6 +222,7 @@ class MinervaTask(ABC):
         self.sample_pairs = fallback_params(
             "sample_pairs", self.params, self.global_params
         )
+
         self.n_classes = fallback_params("n_classes", self.params, self.global_params)
 
         self.record_int = utils.fallback_params(
@@ -274,7 +275,7 @@ class MinervaTask(ABC):
             )
 
         # Refresh the output size of the model and set to `output_size`.
-        self.model.determine_output_dim()
+        self.model.determine_output_dim(sample_pairs=self.sample_pairs)
         self.output_size = self.model.output_shape
 
         # Make the logger for this task.
