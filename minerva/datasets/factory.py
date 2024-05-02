@@ -826,7 +826,6 @@ def get_data_specs(
         sampler_params,
         dataloader_params,
         collator_params=collator_params,
-        batch_size=batch_size,
     )
 
     class_dist = utils.modes_from_manifest(manifest, classes)
@@ -854,7 +853,6 @@ def get_manifest(
     sampler_params: Optional[Dict[str, Any]] = None,
     loader_params: Optional[Dict[str, Any]] = None,
     collator_params: Optional[Dict[str, Any]] = None,
-    batch_size: int = 8,
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
@@ -896,7 +894,6 @@ def get_manifest(
             sampler_params,
             loader_params,
             collator_params=collator_params,
-            batch_size=batch_size,
         )
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
@@ -915,7 +912,6 @@ def make_manifest(
     sampler_params: Dict[str, Any],
     loader_params: Dict[str, Any],
     collator_params: Optional[Dict[str, Any]] = None,
-    batch_size: int = 8,
 ) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -972,7 +968,7 @@ def make_manifest(
         dataset_params,
         _sampler_params,
         loader_params,
-        batch_size,
+        batch_size=1,  # To prevent issues with stacking different sized patches, set batch size to 1.
         collator_params=collator_params,
         cache=False,
     )
