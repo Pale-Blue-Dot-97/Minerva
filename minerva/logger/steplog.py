@@ -35,7 +35,7 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "MinervaStepLogger",
-    "SupervisedGeoStepLogger",
+    "SupervisedStepLogger",
     "SSLStepLogger",
     "KNNStepLogger",
     "get_logger",
@@ -178,7 +178,7 @@ class MinervaStepLogger(ABC):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        index: Optional[Union[int, BoundingBox]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -189,7 +189,7 @@ class MinervaStepLogger(ABC):
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
             None
@@ -252,7 +252,7 @@ class MinervaStepLogger(ABC):
         return self.results
 
 
-class SupervisedGeoStepLogger(MinervaStepLogger):
+class SupervisedStepLogger(MinervaStepLogger):
     """Logger designed for supervised learning using :mod:`torchgeo` datasets.
 
     Attributes:
@@ -269,7 +269,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             * ``z``
             * ``probs``
             * ``ids``
-            * ``bounds``
+            * ``index``
 
         calc_miou (bool): Activates the calculating and logging of :term:`MIoU` for segmentation models.
             Places the metric in the ``total_miou`` key of ``logs``.
@@ -308,7 +308,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         n_classes: Optional[int] = None,
         **kwargs,
     ) -> None:
-        super(SupervisedGeoStepLogger, self).__init__(
+        super(SupervisedStepLogger, self).__init__(
             task_name,
             n_batches,
             batch_size,
@@ -332,7 +332,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             "z": None,
             "probs": None,
             "ids": [],
-            "bounds": None,
+            "index": None,
         }
         self.calc_miou = (
             True
@@ -375,7 +375,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
                 )
 
             try:
-                self.results["bounds"] = np.empty(
+                self.results["index"] = np.empty(
                     (self.n_batches, self.batch_size), dtype=object
                 )
             except MemoryError:  # pragma: no cover
@@ -389,7 +389,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        index: Optional[Union[int, BoundingBox]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -400,7 +400,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Output tensor from the model.
             y (~torch.Tensor): Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Bounding boxes of the input samples.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
             None
@@ -424,10 +424,10 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             self.results["ids"].append(batch_ids)
 
         if self.record_float:
-            assert bbox is not None
+            assert index is not None
             # Add the estimated probabilities to probs.
             self.results["probs"][self.logs["batch_num"]] = z.detach().cpu().numpy()
-            self.results["bounds"][self.logs["batch_num"]] = bbox
+            self.results["index"][self.logs["batch_num"]] = index
 
         # Computes the loss and the correct predictions from this step.
         ls = loss.item()
@@ -478,7 +478,7 @@ class KNNStepLogger(MinervaStepLogger):
             * ``z``
             * ``probs``
             * ``ids``
-            * ``bounds``
+            * ``index``
 
     Args:
         n_batches (int): Number of batches in the epoch.
@@ -528,7 +528,7 @@ class KNNStepLogger(MinervaStepLogger):
             "z": None,
             "probs": None,
             "ids": [],
-            "bounds": None,
+            "index": None,
         }
 
     def log(
@@ -537,7 +537,7 @@ class KNNStepLogger(MinervaStepLogger):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        index: Optional[Union[int, BoundingBox]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -649,7 +649,7 @@ class SSLStepLogger(MinervaStepLogger):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        index: Optional[Union[int, BoundingBox]] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -660,7 +660,7 @@ class SSLStepLogger(MinervaStepLogger):
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
         """
         assert z is not None
 

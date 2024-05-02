@@ -168,7 +168,7 @@ class MinervaTaskLogger(ABC):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        index: Optional[BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -179,7 +179,7 @@ class MinervaTaskLogger(ABC):
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
             None
@@ -189,7 +189,7 @@ class MinervaTaskLogger(ABC):
             loss,
             z,
             y,
-            bbox,
+            index,
             *args,
             **kwargs,
         )
@@ -313,7 +313,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
     """
 
     metric_types: List[str] = ["loss", "acc", "miou"]
-    logger_cls = "SupervisedGeoStepLogger"
+    logger_cls = "SupervisedStepLogger"
 
     def __init__(
         self,

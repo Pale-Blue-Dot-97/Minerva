@@ -36,7 +36,7 @@ __all__ = [
     "SSLTaskLogger",
     "SupervisedTaskLogger",
     "MinervaStepLogger",
-    "SupervisedGeoStepLogger",
+    "SupervisedStepLogger",
     "SSLStepLogger",
     "KNNStepLogger",
 ]
@@ -45,6 +45,6 @@ from .steplog import (
     KNNStepLogger,
     MinervaStepLogger,
     SSLStepLogger,
-    SupervisedGeoStepLogger,
+    SupervisedStepLogger,
 )
 from .tasklog import MinervaTaskLogger, SSLTaskLogger, SupervisedTaskLogger
