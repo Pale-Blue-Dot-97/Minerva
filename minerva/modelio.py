@@ -73,6 +73,7 @@ def sup_tg(
     Kwargs:
         mix_precision (bool): Use mixed-precision. Will set the floating tensors to 16-bit
             rather than the default 32-bit.
+        target_key (str): Should be either ``mask`` or ``label``.
 
     Returns:
         tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]:
@@ -83,25 +84,25 @@ def sup_tg(
 
     # Extracts the x and y batches from the dict.
     images: Tensor = batch["image"]
-    masks: Tensor = batch["mask"]
+    targets: Tensor = batch[kwargs["target_key"]]
 
     # Check that none of the data is NaN or infinity.
     assert not images.isnan().any()
     assert not images.isinf().any()
-    assert not masks.isnan().any()
-    assert not masks.isinf().any()
+    assert not targets.isnan().any()
+    assert not targets.isinf().any()
 
     # Re-arranges the x and y batches.
     x_batch: Tensor = images.to(float_dtype)  # type: ignore[attr-defined]
     y_batch: Tensor
 
     # Squeeze out axis 1 if only 1 element wide.
-    if masks.shape[1] == 1:
-        masks = np.squeeze(masks.detach().cpu().numpy(), axis=1)
+    if targets.shape[1] == 1:
+        targets = np.squeeze(targets.detach().cpu().numpy(), axis=1)
 
-    if isinstance(masks, Tensor):
-        masks = masks.detach().cpu().numpy()
-    y_batch = torch.tensor(masks, dtype=torch.long)  # type: ignore[attr-defined]
+    if isinstance(targets, Tensor):
+        targets = targets.detach().cpu().numpy()
+    y_batch = torch.tensor(targets, dtype=torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
     x: Tensor = x_batch.to(device)
@@ -110,9 +111,10 @@ def sup_tg(
     # Runs a step of the epoch.
     loss, z = model.step(x, y, train=train)
 
-    bbox: Sequence[BoundingBox] = batch["bbox"]
-    assert isinstance(bbox, Sequence)
-    return loss, z, y, bbox
+    # Get the indices of the batch. Either bounding boxes or filenames.
+    index: Union[Sequence[str], Sequence[BoundingBox]] = batch.get("bbox", batch["id"])
+    assert isinstance(index, Sequence)
+    return loss, z, y, index
 
 
 def autoencoder_io(
@@ -200,9 +202,10 @@ def autoencoder_io(
     # Runs a step of the epoch.
     loss, z = model.step(x, y, train=train)
 
-    bbox: Sequence[BoundingBox] = batch["bbox"]
-    assert isinstance(bbox, Sequence)
-    return loss, z, y, bbox
+    # Get the indices of the batch. Either bounding boxes or filenames.
+    index: Union[Sequence[str], Sequence[BoundingBox]] = batch.get("bbox", batch["id"])
+    assert isinstance(index, Sequence)
+    return loss, z, y, index
 
 
 def ssl_pair_tg(
@@ -265,8 +268,8 @@ def ssl_pair_tg(
 
     if "bbox" in batch[0].keys():
         return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]
-    elif "index" in batch[0].keys():
-        return loss, z, None, batch[0]["index"] + batch[1]["index"]
+    elif "id" in batch[0].keys():
+        return loss, z, None, batch[0]["id"] + batch[1]["id"]
     else:
         return loss, z, None, None
 
