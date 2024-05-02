@@ -1,0 +1,213 @@
+---
+#       *       *    __  ________   ____________ _    _____
+#   *        *      /  |/  /  _/ | / / ____/ __ \ |  / /   |  *           *
+#       *          / /|_/ // //  |/ / __/ / /_/ / | / / /| |     *
+#   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
+#    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
+#
+#               EXAMPLE MASTER CONFIG FILE FOR AN AUTOENCODER
+#
+# === PATHS ===================================================================
+dir:
+    data: tests/fixtures/data
+    results: tests/tmp/results
+    cache: tests/tmp/cache
+
+# === HYPERPARAMETERS =========================================================
+# ---+ Model Specification +---------------------------------------------------
+# Name of model. Substring before hyphen is model class.
+model_name: MinervaPSP-test
+
+# Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
+model_type: segmentation
+
+# ---+ Sizing +----------------------------------------------------------------
+batch_size: 6                          # Number of samples in each batch.
+patch_size: &patch_size [128, 128]     # 2D tuple or float.
+input_size: &input_size [4, 128, 128]  # patch_size plus leading channel dim.
+n_classes: &n_classes 11               # Number of classes in dataset.
+
+# ---+ Experiment Execution +--------------------------------------------------
+max_epochs: 2                          # Maximum number of training epochs.
+elim: true                             # Eliminates empty classes from schema.
+balance: false                          # Balances dataset classes.
+pre_train: false                       # Activate pre-training mode.
+fine_tune: false                       # Activate fine-tuning mode.
+torch_compile: true                    # Wrap model in `torch.compile`.
+
+# ---+ Loss and Optimisers +---------------------------------------------------
+loss_func: &loss_func AuxCELoss  # Name of the loss function to use.
+lr: 1.0E-3                              # Learning rate of optimiser.
+optim_func: SGD                         # Name of the optimiser function.
+
+# ---+ Model Parameters +------------------------------------------------------
+model_params:
+    module:
+    params:
+        input_size: *input_size
+        n_classes: *n_classes
+        # encoder_name: resnet18
+        # encoder_weights:
+        # psp_out_channels: 512
+        # freeze_backbone: false
+
+# ---+ Optimiser Parameters +--------------------------------------------------
+optim_params:
+    params:
+
+# ---+ Loss Function Parameters +----------------------------------------------
+loss_params:
+    name: *loss_func
+    module: minerva.loss
+    params:
+
+# ---+ Dataloader Parameters +-------------------------------------------------
+loader_params:
+    num_workers: 2
+    pin_memory: true
+
+# === WANDB LOGGING ===========================================================
+wandb_log: true              # Activates wandb logging.
+project: pytest              # Define the project name for wandb.
+wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
+
+# === MODEL IO & LOGGING ======================================================
+# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
+
+record_int: true     # Store integer results in memory.
+record_float: false  # Store floating point results too. Beware memory overload!
+
+# ---+ Collator +--------------------------------------------------------------
+collator:
+    module: torchgeo.datasets
+    name: stack_samples
+
+# === TASKS ===================================================================
+tasks:
+    fit-train:
+        type: StandardEpoch
+        train: true
+        record_float: true
+
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/DFC2020.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
+        dataset_params:
+            sampler:
+                module: torch.utils.data
+                name: RandomSampler
+                params:
+                    num_samples: 5120
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 4095
+                    RandomApply:
+                        p: 0.25
+                        DetachedColorJitter:
+                            module: minerva.transforms
+                            brightness: 0.2
+                            contrast: 0.1
+                            saturation: 0.1
+                            hue: 0.15
+                    RandomResizedCrop:
+                        module: kornia.augmentation
+                        p: 0.2
+                        size: *patch_size
+                        cropping_mode: resample
+                        keepdim: true
+                    RandomHorizontalFlip:
+                        module: kornia.augmentation
+                        p: 0.2
+                        keepdim: true
+                    RandomGaussianBlur:
+                        module: kornia.augmentation
+                        kernel_size: 9
+                        p: 0.2
+                        sigma: [0.01, 0.2]
+                        keepdim: true
+                    RandomGaussianNoise:
+                        module: kornia.augmentation
+                        p: 0.2
+                        std: 0.05
+                        keepdim: true
+                    RandomErasing:
+                        module: kornia.augmentation
+                        p: 0.2
+                        keepdim: true
+
+                module: minerva.datasets
+                name: DFC2020
+                paths: DFC/DFC2020
+                params:
+                    split: test
+                    use_s2hr: true
+                    labels: true
+            mask:
+
+    test-test:
+        type: StandardEpoch
+        train: true
+        record_float: true
+
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/DFC2020.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
+        dataset_params:
+            sampler:
+                module: torch.utils.data
+                name: RandomSampler
+                params:
+                    num_samples: 960
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 4095
+
+                module: minerva.datasets
+                name: DFC2020
+                paths: DFC/DFC2020
+                target_key: mask
+                params:
+                    split: val
+                    use_s2hr: true
+                    labels: true
+
+            mask:
+
+# === PLOTTING OPTIONS ========================================================
+plots:
+    History: true   # Plot of the training and validation metrics over epochs.
+    CM: true        # Confusion matrix.
+    Pred: true      # Pie chart of the distribution of the predicted classes.
+    ROC: true       # Receiver Operator Characteristics for each class.
+    micro: false    # Include micro averaging in ROC plot.
+    macro: true     # Include macro averaging in ROC plot.
+    Mask: true      # Plot predicted masks against ground truth and imagery.
+
+# === MISCELLANEOUS OPTIONS ===================================================
+# ---+ Early Stopping +--------------------------------------------------------
+stopping:
+    patience: 2    # No. of val epochs with increasing loss before stopping.
+    verbose: true  # Verbosity of early stopping prints to stdout.
+
+# ---+ Verbosity and Saving +--------------------------------------------------
+verbose: true           # Verbosity of Trainer print statements to stdout.
+save: true              # Saves created figures to file.
+show: false             # Shows created figures in a pop-up window.
+p_dist: false           # Shows the distribution of classes to stdout.
+plot_last_epoch: false  # Plot the results of the last training and val epochs.
+
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+save_model: false
+
+# ---+ Other +-----------------------------------------------------------------
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+run_tensorboard: false
+calc_norm: false
