@@ -349,7 +349,14 @@ class SupervisedStepLogger(MinervaStepLogger):
             if check_substrings_in_string(self.model_type, "scene classifier"):
                 int_log_shape = (self.n_batches, self.batch_size)
             else:
-                int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
+                if len(self.output_size) == 3:
+                    int_log_shape = (
+                        self.n_batches,
+                        self.batch_size,
+                        *self.output_size[1:],
+                    )
+                else:
+                    int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
 
             self.results["z"] = np.empty(int_log_shape, dtype=np.uint8)
             self.results["y"] = np.empty(int_log_shape, dtype=np.uint8)
@@ -360,12 +367,19 @@ class SupervisedStepLogger(MinervaStepLogger):
             if check_substrings_in_string(self.model_type, "scene classifier"):
                 float_log_shape = (self.n_batches, self.batch_size, n_classes)
             else:
-                float_log_shape = (
-                    self.n_batches,
-                    self.batch_size,
-                    n_classes,
-                    *self.output_size,
-                )
+                if len(self.output_size) == 3:
+                    float_log_shape = (
+                        self.n_batches,
+                        self.batch_size,
+                        *self.output_size,
+                    )
+                else:
+                    float_log_shape = (
+                        self.n_batches,
+                        self.batch_size,
+                        n_classes,
+                        *self.output_size,
+                    )
 
             try:
                 self.results["probs"] = np.empty(float_log_shape, dtype=np.float16)
@@ -408,6 +422,9 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         assert z is not None
         assert y is not None
+
+        if isinstance(z, tuple):
+            z = z[0]
 
         if self.record_int:
             # Arg max the estimated probabilities and add to predictions.
