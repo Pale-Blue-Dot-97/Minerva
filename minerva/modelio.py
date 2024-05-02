@@ -65,7 +65,7 @@ def sup_tg(
 
     Args:
         batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
-            Must have ``"image"``, ``"mask"`` and ``"bbox"`` keys.
+            Must have ``"image"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"id"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
         train (bool): True to run a step of the model in training mode. False for eval mode.
@@ -73,7 +73,7 @@ def sup_tg(
     Kwargs:
         mix_precision (bool): Use mixed-precision. Will set the floating tensors to 16-bit
             rather than the default 32-bit.
-        target_key (str): Should be either ``mask`` or ``label``.
+        target_key (str): Should be either ``"mask"`` or ``"label"``.
 
     Returns:
         tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]:
@@ -84,7 +84,7 @@ def sup_tg(
 
     # Extracts the x and y batches from the dict.
     images: Tensor = batch["image"]
-    targets: Tensor = batch[kwargs["target_key"]]
+    targets: Tensor = batch[kwargs.get("target_key", "mask")]
 
     # Check that none of the data is NaN or infinity.
     assert not images.isnan().any()
@@ -112,7 +112,14 @@ def sup_tg(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes or filenames.
-    index: Union[Sequence[str], Sequence[BoundingBox]] = batch.get("bbox", batch["id"])
+    index: Union[Sequence[str], Sequence[BoundingBox]]
+    if "bbox" in batch:
+        index = batch["bbox"]
+    elif "id" in batch:
+        index = batch["id"]
+    else:
+        raise ValueError("Missing index key!")
+
     assert isinstance(index, Sequence)
     return loss, z, y, index
 
@@ -129,7 +136,7 @@ def autoencoder_io(
 
     Args:
         batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
-            Must have ``"image"``, ``"mask"`` and ``"bbox"`` keys.
+            Must have ``"image"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"id"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
         train (bool): True to run a step of the model in training mode. False for eval mode.
@@ -203,7 +210,14 @@ def autoencoder_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes or filenames.
-    index: Union[Sequence[str], Sequence[BoundingBox]] = batch.get("bbox", batch["id"])
+    index: Union[Sequence[str], Sequence[BoundingBox]]
+    if "bbox" in batch:
+        index = batch["bbox"]
+    elif "id" in batch:
+        index = batch["id"]
+    else:
+        raise ValueError("Missing index key!")
+
     assert isinstance(index, Sequence)
     return loss, z, y, index
 

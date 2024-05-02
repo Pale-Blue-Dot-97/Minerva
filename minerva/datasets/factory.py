@@ -579,6 +579,8 @@ def _make_loader(
     sample_pairs,
     cache,
 ):
+    target_key = None
+
     if elim and not utils.check_substrings_in_string(model_type, "siamese"):
         target_key = masks_or_labels(dataset_params)
         dataset_params = _add_class_transform(class_matrix, dataset_params, target_key)
@@ -608,7 +610,7 @@ def _make_loader(
         / batch_size
     )
 
-    return loaders, n_batches
+    return loaders, n_batches, target_key
 
 
 @utils.return_updated_kwargs
@@ -730,12 +732,11 @@ def make_loaders(
                 sampler_params,
                 dataloader_params,
                 collator_params,
-                batch_size,
                 elim=elim,
             )
 
         print(f"CREATING {task_name} DATASET")
-        loaders, n_batches = _make_loader(
+        loaders, n_batches, target_key = _make_loader(
             rank,
             world_size,
             data_dir,
@@ -774,13 +775,12 @@ def make_loaders(
                     mode_sampler_params,
                     dataloader_params,
                     collator_params,
-                    batch_size,
                     elim=elim,
                 )
 
             # --+ MAKE DATASETS +=====================================================================================+
             print(f"CREATING {mode} DATASET")
-            loaders[mode], n_batches[mode] = _make_loader(
+            loaders[mode], n_batches[mode], target_key = _make_loader(
                 rank,
                 world_size,
                 data_dir,
@@ -826,6 +826,9 @@ def make_loaders(
     if task_params.get("max_pixel_value") is None:
         task_params["max_pixel_value"] = imagery_config.get("max_pixel_value", 256)
 
+    # Store the name of the target key (either `mask` or `label`)
+    task_params["target_key"] = target_key
+
     return loaders, n_batches, class_dist, task_params
 
 
@@ -839,7 +842,6 @@ def get_data_specs(
     sampler_params: Optional[Dict[str, Any]] = None,
     dataloader_params: Optional[Dict[str, Any]] = None,
     collator_params: Optional[Dict[str, Any]] = None,
-    batch_size: int = 8,
     elim: bool = True,
 ):
     # Load manifest from cache for this dataset.

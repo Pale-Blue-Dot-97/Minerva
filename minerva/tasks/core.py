@@ -153,6 +153,7 @@ class MinervaTask(ABC):
             :class:`~logger.steplog.MinervaStepLogger` class within :mod:`~logger.steplog`.
         modelio (str): Specify the IO function to use to handle IO for the model during fitting. Must be the name
             of a function within :mod:`modelio`.
+        target_key (str): Optional; Name of the target key (if supervised task). Either ``mask`` or ``label``.
 
     .. versionadded:: 0.27
     """
