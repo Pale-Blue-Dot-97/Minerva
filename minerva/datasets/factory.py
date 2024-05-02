@@ -775,7 +775,10 @@ def make_loaders(
 
             print("DONE")
 
-    if not utils.check_substrings_in_string(model_type, "siamese") and "sampler" in dataset_params:
+    if (
+        not utils.check_substrings_in_string(model_type, "siamese")
+        and "sampler" in dataset_params
+    ):
         # Transform class dist if elimination of classes has occurred.
         if elim:
             class_dist = utils.class_dist_transform(class_dist, class_matrix)
@@ -925,6 +928,7 @@ def make_manifest(
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
+
     def delete_class_transform(params: Dict[str, Any]) -> None:
         target_key = masks_or_labels(dataset_params)
         if "transforms" in params[target_key]:

@@ -82,8 +82,8 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.transforms import Bbox
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
-from rasterio.crs import CRS
 from omegaconf import OmegaConf
+from rasterio.crs import CRS
 from scipy import stats
 from sklearn.metrics import ConfusionMatrixDisplay
 from torchgeo.datasets.utils import BoundingBox

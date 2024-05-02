@@ -32,12 +32,12 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
+from omegaconf import DictConfig, OmegaConf
+
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
 from torch.optim import SGD
-
-from omegaconf import DictConfig, OmegaConf
 
 from minerva.models import MinervaModel
 from minerva.tasks import MinervaTask, StandardEpoch
@@ -47,7 +47,9 @@ from minerva.utils import universal_path, utils
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_standard_epoch(default_device, default_config: DictConfig, exp_fcn: MinervaModel):
+def test_standard_epoch(
+    default_device, default_config: DictConfig, exp_fcn: MinervaModel
+):
     exp_fcn.determine_output_dim()
     optimiser = SGD(exp_fcn.parameters(), lr=1.0e-3)
     exp_fcn.set_optimiser(optimiser)

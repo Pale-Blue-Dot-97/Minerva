@@ -110,7 +110,9 @@ def test_config_env_vars(default_config: DictConfig) -> None:
 
 
 @runner.distributed_run
-def _run_func(gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig) -> None:
+def _run_func(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+) -> None:
     time.sleep(0.5)
     return
 

@@ -91,7 +91,9 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
 
     del exp_dataset_params["mask"]
 
-    dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params, cache=False)
+    dataset_1, subdatasets_1 = mdt.make_dataset(
+        data_root, exp_dataset_params, cache=False
+    )
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, TstImgDataset)
@@ -270,7 +272,8 @@ def test_get_manifest(
             dataset_params=exp_dataset_params,
             sampler_params=exp_sampler_params,
             loader_params={"num_workers": 0},
-        ), pd.DataFrame
+        ),
+        pd.DataFrame,
     )
 
     # Now try fetching it from cache.
@@ -290,7 +293,8 @@ def test_get_manifest(
             dataset_params=exp_dataset_params,
             sampler_params=exp_sampler_params,
             loader_params={"num_workers": 0},
-        ), pd.DataFrame
+        ),
+        pd.DataFrame,
     )
 
     if new_path.exists():

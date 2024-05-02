@@ -350,8 +350,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         max_r: int,
         *args,
         **kwargs,
-    ) -> None:
-        ...  # pragma: no cover
+    ) -> None: ...  # pragma: no cover
 
     @overload
     def __init__(
@@ -361,8 +360,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         max_r: int,
         *args,
         **kwargs,
-    ) -> None:
-        ...  # pragma: no cover
+    ) -> None: ...  # pragma: no cover
 
     def __init__(
         self,

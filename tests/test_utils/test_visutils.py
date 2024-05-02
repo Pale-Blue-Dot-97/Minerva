@@ -50,8 +50,8 @@ from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.image import AxesImage
 from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
-from rasterio.crs import CRS
 from omegaconf import OmegaConf
+from rasterio.crs import CRS
 from torchgeo.datasets import GeoDataset
 from torchgeo.samplers import get_random_bounding_box
 
