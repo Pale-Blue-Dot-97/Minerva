@@ -165,6 +165,7 @@ def test_trainer_3(default_config: DictConfig) -> None:
         ("example_GeoCLR_config.yaml", {"plot_last_epoch": False}, {}),
         ("example_3rd_party.yaml", {}, {}),
         ("example_autoencoder_config.yaml", {}, {}),
+        ("example_UNetR_config.yaml", {}, {}),
         ("example_GeoSimConvNet.yaml", {}, {}),
         ("example_GSConvNet-II.yaml", {}, {}),
         ("example_PSP.yaml", {}, {}),
@@ -177,7 +178,7 @@ def test_trainer_4(
     kwargs: Dict[str, Any],
 ) -> None:
 
-    with hydra.initialize(config_path=str(inbuilt_cfg_root)):
+    with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):
         cfg = hydra.compose(config_name=cfg_name)
 
         for key in cfg_args.keys():
