@@ -206,7 +206,11 @@ def test_make_gif(
 
 
 def test_prediction_plot(
-    random_image, random_mask, bounds_for_test_img, exp_classes: Dict[int, str]
+    random_image,
+    random_mask,
+    bounds_for_test_img,
+    exp_classes: Dict[int, str],
+    results_dir: Path,
 ) -> None:
     pred = np.random.randint(0, 8, size=(32, 32))
 
@@ -218,7 +222,7 @@ def test_prediction_plot(
         "pred": pred,
         "bounds": bounds_for_test_img,
     }
-    visutils.prediction_plot(sample, "101", exp_classes, src_crs)
+    visutils.prediction_plot(sample, "101", exp_classes, src_crs, path=results_dir)
 
 
 def test_seg_plot(
