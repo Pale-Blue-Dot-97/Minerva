@@ -54,7 +54,11 @@ from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, ut
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-@hydra.main(config_path=str(DEFAULT_CONF_DIR_PATH), config_name=DEFAULT_CONFIG_NAME)
+@hydra.main(
+    version="1.3",
+    config_path=str(DEFAULT_CONF_DIR_PATH),
+    config_name=DEFAULT_CONFIG_NAME,
+)
 @runner.distributed_run
 def main(
     gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
