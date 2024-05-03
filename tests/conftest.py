@@ -195,8 +195,8 @@ def std_batch_size() -> int:
 
 
 @pytest.fixture
-def std_n_classes() -> int:
-    return 8
+def std_n_classes(exp_classes: Dict[int, str]) -> int:
+    return len(exp_classes)
 
 
 @pytest.fixture

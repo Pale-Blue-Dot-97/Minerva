@@ -40,7 +40,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Tuple
 
 import matplotlib as mlp
 import numpy as np
@@ -346,11 +346,10 @@ def test_plot_results(
     exp_cmap_dict: Dict[int, str],
     results_dir: Path,
     default_config: Dict[str, Any],
+    small_patch_size: Tuple[int, int],
+    std_batch_size: int,
+    std_n_classes: int,
 ) -> None:
-
-    batch_size = 2
-    patch_size = (32, 32)
-    n_classes = 8
 
     plots = {
         "History": True,
@@ -362,8 +361,16 @@ def test_plot_results(
         "Mask": False,
         "TSNE": True,
     }
-    z = np.random.randint(0, n_classes, size=batch_size * patch_size[0] * patch_size[1])
-    y = np.random.randint(0, n_classes, size=batch_size * patch_size[0] * patch_size[1])
+    z = np.random.randint(
+        0,
+        std_n_classes,
+        size=std_batch_size * small_patch_size[0] * small_patch_size[1],
+    )
+    y = np.random.randint(
+        0,
+        std_n_classes,
+        size=std_batch_size * small_patch_size[0] * small_patch_size[1],
+    )
 
     train_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
     train_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
@@ -378,7 +385,7 @@ def test_plot_results(
         "val_acc": val_acc,
     }
 
-    probs = np.random.rand(batch_size, *patch_size, len(exp_classes))
+    probs = np.random.rand(std_batch_size, *small_patch_size, std_n_classes)
 
     embeddings = torch.rand([4, 152]).numpy()
     bounds = np.array(
