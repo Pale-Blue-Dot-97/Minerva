@@ -55,7 +55,7 @@ from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, ut
 #                                                      MAIN
 # =====================================================================================================================
 @hydra.main(
-    version="1.3",
+    version_base="1.3",
     config_path=str(DEFAULT_CONF_DIR_PATH),
     config_name=DEFAULT_CONFIG_NAME,
 )
