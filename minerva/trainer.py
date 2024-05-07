@@ -265,7 +265,7 @@ class Trainer:
 
         # Set variables for checkpointing the experiment or loading from a previous checkpoint.
         self.checkpoint_experiment: bool = self.params.get(
-            "checkpoint_experiment", False
+            "checkpoint_experiment", True
         )
         self.print(f"\nExperiment checkpointing: {self.checkpoint_experiment}")
         self.resume: bool = self.params.get("resume_experiment", False)
