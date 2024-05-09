@@ -465,7 +465,7 @@ class MinervaTask(ABC):
 
         # Ensures masks are not plotted for model types that do not yield such outputs.
         if utils.check_substrings_in_string(
-            self.model_type, "scene classifier", "mlp", "MLP"
+            self.model_type, "scene-classifier", "mlp", "MLP"
         ):
             plots["Mask"] = False
 

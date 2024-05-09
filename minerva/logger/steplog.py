@@ -346,7 +346,7 @@ class SupervisedStepLogger(MinervaStepLogger):
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
             int_log_shape: Tuple[int, ...]
-            if check_substrings_in_string(self.model_type, "scene classifier"):
+            if check_substrings_in_string(self.model_type, "scene-classifier"):
                 int_log_shape = (self.n_batches, self.batch_size)
             else:
                 if len(self.output_size) == 3:
@@ -364,7 +364,7 @@ class SupervisedStepLogger(MinervaStepLogger):
         # Allocate memory for the floating point values to be recorded.
         if self.record_float:
             float_log_shape: Tuple[int, ...]
-            if check_substrings_in_string(self.model_type, "scene classifier"):
+            if check_substrings_in_string(self.model_type, "scene-classifier"):
                 float_log_shape = (self.n_batches, self.batch_size, n_classes)
             else:
                 if len(self.output_size) == 3:
