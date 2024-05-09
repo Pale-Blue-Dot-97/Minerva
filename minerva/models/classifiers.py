@@ -45,10 +45,9 @@ from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
-from minerva.models import MinervaBackbone
 from minerva.utils.utils import func_by_str
 
-from .core import FilterOutputs
+from .core import FilterOutputs, MinervaBackbone
 
 
 # =====================================================================================================================
