@@ -32,7 +32,7 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = []
+__all__ = ["FlexiSceneClassifier"]
 
 
 # =====================================================================================================================
