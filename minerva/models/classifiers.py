@@ -35,13 +35,13 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = ["FlexiSceneClassifier"]
 
 
-from pathlib import Path
-
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple, Union
 
+import numpy as np
 import torch
 from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
@@ -49,7 +49,7 @@ from torch.nn.modules import Module
 
 from minerva.utils.utils import func_by_str
 
-from .core import MinervaBackbone
+from .core import MinervaBackbone, get_output_shape
 
 
 # =====================================================================================================================
@@ -62,7 +62,6 @@ class FlexiSceneClassifier(MinervaBackbone):
         input_size: Optional[Tuple[int]] = None,
         n_classes: int = 1,
         scaler: Optional[GradScaler] = None,
-        fc_dim: int = 512,
         encoder_on: bool = False,
         filter_dim: int = 0,
         freeze_backbone: bool = False,
@@ -88,7 +87,11 @@ class FlexiSceneClassifier(MinervaBackbone):
 
         self.encoder_on = encoder_on
         self.filter_dim = filter_dim
-        self.fc_dim = fc_dim
+        output_shape = get_output_shape(self.backbone, self.input_size)
+        if self.encoder_on:
+            output_shape = output_shape[self.filter_dim]
+
+        self.fc_dim = int(np.prod(output_shape))
 
         self._make_classification_head()
 
