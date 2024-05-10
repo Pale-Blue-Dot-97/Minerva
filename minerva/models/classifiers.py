@@ -35,10 +35,12 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = ["FlexiSceneClassifier"]
 
 
+from pathlib import Path
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import torch
 from torch import Tensor
@@ -47,7 +49,7 @@ from torch.nn.modules import Module
 
 from minerva.utils.utils import func_by_str
 
-from .core import FilterOutputs, MinervaBackbone
+from .core import MinervaBackbone
 
 
 # =====================================================================================================================
@@ -62,16 +64,30 @@ class FlexiSceneClassifier(MinervaBackbone):
         scaler: Optional[GradScaler] = None,
         fc_dim: int = 512,
         encoder_on: bool = False,
+        filter_dim: int = 0,
+        freeze_backbone: bool = False,
+        backbone_weight_path: Optional[Union[str, Path]] = None,
         backbone_args: Dict[str, Any] = {},
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)
 
         _backbone = func_by_str(backbone_args.pop("module"), backbone_args.pop("name"))
 
-        self.backbone = _backbone(**backbone_args)
+        backbone = _backbone(**backbone_args)
+
+        # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
+        if backbone_weight_path is not None:  # pragma: no cover
+            backbone = torch.load(
+                backbone_weight_path, map_location=torch.device("cpu")
+            )
+
+            # Freezes the weights of backbone to avoid end-to-end training.
+            backbone.requires_grad_(False if freeze_backbone else True)
+
+        self.backbone = backbone
 
         self.encoder_on = encoder_on
-        self.filter = FilterOutputs(-1)
+        self.filter_dim = filter_dim
 
         self.classification_head = torch.nn.Sequential(
             torch.nn.AdaptiveAvgPool2d((1, 1)),
@@ -95,6 +111,6 @@ class FlexiSceneClassifier(MinervaBackbone):
         f = self.backbone(x)
 
         if self.encoder_on:
-            f = self.filter(f)
+            f = f[self.filter_dim]
 
         return self.classification_head(f)
