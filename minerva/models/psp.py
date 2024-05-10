@@ -104,7 +104,7 @@ class DynamicPSP(smp.PSPNet):
         aux_params: Optional[Dict[str, Any]] = None,
         backbone_weight_path: str = None,
         freeze_backbone: bool = False,
-        encoder: bool = False,
+        encoder: bool = True,
         segmentation_on: bool = True,
         classification_on: bool = False,
     ) -> None:
@@ -153,7 +153,7 @@ class DynamicPSP(smp.PSPNet):
             upsampling=upsampling,
         )
 
-        self.encoder_mode = False
+        self.encoder_mode = True
         self.segmentation_on = True
 
     def make_classification_head(self, aux_params: Dict[str, Any]) -> None:
@@ -166,7 +166,7 @@ class DynamicPSP(smp.PSPNet):
         smp.base.initialization.initialize_head(self.classification_head)
 
         # Ensure the forward pass goes through the entire model.
-        self.encoder_mode = False
+        self.encoder_mode = True
         self.segmentation_on = True
         self.classification_on = True
 
@@ -182,7 +182,7 @@ class DynamicPSP(smp.PSPNet):
     def forward(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, ...]]:
         f = self.encoder(x)
 
-        if self.encoder_mode:
+        if not self.encoder_mode:
             return f[-1]
 
         g = self.decoder(*f)
@@ -248,5 +248,9 @@ class MinervaPSP(MinervaWrapper):
         )
 
     def _remake_classifier(self) -> None:
-        self.make_segmentation_head(self.n_classes, upsampling=32, activation=torch.nn.PReLU)
-        self.make_classification_head({"classes": self.n_classes, "activation": torch.nn.PReLU})
+        self.make_segmentation_head(
+            self.n_classes, upsampling=32, activation=torch.nn.PReLU
+        )
+        self.make_classification_head(
+            {"classes": self.n_classes, "activation": torch.nn.PReLU}
+        )
