@@ -46,10 +46,19 @@ model_params:
     params:
         input_size: *input_size
         n_classes: *n_classes
-        # encoder_name: resnet18
-        # encoder_weights:
-        # psp_out_channels: 512
-        # freeze_backbone: false
+        encoder_on: false
+        backbone_args:
+            module: minerva.models
+            name: MinervaPSP
+            input_size: *input_size
+            n_classes: 1
+            encoder_name: resnet18
+            encoder_weights:
+            psp_out_channels: 512
+            freeze_backbone: false
+            segmentation_on: false
+            classification_on: false
+            encoder: false
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
@@ -138,13 +147,18 @@ tasks:
                         p: 0.2
                         keepdim: true
 
-                module: minerva.datasets
-                name: DFC2020
-                paths: DFC/DFC2020
+                module: torchgeo.datasets
+                name: EuroSAT100
+                paths: EuroSAT100
                 params:
                     split: test
-                    use_s2hr: true
-                    labels: true
+                    bands:
+                        - B02
+                        - B03
+                        - B04
+                        - B08
+                    download: true
+
             mask:
 
     test-test:
@@ -168,14 +182,17 @@ tasks:
                         module: minerva.transforms
                         norm_value: 4095
 
-                module: minerva.datasets
-                name: DFC2020
-                paths: DFC/DFC2020
-                target_key: mask
+                module: torchgeo.datasets
+                name: EuroSAT100
+                paths: EuroSAT100
                 params:
                     split: test
-                    use_s2hr: true
-                    labels: true
+                    bands:
+                        - B02
+                        - B03
+                        - B04
+                        - B08
+                    download: true
 
             mask:
 
