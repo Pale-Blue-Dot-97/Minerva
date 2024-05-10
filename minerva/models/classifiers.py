@@ -88,12 +88,19 @@ class FlexiSceneClassifier(MinervaBackbone):
 
         self.encoder_on = encoder_on
         self.filter_dim = filter_dim
+        self.fc_dim = fc_dim
 
+        self._make_classification_head()
+
+    def _make_classification_head(self) -> None:
         self.classification_head = torch.nn.Sequential(
             torch.nn.AdaptiveAvgPool2d((1, 1)),
             torch.nn.Flatten(),
-            torch.nn.Linear(fc_dim, n_classes),
+            torch.nn.Linear(self.fc_dim, self.n_classes),
         )
+
+    def _remake_classifier(self) -> None:
+        self._make_classification_head()
 
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the :class:`ResNet`.
