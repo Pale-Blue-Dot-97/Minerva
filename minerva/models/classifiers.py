@@ -83,6 +83,10 @@ class FlexiSceneClassifier(MinervaBackbone):
             # Freezes the weights of backbone to avoid end-to-end training.
             backbone.requires_grad_(False if freeze_backbone else True)
 
+        # Extract the actual encoder network from the backbone.
+        if hasattr(backbone, "encoder"):
+            backbone = backbone.encoder
+
         self.backbone = backbone
 
         self.encoder_on = encoder_on
