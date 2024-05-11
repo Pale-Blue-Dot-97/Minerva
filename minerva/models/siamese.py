@@ -496,7 +496,7 @@ class SimConv(MinervaSiamese):
             psp_out_channels=feature_dim,
             encoder_weights=None,
             encoder_depth=5,
-            encoder=False,
+            encoder=True,
             segmentation_on=False,
             classification_on=False,
             **backbone_kwargs,
