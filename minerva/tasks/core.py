@@ -418,7 +418,10 @@ class MinervaTask(ABC):
         self.logger.refresh_step_logger()
 
         if self.train:
+            before_lr = self.model.optimiser.param_groups[0]["lr"]
             self.model.scheduler.step()
+            after_lr = self.model.optimiser.param_groups[0]["lr"]
+            print(f"lr {before_lr:.4f} -> {after_lr:.4f}")
 
         return results
 
