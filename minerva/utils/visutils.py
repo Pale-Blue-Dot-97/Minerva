@@ -976,7 +976,7 @@ def make_confusion_matrix(
         _labels,
         _pred,
         labels=list(new_classes.keys()),
-        normalize="all",
+        normalize="true",
         display_labels=class_names,
         cmap=cmap,
         ax=ax,
