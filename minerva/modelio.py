@@ -78,7 +78,9 @@ def sup_tg(
         target_key (str): Should be either ``"mask"`` or ``"label"``.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None]:
+        tuple[
+            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]:
         The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
         of the input images supplied.
     """
@@ -152,7 +154,9 @@ def autoencoder_io(
             rather than the default 32-bit.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None]:
+        tuple[
+            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]:
         The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
         of the input images supplied.
 
@@ -251,8 +255,9 @@ def ssl_pair_tg(
             rather than the default 32-bit.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None]: The
-        ``loss``, the model output ``z``, the ``y`` supplied and the bounding boxes
+        tuple[
+            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]: The ``loss``, the model output ``z``, the ``y`` supplied and the bounding boxes
         of the original input images supplied.
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))

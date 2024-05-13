@@ -169,6 +169,7 @@ def test_trainer_3(default_config: DictConfig) -> None:
         ("example_GeoSimConvNet.yaml", {}, {}),
         ("example_GSConvNet-II.yaml", {}, {}),
         ("example_PSP.yaml", {}, {}),
+        ("example_FlexiSceneClassifier.yaml", {}, {}),
     ],
 )
 def test_trainer_4(

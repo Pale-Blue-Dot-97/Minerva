@@ -23,14 +23,14 @@ model_type: scene-classifier
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 2                          # Number of samples in each batch.
-patch_size: &patch_size [256, 256]     # 2D tuple or float.
-input_size: &input_size [4, 256, 256]  # patch_size plus leading channel dim.
+patch_size: &patch_size [64, 64]     # 2D tuple or float.
+input_size: &input_size [4, 64, 64]  # patch_size plus leading channel dim.
 n_classes: &n_classes 10               # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                          # Maximum number of training epochs.
-elim: true                             # Eliminates empty classes from schema.
-balance: false                          # Balances dataset classes.
+elim: false                            # Eliminates empty classes from schema.
+balance: false                         # Balances dataset classes.
 pre_train: false                       # Activate pre-training mode.
 fine_tune: false                       # Activate fine-tuning mode.
 torch_compile: true                    # Wrap model in `torch.compile`.
@@ -46,7 +46,10 @@ model_params:
     params:
         input_size: *input_size
         n_classes: *n_classes
-        encoder_on: false
+        encoder_on: true
+        filter_dim: -1
+        fc_dim: 512
+        freeze_backbone: false
         backbone_args:
             module: minerva.models
             name: MinervaPSP
@@ -55,7 +58,6 @@ model_params:
             encoder_name: resnet18
             encoder_weights:
             psp_out_channels: 512
-            freeze_backbone: false
             segmentation_on: false
             classification_on: false
             encoder: false
@@ -159,7 +161,7 @@ tasks:
                         - B08
                     download: true
 
-            mask:
+            label:
 
     test-test:
         type: StandardEpoch
@@ -194,7 +196,7 @@ tasks:
                         - B08
                     download: true
 
-            mask:
+            label:
 
 # === PLOTTING OPTIONS ========================================================
 plots:
