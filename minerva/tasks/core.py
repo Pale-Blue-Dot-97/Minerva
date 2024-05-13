@@ -341,9 +341,16 @@ class MinervaTask(ABC):
         optimiser_params["params"]["lr"] = self.params["lr"]
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(  # type: ignore
-            optimiser(self.model.parameters(), **optimiser_params["params"])
-        )
+        optimiser = optimiser(self.model.parameters(), **optimiser_params["params"])
+        self.model.set_optimiser(optimiser)
+
+        if self.params.get("scheduler_params") is not None:
+            scheduler_params = deepcopy(self.params["scheduler_params"])
+            scheduler = utils.func_by_str(
+                scheduler_params.pop("module", "torch.optim.lr_scheduler"),
+                scheduler_params["name"],
+            )
+            self.model.set_scheduler(scheduler(optimiser, **scheduler_params["params"]))
 
     def make_logger(self) -> MinervaTaskLogger:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
@@ -409,6 +416,9 @@ class MinervaTask(ABC):
             results = None
 
         self.logger.refresh_step_logger()
+
+        if self.train:
+            self.model.scheduler.step()
 
         return results
 

@@ -166,6 +166,9 @@ class MinervaModel(Module, ABC):
         """
         self.optimiser = optimiser
 
+    def set_scheduler(self, scheduler) -> None:
+        self.scheduler = scheduler
+
     def set_criterion(self, criterion: Module) -> None:
         """Set the internal criterion.
 
