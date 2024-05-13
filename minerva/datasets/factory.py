@@ -956,7 +956,6 @@ def make_manifest(
     """
 
     def delete_class_transform(params: Dict[str, Any]) -> None:
-        target_key = masks_or_labels(dataset_params)
         if params[target_key] is None:
             return
 
@@ -991,7 +990,9 @@ def make_manifest(
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
+    target_key = None
     if "mask" in dataset_params or "label" in dataset_params:
+        target_key = masks_or_labels(dataset_params)
         delete_class_transform(dataset_params)
 
     print("CONSTRUCTING DATASET")
@@ -1009,7 +1010,7 @@ def make_manifest(
     print("FETCHING SAMPLES")
     df = DataFrame()
 
-    modes = load_all_samples(loader)
+    modes = load_all_samples(loader, target_key=target_key)
 
     df["MODES"] = [np.array([]) for _ in range(len(modes))]
 

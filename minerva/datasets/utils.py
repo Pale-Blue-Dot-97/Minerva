@@ -46,7 +46,18 @@ __all__ = [
 # =====================================================================================================================
 import pickle
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
 from alive_progress import alive_it
@@ -209,12 +220,17 @@ def make_bounding_box(
         return BoundingBox(*roi)
 
 
-def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]:
+def load_all_samples(
+    dataloader: DataLoader[Iterable[Any]],
+    target_key: Literal["mask", "label"] = "mask",
+) -> NDArray[Any, Any]:
     """Loads all sample masks from parsed :class:`~torch.utils.data.DataLoader` and computes the modes of their classes.
 
     Args:
         dataloader (~torch.utils.data.DataLoader): DataLoader containing samples. Must be using a dataset with
-            ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` key.
+            ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` or ``"label"`` key.
+        target_key (~typing.Literal["mask", "label"]): Optional; Key for the targets in the dataset.
+            Either ``"mask"`` or ``"label"``.
 
     Returns:
         ~numpy.ndarray: 2D array of the class modes within every sample defined by the parsed
@@ -222,7 +238,7 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
     """
     sample_modes: List[List[Tuple[int, int]]] = []
     for sample in alive_it(dataloader):
-        modes = utils.find_modes(sample["mask"])
+        modes = utils.find_modes(sample[target_key])
         sample_modes.append(modes)
 
     return np.array(sample_modes, dtype=object)
