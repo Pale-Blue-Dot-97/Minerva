@@ -441,7 +441,6 @@ class SupervisedStepLogger(MinervaStepLogger):
             self.results["ids"].append(batch_ids)
 
         if self.record_float:
-            assert index is not None
             # Add the estimated probabilities to probs.
             self.results["probs"][self.logs["batch_num"]] = z.detach().cpu().numpy()
             self.results["index"][self.logs["batch_num"]] = index

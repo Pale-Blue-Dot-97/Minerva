@@ -60,7 +60,9 @@ def sup_tg(
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
+) -> Tuple[
+    Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Optional[Sequence[BoundingBox]]
+]:
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
 
     Args:
@@ -76,15 +78,16 @@ def sup_tg(
         target_key (str): Should be either ``"mask"`` or ``"label"``.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]:
+        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None]:
         The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
         of the input images supplied.
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
+    target_key = kwargs.get("target_key", "mask")
 
     # Extracts the x and y batches from the dict.
     images: Tensor = batch["image"]
-    targets: Tensor = batch[kwargs.get("target_key", "mask")]
+    targets: Tensor = batch[target_key]
 
     # Check that none of the data is NaN or infinity.
     assert not images.isnan().any()
@@ -97,7 +100,7 @@ def sup_tg(
     y_batch: Tensor
 
     # Squeeze out axis 1 if only 1 element wide.
-    if targets.shape[1] == 1:
+    if target_key == "mask" and targets.shape[1] == 1:
         targets = np.squeeze(targets.detach().cpu().numpy(), axis=1)
 
     if isinstance(targets, Tensor):
@@ -118,9 +121,8 @@ def sup_tg(
     elif "id" in batch:
         index = batch["id"]
     else:
-        raise ValueError("Missing index key!")
+        index = None
 
-    assert isinstance(index, Sequence)
     return loss, z, y, index
 
 
@@ -130,7 +132,9 @@ def autoencoder_io(
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
+) -> Tuple[
+    Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Optional[Sequence[BoundingBox]]
+]:
     """Provides IO functionality for an autoencoder using :mod:`torchgeo` datasets by only using the same data
     for input and ground truth.
 
@@ -148,7 +152,7 @@ def autoencoder_io(
             rather than the default 32-bit.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]:
+        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None]:
         The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
         of the input images supplied.
 
@@ -216,9 +220,8 @@ def autoencoder_io(
     elif "id" in batch:
         index = batch["id"]
     else:
-        raise ValueError("Missing index key!")
+        index = None
 
-    assert isinstance(index, Sequence)
     return loss, z, y, index
 
 
@@ -248,7 +251,7 @@ def ssl_pair_tg(
             rather than the default 32-bit.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]: The
+        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None]: The
         ``loss``, the model output ``z``, the ``y`` supplied and the bounding boxes
         of the original input images supplied.
     """
