@@ -256,7 +256,7 @@ class SupervisedStepLogger(MinervaStepLogger):
     """Logger designed for supervised learning using :mod:`torchgeo` datasets.
 
     Attributes:
-        logs (dict[str, ~typing.Any]): The main logs from the KNN with these metrics:
+        logs (dict[str, ~typing.Any]): The main logs with these metrics:
 
             * ``batch_num``
             * ``total_loss``

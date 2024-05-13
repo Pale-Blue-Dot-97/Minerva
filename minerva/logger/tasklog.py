@@ -351,7 +351,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             logs["total_loss"] / self.n_batches
         )
 
-        if self.model_type == "segmentation":
+        if check_substrings_in_string(self.model_type, "segmentation"):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"]
                 / (self.n_batches * self.batch_size * np.prod(self.output_size))
@@ -366,6 +366,10 @@ class SupervisedTaskLogger(MinervaTaskLogger):
                 logs["total_correct"] / self.n_samples
             )
 
+            # Ensure that there are no empty logs for MIoU in a non=segmentation experiment.
+            if f"{self.task_name}_miou" in self.metrics:
+                del self.metrics[f"{self.task_name}_miou"]
+
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
 
@@ -378,7 +382,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
         )
 
-        if self.model_type == "segmentation":
+        if check_substrings_in_string(self.model_type, "segmentation"):
             msg += " | mIoU: {}".format(
                 self.metrics[f"{self.task_name}_miou"]["y"][epoch_no]
             )
