@@ -417,7 +417,7 @@ class MinervaTask(ABC):
 
         self.logger.refresh_step_logger()
 
-        if self.train:
+        if self.train and self.model.scheduler is not None:
             before_lr = self.model.optimiser.param_groups[0]["lr"]
             self.model.scheduler.step()
             after_lr = self.model.optimiser.param_groups[0]["lr"]
