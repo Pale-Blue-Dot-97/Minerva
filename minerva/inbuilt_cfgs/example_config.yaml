@@ -51,6 +51,14 @@ model_params:
 optim_params:
     params:
 
+# ---+ Scheduler Parameters +--------------------------------------------------
+scheduler_params:
+    name: LinearLR
+    params:
+        start_factor: 1.0
+        end_factor: 0.5
+        total_iters: 5
+
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
     name: CrossEntropyLoss           # Name of the loss function to use.

@@ -82,6 +82,7 @@ from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from torchvision.models._api import WeightsEnum
 
 from minerva.utils.utils import func_by_str
@@ -153,6 +154,10 @@ class MinervaModel(Module, ABC):
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
         self.optimiser: Optional[Optimizer] = None
 
+        # Like the optimiser, the scheduler needs to be set after the model is inited as it needs to wrap
+        # the optimiser. Use ``set_scheduler`` to add the scheduler to the model.
+        self.scheduler: Optional[LRScheduler] = None
+
     def set_optimiser(self, optimiser: Optimizer) -> None:
         """Sets the optimiser used by the model.
 
@@ -165,6 +170,9 @@ class MinervaModel(Module, ABC):
                 initialised with this model's parameters.
         """
         self.optimiser = optimiser
+
+    def set_scheduler(self, scheduler: LRScheduler) -> None:
+        self.scheduler = scheduler
 
     def set_criterion(self, criterion: Module) -> None:
         """Set the internal criterion.
