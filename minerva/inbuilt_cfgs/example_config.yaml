@@ -57,7 +57,7 @@ scheduler_params:
     params:
         start_factor: 1.0
         end_factor: 0.5
-        total_iters: 30
+        total_iters: 5
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
