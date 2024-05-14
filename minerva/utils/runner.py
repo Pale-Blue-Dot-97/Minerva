@@ -60,12 +60,12 @@ import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
 import yaml
 from omegaconf import DictConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.utils import utils
 
 
@@ -330,3 +330,28 @@ def distributed_run(
                 dist.destroy_process_group()  # type: ignore[attr-defined]
 
     return inner_decorator
+
+
+def setup_distributed(cfg):
+    gpu = os.environ.get("LOCAL_RANK", 0)
+
+    OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
+
+    OmegaConf.resolve(cfg)
+    OmegaConf.set_struct(cfg, False)
+    cfg = config_args(cfg)
+
+    # Setups the `wandb` run for this process.
+    wandb_run, cfg = setup_wandb_run(gpu, cfg)
+
+    if cfg.world_size > 1:
+        # Calculates the global rank of this process.
+        cfg.rank += gpu
+
+        print(f"INITIALISED PROCESS ON {cfg.rank}")
+
+        if torch.cuda.is_available():
+            torch.cuda.set_device(gpu)
+            torch.backends.cudnn.benchmark = True  # type: ignore
+
+    return gpu, wandb_run
