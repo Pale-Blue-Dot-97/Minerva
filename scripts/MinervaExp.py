@@ -40,12 +40,8 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Optional, Union
-
 import hydra
 from omegaconf import DictConfig
-from wandb.sdk.lib import RunDisabled
-from wandb.sdk.wandb_run import Run
 
 from minerva.trainer import Trainer
 from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, utils
@@ -55,10 +51,9 @@ from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, ut
 #                                                      MAIN
 # =====================================================================================================================
 @hydra.main(config_path=str(DEFAULT_CONF_DIR_PATH), config_name=DEFAULT_CONFIG_NAME)
-@runner.distributed_run
-def main(
-    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
-) -> None:
+def main(cfg: DictConfig) -> None:
+    gpu, wandb_run = runner.setup_distributed(cfg)
+
     trainer = Trainer(
         gpu=gpu,
         wandb_run=wandb_run,
