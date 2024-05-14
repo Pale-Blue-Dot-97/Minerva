@@ -562,9 +562,16 @@ class Trainer:
         optimiser_params["params"]["lr"] = self.params["lr"]
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(  # type: ignore
-            optimiser(self.model.parameters(), **optimiser_params["params"])
-        )
+        optimiser = optimiser(self.model.parameters(), **optimiser_params["params"])
+        self.model.set_optimiser(optimiser)
+
+        if self.params.get("scheduler_params") is not None:
+            scheduler_params = deepcopy(self.params["scheduler_params"])
+            scheduler = utils.func_by_str(
+                scheduler_params.pop("module", "torch.optim.lr_scheduler"),
+                scheduler_params["name"],
+            )
+            self.model.set_scheduler(scheduler(optimiser, **scheduler_params["params"]))
 
     def fit(self) -> None:
         """Fits the model by running ``max_epochs`` number of training and validation epochs."""
@@ -778,15 +785,19 @@ class Trainer:
     def save_checkpoint(self) -> None:
         optimiser = self.model.optimiser
         assert optimiser
-        torch.save(
-            {
-                "epoch": self.epoch_no,
-                "model_state_dict": extract_wrapped_model(self.model).state_dict(),
-                "optimiser_state_dict": optimiser.state_dict(),
-                "n_classes": self.params.get("n_classes"),
-            },
-            f"{self.exp_fn}-checkpoint.pt",
-        )
+
+        chkpt = {
+            "epoch": self.epoch_no,
+            "model_state_dict": extract_wrapped_model(self.model).state_dict(),
+            "optimiser_state_dict": optimiser.state_dict(),
+            "n_classes": self.params.get("n_classes"),
+        }
+
+        scheduler = self.model.scheduler
+        if scheduler is not None:
+            chkpt["scheduler_state_dict"] = scheduler.state_dict()
+
+        torch.save(chkpt, f"{self.exp_fn}-checkpoint.pt")
 
     def load_checkpoint(self) -> None:
         checkpoint = torch.load(f"{self.exp_fn}-checkpoint.pt")
@@ -801,6 +812,10 @@ class Trainer:
         # Load the state dicts for the model and optimiser.
         self.model.load_state_dict(checkpoint["model_state_dict"])
         self.model.optimiser.load_state_dict(checkpoint["optimiser_state_dict"])  # type: ignore[union-attr]
+
+        # If the scheduler exists, load from checkpoint.
+        if self.model.scheduler is not None and "scheduler_state_dict" in checkpoint:
+            self.model.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
         # Transfer to GPU.
         self.model.to(self.device)

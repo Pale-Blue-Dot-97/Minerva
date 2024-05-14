@@ -42,7 +42,7 @@ fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: &loss_func SegBarlowTwinsLoss  # Name of the loss function to use.
-lr: 1.0E-3                                # Learning rate of optimiser.
+lr: &lr 1.0E-3                                # Learning rate of optimiser.
 optim_func: SGD                           # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
@@ -60,6 +60,14 @@ model_params:
 # ---+ Optimiser Parameters +--------------------------------------------------
 optim_params:
     params:
+
+# ---+ Scheduler Parameters +--------------------------------------------------
+scheduler_params:
+    name: LinearLR
+    params:
+        start_factor: *lr
+        end_factor: 5.0E-4
+        total_iters: 2
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
