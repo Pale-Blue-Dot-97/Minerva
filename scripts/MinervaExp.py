@@ -54,15 +54,6 @@ from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, ut
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-@hydra.main(
-    version_base="1.3",
-    config_path=str(DEFAULT_CONF_DIR_PATH),
-    config_name=DEFAULT_CONFIG_NAME,
-)
-def main(cfg: DictConfig) -> None:
-    runner.distributed_run(run_trainer, cfg)
-
-
 def run_trainer(
     gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
 ) -> None:
@@ -81,6 +72,15 @@ def run_trainer(
 
     if not cfg.get("pre_train", False):
         trainer.test()
+
+
+@hydra.main(
+    version_base="1.3",
+    config_path=str(DEFAULT_CONF_DIR_PATH),
+    config_name=DEFAULT_CONFIG_NAME,
+)
+def main(cfg: DictConfig) -> None:
+    runner.distributed_run(run_trainer, cfg)
 
 
 if __name__ == "__main__":
