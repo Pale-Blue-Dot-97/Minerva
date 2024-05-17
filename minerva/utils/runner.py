@@ -48,6 +48,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+import functools
 import os
 import shlex
 import signal
@@ -284,15 +285,14 @@ def _run_preamble(
 
     if torch.cuda.is_available():
         torch.cuda.set_device(gpu)
-        torch.backends.cudnn.benchmark = True  # type: ignore
+        # torch.backends.cudnn.benchmark = True  # type: ignore
 
     # Start this process run.
     run(gpu, wandb_run, cfg)
 
 
 def distributed_run(
-    run: Callable[[int, Optional[Union[Run, RunDisabled]], DictConfig], Any],
-    cfg: DictConfig,
+    run: Callable[[int, Optional[Union[Run, RunDisabled]], DictConfig], Any]
 ) -> Callable[..., Any]:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
@@ -310,23 +310,23 @@ def distributed_run(
 
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
 
-    OmegaConf.resolve(cfg)
-    OmegaConf.set_struct(cfg, False)
-    cfg = config_args(cfg)
+    @functools.wraps(run)
+    def inner_decorator(cfg: DictConfig):
+        OmegaConf.resolve(cfg)
+        OmegaConf.set_struct(cfg, False)
+        cfg = config_args(cfg)
 
-    if cfg.world_size <= 1:
-        # Setups up the `wandb` run.
-        wandb_run, cfg = setup_wandb_run(0, cfg)
+        if cfg.world_size <= 1:
+            # Setups up the `wandb` run.
+            wandb_run, cfg = setup_wandb_run(0, cfg)
 
-        # Run the experiment.
-        run(0, wandb_run, cfg)
+            # Run the experiment.
+            run(0, wandb_run, cfg)
 
-    else:  # pragma: no cover
-        try:
-            process = mp.Process(target=_run_preamble, args=(run, cfg))
-            process.start()
-            process.join()
+        else:  # pragma: no cover
+            try:
+                mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+            except KeyboardInterrupt:
+                dist.destroy_process_group()  # type: ignore[attr-defined]
 
-            # mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
-        except KeyboardInterrupt:
-            dist.destroy_process_group()  # type: ignore[attr-defined]
+    return inner_decorator
