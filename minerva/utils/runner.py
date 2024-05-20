@@ -66,6 +66,7 @@ from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
 import wandb
+from minerva.trainer import Trainer
 from minerva.utils import utils
 
 
@@ -291,6 +292,27 @@ def _run_preamble(
     run(gpu, wandb_run, cfg)
 
 
+def test(gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig):
+    print("welcome!")
+    print(gpu)
+
+    trainer = Trainer(
+        gpu=gpu,
+        wandb_run=wandb_run,
+        **cfg,
+    )
+
+    if not cfg.get("eval", False):
+        trainer.fit()
+
+    if cfg.get("pre_train", False) and gpu == 0:
+        trainer.save_backbone()
+        trainer.close()
+
+    if not cfg.get("pre_train", False):
+        trainer.test()
+
+
 def distributed_run(
     run: Callable[[int, Optional[Union[Run, RunDisabled]], DictConfig], Any]
 ) -> Callable[..., Any]:
@@ -316,6 +338,10 @@ def distributed_run(
         OmegaConf.set_struct(cfg, False)
         cfg = config_args(cfg)
 
+        print("Config setup complete")
+        print(f"{cfg.dist_url=}")
+        print(f"{cfg.world_size=}")
+
         if cfg.world_size <= 1:
             # Setups up the `wandb` run.
             wandb_run, cfg = setup_wandb_run(0, cfg)
@@ -325,7 +351,8 @@ def distributed_run(
 
         else:  # pragma: no cover
             try:
-                mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+                print("starting process...")
+                mp.spawn(_run_preamble, (test, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
             except KeyboardInterrupt:
                 dist.destroy_process_group()  # type: ignore[attr-defined]
 
