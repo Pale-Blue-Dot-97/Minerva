@@ -286,7 +286,7 @@ def _run_preamble(
 
     if torch.cuda.is_available():
         torch.cuda.set_device(gpu)
-        # torch.backends.cudnn.benchmark = True  # type: ignore
+        torch.backends.cudnn.benchmark = True  # type: ignore
 
     # Start this process run.
     run(gpu, wandb_run, cfg)
