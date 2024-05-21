@@ -395,7 +395,11 @@ class MinervaSSL4EO(NonGeoDataset):
 
             seasons.append(img)
 
-        img_4s = np.stack(seasons, axis=0)  # [4,C,264,264]
+        try:
+            img_4s = np.stack(seasons, axis=0)  # [4,C,264,264]
+        except ValueError:
+            print(patch_id)
+            raise
 
         if self.normalize:
             return img_4s
