@@ -228,7 +228,7 @@ class MinervaSSL4EO(NonGeoDataset):
         self.s2c_transform = s2c_transform
         self.is_slurm_job = is_slurm_job
 
-        if self.lmbd_file:
+        if self.lmdb_file:
             if not self.is_slurm_job:
                 self._init_db()
             else:
@@ -254,7 +254,7 @@ class MinervaSSL4EO(NonGeoDataset):
             self.length = txn.stat()["entries"]
 
     def __getitem__(self, index: str):
-        if self.lmbd_file:
+        if self.lmdb_file:
             if self.is_slurm_job:
                 # Delay loading LMDB data until after initialization
                 if self.env is None:
