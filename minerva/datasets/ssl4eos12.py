@@ -481,15 +481,16 @@ def make_lmdb(
     env = lmdb.open(lmdb_file, map_size=1099511627776)
     txn = env.begin(write=True)
 
-    for index, (s1, s2a, s2c) in tqdm(
+    for index, sample in tqdm(
         enumerate(loader), total=len(dataset), desc="Creating LMDB"
     ):
+        images = sample["image"]
         if "s1" in mode:
-            sample_s1 = np.array(s1)
+            sample_s1 = np.array(images[0])
         if "s2a" in mode:
-            sample_s2a = np.array(s2a)
+            sample_s2a = np.array(images[1])
         if "s2c" in mode:
-            sample_s2c = np.array(s2c)
+            sample_s2c = np.array(images[2])
 
         if mode == ["s1", "s2a", "s2c"]:
             obj = (
