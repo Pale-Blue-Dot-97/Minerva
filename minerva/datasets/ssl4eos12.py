@@ -234,7 +234,7 @@ class MinervaSSL4EO(NonGeoDataset):
             self.length = 250000
 
         else:
-            self.ids = os.listdir(os.path.join(self.root, self.mode[0]))
+            self.ids = os.listdir(os.path.join(self.root, self.mode))
             self.length = len(self.ids)
 
     def _init_db(self):
