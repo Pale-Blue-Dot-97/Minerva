@@ -327,7 +327,7 @@ class MinervaSSL4EO(NonGeoDataset):
                 if self.s2c_transform is not None:
                     sample_s2c = self.s2c_transform(sample_s2c)
 
-            return {"image": (sample_s1, sample_s2a, sample_s2c)}
+            return {"image": np.stack((sample_s1, sample_s2a, sample_s2c), axis=0)}
 
         else:
             if "s1" in self.mode:
@@ -351,7 +351,7 @@ class MinervaSSL4EO(NonGeoDataset):
             else:
                 img_s2c_4s = None
 
-            return {"image": (img_s1_4s, img_s2a_4s, img_s2c_4s)}
+            return {"image": np.stack((img_s1_4s, img_s2a_4s, img_s2c_4s), axis=0)}
 
     def get_array(self, patch_id: str, mode: str, bands: Optional[List[str]] = None):
         data_root_patch = os.path.join(self.root, mode, patch_id)
@@ -490,14 +490,11 @@ def make_lmdb(
         enumerate(loader), total=len(dataset), desc="Creating LMDB"
     ):
         images = sample["image"]
-        if "s1" in mode:
-            sample_s1 = np.array(images[0])
-        if "s2a" in mode:
-            sample_s2a = np.array(images[1])
-        if "s2c" in mode:
-            sample_s2c = np.array(images[2])
 
         if mode == ["s1", "s2a", "s2c"]:
+            sample_s1 = np.array(images[0])
+            sample_s2a = np.array(images[1])
+            sample_s2c = np.array(images[2])
             obj = (
                 sample_s1.tobytes(),
                 sample_s1.shape,
@@ -506,12 +503,10 @@ def make_lmdb(
                 sample_s2c.tobytes(),
                 sample_s2c.shape,
             )
-        elif mode == ["s1"]:
-            obj = (sample_s1.tobytes(), sample_s1.shape)
-        elif mode == ["s2a"]:
-            obj = (sample_s2a.tobytes(), sample_s2a.shape)
-        elif mode == ["s2c"]:
-            obj = (sample_s2c.tobytes(), sample_s2c.shape)
+
+        else:
+            sample = np.array(images)
+            obj = (sample.tobytes(), sample.shape)
 
         txn.put(str(index).encode(), pickle.dumps(obj))
 
