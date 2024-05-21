@@ -39,7 +39,7 @@ import lmdb
 import numpy as np
 import rasterio
 from torch.utils.data import DataLoader, Dataset
-from torchgeo.datasets import NonGeoDataset, Sentinel2
+from torchgeo.datasets import NonGeoDataset, Sentinel2, stack_samples
 from torchvision.transforms import Normalize
 from tqdm import tqdm
 
@@ -394,6 +394,7 @@ class MinervaSSL4EO(NonGeoDataset):
                 img = normalise(img)
 
             seasons.append(img)
+
         img_4s = np.stack(seasons, axis=0)  # [4,C,264,264]
 
         if self.normalize:
@@ -476,7 +477,7 @@ def make_lmdb(
     dataset, lmdb_file, num_workers: int = 6, mode: List[str] = ["s1", "s2a", "s2c"]
 ) -> None:
     loader = InfiniteDataLoader(
-        dataset, num_workers=num_workers, collate_fn=lambda x: x[0]
+        dataset, num_workers=num_workers, collate_fn=stack_samples
     )
     env = lmdb.open(lmdb_file, map_size=1099511627776)
     txn = env.begin(write=True)
