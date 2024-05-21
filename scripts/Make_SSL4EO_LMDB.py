@@ -65,9 +65,7 @@ def main(args) -> None:
         )
         train_subset = random_subset(train_dataset, frac=args.frac, seed=42)
 
-        make_lmdb(
-            train_subset, args.save_path, num_workers=args.num_workers, mode=args.mode
-        )
+        make_lmdb(train_subset, args.save_path, num_workers=args.num_workers)
 
     # Check dataset class.
     else:
