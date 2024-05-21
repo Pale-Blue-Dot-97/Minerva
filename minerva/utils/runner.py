@@ -277,7 +277,7 @@ def _run_preamble(
 
     if cfg.world_size > 1:
         dist.init_process_group(  # type: ignore[attr-defined]
-            backend="gloo",
+            backend="nccl",
             init_method=cfg.dist_url,
             world_size=cfg.world_size,
             rank=cfg.rank,
