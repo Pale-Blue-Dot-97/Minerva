@@ -208,13 +208,11 @@ class MinervaSSL4EO(NonGeoDataset):
         root: str,
         lmdb_file: Optional[str] = None,
         normalize: bool = False,
-        mode: List[str] = ["s1", "s2a", "s2c"],
+        mode: str = "s2a",
         bands: Optional[List[str]] = None,
         dtype: str = "uint8",
         is_slurm_job=False,
-        s1_transform=None,
-        s2a_transform=None,
-        s2c_transform=None,
+        transform=None,
     ) -> None:
 
         self.root = root
@@ -223,9 +221,7 @@ class MinervaSSL4EO(NonGeoDataset):
         self.bands = bands
         self.dtype = dtype
         self.lmdb_file = lmdb_file
-        self.s1_transform = s1_transform
-        self.s2a_transform = s2a_transform
-        self.s2c_transform = s2c_transform
+        self.transform = transform
         self.is_slurm_job = is_slurm_job
 
         if self.lmdb_file:
@@ -264,7 +260,7 @@ class MinervaSSL4EO(NonGeoDataset):
                 data = txn.get(str(index).encode())
 
             # S1
-            if self.mode == ["s1"]:
+            if self.mode == "s1":
                 s1_bytes, s1_shape = pickle.loads(data)
                 if self.dtype == "uint8":
                     sample_s1 = np.frombuffer(s1_bytes, dtype=np.uint8).reshape(
@@ -274,12 +270,12 @@ class MinervaSSL4EO(NonGeoDataset):
                     sample_s1 = np.frombuffer(s1_bytes, dtype=np.float32).reshape(
                         s1_shape
                     )
-                if self.s1_transform is not None:
-                    sample_s1 = self.s1_transform(sample_s1)
+                if self.transform is not None:
+                    sample_s1 = self.transform(sample_s1)
                 return {"image": sample_s1}
 
             # S2A
-            if self.mode == ["s2a"]:
+            if self.mode == "s2a":
                 s2a_bytes, s2a_shape = pickle.loads(data)
                 if self.dtype == "uint8":
                     sample_s2a = np.frombuffer(s2a_bytes, dtype=np.uint8).reshape(
@@ -290,12 +286,12 @@ class MinervaSSL4EO(NonGeoDataset):
                         s2a_shape
                     )
                     sample_s2a = (sample_s2a / 10000.0).astype(np.float32)
-                if self.s2a_transform is not None:
-                    sample_s2a = self.s2a_transform(sample_s2a)
+                if self.transform is not None:
+                    sample_s2a = self.transform(sample_s2a)
                 return {"image": sample_s2a}
 
             # S2C
-            if self.mode == ["s2c"]:
+            if self.mode == "s2c":
                 s2c_bytes, s2c_shape = pickle.loads(data)
                 if self.dtype == "uint8":
                     sample_s2c = np.frombuffer(s2c_bytes, dtype=np.uint8).reshape(
@@ -306,52 +302,33 @@ class MinervaSSL4EO(NonGeoDataset):
                         s2c_shape
                     )
                     sample_s2c = (sample_s2c / 10000.0).astype(np.float32)
-                if self.s2c_transform is not None:
-                    sample_s2c = self.s2c_transform(sample_s2c)
+                if self.transform is not None:
+                    sample_s2c = self.transform(sample_s2c)
                 return {"image": sample_s2c}
 
-            # s1, s2a, s2c [TBD, for 50k subset experiments]
-            if self.mode == ["s1", "s2a", "s2c"]:
-                s1_bytes, s1_shape, s2a_bytes, s2a_shape, s2c_bytes, s2c_shape = (
-                    pickle.loads(data)
-                )
-
-                sample_s1 = np.frombuffer(s1_bytes, dtype=np.float32).reshape(s1_shape)
-                sample_s2a = np.frombuffer(s2a_bytes, dtype=np.int16).reshape(s2a_shape)
-                sample_s2c = np.frombuffer(s2c_bytes, dtype=np.int16).reshape(s2c_shape)
-
-                if self.s1_transform is not None:
-                    sample_s1 = self.s1_transform(sample_s1)
-                if self.s2a_transform is not None:
-                    sample_s2a = self.s2a_transform(sample_s2a)
-                if self.s2c_transform is not None:
-                    sample_s2c = self.s2c_transform(sample_s2c)
-
-            return {"image": np.stack((sample_s1, sample_s2a, sample_s2c), axis=0)}
-
         else:
-            if "s1" in self.mode:
-                img_s1_4s = self.get_array(
+            if self.mode == "s1":
+                img_4s = self.get_array(
                     self.ids[index], "s1"
                 )  # [4,2,264,264] float32 or uint8.
             else:
-                img_s1_4s = None
+                img_4s = None
 
-            if "s2a" in self.mode:
-                img_s2a_4s = self.get_array(
+            if self.mode == "s2a":
+                img_4s = self.get_array(
                     self.ids[index], "s2a", self.bands
                 )  # [4,12,264,264] int16 or uint8.
             else:
-                img_s2a_4s = None
+                img_4s = None
 
-            if "s2c" in self.mode:
-                img_s2c_4s = self.get_array(
+            if self.mode == "s2c":
+                img_4s = self.get_array(
                     self.ids[index], "s2c", self.bands
                 )  # [4,13,264,264] int16 or uint8.
             else:
-                img_s2c_4s = None
+                img_4s = None
 
-            return {"image": np.stack((img_s1_4s, img_s2a_4s, img_s2c_4s), axis=0)}
+            return {"image": img_4s}
 
     def get_array(self, patch_id: str, mode: str, bands: Optional[List[str]] = None):
         data_root_patch = os.path.join(self.root, mode, patch_id)
@@ -477,9 +454,7 @@ def random_subset(dataset, frac, seed=None):
     return Subset(dataset, indices)
 
 
-def make_lmdb(
-    dataset, lmdb_file, num_workers: int = 6, mode: List[str] = ["s1", "s2a", "s2c"]
-) -> None:
+def make_lmdb(dataset, lmdb_file, num_workers: int = 6) -> None:
     loader = InfiniteDataLoader(
         dataset, num_workers=num_workers, collate_fn=stack_samples
     )
@@ -491,22 +466,8 @@ def make_lmdb(
     ):
         images = sample["image"]
 
-        if mode == ["s1", "s2a", "s2c"]:
-            sample_s1 = np.array(images[0])
-            sample_s2a = np.array(images[1])
-            sample_s2c = np.array(images[2])
-            obj = (
-                sample_s1.tobytes(),
-                sample_s1.shape,
-                sample_s2a.tobytes(),
-                sample_s2a.shape,
-                sample_s2c.tobytes(),
-                sample_s2c.shape,
-            )
-
-        else:
-            sample = np.array(images)
-            obj = (sample.tobytes(), sample.shape)
+        sample = np.array(images)
+        obj = (sample.tobytes(), sample.shape)
 
         txn.put(str(index).encode(), pickle.dumps(obj))
 

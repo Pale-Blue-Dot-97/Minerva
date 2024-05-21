@@ -94,7 +94,7 @@ if __name__ == "__main__":
     parser.add_argument("--frac", type=float, default=1.0)
     parser.add_argument("--num_workers", type=int, default=6)
     parser.add_argument("--normalize", action="store_true", default=False)
-    parser.add_argument("--mode", nargs="*", type=str, default=["s1", "s2a", "s2c"])
+    parser.add_argument("--mode", type=str, default="s2a")
     parser.add_argument("--bands", nargs="*", type=str, default=None)
     parser.add_argument("--dtype", type=str, default="uint8")
     args = parser.parse_args()
