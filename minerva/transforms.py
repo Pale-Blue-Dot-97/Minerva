@@ -705,6 +705,41 @@ class SwapKeys:
         return sample
 
 
+class SeasonTransform:
+    """Configure what seasons from a patch are parsed through to the model.
+
+    Adapted from source: https://github.com/zhu-xlab/SSL4EO-S12/tree/main
+
+    Args:
+        season (str): How to handle what seasons to return:
+        * ``pair``: Randomly pick 2 seasons to return that will form a pair.
+        * ``random``: Randomly pick a single season to return.
+    """
+
+    def __init__(self, season: str = "random") -> None:
+        self.season = season
+
+    def __call__(self, x: Tensor) -> Union[Tuple[Tensor, Tensor], Tensor]:
+
+        if self.season == 'pair':
+            season1 = np.random.choice([0, 1, 2, 3])
+            season2 = np.random.choice([0, 1, 2, 3])
+
+            x1 = np.transpose(x[season1, :, :, :], (1, 2, 0))
+            x2 = np.transpose(x[season2, :, :, :], (1, 2, 0))
+            return x1, x2
+
+        elif self.season == 'random':
+            season1 = np.random.choice([0, 1, 2, 3])
+
+        else:
+            raise ValueError(f"The value for season, {self.season}, is not a valid option! Choose from ``random`` or ``augment``")
+
+        image = np.transpose(x[season1, :, :, :], (1, 2, 0))
+
+        return image
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
@@ -716,21 +751,6 @@ def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
         random_transforms.append(get_transform(ran_name, random_params[ran_name]))
 
     return RandomApply(random_transforms, p=p)
-
-
-# def _manual_compose(
-#     manual_params: Dict[str, Any],
-#     other_transforms: Optional[List[Any]] = None,
-# ) -> MinervaCompose:
-#     manual_transforms = []
-
-#     for manual_name in manual_params:
-#         manual_transforms.append(get_transform(manual_name, manual_params[manual_name]))
-
-#     if other_transforms:
-#         manual_transforms = manual_transforms + other_transforms
-
-#     return MinervaCompose(manual_transforms)
 
 
 def init_auto_norm(
@@ -858,11 +878,6 @@ def make_transformations(
     transformations: Dict[str, Any] = {}
 
     for name in transform_params:
-        # if name == "MinervaCompose":
-        #     return _manual_compose(
-        #         transform_params["MinervaCompose"].copy(),
-        #         other_transforms=transformations,
-        #     )
         if name in ("image", "mask", "label"):
             if not transform_params[name]:
                 pass
