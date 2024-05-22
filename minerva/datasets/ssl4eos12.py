@@ -25,7 +25,7 @@ __author__ = ["Harry Baker", "Yi Wang", "Adam J. Stewart"]
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "Apache 2.0 License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2"]
+__all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
 
 # =====================================================================================================================
 #                                                     IMPORTS

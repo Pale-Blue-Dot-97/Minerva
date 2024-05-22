@@ -42,6 +42,7 @@ __all__ = [
     "SelectChannels",
     "MinervaCompose",
     "SwapKeys",
+    "SeasonTransform",
     "get_transform",
     "init_auto_norm",
     "make_transformations",
