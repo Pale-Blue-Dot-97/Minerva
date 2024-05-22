@@ -292,9 +292,9 @@ def _run_preamble(
     run(gpu, wandb_run, cfg)
 
 
-def test(gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig):
-    print("welcome!")
-    print(gpu)
+def run_trainer(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+):
 
     trainer = Trainer(
         gpu=gpu,
@@ -334,26 +334,23 @@ def distributed_run(
 
     @functools.wraps(run)
     def inner_decorator(cfg: DictConfig):
-        OmegaConf.resolve(cfg)
-        OmegaConf.set_struct(cfg, False)
-        cfg = config_args(cfg)
+        with WandbConnectionManager:
+            OmegaConf.resolve(cfg)
+            OmegaConf.set_struct(cfg, False)
+            cfg = config_args(cfg)
 
-        print("Config setup complete")
-        print(f"{cfg.dist_url=}")
-        print(f"{cfg.world_size=}")
+            if cfg.world_size <= 1:
+                # Setups up the `wandb` run.
+                wandb_run, cfg = setup_wandb_run(0, cfg)
 
-        if cfg.world_size <= 1:
-            # Setups up the `wandb` run.
-            wandb_run, cfg = setup_wandb_run(0, cfg)
+                # Run the experiment.
+                run(0, wandb_run, cfg)
 
-            # Run the experiment.
-            run(0, wandb_run, cfg)
-
-        else:  # pragma: no cover
-            try:
-                print("starting process...")
-                mp.spawn(_run_preamble, (test, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
-            except KeyboardInterrupt:
-                dist.destroy_process_group()  # type: ignore[attr-defined]
+            else:  # pragma: no cover
+                try:
+                    print("starting process...")
+                    mp.spawn(_run_preamble, (run_trainer, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+                except KeyboardInterrupt:
+                    dist.destroy_process_group()  # type: ignore[attr-defined]
 
     return inner_decorator

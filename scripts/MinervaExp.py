@@ -40,10 +40,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-# import pickle
-# import cloudpickle
-# pickle.Pickler = cloudpickle.Pickler
-
 import functools
 from typing import Any, Callable, Optional, Union
 
@@ -185,6 +181,5 @@ if __name__ == "__main__":
     # Print Minerva banner.
     utils._print_banner()
 
-    with runner.WandbConnectionManager():
-        # Run the specified main with distributed computing and the arguments provided.
-        main()
+    # Run the specified main with distributed computing and the arguments provided.
+    main()
