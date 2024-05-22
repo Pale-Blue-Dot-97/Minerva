@@ -39,7 +39,7 @@ import lmdb
 import numpy as np
 import rasterio
 from torch.utils.data import DataLoader, Dataset
-from torchgeo.datasets import NonGeoDataset, Sentinel2, stack_samples
+from torchgeo.datasets import NonGeoDataset, Sentinel2
 from torchvision.transforms import Normalize
 from tqdm import tqdm
 
@@ -311,22 +311,18 @@ class MinervaSSL4EO(NonGeoDataset):
                 img_4s = self.get_array(
                     self.ids[index], "s1"
                 )  # [4,2,264,264] float32 or uint8.
-            else:
-                img_4s = None
-
-            if self.mode == "s2a":
+            elif self.mode == "s2a":
                 img_4s = self.get_array(
                     self.ids[index], "s2a", self.bands
                 )  # [4,12,264,264] int16 or uint8.
-            else:
-                img_4s = None
-
-            if self.mode == "s2c":
+            elif self.mode == "s2c":
                 img_4s = self.get_array(
                     self.ids[index], "s2c", self.bands
                 )  # [4,13,264,264] int16 or uint8.
             else:
-                img_4s = None
+                raise ValueError(
+                    f"Invalid value for mode {self.mode}! Must be `s1`, `s2a` or `s2c`"
+                )
 
             return {"image": img_4s}
 
@@ -372,11 +368,7 @@ class MinervaSSL4EO(NonGeoDataset):
 
             seasons.append(img)
 
-        try:
-            img_4s = np.stack(seasons, axis=0)  # [4,C,264,264]
-        except ValueError:
-            print(patch_id)
-            raise
+        img_4s = np.stack(seasons, axis=0)  # [4,C,264,264]
 
         if self.normalize:
             return img_4s
@@ -456,7 +448,7 @@ def random_subset(dataset, frac, seed=None):
 
 def make_lmdb(dataset, lmdb_file, num_workers: int = 6) -> None:
     loader = InfiniteDataLoader(
-        dataset, num_workers=num_workers, collate_fn=stack_samples
+        dataset, num_workers=num_workers, collate_fn=lambda x: x[0]
     )
     env = lmdb.open(lmdb_file, map_size=1099511627776)
     txn = env.begin(write=True)
