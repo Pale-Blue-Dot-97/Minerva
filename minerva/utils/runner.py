@@ -345,7 +345,7 @@ def distributed_run(
                 wandb_run, cfg = setup_wandb_run(0, cfg)
 
                 # Run the experiment.
-                run(0, wandb_run, cfg)
+                run_trainer(0, wandb_run, cfg)
 
             else:  # pragma: no cover
                 try:
