@@ -32,7 +32,7 @@ __all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
 # =====================================================================================================================
 import os
 import pickle
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import cv2
 import lmdb
@@ -212,7 +212,7 @@ class MinervaSSL4EO(NonGeoDataset):
         bands: Optional[List[str]] = None,
         dtype: str = "uint8",
         is_slurm_job=False,
-        transform=None,
+        transforms=None,
     ) -> None:
 
         self.root = root
@@ -221,7 +221,7 @@ class MinervaSSL4EO(NonGeoDataset):
         self.bands = bands
         self.dtype = dtype
         self.lmdb_file = lmdb_file
-        self.transform = transform
+        self.transforms = transforms
         self.is_slurm_job = is_slurm_job
 
         if self.lmdb_file:
@@ -249,7 +249,7 @@ class MinervaSSL4EO(NonGeoDataset):
         with self.env.begin(write=False) as txn:
             self.length = txn.stat()["entries"]
 
-    def __getitem__(self, index: str):
+    def __getitem__(self, index: int) -> Dict[str, Any]:
         if self.lmdb_file:
             if self.is_slurm_job:
                 # Delay loading LMDB data until after initialization
@@ -263,48 +263,37 @@ class MinervaSSL4EO(NonGeoDataset):
             if self.mode == "s1":
                 s1_bytes, s1_shape = pickle.loads(data)
                 if self.dtype == "uint8":
-                    sample_s1 = np.frombuffer(s1_bytes, dtype=np.uint8).reshape(
-                        s1_shape
-                    )
+                    image = np.frombuffer(s1_bytes, dtype=np.uint8).reshape(s1_shape)
                 else:
-                    sample_s1 = np.frombuffer(s1_bytes, dtype=np.float32).reshape(
-                        s1_shape
-                    )
-                if self.transform is not None:
-                    sample_s1 = self.transform(sample_s1)
-                return {"image": sample_s1}
+                    image = np.frombuffer(s1_bytes, dtype=np.float32).reshape(s1_shape)
 
             # S2A
-            if self.mode == "s2a":
+            elif self.mode == "s2a":
                 s2a_bytes, s2a_shape = pickle.loads(data)
+
                 if self.dtype == "uint8":
-                    sample_s2a = np.frombuffer(s2a_bytes, dtype=np.uint8).reshape(
-                        s2a_shape
-                    )
+                    image = np.frombuffer(s2a_bytes, dtype=np.uint8).reshape(s2a_shape)
                 else:
-                    sample_s2a = np.frombuffer(s2a_bytes, dtype=np.int16).reshape(
-                        s2a_shape
-                    )
-                    sample_s2a = (sample_s2a / 10000.0).astype(np.float32)
-                if self.transform is not None:
-                    sample_s2a = self.transform(sample_s2a)
-                return {"image": sample_s2a}
+                    image = np.frombuffer(s2a_bytes, dtype=np.int16).reshape(s2a_shape)
+                    image = (image / 10000.0).astype(np.float32)
 
             # S2C
-            if self.mode == "s2c":
+            elif self.mode == "s2c":
                 s2c_bytes, s2c_shape = pickle.loads(data)
                 if self.dtype == "uint8":
-                    sample_s2c = np.frombuffer(s2c_bytes, dtype=np.uint8).reshape(
-                        s2c_shape
-                    )
+                    image = np.frombuffer(s2c_bytes, dtype=np.uint8).reshape(s2c_shape)
                 else:
-                    sample_s2c = np.frombuffer(s2c_bytes, dtype=np.int16).reshape(
-                        s2c_shape
-                    )
-                    sample_s2c = (sample_s2c / 10000.0).astype(np.float32)
-                if self.transform is not None:
-                    sample_s2c = self.transform(sample_s2c)
-                return {"image": sample_s2c}
+                    image = np.frombuffer(s2c_bytes, dtype=np.int16).reshape(s2c_shape)
+                    image = (image / 10000.0).astype(np.float32)
+
+            else:
+                raise ValueError(
+                    f"Invalid value for mode {self.mode}! Must be `s1`, `s2a` or `s2c`"
+                )
+
+            if self.transforms is not None:
+                image = self.transforms(image)
+            return {"image": image}
 
         else:
             if self.mode == "s1":
@@ -324,6 +313,8 @@ class MinervaSSL4EO(NonGeoDataset):
                     f"Invalid value for mode {self.mode}! Must be `s1`, `s2a` or `s2c`"
                 )
 
+            if self.transforms is not None:
+                img_4s = self.transforms(img_4s)
             return {"image": img_4s}
 
     def get_array(self, patch_id: str, mode: str, bands: Optional[List[str]] = None):
