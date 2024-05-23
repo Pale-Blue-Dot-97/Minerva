@@ -334,9 +334,10 @@ def distributed_run(
 
     @functools.wraps(run)
     def inner_decorator(cfg: DictConfig):
-        with WandbConnectionManager:
-            OmegaConf.resolve(cfg)
-            OmegaConf.set_struct(cfg, False)
+        OmegaConf.resolve(cfg)
+        OmegaConf.set_struct(cfg, False)
+
+        with WandbConnectionManager():
             cfg = config_args(cfg)
 
             if cfg.world_size <= 1:
