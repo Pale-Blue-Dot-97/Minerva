@@ -32,7 +32,7 @@ __all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
 # =====================================================================================================================
 import os
 import pickle
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import cv2
 import lmdb
