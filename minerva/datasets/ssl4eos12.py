@@ -45,6 +45,8 @@ from torchvision.datasets import VisionDataset
 from torchvision.transforms import Normalize
 from tqdm import tqdm
 
+from minerva.transforms import SeasonTransform
+
 from .multispectral import MultiSpectralDataset
 from .utils import MinervaNonGeoDataset
 
@@ -216,6 +218,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         dtype: str = "uint8",
         is_slurm_job=False,
         transforms=None,
+        season_transform=None,
     ) -> None:
 
         super().__init__(root, transform=transforms, target_transform=None)
@@ -239,6 +242,9 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         else:
             self.ids = os.listdir(os.path.join(self.root, self.mode))
             self.length = len(self.ids)
+
+        if season_transform is not None:
+            self.season_transform = SeasonTransform(season_transform)
 
     def _init_db(self):
         self.env = lmdb.open(
@@ -297,6 +303,12 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             # Convert to tensor from ndarray.
             image = torch.from_numpy(image)
 
+            print(f"{image.size()=}")
+            if self.season_transform is not None:
+                image = self.season_transform(image)
+
+            print(f"{image.size()=}")
+
             # Apply transforms.
             if self.transform is not None:
                 image = self.transform(image)
@@ -322,6 +334,12 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
 
             # Convert to tensor from ndarray.
             image = torch.from_numpy(image)
+
+            print(f"{image.size()=}")
+            if self.season_transform is not None:
+                image = self.season_transform(image)
+
+            print(f"{image.size()=}")
 
             # Apply transforms.
             if self.transform is not None:
