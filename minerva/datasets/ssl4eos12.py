@@ -38,6 +38,7 @@ import cv2
 import lmdb
 import numpy as np
 import rasterio
+import torch
 from torch.utils.data import DataLoader, Dataset
 from torchgeo.datasets import NonGeoDataset, Sentinel2
 from torchvision.transforms import Normalize
@@ -291,6 +292,10 @@ class MinervaSSL4EO(NonGeoDataset):
                     f"Invalid value for mode {self.mode}! Must be `s1`, `s2a` or `s2c`"
                 )
 
+            # Convert to tensor from ndarray.
+            image = torch.from_numpy(image)
+
+            # Apply transforms.
             if self.transforms is not None:
                 image = self.transforms(image)
             return {"image": image}
@@ -313,6 +318,10 @@ class MinervaSSL4EO(NonGeoDataset):
                     f"Invalid value for mode {self.mode}! Must be `s1`, `s2a` or `s2c`"
                 )
 
+            # Convert to tensor from ndarray.
+            image = torch.from_numpy(image)
+
+            # Apply transforms.
             if self.transforms is not None:
                 img_4s = self.transforms(img_4s)
             return {"image": img_4s}
