@@ -40,11 +40,13 @@ import numpy as np
 import rasterio
 import torch
 from torch.utils.data import DataLoader, Dataset
-from torchgeo.datasets import NonGeoDataset, Sentinel2
+from torchgeo.datasets import Sentinel2
+from torchvision.datasets import VisionDataset
 from torchvision.transforms import Normalize
 from tqdm import tqdm
 
 from .multispectral import MultiSpectralDataset
+from .utils import MinervaNonGeoDataset
 
 
 # =====================================================================================================================
@@ -99,7 +101,7 @@ class NonGeoSSL4EOS12Sentinel2(MultiSpectralDataset):
     rgb_bands = ["B4", "B3", "B2"]
 
 
-class MinervaSSL4EO(NonGeoDataset):
+class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
     """Adapation of the :class:`SSL4EO` dataset for RGBI imagery and improved integration into :mod:`torchgeo`.
 
     Source: https://github.com/zhu-xlab/SSL4EO-S12/tree/main/src/benchmark/pretrain_ssl/datasets/SSL4EO
@@ -216,13 +218,13 @@ class MinervaSSL4EO(NonGeoDataset):
         transforms=None,
     ) -> None:
 
-        self.root = root
+        super().__init__(root, transform=transforms, target_transform=None)
+
         self.normalize = normalize
         self.mode = mode
         self.bands = bands
         self.dtype = dtype
         self.lmdb_file = lmdb_file
-        self.transforms = transforms
         self.is_slurm_job = is_slurm_job
 
         if self.lmdb_file:
@@ -296,8 +298,8 @@ class MinervaSSL4EO(NonGeoDataset):
             image = torch.from_numpy(image)
 
             # Apply transforms.
-            if self.transforms is not None:
-                image = self.transforms(image)
+            if self.transform is not None:
+                image = self.transform(image)
             return {"image": image}
 
         else:
@@ -322,8 +324,8 @@ class MinervaSSL4EO(NonGeoDataset):
             image = torch.from_numpy(image)
 
             # Apply transforms.
-            if self.transforms is not None:
-                img_4s = self.transforms(img_4s)
+            if self.transform is not None:
+                img_4s = self.transform(img_4s)
             return {"image": img_4s}
 
     def get_array(self, patch_id: str, mode: str, bands: Optional[List[str]] = None):
