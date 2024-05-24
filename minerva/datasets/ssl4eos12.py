@@ -245,6 +245,8 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
 
         if season_transform is not None:
             self.season_transform = SeasonTransform(season_transform)
+        else:
+            self.season_transform = None
 
     def _init_db(self):
         self.env = lmdb.open(
