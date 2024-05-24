@@ -722,21 +722,23 @@ class SeasonTransform:
 
     def __call__(self, x: Tensor) -> Union[Tuple[Tensor, Tensor], Tensor]:
 
-        if self.season == 'pair':
+        if self.season == "pair":
             season1 = np.random.choice([0, 1, 2, 3])
             season2 = np.random.choice([0, 1, 2, 3])
 
-            x1 = np.transpose(x[season1, :, :, :], (1, 2, 0))
-            x2 = np.transpose(x[season2, :, :, :], (1, 2, 0))
+            x1 = x[season1]
+            x2 = x[season2]
             return x1, x2
 
-        elif self.season == 'random':
+        elif self.season == "random":
             season1 = np.random.choice([0, 1, 2, 3])
 
         else:
-            raise ValueError(f"The value for season, {self.season}, is not a valid option! Choose from ``random`` or ``augment``")
+            raise ValueError(
+                f"The value for season, {self.season}, is not a valid option! Choose from ``random`` or ``pair``"
+            )
 
-        image = np.transpose(x[season1, :, :, :], (1, 2, 0))
+        image = x[season1]
 
         return image
 
