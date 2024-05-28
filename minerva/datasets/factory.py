@@ -118,6 +118,20 @@ def create_subdataset(
                 transforms=transformations,
                 **copy_params["params"],
             )
+
+        elif "season_transform" in signature(dataset_class).parameters:
+            if isinstance(paths, list):
+                paths = paths[0]
+            assert isinstance(paths, str)
+            del copy_params["params"]["season_transform"]
+            return PairedNonGeoDataset(
+                dataset_class,  # type: ignore[arg-type]
+                root=paths,
+                transforms=transformations,
+                season=True,
+                season_transform="pair",
+                **copy_params["params"],
+            )
         elif "root" in signature(dataset_class).parameters:
             if isinstance(paths, list):
                 paths = paths[0]

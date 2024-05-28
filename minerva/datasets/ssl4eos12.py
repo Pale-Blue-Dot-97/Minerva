@@ -32,13 +32,14 @@ __all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
 # =====================================================================================================================
 import os
 import pickle
-from typing import Any, Dict, List, Optional
+from typing import Dict, List, Optional
 
 import cv2
 import lmdb
 import numpy as np
 import rasterio
 import torch
+from torch import Tensor
 from torch.utils.data import DataLoader, Dataset
 from torchgeo.datasets import Sentinel2
 from torchvision.datasets import VisionDataset
@@ -260,7 +261,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         with self.env.begin(write=False) as txn:
             self.length = txn.stat()["entries"]
 
-    def __getitem__(self, index: int) -> Dict[str, Any]:
+    def __getitem__(self, index: int) -> Dict[str, Tensor]:
         if self.lmdb_file:
             if self.is_slurm_job:
                 # Delay loading LMDB data until after initialization
@@ -334,12 +335,22 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             # Convert to tensor from ndarray.
             img_4s = torch.from_numpy(img_4s)
 
-            if self.season_transform is not None:
-                img_4s = self.season_transform(img_4s)
+            if self.season_transform.season == "random":
+                img = self.season_transform(img_4s)
 
-            # Apply transforms.
-            if self.transform is not None:
-                img_4s = self.transform(img_4s)
+                # Apply transforms.
+                if self.transform is not None:
+                    img = self.transform(img)
+
+                return {"image": img}
+
+            elif self.season_transform.season == "pair":
+                # Randomly pick 2 seasons from the possible 4.
+                img1, img2 = self.season_transform(img_4s)
+
+                # Note: Additional transforms should be applied via PairedNonGeoDataset.
+                return {"image": torch.stack((img1, img2))}
+
             return {"image": img_4s}
 
     def get_array(self, patch_id: str, mode: str, bands: Optional[List[str]] = None):
