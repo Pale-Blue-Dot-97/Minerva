@@ -434,9 +434,9 @@ class SSLTaskLogger(MinervaTaskLogger):
         if "params" not in step_logger_params:
             step_logger_params["params"] = {}
 
-        step_logger_params["params"]["sample_pairs"] = sample_pairs
-        step_logger_params["params"]["collapse_level"] = sample_pairs
-        step_logger_params["params"]["euclidean"] = sample_pairs
+            step_logger_params["params"]["sample_pairs"] = sample_pairs
+            step_logger_params["params"]["collapse_level"] = sample_pairs
+            step_logger_params["params"]["euclidean"] = sample_pairs
 
         super(SSLTaskLogger, self).__init__(
             task_name,
