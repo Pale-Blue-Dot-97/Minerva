@@ -304,7 +304,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
                 )
 
             # Convert to tensor from ndarray.
-            image = torch.from_numpy(image)
+            image = torch.from_numpy(image.setflags(write=True))
 
             if self.season_transform is not None:
                 image = self.season_transform(image)
