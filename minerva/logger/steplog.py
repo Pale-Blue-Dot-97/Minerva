@@ -697,8 +697,8 @@ class SSLStepLogger(MinervaStepLogger):
             for i in range(len(z_a)):
                 euc_dist += float(
                     utils.calc_norm_euc_dist(
-                        z_a[i].detach().cpu(),
-                        z_b[i].detach().cpu(),
+                        z_a[i].detach(),
+                        z_b[i].detach(),
                     )
                 )
 
