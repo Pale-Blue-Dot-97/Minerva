@@ -481,12 +481,14 @@ class SSLTaskLogger(MinervaTaskLogger):
             )
 
         if self.sample_pairs:
-            self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
-                logs["collapse_level"]
-            )
-            self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
-                logs["euc_dist"] / self.n_batches
-            )
+            if "collapse_level" in logs:
+                self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
+                    logs["collapse_level"]
+                )
+            if "euc_dist" in logs:
+                self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
+                    logs["euc_dist"] / self.n_batches
+                )
 
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
@@ -500,12 +502,15 @@ class SSLTaskLogger(MinervaTaskLogger):
         )
 
         if self.sample_pairs:
-            msg += "| Collapse Level: {}%".format(
-                self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no] * 100.0
-            )
-            msg += "| Avg. Euclidean Distance: {}".format(
-                self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
-            )
+            if f"{self.task_name}_collapse_level" in self.metrics:
+                msg += "| Collapse Level: {}%".format(
+                    self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no]
+                    * 100.0
+                )
+            if f"{self.task_name}_euc_dist" in self.metrics:
+                msg += "| Avg. Euclidean Distance: {}".format(
+                    self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
+                )
 
         if not check_substrings_in_string(self.model_type, "siamese"):
             msg += "\n"

@@ -76,7 +76,7 @@ from .paired import (
     PairedNonGeoDataset,
     PairedUnionDataset,
 )
-from .ssl4eos12 import GeoSSL4EOS12Sentinel2, NonGeoSSL4EOS12Sentinel2, MinervaSSL4EO
+from .ssl4eos12 import GeoSSL4EOS12Sentinel2, MinervaSSL4EO, NonGeoSSL4EOS12Sentinel2
 from .utils import (
     MinervaConcatDataset,
     MinervaNonGeoDataset,
