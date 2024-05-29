@@ -459,8 +459,10 @@ class SSLTaskLogger(MinervaTaskLogger):
 
         # Delete space in the metrics log for metrics that will not be calculated if NOT a Siamese model.
         if not self.sample_pairs:
-            del self.metrics[f"{self.task_name}_collapse_level"]
-            del self.metrics[f"{self.task_name}_euc_dist"]
+            if not getattr(self.step_logger, "collapse_level", False):
+                del self.metrics[f"{self.task_name}_collapse_level"]
+            if not getattr(self.step_logger, "euclidean", False):
+                del self.metrics[f"{self.task_name}_euc_dist"]
 
     def _calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
@@ -481,11 +483,11 @@ class SSLTaskLogger(MinervaTaskLogger):
             )
 
         if self.sample_pairs:
-            if "collapse_level" in logs:
+            if getattr(self.step_logger, "collapse_level", False):
                 self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
                     logs["collapse_level"]
                 )
-            if "euc_dist" in logs:
+            if getattr(self.step_logger, "euclidean", False):
                 self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
                     logs["euc_dist"] / self.n_batches
                 )
@@ -502,12 +504,12 @@ class SSLTaskLogger(MinervaTaskLogger):
         )
 
         if self.sample_pairs:
-            if f"{self.task_name}_collapse_level" in self.metrics:
+            if getattr(self.step_logger, "collapse_level", False):
                 msg += "| Collapse Level: {}%".format(
                     self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no]
                     * 100.0
                 )
-            if f"{self.task_name}_euc_dist" in self.metrics:
+            if getattr(self.step_logger, "euclidean", False):
                 msg += "| Avg. Euclidean Distance: {}".format(
                     self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
                 )
