@@ -558,17 +558,17 @@ class MinervaTask(ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_task(task: str, *args, **params) -> MinervaTask:
+def get_task(task_name: str, *args, **params) -> MinervaTask:
     """Get the requested :class:`MinervaTask` by name.
 
     Args:
-        task (str): Name of the task.
+        task_name (str): Name of the task.
         params (dict[str, ~typing.Any]): Parameters for the task to be initialised.
 
     Returns:
         MinervaTask: Constructed :class:`MinervaTask` object.
     """
-    _task = func_by_str("minerva.tasks", task)
+    _task = func_by_str("minerva.tasks", task_name)
 
     task = _task(*args, **params)
     assert isinstance(task, MinervaTask)
