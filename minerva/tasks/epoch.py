@@ -82,7 +82,7 @@ class StandardEpoch(MinervaTask):
                     **self.params,
                 )
 
-                if self.step_num % self.log_rate:
+                if self.step_num % self.log_rate == 0:
                     if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
                         loss = results[0].data.clone()
                         dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
