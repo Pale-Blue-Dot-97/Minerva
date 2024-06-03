@@ -210,6 +210,9 @@ class MinervaTask(ABC):
         self.loaders = loaders
         self.class_dist = class_dist
 
+        # Get the logging rate from params. Logs will only be recorded at this rate of batches.
+        self.log_rate = fallback_params("log_rate", self.params, self.global_params, 5)
+
         # Try to find parameters first in the task params then fall back to the global level params.
         self.batch_size = fallback_params("batch_size", self.params, self.global_params)
 
@@ -218,6 +221,7 @@ class MinervaTask(ABC):
             self.batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         self.n_batches = n_batches
+
         self.model_type = fallback_params("model_type", self.params, self.global_params)
         self.sample_pairs = fallback_params(
             "sample_pairs", self.params, self.global_params
@@ -375,7 +379,7 @@ class MinervaTask(ABC):
         # Initialises the metric logger with arguments.
         logger: MinervaTaskLogger = _logger_cls(
             self.name,
-            self.n_batches,
+            self.n_batches // self.log_rate,
             self.batch_size,
             self.output_size,
             step_logger_params=utils.fallback_params(

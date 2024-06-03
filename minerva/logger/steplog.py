@@ -473,7 +473,7 @@ class SupervisedStepLogger(MinervaStepLogger):
         self.write_metric("acc", correct / len(torch.flatten(y)), step_num=step_num)
 
         # Adds 1 to batch number (step number).
-        self.logs["batch_num"] += 1
+        self.logs["batch_num"] = step_num
 
 
 class KNNStepLogger(MinervaStepLogger):

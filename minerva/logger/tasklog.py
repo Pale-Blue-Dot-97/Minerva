@@ -353,8 +353,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
 
         if check_substrings_in_string(self.model_type, "segmentation"):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"]
-                / (self.n_batches * self.batch_size * np.prod(self.output_size))
+                logs["total_correct"] / (self.n_samples * np.prod(self.output_size))
             )
             if logs.get("total_miou") is not None:
                 self.metrics[f"{self.task_name}_miou"]["y"].append(
