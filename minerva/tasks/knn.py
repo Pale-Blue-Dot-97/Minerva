@@ -314,7 +314,8 @@ class WeightedKNN(MinervaTask):
                     results = (loss, *results[1:])
 
                 # Sends results to logger.
-                self.logger.step(self.step_num, *results)
+                self.logger.step(self.global_step_num, self.local_step_num, *results)
 
                 # Update global step number for this mode of model fitting.
-                self.step_num += 1
+                self.global_step_num += 1
+                self.local_step_num += 1

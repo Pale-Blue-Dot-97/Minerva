@@ -27,7 +27,6 @@ Some code derived from Barlow Twins implementation of distributed computing:
 https://github.com/facebookresearch/barlowtwins
 """
 
-# TODO: Add ability to conduct hyper-parameter iterative variation experimentation.
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -47,7 +46,6 @@ from omegaconf import DictConfig
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
-from minerva.trainer import Trainer
 from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, utils
 
 
@@ -63,21 +61,13 @@ from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, ut
 def main(
     gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
 ) -> None:
-    trainer = Trainer(
-        gpu=gpu,
-        wandb_run=wandb_run,
-        **cfg,
-    )
 
-    if not cfg.get("eval", False):
-        trainer.fit()
+    # Due to the nature of multiprocessing and its interaction with hydra, wandb and SLURM,
+    # the actual code excuted in the job is contained in `run_trainer` in `runner`.
+    #
+    # Any code placed here will not be executed with multiprocessing!
 
-    if cfg.get("pre_train", False) and gpu == 0:
-        trainer.save_backbone()
-        trainer.close()
-
-    if not cfg.get("pre_train", False):
-        trainer.test()
+    pass
 
 
 if __name__ == "__main__":

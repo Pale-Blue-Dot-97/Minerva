@@ -38,7 +38,7 @@ __all__ = ["DynamicPSP", "MinervaPSP"]
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import segmentation_models_pytorch as smp
 import torch
@@ -99,7 +99,7 @@ class DynamicPSP(smp.PSPNet):
         psp_dropout: float = 0.2,
         in_channels: int = None,
         n_classes: int = 1,
-        activation: Optional[Union[str, callable]] = None,
+        activation: Optional[Union[str, Callable[..., Any]]] = None,
         upsampling: int = 8,
         aux_params: Optional[Dict[str, Any]] = None,
         backbone_weight_path: str = None,

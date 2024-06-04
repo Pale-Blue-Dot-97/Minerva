@@ -174,7 +174,8 @@ class MinervaStepLogger(ABC):
     @abc.abstractmethod
     def log(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
@@ -185,7 +186,8 @@ class MinervaStepLogger(ABC):
         """Abstract logging method, the core functionality of a logger. Must be overwritten.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of for the mode of model fitting.
+            local_step_num (int): The local step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
@@ -399,7 +401,8 @@ class SupervisedStepLogger(MinervaStepLogger):
 
     def log(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
@@ -410,7 +413,8 @@ class SupervisedStepLogger(MinervaStepLogger):
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Output tensor from the model.
             y (~torch.Tensor): Labels to assess model output against.
@@ -419,6 +423,8 @@ class SupervisedStepLogger(MinervaStepLogger):
         Returns:
             None
         """
+        # Update current batch number (step number).
+        self.logs["batch_num"] = local_step_num
 
         assert z is not None
         assert y is not None
@@ -466,14 +472,13 @@ class SupervisedStepLogger(MinervaStepLogger):
                 )  # noqa: E501 type: ignore[attr-defined]
             self.logs["total_miou"] += miou
 
-            self.write_metric("miou", miou / len(y), step_num=step_num)
+            self.write_metric("miou", miou / len(y), step_num=global_step_num)
 
         # Writes loss and correct predictions to the writer.
-        self.write_metric("loss", ls, step_num=step_num)
-        self.write_metric("acc", correct / len(torch.flatten(y)), step_num=step_num)
-
-        # Adds 1 to batch number (step number).
-        self.logs["batch_num"] += 1
+        self.write_metric("loss", ls, step_num=global_step_num)
+        self.write_metric(
+            "acc", correct / len(torch.flatten(y)), step_num=global_step_num
+        )
 
 
 class KNNStepLogger(MinervaStepLogger):
@@ -549,7 +554,8 @@ class KNNStepLogger(MinervaStepLogger):
 
     def log(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
@@ -557,6 +563,23 @@ class KNNStepLogger(MinervaStepLogger):
         *args,
         **kwargs,
     ) -> None:
+        """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
+
+        Args:
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
+            loss (~torch.Tensor): Loss from this step of model fitting.
+            z (~torch.Tensor): Output tensor from the model.
+            y (~torch.Tensor): Labels to assess model output against.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
+
+        Returns:
+            None
+        """
+
+        # Update current batch number (step number).
+        self.logs["batch_num"] = local_step_num
+
         assert isinstance(z, Tensor)
         assert isinstance(y, Tensor)
 
@@ -575,12 +598,9 @@ class KNNStepLogger(MinervaStepLogger):
         self.logs["total_top5"] += top5
 
         # Write results to the writer.
-        self.write_metric("loss", loss, step_num)
-        self.write_metric("acc", top1, step_num)
-        self.write_metric("top5", top5, step_num)
-
-        # Adds 1 to batch number (step number).
-        self.logs["batch_num"] += 1
+        self.write_metric("loss", loss, global_step_num)
+        self.write_metric("acc", top1, global_step_num)
+        self.write_metric("top5", top5, global_step_num)
 
 
 class SSLStepLogger(MinervaStepLogger):
@@ -661,7 +681,8 @@ class SSLStepLogger(MinervaStepLogger):
 
     def log(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
@@ -672,12 +693,19 @@ class SSLStepLogger(MinervaStepLogger):
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
             index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
+
+        Returns:
+            None
         """
+        # Update current batch number (step number).
+        self.logs["batch_num"] = local_step_num
+
         assert z is not None
 
         if check_substrings_in_string(self.model_type, "segmentation"):
@@ -697,13 +725,13 @@ class SSLStepLogger(MinervaStepLogger):
             for i in range(len(z_a)):
                 euc_dist += float(
                     utils.calc_norm_euc_dist(
-                        z_a[i].detach().cpu(),
-                        z_b[i].detach().cpu(),
+                        z_a[i].detach(),
+                        z_b[i].detach(),
                     )
                 )
 
             avg_euc_dist = euc_dist / len(z_a)
-            self.write_metric("euc_dist", avg_euc_dist, step_num)
+            self.write_metric("euc_dist", avg_euc_dist, global_step_num)
             self.logs["euc_dist"] += avg_euc_dist
 
         if self.collapse_level:
@@ -728,7 +756,7 @@ class SSLStepLogger(MinervaStepLogger):
                 0.0, 1 - math.sqrt(len(output)) * self.logs["avg_output_std"]
             )
 
-            self.write_metric("collapse_level", collapse_level, step_num)
+            self.write_metric("collapse_level", collapse_level, global_step_num)
 
             self.logs["collapse_level"] = collapse_level
 
@@ -744,14 +772,11 @@ class SSLStepLogger(MinervaStepLogger):
             self.logs["total_top5"] += top5
 
             # Write the accuracy and top5 accuracy to the writer.
-            self.write_metric("acc", correct / 2 * len(z[0]), step_num)
-            self.write_metric("top5_acc", top5 / 2 * len(z[0]), step_num)
+            self.write_metric("acc", correct / 2 * len(z[0]), global_step_num)
+            self.write_metric("top5_acc", top5 / 2 * len(z[0]), global_step_num)
 
         # Writes the loss to the writer.
-        self.write_metric("loss", ls, step_num=step_num)
-
-        # Adds 1 to the batch number (step number).
-        self.logs["batch_num"] += 1
+        self.write_metric("loss", ls, step_num=global_step_num)
 
 
 # =====================================================================================================================

@@ -90,7 +90,7 @@ class AuxCELoss(Module):
     Source: https://github.com/xitongpu/PSPNet/blob/main/src/model/cell.py
     """
 
-    def __init__(self, ignore_index=255, alpha: int = 0.4) -> None:
+    def __init__(self, ignore_index=255, alpha: float = 0.4) -> None:
         super().__init__()
         self.loss = CrossEntropyLoss(ignore_index=ignore_index)
         self.alpha = alpha
@@ -108,8 +108,12 @@ class AuxCELoss(Module):
             CE_loss_aux = self.loss(predicted_labels, labels)
 
             # Weighted sum the losses together and return
-            return CE_loss + (self.alpha * CE_loss_aux)
+            loss = CE_loss + (self.alpha * CE_loss_aux)
+            assert isinstance(loss, Tensor)
+            return loss
 
         # Else, assume this is just the loss from the segmentation head
         # so perform a standard CrossEntropyLoss op.
-        return self.loss(net_out, target)
+        loss = self.loss(net_out, target)
+        assert isinstance(loss, Tensor)
+        return loss

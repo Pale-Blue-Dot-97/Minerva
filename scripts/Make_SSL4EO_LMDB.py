@@ -23,9 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""A standard epoch for use with generic model fitting.
-
-.. versionadded:: 0.27
+r"""Script to make a LMBD file of the SSL4EO-S12 dataset.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -34,71 +32,69 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["StandardEpoch"]
-
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from contextlib import nullcontext
+import argparse
+import os
+import shutil
 
-import torch.distributed as dist
-from alive_progress import alive_bar
+from torch.utils.data import DataLoader
+from tqdm import tqdm
 
-from minerva.utils import utils
-
-from .core import MinervaTask
+from minerva.datasets.ssl4eos12 import MinervaSSL4EO, make_lmdb, random_subset
 
 
 # =====================================================================================================================
-#                                                     CLASSES
+#                                                      MAIN
 # =====================================================================================================================
-class StandardEpoch(MinervaTask):
-    """A standard epoch for use with generic model fitting.
+def main(args) -> None:
 
-    .. versionadded:: 0.27
-    """
+    # Make lmdb dataset.
+    if args.make_lmdb_file:
+        if os.path.isdir(args.save_path):
+            shutil.rmtree(args.save_path)
 
-    logger_cls = "SupervisedTaskLogger"
+        train_dataset = MinervaSSL4EO(
+            root=args.root,
+            normalize=args.normalize,
+            mode=args.mode,
+            bands=args.bands,
+            dtype=args.dtype,
+        )
+        train_subset = random_subset(train_dataset, frac=args.frac, seed=42)
 
-    def step(self) -> None:
-        # Initialises a progress bar for the epoch.
-        with (
-            alive_bar(self.n_batches, bar="blocks") if self.gpu == 0 else nullcontext()
-        ) as bar:
-            # Sets the model up for training or evaluation modes.
-            if self.train:
-                self.model.train()
-            else:
-                self.model.eval()
+        make_lmdb(train_subset, args.save_path, num_workers=args.num_workers)
 
-            # Core of the epoch.
-            for batch in self.loaders:
-                results = self.modelio(
-                    batch,
-                    self.model,
-                    self.device,
-                    self.train,
-                    **self.params,
-                )
+    # Check dataset class.
+    else:
+        train_dataset = MinervaSSL4EO(root=args.root, transform=None)
+        train_loader = DataLoader(train_dataset, batch_size=1, num_workers=0)
 
-                if self.local_step_num % self.log_rate == 0:
-                    if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-                        loss = results[0].data.clone()
-                        dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
-                        results = (loss, *results[1:])
+        for idx, (s1, s2a, s2c) in tqdm(
+            enumerate(train_loader), total=len(train_dataset)
+        ):
+            if idx > 0:
+                break
 
-                    self.logger.step(
-                        self.global_step_num, self.local_step_num, *results
-                    )
+            print(
+                f"{s1.shape=}\n{s1.dtype=}\n{s2a.shape=}\n{s2a.dtype=}\n{s2c.shape=}\n{s2c.dtype=}"
+            )
 
-                self.global_step_num += 1
-                self.local_step_num += 1
 
-                # Updates progress bar that batch has been processed.
-                if self.gpu == 0:
-                    bar()  # type: ignore
+if __name__ == "__main__":
 
-        # If configured to do so, calculates the grad norms.
-        if self.params.get("calc_norm", False):
-            _ = utils.calc_grad(self.model)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--root", type=str)
+    parser.add_argument("--save_path", type=str)
+    parser.add_argument("--make_lmdb_file", action="store_true", default=False)
+    parser.add_argument("--frac", type=float, default=1.0)
+    parser.add_argument("--num_workers", type=int, default=6)
+    parser.add_argument("--normalize", action="store_true", default=False)
+    parser.add_argument("--mode", type=str, default="s2a")
+    parser.add_argument("--bands", nargs="*", type=str, default=None)
+    parser.add_argument("--dtype", type=str, default="uint8")
+    args = parser.parse_args()
+
+    main(args)

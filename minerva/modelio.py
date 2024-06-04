@@ -92,10 +92,11 @@ def sup_tg(
     targets: Tensor = batch[target_key]
 
     # Check that none of the data is NaN or infinity.
-    assert not images.isnan().any()
-    assert not images.isinf().any()
-    assert not targets.isnan().any()
-    assert not targets.isinf().any()
+    if kwargs.get("validate_variables", False):
+        assert not images.isnan().any()
+        assert not images.isinf().any()
+        assert not targets.isnan().any()
+        assert not targets.isinf().any()
 
     # Re-arranges the x and y batches.
     x_batch: Tensor = images.to(float_dtype)  # type: ignore[attr-defined]
@@ -175,10 +176,11 @@ def autoencoder_io(
     masks: LongTensor = batch["mask"]
 
     # Check that none of the data is NaN or infinity.
-    assert not images.isnan().any()
-    assert not images.isinf().any()
-    assert not masks.isnan().any()
-    assert not masks.isinf().any()
+    if kwargs.get("validate_variables", False):
+        assert not images.isnan().any()
+        assert not images.isinf().any()
+        assert not masks.isnan().any()
+        assert not masks.isinf().any()
 
     if key == "mask":
         # Squeeze out axis 1 if only 1 element wide.
@@ -270,10 +272,11 @@ def ssl_pair_tg(
     x_i_batch = x_i_batch.to(float_dtype)  # type: ignore[attr-defined]
     x_j_batch = x_j_batch.to(float_dtype)  # type: ignore[attr-defined]
 
-    try:
-        assert_raises(AssertionError, assert_array_equal, x_i_batch, x_j_batch)
-    except AssertionError:
-        print("WARNING: Batches are the same!")
+    if kwargs.get("validate_variables", False):
+        try:
+            assert_raises(AssertionError, assert_array_equal, x_i_batch, x_j_batch)
+        except AssertionError:
+            print("WARNING: Batches are the same!")
 
     # Stacks each side of the pair batches together.
     x_batch = torch.stack([x_i_batch, x_j_batch])
@@ -282,8 +285,9 @@ def ssl_pair_tg(
     x = x_batch.to(device, non_blocking=True)
 
     # Check that none of the data is NaN or infinity.
-    assert not x.isnan().any()
-    assert not x.isinf().any()
+    if kwargs.get("validate_variables", False):
+        assert not x.isnan().any()
+        assert not x.isinf().any()
 
     # Runs a step of the epoch.
     loss, z = model.step(x, train=train)

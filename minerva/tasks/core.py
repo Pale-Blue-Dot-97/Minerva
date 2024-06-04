@@ -210,6 +210,9 @@ class MinervaTask(ABC):
         self.loaders = loaders
         self.class_dist = class_dist
 
+        # Get the logging rate from params. Logs will only be recorded at this rate of batches.
+        self.log_rate = fallback_params("log_rate", self.params, self.global_params, 1)
+
         # Try to find parameters first in the task params then fall back to the global level params.
         self.batch_size = fallback_params("batch_size", self.params, self.global_params)
 
@@ -218,6 +221,7 @@ class MinervaTask(ABC):
             self.batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         self.n_batches = n_batches
+
         self.model_type = fallback_params("model_type", self.params, self.global_params)
         self.sample_pairs = fallback_params(
             "sample_pairs", self.params, self.global_params
@@ -242,7 +246,8 @@ class MinervaTask(ABC):
 
         self.device = device
         self.writer = writer
-        self.step_num = 0
+        self.global_step_num = 0
+        self.local_step_num = 0
 
         # Initialise the Weights and Biases metrics for this task.
         self.init_wandb_metrics()
@@ -375,7 +380,7 @@ class MinervaTask(ABC):
         # Initialises the metric logger with arguments.
         logger: MinervaTaskLogger = _logger_cls(
             self.name,
-            self.n_batches,
+            self.n_batches // self.log_rate,
             self.batch_size,
             self.output_size,
             step_logger_params=utils.fallback_params(
@@ -410,6 +415,7 @@ class MinervaTask(ABC):
         raise NotImplementedError
 
     def _generic_step(self, epoch_no: int) -> Optional[Dict[str, Any]]:
+        self.local_step_num = 0
         self.step()
 
         # Send the logs to the metric logger.
@@ -554,17 +560,17 @@ class MinervaTask(ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_task(task: str, *args, **params) -> MinervaTask:
+def get_task(task_name: str, *args, **params) -> MinervaTask:
     """Get the requested :class:`MinervaTask` by name.
 
     Args:
-        task (str): Name of the task.
+        task_name (str): Name of the task.
         params (dict[str, ~typing.Any]): Parameters for the task to be initialised.
 
     Returns:
         MinervaTask: Constructed :class:`MinervaTask` object.
     """
-    _task = func_by_str("minerva.tasks", task)
+    _task = func_by_str("minerva.tasks", task_name)
 
     task = _task(*args, **params)
     assert isinstance(task, MinervaTask)

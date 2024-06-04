@@ -56,6 +56,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable, Optional, Tuple, Union
 
+# import hydra
 import requests
 import torch
 import torch.distributed as dist
@@ -66,6 +67,7 @@ from omegaconf import DictConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+from minerva.trainer import Trainer
 from minerva.utils import utils
 
 
@@ -90,6 +92,12 @@ class WandbConnectionManager:
 
     def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
         os.environ["WANDB_MODE"] = "online"
+
+    def __call__(self, func):
+        @functools.wraps(func)
+        def inner_decorator(cfg: DictConfig):
+            with self:
+                return inner_decorator
 
 
 # =====================================================================================================================
@@ -147,6 +155,7 @@ def setup_wandb_run(
                     group=cfg.get("group", "DDP"),
                     dir=cfg.get("wandb_dir", None),
                     name=cfg.jobid,
+                    settings=wandb.Settings(start_method="thread"),
                 )
             else:
                 if gpu == 0:
@@ -200,6 +209,9 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
         # Requeue job on SLURM preemption.
         signal.signal(signal.SIGUSR1, _handle_sigusr1)  # type: ignore[attr-defined]
         signal.signal(signal.SIGTERM, _handle_sigterm)
+
+        # Ensure that wandb is set to offline mode for SLURM jobs.
+        os.environ["WANDB_MODE"] = "offline"
 
         # Get SLURM variables.
         slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
@@ -276,7 +288,7 @@ def _run_preamble(
 
     if cfg.world_size > 1:
         dist.init_process_group(  # type: ignore[attr-defined]
-            backend="gloo",
+            backend="nccl",
             init_method=cfg.dist_url,
             world_size=cfg.world_size,
             rank=cfg.rank,
@@ -314,6 +326,7 @@ def distributed_run(
     def inner_decorator(cfg: DictConfig):
         OmegaConf.resolve(cfg)
         OmegaConf.set_struct(cfg, False)
+
         cfg = config_args(cfg)
 
         if cfg.world_size <= 1:
@@ -321,12 +334,33 @@ def distributed_run(
             wandb_run, cfg = setup_wandb_run(0, cfg)
 
             # Run the experiment.
-            run(0, wandb_run, cfg)
+            run_trainer(0, wandb_run, cfg)
 
         else:  # pragma: no cover
             try:
-                mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+                mp.spawn(_run_preamble, (run_trainer, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
             except KeyboardInterrupt:
                 dist.destroy_process_group()  # type: ignore[attr-defined]
 
     return inner_decorator
+
+
+def run_trainer(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+) -> None:
+
+    trainer = Trainer(
+        gpu=gpu,
+        wandb_run=wandb_run,
+        **cfg,
+    )
+
+    if not cfg.get("eval", False):
+        trainer.fit()
+
+    if cfg.get("pre_train", False) and gpu == 0:
+        trainer.save_backbone()
+        trainer.close()
+
+    if not cfg.get("pre_train", False):
+        trainer.test()
