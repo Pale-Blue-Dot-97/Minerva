@@ -57,7 +57,6 @@ from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, ut
     config_path=str(DEFAULT_CONF_DIR_PATH),
     config_name=DEFAULT_CONFIG_NAME,
 )
-@runner.WandbConnectionManager
 @runner.distributed_run
 def main(
     gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
@@ -75,5 +74,6 @@ if __name__ == "__main__":
     # Print Minerva banner.
     utils._print_banner()
 
-    # Run the specified main with distributed computing and the arguments provided.
-    main()
+    with runner.WandbConnectionManager():
+        # Run the specified main with distributed computing and the arguments provided.
+        main()
