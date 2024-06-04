@@ -148,6 +148,7 @@ def setup_wandb_run(
                     group=cfg.get("group", "DDP"),
                     dir=cfg.get("wandb_dir", None),
                     name=cfg.jobid,
+                    settings=wandb.Settings(start_method="thread"),
                 )
             else:
                 if gpu == 0:
@@ -345,12 +346,12 @@ def distributed_run(
                 wandb_run, cfg = setup_wandb_run(0, cfg)
 
                 # Run the experiment.
-                run_trainer(0, wandb_run, cfg)
+                run(0, wandb_run, cfg)
 
             else:  # pragma: no cover
                 try:
                     print("starting process...")
-                    mp.spawn(_run_preamble, (run_trainer, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+                    mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
                 except KeyboardInterrupt:
                     dist.destroy_process_group()  # type: ignore[attr-defined]
 
