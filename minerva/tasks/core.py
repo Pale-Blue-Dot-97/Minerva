@@ -211,7 +211,7 @@ class MinervaTask(ABC):
         self.class_dist = class_dist
 
         # Get the logging rate from params. Logs will only be recorded at this rate of batches.
-        self.log_rate = fallback_params("log_rate", self.params, self.global_params, 5)
+        self.log_rate = fallback_params("log_rate", self.params, self.global_params, 4)
 
         # Try to find parameters first in the task params then fall back to the global level params.
         self.batch_size = fallback_params("batch_size", self.params, self.global_params)
@@ -246,7 +246,8 @@ class MinervaTask(ABC):
 
         self.device = device
         self.writer = writer
-        self.step_num = 0
+        self.global_step_num = 0
+        self.local_step_num = 0
 
         # Initialise the Weights and Biases metrics for this task.
         self.init_wandb_metrics()
@@ -414,6 +415,7 @@ class MinervaTask(ABC):
         raise NotImplementedError
 
     def _generic_step(self, epoch_no: int) -> Optional[Dict[str, Any]]:
+        self.local_step_num = 0
         self.step()
 
         # Send the logs to the metric logger.

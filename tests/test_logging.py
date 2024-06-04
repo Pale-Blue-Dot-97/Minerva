@@ -156,10 +156,10 @@ def test_SupervisedStepLogger(
             }
             data.append(batch)
 
-            logger.step(i, *sup_tg(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
+            logger.step(i, i, *sup_tg(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
 
         logs = logger.get_logs
-        assert logs["batch_num"] == std_n_batches
+        assert logs["batch_num"] == std_n_batches - 1
         assert isinstance(logs["total_loss"], float)
         assert isinstance(logs["total_correct"], float)
 
@@ -296,11 +296,12 @@ def test_SSLStepLogger(
 
             logger.step(
                 i,
+                i,
                 *ssl_pair_tg((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]
             )
 
         logs = logger.get_logs
-        assert logs["batch_num"] == std_n_batches
+        assert logs["batch_num"] == std_n_batches - 1
         assert isinstance(logs["total_loss"], float)
 
         if extra_metrics:

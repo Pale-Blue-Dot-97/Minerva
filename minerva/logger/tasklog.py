@@ -164,7 +164,8 @@ class MinervaTaskLogger(ABC):
 
     def step(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
@@ -175,7 +176,8 @@ class MinervaTaskLogger(ABC):
         """Abstract method to log a step, using the logger. Must be overwritten.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
@@ -185,7 +187,8 @@ class MinervaTaskLogger(ABC):
             None
         """
         self.step_logger.log(
-            step_num,
+            global_step_num,
+            local_step_num,
             loss,
             z,
             y,
