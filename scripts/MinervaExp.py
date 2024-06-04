@@ -39,75 +39,35 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-# from typing import Optional, Union
+from typing import Optional, Union
 
 import hydra
+from omegaconf import DictConfig
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
-# from minerva.trainer import Trainer
-from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, utils
-
-# from minerva.utils import utils
-from minerva.utils.runner import run_trainer
-
-# from omegaconf import DictConfig
-# from wandb.sdk.lib import RunDisabled
-# from wandb.sdk.wandb_run import Run
+from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, utils
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-# @hydra.main(
-#     version_base="1.3",
-#     config_path=str(DEFAULT_CONF_DIR_PATH),
-#     config_name=DEFAULT_CONFIG_NAME,
-# )
-# @runner.distributed_run
-# def main(
-#     gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
-# ) -> None:
-#     # cfg.rank += gpu
+@hydra.main(
+    version_base="1.3",
+    config_path=str(DEFAULT_CONF_DIR_PATH),
+    config_name=DEFAULT_CONFIG_NAME,
+)
+@runner.distributed_run
+def main(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+) -> None:
 
-#     # # Setups the `wandb` run for this process.
-#     # wandb_run, cfg = runner.setup_wandb_run(gpu, cfg)
+    # Due to the nature of multiprocessing and its interaction with hydra, wandb and SLURM,
+    # the actual code excuted in the job is contained in `run_trainer` in `runner`.
+    #
+    # Any code placed here will not be executed with multiprocessing!
 
-#     # if cfg.world_size > 1:
-#     #     dist.init_process_group(  # type: ignore[attr-defined]
-#     #         backend="gloo",
-#     #         init_method=cfg.dist_url,
-#     #         world_size=cfg.world_size,
-#     #         rank=cfg.rank,
-#     #     )
-#     #     print(f"INITIALISED PROCESS ON {cfg.rank}")
-
-#     # if torch.cuda.is_available():
-#     #     torch.cuda.set_device(gpu)
-#     #     #torch.backends.cudnn.benchmark = True  # type: ignore
-
-#     trainer = Trainer(
-#         gpu=gpu,
-#         wandb_run=wandb_run,
-#         **cfg,
-#     )
-
-#     if not cfg.get("eval", False):
-#         trainer.fit()
-
-#     if cfg.get("pre_train", False) and gpu == 0:
-#         trainer.save_backbone()
-#         trainer.close()
-
-#     if not cfg.get("pre_train", False):
-#         trainer.test()
-#     print("done!")
-
-
-def main():
-    hydra.main(
-        version_base="1.3",
-        config_path=str(DEFAULT_CONF_DIR_PATH),
-        config_name=DEFAULT_CONFIG_NAME,
-    )(run_trainer)()
+    pass
 
 
 if __name__ == "__main__":
