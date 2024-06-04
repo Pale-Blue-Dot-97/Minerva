@@ -47,7 +47,7 @@ import hydra
 from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, utils
 
 # from minerva.utils import utils
-from minerva.utils.runner import WandbConnectionManager, run_trainer
+from minerva.utils.runner import run_trainer
 
 # from omegaconf import DictConfig
 # from wandb.sdk.lib import RunDisabled
@@ -103,12 +103,11 @@ from minerva.utils.runner import WandbConnectionManager, run_trainer
 
 
 def main():
-    with WandbConnectionManager():
-        hydra.main(
-            version_base="1.3",
-            config_path=str(DEFAULT_CONF_DIR_PATH),
-            config_name=DEFAULT_CONFIG_NAME,
-        )(run_trainer)()
+    hydra.main(
+        version_base="1.3",
+        config_path=str(DEFAULT_CONF_DIR_PATH),
+        config_name=DEFAULT_CONFIG_NAME,
+    )(run_trainer)()
 
 
 if __name__ == "__main__":

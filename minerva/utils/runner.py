@@ -68,7 +68,7 @@ from wandb.sdk.wandb_run import Run
 
 import wandb
 from minerva.trainer import Trainer
-from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, utils
+from minerva.utils import utils
 
 
 # =====================================================================================================================
@@ -313,28 +313,30 @@ def distributed_run(
 
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
 
-    @functools.wraps(run)
-    def inner_decorator(cfg: DictConfig):
-        OmegaConf.resolve(cfg)
-        OmegaConf.set_struct(cfg, False)
+    with WandbConnectionManager():
 
-        cfg = config_args(cfg)
+        @functools.wraps(run)
+        def inner_decorator(cfg: DictConfig):
+            OmegaConf.resolve(cfg)
+            OmegaConf.set_struct(cfg, False)
 
-        if cfg.world_size <= 1:
-            # Setups up the `wandb` run.
-            wandb_run, cfg = setup_wandb_run(0, cfg)
+            cfg = config_args(cfg)
 
-            # Run the experiment.
-            run(0, wandb_run, cfg)
+            if cfg.world_size <= 1:
+                # Setups up the `wandb` run.
+                wandb_run, cfg = setup_wandb_run(0, cfg)
 
-        else:  # pragma: no cover
-            try:
-                print("starting process...")
-                mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
-            except KeyboardInterrupt:
-                dist.destroy_process_group()  # type: ignore[attr-defined]
+                # Run the experiment.
+                run(0, wandb_run, cfg)
 
-    return inner_decorator
+            else:  # pragma: no cover
+                try:
+                    print("starting process...")
+                    mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+                except KeyboardInterrupt:
+                    dist.destroy_process_group()  # type: ignore[attr-defined]
+
+        return inner_decorator
 
 
 # @hydra.main(
