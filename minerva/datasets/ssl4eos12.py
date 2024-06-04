@@ -32,7 +32,7 @@ __all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
 # =====================================================================================================================
 import os
 import pickle
-from typing import Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import cv2
 import lmdb
@@ -244,6 +244,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             self.ids = os.listdir(os.path.join(self.root, self.mode))
             self.length = len(self.ids)
 
+        self.season_transform: Optional[Callable[..., Any]]
         if season_transform is not None:
             self.season_transform = SeasonTransform(season_transform)
         else:
@@ -258,6 +259,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             readahead=False,
             meminit=False,
         )
+        assert self.env is not None
         with self.env.begin(write=False) as txn:
             self.length = txn.stat()["entries"]
 
@@ -268,6 +270,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
                 if self.env is None:
                     self._init_db()
 
+            assert self.env is not None
             with self.env.begin(write=False) as txn:
                 data = txn.get(str(index).encode())
 
@@ -277,7 +280,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
                 if self.dtype == "uint8":
                     image = np.frombuffer(s1_bytes, dtype=np.uint8).reshape(s1_shape)
                 else:
-                    image = np.frombuffer(s1_bytes, dtype=np.float32).reshape(s1_shape)
+                    image = np.frombuffer(s1_bytes, dtype=np.float32).reshape(s1_shape)  # type: ignore[assignment]
 
             # S2A
             elif self.mode == "s2a":
@@ -286,7 +289,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
                 if self.dtype == "uint8":
                     image = np.frombuffer(s2a_bytes, dtype=np.uint8).reshape(s2a_shape)
                 else:
-                    image = np.frombuffer(s2a_bytes, dtype=np.int16).reshape(s2a_shape)
+                    image = np.frombuffer(s2a_bytes, dtype=np.int16).reshape(s2a_shape)  # type: ignore[assignment]
                     image = (image / 10000.0).astype(np.float32)
 
             # S2C
@@ -295,7 +298,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
                 if self.dtype == "uint8":
                     image = np.frombuffer(s2c_bytes, dtype=np.uint8).reshape(s2c_shape)
                 else:
-                    image = np.frombuffer(s2c_bytes, dtype=np.int16).reshape(s2c_shape)
+                    image = np.frombuffer(s2c_bytes, dtype=np.int16).reshape(s2c_shape)  # type: ignore[assignment]
                     image = (image / 10000.0).astype(np.float32)
 
             else:
@@ -304,7 +307,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
                 )
 
             # Convert to tensor from ndarray.
-            image = torch.from_numpy(image.setflags(write=True))
+            image = torch.from_numpy(image.setflags(write=True))  # type: ignore[assignment]
 
             if self.season_transform is not None:
                 image = self.season_transform(image)
@@ -312,7 +315,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             # Apply transforms.
             if self.transform is not None:
                 image = self.transform(image)
-            return {"image": image}
+            return {"image": image}  # type: ignore[dict-item]
 
         else:
             if self.mode == "s1":
