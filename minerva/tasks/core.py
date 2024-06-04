@@ -211,7 +211,7 @@ class MinervaTask(ABC):
         self.class_dist = class_dist
 
         # Get the logging rate from params. Logs will only be recorded at this rate of batches.
-        self.log_rate = fallback_params("log_rate", self.params, self.global_params, 4)
+        self.log_rate = fallback_params("log_rate", self.params, self.global_params, 1)
 
         # Try to find parameters first in the task params then fall back to the global level params.
         self.batch_size = fallback_params("batch_size", self.params, self.global_params)
