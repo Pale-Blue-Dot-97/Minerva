@@ -100,7 +100,7 @@ from minerva.utils.runner import WandbConnectionManager, run_trainer
 
 
 def main():
-    with WandbConnectionManager:
+    with WandbConnectionManager():
         run_trainer()
 
 
