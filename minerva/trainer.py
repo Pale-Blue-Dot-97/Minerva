@@ -804,7 +804,7 @@ class Trainer:
         if scheduler is not None:
             chkpt["scheduler_state_dict"] = scheduler.state_dict()
 
-        torch.save(chkpt, f"{self.exp_fn}-checkpoint.pt")
+        torch.save(chkpt, self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt"))
 
     def load_checkpoint(self) -> None:
         checkpoint = torch.load(
