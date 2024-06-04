@@ -331,7 +331,6 @@ def distributed_run(
 
             else:  # pragma: no cover
                 try:
-                    print("starting process...")
                     mp.spawn(_run_preamble, (run_trainer, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
                 except KeyboardInterrupt:
                     dist.destroy_process_group()  # type: ignore[attr-defined]
