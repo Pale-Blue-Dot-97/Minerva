@@ -56,7 +56,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable, Optional, Tuple, Union
 
-import hydra
+# import hydra
 import requests
 import torch
 import torch.distributed as dist
@@ -337,11 +337,11 @@ def distributed_run(
     return inner_decorator
 
 
-@hydra.main(
-    version_base="1.3",
-    config_path=str(DEFAULT_CONF_DIR_PATH),
-    config_name=DEFAULT_CONFIG_NAME,
-)
+# @hydra.main(
+#     version_base="1.3",
+#     config_path=str(DEFAULT_CONF_DIR_PATH),
+#     config_name=DEFAULT_CONFIG_NAME,
+# )
 @distributed_run
 def run_trainer(
     gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig

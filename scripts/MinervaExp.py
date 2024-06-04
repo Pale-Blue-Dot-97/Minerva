@@ -41,15 +41,18 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 # from typing import Optional, Union
 
-# import hydra
+import hydra
+
+# from minerva.trainer import Trainer
+from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, utils
+
+# from minerva.utils import utils
+from minerva.utils.runner import WandbConnectionManager, run_trainer
+
 # from omegaconf import DictConfig
 # from wandb.sdk.lib import RunDisabled
 # from wandb.sdk.wandb_run import Run
 
-# from minerva.trainer import Trainer
-# from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, utils
-from minerva.utils import utils
-from minerva.utils.runner import WandbConnectionManager, run_trainer
 
 # =====================================================================================================================
 #                                                      MAIN
@@ -101,7 +104,11 @@ from minerva.utils.runner import WandbConnectionManager, run_trainer
 
 def main():
     with WandbConnectionManager():
-        run_trainer()
+        hydra.main(
+            version_base="1.3",
+            config_path=str(DEFAULT_CONF_DIR_PATH),
+            config_name=DEFAULT_CONFIG_NAME,
+        )(run_trainer())
 
 
 if __name__ == "__main__":
