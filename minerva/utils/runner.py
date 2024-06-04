@@ -56,6 +56,7 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable, Optional, Tuple, Union
 
+import hydra
 import requests
 import torch
 import torch.distributed as dist
@@ -67,7 +68,7 @@ from wandb.sdk.wandb_run import Run
 
 import wandb
 from minerva.trainer import Trainer
-from minerva.utils import utils
+from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, utils
 
 
 # =====================================================================================================================
@@ -293,27 +294,6 @@ def _run_preamble(
     run(gpu, wandb_run, cfg)
 
 
-def run_trainer(
-    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
-):
-
-    trainer = Trainer(
-        gpu=gpu,
-        wandb_run=wandb_run,
-        **cfg,
-    )
-
-    if not cfg.get("eval", False):
-        trainer.fit()
-
-    if cfg.get("pre_train", False) and gpu == 0:
-        trainer.save_backbone()
-        trainer.close()
-
-    if not cfg.get("pre_train", False):
-        trainer.test()
-
-
 def distributed_run(
     run: Callable[[int, Optional[Union[Run, RunDisabled]], DictConfig], Any]
 ) -> Callable[..., Any]:
@@ -338,21 +318,47 @@ def distributed_run(
         OmegaConf.resolve(cfg)
         OmegaConf.set_struct(cfg, False)
 
-        with WandbConnectionManager():
-            cfg = config_args(cfg)
+        cfg = config_args(cfg)
 
-            if cfg.world_size <= 1:
-                # Setups up the `wandb` run.
-                wandb_run, cfg = setup_wandb_run(0, cfg)
+        if cfg.world_size <= 1:
+            # Setups up the `wandb` run.
+            wandb_run, cfg = setup_wandb_run(0, cfg)
 
-                # Run the experiment.
-                run(0, wandb_run, cfg)
+            # Run the experiment.
+            run(0, wandb_run, cfg)
 
-            else:  # pragma: no cover
-                try:
-                    print("starting process...")
-                    mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
-                except KeyboardInterrupt:
-                    dist.destroy_process_group()  # type: ignore[attr-defined]
+        else:  # pragma: no cover
+            try:
+                print("starting process...")
+                mp.spawn(_run_preamble, (run, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+            except KeyboardInterrupt:
+                dist.destroy_process_group()  # type: ignore[attr-defined]
 
     return inner_decorator
+
+
+@hydra.main(
+    version_base="1.3",
+    config_path=str(DEFAULT_CONF_DIR_PATH),
+    config_name=DEFAULT_CONFIG_NAME,
+)
+@distributed_run
+def run_trainer(
+    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+) -> None:
+
+    trainer = Trainer(
+        gpu=gpu,
+        wandb_run=wandb_run,
+        **cfg,
+    )
+
+    if not cfg.get("eval", False):
+        trainer.fit()
+
+    if cfg.get("pre_train", False) and gpu == 0:
+        trainer.save_backbone()
+        trainer.close()
+
+    if not cfg.get("pre_train", False):
+        trainer.test()
