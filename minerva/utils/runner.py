@@ -211,7 +211,7 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
         signal.signal(signal.SIGTERM, _handle_sigterm)
 
         # Ensure that wandb is set to offline mode for SLURM jobs.
-        os.environ["WANDB_MODE"] = "online"
+        os.environ["WANDB_MODE"] = "offline"
 
         # Get SLURM variables.
         slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
