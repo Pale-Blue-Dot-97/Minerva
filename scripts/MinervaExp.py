@@ -108,7 +108,7 @@ def main():
             version_base="1.3",
             config_path=str(DEFAULT_CONF_DIR_PATH),
             config_name=DEFAULT_CONFIG_NAME,
-        )(run_trainer())
+        )(run_trainer)()
 
 
 if __name__ == "__main__":
