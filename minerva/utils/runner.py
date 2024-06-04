@@ -93,6 +93,12 @@ class WandbConnectionManager:
     def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
         os.environ["WANDB_MODE"] = "online"
 
+    def __call__(self, func):
+        @functools.wraps(func)
+        def inner_decorator(cfg: DictConfig):
+            with self:
+                return inner_decorator
+
 
 # =====================================================================================================================
 #                                                     METHODS
@@ -313,29 +319,27 @@ def distributed_run(
 
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
 
-    with WandbConnectionManager():
+    @functools.wraps(run)
+    def inner_decorator(cfg: DictConfig):
+        OmegaConf.resolve(cfg)
+        OmegaConf.set_struct(cfg, False)
 
-        @functools.wraps(run)
-        def inner_decorator(cfg: DictConfig):
-            OmegaConf.resolve(cfg)
-            OmegaConf.set_struct(cfg, False)
+        cfg = config_args(cfg)
 
-            cfg = config_args(cfg)
+        if cfg.world_size <= 1:
+            # Setups up the `wandb` run.
+            wandb_run, cfg = setup_wandb_run(0, cfg)
 
-            if cfg.world_size <= 1:
-                # Setups up the `wandb` run.
-                wandb_run, cfg = setup_wandb_run(0, cfg)
+            # Run the experiment.
+            run_trainer(0, wandb_run, cfg)
 
-                # Run the experiment.
-                run_trainer(0, wandb_run, cfg)
+        else:  # pragma: no cover
+            try:
+                mp.spawn(_run_preamble, (run_trainer, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+            except KeyboardInterrupt:
+                dist.destroy_process_group()  # type: ignore[attr-defined]
 
-            else:  # pragma: no cover
-                try:
-                    mp.spawn(_run_preamble, (run_trainer, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
-                except KeyboardInterrupt:
-                    dist.destroy_process_group()  # type: ignore[attr-defined]
-
-        return inner_decorator
+    return inner_decorator
 
 
 def run_trainer(
