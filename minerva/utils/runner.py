@@ -56,7 +56,6 @@ import subprocess
 from pathlib import Path
 from typing import Any, Callable, Optional, Tuple, Union
 
-# import hydra
 import requests
 import torch
 import torch.distributed as dist
