@@ -40,7 +40,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 import abc
 from abc import ABC
-from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Union
 
@@ -54,7 +53,6 @@ import pandas as pd
 import torch
 import torch.distributed as dist
 from nptyping import Int, NDArray
-from omegaconf import OmegaConf
 from torch import Tensor
 from torch._dynamo.eval_frame import OptimizedModule
 from wandb.sdk.wandb_run import Run
@@ -320,7 +318,7 @@ class MinervaTask(ABC):
             weights = Tensor(weights)
 
             # Use hydra to instantiate the loss function with the weights and return.
-            return hydra.utils.instantiate(self.params["loss_params"], weights=weights)
+            return hydra.utils.instantiate(self.params["loss_params"], weight=weights)
 
         else:
             # Use hydra to instantiate the loss function based of the config, without weights.
