@@ -55,8 +55,9 @@ model_params:
         input_size: *input_size
 
 # ---+ Optimiser Parameters +--------------------------------------------------
-optim_params:
-    params:
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
 
 # ---+ Scheduler Parameters +--------------------------------------------------
 scheduler_params:

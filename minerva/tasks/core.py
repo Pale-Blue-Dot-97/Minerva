@@ -49,6 +49,7 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
+import hydra
 import pandas as pd
 import torch
 import torch.distributed as dist
@@ -335,32 +336,15 @@ class MinervaTask(ABC):
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
-        # Gets the optimiser requested by config parameters.
-        optimiser_params: Dict[str, Any] = deepcopy(self.params["optim_params"])
-
-        if OmegaConf.is_config(optimiser_params):
-            optimiser_params = OmegaConf.to_object(optimiser_params)  # type: ignore[assignment]
-
-        module = optimiser_params.pop("module", "torch.optim")
-        optimiser = utils.func_by_str(module, self.params["optim_func"])
-
-        if not utils.check_dict_key(optimiser_params, "params"):
-            optimiser_params["params"] = {}
-
-        # Add learning rate from top-level of config to the optimiser parameters.
-        optimiser_params["params"]["lr"] = self.params["lr"]
-
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        optimiser = optimiser(self.model.parameters(), **optimiser_params["params"])
+        optimiser = hydra.utils.instantiate(self.params["optimiser"], params=self.model.parameters())
         self.model.set_optimiser(optimiser)
 
-        if self.params.get("scheduler_params") is not None:
-            scheduler_params = deepcopy(self.params["scheduler_params"])
-            scheduler = utils.func_by_str(
-                scheduler_params.pop("module", "torch.optim.lr_scheduler"),
-                scheduler_params["name"],
-            )
-            self.model.set_scheduler(scheduler(optimiser, **scheduler_params["params"]))
+        # If scheduler parameters are also specified, instantiate and set to model too.
+        if self.params.get("scheduler") is not None:
+            scheduler = hydra.utils.instantiate(self.params["scheduler"], optimizer=optimiser)
+
+            self.model.set_scheduler(scheduler)
 
     def make_logger(self) -> MinervaTaskLogger:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.

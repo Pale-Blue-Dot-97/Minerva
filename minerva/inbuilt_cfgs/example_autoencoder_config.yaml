@@ -51,8 +51,9 @@ model_params:
             torch_weights: false
 
 # ---+ Optimiser Parameters +--------------------------------------------------
-optim_params:
-    params:
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:

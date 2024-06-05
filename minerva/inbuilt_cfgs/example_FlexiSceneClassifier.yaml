@@ -63,8 +63,9 @@ model_params:
             encoder: false
 
 # ---+ Optimiser Parameters +--------------------------------------------------
-optim_params:
-    params:
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:

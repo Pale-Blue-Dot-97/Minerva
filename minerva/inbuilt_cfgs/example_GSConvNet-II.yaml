@@ -39,12 +39,12 @@ fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: &loss_func SegBarlowTwinsLoss  # Name of the loss function to use.
-lr: 1.0E-3                                # Learning rate of optimiser.
+lr: 1.0E-2                                # Learning rate of optimiser.
 optim_func: SGD                           # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
-max_r: &max_r 400   # Max distance between patches within a pair.
+max_r: &max_r 12    # Max distance between patches within a pair.
 knn_k: 5            # Top-k most similar images to predict image for KNN val
 val_freq: 1         # Validation epoch every ``val_freq`` training epochs.
 
@@ -55,8 +55,14 @@ model_params:
         input_size: *input_size
 
 # ---+ Optimiser Parameters +--------------------------------------------------
-optim_params:
-    params:
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
+
+scheduler:
+    _target_: minerva.scheduler.CosineLR
+    start_lr: ${lr}
+    end_lr: 0.5
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
