@@ -537,12 +537,16 @@ class Trainer:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        optimiser = hydra.utils.instantiate(self.params["optimiser"], params=self.model.parameters())
+        optimiser = hydra.utils.instantiate(
+            self.params["optimiser"], params=self.model.parameters()
+        )
         self.model.set_optimiser(optimiser)
 
         # If scheduler parameters are also specified, instantiate and set to model too.
         if self.params.get("scheduler") is not None:
-            scheduler = hydra.utils.instantiate(self.params["scheduler"], optimizer=optimiser)
+            scheduler = hydra.utils.instantiate(
+                self.params["scheduler"], optimizer=optimiser
+            )
 
             self.model.set_scheduler(scheduler)
 

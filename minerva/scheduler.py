@@ -65,7 +65,16 @@ class CosineLR(LRScheduler):
 
     """
 
-    def __init__(self, optimizer, min_lr: int, max_lr: int, max_epochs: int, n_periods: int = 1, last_epoch: int = -1, verbose="deprecated"):
+    def __init__(
+        self,
+        optimizer,
+        min_lr: int,
+        max_lr: int,
+        max_epochs: int,
+        n_periods: int = 1,
+        last_epoch: int = -1,
+        verbose="deprecated",
+    ):
         self.min_lr = min_lr
         self.max_lr = max_lr
         self.max_epochs = max_epochs
@@ -74,14 +83,18 @@ class CosineLR(LRScheduler):
 
     def get_lr(self) -> List[float]:
         if not self._get_lr_called_within_step:
-            warnings.warn("To get the last learning rate computed by the scheduler, "
-                          "please use `get_last_lr()`.", UserWarning)
+            warnings.warn(
+                "To get the last learning rate computed by the scheduler, "
+                "please use `get_last_lr()`.",
+                UserWarning,
+            )
 
         if self.last_epoch == 0:
-            return [group['lr'] for group in self.optimizer.param_groups]
+            return [group["lr"] for group in self.optimizer.param_groups]
         else:
-            return [self._cosine()
-                    for group in self.optimizer.param_groups]
+            return [self._cosine() for group in self.optimizer.param_groups]
 
     def _cosine(self) -> float:
-        return self.max_lr + 0.5 * (self.min_lr - self.max_lr) * (1 + np.cos(np.pi * self.n_periods * self.last_epoch / self.max_epochs))
+        return self.max_lr + 0.5 * (self.min_lr - self.max_lr) * (
+            1 + np.cos(np.pi * self.n_periods * self.last_epoch / self.max_epochs)
+        )
