@@ -56,8 +56,7 @@ optimiser:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
-    params:
+    _target_: torch.nn.${loss_func}
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:

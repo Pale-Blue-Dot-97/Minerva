@@ -300,38 +300,31 @@ class MinervaTask(ABC):
         Returns:
             ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
-        # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = deepcopy(
-            fallback_params("loss_params", self.params, self.global_params)
-        )
-        if OmegaConf.is_config(loss_params):
-            loss_params = OmegaConf.to_object(loss_params)  # type: ignore[assignment]
 
-        module = loss_params.pop("module", "torch.nn")
-        criterion: Callable[..., Any] = func_by_str(module, loss_params["name"])
-
-        if not utils.check_dict_key(loss_params, "params"):
-            loss_params["params"] = {}
-
+        # Generate the weightings for each class if balance==True and this is a segmentation model.
         if self.balance and utils.check_substrings_in_string(
             self.model_type, "segmentation"
         ):
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
+
             if self.elim:
+                # Eliminate classes.
                 for i in range(len(weights_dict)):
                     weights.append(weights_dict[i])
             else:
                 for i in range(self.n_classes):
                     weights.append(weights_dict.get(i, 0.0))
 
-            loss_params["params"]["weight"] = Tensor(weights)
+            weights = Tensor(weights)
 
-            return criterion(**loss_params["params"])
+            # Use hydra to instantiate the loss function with the weights and return.
+            return hydra.utils.instantiate(self.params["loss_params"], weights=weights)
 
         else:
-            return criterion(**loss_params["params"])
+            # Use hydra to instantiate the loss function based of the config, without weights.
+            return hydra.utils.instantiate(self.params["loss_params"])
 
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""

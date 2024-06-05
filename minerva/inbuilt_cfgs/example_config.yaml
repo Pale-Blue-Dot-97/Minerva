@@ -62,8 +62,7 @@ scheduler_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: CrossEntropyLoss           # Name of the loss function to use.
-    params:
+    _target_: torch.nn.CrossEntropyLoss
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:

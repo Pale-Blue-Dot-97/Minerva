@@ -531,18 +531,20 @@ class Trainer:
             ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = deepcopy(self.params["loss_params"])
+        return hydra.utils.instantiate(self.params["loss_params"])
 
-        if OmegaConf.is_config(loss_params):
-            loss_params = OmegaConf.to_object(loss_params)  # type: ignore[assignment]
+        # loss_params: Dict[str, Any] = deepcopy(self.params["loss_params"])
 
-        module = loss_params.pop("module", "torch.nn")
-        criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
+        # if OmegaConf.is_config(loss_params):
+        #     loss_params = OmegaConf.to_object(loss_params)  # type: ignore[assignment]
 
-        if not utils.check_dict_key(loss_params, "params"):
-            loss_params["params"] = {}
+        # module = loss_params.pop("module", "torch.nn")
+        # criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
 
-        return criterion(**loss_params["params"])
+        # if not utils.check_dict_key(loss_params, "params"):
+        #     loss_params["params"] = {}
+
+        # return criterion(**loss_params["params"])
 
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""

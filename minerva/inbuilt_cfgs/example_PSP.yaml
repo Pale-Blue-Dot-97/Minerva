@@ -58,9 +58,7 @@ optimiser:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
-    module: minerva.loss
-    params:
+    _target_: minerva.loss.${loss_func}
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:

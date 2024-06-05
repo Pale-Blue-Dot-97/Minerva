@@ -60,10 +60,8 @@ optimiser:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
-    module: lightly.loss
-    params:
-        temperature: 0.5
+    _target_: lightly.loss.${loss_func}
+    temperature: 0.5
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
