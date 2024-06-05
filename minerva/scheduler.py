@@ -23,7 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Module containing custom samplers for :mod:`torchgeo` datasets."""
+"""Module containing custom learning rate schedulers for use in :mod:`minerva`."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -37,6 +37,7 @@ __all__ = ["CosineLR"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import warnings
+from typing import List
 
 from torch.optim.lr_scheduler import LRScheduler
 import numpy as np
@@ -50,9 +51,10 @@ class CosineLR(LRScheduler):
 
     Args:
         optimizer (Optimizer): Wrapped optimizer.
-        step_size (int): Period of learning rate decay.
-        gamma (float): Multiplicative factor of learning rate decay.
-            Default: 0.1.
+        min_lr (int): Minimum learning rate.
+        max_lr (int): Maximum learning rate.
+        max_epochs (int): Epoch number to run learning rate cosine oscilation up to.
+        n_periods (int): Optional; Number of periods of the cosine oscilation over the scheduler. Default 1.
         last_epoch (int): The index of last epoch. Default: -1.
         verbose (bool): If ``True``, prints a message to stdout for
             each update. Default: ``False``.
@@ -63,12 +65,14 @@ class CosineLR(LRScheduler):
 
     """
 
-    def __init__(self, optimizer, start_lr: int, end_lr: int, last_epoch: int = -1, verbose="deprecated"):
-        self.start_lr = start_lr
-        self.end_lr = end_lr
+    def __init__(self, optimizer, min_lr: int, max_lr: int, max_epochs: int, n_periods: int = 1, last_epoch: int = -1, verbose="deprecated"):
+        self.min_lr = min_lr
+        self.max_lr = max_lr
+        self.max_epochs = max_epochs
+        self.n_periods = n_periods
         super().__init__(optimizer, last_epoch, verbose)
 
-    def get_lr(self):
+    def get_lr(self) -> List[float]:
         if not self._get_lr_called_within_step:
             warnings.warn("To get the last learning rate computed by the scheduler, "
                           "please use `get_last_lr()`.", UserWarning)
@@ -79,5 +83,5 @@ class CosineLR(LRScheduler):
             return [self._cosine()
                     for group in self.optimizer.param_groups]
 
-    def _cosine(self):
-        return self.end_lr + 0.5 * (self.start_lr - self.end_lr) * (1 + np.cos(np.pi * self.last_epoch))
+    def _cosine(self) -> float:
+        return self.max_lr + 0.5 * (self.min_lr - self.max_lr) * (1 + np.cos(np.pi * self.n_periods * self.last_epoch / self.max_epochs))

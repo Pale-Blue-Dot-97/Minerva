@@ -61,8 +61,10 @@ optimiser:
 
 scheduler:
     _target_: minerva.scheduler.CosineLR
-    start_lr: ${lr}
-    end_lr: 0.5
+    min_lr: ${lr}
+    max_lr: 0.5
+    max_epochs: ${max_epochs}
+    n_periods: 1
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
