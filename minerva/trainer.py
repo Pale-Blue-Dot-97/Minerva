@@ -296,9 +296,16 @@ class Trainer:
                     "You must add the `exp_name` to the config of the experiment to resume"
                 )
         else:
+            # Gets the job ID if this is a SLURM job to prepend to the experiment name.
+            job_id = self.params.get("jobid")
+            if job_id is None:
+                job_id = ""
+            else:
+                job_id += "_"
+
             # Sets experiment name and adds this to the path to the results' directory.
-            self.params["exp_name"] = "{}_{}".format(
-                self.params["model_name"], self.params["timestamp"]
+            self.params["exp_name"] = "{}{}_{}".format(
+                job_id, self.params["model_name"], self.params["timestamp"]
             )
 
         # Path to experiment directory and experiment name.
