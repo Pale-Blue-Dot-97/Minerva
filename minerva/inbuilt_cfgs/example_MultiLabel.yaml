@@ -50,6 +50,7 @@ model_params:
         filter_dim: -1
         fc_dim: 512
         freeze_backbone: false
+        clamp_outputs: true
         backbone_args:
             module: minerva.models
             name: MinervaPSP
@@ -61,7 +62,6 @@ model_params:
             segmentation_on: false
             classification_on: false
             encoder: false
-            clamp_outputs: true
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -112,6 +112,13 @@ tasks:
 
             image:
                 transforms:
+                    SelectChannels:
+                        module: minerva.transforms
+                        channels:
+                            - 1
+                            - 2
+                            - 3
+                            - 7
                     Normalise:
                         module: minerva.transforms
                         norm_value: 4095
@@ -154,11 +161,7 @@ tasks:
                 paths: BigEarthNet
                 params:
                     split: train
-                    bands:
-                        - B02
-                        - B03
-                        - B04
-                        - B08
+                    bands: s2
                     download: true
                     num_classes: *n_classes
 
@@ -181,6 +184,13 @@ tasks:
 
             image:
                 transforms:
+                    SelectChannels:
+                        module: minerva.transforms
+                        channels:
+                            - 1
+                            - 2
+                            - 3
+                            - 7
                     Normalise:
                         module: minerva.transforms
                         norm_value: 4095
@@ -190,11 +200,7 @@ tasks:
                 paths: BigEarthNet
                 params:
                     split: test
-                    bands:
-                        - B02
-                        - B03
-                        - B04
-                        - B08
+                    bands: s2
                     download: true
                     num_classes: *n_classes
 
