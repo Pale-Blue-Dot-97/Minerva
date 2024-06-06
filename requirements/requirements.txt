@@ -7,8 +7,8 @@ geopy==2.4.1
 GitPython>=3.1.35
 imageio==2.34.0
 inputimeout==1.0.4
-lightly==1.4.26
 ipykernel==6.29.3
+lightly==1.4.26
 matplotlib==3.8.2
 mlflow==2.11.1
 nptyping==2.5.0
