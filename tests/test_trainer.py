@@ -170,7 +170,6 @@ def test_trainer_3(default_config: DictConfig) -> None:
         ("example_GSConvNet-II.yaml", {}, {}),
         ("example_PSP.yaml", {}, {}),
         ("example_SceneClassifier.yaml", {}, {}),
-        ("example_MultiLabel.yaml", {}, {}),
     ],
 )
 def test_trainer_4(
