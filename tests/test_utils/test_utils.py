@@ -446,7 +446,7 @@ def test_get_centre_loc() -> None:
         (
             41.90204312927206,
             12.45644780021287,
-            "Città del Vaticano, Civitas Vaticana",
+            "Civitas Vaticana",
         ),  # Vatican City.
         (-77.844504, 166.707506, "McMurdo Station"),  # McMurdo Station, Antartica.
     ],
