@@ -24,7 +24,10 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 #
-""""""
+"""
+
+.. versionadded:: 0.28
+"""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -67,6 +70,7 @@ class FlexiSceneClassifier(MinervaBackbone):
         freeze_backbone: bool = False,
         backbone_weight_path: Optional[Union[str, Path]] = None,
         backbone_args: Dict[str, Any] = {},
+        clamp_outputs: bool = False,
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)
 
@@ -92,6 +96,9 @@ class FlexiSceneClassifier(MinervaBackbone):
         self.encoder_on = encoder_on
         self.filter_dim = filter_dim
         self.fc_dim = fc_dim
+
+        # Will clamp the outputs of the classification head to the range (0, 1).
+        self.clamp_outputs = clamp_outputs
 
         self._make_classification_head()
 
@@ -123,4 +130,11 @@ class FlexiSceneClassifier(MinervaBackbone):
         if self.encoder_on:
             f = f[self.filter_dim]
 
-        return self.classification_head(f)
+        z: Tensor = self.classification_head(f)
+
+        assert isinstance(z, Tensor)
+
+        if self.clamp_outputs:
+            return z.clamp(0, 1)
+        else:
+            return z
