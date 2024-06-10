@@ -484,6 +484,7 @@ class SimConv(MinervaSiamese):
         feature_dim: int = 2048,
         projection_dim: int = 512,
         scaler: Optional[GradScaler] = None,
+        encoder_weights: Optional[str] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(SimConv, self).__init__(
@@ -494,7 +495,7 @@ class SimConv(MinervaSiamese):
             input_size=input_size,
             encoder_name=self.backbone_name,
             psp_out_channels=feature_dim,
-            encoder_weights=None,
+            encoder_weights=encoder_weights,
             encoder_depth=5,
             encoder=True,
             segmentation_on=False,

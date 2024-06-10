@@ -53,6 +53,7 @@ model_params:
     module:
     params:
         input_size: *input_size
+        encoder_weights: imagenet
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
