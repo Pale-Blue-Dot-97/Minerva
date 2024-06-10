@@ -551,9 +551,19 @@ class Trainer:
 
         # If scheduler parameters are also specified, instantiate and set to model too.
         if self.params.get("scheduler") is not None:
-            scheduler = hydra.utils.instantiate(
-                self.params["scheduler"], optimizer=optimiser
-            )
+            if "schedulers" in self.params["scheduler"]:
+                sub_schedulers = []
+                for sub_scheduler_params in self.params["scheduler"]["schedulers"]:
+                    sub_schedulers.append(hydra.utils.instantiate(
+                        sub_scheduler_params, optimizer=optimiser,
+                    ))
+                scheduler = hydra.utils.instantiate(
+                    self.params["scheduler"], schedulers=sub_schedulers, optimizer=optimiser,
+                )
+            else:
+                scheduler = hydra.utils.instantiate(
+                    self.params["scheduler"], optimizer=optimiser
+                )
 
             self.model.set_scheduler(scheduler)
 

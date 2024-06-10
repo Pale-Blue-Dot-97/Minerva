@@ -60,11 +60,19 @@ optimiser:
     lr: ${lr}
 
 scheduler:
-    _target_: minerva.scheduler.CosineLR
-    min_lr: ${lr}
-    max_lr: 0.5
-    max_epochs: ${max_epochs}
-    n_periods: 1
+    _target_: torch.optim.lr_scheduler.SequentialLR
+    schedulers:
+        - _target_: torch.optim.lr_scheduler.LinearLR
+          start_factor: 0.1
+          end_factor: 1.0
+          total_iters: 1
+        - _target_: minerva.scheduler.CosineLR
+          min_lr: ${lr}
+          max_lr: 0.5
+          max_epochs: ${max_epochs}
+          n_periods: 1
+    milestones: [1]
+
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
