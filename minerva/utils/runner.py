@@ -245,6 +245,10 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
         OmegaConf.update(cfg, "world_size", cfg.ngpus_per_node, force_add=True)
         OmegaConf.update(cfg, "jobid", None, force_add=True)
 
+    if torch.cuda.is_available():
+        torch.backends.cudnn.benchmark = True  # type: ignore
+        torch.backends.cuda.matmul.allow_tf32 = True
+
     return cfg
 
 
@@ -296,7 +300,6 @@ def _run_preamble(
 
     if torch.cuda.is_available():
         torch.cuda.set_device(gpu)
-        torch.backends.cudnn.benchmark = True  # type: ignore
 
     # Start this process run.
     run(gpu, wandb_run, cfg)
