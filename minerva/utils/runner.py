@@ -320,6 +320,7 @@ def distributed_run(
     """
 
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
+    OmegaConf.register_new_resolver("eval", eval)
 
     @functools.wraps(run)
     def inner_decorator(cfg: DictConfig):
