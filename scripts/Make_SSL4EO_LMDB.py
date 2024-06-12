@@ -69,7 +69,7 @@ def main(args) -> None:
 
     # Check dataset class.
     else:
-        train_dataset = MinervaSSL4EO(root=args.root, transform=None)
+        train_dataset = MinervaSSL4EO(root=args.root)
         train_loader = DataLoader(train_dataset, batch_size=1, num_workers=0)
 
         for idx, (s1, s2a, s2c) in tqdm(
