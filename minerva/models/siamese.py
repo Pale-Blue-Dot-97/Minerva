@@ -47,6 +47,7 @@ __all__ = [
     "SimConv18",
     "SimConv34",
     "SimConv50",
+    "SimConv101"
 ]
 
 # =====================================================================================================================
@@ -612,3 +613,9 @@ class SimConv50(SimConv):
     """:class:`SimConv` network using a ResNet50 :attr:`~SimConv.backbone`."""
 
     backbone_name = "resnet50"
+
+
+class SimConv101(SimConv):
+    """:class:`SimConv` network using a ResNet50 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet101"
