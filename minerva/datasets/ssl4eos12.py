@@ -341,9 +341,9 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             if self.season_transform is None:
                 # Apply transforms.
                 if self.transform is not None:
-                    img = self.transform(img_4s)
+                    img_4s = self.transform(img_4s)
 
-                return {"image": img}
+                return {"image": img_4s}
 
             elif self.season_transform.season == "random":
                 img = self.season_transform(img_4s)
