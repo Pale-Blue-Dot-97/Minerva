@@ -1,5 +1,5 @@
 alive_progress==3.1.5
-argcomplete==3.2.2
+argcomplete==3.4.0
 catalyst==22.4
 certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerability.
 fastapi>=0.101.0
@@ -8,11 +8,11 @@ flake8==7.0.0
 geopy==2.4.1
 GitPython>=3.1.35
 imagecodecs==2024.1.1
-imageio==2.34.0
+imageio==2.34.1
 inputimeout==1.0.4
 internet-sabotage3==0.1.6
-ipykernel==6.29.3
-kornia==0.7.1
+ipykernel==6.29.4
+kornia==0.7.2
 lightly==1.5.6
 lmdb==1.4.1
 matplotlib==3.9.0
@@ -23,10 +23,10 @@ nptyping==2.5.0
 numba>=0.57.0 # not directly required but pinned to ensure Python 3.11 compatibility.
 numpy==1.26.3
 onnx==1.16.1
-onnx2torch==1.5.13
+onnx2torch==1.5.14
 opencv-python==4.9.0.80
 overload==1.1
-pandas==2.2.1
+pandas==2.2.2
 pre-commit==3.6.2
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability.
 psutil==5.9.8
@@ -53,10 +53,10 @@ torchinfo==1.8.0
 torchvision==0.18.1
 tornado>=6.3.3
 tox==4.14.1
-tqdm==4.66.2
+tqdm==4.66.4
 types-PyYAML==6.0.12.20240311
-types-requests==2.31.0.20240218
+types-requests==2.32.0.20240602
 types-tabulate==0.9.0.20240106
-wandb==0.17.1
+wandb==0.17.2
 Werkzeug>=2.2.3 # Patches a potential security vulnerability.
 wheel>=0.38.0 # not directly required, pinned by Snyk to avoid a vulnerability.
