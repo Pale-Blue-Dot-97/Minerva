@@ -69,7 +69,7 @@ scheduler:
           total_iters: 1
         - _target_: minerva.scheduler.CosineLR
           min_lr: ${lr}
-          max_lr: 0.5
+          max_lr: ${eval:2*${lr}}
           max_epochs: ${max_epochs}
           n_periods: 1
     milestones: [1]
