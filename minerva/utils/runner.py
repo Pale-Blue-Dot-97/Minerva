@@ -60,12 +60,12 @@ import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
 import yaml
 from omegaconf import DictConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.trainer import Trainer
 from minerva.utils import utils
 
@@ -323,7 +323,7 @@ def distributed_run(
     """
 
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
-    OmegaConf.register_new_resolver("eval", eval)
+    OmegaConf.register_new_resolver("eval", eval, replace=True)
 
     @functools.wraps(run)
     def inner_decorator(cfg: DictConfig):
