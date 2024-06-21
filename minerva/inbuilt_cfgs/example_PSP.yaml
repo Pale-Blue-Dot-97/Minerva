@@ -36,7 +36,7 @@ fine_tune: false                       # Activate fine-tuning mode.
 torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: &loss_func AuxCELoss  # Name of the loss function to use.
+loss_func: AuxCELoss                    # Name of the loss function to use.
 lr: 1.0E-3                              # Learning rate of optimiser.
 optim_func: SGD                         # Name of the optimiser function.
 
@@ -46,10 +46,6 @@ model_params:
     params:
         input_size: *input_size
         n_classes: *n_classes
-        # encoder_name: resnet18
-        # encoder_weights:
-        # psp_out_channels: 512
-        # freeze_backbone: false
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -62,7 +58,7 @@ loss_params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    num_workers: 1
+    num_workers: 0
     pin_memory: true
 
 # === WANDB LOGGING ===========================================================
