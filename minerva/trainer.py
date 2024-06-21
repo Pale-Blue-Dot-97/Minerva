@@ -432,7 +432,7 @@ class Trainer:
         # TODO: Waiting on https://github.com/pytorch/pytorch/issues/120233 for torch.compile python 3.12 support.
         if packaging.version.parse(python_version()) < packaging.version.parse("3.12"):
             self.model = wrap_model(
-                self.model, gpu, self.params.get("torch_compile", False)
+                self.model, self.gpu, self.params.get("torch_compile", False)
             )
         elif packaging.version.parse(python_version()) >= packaging.version.parse(
             "3.12"
