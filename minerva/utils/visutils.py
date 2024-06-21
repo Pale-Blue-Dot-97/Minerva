@@ -27,11 +27,6 @@
 """Module to visualise .tiff images, label masks and results from the fitting of neural networks for remote sensing.
 
 Attributes:
-    DATA_CONFIG (dict): Config defining the properties of the data used in the experiment.
-    IMAGERY_CONFIG (dict): Config defining the properties of the imagery used in the experiment.
-    DATA_DIR (list[str] | str): Path to directory holding dataset.
-    BAND_IDS (dict): Band IDs and position in sample image.
-    MAX_PIXEL_VALUE (int): Maximum pixel value (e.g. 255 for 8-bit integer).
     WGS84 (~rasterio.crs.CRS): WGS84 co-ordinate reference system acting as a
         default :class:`~rasterio.crs.CRS` for transformations.
 """
@@ -43,11 +38,6 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "DATA_CONFIG",
-    "IMAGERY_CONFIG",
-    "DATA_DIR",
-    "BAND_IDS",
-    "MAX_PIXEL_VALUE",
     "WGS84",
     "de_interlace",
     "dec_extent_to_deg",
@@ -92,28 +82,17 @@ from matplotlib.ticker import MaxNLocator
 from matplotlib.transforms import Bbox
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
+from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from scipy import stats
 from sklearn.metrics import ConfusionMatrixDisplay
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
+from minerva.utils import universal_path, utils
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-DATA_CONFIG = AUX_CONFIGS.get("data_config")
-IMAGERY_CONFIG = AUX_CONFIGS["imagery_config"]
-
-# Path to directory holding dataset.
-DATA_DIR = CONFIG["dir"]["data"]
-
-# Band IDs and position in sample image.
-BAND_IDS = IMAGERY_CONFIG["data_specs"]["band_ids"]
-
-# Maximum pixel value (e.g. 255 for 8-bit integer).
-MAX_PIXEL_VALUE = IMAGERY_CONFIG["data_specs"]["max_value"]
-
 WGS84 = CRS.from_epsg(4326)
 
 # Automatically fixes the layout of the figures to accommodate the colour bar legends.
@@ -287,53 +266,46 @@ def discrete_heatmap(
 
 def stack_rgb(
     image: NDArray[Shape["3, *, *"], Float],  # noqa: F722
-    rgb: Dict[str, int] = BAND_IDS,
-    max_value: int = MAX_PIXEL_VALUE,
+    max_value: int = 255,
 ) -> NDArray[Shape["*, *, 3"], Float]:  # noqa: F722
     """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
         image (~numpy.ndarray[float]): Image of separate channels to be normalised
             and reshaped into stacked RGB image.
-        rgb (dict[str, int]): Optional; Dictionary of which channels in image are the R, G & B bands.
         max_value (int): Optional; The maximum pixel value in ``image``. e.g. for 8 bit this will be 255.
 
     Returns:
         ~numpy.ndarray[float]: Normalised and stacked red, green, blue arrays into RGB array.
     """
-
-    # Extract R, G, B bands from image and normalise.
-    channels: List[Any] = []
-    for channel in ["R", "G", "B"]:
-        band = image[rgb[channel]] / max_value
-        channels.append(band)
-
-    # Stack together RGB bands.
+    # Stack together RGB bands. Assumes RGB bands are in dimensions 0-2. Ignores any other bands.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
     rgb_image: NDArray[Shape["3, *, *"], Any] = np.dstack(  # noqa: F722
-        (channels[2], channels[1], channels[0])
+        (image[2], image[1], image[0])
     )
     assert isinstance(rgb_image, np.ndarray)
-    return rgb_image
+
+    # Normalise.
+    return rgb_image / max_value
 
 
 def make_rgb_image(
     image: NDArray[Shape["3, *, *"], Float],  # noqa: F722
-    rgb: Dict[str, int],
     block_size: int = 32,
+    max_pixel_value: int = 255,
 ) -> AxesImage:
     """Creates an RGB image from a composition of red, green and blue bands.
 
     Args:
         image (~numpy.ndarray[int]): Array representing the image of shape ``(bands x height x width)``.
-        rgb (dict[str, int]): Dictionary of channel numbers of R, G & B bands within ``image``.
         block_size (int): Optional; Size of block image sub-division in pixels.
+        max_value (int): Optional; The maximum pixel value in ``image``. e.g. for 8 bit this will be 255.
 
     Returns:
         ~matplotlib.image.AxesImage: Plotted RGB image object.
     """
     # Stack RGB image data together.
-    rgb_image_array = stack_rgb(image, rgb)
+    rgb_image_array = stack_rgb(image, max_pixel_value)
 
     # Create RGB image.
     rgb_image = plt.imshow(rgb_image_array)
@@ -585,6 +557,7 @@ def prediction_plot(
     classes: Dict[int, str],
     src_crs: CRS,
     new_crs: CRS = WGS84,
+    path: str = "",
     cmap_style: Optional[Union[str, ListedColormap]] = None,
     exp_id: Optional[str] = None,
     fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
@@ -716,8 +689,8 @@ def prediction_plot(
         plt.show(block=False)
 
     if fn_prefix is None:
-        path = universal_path(CONFIG["dir"]["results"])
-        fn_prefix = str(path / f"{exp_id}_{utils.timestamp_now()}_Mask")
+        _path = universal_path(path)
+        fn_prefix = str(_path / f"{exp_id}_{utils.timestamp_now()}_Mask")
 
     # Path and file name of figure.
     fn = Path(f"{fn_prefix}_{sample_id}.png").absolute()
@@ -739,12 +712,17 @@ def seg_plot(
     y: Union[List[int], NDArray[Any, Any]],
     ids: List[str],
     bounds: Union[Sequence[Any], NDArray[Any, Any]],
-    task_name: str,
+    data_dir: Union[Path, str],
+    dataset_params: Dict[str, Any],
     classes: Dict[int, str],
     colours: Dict[int, str],
     fn_prefix: Union[str, Path],
     frac: float = 0.05,
     fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = (9.3, 10.5),
+    model_name: str = "",
+    path: str = "",
+    max_pixel_value: int = 255,
+    cache_dir: Optional[Union[str, Path]] = None,
 ) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -762,6 +740,8 @@ def seg_plot(
             from this experiment to use.
         frac (float): Optional; Fraction of patch samples to plot.
         fig_dim (tuple[float, float]): Optional; Figure (height, width) in inches.
+        cache_dir (str | ~pathlib.Path): Optional; Path to the directory to load the cached dataset from.
+            Defaults to None (so will create dataset from scratch).
 
     Returns:
         None
@@ -781,8 +761,14 @@ def seg_plot(
     flat_ids: NDArray[Any, Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
+    if cache_dir is not None:
+        cache = True
+    else:
+        cache = False
+        cache_dir = ""
+
     dataset, _ = make_dataset(
-        CONFIG["dir"]["data"], CONFIG["tasks"][task_name]["dataset_params"]
+        data_dir, dataset_params, cache=cache, cache_dir=cache_dir
     )
 
     # Create a new projection system in lat-lon.
@@ -799,7 +785,7 @@ def seg_plot(
     with alive_bar(n_samples, bar="blocks") as bar:
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in random.sample(range(len(flat_ids)), n_samples):
-            image = stack_rgb(dataset[bounds[i]]["image"].numpy())
+            image = stack_rgb(dataset[bounds[i]]["image"].numpy(), max_pixel_value)
             sample = {"image": image, "pred": z[i], "mask": y[i], "bounds": bounds[i]}
 
             prediction_plot(
@@ -807,11 +793,12 @@ def seg_plot(
                 flat_ids[i],
                 classes=classes,
                 src_crs=crs,
-                exp_id=CONFIG["model_name"],
+                exp_id=model_name,
                 show=False,
                 fn_prefix=fn_prefix,
                 fig_dim=fig_dim,
                 cmap_style=ListedColormap(colours.values(), N=len(colours)),  # type: ignore
+                path=path,
             )
 
             bar()
@@ -819,8 +806,8 @@ def seg_plot(
 
 def plot_subpopulations(
     class_dist: List[Tuple[int, int]],
-    class_names: Dict[int, str],
-    cmap_dict: Dict[int, str],
+    class_names: Optional[Dict[int, str]] = None,
+    cmap_dict: Optional[Dict[int, str]] = None,
     filename: Optional[Union[str, Path]] = None,
     save: bool = True,
     show: bool = False,
@@ -845,7 +832,11 @@ def plot_subpopulations(
     counts = []
 
     # List to hold colours of classes in the correct order.
-    colours = []
+    colours: Optional[List[str]] = []
+
+    if class_names is None:
+        class_numbers = [x[0] for x in class_dist]
+        class_names = {i: f"class {i}" for i in class_numbers}
 
     # Finds total number of samples to normalise data.
     n_samples = 0
@@ -862,9 +853,15 @@ def plot_subpopulations(
                 )
             )
         else:
-            class_data.append("{} \n<0.01%".format(class_names[label[0]]))
+            class_data.append(f"{class_names[label[0]]} \n<0.01%")
         counts.append(label[1])
-        colours.append(cmap_dict[label[0]])
+
+        if cmap_dict:
+            assert colours is not None
+            colours.append(cmap_dict[label[0]])
+
+    if cmap_dict is None:
+        colours = None
 
     # Locks figure size.
     plt.figure(figsize=(6, 5))
@@ -945,6 +942,7 @@ def make_confusion_matrix(
     classes: Dict[int, str],
     filename: Optional[Union[str, Path]] = None,
     cmap_style: str = "Blues",
+    figsize: Tuple[int, int] = (2, 2),
     show: bool = True,
     save: bool = False,
 ) -> None:
@@ -967,11 +965,6 @@ def make_confusion_matrix(
     # Extract class names from dict in numeric order to ensure labels match matrix.
     class_names = [new_classes[key] for key in range(len(new_classes.keys()))]
 
-    if DATA_CONFIG is not None:
-        figsize = DATA_CONFIG["fig_sizes"]["CM"]
-    else:  # pragma: no cover
-        figsize = None
-
     # Creates the figure to plot onto.
     ax = plt.figure(figsize=figsize).gca()
 
@@ -983,7 +976,7 @@ def make_confusion_matrix(
         _labels,
         _pred,
         labels=list(new_classes.keys()),
-        normalize="all",
+        normalize="true",
         display_labels=class_names,
         cmap=cmap,
         ax=ax,
@@ -1103,12 +1096,15 @@ def make_roc_curves(
 
 def plot_embedding(
     embeddings: Any,
-    bounds: Union[Sequence[BoundingBox], NDArray[Any, Any]],
-    task_name: str,
+    index: Union[Sequence[BoundingBox], Sequence[int]],
+    data_dir: Union[Path, str],
+    dataset_params: Dict[str, Any],
     title: Optional[str] = None,
     show: bool = False,
     save: bool = True,
     filename: Optional[Union[Path, str]] = None,
+    max_pixel_value: int = 255,
+    cache_dir: Optional[Union[Path, str]] = None,
 ) -> None:
     """Using TSNE Clustering, visualises the embeddings from a model.
 
@@ -1122,6 +1118,8 @@ def plot_embedding(
         show (bool): Optional; Whether to show plot.
         save (bool): Optional; Whether to save plot to file.
         filename (str): Optional; Name of file to save plot to.
+        cache_dir (str | ~pathlib.Path): Optional; Path to the directory to load the cached dataset from.
+            Defaults to None (so will create dataset from scratch).
 
     Returns:
         None
@@ -1134,8 +1132,14 @@ def plot_embedding(
     from minerva.datasets import make_dataset
 
     print("\nRE-CONSTRUCTING DATASET")
+    if cache_dir is not None:
+        cache = True
+    else:
+        cache = False
+        cache_dir = ""
+
     dataset, _ = make_dataset(
-        CONFIG["dir"]["data"], CONFIG["tasks"][task_name]["dataset_params"]
+        data_dir, dataset_params, cache=cache, cache_dir=cache_dir
     )
 
     images = []
@@ -1145,8 +1149,8 @@ def plot_embedding(
     with alive_bar(len(x), bar="blocks") as bar:
         # Plots the predicted versus ground truth labels for all test patches supplied.
         for i in range(len(x)):
-            sample = dataset[bounds[i]]
-            images.append(stack_rgb(sample["image"].numpy()))
+            sample = dataset[index[i]]
+            images.append(stack_rgb(sample["image"].numpy(), max_pixel_value))
             targets.append(
                 [
                     int(stats.mode(mask.flatten(), keepdims=False).mode)
@@ -1199,7 +1203,7 @@ def plot_embedding(
     if save:
         if filename is None:  # pragma: no cover
             filename = "tsne_cluster_vis.png"
-        os.makedirs(Path(filename).parent, exist_ok=True)
+        Path(filename).parent.mkdir(parents=True, exist_ok=True)
         plt.savefig(filename)
         print("TSNE cluster visualisation SAVED")
         plt.close()
@@ -1253,7 +1257,7 @@ def plot_results(
     metrics: Optional[Dict[str, Any]] = None,
     ids: Optional[List[str]] = None,
     task_name: str = "test",
-    bounds: Optional[NDArray[Any, Any]] = None,
+    index: Optional[NDArray[Any, Any]] = None,
     probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
     embeddings: Optional[NDArray[Any, Any]] = None,
     class_names: Optional[Dict[int, str]] = None,
@@ -1263,6 +1267,7 @@ def plot_results(
     model_name: Optional[str] = None,
     timestamp: Optional[str] = None,
     results_dir: Optional[Union[Sequence[str], str, Path]] = None,
+    cfg: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
@@ -1275,9 +1280,8 @@ def plot_results(
         ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
             Maybe either patch IDs or scene tags.
         task_name (str): Optional; Name of task that samples are from.
-        bounds (~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]): Optional; Array of objects describing
-            a geospatial bounding box for each sample.
-            Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
+        index (~numpy.ndarray[int] | ~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]): Optional; Array of objects
+            describing a geospatial bounding box for each sample or a sequence of indexes.
         probs (list[float] | ~numpy.ndarray[float]): Optional; Array of probabilistic predicted classes
             from model where each sample should have a list of the predicted probability for each class.
         embeddings (~numpy.ndarray[~typing.Any]): Embeddings from the model to visualise with TSNE clustering.
@@ -1303,6 +1307,11 @@ def plot_results(
         except ImportError:  # pragma: no cover
             pass
 
+    if OmegaConf.is_config(cfg):
+        cfg = OmegaConf.to_object(cfg)  # type: ignore[assignment]
+
+    assert isinstance(cfg, dict)
+
     flat_z = None
     flat_y = None
 
@@ -1316,17 +1325,25 @@ def plot_results(
         timestamp = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
 
     if model_name is None:
-        model_name = CONFIG["model_name"]
+        if cfg:
+            model_name = cfg.get("model_name", "_name_")
+        else:
+            model_name = "_name_"
     assert model_name is not None
 
     if results_dir is None:
-        results_dir = CONFIG["dir"]["results"]
+        if cfg:
+            try:
+                results_dir = cfg["dir"]["results"]
+            except KeyError:
+                results_dir = ""
+
         assert isinstance(results_dir, (Sequence, str, Path))
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
     try:
-        os.mkdir(universal_path(results_dir))
+        universal_path(results_dir).mkdir(parents=True, exist_ok=True)
     except FileExistsError as err:
         print(err)
 
@@ -1349,6 +1366,7 @@ def plot_results(
             filename=filenames["CM"],
             save=save,
             show=show,
+            figsize=cfg["data_config"]["fig_sizes"]["CM"],
         )
 
     if plots.get("Pred", False):
@@ -1391,37 +1409,44 @@ def plot_results(
         assert z is not None
         assert y is not None
         assert ids is not None
-        assert bounds is not None
+        assert index is not None
         assert task_name is not None
 
-        figsize = None
-        if DATA_CONFIG is not None:
-            figsize = DATA_CONFIG["fig_sizes"]["Mask"]
+        if cfg:
+            try:
+                figsize = cfg["data_config"]["fig_sizes"]["Mask"]
+            except KeyError:
+                figsize = None
+        else:
+            figsize = None
 
-        flat_bbox = utils.batch_flatten(bounds)
-        os.makedirs(universal_path(results_dir) / "Masks", exist_ok=True)
+        flat_bbox = utils.batch_flatten(index)
+        (universal_path(results_dir) / "Masks").mkdir(parents=True, exist_ok=True)
         seg_plot(
             z,
             y,
             ids,
             flat_bbox,
-            task_name,
+            cfg["dir"]["data"],
+            cfg["tasks"][task_name]["dataset_params"],
             fn_prefix=filenames["Mask"],
             classes=class_names,
             colours=colours,
             fig_dim=figsize,
+            model_name=cfg["model_name"],
         )
 
     if plots.get("TSNE", False):
         assert embeddings is not None
-        assert bounds is not None
+        assert index is not None
         assert task_name is not None
 
         print("\nPERFORMING TSNE CLUSTERING")
         plot_embedding(
             embeddings,
-            bounds,
-            task_name,
+            index,
+            cfg["dir"]["data"],
+            cfg["tasks"][task_name]["dataset_params"],
             show=show,
             save=save,
             filename=filenames["TSNE"],

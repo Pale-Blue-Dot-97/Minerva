@@ -1,0 +1,297 @@
+---
+#       *       *    __  ________   ____________ _    _____
+#   *        *      /  |/  /  _/ | / / ____/ __ \ |  / /   |  *           *
+#       *          / /|_/ // //  |/ / __/ / /_/ / | / / /| |     *
+#   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
+#    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
+#
+#                     EXAMPLE GeoCLR MASTER CONFIG FILE
+#
+# === PATHS ===================================================================
+dir:
+    data: tests/fixtures/data
+    results: tests/tmp/results
+    cache: tests/tmp/cache
+
+# === HYPERPARAMETERS =========================================================
+# ---+ Model Specification +---------------------------------------------------
+# Name of model. Substring before hyphen is model class.
+model_name: SimCLR18-test
+
+# Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
+model_type: siamese
+
+# ---+ Sizing +----------------------------------------------------------------
+batch_size: 8                         # Number of samples in each batch.
+patch_size: &patch_size [32, 32]      # 2D tuple or float.
+input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
+
+# ---+ Experiment Execution +--------------------------------------------------
+max_epochs: 4                         # Maximum number of training epochs.
+elim: false                           # Eliminates empty classes from schema.
+balance: false                        # Balances dataset classes.
+pre_train: true                       # Activate pre-training mode.
+fine_tune: false                      # Activate fine-tuning mode.
+torch_compile: true                    # Wrap model in `torch.compile`.
+mix_precision: false
+
+# ---+ Loss and Optimisers +---------------------------------------------------
+loss_func: &loss_func NTXentLoss      # Name of the loss function to use.
+lr: 1.0E-2                            # Learning rate of optimiser.
+optim_func: SGD                       # Name of the optimiser function.
+
+# ---+ SSL/ Siamese Options +--------------------------------------------------
+sample_pairs: true                    # Activates Siamese paired sampling.
+max_r: &max_r 56  # Max distance between patches within a Siamese pair.
+knn_k: 5          # Top-k most similar images used to predict image for KNN val
+val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
+
+# ---+ Model Parameters +------------------------------------------------------
+model_params:
+    module:
+    params:
+        input_size: *input_size
+        # any other params...
+
+# ---+ Optimiser Parameters +--------------------------------------------------
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
+
+# ---+ Loss Function Parameters +----------------------------------------------
+loss_params:
+    _target_: lightly.loss.${loss_func}
+    temperature: 0.5
+
+# ---+ Dataloader Parameters +-------------------------------------------------
+loader_params:
+    num_workers: 1
+    pin_memory: true
+
+# === WANDB LOGGING ===========================================================
+wandb_log: true              # Activates wandb logging.
+project: pytest              # Define the project name for wandb.
+wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
+
+# === MODEL IO & LOGGING ======================================================
+record_int: true    # Store integer results in memory.
+record_float: true  # Store floating point results too. Beware memory overload!
+
+# ---+ Collator +--------------------------------------------------------------
+collator:
+    module: torchgeo.datasets
+    name: stack_samples
+
+# === TASKS ===================================================================
+tasks:
+    fit-train:
+        type: StandardEpoch
+        train: true
+        record_float: true
+        sample_pairs: true
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        task_logger: SSLTaskLogger
+        step_logger:
+            name: SSLStepLogger
+        model_io: ssl_pair_tg
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                module: minerva.samplers
+                name: RandomPairGeoSampler
+                roi: false
+                params:
+                    size: *patch_size
+                    length: 120
+                    max_r: *max_r
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                    RandomApply:
+                        p: 0.25
+                        DetachedColorJitter:
+                            module: minerva.transforms
+                            brightness: 0.2
+                            contrast: 0.1
+                            saturation: 0.1
+                            hue: 0.15
+                    RandomResizedCrop:
+                        module: kornia.augmentation
+                        p: 0.2
+                        size: *patch_size
+                        cropping_mode: resample
+                        keepdim: true
+                    RandomHorizontalFlip:
+                        module: kornia.augmentation
+                        p: 0.2
+                        keepdim: true
+                    RandomGaussianBlur:
+                        module: kornia.augmentation
+                        kernel_size: 9
+                        p: 0.2
+                        sigma: [0.01, 0.2]
+                        keepdim: true
+                    RandomGaussianNoise:
+                        module: kornia.augmentation
+                        p: 0.2
+                        std: 0.05
+                        keepdim: true
+                    RandomErasing:
+                        module: kornia.augmentation
+                        p: 0.2
+                        keepdim: true
+
+                image1:
+                    module: minerva.datasets.__testing
+                    name: TstImgDataset
+                    paths: NAIP
+                    params:
+                        res: 1.0
+                image2:
+                    module: minerva.datasets.__testing
+                    name: TstImgDataset
+                    paths: NAIP
+                    params:
+                        res: 1.0
+
+    fit-val:
+        type: WeightedKNN
+        train: false
+        sample_pairs: false
+        n_classes: 8
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        task_logger: SSLTaskLogger
+        step_logger:
+            name: KNNStepLogger
+        model_io: ssl_pair_tg
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            features:
+                sampler:
+                    module: torchgeo.samplers
+                    name: RandomGeoSampler
+                    roi: false
+                    params:
+                        size: *patch_size
+                        length: 32
+
+                image:
+                    module: minerva.datasets.__testing
+                    name: TstImgDataset
+                    paths: NAIP
+                    params:
+                        res: 1.0
+
+                mask:
+                    module: minerva.datasets.__testing
+                    name: TstMaskDataset
+                    paths: Chesapeake7
+                    params:
+                        res: 1.0
+
+            test:
+                sampler:
+                    module: torchgeo.samplers
+                    name: RandomGeoSampler
+                    roi: false
+                    params:
+                        size: *patch_size
+                        length: 32
+
+                image:
+                    module: minerva.datasets.__testing
+                    name: TstImgDataset
+                    paths: NAIP
+                    params:
+                        res: 1.0
+
+                mask:
+                    module: minerva.datasets.__testing
+                    name: TstMaskDataset
+                    paths: Chesapeake7
+                    params:
+                        res: 1.0
+
+    test-test:
+        type: StandardEpoch
+        train: false
+        record_float: true
+        sample_pairs: false
+        n_classes: 8
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        task_logger: SupervisedTaskLogger
+        model_io: sup_tg
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: *patch_size
+                    length: 32
+
+            image:
+                module: minerva.datasets.__testing
+                name: TstImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
+
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                paths: Chesapeake7
+                params:
+                    res: 1.0
+
+# === PLOTTING OPTIONS ========================================================
+plots:
+    History: true   # Plot of the training and validation metrics over epochs.
+    CM: false       # Confusion matrix.
+    Pred: false     # Pie chart of the distribution of the predicted classes.
+    ROC: false      # Receiver Operator Characteristics for each class.
+    micro: false    # Include micro averaging in ROC plot.
+    macro: false    # Include macro averaging in ROC plot.
+    Mask: false     # Plot predicted masks against ground truth and imagery.
+
+# === MISCELLANEOUS OPTIONS ===================================================
+# ---+ Early Stopping +--------------------------------------------------------
+stopping:
+    patience: 2    # No. of val epochs with increasing loss before stopping.
+    verbose: true  # Verbosity of early stopping prints to stdout.
+
+# ---+ Verbosity and Saving +--------------------------------------------------
+verbose: true           # Verbosity of Trainer print statements to stdout.
+save: true              # Saves created figures to file.
+show: false             # Shows created figures in a pop-up window.
+p_dist: true            # Shows the distribution of classes to stdout.
+plot_last_epoch: true   # Plot the results of the last training and val epochs.
+
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+save_model: false
+
+# ---+ Other +-----------------------------------------------------------------
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+run_tensorboard: false
+calc_norm: false
+cache_dataset: false  # Cache the dataset objects to speed up dataset init.

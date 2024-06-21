@@ -416,6 +416,9 @@ class UNetR(MinervaModel):
 
         self.outc = OutConv(latent_channels // 32, n_classes)
 
+    def _remake_classifier(self) -> None:
+        self.outc = OutConv(self.backbone.output_shape[0] // 32, self.n_classes)
+
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the UNet using ``backbone``.
 

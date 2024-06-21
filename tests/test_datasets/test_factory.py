@@ -43,20 +43,57 @@ from typing import Any, Dict
 
 import pandas as pd
 import pytest
+from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from torchgeo.datasets import IntersectionDataset, UnionDataset
 
 from minerva import datasets as mdt
-from minerva.datasets import PairedDataset
+from minerva.datasets import PairedGeoDataset
 from minerva.datasets.__testing import TstImgDataset
-from minerva.utils.utils import CACHE_DIR, CONFIG, make_hash
+from minerva.utils.utils import make_hash
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
 def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> None:
-    dataset_1, subdatasets_1 = mdt.make_dataset(data_root, exp_dataset_params)
+
+    dataset_params2 = {
+        "image": {
+            "image_1": exp_dataset_params["image"],
+            "image_2": exp_dataset_params["image"],
+        },
+        "mask": exp_dataset_params["mask"],
+    }
+
+    dataset_3, subdatasets_3 = mdt.make_dataset(data_root, dataset_params2, cache=False)
+    assert isinstance(dataset_3, IntersectionDataset)
+    assert isinstance(subdatasets_3[0], UnionDataset)
+
+    dataset_4, subdatasets_4 = mdt.make_dataset(
+        data_root,
+        dataset_params2,
+        sample_pairs=True,
+        cache=False,
+    )
+    assert isinstance(dataset_4, IntersectionDataset)
+    assert isinstance(subdatasets_4[0], UnionDataset)
+
+    dataset_params3 = dataset_params2
+    dataset_params3["image"]["image_1"]["transforms"] = {"AutoNorm": {"length": 12}}
+    dataset_params3["image"]["image_2"]["transforms"] = {"AutoNorm": {"length": 12}}
+    dataset_params3["image"]["transforms"] = {"AutoNorm": {"length": 12}}
+
+    dataset_5, subdatasets_5 = mdt.make_dataset(data_root, dataset_params3, cache=False)
+
+    assert isinstance(dataset_5, IntersectionDataset)
+    assert isinstance(subdatasets_5[0], UnionDataset)
+
+    del exp_dataset_params["mask"]
+
+    dataset_1, subdatasets_1 = mdt.make_dataset(
+        data_root, exp_dataset_params, cache=False
+    )
 
     assert isinstance(dataset_1, type(subdatasets_1[0]))
     assert isinstance(dataset_1, TstImgDataset)
@@ -69,61 +106,32 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
     )
 
     assert isinstance(dataset_2, type(subdatasets_2[0]))
-    assert isinstance(dataset_2, PairedDataset)
-
-    exp_dataset_params["mask"] = {
-        "module": "minerva.datasets.__testing",
-        "name": "TstMaskDataset",
-        "paths": "Chesapeake7",
-        "params": {"res": 1.0},
-    }
-
-    dataset_params2 = {
-        "image": {
-            "image_1": exp_dataset_params["image"],
-            "image_2": exp_dataset_params["image"],
-        },
-        "mask": exp_dataset_params["mask"],
-    }
-
-    dataset_3, subdatasets_3 = mdt.make_dataset(data_root, dataset_params2)
-    assert isinstance(dataset_3, IntersectionDataset)
-    assert isinstance(subdatasets_3[0], UnionDataset)
-
-    dataset_4, subdatasets_4 = mdt.make_dataset(
-        data_root,
-        dataset_params2,
-        sample_pairs=True,
-    )
-    assert isinstance(dataset_4, IntersectionDataset)
-    assert isinstance(subdatasets_4[0], UnionDataset)
-
-    dataset_params3 = dataset_params2
-    dataset_params3["image"]["image_1"]["transforms"] = {"AutoNorm": {"length": 12}}
-    dataset_params3["image"]["image_2"]["transforms"] = {"AutoNorm": {"length": 12}}
-    dataset_params3["image"]["transforms"] = {"AutoNorm": {"length": 12}}
-
-    dataset_5, subdatasets_5 = mdt.make_dataset(data_root, dataset_params3)
-
-    assert isinstance(dataset_5, IntersectionDataset)
-    assert isinstance(subdatasets_5[0], UnionDataset)
+    assert isinstance(dataset_2, PairedGeoDataset)
 
 
 @pytest.mark.parametrize("sample_pairs", (False, True))
 def test_caching_datasets(
-    exp_dataset_params: Dict[str, Any], data_root: Path, sample_pairs: bool
+    exp_dataset_params: Dict[str, Any],
+    data_root: Path,
+    cache_dir: Path,
+    sample_pairs: bool,
 ) -> None:
+    # Just want to test with an imagery dataset.
+    del exp_dataset_params["mask"]
+
     # Make the path to the cached dataset.
-    cached_dataset_path = Path(
-        CACHE_DIR, make_hash(exp_dataset_params["image"]) + ".obj"
-    )
+    cached_dataset_path = cache_dir / (make_hash(exp_dataset_params["image"]) + ".obj")
 
     # Ensure that any previous caches are deleted.
     cached_dataset_path.unlink(missing_ok=True)
 
     # This first call will make the dataset from scratch then cache it.
     dataset_1, subdatasets_1 = mdt.make_dataset(
-        data_root, exp_dataset_params, sample_pairs=sample_pairs, cache=True
+        data_root,
+        exp_dataset_params,
+        sample_pairs=sample_pairs,
+        cache=True,
+        cache_dir=cache_dir,
     )
 
     # The cached dataset should now exist.
@@ -131,7 +139,11 @@ def test_caching_datasets(
 
     # Second call to make dataset with the same args should now load that cached dataset.
     dataset_2, subdatasets_2 = mdt.make_dataset(
-        data_root, exp_dataset_params, sample_pairs=sample_pairs, cache=True
+        data_root,
+        exp_dataset_params,
+        sample_pairs=sample_pairs,
+        cache=True,
+        cache_dir=cache_dir,
     )
 
     # Datasets from calls 1 should be the same as those from 2.
@@ -202,15 +214,16 @@ def test_construct_dataloader(
         batch_size,
         sample_pairs=kwargs.get("sample_pairs", False),
         world_size=kwargs.get("world_size", 1),
+        cache=False,
     )
 
     assert isinstance(dataloader, DataLoader)
 
 
-def test_make_loaders() -> None:
-    old_params = deepcopy(CONFIG)
+def test_make_loaders(default_config: DictConfig) -> None:
+    old_params = OmegaConf.to_object(deepcopy(default_config))
 
-    loader, n_batches, class_dist, params = mdt.make_loaders(
+    loader, n_batches, class_dist, params = mdt.make_loaders(  # type: ignore[arg-type]
         **old_params,
         task_name="fit-val",
     )
@@ -220,13 +233,14 @@ def test_make_loaders() -> None:
     assert isinstance(class_dist, list)
     assert isinstance(params, dict)
 
-    old_params_2 = deepcopy(CONFIG)
+    old_params_2 = OmegaConf.to_object(deepcopy(default_config))
+    assert isinstance(old_params_2, dict)
     dataset_params = old_params_2["tasks"]["fit-val"]["dataset_params"].copy()
     old_params_2["tasks"]["fit-val"]["dataset_params"] = {}
     old_params_2["tasks"]["fit-val"]["dataset_params"]["val-1"] = dataset_params
     old_params_2["tasks"]["fit-val"]["dataset_params"]["val-2"] = dataset_params
 
-    loaders, n_batches, class_dist, params = mdt.make_loaders(
+    loaders, n_batches, class_dist, params = mdt.make_loaders(  # type: ignore[arg-type]
         **old_params_2,
         task_name="fit-val",
     )
@@ -239,24 +253,31 @@ def test_make_loaders() -> None:
     assert isinstance(params, dict)
 
 
-def test_get_manifest_path() -> None:
-    assert mdt.get_manifest_path() == str(
-        Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
-    )
-
-
-def test_get_manifest() -> None:
+def test_get_manifest(
+    data_root: Path,
+    exp_dataset_params: Dict[str, Any],
+    exp_loader_params: Dict[str, Any],
+    exp_sampler_params: Dict[str, Any],
+) -> None:
     manifest_path = Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
 
     if manifest_path.exists():
         manifest_path.unlink()
 
+    # Make a manifest.
     assert isinstance(
-        mdt.get_manifest(manifest_path, task_name="fit-train"), pd.DataFrame
+        mdt.get_manifest(
+            manifest_path,
+            data_dir=data_root,
+            dataset_params=exp_dataset_params,
+            sampler_params=exp_sampler_params,
+            loader_params={"num_workers": 0},
+        ),
+        pd.DataFrame,
     )
-    assert isinstance(
-        mdt.get_manifest(manifest_path, task_name="fit-train"), pd.DataFrame
-    )
+
+    # Now try fetching it from cache.
+    assert isinstance(mdt.get_manifest(manifest_path), pd.DataFrame)
 
     new_path = Path("tests", "tmp", "empty", "Chesapeake7_Manifest.csv")
     if new_path.exists():
@@ -265,7 +286,16 @@ def test_get_manifest() -> None:
     if new_path.parent.exists():
         new_path.parent.rmdir()
 
-    assert isinstance(mdt.get_manifest(new_path, task_name="fit-train"), pd.DataFrame)
+    assert isinstance(
+        mdt.get_manifest(
+            manifest_path,
+            data_dir=data_root,
+            dataset_params=exp_dataset_params,
+            sampler_params=exp_sampler_params,
+            loader_params={"num_workers": 0},
+        ),
+        pd.DataFrame,
+    )
 
     if new_path.exists():
         new_path.unlink()

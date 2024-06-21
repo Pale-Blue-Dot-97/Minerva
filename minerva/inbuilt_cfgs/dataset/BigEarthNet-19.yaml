@@ -1,0 +1,48 @@
+---
+name: BigEarthNet-19
+
+classes:
+    0: Urban fabric
+    1: Industrial or commercial units
+    2: Arable land
+    3: Permanent crops
+    4: Pastures
+    5: Complex cultivation patterns
+    6: Agriculture, with significant areas of natural vegetation
+    7: Agro-forestry areas
+    8: Broad-leaved forest
+    9: Coniferous forest
+    10: Mixed forest
+    11: Natural grassland and sparsely vegetated areas
+    12: Moors, heathland and sclerophyllous vegetation
+    13: Transitional woodland, shrub
+    14: Beaches, dunes, sands
+    15: Inland wetlands
+    16: Coastal wetlands
+    17: Inland waters
+    18: Marine waters
+
+colours:
+    0: '#D6AE01'
+    1: '#5B3A29'
+    2: '#0A0A0A'
+    3: '#E63244'
+    4: '#5D9B9B'
+    5: '#3E5F8A'
+    6: '#E5BE01'
+    7: '#A12312'
+    8: '#CF3476'
+    9: '#826C34'
+    10: '#59351F'
+    11: '#332F2C'
+    12: '#4C514A'
+    13: '#D53032'
+    14: '#646B63'
+    15: '#57A639'
+    16: '#E63244'
+    17: '#2C5545'
+    18: '#E4A010'
+
+fig_sizes:
+    CM: [9, 8]
+    Mask: [12, 10]

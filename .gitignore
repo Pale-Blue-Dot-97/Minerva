@@ -142,14 +142,11 @@ dmypy.json
 # Weights and Biases stuff
 /wandb
 
-# Exclusions
-!docs/images/*.png
-!tests/fixtures/data/**/*.tif
-
 lightning_logs/
-data/*
-results/*
-cache/*
+**/data/*
+**/results/*
+**/cache/*
+**/outputs/*
 tests/tmp/cache/*
 tests/tmp/results/*
 user_cfgs/*
@@ -158,3 +155,7 @@ inbuilt_cfgs/config.yml
 inbuilt_cfgs/mf_config.yml
 
 .vscode/settings.json
+
+# Exclusions
+!docs/images/*.png
+!tests/fixtures/data/*

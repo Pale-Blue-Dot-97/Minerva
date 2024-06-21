@@ -43,20 +43,23 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Generator, Tuple
 
+import hydra
 import numpy as np
 import pytest
 import torch
 import torch.nn.modules as nn
 from nptyping import Float, Int, NDArray, Shape
+from omegaconf import DictConfig, OmegaConf
 from rasterio.crs import CRS
 from torch import LongTensor, Tensor
 from torchgeo.datasets import IntersectionDataset, RasterDataset
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.datasets import SSL4EOS12Sentinel2, make_dataset
+from minerva.datasets import GeoSSL4EOS12Sentinel2, make_dataset
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
-from minerva.utils import CONFIG, utils
+from minerva.utils import DEFAULT_CONFIG_NAME, utils
+from minerva.utils.runner import _config_load_resolver
 
 
 # =====================================================================================================================
@@ -89,12 +92,12 @@ def set_multiprocessing_to_fork():
 def use_detect_anomaly(request):
     if request.config.getoption("--detect-anomaly"):
         # Activates PyTorch's anomaly detection.
-        yield torch.autograd.set_detect_anomaly(True, True)
+        yield torch.autograd.set_detect_anomaly(True, True)  # type: ignore[attr-defined]
 
         # Deactivate anomaly detection after tests.
-        torch.autograd.set_detect_anomaly(False)
+        torch.autograd.set_detect_anomaly(False)  # type: ignore[attr-defined]
     else:
-        yield torch.autograd.set_detect_anomaly(False)
+        yield torch.autograd.set_detect_anomaly(False)  # type: ignore[attr-defined]
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -167,8 +170,18 @@ def config_here(inbuilt_cfg_root: Path) -> Generator[Path, None, None]:
 
 
 @pytest.fixture
+def default_config(inbuilt_cfg_root: Path) -> DictConfig:
+    OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
+
+    with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):
+        # config is relative to a module
+        cfg = hydra.compose(config_name=DEFAULT_CONFIG_NAME)
+        return cfg
+
+
+@pytest.fixture
 def inbuilt_cfg_root() -> Path:
-    return (Path(__file__).parent.parent / "minerva" / "inbuilt_cfgs").resolve()
+    return Path("..", "minerva", "inbuilt_cfgs")
 
 
 @pytest.fixture
@@ -182,8 +195,8 @@ def std_batch_size() -> int:
 
 
 @pytest.fixture
-def std_n_classes() -> int:
-    return 8
+def std_n_classes(exp_classes: Dict[int, str]) -> int:
+    return len(exp_classes)
 
 
 @pytest.fixture
@@ -352,7 +365,30 @@ def bounds_for_test_img() -> BoundingBox:
 
 @pytest.fixture
 def exp_classes() -> Dict[int, str]:
-    return {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
+    return {
+        0: "No Data",
+        1: "Water",
+        2: "Trees/Shrub",
+        3: "Low Vegetation",
+        4: "Barren",
+        5: "Surfaces",
+        6: "Roads",
+        7: "Military\nBase",
+    }
+
+
+@pytest.fixture
+def exp_cmap_dict() -> Dict[int, str]:
+    return {
+        0: "#000000",  # Transparent
+        1: "#00c5ff",  # Light Blue
+        2: "#267300",  # Dark green
+        3: "#a3ff73",  # v. Light green
+        4: "#ffaa00",  # Orange
+        5: "#9c9c9c",  # Light grey
+        6: "#000000",  # Black
+        7: "#c500ff",  # Purple
+    }
 
 
 @pytest.fixture
@@ -389,29 +425,68 @@ def exp_dataset_params() -> Dict[str, Any]:
             "name": "TstImgDataset",
             "paths": "NAIP",
             "params": {"res": 1.0, "crs": 26918},
-        }
+        },
+        "mask": {
+            "transforms": False,
+            "module": "minerva.datasets.__testing",
+            "name": "TstMaskDataset",
+            "paths": "Chesapeake7",
+            "params": {"res": 1.0},
+        },
     }
 
 
 @pytest.fixture
-def default_dataset() -> IntersectionDataset:
+def exp_sampler_params(small_patch_size: Tuple[int, int]):
+    return {
+        "module": "torchgeo.samplers",
+        "name": "RandomGeoSampler",
+        "roi": False,
+        "params": {
+            "size": small_patch_size,
+            "length": 120,
+        },
+    }
+
+
+@pytest.fixture
+def exp_loader_params(default_config):
+    return OmegaConf.to_object(default_config)["loader_params"]  # type: ignore[call-overload, index]
+
+
+@pytest.fixture
+def exp_collator_params(default_config):
+    return OmegaConf.to_object(default_config)["collator"]  # type: ignore[call-overload, index]
+
+
+@pytest.fixture
+def default_dataset(
+    default_config: DictConfig, data_root: Path, cache_dir: Path
+) -> IntersectionDataset:
     dataset, _ = make_dataset(
-        CONFIG["dir"]["data"], CONFIG["tasks"]["test-test"]["dataset_params"]
+        data_root,
+        OmegaConf.to_object(default_config["tasks"]["test-test"]["dataset_params"]),  # type: ignore[arg-type]
+        cache_dir=cache_dir,
     )
     assert isinstance(dataset, IntersectionDataset)
     return dataset
 
 
 @pytest.fixture
-def default_image_dataset(exp_dataset_params: Dict[str, Any]) -> RasterDataset:
-    dataset, _ = make_dataset(CONFIG["dir"]["data"], exp_dataset_params)
+def default_image_dataset(
+    default_config: DictConfig, exp_dataset_params: Dict[str, Any]
+) -> RasterDataset:
+    del exp_dataset_params["mask"]
+    dataset, _ = make_dataset(
+        default_config["dir"]["data"], exp_dataset_params, cache=False
+    )
     assert isinstance(dataset, RasterDataset)
     return dataset
 
 
 @pytest.fixture
 def ssl4eo_s12_dataset(data_root: Path, epsg3857: CRS) -> RasterDataset:
-    return SSL4EOS12Sentinel2(
+    return GeoSSL4EOS12Sentinel2(
         str(data_root / "SSL4EO-S12"), epsg3857, 10.0, bands=["B2", "B3", "B4", "B8"]
     )
 
