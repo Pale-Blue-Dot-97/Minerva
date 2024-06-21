@@ -224,6 +224,10 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
         assert slurm_nnodes is not None
         assert slurm_jobid is not None
 
+        # Append the task ID to the job ID if the job is an array job.
+        if os.getenv("SLURM_ARRAY_TASK_ID") is not None:
+            slurm_jobid += "_" + os.getenv("SLURM_ARRAY_TASK_ID")
+
         # Find a common host name on all nodes.
         # Assume scontrol returns hosts in the same order on all nodes.
         cmd = "scontrol show hostnames " + slurm_job_nodelist
@@ -236,9 +240,7 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
             cfg, "world_size", int(slurm_nnodes) * cfg.ngpus_per_node, force_add=True
         )
         OmegaConf.update(cfg, "dist_url", f"tcp://{host_name}:58472", force_add=True)
-        OmegaConf.update(
-            cfg, "jobid", slurm_jobid + os.getenv("SLURM_ARRAY_TASK_ID"), force_add=True
-        )
+        OmegaConf.update(cfg, "jobid", slurm_jobid, force_add=True)
 
     else:
         # Non-SLURM job.
