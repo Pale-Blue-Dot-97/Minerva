@@ -39,11 +39,14 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+import warnings
 from copy import deepcopy
 from pathlib import Path
+from platform import python_version
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 
 import hydra
+import packaging
 import torch
 import yaml
 from inputimeout import TimeoutOccurred, inputimeout
@@ -383,9 +386,21 @@ class Trainer:
 
             # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
             # Will also wrap the model in torch.compile if specified to do so in params.
-            self.model = wrap_model(
-                self.model, gpu, self.params.get("torch_compile", False)
-            )
+            # TODO: Waiting on https://github.com/pytorch/pytorch/issues/120233 for torch.compile python 3.12 support.
+            if packaging.version.parse(python_version()) < packaging.version.parse(
+                "3.12"
+            ):
+                self.model = wrap_model(
+                    self.model, gpu, self.params.get("torch_compile", False)
+                )
+            elif packaging.version.parse(python_version()) >= packaging.version.parse(
+                "3.12"
+            ) and self.params.get("torch_compile"):
+                warnings.warn(
+                    "WARNING: python 3.12+ is not yet compatible with torch.compile. Disabling torch.compile"
+                )
+            else:
+                pass
 
     def _setup_writer(self) -> None:
         if self.gpu == 0:
@@ -419,6 +434,10 @@ class Trainer:
                     except RuntimeError as err:  # pragma: no cover
                         print(err)
                         print("ABORT adding graph to writer")
+
+        # If writer is `wandb`, `watch` the model to log gradients.
+        if isinstance(self.writer, Run):
+            self.writer.watch(self.model)
 
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
@@ -554,11 +573,16 @@ class Trainer:
             if "schedulers" in self.params["scheduler"]:
                 sub_schedulers = []
                 for sub_scheduler_params in self.params["scheduler"]["schedulers"]:
-                    sub_schedulers.append(hydra.utils.instantiate(
-                        sub_scheduler_params, optimizer=optimiser,
-                    ))
+                    sub_schedulers.append(
+                        hydra.utils.instantiate(
+                            sub_scheduler_params,
+                            optimizer=optimiser,
+                        )
+                    )
                 scheduler = hydra.utils.instantiate(
-                    self.params["scheduler"], schedulers=sub_schedulers, optimizer=optimiser,
+                    self.params["scheduler"],
+                    schedulers=sub_schedulers,
+                    optimizer=optimiser,
                 )
             else:
                 scheduler = hydra.utils.instantiate(

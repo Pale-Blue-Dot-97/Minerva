@@ -76,7 +76,7 @@ from torch import LongTensor, Tensor
 from torchgeo.datasets import BoundingBox, RasterDataset
 from torchgeo.samplers import RandomGeoSampler
 from torchvision.transforms import ColorJitter, Normalize, RandomApply
-from torchvision.transforms import functional as ft
+from torchvision.transforms.v2 import functional as ft
 
 from minerva.utils.utils import find_tensor_mode, func_by_str, mask_transform
 
