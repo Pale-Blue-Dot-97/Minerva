@@ -577,11 +577,16 @@ class Trainer:
             if "schedulers" in self.params["scheduler"]:
                 sub_schedulers = []
                 for sub_scheduler_params in self.params["scheduler"]["schedulers"]:
-                    sub_schedulers.append(hydra.utils.instantiate(
-                        sub_scheduler_params, optimizer=optimiser,
-                    ))
+                    sub_schedulers.append(
+                        hydra.utils.instantiate(
+                            sub_scheduler_params,
+                            optimizer=optimiser,
+                        )
+                    )
                 scheduler = hydra.utils.instantiate(
-                    self.params["scheduler"], schedulers=sub_schedulers, optimizer=optimiser,
+                    self.params["scheduler"],
+                    schedulers=sub_schedulers,
+                    optimizer=optimiser,
                 )
             else:
                 scheduler = hydra.utils.instantiate(

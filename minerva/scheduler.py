@@ -39,8 +39,8 @@ __all__ = ["CosineLR"]
 import warnings
 from typing import List
 
-from torch.optim.lr_scheduler import LRScheduler
 import numpy as np
+from torch.optim.lr_scheduler import LRScheduler
 
 
 # =====================================================================================================================
