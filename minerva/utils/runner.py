@@ -54,7 +54,7 @@ import shlex
 import signal
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import requests
 import torch
@@ -114,10 +114,14 @@ def _handle_sigterm(signum, frame) -> None:  # pragma: no cover
     pass
 
 
-def _config_load_resolver(path: str):
+def _config_load_resolver(path: str) -> Dict[Any, Any]:
     with open(Path(path)) as f:
         cfg = yaml.safe_load(f)
     return cfg
+
+
+def _torch_dtype_resolver(dtype: str):
+    return getattr(torch, dtype)
 
 
 def setup_wandb_run(
@@ -328,6 +332,7 @@ def distributed_run(
 
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
     OmegaConf.register_new_resolver("eval", eval, replace=True)
+    OmegaConf.register_new_resolver("torch_dtype", _torch_dtype_resolver, replace=True)
 
     @functools.wraps(run)
     def inner_decorator(cfg: DictConfig):
