@@ -756,8 +756,7 @@ class ConvertDtypeFromStr(ConvertImageDtype):
     """
 
     def __init__(self, dtype: str) -> None:
-        super().__init__()
-        self.dtype = getattr(torch, dtype)
+        super().__init__(getattr(torch, dtype))
 
 
 # =====================================================================================================================
