@@ -75,7 +75,12 @@ import torch
 from torch import LongTensor, Tensor
 from torchgeo.datasets import BoundingBox, RasterDataset
 from torchgeo.samplers import RandomGeoSampler
-from torchvision.transforms import ColorJitter, Normalize, RandomApply
+from torchvision.transforms import (
+    ColorJitter,
+    ConvertImageDtype,
+    Normalize,
+    RandomApply,
+)
 from torchvision.transforms.v2 import functional as ft
 
 from minerva.utils.utils import find_tensor_mode, func_by_str, mask_transform
@@ -741,6 +746,18 @@ class SeasonTransform:
         image = x[season1]
 
         return image
+
+
+class ConvertDtypeFromStr(ConvertImageDtype):
+    """Wrapper for :class:~`torchvision.transforms.ConvertImageDtype` that accepts str.
+
+    Args:
+        dtype (str): A tensor type as :class:`str`.
+    """
+
+    def __init__(self, dtype: str) -> None:
+        super().__init__()
+        self.dtype = getattr(torch, dtype)
 
 
 # =====================================================================================================================
