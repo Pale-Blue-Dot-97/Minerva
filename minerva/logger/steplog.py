@@ -64,6 +64,7 @@ import torch
 import torch.distributed as dist
 from sklearn.metrics import jaccard_score
 from torch import Tensor
+from torcheval.metrics.functional import multilabel_accuracy
 from torchmetrics.regression.cosine_similarity import CosineSimilarity
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -349,7 +350,10 @@ class SupervisedStepLogger(MinervaStepLogger):
         if self.record_int:
             int_log_shape: Tuple[int, ...]
             if check_substrings_in_string(self.model_type, "scene-classifier"):
-                int_log_shape = (self.n_batches, self.batch_size)
+                if check_substrings_in_string(self.model_type, "multilabel"):
+                    int_log_shape = (self.n_batches, self.batch_size, n_classes)
+                else:
+                    int_log_shape = (self.n_batches, self.batch_size)
             else:
                 if len(self.output_size) == 3:
                     int_log_shape = (
@@ -434,10 +438,16 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         if self.record_int:
             # Arg max the estimated probabilities and add to predictions.
-            self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()  # type: ignore[attr-defined]
+            if check_substrings_in_string(self.model_type, "multilabel"):
+                self.results["z"][self.logs["batch_num"]] = (
+                    torch.round(z).detach().cpu().numpy()
+                )
+            else:
+                self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()  # type: ignore[attr-defined]
 
             # Add the labels and sample IDs to lists.
             self.results["y"][self.logs["batch_num"]] = y.cpu().numpy()
+
             batch_ids = []
             for i in range(
                 self.logs["batch_num"] * self.batch_size,
@@ -453,7 +463,10 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         # Computes the loss and the correct predictions from this step.
         ls = loss.item()
-        correct = (torch.argmax(z, 1) == y).sum().item()  # type: ignore[attr-defined]
+        if check_substrings_in_string(self.model_type, "multilabel"):
+            correct = float(multilabel_accuracy(z, y).cpu())
+        else:
+            correct = (torch.argmax(z, 1) == y).sum().item()  # type: ignore[attr-defined]
 
         # Adds loss and correct predictions to logs.
         self.logs["total_loss"] += ls
