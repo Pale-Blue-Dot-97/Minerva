@@ -46,6 +46,7 @@ dependencies = [
     "requests",
     "scikit-learn",
     "tabulate",
+    "torcheval",
     "torchgeo>=0.5.0",
     "torchinfo",
     "tqdm",
