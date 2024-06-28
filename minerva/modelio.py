@@ -48,7 +48,7 @@ from torch import LongTensor, Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
-from minerva.utils.utils import mask_to_ohe
+from minerva.utils.utils import mask_to_ohe, check_substrings_in_string
 
 
 # =====================================================================================================================
@@ -87,6 +87,9 @@ def sup_tg(
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
     target_key = kwargs.get("target_key", "mask")
 
+    model_type = kwargs.get("model_type", "")
+    multilabel = True if check_substrings_in_string(model_type, "multilabel") else False
+
     # Extracts the x and y batches from the dict.
     images: Tensor = batch["image"]
     targets: Tensor = batch[target_key]
@@ -108,7 +111,7 @@ def sup_tg(
 
     if isinstance(targets, Tensor):
         targets = targets.detach().cpu().numpy()
-    y_batch = torch.tensor(targets, dtype=torch.long)  # type: ignore[attr-defined]
+    y_batch = torch.tensor(targets, dtype=torch.float if multilabel else torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
     x: Tensor = x_batch.to(device)
