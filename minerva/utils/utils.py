@@ -1892,3 +1892,42 @@ def make_hash(obj: Dict[Any, Any]) -> str:
         obj = OmegaConf.to_object(obj)  # type: ignore[assignment]
 
     return hashlib.md5(json_dumps(obj).encode("utf-8")).digest().hex()  # nosec: B324
+
+
+def closest_factors(n):
+    """Find the pair of dimensions (x, y) of n that are as close to each other as possible.
+
+    Args:
+        n (int): The input integer.
+
+    Returns:
+        tuple: A tuple (x, y) representing the dimensions.
+    """
+    if n <= 5:
+        return (1, n)
+
+    best_pair = (1, n)
+    min_diff = n  # Initial difference between factors
+
+    for i in range(1, int(math.sqrt(n)) + 1):
+        if n % i == 0:
+            pair = (i, n // i)
+            diff = abs(pair[0] - pair[1])
+            if diff < min_diff:
+                min_diff = diff
+                best_pair = pair
+
+    # If no exact pair is found, use approximate square root values
+    if best_pair == (1, n):
+        ceil_sqrt = math.ceil(math.sqrt(n))
+        floor_sqrt = math.floor(math.sqrt(n))
+        if ceil_sqrt * floor_sqrt >= n:
+            best_pair = (ceil_sqrt, floor_sqrt)
+        else:
+            best_pair = (ceil_sqrt, ceil_sqrt)
+
+    # Ensure the smaller dimension is first
+    if best_pair[0] > best_pair[1]:
+        best_pair = (best_pair[1], best_pair[0])
+
+    return best_pair
