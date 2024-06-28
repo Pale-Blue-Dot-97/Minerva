@@ -85,7 +85,7 @@ from numpy.typing import ArrayLike
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from scipy import stats
-from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import ConfusionMatrixDisplay, multilabel_confusion_matrix
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.utils import universal_path, utils
@@ -949,7 +949,7 @@ def make_confusion_matrix(
     """Creates a heat-map of the confusion matrix of the given model.
 
     Args:
-        pred(list[int]): Predictions made by model on test images.
+        pred (list[int]): Predictions made by model on test images.
         labels (list[int]): Accompanying ground truth labels for testing images.
         classes (dict[int, str]): Dictionary mapping class labels to class names.
         filename (str): Optional; Name of file to save plot to.
@@ -984,6 +984,76 @@ def make_confusion_matrix(
 
     # Normalises the colourbar to between [0, 1] for consistent clarity.
     cm.ax_.get_images()[0].set_clim(0, 1)
+
+    # Shows and/or saves plot.
+    if show:
+        plt.show(block=False)
+    if save:
+        plt.savefig(filename)
+        plt.close()
+
+
+def make_multilabel_confusion_matrix(
+    preds: Union[List[int], NDArray[Any, Int]],
+    labels: Union[List[int], NDArray[Any, Int]],
+    classes: Dict[int, str],
+    filename: Optional[Union[str, Path]] = None,
+    cmap_style: str = "Blues",
+    figsize: Tuple[int, int] = (2, 2),
+    show: bool = True,
+    save: bool = False,
+) -> None:
+    """Creates a heat-map of the confusion matrix of the given model.
+
+    Args:
+        probs (list[int]): Output made by the model on test images.
+        labels (list[int]): Accompanying ground truth labels for testing images.
+        classes (dict[int, str]): Dictionary mapping class labels to class names.
+        filename (str): Optional; Name of file to save plot to.
+        cmap_style (str): Colourmap style to use in the confusion matrix.
+        show (bool): Optional; Whether to show plot.
+        save (bool): Optional; Whether to save plot to file.
+
+    Returns:
+        None
+    """
+    # Find a pair of integer values that are most square-like for the dimensions
+    # of the sub-plot array that fits with the number of classes.
+    dimensions = utils.closest_factors(len(classes))
+
+    # Creates the figure to plot onto.
+    fig, axes = plt.subplots(dimensions[0], dimensions[1], figsize=figsize)
+    axes = axes.ravel()
+
+    # Get a matplotlib colourmap based on the style specified to use for the confusion matrix.
+    cmap = get_mlp_cmap(cmap_style)
+
+    # Create the confusion matrices for each class.
+    cm = multilabel_confusion_matrix(
+        labels.reshape(-1, labels.shape[-1]),
+        preds.reshape(-1, preds.shape[-1]),
+        labels=list(classes.keys()),
+    )
+
+    for i in range(len(classes)):
+        # Creates the confusion matrix.
+        sub_cm = ConfusionMatrixDisplay(cm[i], display_labels=["N", "Y"])
+
+        # Plot confusion matrix.
+        sub_cm.plot(cmap=cmap, ax=axes[i])
+
+        # Set title for each sub-plot to the class number (labels will not fit).
+        sub_cm.ax_.set_title(f"Class {i}")
+
+        # Delete individual colourbars for each sub-plot.
+        sub_cm.im_.colorbar.remove()
+
+    # Add colourbar for whole figure.
+    fig.colorbar(sub_cm.im_, ax=axes)
+
+    # Delete empty sub_plots if the n_classes was an odd number > 5.
+    for i in range(len(classes), np.prod(dimensions)):
+        fig.delaxes(axes[i])
 
     # Shows and/or saves plot.
     if show:
@@ -1359,15 +1429,27 @@ def plot_results(
         assert flat_z is not None
 
         print("\nPLOTTING CONFUSION MATRIX")
-        make_confusion_matrix(
-            labels=flat_y,
-            pred=flat_z,
-            classes=class_names,
-            filename=filenames["CM"],
-            save=save,
-            show=show,
-            figsize=cfg["data_config"]["fig_sizes"]["CM"],
-        )
+
+        if utils.check_substrings_in_string(cfg["model_type"], "multilabel"):
+            make_multilabel_confusion_matrix(
+                labels=y,
+                preds=z,
+                classes=class_names,
+                filename=filenames["CM"],
+                save=save,
+                show=show,
+                figsize=cfg["data_config"]["fig_sizes"]["CM"],
+            )
+        else:
+            make_confusion_matrix(
+                labels=flat_y,
+                pred=flat_z,
+                classes=class_names,
+                filename=filenames["CM"],
+                save=save,
+                show=show,
+                figsize=cfg["data_config"]["fig_sizes"]["CM"],
+            )
 
     if plots.get("Pred", False):
         assert class_names is not None
