@@ -97,12 +97,12 @@ class DynamicPSP(smp.PSPNet):
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
-        in_channels: int = None,
+        in_channels: Optional[int] = None,
         n_classes: int = 1,
         activation: Optional[Union[str, Callable[..., Any]]] = None,
         upsampling: int = 8,
         aux_params: Optional[Dict[str, Any]] = None,
-        backbone_weight_path: str = None,
+        backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         encoder: bool = True,
         segmentation_on: bool = True,
@@ -142,7 +142,7 @@ class DynamicPSP(smp.PSPNet):
     def make_segmentation_head(
         self,
         n_classes: int,
-        activation: Optional[Union[str, callable]] = None,
+        activation: Optional[Union[str, Callable[..., Any]]] = None,
         upsampling: int = 8,
     ) -> None:
         self.segmentation_head = SegmentationHead(

@@ -32,7 +32,7 @@ __all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
 # =====================================================================================================================
 import os
 import pickle
-from typing import Any, Callable, Dict, List, Optional
+from typing import Dict, List, Optional, Tuple, Union
 
 import cv2
 import lmdb
@@ -40,7 +40,7 @@ import numpy as np
 import rasterio
 import torch
 from torch import Tensor
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import BatchSampler, DataLoader, Dataset
 from torchgeo.datasets import Sentinel2
 from torchvision.datasets import VisionDataset
 from torchvision.transforms import Normalize
@@ -244,7 +244,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             self.ids = os.listdir(os.path.join(self.root, self.mode))
             self.length = len(self.ids)
 
-        self.season_transform: Optional[Callable[..., Any]]
+        self.season_transform: Optional[SeasonTransform]
         if season_transform is not None:
             self.season_transform = SeasonTransform(season_transform)
         else:
@@ -260,10 +260,10 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             meminit=False,
         )
         assert self.env is not None
-        with self.env.begin(write=False) as txn:
+        with self.env.begin(write=False) as txn:  # type: ignore[unreachable]
             self.length = txn.stat()["entries"]
 
-    def __getitem__(self, index: int) -> Dict[str, Tensor]:
+    def __getitem__(self, index: int) -> Dict[str, Union[Tuple[Tensor, ...], Tensor]]:
         if self.lmdb_file:
             if self.is_slurm_job:
                 # Delay loading LMDB data until after initialization
@@ -271,7 +271,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
                     self._init_db()
 
             assert self.env is not None
-            with self.env.begin(write=False) as txn:
+            with self.env.begin(write=False) as txn:  # type: ignore[unreachable]
                 data = txn.get(str(index).encode())
 
             # S1
@@ -381,6 +381,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             mean = self.S2C_MEAN
             std = self.S2C_STD
 
+        assert bands is not None
         normalise = Normalize(
             mean=[mean[band] for band in bands], std=[std[band] for band in bands]
         )
@@ -424,7 +425,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         return self.length
 
 
-class Subset(Dataset):
+class Subset(Dataset):  # type: ignore[type-arg]
 
     def __init__(self, dataset, indices):
         self.dataset = dataset
@@ -455,7 +456,7 @@ class _RepeatSampler(object):
             yield from iter(self.sampler)
 
 
-class InfiniteDataLoader(DataLoader):
+class InfiniteDataLoader(DataLoader):  # type: ignore[type-arg]
     """
     Dataloader that reuses workers.
     Uses same syntax as vanilla DataLoader.
@@ -467,7 +468,9 @@ class InfiniteDataLoader(DataLoader):
         self.iterator = super().__iter__()
 
     def __len__(self):
-        return len(self.batch_sampler.sampler)
+        assert self.batch_sampler is not None
+        assert isinstance(self.batch_sampler, BatchSampler)
+        return len(self.batch_sampler.sampler)  # type: ignore[arg-type]
 
     def __iter__(self):
         for _ in range(len(self)):

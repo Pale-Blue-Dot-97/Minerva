@@ -594,12 +594,12 @@ class MinervaCompose:
         _transforms = deepcopy(self.transforms)
 
         if isinstance(new_transform, MinervaCompose):
-            return self._add(new_transform.transforms)
+            return self._add(new_transform.transforms)  # type: ignore[arg-type]
 
         if isinstance(new_transform, dict) and isinstance(_transforms, dict):
             for key in new_transform.keys():
                 if key not in _transforms:
-                    _transforms[key] = new_transform[key]
+                    _transforms[key] = new_transform[key]  # type: ignore[assignment]
                 else:
                     _transforms[key] = add_transforms(
                         new_transform[key], _transforms[key]

@@ -1028,6 +1028,11 @@ def make_multilabel_confusion_matrix(
     # Get a matplotlib colourmap based on the style specified to use for the confusion matrix.
     cmap = get_mlp_cmap(cmap_style)
 
+    if isinstance(labels, list):
+        labels = np.ndarray(labels)
+    if isinstance(preds, list):
+        preds = np.ndarray(preds)
+
     # Create the confusion matrices for each class.
     cm = multilabel_confusion_matrix(
         labels.reshape(-1, labels.shape[-1]),
@@ -1432,8 +1437,8 @@ def plot_results(
 
         if utils.check_substrings_in_string(cfg["model_type"], "multilabel"):
             make_multilabel_confusion_matrix(
-                labels=y,
-                preds=z,
+                labels=y,  # type: ignore[arg-type]
+                preds=z,  # type: ignore[arg-type]
                 classes=class_names,
                 filename=filenames["CM"],
                 save=save,
@@ -1526,7 +1531,7 @@ def plot_results(
         print("\nPERFORMING TSNE CLUSTERING")
         plot_embedding(
             embeddings,
-            index,
+            index,  # type: ignore[arg-type]
             cfg["dir"]["data"],
             cfg["tasks"][task_name]["dataset_params"],
             show=show,

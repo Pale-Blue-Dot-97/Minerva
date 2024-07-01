@@ -970,6 +970,7 @@ def make_manifest(
     """
 
     def delete_class_transform(params: Dict[str, Any]) -> None:
+        assert target_key is not None
         if params[target_key] is None:
             return
 
