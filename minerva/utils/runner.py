@@ -224,9 +224,14 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
         assert slurm_nnodes is not None
         assert slurm_jobid is not None
 
-        # Append the task ID to the job ID if the job is an array job.
-        if os.getenv("SLURM_ARRAY_TASK_ID") is not None:
-            slurm_jobid += "_" + os.getenv("SLURM_ARRAY_TASK_ID")
+        # If an array job, use the array master job ID and task ID as the job ID.
+        if (
+            os.getenv("SLURM_ARRAY_TASK_ID") is not None
+            and os.getenv("SLURM_ARRAY_JOB_ID") is not None
+        ):
+            slurm_jobid = (
+                os.getenv("SLURM_ARRAY_JOB_ID") + "_" + os.getenv("SLURM_ARRAY_TASK_ID")
+            )
 
         # Find a common host name on all nodes.
         # Assume scontrol returns hosts in the same order on all nodes.
