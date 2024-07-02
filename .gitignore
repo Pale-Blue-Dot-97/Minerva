@@ -158,4 +158,4 @@ inbuilt_cfgs/mf_config.yml
 
 # Exclusions
 !docs/images/*.png
-!tests/fixtures/data/*
+!tests/fixtures/data/**
