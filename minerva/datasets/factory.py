@@ -59,13 +59,13 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
-from catalyst.data.sampler import DistributedSamplerWrapper
 from pandas import DataFrame
 from rasterio.crs import CRS
 from torch.utils.data import DataLoader
 from torchgeo.datasets import GeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 
+from minerva.samplers import DistributedSamplerWrapper
 from minerva.transforms import init_auto_norm, make_transformations
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
