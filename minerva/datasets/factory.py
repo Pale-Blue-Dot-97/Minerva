@@ -316,7 +316,11 @@ def make_dataset(
         # If this the sampler params, skip.
         if type_key == "sampler":
             continue
-        type_dataset_params = dataset_params[type_key]
+
+        if type_key in ("image", "mask", "label"):
+            type_dataset_params = dataset_params[type_key]
+        else:
+            continue
 
         # If there are no params, assume this is just a marker and no datasets are defined so skip.
         if type_dataset_params is None:
