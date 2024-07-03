@@ -65,6 +65,7 @@ class FlexiSceneClassifier(MinervaBackbone):
         n_classes: int = 1,
         scaler: Optional[GradScaler] = None,
         fc_dim: int = 512,
+        intermediate_dim: int = 256,
         encoder_on: bool = False,
         filter_dim: int = 0,
         freeze_backbone: bool = False,
@@ -80,9 +81,9 @@ class FlexiSceneClassifier(MinervaBackbone):
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:  # pragma: no cover
-            backbone.load_state_dict = torch.load(
+            backbone.load_state_dict(torch.load(
                 backbone_weight_path, map_location=torch.device("cpu")
-            )
+            ))
 
             # Freezes the weights of backbone to avoid end-to-end training.
             backbone.requires_grad_(False if freeze_backbone else True)
@@ -96,6 +97,7 @@ class FlexiSceneClassifier(MinervaBackbone):
         self.encoder_on = encoder_on
         self.filter_dim = filter_dim
         self.fc_dim = fc_dim
+        self.intermediate_dim = intermediate_dim
 
         # Will clamp the outputs of the classification head to the range (0, 1).
         self.clamp_outputs = clamp_outputs
@@ -103,10 +105,13 @@ class FlexiSceneClassifier(MinervaBackbone):
         self._make_classification_head()
 
     def _make_classification_head(self) -> None:
+        assert self.n_classes is not None
         self.classification_head = torch.nn.Sequential(
             torch.nn.AdaptiveAvgPool2d((1, 1)),
             torch.nn.Flatten(),
-            torch.nn.Linear(self.fc_dim, self.n_classes),
+            torch.nn.Linear(self.fc_dim, self.intermediate_dim),
+            torch.nn.ReLU(),
+            torch.nn.Linear(self.intermediate_dim, self.n_classes),
         )
 
     def _remake_classifier(self) -> None:
