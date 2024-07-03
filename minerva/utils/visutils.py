@@ -813,8 +813,10 @@ def seg_plot(
                 fig_dim=fig_dim,
                 cmap_style=ListedColormap(colours.values(), N=len(colours)),  # type: ignore
             )
-
-            bar()
+            try:
+                bar()
+            except AttributeError:  # Bug in alive-progress
+                pass
 
 
 def plot_subpopulations(
