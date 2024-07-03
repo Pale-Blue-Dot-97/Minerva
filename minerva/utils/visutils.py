@@ -96,6 +96,7 @@ from rasterio.crs import CRS
 from scipy import stats
 from sklearn.metrics import ConfusionMatrixDisplay
 from torchgeo.datasets.utils import BoundingBox
+from tqdm import tqdm, trange
 
 from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, utils
 
@@ -536,13 +537,13 @@ def make_gif(
     # Changes to `imagio` now mean we need the duration of the GIF and not the `fps`.
     duration = len(dates) / fps
 
-    # Initialise progress bar.
-    with alive_bar(len(dates), bar="blocks") as bar:
-        # List to hold filenames and paths of images created.
-        frames = []
-        for i in range(len(dates)):
+    # List to hold filenames and paths of images created.
+    frames = []
+
+    with trange(len(dates)) as t:
+        for i in t:
             # Update progress bar with current scene.
-            bar.text("SCENE ON %s" % dates[i])
+            t.set_description("SCENE ON %s" % dates[i])
 
             # Create a frame of the GIF for a scene of the patch.
             frame = labelled_rgb_image(
@@ -563,9 +564,6 @@ def make_gif(
 
             # Read in frame just created and add to list of frames.
             frames.append(imageio.imread(frame))
-
-            # Update bar with step completion.
-            bar()
 
     # Checks GIF doesn't already exist. Deletes if it does.
     utils.exist_delete_check(gif_name)
@@ -795,9 +793,8 @@ def seg_plot(
     if n_samples > _MAX_SAMPLES:
         n_samples = _MAX_SAMPLES
 
-    # Initialises a progress bar for the epoch.
-    with alive_bar(n_samples, bar="blocks") as bar:
-        # Plots the predicted versus ground truth labels for all test patches supplied.
+    # Plots the predicted versus ground truth labels for all test patches supplied.
+    with tqdm(total=n_samples) as pbar:
         for i in random.sample(range(len(flat_ids)), n_samples):
             image = stack_rgb(dataset[bounds[i]]["image"].numpy())
             sample = {"image": image, "pred": z[i], "mask": y[i], "bounds": bounds[i]}
@@ -813,10 +810,7 @@ def seg_plot(
                 fig_dim=fig_dim,
                 cmap_style=ListedColormap(colours.values(), N=len(colours)),  # type: ignore
             )
-            try:
-                bar()
-            except AttributeError:  # Bug in alive-progress
-                pass
+        pbar.update()
 
 
 def plot_subpopulations(
@@ -1143,20 +1137,16 @@ def plot_embedding(
     images = []
     targets = []
 
-    # Initialises a progress bar for the epoch.
-    with alive_bar(len(x), bar="blocks") as bar:
-        # Plots the predicted versus ground truth labels for all test patches supplied.
-        for i in range(len(x)):
-            sample = dataset[bounds[i]]
-            images.append(stack_rgb(sample["image"].numpy()))
-            targets.append(
-                [
-                    int(stats.mode(mask.flatten(), keepdims=False).mode)
-                    for mask in sample["mask"].numpy()
-                ]
-            )
-
-            bar()
+    # Plots the predicted versus ground truth labels for all test patches supplied.
+    for i in trange(len(x)):
+        sample = dataset[bounds[i]]
+        images.append(stack_rgb(sample["image"].numpy()))
+        targets.append(
+            [
+                int(stats.mode(mask.flatten(), keepdims=False).mode)
+                for mask in sample["mask"].numpy()
+            ]
+        )
 
     x_min, x_max = np.min(x, 0), np.max(x, 0)
     x = (x - x_min) / (x_max - x_min)
