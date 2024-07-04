@@ -154,7 +154,6 @@ import psutil
 import rasterio as rt
 import torch
 import yaml
-from alive_progress import alive_bar
 from geopy.adapters import AdapterHTTPError
 from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Photon
@@ -173,6 +172,7 @@ from torch.nn import functional as F
 from torch.nn.modules import Module
 from torch.types import _device
 from torchgeo.datasets.utils import BoundingBox
+from tqdm import trange
 from urllib3.exceptions import NewConnectionError
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
@@ -1748,10 +1748,12 @@ def compute_roc_curves(
     # Avoids warnings about empty targets from sklearn!
     populated_classes: List[int] = []
 
+    print("Computing class ROC curves")
+
     # Initialises a progress bar.
-    with alive_bar(len(class_labels), bar="blocks") as bar:
+    with trange(len(class_labels)) as bar:
         # Compute ROC curve and ROC AUC for each class.
-        print("Computing class ROC curves")
+
         for key in class_labels:
             # Checks if this class was actually in the targets supplied to the model.
             if 1 in targets[:, key]:
@@ -1768,12 +1770,12 @@ def compute_roc_curves(
                     populated_classes.append(key)
 
                     # Step on progress bar.
-                    bar()
+                    bar.update()
 
                 except UndefinedMetricWarning:  # pragma: no cover
-                    bar("Class empty!")
+                    bar.set_description("Class empty!")
             else:
-                print(f"Class {key} empty!")
+                bar.set_description(f"Class {key} empty!")
 
     if micro:
         # Get the current memory utilisation of the system.
@@ -1810,10 +1812,10 @@ def compute_roc_curves(
         mean_tpr = np.zeros_like(all_fpr)
 
         # Initialises a progress bar.
-        with alive_bar(len(populated_classes), bar="blocks") as bar:
+        with trange(len(populated_classes)) as bar:
             for key in populated_classes:
                 mean_tpr += np.interp(all_fpr, fpr[key], tpr[key])
-                bar()
+                bar.update()
 
         # Finally, average it and compute AUC
         mean_tpr /= len(populated_classes)
