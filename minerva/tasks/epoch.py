@@ -43,7 +43,7 @@ __all__ = ["StandardEpoch"]
 from contextlib import nullcontext
 
 import torch.distributed as dist
-from alive_progress import alive_bar
+from tqdm import tqdm
 
 from minerva.utils import utils
 
@@ -63,9 +63,7 @@ class StandardEpoch(MinervaTask):
 
     def step(self) -> None:
         # Initialises a progress bar for the epoch.
-        with (
-            alive_bar(self.n_batches, bar="blocks") if self.gpu == 0 else nullcontext()
-        ) as bar:
+        with tqdm(total=self.n_batches) if self.gpu == 0 else nullcontext() as bar:
             # Sets the model up for training or evaluation modes.
             if self.train:
                 self.model.train()
@@ -93,7 +91,7 @@ class StandardEpoch(MinervaTask):
 
                 # Updates progress bar that batch has been processed.
                 if self.gpu == 0:
-                    bar()  # type: ignore
+                    bar.update()  # type: ignore
 
         # If configured to do so, calculates the grad norms.
         if self.params.get("calc_norm", False):

@@ -80,7 +80,6 @@ import imageio
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 import numpy as np
-from alive_progress import alive_bar
 from geopy.exc import GeocoderUnavailable
 from matplotlib import offsetbox
 from matplotlib.axes import Axes
@@ -568,13 +567,10 @@ def make_gif(
     # Checks GIF doesn't already exist. Deletes if it does.
     utils.exist_delete_check(gif_name)
 
-    # Create a 'unknown' bar to 'spin' while the GIF is created.
-    with alive_bar(unknown="waves") as bar:
-        # Add current operation to spinner bar.
-        bar.text("MAKING PATCH GIF")
+    print("MAKING PATCH GIF")
 
-        # Create GIF.
-        imageio.mimwrite(gif_name, frames, format=".gif", duration=duration)  # type: ignore
+    # Create GIF.
+    imageio.mimwrite(gif_name, frames, format=".gif", duration=duration)  # type: ignore
 
 
 def prediction_plot(
