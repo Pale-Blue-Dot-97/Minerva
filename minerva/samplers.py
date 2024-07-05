@@ -48,7 +48,7 @@ __all__ = [
 # =====================================================================================================================
 import random
 from operator import itemgetter
-from typing import Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
 
 import torch
 from torch.utils.data import Dataset, DistributedSampler, Sampler
@@ -276,7 +276,7 @@ def get_pair_bboxes(
     return bbox_a, bbox_b
 
 
-class DistributedSamplerWrapper(DistributedSampler):
+class DistributedSamplerWrapper(DistributedSampler):  # type: ignore[type-arg]
     """
     Wrapper over `Sampler` for distributed training.
     Allows you to use any sampler in distributed mode.
@@ -296,7 +296,7 @@ class DistributedSamplerWrapper(DistributedSampler):
 
     def __init__(
         self,
-        sampler,
+        sampler: Sampler[Any],
         num_replicas: Optional[int] = None,
         rank: Optional[int] = None,
         shuffle: bool = True,
@@ -329,40 +329,41 @@ class DistributedSamplerWrapper(DistributedSampler):
         self.dataset = DatasetFromSampler(self.sampler)
         indexes_of_indexes = super().__iter__()
         subsampler_indexes = self.dataset
-        return iter(itemgetter(*indexes_of_indexes)(subsampler_indexes))
+        return iter(itemgetter(*indexes_of_indexes)(subsampler_indexes))  # type: ignore[arg-type]
 
 
-class DatasetFromSampler(Dataset):
-    """Dataset to create indexes from `Sampler`.
+class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
+    """Dataset to create indexes from `sampler`.
 
     Args:
-        sampler: PyTorch sampler
+        sampler (~torch.utils.data.Sampler): PyTorch sampler
 
     .. note::
         Sourced from :mod:`catalyst` https://github.com/catalyst-team/catalyst/blob/master/catalyst/data/dataset.py#L6
     """
 
-    def __init__(self, sampler: Sampler):
-        """Initialisation for DatasetFromSampler."""
+    def __init__(self, sampler: Sampler[Any]):
+        """Initialisation for :class:`DatasetFromSampler`."""
         self.sampler = sampler
-        self.sampler_list = None
+        self.sampler_list: Optional[List[Sampler[Any]]] = None
 
-    def __getitem__(self, index: int):
+    def __getitem__(self, index: int) -> Any:
         """Gets element of the dataset.
 
         Args:
-            index: index of the element in the dataset
+            index (int): Index of the element in the dataset.
 
         Returns:
-            Single element by index
+            ~typing.Any: Single element by index.
         """
         if self.sampler_list is None:
             self.sampler_list = list(self.sampler)
-        return self.sampler_list[index]
+        else:
+            return self.sampler_list[index]
 
     def __len__(self) -> int:
         """
         Returns:
-            int: length of the dataset
+            int: Length of the dataset
         """
-        return len(self.sampler)
+        return len(self.sampler)  # type: ignore[arg-type]
