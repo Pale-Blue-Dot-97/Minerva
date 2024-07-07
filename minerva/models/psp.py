@@ -183,7 +183,7 @@ class DynamicPSP(smp.PSPNet):
         f = self.encoder(x)
 
         if not self.encoder_mode:
-            return f[-1]
+            return f[-1]  # type:ignore[no-any-return]
 
         g = self.decoder(*f)
 
@@ -191,13 +191,13 @@ class DynamicPSP(smp.PSPNet):
             masks = self.segmentation_head(g)
 
         else:
-            return g
+            return g  # type:ignore[no-any-return]
 
         if self.classification_on:
             labels = self.classification_head(f[-1])
             return masks, labels
 
-        return masks
+        return masks  # type:ignore[no-any-return]
 
 
 class MinervaPSP(MinervaWrapper):
@@ -213,15 +213,16 @@ class MinervaPSP(MinervaWrapper):
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
-        activation: Optional[Union[str, callable]] = None,
+        activation: Optional[Union[str, Callable[..., Any]]] = None,
         upsampling: int = 8,
         aux_params: Optional[Dict[str, Any]] = None,
-        backbone_weight_path: str = None,
+        backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         encoder: bool = False,
         segmentation_on: bool = True,
         classification_on: bool = False,
     ) -> None:
+        assert input_size is not None
         super().__init__(
             DynamicPSP(
                 encoder_name=encoder_name,
