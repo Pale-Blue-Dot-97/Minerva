@@ -319,6 +319,9 @@ def make_dataset(
 
         if type_key in ("image", "mask", "label"):
             type_dataset_params = dataset_params[type_key]
+        elif type_key == "transforms":
+            add_multi_modal_transforms = dataset_params[type_key]
+            continue
         else:
             continue
 
@@ -451,6 +454,14 @@ def make_dataset(
             dataset.transforms += target_transforms
         else:
             dataset.transforms = target_transforms
+
+    if add_multi_modal_transforms is not None:
+        multi_modal_transforms = make_transformations({"both": add_multi_modal_transforms})
+
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += multi_modal_transforms
+        else:
+            dataset.transforms = multi_modal_transforms
 
     return dataset, sub_datasets
 
