@@ -1,6 +1,4 @@
-alive_progress==3.1.5
 argcomplete==3.4.0
-catalyst==22.4
 certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerability.
 fastapi>=0.101.0
 fiona>=1.9.1
@@ -18,7 +16,7 @@ lightly==1.5.7
 lmdb==1.4.1
 matplotlib==3.9.0
 mlflow-skinny==2.14.0
-mypy==1.10.0
+mypy==1.10.1
 myst_parser==3.0.1
 nptyping==2.5.0
 numba>=0.57.0 # not directly required but pinned to ensure Python 3.11 compatibility.

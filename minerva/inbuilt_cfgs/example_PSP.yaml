@@ -94,6 +94,18 @@ tasks:
                 params:
                     num_samples: 32
 
+            transforms:
+                RandomResizedCrop:
+                    module: kornia.augmentation
+                    p: 0.2
+                    size: *patch_size
+                    cropping_mode: resample
+                    keepdim: true
+                RandomHorizontalFlip:
+                    module: kornia.augmentation
+                    p: 0.2
+                    keepdim: true
+
             image:
                 transforms:
                     Normalise:
@@ -107,16 +119,6 @@ tasks:
                             contrast: 0.1
                             saturation: 0.1
                             hue: 0.15
-                    RandomResizedCrop:
-                        module: kornia.augmentation
-                        p: 0.2
-                        size: *patch_size
-                        cropping_mode: resample
-                        keepdim: true
-                    RandomHorizontalFlip:
-                        module: kornia.augmentation
-                        p: 0.2
-                        keepdim: true
                     RandomGaussianBlur:
                         module: kornia.augmentation
                         kernel_size: 9

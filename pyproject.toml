@@ -25,9 +25,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "alive_progress",
     "argcomplete",
-    "catalyst",
     "geopy",
     "imageio",
     "inputimeout",

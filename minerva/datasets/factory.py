@@ -56,7 +56,6 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
-from catalyst.data.sampler import DistributedSamplerWrapper
 from omegaconf import OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
@@ -65,6 +64,7 @@ from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
 
+from minerva.samplers import DistributedSamplerWrapper
 from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
 
@@ -310,13 +310,21 @@ def make_dataset(
         dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
 
     add_target_transforms = None
+    add_multi_modal_transforms = None
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
         # If this the sampler params, skip.
         if type_key == "sampler":
             continue
-        type_dataset_params = dataset_params[type_key]
+
+        if type_key in ("image", "mask", "label"):
+            type_dataset_params = dataset_params[type_key]
+        elif type_key == "transforms":
+            add_multi_modal_transforms = dataset_params[type_key]
+            continue
+        else:
+            continue
 
         # If there are no params, assume this is just a marker and no datasets are defined so skip.
         if type_dataset_params is None:
@@ -447,6 +455,16 @@ def make_dataset(
             dataset.transforms += target_transforms
         else:
             dataset.transforms = target_transforms
+
+    if add_multi_modal_transforms is not None:
+        multi_modal_transforms = make_transformations(
+            {"both": add_multi_modal_transforms}
+        )
+
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += multi_modal_transforms
+        else:
+            dataset.transforms = multi_modal_transforms
 
     return dataset, sub_datasets
 

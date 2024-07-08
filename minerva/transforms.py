@@ -72,6 +72,7 @@ from typing import (
 import numpy as np
 import rasterio
 import torch
+from kornia.augmentation.base import _AugmentationBase
 from torch import LongTensor, Tensor
 from torchgeo.datasets import BoundingBox, RasterDataset
 from torchgeo.samplers import RandomGeoSampler
@@ -549,16 +550,44 @@ class MinervaCompose:
         elif isinstance(sample, dict):
             assert isinstance(self.transforms, dict)
             for key in self.transforms.keys():
-                sample[key] = self._transform_input(sample[key], self.transforms[key])
+                # Special case for "both". Indicates that these transforms should be applied
+                # to both types of data in the dataset.
+                # Assumes the keys must be "image" and "mask"
+                if key == "both":
+                    # Transform images with new random states (if applicable).
+                    sample["image"] = self._transform_input(
+                        sample["image"], self.transforms["both"]
+                    )
+
+                    # We'll have to convert the masks to float for these transforms to work
+                    # so need to store the current dtype to cast back to after.
+                    prior_dtype = sample["mask"].dtype
+
+                    # Transform masks reapplying the same random states.
+                    sample["mask"] = self._transform_input(
+                        sample["mask"].to(dtype=torch.float),
+                        self.transforms["both"],
+                        reapply=True,
+                    ).to(dtype=prior_dtype)
+                else:
+                    sample[key] = self._transform_input(
+                        sample[key], self.transforms[key]
+                    )
             return sample
         else:
             raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
 
     @staticmethod
-    def _transform_input(img: Tensor, transforms: List[Callable[..., Any]]) -> Tensor:
+    def _transform_input(
+        img: Tensor, transforms: List[Callable[..., Any]], reapply: bool = False
+    ) -> Tensor:
         if isinstance(transforms, Sequence):
             for t in transforms:
-                img = t(img)
+                if isinstance(t, _AugmentationBase) and reapply:
+                    img = t(img, params=t._params)
+
+                else:
+                    img = t(img)
 
         else:
             raise TypeError(
@@ -897,7 +926,7 @@ def make_transformations(
     transformations: Dict[str, Any] = {}
 
     for name in transform_params:
-        if name in ("image", "mask", "label"):
+        if name in ("image", "mask", "label", "both"):
             if not transform_params[name]:
                 pass
             else:
