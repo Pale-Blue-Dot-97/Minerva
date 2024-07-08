@@ -310,6 +310,7 @@ def make_dataset(
         dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
 
     add_target_transforms = None
+    add_multi_modal_transforms = None
 
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
