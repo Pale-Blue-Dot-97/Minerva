@@ -152,7 +152,7 @@ tasks:
                 name: EuroSAT100
                 paths: EuroSAT100
                 params:
-                    split: test
+                    split: train
                     bands:
                         - B02
                         - B03
