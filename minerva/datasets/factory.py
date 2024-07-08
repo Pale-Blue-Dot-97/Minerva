@@ -153,7 +153,6 @@ def create_subdataset(
             )
         elif "root" in signature(dataset_class).parameters:
             if isinstance(paths, list):
-                print(f"{paths=}")
                 paths = paths[0]
             assert isinstance(paths, str)
             return dataset_class(
@@ -205,10 +204,6 @@ def get_subdataset(
     sub_dataset_paths = utils.compile_dataset_paths(
         universal_path(data_directory), sub_dataset_params["paths"]
     )
-    print(f"{sub_dataset_paths=}")
-    print(f"{universal_path(data_directory)=}")
-    print(sub_dataset_params["paths"])
-    print(os.listdir(universal_path(data_directory)))
 
     sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
 
