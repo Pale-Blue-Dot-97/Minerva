@@ -555,7 +555,9 @@ class MinervaCompose:
                 # Assumes the keys must be "image" and "mask"
                 if key == "both":
                     # Transform images with new random states (if applicable).
-                    sample["image"] = self._transform_input(sample["image"], self.transforms["both"])
+                    sample["image"] = self._transform_input(
+                        sample["image"], self.transforms["both"]
+                    )
 
                     # We'll have to convert the masks to float for these transforms to work
                     # so need to store the current dtype to cast back to after.
@@ -568,13 +570,17 @@ class MinervaCompose:
                         reapply=True,
                     ).to(dtype=prior_dtype)
                 else:
-                    sample[key] = self._transform_input(sample[key], self.transforms[key])
+                    sample[key] = self._transform_input(
+                        sample[key], self.transforms[key]
+                    )
             return sample
         else:
             raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
 
     @staticmethod
-    def _transform_input(img: Tensor, transforms: List[Callable[..., Any]], reapply: bool = False) -> Tensor:
+    def _transform_input(
+        img: Tensor, transforms: List[Callable[..., Any]], reapply: bool = False
+    ) -> Tensor:
         if isinstance(transforms, Sequence):
             for t in transforms:
                 if isinstance(t, _AugmentationBase) and reapply:

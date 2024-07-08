@@ -48,7 +48,7 @@ from torch import LongTensor, Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
-from minerva.utils.utils import mask_to_ohe, check_substrings_in_string
+from minerva.utils.utils import check_substrings_in_string, mask_to_ohe
 
 
 # =====================================================================================================================

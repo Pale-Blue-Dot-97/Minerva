@@ -64,9 +64,9 @@ from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
 
+from minerva.samplers import DistributedSamplerWrapper
 from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
-from minerva.samplers import DistributedSamplerWrapper
 
 from .collators import get_collator, stack_sample_pairs
 from .paired import PairedGeoDataset, PairedNonGeoDataset
@@ -457,7 +457,9 @@ def make_dataset(
             dataset.transforms = target_transforms
 
     if add_multi_modal_transforms is not None:
-        multi_modal_transforms = make_transformations({"both": add_multi_modal_transforms})
+        multi_modal_transforms = make_transformations(
+            {"both": add_multi_modal_transforms}
+        )
 
         if isinstance(dataset.transforms, MinervaCompose):
             dataset.transforms += multi_modal_transforms

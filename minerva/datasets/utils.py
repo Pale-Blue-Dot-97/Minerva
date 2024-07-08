@@ -297,7 +297,13 @@ def cache_dataset(
 
 def masks_or_labels(dataset_params: Dict[str, Any]) -> str:
     for key in dataset_params.keys():
-        if key not in ("sampler", "transforms", "image", "imagery_config", "data_config"):
+        if key not in (
+            "sampler",
+            "transforms",
+            "image",
+            "imagery_config",
+            "data_config",
+        ):
             if key == "mask" or key == "label":
                 return key
             else:
