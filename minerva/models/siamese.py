@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
