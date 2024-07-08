@@ -56,7 +56,6 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
-from catalyst.data.sampler import DistributedSamplerWrapper
 from omegaconf import OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
@@ -67,6 +66,7 @@ from torchgeo.samplers.utils import _to_tuple
 
 from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
+from minerva.samplers import DistributedSamplerWrapper
 
 from .collators import get_collator, stack_sample_pairs
 from .paired import PairedGeoDataset, PairedNonGeoDataset

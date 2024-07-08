@@ -60,7 +60,6 @@ from typing import (
 )
 
 import numpy as np
-from alive_progress import alive_it
 from nptyping import NDArray
 from torch.utils.data import ConcatDataset, DataLoader
 from torchgeo.datasets import (
@@ -71,6 +70,7 @@ from torchgeo.datasets import (
 )
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
+from tqdm import tqdm
 
 from minerva.utils import utils
 
@@ -237,7 +237,7 @@ def load_all_samples(
         :class:`~torch.utils.data.DataLoader`.
     """
     sample_modes: List[List[Tuple[int, int]]] = []
-    for sample in alive_it(dataloader):
+    for sample in tqdm(dataloader):
         modes = utils.find_modes(sample[target_key])
         sample_modes.append(modes)
 
