@@ -206,6 +206,9 @@ def get_subdataset(
         universal_path(data_directory), sub_dataset_params["paths"]
     )
     print(f"{sub_dataset_paths=}")
+    print(f"{universal_path(data_directory)=}")
+    print(sub_dataset_params["paths"])
+    print(os.listdir(universal_path(data_directory)))
 
     sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
 

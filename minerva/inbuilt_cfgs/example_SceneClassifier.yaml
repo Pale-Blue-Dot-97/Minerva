@@ -5,7 +5,7 @@
 #   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
 #    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
 #
-#               EXAMPLE MASTER CONFIG FILE FOR AN AUTOENCODER
+#            EXAMPLE MASTER CONFIG FILE FOR A SCENE CLASSIFIER
 #
 # === PATHS ===================================================================
 dir:
