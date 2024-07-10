@@ -462,7 +462,7 @@ class Trainer:
             (model name excluding version and file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
-        return cache_dir / self.params["model_name"].split("-")[0]
+        return cache_dir / self.params["model_name"].split("-")[0]  # type: ignore[no-any-return]
 
     def get_weights_path(self) -> Path:
         """Get the path to the saved version of the pre-trained model.

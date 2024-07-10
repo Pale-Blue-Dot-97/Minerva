@@ -82,7 +82,7 @@ class CosineLR(LRScheduler):
         super().__init__(optimizer, last_epoch, verbose)
 
     def get_lr(self) -> List[float]:
-        if not self._get_lr_called_within_step:
+        if not hasattr(self, "_get_lr_called_within_step"):
             warnings.warn(
                 "To get the last learning rate computed by the scheduler, "
                 "please use `get_last_lr()`.",
@@ -92,9 +92,12 @@ class CosineLR(LRScheduler):
         if self.last_epoch == 0:
             return [group["lr"] for group in self.optimizer.param_groups]
         else:
-            return [self._cosine() for group in self.optimizer.param_groups]
+            return [self._cosine() for _ in self.optimizer.param_groups]
 
     def _cosine(self) -> float:
-        return self.max_lr + 0.5 * (self.min_lr - self.max_lr) * (
+        x = self.max_lr + 0.5 * (self.min_lr - self.max_lr) * (
             1 + np.cos(np.pi * self.n_periods * self.last_epoch / self.max_epochs)
         )
+
+        assert isinstance(x, float)
+        return x

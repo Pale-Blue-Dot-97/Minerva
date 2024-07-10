@@ -60,12 +60,12 @@ import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
 import yaml
 from omegaconf import DictConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.trainer import Trainer
 from minerva.utils import utils
 
@@ -217,6 +217,8 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
         slurm_nodeid: Optional[str] = os.getenv("SLURM_NODEID")
         slurm_nnodes: Optional[str] = os.getenv("SLURM_NNODES")
         slurm_jobid: Optional[str] = os.getenv("SLURM_JOB_ID")
+        slurm_array_job_id: Optional[str] = os.getenv("SLURM_ARRAY_JOB_ID")
+        slurm_array_task_id: Optional[str] = os.getenv("SLURM_ARRAY_TASK_ID")
 
         # Check that SLURM variables have been found.
         assert slurm_job_nodelist is not None
@@ -225,13 +227,8 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
         assert slurm_jobid is not None
 
         # If an array job, use the array master job ID and task ID as the job ID.
-        if (
-            os.getenv("SLURM_ARRAY_TASK_ID") is not None
-            and os.getenv("SLURM_ARRAY_JOB_ID") is not None
-        ):
-            slurm_jobid = (
-                os.getenv("SLURM_ARRAY_JOB_ID") + "_" + os.getenv("SLURM_ARRAY_TASK_ID")
-            )
+        if slurm_array_job_id is not None and slurm_array_task_id is not None:
+            slurm_jobid = slurm_array_job_id + "_" + slurm_array_task_id
 
         # Find a common host name on all nodes.
         # Assume scontrol returns hosts in the same order on all nodes.
@@ -364,7 +361,7 @@ def run_trainer(
     trainer = Trainer(
         gpu=gpu,
         wandb_run=wandb_run,
-        **cfg,
+        **cfg,  # type: ignore[misc]
     )
 
     if not cfg.get("eval", False):

@@ -1028,6 +1028,9 @@ def make_manifest(
         target_key = masks_or_labels(dataset_params)
         delete_class_transform(dataset_params)
 
+    # There must be targets to construct a manifest of classes!
+    assert target_key is not None
+
     print("CONSTRUCTING DATASET")
 
     loader = construct_dataloader(
@@ -1043,7 +1046,7 @@ def make_manifest(
     print("FETCHING SAMPLES")
     df = DataFrame()
 
-    modes = load_all_samples(loader, target_key=target_key)
+    modes = load_all_samples(loader, target_key=target_key)  # type: ignore[arg-type]
 
     df["MODES"] = [np.array([]) for _ in range(len(modes))]
 

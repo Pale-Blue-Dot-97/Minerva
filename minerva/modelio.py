@@ -61,7 +61,10 @@ def sup_tg(
     train: bool,
     **kwargs,
 ) -> Tuple[
-    Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Optional[Sequence[BoundingBox]]
+    Tensor,
+    Union[Tensor, Tuple[Tensor, ...]],
+    Tensor,
+    Optional[Union[Sequence[str], Sequence[BoundingBox]]],
 ]:
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
 
@@ -121,7 +124,7 @@ def sup_tg(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes or filenames.
-    index: Union[Sequence[str], Sequence[BoundingBox]]
+    index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
     if "bbox" in batch:
         index = batch["bbox"]
     elif "id" in batch:
@@ -139,7 +142,10 @@ def autoencoder_io(
     train: bool,
     **kwargs,
 ) -> Tuple[
-    Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Optional[Sequence[BoundingBox]]
+    Tensor,
+    Union[Tensor, Tuple[Tensor, ...]],
+    Tensor,
+    Optional[Union[Sequence[str], Sequence[BoundingBox]]],
 ]:
     """Provides IO functionality for an autoencoder using :mod:`torchgeo` datasets by only using the same data
     for input and ground truth.
@@ -223,7 +229,7 @@ def autoencoder_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes or filenames.
-    index: Union[Sequence[str], Sequence[BoundingBox]]
+    index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
     if "bbox" in batch:
         index = batch["bbox"]
     elif "id" in batch:

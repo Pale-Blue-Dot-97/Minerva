@@ -104,7 +104,7 @@ class FilterOutputs(Module):
     def __init__(self, indexes: Union[int, List[int]]) -> None:
         self.indexes = indexes
 
-    def forward(self, inputs: Sequence[Tensor]) -> Tensor:
+    def forward(self, inputs: Tensor) -> Tensor:
         return inputs[self.indexes]
 
 

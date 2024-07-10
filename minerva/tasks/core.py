@@ -315,10 +315,10 @@ class MinervaTask(ABC):
                 for i in range(self.n_classes):
                     weights.append(weights_dict.get(i, 0.0))
 
-            weights = Tensor(weights)
+            _weights = Tensor(weights)
 
             # Use hydra to instantiate the loss function with the weights and return.
-            return hydra.utils.instantiate(self.params["loss_params"], weight=weights)
+            return hydra.utils.instantiate(self.params["loss_params"], weight=_weights)
 
         else:
             # Use hydra to instantiate the loss function based of the config, without weights.
@@ -408,6 +408,7 @@ class MinervaTask(ABC):
         self.logger.refresh_step_logger()
 
         if self.train and self.model.scheduler is not None:
+            assert self.model.optimiser is not None
             before_lr = self.model.optimiser.param_groups[0]["lr"]
             self.model.scheduler.step()
             after_lr = self.model.optimiser.param_groups[0]["lr"]
