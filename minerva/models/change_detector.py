@@ -77,9 +77,9 @@ class ChangeDetector(MinervaModel):
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:  # pragma: no cover
-            backbone.load_state_dict(torch.load(
-                backbone_weight_path, map_location=torch.device("cpu")
-            ))
+            backbone.load_state_dict(
+                torch.load(backbone_weight_path, map_location=torch.device("cpu"))
+            )
 
             # Freezes the weights of backbone to avoid end-to-end training.
             backbone.requires_grad_(False if freeze_backbone else True)
@@ -105,7 +105,7 @@ class ChangeDetector(MinervaModel):
         self.classification_head = torch.nn.Sequential(
             torch.nn.AdaptiveAvgPool2d((1, 1)),
             torch.nn.Flatten(),
-            torch.nn.Linear(2*self.fc_dim, self.intermediate_dim),
+            torch.nn.Linear(2 * self.fc_dim, self.intermediate_dim),
             torch.nn.BatchNorm1d(self.layer_depth[5]),
             torch.nn.ReLU(),
             torch.nn.Dropout2d(p=0.2),
