@@ -81,9 +81,9 @@ class FlexiSceneClassifier(MinervaBackbone):
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:  # pragma: no cover
-            backbone.load_state_dict(torch.load(
-                backbone_weight_path, map_location=torch.device("cpu")
-            ))
+            backbone.load_state_dict(
+                torch.load(backbone_weight_path, map_location=torch.device("cpu"))
+            )
 
             # Freezes the weights of backbone to avoid end-to-end training.
             backbone.requires_grad_(False if freeze_backbone else True)
