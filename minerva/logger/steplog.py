@@ -443,7 +443,9 @@ class SupervisedStepLogger(MinervaStepLogger):
                     torch.round(z).detach().cpu().numpy()
                 )
             else:
-                self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()  # type: ignore[attr-defined]
+                self.results["z"][self.logs["batch_num"]] = (
+                    torch.argmax(z, 1).cpu().numpy()
+                )  # type: ignore[attr-defined]
 
             # Add the labels and sample IDs to lists.
             self.results["y"][self.logs["batch_num"]] = y.cpu().numpy()
