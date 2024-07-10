@@ -48,7 +48,7 @@ from torch import LongTensor, Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
-from minerva.utils.utils import mask_to_ohe
+from minerva.utils.utils import check_substrings_in_string, mask_to_ohe
 
 
 # =====================================================================================================================
@@ -60,12 +60,14 @@ def sup_tg(
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
+) -> Tuple[
+    Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Optional[Sequence[BoundingBox]]
+]:
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
 
     Args:
         batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
-            Must have ``"image"``, ``"mask"`` and ``"bbox"`` keys.
+            Must have ``"image"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"id"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
         train (bool): True to run a step of the model in training mode. False for eval mode.
@@ -73,35 +75,43 @@ def sup_tg(
     Kwargs:
         mix_precision (bool): Use mixed-precision. Will set the floating tensors to 16-bit
             rather than the default 32-bit.
+        target_key (str): Should be either ``"mask"`` or ``"label"``.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]:
+        tuple[
+            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]:
         The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
         of the input images supplied.
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
+    target_key = kwargs.get("target_key", "mask")
+
+    model_type = kwargs.get("model_type", "")
+    multilabel = True if check_substrings_in_string(model_type, "multilabel") else False
 
     # Extracts the x and y batches from the dict.
     images: Tensor = batch["image"]
-    masks: Tensor = batch["mask"]
+    targets: Tensor = batch[target_key]
 
     # Check that none of the data is NaN or infinity.
-    assert not images.isnan().any()
-    assert not images.isinf().any()
-    assert not masks.isnan().any()
-    assert not masks.isinf().any()
+    if kwargs.get("validate_variables", False):
+        assert not images.isnan().any()
+        assert not images.isinf().any()
+        assert not targets.isnan().any()
+        assert not targets.isinf().any()
 
     # Re-arranges the x and y batches.
     x_batch: Tensor = images.to(float_dtype)  # type: ignore[attr-defined]
     y_batch: Tensor
 
     # Squeeze out axis 1 if only 1 element wide.
-    if masks.shape[1] == 1:
-        masks = np.squeeze(masks.detach().cpu().numpy(), axis=1)
+    if target_key == "mask" and targets.shape[1] == 1:
+        targets = np.squeeze(targets.detach().cpu().numpy(), axis=1)
 
-    if isinstance(masks, Tensor):
-        masks = masks.detach().cpu().numpy()
-    y_batch = torch.tensor(masks, dtype=torch.long)  # type: ignore[attr-defined]
+    if isinstance(targets, Tensor):
+        targets = targets.detach().cpu().numpy()
+    y_batch = torch.tensor(targets, dtype=torch.float if multilabel else torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
     x: Tensor = x_batch.to(device)
@@ -110,9 +120,16 @@ def sup_tg(
     # Runs a step of the epoch.
     loss, z = model.step(x, y, train=train)
 
-    bbox: Sequence[BoundingBox] = batch["bbox"]
-    assert isinstance(bbox, Sequence)
-    return loss, z, y, bbox
+    # Get the indices of the batch. Either bounding boxes or filenames.
+    index: Union[Sequence[str], Sequence[BoundingBox]]
+    if "bbox" in batch:
+        index = batch["bbox"]
+    elif "id" in batch:
+        index = batch["id"]
+    else:
+        index = None
+
+    return loss, z, y, index
 
 
 def autoencoder_io(
@@ -121,13 +138,15 @@ def autoencoder_io(
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Sequence[BoundingBox]]:
+) -> Tuple[
+    Tensor, Union[Tensor, Tuple[Tensor, ...]], Tensor, Optional[Sequence[BoundingBox]]
+]:
     """Provides IO functionality for an autoencoder using :mod:`torchgeo` datasets by only using the same data
     for input and ground truth.
 
     Args:
         batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
-            Must have ``"image"``, ``"mask"`` and ``"bbox"`` keys.
+            Must have ``"image"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"id"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
         train (bool): True to run a step of the model in training mode. False for eval mode.
@@ -139,7 +158,9 @@ def autoencoder_io(
             rather than the default 32-bit.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]:
+        tuple[
+            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]:
         The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
         of the input images supplied.
 
@@ -158,10 +179,11 @@ def autoencoder_io(
     masks: LongTensor = batch["mask"]
 
     # Check that none of the data is NaN or infinity.
-    assert not images.isnan().any()
-    assert not images.isinf().any()
-    assert not masks.isnan().any()
-    assert not masks.isinf().any()
+    if kwargs.get("validate_variables", False):
+        assert not images.isnan().any()
+        assert not images.isinf().any()
+        assert not masks.isnan().any()
+        assert not masks.isinf().any()
 
     if key == "mask":
         # Squeeze out axis 1 if only 1 element wide.
@@ -200,9 +222,16 @@ def autoencoder_io(
     # Runs a step of the epoch.
     loss, z = model.step(x, y, train=train)
 
-    bbox: Sequence[BoundingBox] = batch["bbox"]
-    assert isinstance(bbox, Sequence)
-    return loss, z, y, bbox
+    # Get the indices of the batch. Either bounding boxes or filenames.
+    index: Union[Sequence[str], Sequence[BoundingBox]]
+    if "bbox" in batch:
+        index = batch["bbox"]
+    elif "id" in batch:
+        index = batch["id"]
+    else:
+        index = None
+
+    return loss, z, y, index
 
 
 def ssl_pair_tg(
@@ -231,8 +260,9 @@ def ssl_pair_tg(
             rather than the default 32-bit.
 
     Returns:
-        tuple[~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox]]: The
-        ``loss``, the model output ``z``, the ``y`` supplied and the bounding boxes
+        tuple[
+            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]: The ``loss``, the model output ``z``, the ``y`` supplied and the bounding boxes
         of the original input images supplied.
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
@@ -245,10 +275,11 @@ def ssl_pair_tg(
     x_i_batch = x_i_batch.to(float_dtype)  # type: ignore[attr-defined]
     x_j_batch = x_j_batch.to(float_dtype)  # type: ignore[attr-defined]
 
-    try:
-        assert_raises(AssertionError, assert_array_equal, x_i_batch, x_j_batch)
-    except AssertionError:
-        print("WARNING: Batches are the same!")
+    if kwargs.get("validate_variables", False):
+        try:
+            assert_raises(AssertionError, assert_array_equal, x_i_batch, x_j_batch)
+        except AssertionError:
+            print("WARNING: Batches are the same!")
 
     # Stacks each side of the pair batches together.
     x_batch = torch.stack([x_i_batch, x_j_batch])
@@ -257,16 +288,17 @@ def ssl_pair_tg(
     x = x_batch.to(device, non_blocking=True)
 
     # Check that none of the data is NaN or infinity.
-    assert not x.isnan().any()
-    assert not x.isinf().any()
+    if kwargs.get("validate_variables", False):
+        assert not x.isnan().any()
+        assert not x.isinf().any()
 
     # Runs a step of the epoch.
     loss, z = model.step(x, train=train)
 
     if "bbox" in batch[0].keys():
         return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]
-    elif "index" in batch[0].keys():
-        return loss, z, None, batch[0]["index"] + batch[1]["index"]
+    elif "id" in batch[0].keys():
+        return loss, z, None, batch[0]["id"] + batch[1]["id"]
     else:
         return loss, z, None, None
 

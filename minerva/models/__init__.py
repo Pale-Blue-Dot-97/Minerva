@@ -33,6 +33,7 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
+    "FlexiSceneClassifier",
     "FilterOutputs",
     "MinervaBackbone",
     "MinervaDataParallel",
@@ -57,7 +58,8 @@ __all__ = [
     "FCN32ResNet18",
     "FCN32ResNet34",
     "FCN32ResNet50",
-    "PSPEncoder",
+    "DynamicPSP",
+    "MinervaPSP",
     "ResNetX",
     "ResNet18",
     "ResNet34",
@@ -69,6 +71,9 @@ __all__ = [
     "SimCLR34",
     "SimCLR50",
     "SimConv",
+    "SimConv18",
+    "SimConv34",
+    "SimConv50",
     "SimSiam18",
     "SimSiam34",
     "SimSiam50",
@@ -86,6 +91,7 @@ __all__ = [
 # =====================================================================================================================
 from .__depreciated import CNN as CNN
 from .__depreciated import MLP as MLP
+from .classifiers import FlexiSceneClassifier
 from .core import (
     FilterOutputs,
     MinervaBackbone,
@@ -114,7 +120,7 @@ from .fcn import (
     FCN32ResNet34,
     FCN32ResNet50,
 )
-from .psp import PSPEncoder
+from .psp import DynamicPSP, MinervaPSP
 from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNetX
 from .siamese import (
     MinervaSiamese,
@@ -122,6 +128,9 @@ from .siamese import (
     SimCLR34,
     SimCLR50,
     SimConv,
+    SimConv18,
+    SimConv34,
+    SimConv50,
     SimSiam18,
     SimSiam34,
     SimSiam50,

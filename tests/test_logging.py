@@ -59,7 +59,7 @@ from torch import Tensor
 from torch.nn.modules import Module
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.logger.steplog import SupervisedGeoStepLogger
+from minerva.logger.steplog import SupervisedStepLogger
 from minerva.logger.tasklog import SSLTaskLogger, SupervisedTaskLogger
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.modelio import ssl_pair_tg, sup_tg
@@ -74,7 +74,7 @@ n_epochs = 2
 # =====================================================================================================================
 @pytest.mark.parametrize("train", (True, False))
 @pytest.mark.parametrize("model_type", ("scene_classifier", "segmentation"))
-def test_SupervisedGeoStepLogger(
+def test_SupervisedStepLogger(
     simple_bbox: BoundingBox,
     x_entropy_loss,
     std_n_batches: int,
@@ -113,7 +113,7 @@ def test_SupervisedGeoStepLogger(
     with pytest.raises(
         ValueError, match="`n_classes` must be specified for this type of logger!"
     ):
-        _ = SupervisedGeoStepLogger(
+        _ = SupervisedStepLogger(
             task_name="pytest",
             n_batches=std_n_batches,
             batch_size=std_batch_size,
@@ -156,10 +156,10 @@ def test_SupervisedGeoStepLogger(
             }
             data.append(batch)
 
-            logger.step(i, *sup_tg(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
+            logger.step(i, i, *sup_tg(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
 
         logs = logger.get_logs
-        assert logs["batch_num"] == std_n_batches
+        assert logs["batch_num"] == std_n_batches - 1
         assert isinstance(logs["total_loss"], float)
         assert isinstance(logs["total_correct"], float)
 
@@ -296,11 +296,12 @@ def test_SSLStepLogger(
 
             logger.step(
                 i,
+                i,
                 *ssl_pair_tg((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]
             )
 
         logs = logger.get_logs
-        assert logs["batch_num"] == std_n_batches
+        assert logs["batch_num"] == std_n_batches - 1
         assert isinstance(logs["total_loss"], float)
 
         if extra_metrics:

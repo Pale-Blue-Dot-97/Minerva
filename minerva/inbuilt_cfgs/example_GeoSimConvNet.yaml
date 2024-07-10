@@ -10,9 +10,6 @@
 # === PATHS ===================================================================
 dir:
     data: tests/fixtures/data
-    configs:
-        imagery_config: NAIP.yml
-        data_config: Chesapeake7.yml
     results: tests/tmp/results
     cache: tests/tmp/cache
     wandb_dir: &wandb_dir /test/tmp/wandb
@@ -58,8 +55,9 @@ model_params:
         input_size: *input_size
 
 # ---+ Optimiser Parameters +--------------------------------------------------
-optim_params:
-    params:
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
 
 # ---+ Scheduler Parameters +--------------------------------------------------
 scheduler_params:
@@ -71,9 +69,7 @@ scheduler_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
-    module: minerva.loss
-    params:
+    _target_: minerva.loss.${loss_func}
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:

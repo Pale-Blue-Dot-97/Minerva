@@ -1,0 +1,96 @@
+---
+name: BigEarthNet-43
+
+classes:
+    0: Continuous urban fabric
+    1: Discontinuous urban fabric
+    2: Industrial or commercial units
+    3: Road and rail networks and associated land
+    4: Port areas
+    5: Airports
+    6: Mineral extraction sites
+    7: Dump sites
+    8: Construction sites
+    9: Green urban areas
+    10: Sport and leisure facilities
+    11: Non-irrigated arable land
+    12: Permanently irrigated land
+    13: Rice fields
+    14: Vineyards
+    15: Fruit trees and berry plantations
+    16: Olive groves
+    17: Pastures
+    18: Annual crops associated with permanent crops
+    19: Complex cultivation patterns
+    20: Agriculture, with significant areas of natural vegetation
+    21: Agro-forestry areas
+    22: Broad-leaved forest
+    23: Coniferous forest
+    24: Mixed forest
+    25: Natural grassland
+    26: Moors and heathland
+    27: Sclerophyllous vegetation
+    28: Transitional woodland/shrub
+    29: Beaches, dunes, sands
+    30: Bare rock
+    31: Sparsely vegetated areas
+    32: Burnt areas
+    33: Inland marshes
+    34: Peatbogs
+    35: Salt marshes
+    36: Salines
+    37: Intertidal flats
+    38: Water courses
+    39: Water bodies
+    40: Coastal lagoons
+    41: Estuaries
+    42: Sea and ocean
+
+colours:
+    0: '#D6AE01'
+    1: '#5B3A29'
+    2: '#0A0A0A'
+    3: '#E63244'
+    4: '#5D9B9B'
+    5: '#3E5F8A'
+    6: '#E5BE01'
+    7: '#A12312'
+    8: '#CF3476'
+    9: '#826C34'
+    10: '#59351F'
+    11: '#332F2C'
+    12: '#4C514A'
+    13: '#D53032'
+    14: '#646B63'
+    15: '#57A639'
+    16: '#E63244'
+    17: '#2C5545'
+    18: '#E4A010'
+    19: '#89AC76'
+    20: '#EFA94A'
+    21: '#7D7F7D'
+    22: '#2A6478'
+    23: '#781F19'
+    24: '#9E9764'
+    25: '#FFA420'
+    26: '#25221B'
+    27: '#A52019'
+    28: '#7FB5B5'
+    29: '#1C1C1C'
+    30: '#F5D033'
+    31: '#1B5583'
+    32: '#A03472'
+    33: '#4C9141'
+    34: '#474A51'
+    35: '#412227'
+    36: '#B32821'
+    37: '#1E213D'
+    38: '#EDFF21'
+    39: '#FF7514'
+    40: '#2F353B'
+    41: '#EA899A'
+    42: '#3E5F8A'
+
+fig_sizes:
+    CM: [9, 8]
+    Mask: [12, 10]

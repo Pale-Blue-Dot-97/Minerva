@@ -46,10 +46,20 @@ __all__ = [
 # =====================================================================================================================
 import pickle
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 import numpy as np
-from alive_progress import alive_it
 from nptyping import NDArray
 from torch.utils.data import ConcatDataset, DataLoader
 from torchgeo.datasets import (
@@ -60,6 +70,7 @@ from torchgeo.datasets import (
 )
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
+from tqdm import tqdm
 
 from minerva.utils import utils
 
@@ -209,20 +220,25 @@ def make_bounding_box(
         return BoundingBox(*roi)
 
 
-def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]:
+def load_all_samples(
+    dataloader: DataLoader[Iterable[Any]],
+    target_key: Literal["mask", "label"] = "mask",
+) -> NDArray[Any, Any]:
     """Loads all sample masks from parsed :class:`~torch.utils.data.DataLoader` and computes the modes of their classes.
 
     Args:
         dataloader (~torch.utils.data.DataLoader): DataLoader containing samples. Must be using a dataset with
-            ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` key.
+            ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` or ``"label"`` key.
+        target_key (~typing.Literal["mask", "label"]): Optional; Key for the targets in the dataset.
+            Either ``"mask"`` or ``"label"``.
 
     Returns:
         ~numpy.ndarray: 2D array of the class modes within every sample defined by the parsed
         :class:`~torch.utils.data.DataLoader`.
     """
     sample_modes: List[List[Tuple[int, int]]] = []
-    for sample in alive_it(dataloader):
-        modes = utils.find_modes(sample["mask"])
+    for sample in tqdm(dataloader):
+        modes = utils.find_modes(sample[target_key])
         sample_modes.append(modes)
 
     return np.array(sample_modes, dtype=object)
@@ -281,7 +297,13 @@ def cache_dataset(
 
 def masks_or_labels(dataset_params: Dict[str, Any]) -> str:
     for key in dataset_params.keys():
-        if key not in ("sampler", "image", "imagery_config", "data_config"):
+        if key not in (
+            "sampler",
+            "transforms",
+            "image",
+            "imagery_config",
+            "data_config",
+        ):
             if key == "mask" or key == "label":
                 return key
             else:

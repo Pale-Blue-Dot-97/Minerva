@@ -10,9 +10,6 @@
 # === PATHS ===================================================================
 dir:
     data: tests/fixtures/data
-    configs:
-        imagery_config: NAIP.yml
-        data_config: Chesapeake7.yml
     results: tests/tmp/results
     cache: tests/tmp/cache
 
@@ -57,15 +54,14 @@ model_params:
         # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
-optim_params:
-    params:
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
-    module: lightly.loss
-    params:
-        temperature: 0.5
+    _target_: lightly.loss.${loss_func}
+    temperature: 0.5
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:

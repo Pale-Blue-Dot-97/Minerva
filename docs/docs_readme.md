@@ -57,7 +57,7 @@ datasets with upcoming support for [torchvision](https://pytorch.org/vision/stab
 
 Required Python modules for `minerva` are stated in the `setup.cfg`.
 
-`minerva` currently only supports `python` 3.9 -- 3.11.
+`minerva` currently only supports `python` 3.9 -- 3.12.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -153,6 +153,7 @@ This repositry also contains some small samples from various public datasets for
 | ChesapeakeCVPR | Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N, "Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data". Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019) | Unknown | [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) |
 | SSL4EO-S12 | Wang Y, Braham N A A, Xiong Z, Liu C, Albrecht C M, Zhu X X, "SSL4EO-S12: A Large-Scale Multi-Modal, Multi-Temporal Dataset for Self-Supervised Learning in Earth Observation". arXiv preprint, 2023 | [Apache 2.0](https://github.com/zhu-xlab/SSL4EO-S12/blob/main/LICENSE) | [SSL4E0-S12](https://github.com/zhu-xlab/SSL4EO-S12) |
 | DFC2020 | M. Schmitt, L. H. Hughes, C. Qiu, and X. X. Zhu, “SEN12MS – A curated dataset of georeferenced multi-spectral sentinel-1/2 imagery for deep learning and data fusion,” in ISPRS Ann. Photogramm. Remote Sens. Spatial Inf. Sci. IV-2/W7, 2019, pp. 153–160. | [Creative Commons Attribution](https://creativecommons.org/licenses/by/4.0/) | [IEEE DFC2020](https://ieee-dataport.org/competitions/2020-ieee-grss-data-fusion-contest#files)
+BigEarthNet | G. Sumbul, A. d. Wall, T. Kreuziger, F. Marcelino, H. Costa, P. Benevides, M. Caetano, B. Demir, V. Markl, “BigEarthNet-MM: A Large Scale Multi-Modal Multi-Label Benchmark Archive for Remote Sensing Image Classification and Retrieval”,  IEEE Geoscience and Remote Sensing Magazine, vol. 9, no. 3, pp. 174-180, 2021, doi: 10.1109/MGRS.2021.3089174. | [Community Data License Agreement – Permissive, Version 1.0](https://cdla.dev/permissive-1-0/) | [BigEarthNet](https://bigearth.net/)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

@@ -48,8 +48,9 @@ model_params:
         # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
-optim_params:
-    params:
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
 
 # ---+ Scheduler Parameters +--------------------------------------------------
 scheduler_params:
@@ -61,8 +62,7 @@ scheduler_params:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: CrossEntropyLoss           # Name of the loss function to use.
-    params:
+    _target_: torch.nn.CrossEntropyLoss
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:

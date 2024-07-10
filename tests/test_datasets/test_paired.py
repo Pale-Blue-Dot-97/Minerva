@@ -177,8 +177,12 @@ def test_paired_concat_datasets(
     root = str(data_root / "SSL4EO-S12")
     dataset1 = NonGeoSSL4EOS12Sentinel2(root)
     dataset2 = NonGeoSSL4EOS12Sentinel2(root)
-    dataset3 = PairedNonGeoDataset(NonGeoSSL4EOS12Sentinel2, small_patch_size, 32, root)
-    dataset4 = PairedNonGeoDataset(NonGeoSSL4EOS12Sentinel2, small_patch_size, 64, root)
+    dataset3 = PairedNonGeoDataset(
+        NonGeoSSL4EOS12Sentinel2, small_patch_size, 32, False, root
+    )
+    dataset4 = PairedNonGeoDataset(
+        NonGeoSSL4EOS12Sentinel2, small_patch_size, 64, False, root
+    )
 
     concat_dataset1 = PairedConcatDataset(dataset1, dataset2, small_patch_size, 16)
     concat_dataset2 = dataset3 | dataset4

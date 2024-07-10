@@ -41,9 +41,9 @@ __all__ = [
     "PairedConcatDataset",
     "GeoSSL4EOS12Sentinel2",
     "NonGeoSSL4EOS12Sentinel2",
+    "MinervaSSL4EO",
     "NAIPChesapeakeCVPR",
     "DFC2020",
-    # "SEN12MS",
     "MultiSpectralDataset",
     "construct_dataloader",
     "get_collator",
@@ -76,7 +76,7 @@ from .paired import (
     PairedNonGeoDataset,
     PairedUnionDataset,
 )
-from .ssl4eos12 import GeoSSL4EOS12Sentinel2, NonGeoSSL4EOS12Sentinel2
+from .ssl4eos12 import GeoSSL4EOS12Sentinel2, MinervaSSL4EO, NonGeoSSL4EOS12Sentinel2
 from .utils import (
     MinervaConcatDataset,
     MinervaNonGeoDataset,

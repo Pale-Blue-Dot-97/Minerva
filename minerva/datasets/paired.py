@@ -47,6 +47,7 @@ from inspect import signature
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
 
 import matplotlib.pyplot as plt
+import torch
 from matplotlib.figure import Figure
 from torch import Tensor
 from torchgeo.datasets import (
@@ -58,6 +59,7 @@ from torchgeo.datasets import (
 )
 from torchgeo.datasets.utils import BoundingBox, concat_samples, merge_samples
 from torchvision.transforms import RandomCrop
+from torchvision.transforms import functional as ft
 
 from minerva.utils import utils
 
@@ -340,7 +342,14 @@ class PairedNonGeoDataset(NonGeoDataset):
     """
 
     def __getnewargs__(self):
-        return self.dataset, self.size, self.max_r, self._args, self._kwargs
+        return (
+            self.dataset,
+            self.size,
+            self.max_r,
+            self.season,
+            self._args,
+            self._kwargs,
+        )
 
     @overload
     def __init__(
@@ -348,6 +357,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         dataset: Callable[..., NonGeoDataset],
         size: Union[Tuple[int, int], int],
         max_r: int,
+        season: bool = False,
         *args,
         **kwargs,
     ) -> None: ...  # pragma: no cover
@@ -358,6 +368,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         dataset: NonGeoDataset,
         size: Union[Tuple[int, int], int],
         max_r: int,
+        season: bool = False,
         *args,
         **kwargs,
     ) -> None: ...  # pragma: no cover
@@ -367,6 +378,7 @@ class PairedNonGeoDataset(NonGeoDataset):
         dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
         size: Union[Tuple[int, int], int],
         max_r: int,
+        season: bool = False,
         *args,
         **kwargs,
     ) -> None:
@@ -379,6 +391,7 @@ class PairedNonGeoDataset(NonGeoDataset):
 
         self.size = size
         self.max_r = max_r
+        self.season = season
 
         if isinstance(dataset, PairedNonGeoDataset):
             raise ValueError("Cannot pair an already paired dataset!")
@@ -405,7 +418,7 @@ class PairedNonGeoDataset(NonGeoDataset):
             self.transforms = self.dataset.transform
             self.dataset.transform = None
 
-        self.make_geo_pair = SamplePair(self.size, self.max_r)
+        self.make_geo_pair = SamplePair(self.size, self.max_r, season=season)
 
     def __getitem__(self, index: int) -> Tuple[Dict[str, Any], ...]:  # type: ignore[override]
         patch = self.dataset[index]
@@ -580,9 +593,10 @@ class SamplePair:
     .. versionadded:: 0.28
     """
 
-    def __init__(self, size: int = 64, max_r: int = 20):
+    def __init__(self, size: int = 64, max_r: int = 20, season: bool = False) -> None:
         self.max_r = max_r
         self.size = size
+        self.season = season
 
         # Calculate the global max width between samples in a pair, accounting for the max_r.
         self.max_width = int(1.4 * (self.size + self.max_r))
@@ -591,20 +605,52 @@ class SamplePair:
         self.random_crop = RandomCrop(self.size)
 
     def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        if self.season:
+            max_width, h, w = self._find_max_width(x[0])
+
+            i, j = self._get_random_crop_params(x[0], max_width)
+
+            # Transform to randomly cut out an area to sample the pair of samples from
+            # that will ensure that the distance between the centres of the samples is
+            # no more than ``max_r`` pixels apart.
+            greater_x0 = ft.crop(x[0], i, j, h, w)
+            greater_x1 = ft.crop(x[1], i, j, h, w)
+
+            # Now cut out 2 random samples from within that sampling area and return.
+            return self.random_crop(greater_x0), self.random_crop(greater_x1)
+
+        else:
+            max_width, _, _ = self._find_max_width(x)
+
+            # Transform to randomly cut out an area to sample the pair of samples from
+            # that will ensure that the distance between the centres of the samples is
+            # no more than ``max_r`` pixels apart.
+            crop_to_sampling_area = RandomCrop(max_width)
+            sampling_area = crop_to_sampling_area(x)
+
+            # Now cut out 2 random samples from within that sampling area and return.
+            return self.random_crop(sampling_area), self.random_crop(sampling_area)
+
+    def _find_max_width(self, x: Tensor) -> Tuple[int, int, int]:
         max_width = self.max_width
+
+        w = x.shape[-1]
+        h = x.shape[-2]
 
         # Checks that the ``max_width`` will not exceed the size of this inital patch.
         # If so, set to the maxium width/ height of ``x``.
-        if max_width > x.shape[-1]:
-            max_width = x.shape[-1]  # pragma: no cover
-        if max_width > x.shape[-2]:
-            max_width = x.shape[-2]  # pragma: no cover
+        if max_width > w:
+            max_width = w  # pragma: no cover
+        if max_width > h:
+            max_width = h  # pragma: no cover
 
-        # Transform to randomly cut out an area to sample the pair of samples from
-        # that will ensure that the distance between the centres of the samples is
-        # no more than ``max_r`` pixels apart.
-        crop_to_sampling_area = RandomCrop(max_width)
-        sampling_area = crop_to_sampling_area(x)
+        return max_width, h, w
 
-        # Now cut out 2 random samples from within that sampling area and return.
-        return self.random_crop(sampling_area), self.random_crop(sampling_area)
+    @staticmethod
+    def _get_random_crop_params(img: Tensor, max_width: int) -> Tuple[int, int]:
+        i = torch.randint(0, img.shape[-1] - max_width + 1, size=(1,)).item()
+        j = torch.randint(0, img.shape[-2] - max_width + 1, size=(1,)).item()
+
+        assert isinstance(i, int)
+        assert isinstance(j, int)
+        return i, j

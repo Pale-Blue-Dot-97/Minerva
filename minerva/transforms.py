@@ -42,6 +42,7 @@ __all__ = [
     "SelectChannels",
     "MinervaCompose",
     "SwapKeys",
+    "SeasonTransform",
     "get_transform",
     "init_auto_norm",
     "make_transformations",
@@ -71,11 +72,17 @@ from typing import (
 import numpy as np
 import rasterio
 import torch
+from kornia.augmentation.base import _AugmentationBase
 from torch import LongTensor, Tensor
 from torchgeo.datasets import BoundingBox, RasterDataset
 from torchgeo.samplers import RandomGeoSampler
-from torchvision.transforms import ColorJitter, Normalize, RandomApply
-from torchvision.transforms import functional as ft
+from torchvision.transforms import (
+    ColorJitter,
+    ConvertImageDtype,
+    Normalize,
+    RandomApply,
+)
+from torchvision.transforms.v2 import functional as ft
 
 from minerva.utils.utils import find_tensor_mode, func_by_str, mask_transform
 
@@ -543,16 +550,44 @@ class MinervaCompose:
         elif isinstance(sample, dict):
             assert isinstance(self.transforms, dict)
             for key in self.transforms.keys():
-                sample[key] = self._transform_input(sample[key], self.transforms[key])
+                # Special case for "both". Indicates that these transforms should be applied
+                # to both types of data in the dataset.
+                # Assumes the keys must be "image" and "mask"
+                if key == "both":
+                    # Transform images with new random states (if applicable).
+                    sample["image"] = self._transform_input(
+                        sample["image"], self.transforms["both"]
+                    )
+
+                    # We'll have to convert the masks to float for these transforms to work
+                    # so need to store the current dtype to cast back to after.
+                    prior_dtype = sample["mask"].dtype
+
+                    # Transform masks reapplying the same random states.
+                    sample["mask"] = self._transform_input(
+                        sample["mask"].to(dtype=torch.float),
+                        self.transforms["both"],
+                        reapply=True,
+                    ).to(dtype=prior_dtype)
+                else:
+                    sample[key] = self._transform_input(
+                        sample[key], self.transforms[key]
+                    )
             return sample
         else:
             raise TypeError(f"Sample is {type(sample)=}, not Tensor or dict!")
 
     @staticmethod
-    def _transform_input(img: Tensor, transforms: List[Callable[..., Any]]) -> Tensor:
+    def _transform_input(
+        img: Tensor, transforms: List[Callable[..., Any]], reapply: bool = False
+    ) -> Tensor:
         if isinstance(transforms, Sequence):
             for t in transforms:
-                img = t(img)
+                if isinstance(t, _AugmentationBase) and reapply:
+                    img = t(img, params=t._params)
+
+                else:
+                    img = t(img)
 
         else:
             raise TypeError(
@@ -564,6 +599,7 @@ class MinervaCompose:
     def _add(
         self,
         new_transform: Union[
+            "MinervaCompose",
             Sequence[Callable[..., Any]],
             Callable[..., Any],
             Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
@@ -586,9 +622,17 @@ class MinervaCompose:
 
         _transforms = deepcopy(self.transforms)
 
+        if isinstance(new_transform, MinervaCompose):
+            return self._add(new_transform.transforms)  # type: ignore[arg-type]
+
         if isinstance(new_transform, dict) and isinstance(_transforms, dict):
             for key in new_transform.keys():
-                _transforms[key] = add_transforms(new_transform[key], _transforms[key])
+                if key not in _transforms:
+                    _transforms[key] = new_transform[key]  # type: ignore[assignment]
+                else:
+                    _transforms[key] = add_transforms(
+                        new_transform[key], _transforms[key]
+                    )
             return _transforms
 
         elif (
@@ -605,6 +649,7 @@ class MinervaCompose:
     def __add__(
         self,
         new_transform: Union[
+            "MinervaCompose",
             Sequence[Callable[..., Any]],
             Callable[..., Any],
             Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
@@ -617,6 +662,7 @@ class MinervaCompose:
     def __iadd__(
         self,
         new_transform: Union[
+            "MinervaCompose",
             Sequence[Callable[..., Any]],
             Callable[..., Any],
             Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
@@ -694,6 +740,54 @@ class SwapKeys:
         return sample
 
 
+class SeasonTransform:
+    """Configure what seasons from a patch are parsed through to the model.
+
+    Adapted from source: https://github.com/zhu-xlab/SSL4EO-S12/tree/main
+
+    Args:
+        season (str): How to handle what seasons to return:
+        * ``pair``: Randomly pick 2 seasons to return that will form a pair.
+        * ``random``: Randomly pick a single season to return.
+    """
+
+    def __init__(self, season: str = "random") -> None:
+        self.season = season
+
+    def __call__(self, x: Tensor) -> Union[Tuple[Tensor, Tensor], Tensor]:
+
+        if self.season == "pair":
+            season1 = np.random.choice([0, 1, 2, 3])
+            season2 = np.random.choice([0, 1, 2, 3])
+
+            x1 = x[season1]
+            x2 = x[season2]
+            return x1, x2
+
+        elif self.season == "random":
+            season1 = np.random.choice([0, 1, 2, 3])
+
+        else:
+            raise ValueError(
+                f"The value for season, {self.season}, is not a valid option! Choose from ``random`` or ``pair``"
+            )
+
+        image = x[season1]
+
+        return image
+
+
+class ConvertDtypeFromStr(ConvertImageDtype):
+    """Wrapper for :class:~`torchvision.transforms.ConvertImageDtype` that accepts str.
+
+    Args:
+        dtype (str): A tensor type as :class:`str`.
+    """
+
+    def __init__(self, dtype: str) -> None:
+        super().__init__(getattr(torch, dtype))
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
@@ -705,21 +799,6 @@ def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
         random_transforms.append(get_transform(ran_name, random_params[ran_name]))
 
     return RandomApply(random_transforms, p=p)
-
-
-# def _manual_compose(
-#     manual_params: Dict[str, Any],
-#     other_transforms: Optional[List[Any]] = None,
-# ) -> MinervaCompose:
-#     manual_transforms = []
-
-#     for manual_name in manual_params:
-#         manual_transforms.append(get_transform(manual_name, manual_params[manual_name]))
-
-#     if other_transforms:
-#         manual_transforms = manual_transforms + other_transforms
-
-#     return MinervaCompose(manual_transforms)
 
 
 def init_auto_norm(
@@ -847,12 +926,7 @@ def make_transformations(
     transformations: Dict[str, Any] = {}
 
     for name in transform_params:
-        # if name == "MinervaCompose":
-        #     return _manual_compose(
-        #         transform_params["MinervaCompose"].copy(),
-        #         other_transforms=transformations,
-        #     )
-        if name in ("image", "mask", "label"):
+        if name in ("image", "mask", "label", "both"):
             if not transform_params[name]:
                 pass
             else:

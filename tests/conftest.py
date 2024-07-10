@@ -173,7 +173,7 @@ def config_here(inbuilt_cfg_root: Path) -> Generator[Path, None, None]:
 def default_config(inbuilt_cfg_root: Path) -> DictConfig:
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
 
-    with hydra.initialize(config_path=str(inbuilt_cfg_root)):
+    with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):
         # config is relative to a module
         cfg = hydra.compose(config_name=DEFAULT_CONFIG_NAME)
         return cfg
@@ -195,8 +195,8 @@ def std_batch_size() -> int:
 
 
 @pytest.fixture
-def std_n_classes() -> int:
-    return 8
+def std_n_classes(exp_classes: Dict[int, str]) -> int:
+    return len(exp_classes)
 
 
 @pytest.fixture

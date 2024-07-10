@@ -10,9 +10,6 @@
 # === PATHS ===================================================================
 dir:
     data: tests/fixtures/data
-    configs:
-        imagery_config: NAIP.yml
-        data_config: Chesapeake7.yml
     results: tests/tmp/results
     cache: tests/tmp/cache
     wandb_dir: &wandb_dir /test/tmp/wandb
@@ -42,12 +39,12 @@ fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: &loss_func SegBarlowTwinsLoss  # Name of the loss function to use.
-lr: 1.0E-3                                # Learning rate of optimiser.
+lr: 1.0E-2                                # Learning rate of optimiser.
 optim_func: SGD                           # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
-max_r: &max_r 400   # Max distance between patches within a pair.
+max_r: &max_r 12    # Max distance between patches within a pair.
 knn_k: 5            # Top-k most similar images to predict image for KNN val
 val_freq: 1         # Validation epoch every ``val_freq`` training epochs.
 
@@ -56,16 +53,31 @@ model_params:
     module:
     params:
         input_size: *input_size
+        encoder_weights: imagenet
 
 # ---+ Optimiser Parameters +--------------------------------------------------
-optim_params:
-    params:
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
+
+scheduler:
+    _target_: torch.optim.lr_scheduler.SequentialLR
+    schedulers:
+        - _target_: torch.optim.lr_scheduler.LinearLR
+          start_factor: 0.1
+          end_factor: 1.0
+          total_iters: 1
+        - _target_: minerva.scheduler.CosineLR
+          min_lr: ${lr}
+          max_lr: ${eval:2*${lr}}
+          max_epochs: ${max_epochs}
+          n_periods: 1
+    milestones: [1]
+
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    name: *loss_func
-    module: minerva.loss
-    params:
+    _target_: minerva.loss.${loss_func}
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:

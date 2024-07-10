@@ -56,7 +56,6 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
-from catalyst.data.sampler import DistributedSamplerWrapper
 from omegaconf import OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
@@ -65,7 +64,8 @@ from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
 
-from minerva.transforms import init_auto_norm, make_transformations
+from minerva.samplers import DistributedSamplerWrapper
+from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
@@ -116,6 +116,20 @@ def create_subdataset(
                 dataset_class,  # type: ignore[arg-type]
                 paths=paths,
                 transforms=transformations,
+                **copy_params["params"],
+            )
+
+        elif "season_transform" in signature(dataset_class).parameters:
+            if isinstance(paths, list):
+                paths = paths[0]
+            assert isinstance(paths, str)
+            del copy_params["params"]["season_transform"]
+            return PairedNonGeoDataset(
+                dataset_class,  # type: ignore[arg-type]
+                root=paths,
+                transforms=transformations,
+                season=True,
+                season_transform="pair",
                 **copy_params["params"],
             )
         elif "root" in signature(dataset_class).parameters:
@@ -190,7 +204,6 @@ def get_subdataset(
     sub_dataset_paths = utils.compile_dataset_paths(
         universal_path(data_directory), sub_dataset_params["paths"]
     )
-    print(sub_dataset_params["paths"])
 
     sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
 
@@ -296,11 +309,34 @@ def make_dataset(
     if OmegaConf.is_config(dataset_params):
         dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
 
+    add_target_transforms = None
+    add_multi_modal_transforms = None
+
     # Iterate through all the sub-datasets defined in `dataset_params`.
     for type_key in dataset_params.keys():
+        # If this the sampler params, skip.
         if type_key == "sampler":
             continue
-        type_dataset_params = dataset_params[type_key]
+
+        if type_key in ("image", "mask", "label"):
+            type_dataset_params = dataset_params[type_key]
+        elif type_key == "transforms":
+            add_multi_modal_transforms = dataset_params[type_key]
+            continue
+        else:
+            continue
+
+        # If there are no params, assume this is just a marker and no datasets are defined so skip.
+        if type_dataset_params is None:
+            continue
+
+        # If the only params in the type are transforms, store them for later and skip making datasets for this type.
+        if (
+            len(type_dataset_params.keys()) == 1
+            and "transforms" in type_dataset_params.keys()
+        ):
+            add_target_transforms = type_dataset_params["transforms"]
+            continue
 
         type_subdatasets: Union[List[GeoDataset], List[NonGeoDataset]] = []
 
@@ -410,6 +446,25 @@ def make_dataset(
     dataset = sub_datasets[0]
     if len(sub_datasets) > 1 and all(isinstance(x, GeoDataset) for x in sub_datasets):
         dataset = intersect_datasets(sub_datasets)  # type: ignore[arg-type]
+
+    if add_target_transforms is not None:
+        target_key = masks_or_labels(dataset_params)
+        target_transforms = make_transformations({target_key: add_target_transforms})
+
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += target_transforms
+        else:
+            dataset.transforms = target_transforms
+
+    if add_multi_modal_transforms is not None:
+        multi_modal_transforms = make_transformations(
+            {"both": add_multi_modal_transforms}
+        )
+
+        if isinstance(dataset.transforms, MinervaCompose):
+            dataset.transforms += multi_modal_transforms
+        else:
+            dataset.transforms = multi_modal_transforms
 
     return dataset, sub_datasets
 
@@ -529,8 +584,9 @@ def _add_class_transform(
             "transform": class_matrix,
         }
     }
-
-    if not isinstance(dataset_params[target_key].get("transforms"), dict):
+    if dataset_params[target_key] is None:
+        dataset_params[target_key] = {"transforms": class_transform}
+    elif not isinstance(dataset_params[target_key].get("transforms"), dict):
         dataset_params[target_key]["transforms"] = class_transform
     else:
         dataset_params[target_key]["transforms"]["ClassTransform"] = class_transform[
@@ -555,9 +611,15 @@ def _make_loader(
     sample_pairs,
     cache,
 ):
-    if elim and not utils.check_substrings_in_string(model_type, "siamese"):
+    target_key = None
+
+    if not utils.check_substrings_in_string(model_type, "siamese"):
         target_key = masks_or_labels(dataset_params)
-        dataset_params = _add_class_transform(class_matrix, dataset_params, target_key)
+
+        if elim:
+            dataset_params = _add_class_transform(
+                class_matrix, dataset_params, target_key
+            )
 
     # --+ MAKE DATASETS +=========================================================================================+
     loaders = construct_dataloader(
@@ -584,7 +646,7 @@ def _make_loader(
         / batch_size
     )
 
-    return loaders, n_batches
+    return loaders, n_batches, target_key
 
 
 @utils.return_updated_kwargs
@@ -706,12 +768,11 @@ def make_loaders(
                 sampler_params,
                 dataloader_params,
                 collator_params,
-                batch_size,
                 elim=elim,
             )
 
         print(f"CREATING {task_name} DATASET")
-        loaders, n_batches = _make_loader(
+        loaders, n_batches, target_key = _make_loader(
             rank,
             world_size,
             data_dir,
@@ -750,13 +811,12 @@ def make_loaders(
                     mode_sampler_params,
                     dataloader_params,
                     collator_params,
-                    batch_size,
                     elim=elim,
                 )
 
             # --+ MAKE DATASETS +=====================================================================================+
             print(f"CREATING {mode} DATASET")
-            loaders[mode], n_batches[mode] = _make_loader(
+            loaders[mode], n_batches[mode], target_key = _make_loader(
                 rank,
                 world_size,
                 data_dir,
@@ -802,6 +862,9 @@ def make_loaders(
     if task_params.get("max_pixel_value") is None:
         task_params["max_pixel_value"] = imagery_config.get("max_pixel_value", 256)
 
+    # Store the name of the target key (either `mask` or `label`)
+    task_params["target_key"] = target_key
+
     return loaders, n_batches, class_dist, task_params
 
 
@@ -815,7 +878,6 @@ def get_data_specs(
     sampler_params: Optional[Dict[str, Any]] = None,
     dataloader_params: Optional[Dict[str, Any]] = None,
     collator_params: Optional[Dict[str, Any]] = None,
-    batch_size: int = 8,
     elim: bool = True,
 ):
     # Load manifest from cache for this dataset.
@@ -826,7 +888,6 @@ def get_data_specs(
         sampler_params,
         dataloader_params,
         collator_params=collator_params,
-        batch_size=batch_size,
     )
 
     class_dist = utils.modes_from_manifest(manifest, classes)
@@ -854,7 +915,6 @@ def get_manifest(
     sampler_params: Optional[Dict[str, Any]] = None,
     loader_params: Optional[Dict[str, Any]] = None,
     collator_params: Optional[Dict[str, Any]] = None,
-    batch_size: int = 8,
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
@@ -896,7 +956,6 @@ def get_manifest(
             sampler_params,
             loader_params,
             collator_params=collator_params,
-            batch_size=batch_size,
         )
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
@@ -915,7 +974,6 @@ def make_manifest(
     sampler_params: Dict[str, Any],
     loader_params: Dict[str, Any],
     collator_params: Optional[Dict[str, Any]] = None,
-    batch_size: int = 8,
 ) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -930,7 +988,10 @@ def make_manifest(
     """
 
     def delete_class_transform(params: Dict[str, Any]) -> None:
-        target_key = masks_or_labels(dataset_params)
+        assert target_key is not None
+        if params[target_key] is None:
+            return
+
         if "transforms" in params[target_key]:
             if isinstance(params[target_key]["transforms"], dict):
                 if "ClassTransform" in params[target_key]["transforms"]:
@@ -954,6 +1015,7 @@ def make_manifest(
 
     if _sampler_params["name"] == "RandomSampler":
         _sampler_params["name"] = "SequentialSampler"
+        _sampler_params["params"] = {}
 
     if "length" in _sampler_params["params"]:
         del _sampler_params["params"]["length"]
@@ -961,7 +1023,9 @@ def make_manifest(
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
+    target_key = None
     if "mask" in dataset_params or "label" in dataset_params:
+        target_key = masks_or_labels(dataset_params)
         delete_class_transform(dataset_params)
 
     print("CONSTRUCTING DATASET")
@@ -971,7 +1035,7 @@ def make_manifest(
         dataset_params,
         _sampler_params,
         loader_params,
-        batch_size,
+        batch_size=1,  # To prevent issues with stacking different sized patches, set batch size to 1.
         collator_params=collator_params,
         cache=False,
     )
@@ -979,7 +1043,7 @@ def make_manifest(
     print("FETCHING SAMPLES")
     df = DataFrame()
 
-    modes = load_all_samples(loader)
+    modes = load_all_samples(loader, target_key=target_key)
 
     df["MODES"] = [np.array([]) for _ in range(len(modes))]
 

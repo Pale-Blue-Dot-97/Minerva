@@ -39,10 +39,14 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+import warnings
 from copy import deepcopy
 from pathlib import Path
+from platform import python_version
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 
+import hydra
+import packaging
 import torch
 import yaml
 from inputimeout import TimeoutOccurred, inputimeout
@@ -265,7 +269,7 @@ class Trainer:
 
         # Set variables for checkpointing the experiment or loading from a previous checkpoint.
         self.checkpoint_experiment: bool = self.params.get(
-            "checkpoint_experiment", False
+            "checkpoint_experiment", True
         )
         self.print(f"\nExperiment checkpointing: {self.checkpoint_experiment}")
         self.resume: bool = self.params.get("resume_experiment", False)
@@ -295,9 +299,16 @@ class Trainer:
                     "You must add the `exp_name` to the config of the experiment to resume"
                 )
         else:
+            # Gets the job ID if this is a SLURM job to prepend to the experiment name.
+            job_id = self.params.get("jobid")
+            if job_id is None:
+                job_id = ""
+            else:
+                job_id += "_"
+
             # Sets experiment name and adds this to the path to the results' directory.
-            self.params["exp_name"] = "{}_{}".format(
-                self.params["model_name"], self.params["timestamp"]
+            self.params["exp_name"] = "{}{}_{}".format(
+                job_id, self.params["model_name"], self.params["timestamp"]
             )
 
         # Path to experiment directory and experiment name.
@@ -317,7 +328,7 @@ class Trainer:
                 assert TENSORBOARD_WRITER
 
                 # Initialise TensorBoard logger.
-                self.writer = TENSORBOARD_WRITER(self.exp_fn)
+                self.writer = TENSORBOARD_WRITER(self.exp_fn / self.params["exp_name"])
             else:  # pragma: no cover
                 self.writer = None
 
@@ -342,7 +353,6 @@ class Trainer:
 
         assert isinstance(sample_pairs, bool)
         self.sample_pairs = sample_pairs
-        self.model.determine_output_dim(sample_pairs=sample_pairs)
 
         # Sets up the early stopping functionality.
         self.stopper = None
@@ -353,7 +363,7 @@ class Trainer:
                 self.params["stopping"].get("patience", 10) // self.val_freq
             )
             self.stopper = EarlyStopping(
-                path=f"{self.exp_fn}.pt",
+                path=(self.exp_fn / self.params["exp_name"]).with_suffix(".pt"),
                 trace_func=self.print,
                 external_save=True,
                 **self.params["stopping"],
@@ -365,6 +375,8 @@ class Trainer:
             # Creates and sets the optimiser for the model.
             self.make_optimiser()
 
+            self.model.determine_output_dim(sample_pairs=self.sample_pairs)
+
             # Transfer to GPU.
             self.model.to(self.device)
 
@@ -374,9 +386,21 @@ class Trainer:
 
             # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
             # Will also wrap the model in torch.compile if specified to do so in params.
-            self.model = wrap_model(
-                self.model, gpu, self.params.get("torch_compile", False)
-            )
+            # TODO: Waiting on https://github.com/pytorch/pytorch/issues/120233 for torch.compile python 3.12 support.
+            if packaging.version.parse(python_version()) < packaging.version.parse(
+                "3.12"
+            ):
+                self.model = wrap_model(
+                    self.model, gpu, self.params.get("torch_compile", False)
+                )
+            elif packaging.version.parse(python_version()) >= packaging.version.parse(
+                "3.12"
+            ) and self.params.get("torch_compile"):
+                warnings.warn(
+                    "WARNING: python 3.12+ is not yet compatible with torch.compile. Disabling torch.compile"
+                )
+            else:
+                pass
 
     def _setup_writer(self) -> None:
         if self.gpu == 0:
@@ -411,6 +435,10 @@ class Trainer:
                         print(err)
                         print("ABORT adding graph to writer")
 
+        # If writer is `wandb`, `watch` the model to log gradients.
+        if isinstance(self.writer, Run):
+            self.writer.watch(self.model)
+
     def get_input_size(self) -> Tuple[int, ...]:
         """Determines the input size of the model.
 
@@ -434,16 +462,15 @@ class Trainer:
             (model name excluding version and file extension).
         """
         cache_dir = universal_path(self.params["dir"]["cache"])
-        return Path(cache_dir / Path(self.params["model_name"].split("-")[0]))
+        return cache_dir / self.params["model_name"].split("-")[0]
 
     def get_weights_path(self) -> Path:
-        """Get the path to the cached version of the pre-trained model.
+        """Get the path to the saved version of the pre-trained model.
 
         Returns:
-            ~pathlib.Path: :class:`~pathlib.Path` to the cached model (excluding file extension).
+            ~pathlib.Path: :class:`~pathlib.Path` to the saved model (excluding file extension).
         """
-        cache_dir = universal_path(self.params["dir"]["cache"])
-        return Path(cache_dir / Path(self.params["pre_train_name"]).with_suffix(""))
+        return Path(self.params["pre_train_name"]).with_suffix("")
 
     def make_model(self) -> MinervaModel:
         """Creates a model from the parameters specified by config.
@@ -530,48 +557,39 @@ class Trainer:
             ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
         # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = deepcopy(self.params["loss_params"])
-
-        if OmegaConf.is_config(loss_params):
-            loss_params = OmegaConf.to_object(loss_params)  # type: ignore[assignment]
-
-        module = loss_params.pop("module", "torch.nn")
-        criterion: Callable[..., Any] = utils.func_by_str(module, loss_params["name"])
-
-        if not utils.check_dict_key(loss_params, "params"):
-            loss_params["params"] = {}
-
-        return criterion(**loss_params["params"])
+        return hydra.utils.instantiate(self.params["loss_params"])
 
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
-        # Gets the optimiser requested by config parameters.
-        optimiser_params: Dict[str, Any] = deepcopy(self.params["optim_params"])
-
-        if OmegaConf.is_config(optimiser_params):
-            optimiser_params = OmegaConf.to_object(optimiser_params)  # type: ignore[assignment]
-
-        module = optimiser_params.pop("module", "torch.optim")
-        optimiser = utils.func_by_str(module, self.params["optim_func"])
-
-        if not utils.check_dict_key(optimiser_params, "params"):
-            optimiser_params["params"] = {}
-
-        # Add learning rate from top-level of config to the optimiser parameters.
-        optimiser_params["params"]["lr"] = self.params["lr"]
-
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        optimiser = optimiser(self.model.parameters(), **optimiser_params["params"])
+        optimiser = hydra.utils.instantiate(
+            self.params["optimiser"], params=self.model.parameters()
+        )
         self.model.set_optimiser(optimiser)
 
-        if self.params.get("scheduler_params") is not None:
-            scheduler_params = deepcopy(self.params["scheduler_params"])
-            scheduler = utils.func_by_str(
-                scheduler_params.pop("module", "torch.optim.lr_scheduler"),
-                scheduler_params["name"],
-            )
-            self.model.set_scheduler(scheduler(optimiser, **scheduler_params["params"]))
+        # If scheduler parameters are also specified, instantiate and set to model too.
+        if self.params.get("scheduler") is not None:
+            if "schedulers" in self.params["scheduler"]:
+                sub_schedulers = []
+                for sub_scheduler_params in self.params["scheduler"]["schedulers"]:
+                    sub_schedulers.append(
+                        hydra.utils.instantiate(
+                            sub_scheduler_params,
+                            optimizer=optimiser,
+                        )
+                    )
+                scheduler = hydra.utils.instantiate(
+                    self.params["scheduler"],
+                    schedulers=sub_schedulers,
+                    optimizer=optimiser,
+                )
+            else:
+                scheduler = hydra.utils.instantiate(
+                    self.params["scheduler"], optimizer=optimiser
+                )
+
+            self.model.set_scheduler(scheduler)
 
     def fit(self) -> None:
         """Fits the model by running ``max_epochs`` number of training and validation epochs."""
@@ -630,7 +648,6 @@ class Trainer:
                 if self.gpu == 0:
                     tasks[mode].print_epoch_results(self.epoch_no - 1)
                     if not self.stopper and self.checkpoint_experiment:
-                        print("Saving checkpoint")
                         self.save_checkpoint()
 
                 # Sends validation loss to the stopper and updates early stop bool.
@@ -783,6 +800,14 @@ class Trainer:
             )
 
     def save_checkpoint(self) -> None:
+        fn = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+
+        self.print(f"Saving checkpoint to {fn}")
+
+        # Make sure that the path to the checkpoint exists.
+        if not fn.parent.exists():
+            fn.parent.mkdir(parents=True, exist_ok=True)
+
         optimiser = self.model.optimiser
         assert optimiser
 
@@ -797,10 +822,12 @@ class Trainer:
         if scheduler is not None:
             chkpt["scheduler_state_dict"] = scheduler.state_dict()
 
-        torch.save(chkpt, f"{self.exp_fn}-checkpoint.pt")
+        torch.save(chkpt, self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt"))
 
     def load_checkpoint(self) -> None:
-        checkpoint = torch.load(f"{self.exp_fn}-checkpoint.pt")
+        checkpoint = torch.load(
+            self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+        )
 
         # Update the number of classes in case it was altered by class balancing.
         self.params["n_classes"] = checkpoint["n_classes"]
@@ -808,6 +835,12 @@ class Trainer:
         # Remake model and optimiser objects.
         self.model = self.make_model()
         self.make_optimiser()
+
+        # Have to delete the weight for the loss function from the checkpoint as there
+        # is no way to replicate it here. It will be correctly added back when the model is
+        # sent to a task that uses class balancing.
+        if "criterion.weight" in checkpoint["model_state_dict"]:
+            del checkpoint["model_state_dict"]["criterion.weight"]
 
         # Load the state dicts for the model and optimiser.
         self.model.load_state_dict(checkpoint["model_state_dict"])
@@ -868,9 +901,15 @@ class Trainer:
 
         if self.gpu == 0:
             self.print("\nSAVING EXPERIMENT CONFIG TO FILE")
+            fn = self.exp_fn / self.params["exp_name"]
             # Outputs the modified YAML parameters config file used for this experiment to file.
-            with open(f"{self.exp_fn}.yml", "w") as outfile:
+            with open(f"{fn}.yml", "w") as outfile:
                 yaml.dump(self.params, outfile)
+
+            try:
+                assert fn.with_suffix(".yml").exists()
+            except AssertionError:
+                print(f"Failed to save config file to {fn}.yml!")
 
             # Checks whether to save the model parameters to file.
             if self.params.get("save_model", False) in (
@@ -900,14 +939,14 @@ class Trainer:
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
 
-    def save_model_weights(self, fn: Optional[str] = None) -> None:
+    def save_model_weights(self, fn: Optional[Union[str, Path]] = None) -> None:
         """Saves model state dict to :mod:`torch` file.
 
         Args:
             fn (str): Optional; Filename and path (excluding extension) to save weights to.
         """
         if fn is None:
-            fn = str(self.exp_fn)
+            fn = self.exp_fn / self.params["exp_name"]
 
         model = extract_wrapped_model(self.model)
 
@@ -928,7 +967,7 @@ class Trainer:
         model = extract_wrapped_model(self.model)
 
         if fn is None:
-            fn = str(self.exp_fn)
+            fn = self.exp_fn / self.params["exp_name"]
 
         if fmt == "pt":
             torch.save(model, f"{fn}.pt")
@@ -954,7 +993,11 @@ class Trainer:
         except FileExistsError:
             pass
 
-        torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}.pt")
+        torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-backbone.pt")
+        torch.save(
+            pre_trained_backbone.state_dict(),
+            self.exp_fn / (self.params["exp_name"] + "-backbone.pt"),
+        )
 
     def run_tensorboard(self) -> None:
         """Opens :mod:`tensorboard` log of the current experiment in a locally hosted webpage."""

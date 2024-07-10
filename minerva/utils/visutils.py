@@ -70,7 +70,6 @@ import imageio
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 import numpy as np
-from alive_progress import alive_bar
 from geopy.exc import GeocoderUnavailable
 from matplotlib import offsetbox
 from matplotlib.axes import Axes
@@ -85,8 +84,9 @@ from numpy.typing import ArrayLike
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from scipy import stats
-from sklearn.metrics import ConfusionMatrixDisplay
+from sklearn.metrics import ConfusionMatrixDisplay, multilabel_confusion_matrix
 from torchgeo.datasets.utils import BoundingBox
+from tqdm import tqdm, trange
 
 from minerva.utils import universal_path, utils
 
@@ -508,13 +508,13 @@ def make_gif(
     # Changes to `imagio` now mean we need the duration of the GIF and not the `fps`.
     duration = len(dates) / fps
 
-    # Initialise progress bar.
-    with alive_bar(len(dates), bar="blocks") as bar:
-        # List to hold filenames and paths of images created.
-        frames = []
-        for i in range(len(dates)):
+    # List to hold filenames and paths of images created.
+    frames = []
+
+    with trange(len(dates)) as t:
+        for i in t:
             # Update progress bar with current scene.
-            bar.text("SCENE ON %s" % dates[i])
+            t.set_description("SCENE ON %s" % dates[i])
 
             # Create a frame of the GIF for a scene of the patch.
             frame = labelled_rgb_image(
@@ -536,19 +536,13 @@ def make_gif(
             # Read in frame just created and add to list of frames.
             frames.append(imageio.imread(frame))
 
-            # Update bar with step completion.
-            bar()
-
     # Checks GIF doesn't already exist. Deletes if it does.
     utils.exist_delete_check(gif_name)
 
-    # Create a 'unknown' bar to 'spin' while the GIF is created.
-    with alive_bar(unknown="waves") as bar:
-        # Add current operation to spinner bar.
-        bar.text("MAKING PATCH GIF")
+    print("MAKING PATCH GIF")
 
-        # Create GIF.
-        imageio.mimwrite(gif_name, frames, format=".gif", duration=duration)  # type: ignore
+    # Create GIF.
+    imageio.mimwrite(gif_name, frames, format=".gif", duration=duration)  # type: ignore
 
 
 def prediction_plot(
@@ -781,9 +775,8 @@ def seg_plot(
     if n_samples > _MAX_SAMPLES:
         n_samples = _MAX_SAMPLES
 
-    # Initialises a progress bar for the epoch.
-    with alive_bar(n_samples, bar="blocks") as bar:
-        # Plots the predicted versus ground truth labels for all test patches supplied.
+    # Plots the predicted versus ground truth labels for all test patches supplied.
+    with tqdm(total=n_samples) as pbar:
         for i in random.sample(range(len(flat_ids)), n_samples):
             image = stack_rgb(dataset[bounds[i]]["image"].numpy(), max_pixel_value)
             sample = {"image": image, "pred": z[i], "mask": y[i], "bounds": bounds[i]}
@@ -800,8 +793,7 @@ def seg_plot(
                 cmap_style=ListedColormap(colours.values(), N=len(colours)),  # type: ignore
                 path=path,
             )
-
-            bar()
+        pbar.update()
 
 
 def plot_subpopulations(
@@ -949,7 +941,7 @@ def make_confusion_matrix(
     """Creates a heat-map of the confusion matrix of the given model.
 
     Args:
-        pred(list[int]): Predictions made by model on test images.
+        pred (list[int]): Predictions made by model on test images.
         labels (list[int]): Accompanying ground truth labels for testing images.
         classes (dict[int, str]): Dictionary mapping class labels to class names.
         filename (str): Optional; Name of file to save plot to.
@@ -976,7 +968,7 @@ def make_confusion_matrix(
         _labels,
         _pred,
         labels=list(new_classes.keys()),
-        normalize="all",
+        normalize="true",
         display_labels=class_names,
         cmap=cmap,
         ax=ax,
@@ -984,6 +976,81 @@ def make_confusion_matrix(
 
     # Normalises the colourbar to between [0, 1] for consistent clarity.
     cm.ax_.get_images()[0].set_clim(0, 1)
+
+    # Shows and/or saves plot.
+    if show:
+        plt.show(block=False)
+    if save:
+        plt.savefig(filename)
+        plt.close()
+
+
+def make_multilabel_confusion_matrix(
+    preds: Union[List[int], NDArray[Any, Int]],
+    labels: Union[List[int], NDArray[Any, Int]],
+    classes: Dict[int, str],
+    filename: Optional[Union[str, Path]] = None,
+    cmap_style: str = "Blues",
+    figsize: Tuple[int, int] = (2, 2),
+    show: bool = True,
+    save: bool = False,
+) -> None:
+    """Creates a heat-map of the confusion matrix of the given model.
+
+    Args:
+        probs (list[int]): Output made by the model on test images.
+        labels (list[int]): Accompanying ground truth labels for testing images.
+        classes (dict[int, str]): Dictionary mapping class labels to class names.
+        filename (str): Optional; Name of file to save plot to.
+        cmap_style (str): Colourmap style to use in the confusion matrix.
+        show (bool): Optional; Whether to show plot.
+        save (bool): Optional; Whether to save plot to file.
+
+    Returns:
+        None
+    """
+    # Find a pair of integer values that are most square-like for the dimensions
+    # of the sub-plot array that fits with the number of classes.
+    dimensions = utils.closest_factors(len(classes))
+
+    # Creates the figure to plot onto.
+    fig, axes = plt.subplots(dimensions[0], dimensions[1], figsize=figsize)
+    axes = axes.ravel()
+
+    # Get a matplotlib colourmap based on the style specified to use for the confusion matrix.
+    cmap = get_mlp_cmap(cmap_style)
+
+    if isinstance(labels, list):
+        labels = np.ndarray(labels)
+    if isinstance(preds, list):
+        preds = np.ndarray(preds)
+
+    # Create the confusion matrices for each class.
+    cm = multilabel_confusion_matrix(
+        labels.reshape(-1, labels.shape[-1]),
+        preds.reshape(-1, preds.shape[-1]),
+        labels=list(classes.keys()),
+    )
+
+    for i in range(len(classes)):
+        # Creates the confusion matrix.
+        sub_cm = ConfusionMatrixDisplay(cm[i], display_labels=["N", "Y"])
+
+        # Plot confusion matrix.
+        sub_cm.plot(cmap=cmap, ax=axes[i])
+
+        # Set title for each sub-plot to the class number (labels will not fit).
+        sub_cm.ax_.set_title(f"Class {i}")
+
+        # Delete individual colourbars for each sub-plot.
+        sub_cm.im_.colorbar.remove()
+
+    # Add colourbar for whole figure.
+    fig.colorbar(sub_cm.im_, ax=axes)
+
+    # Delete empty sub_plots if the n_classes was an odd number > 5.
+    for i in range(len(classes), np.prod(dimensions)):
+        fig.delaxes(axes[i])
 
     # Shows and/or saves plot.
     if show:
@@ -1096,7 +1163,7 @@ def make_roc_curves(
 
 def plot_embedding(
     embeddings: Any,
-    bounds: Union[Sequence[BoundingBox], NDArray[Any, Any]],
+    index: Union[Sequence[BoundingBox], Sequence[int]],
     data_dir: Union[Path, str],
     dataset_params: Dict[str, Any],
     title: Optional[str] = None,
@@ -1145,20 +1212,16 @@ def plot_embedding(
     images = []
     targets = []
 
-    # Initialises a progress bar for the epoch.
-    with alive_bar(len(x), bar="blocks") as bar:
-        # Plots the predicted versus ground truth labels for all test patches supplied.
-        for i in range(len(x)):
-            sample = dataset[bounds[i]]
-            images.append(stack_rgb(sample["image"].numpy(), max_pixel_value))
-            targets.append(
-                [
-                    int(stats.mode(mask.flatten(), keepdims=False).mode)
-                    for mask in sample["mask"].numpy()
-                ]
-            )
-
-            bar()
+    # Plots the predicted versus ground truth labels for all test patches supplied.
+    for i in trange(len(x)):
+        sample = dataset[index[i]]
+        images.append(stack_rgb(sample["image"].numpy()))
+        targets.append(
+            [
+                int(stats.mode(mask.flatten(), keepdims=False).mode)
+                for mask in sample["mask"].numpy()
+            ]
+        )
 
     x_min, x_max = np.min(x, 0), np.max(x, 0)
     x = (x - x_min) / (x_max - x_min)
@@ -1257,7 +1320,7 @@ def plot_results(
     metrics: Optional[Dict[str, Any]] = None,
     ids: Optional[List[str]] = None,
     task_name: str = "test",
-    bounds: Optional[NDArray[Any, Any]] = None,
+    index: Optional[NDArray[Any, Any]] = None,
     probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
     embeddings: Optional[NDArray[Any, Any]] = None,
     class_names: Optional[Dict[int, str]] = None,
@@ -1280,9 +1343,8 @@ def plot_results(
         ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
             Maybe either patch IDs or scene tags.
         task_name (str): Optional; Name of task that samples are from.
-        bounds (~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]): Optional; Array of objects describing
-            a geospatial bounding box for each sample.
-            Must contain ``minx``, ``maxx``, ``miny`` and ``maxy`` parameters.
+        index (~numpy.ndarray[int] | ~numpy.ndarray[~torchgeo.datasets.utils.BoundingBox]): Optional; Array of objects
+            describing a geospatial bounding box for each sample or a sequence of indexes.
         probs (list[float] | ~numpy.ndarray[float]): Optional; Array of probabilistic predicted classes
             from model where each sample should have a list of the predicted probability for each class.
         embeddings (~numpy.ndarray[~typing.Any]): Embeddings from the model to visualise with TSNE clustering.
@@ -1360,15 +1422,27 @@ def plot_results(
         assert flat_z is not None
 
         print("\nPLOTTING CONFUSION MATRIX")
-        make_confusion_matrix(
-            labels=flat_y,
-            pred=flat_z,
-            classes=class_names,
-            filename=filenames["CM"],
-            save=save,
-            show=show,
-            figsize=cfg["data_config"]["fig_sizes"]["CM"],
-        )
+
+        if utils.check_substrings_in_string(cfg["model_type"], "multilabel"):
+            make_multilabel_confusion_matrix(
+                labels=y,  # type: ignore[arg-type]
+                preds=z,  # type: ignore[arg-type]
+                classes=class_names,
+                filename=filenames["CM"],
+                save=save,
+                show=show,
+                figsize=cfg["data_config"]["fig_sizes"]["CM"],
+            )
+        else:
+            make_confusion_matrix(
+                labels=flat_y,
+                pred=flat_z,
+                classes=class_names,
+                filename=filenames["CM"],
+                save=save,
+                show=show,
+                figsize=cfg["data_config"]["fig_sizes"]["CM"],
+            )
 
     if plots.get("Pred", False):
         assert class_names is not None
@@ -1410,7 +1484,7 @@ def plot_results(
         assert z is not None
         assert y is not None
         assert ids is not None
-        assert bounds is not None
+        assert index is not None
         assert task_name is not None
 
         if cfg:
@@ -1421,7 +1495,7 @@ def plot_results(
         else:
             figsize = None
 
-        flat_bbox = utils.batch_flatten(bounds)
+        flat_bbox = utils.batch_flatten(index)
         (universal_path(results_dir) / "Masks").mkdir(parents=True, exist_ok=True)
         seg_plot(
             z,
@@ -1439,13 +1513,13 @@ def plot_results(
 
     if plots.get("TSNE", False):
         assert embeddings is not None
-        assert bounds is not None
+        assert index is not None
         assert task_name is not None
 
         print("\nPERFORMING TSNE CLUSTERING")
         plot_embedding(
             embeddings,
-            bounds,
+            index,  # type: ignore[arg-type]
             cfg["dir"]["data"],
             cfg["tasks"][task_name]["dataset_params"],
             show=show,

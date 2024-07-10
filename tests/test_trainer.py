@@ -99,7 +99,7 @@ def test_trainer_1(default_config: DictConfig) -> None:
             run_trainer(default_config)
 
 
-def test_trainer_2(default_config: DictConfig) -> None:
+def test_trainer_2(default_config: DictConfig, cache_dir: Path) -> None:
     params1 = deepcopy(default_config)
     params1["elim"] = False
 
@@ -120,7 +120,7 @@ def test_trainer_2(default_config: DictConfig) -> None:
     OmegaConf.update(
         params2,
         "pre_train_name",
-        f"{params1['model_name'].split('-')[0]}.{suffix}",
+        cache_dir / f"{params1['model_name'].split('-')[0]}.{suffix}",
         force_add=True,
     )
     OmegaConf.update(params2, "sample_pairs", "false", force_add=True)
@@ -165,8 +165,12 @@ def test_trainer_3(default_config: DictConfig) -> None:
         ("example_GeoCLR_config.yaml", {"plot_last_epoch": False}, {}),
         ("example_3rd_party.yaml", {}, {}),
         ("example_autoencoder_config.yaml", {}, {}),
+        ("example_UNetR_config.yaml", {}, {}),
         ("example_GeoSimConvNet.yaml", {}, {}),
         ("example_GSConvNet-II.yaml", {}, {}),
+        ("example_PSP.yaml", {}, {}),
+        ("example_SceneClassifier.yaml", {}, {}),
+        ("example_MultiLabel.yaml", {}, {}),
     ],
 )
 def test_trainer_4(
@@ -176,7 +180,7 @@ def test_trainer_4(
     kwargs: Dict[str, Any],
 ) -> None:
 
-    with hydra.initialize(config_path=str(inbuilt_cfg_root)):
+    with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):
         cfg = hydra.compose(config_name=cfg_name)
 
         for key in cfg_args.keys():

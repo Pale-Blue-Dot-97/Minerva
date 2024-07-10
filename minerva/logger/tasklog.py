@@ -164,32 +164,35 @@ class MinervaTaskLogger(ABC):
 
     def step(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        index: Optional[BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
         """Abstract method to log a step, using the logger. Must be overwritten.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
             z (~torch.Tensor): Optional; Output tensor from the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
             None
         """
         self.step_logger.log(
-            step_num,
+            global_step_num,
+            local_step_num,
             loss,
             z,
             y,
-            bbox,
+            index,
             *args,
             **kwargs,
         )
@@ -313,7 +316,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
     """
 
     metric_types: List[str] = ["loss", "acc", "miou"]
-    logger_cls = "SupervisedGeoStepLogger"
+    logger_cls = "SupervisedStepLogger"
 
     def __init__(
         self,
@@ -351,10 +354,9 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             logs["total_loss"] / self.n_batches
         )
 
-        if self.model_type == "segmentation":
+        if check_substrings_in_string(self.model_type, "segmentation"):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"]
-                / (self.n_batches * self.batch_size * np.prod(self.output_size))
+                logs["total_correct"] / (self.n_samples * np.prod(self.output_size))
             )
             if logs.get("total_miou") is not None:
                 self.metrics[f"{self.task_name}_miou"]["y"].append(
@@ -365,6 +367,10 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"] / self.n_samples
             )
+
+            # Ensure that there are no empty logs for MIoU in a non=segmentation experiment.
+            if f"{self.task_name}_miou" in self.metrics:
+                del self.metrics[f"{self.task_name}_miou"]
 
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
@@ -378,7 +384,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
         )
 
-        if self.model_type == "segmentation":
+        if check_substrings_in_string(self.model_type, "segmentation"):
             msg += " | mIoU: {}".format(
                 self.metrics[f"{self.task_name}_miou"]["y"][epoch_no]
             )
@@ -430,9 +436,9 @@ class SSLTaskLogger(MinervaTaskLogger):
         if "params" not in step_logger_params:
             step_logger_params["params"] = {}
 
-        step_logger_params["params"]["sample_pairs"] = sample_pairs
-        step_logger_params["params"]["collapse_level"] = sample_pairs
-        step_logger_params["params"]["euclidean"] = sample_pairs
+            step_logger_params["params"]["sample_pairs"] = sample_pairs
+            step_logger_params["params"]["collapse_level"] = sample_pairs
+            step_logger_params["params"]["euclidean"] = sample_pairs
 
         super(SSLTaskLogger, self).__init__(
             task_name,
@@ -447,6 +453,17 @@ class SSLTaskLogger(MinervaTaskLogger):
             sample_pairs=sample_pairs,
             **params,
         )
+
+        # Delete space in the metrics log for metrics that will not be calculated for Siamese models.
+        if check_substrings_in_string(self.model_type, "siamese"):
+            del self.metrics[f"{self.task_name}_acc"]
+            del self.metrics[f"{self.task_name}_top5_acc"]
+
+        # Delete space in the metrics log for metrics that will not be calculated if NOT a Siamese model.
+        if not getattr(self.step_logger, "collapse_level", False):
+            del self.metrics[f"{self.task_name}_collapse_level"]
+        if not getattr(self.step_logger, "euclidean", False):
+            del self.metrics[f"{self.task_name}_euc_dist"]
 
     def _calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
@@ -467,12 +484,14 @@ class SSLTaskLogger(MinervaTaskLogger):
             )
 
         if self.sample_pairs:
-            self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
-                logs["collapse_level"]
-            )
-            self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
-                logs["euc_dist"] / self.n_batches
-            )
+            if getattr(self.step_logger, "collapse_level", False):
+                self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
+                    logs["collapse_level"]
+                )
+            if getattr(self.step_logger, "euclidean", False):
+                self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
+                    logs["euc_dist"] / self.n_batches
+                )
 
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
@@ -486,12 +505,15 @@ class SSLTaskLogger(MinervaTaskLogger):
         )
 
         if self.sample_pairs:
-            msg += "| Collapse Level: {}%".format(
-                self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no] * 100.0
-            )
-            msg += "| Avg. Euclidean Distance: {}".format(
-                self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
-            )
+            if getattr(self.step_logger, "collapse_level", False):
+                msg += "| Collapse Level: {}%".format(
+                    self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no]
+                    * 100.0
+                )
+            if getattr(self.step_logger, "euclidean", False):
+                msg += "| Avg. Euclidean Distance: {}".format(
+                    self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
+                )
 
         if not check_substrings_in_string(self.model_type, "siamese"):
             msg += "\n"

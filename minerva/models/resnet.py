@@ -517,7 +517,7 @@ def _preload_weights(
         return resnet
 
     if isinstance(weights, WeightsEnum):
-        weights = weights.get_state_dict(True)
+        weights = weights.get_state_dict()
 
     if input_shape[0] != 3 or input_shape[1] <= 224 or input_shape[2] <= 224:
         weights["conv1.weight"] = resnet.conv1.state_dict()["weight"]  # type: ignore[attr-defined]

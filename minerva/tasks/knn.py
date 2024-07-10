@@ -46,8 +46,8 @@ from typing import TYPE_CHECKING, Optional, Tuple, Union
 import torch
 import torch.distributed as dist
 import torch.nn.functional as ptfunc
-from alive_progress import alive_it
 from torch import Tensor
+from tqdm import tqdm
 from wandb.sdk.wandb_run import Run
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -176,8 +176,7 @@ class WeightedKNN(MinervaTask):
         feature_list = []
         target_list = []
 
-        feat_bar = alive_it(self.loaders["features"])
-        for batch in feat_bar:
+        for batch in tqdm(self.loaders["features"]):
             val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
             val_target: Tensor = batch["mask"].to(self.device, non_blocking=True)
             target_list.append(
@@ -231,8 +230,7 @@ class WeightedKNN(MinervaTask):
             feature_bank, feature_labels = self.generate_feature_bank()
 
             # Loop test data to predict the label by weighted KNN search.
-            test_bar = alive_it(self.loaders["test"])
-            for batch in test_bar:
+            for batch in tqdm(self.loaders["test"]):
                 test_data: Tensor = batch["image"].to(self.device, non_blocking=True)
                 test_target: Tensor = torch.mode(
                     torch.flatten(
@@ -314,7 +312,8 @@ class WeightedKNN(MinervaTask):
                     results = (loss, *results[1:])
 
                 # Sends results to logger.
-                self.logger.step(self.step_num, *results)
+                self.logger.step(self.global_step_num, self.local_step_num, *results)
 
                 # Update global step number for this mode of model fitting.
-                self.step_num += 1
+                self.global_step_num += 1
+                self.local_step_num += 1
