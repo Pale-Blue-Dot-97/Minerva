@@ -451,20 +451,29 @@ def make_dataset(
         target_key = masks_or_labels(dataset_params)
         target_transforms = make_transformations({target_key: add_target_transforms})
 
-        if isinstance(dataset.transforms, MinervaCompose):
-            dataset.transforms += target_transforms
+        if hasattr(dataset, "transforms"):
+            if isinstance(dataset.transforms, MinervaCompose):
+                dataset.transforms += target_transforms
+            else:
+                dataset.transforms = target_transforms
         else:
-            dataset.transforms = target_transforms
+            raise TypeError(
+                f"dataset of type {type(dataset)} has no ``transforms`` atttribute!"
+            )
 
     if add_multi_modal_transforms is not None:
         multi_modal_transforms = make_transformations(
             {"both": add_multi_modal_transforms}
         )
-
-        if isinstance(dataset.transforms, MinervaCompose):
-            dataset.transforms += multi_modal_transforms
+        if hasattr(dataset, "transforms"):
+            if isinstance(dataset.transforms, MinervaCompose):
+                dataset.transforms += multi_modal_transforms
+            else:
+                dataset.transforms = multi_modal_transforms
         else:
-            dataset.transforms = multi_modal_transforms
+            raise TypeError(
+                f"dataset of type {type(dataset)} has no ``transforms`` atttribute!"
+            )
 
     return dataset, sub_datasets
 
