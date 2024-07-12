@@ -453,6 +453,7 @@ def make_dataset(
 
         if hasattr(dataset, "transforms"):
             if isinstance(dataset.transforms, MinervaCompose):
+                assert target_transforms is not None
                 dataset.transforms += target_transforms
             else:
                 dataset.transforms = target_transforms
@@ -467,6 +468,7 @@ def make_dataset(
         )
         if hasattr(dataset, "transforms"):
             if isinstance(dataset.transforms, MinervaCompose):
+                assert multi_modal_transforms is not None
                 dataset.transforms += multi_modal_transforms
             else:
                 dataset.transforms = multi_modal_transforms
