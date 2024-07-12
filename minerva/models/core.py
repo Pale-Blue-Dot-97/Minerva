@@ -327,14 +327,18 @@ class MinervaWrapper(MinervaModel):
 
 
 class MinervaBackbone(MinervaModel):
-    """Abstract class to mark a model for use as a backbone."""
+    """Abstract class to mark a model for use as a backbone.
+
+    Attributes:
+        backbone (~torch.nn.Module): Backbone of the the model.
+    """
 
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.backbone: MinervaModel
+        self.backbone: Module
 
     def get_backbone(self) -> Module:
         """Gets the :attr:`~MinervaBackbone.backbone` network of the model.
