@@ -81,7 +81,7 @@ class CosineLR(LRScheduler):
         self.n_periods = n_periods
         super().__init__(optimizer, last_epoch, verbose)
 
-    def get_lr(self) -> List[float]:
+    def get_lr(self) -> List[float]:  # type: ignore[override]
         if not hasattr(self, "_get_lr_called_within_step"):
             warnings.warn(
                 "To get the last learning rate computed by the scheduler, "

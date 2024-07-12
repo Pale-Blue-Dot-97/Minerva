@@ -133,7 +133,7 @@ class MinervaStepLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        output_size: Tuple[int, ...],
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -439,8 +439,8 @@ class SupervisedStepLogger(MinervaStepLogger):
         assert z is not None
         assert y is not None
 
-        if isinstance(z, tuple):
-            z = z[0]
+        if isinstance(z, tuple):  # type: ignore[unreachable]
+            z = z[0]  # type: ignore[unreachable]
 
         if self.record_int:
             # Arg max the estimated probabilities and add to predictions.
