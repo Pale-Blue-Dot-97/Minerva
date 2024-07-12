@@ -160,7 +160,13 @@ class MinervaStepLogger(ABC):
         self.logs: Dict[str, Any] = {}
         self.results: Dict[str, Any] = {}
 
-    def __call__(self, step_num: int, loss: Tensor, *args) -> None:
+    def __call__(
+        self,
+        global_step_num: int,
+        local_step_num: int,
+        loss: Tensor,
+        *args,
+    ) -> None:
         """Call :meth:`log`.
 
         Args:
@@ -170,7 +176,7 @@ class MinervaStepLogger(ABC):
         Returns:
             None
         """
-        self.log(step_num, loss, *args)  # pragma: no cover
+        self.log(global_step_num, local_step_num, loss, *args)  # pragma: no cover
 
     @abc.abstractmethod
     def log(
