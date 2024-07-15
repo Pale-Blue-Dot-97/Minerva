@@ -43,7 +43,7 @@ __all__ = ["StandardEpoch"]
 from contextlib import nullcontext
 
 import torch.distributed as dist
-from alive_progress import alive_bar
+from tqdm import tqdm
 
 from minerva.utils import utils
 
@@ -63,9 +63,7 @@ class StandardEpoch(MinervaTask):
 
     def step(self) -> None:
         # Initialises a progress bar for the epoch.
-        with alive_bar(
-            self.n_batches, bar="blocks"
-        ) if self.gpu == 0 else nullcontext() as bar:
+        with tqdm(total=self.n_batches) if self.gpu == 0 else nullcontext() as bar:
             # Sets the model up for training or evaluation modes.
             if self.train:
                 self.model.train()
@@ -82,18 +80,22 @@ class StandardEpoch(MinervaTask):
                     **self.params,
                 )
 
-                if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-                    loss = results[0].data.clone()
-                    dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
-                    results = (loss, *results[1:])
+                if self.local_step_num % self.log_rate == 0:
+                    if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
+                        loss = results[0].data.clone()
+                        dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
+                        results = (loss, *results[1:])
 
-                self.logger.step(self.step_num, *results)
+                    self.logger.step(
+                        self.global_step_num, self.local_step_num, *results
+                    )
 
-                self.step_num += 1
+                self.global_step_num += 1
+                self.local_step_num += 1
 
                 # Updates progress bar that batch has been processed.
                 if self.gpu == 0:
-                    bar()  # type: ignore
+                    bar.update()  # type: ignore
 
         # If configured to do so, calculates the grad norms.
         if self.params.get("calc_norm", False):

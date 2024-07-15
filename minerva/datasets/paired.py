@@ -27,47 +27,56 @@ r"""Datasets to handle paired sampling for use in Siamese learning."""
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
-__author__ = "Harry Baker"
+__author__ = ["Harry Baker", "Jonathon Hare"]
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "PairedDataset",
+    "PairedGeoDataset",
     "PairedUnionDataset",
+    "PairedNonGeoDataset",
+    "PairedConcatDataset",
+    "SamplePair",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import inspect
+import random
+from inspect import signature
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
 
 import matplotlib.pyplot as plt
+import torch
 from matplotlib.figure import Figure
+from torch import Tensor
 from torchgeo.datasets import (
     GeoDataset,
     IntersectionDataset,
+    NonGeoDataset,
     RasterDataset,
     UnionDataset,
 )
 from torchgeo.datasets.utils import BoundingBox, concat_samples, merge_samples
+from torchvision.transforms import RandomCrop
+from torchvision.transforms import functional as ft
 
 from minerva.utils import utils
 
-from .utils import get_random_sample
+from .utils import MinervaConcatDataset, get_random_sample
 
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class PairedDataset(RasterDataset):
+class PairedGeoDataset(RasterDataset):
     """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
 
     Attributes:
         dataset (~torchgeo.datasets.RasterDataset): Wrapped dataset to sampled from.
 
     Args:
-        dataset_cls (~typing.Callable[..., ~torchgeo.datasets.GeoDataset]): Constructor for a
+        dataset (~typing.Callable[..., ~torchgeo.datasets.GeoDataset]): Constructor for a
             :class:`~torchgeo.datasets.RasterDataset` to be wrapped for paired sampling.
     """
 
@@ -76,24 +85,26 @@ class PairedDataset(RasterDataset):
         dataset: Union[Callable[..., GeoDataset], GeoDataset],
         *args,
         **kwargs,
-    ) -> Union["PairedDataset", "PairedUnionDataset"]:
+    ) -> Union["PairedGeoDataset", "PairedUnionDataset"]:
         if isinstance(dataset, UnionDataset):
             return PairedUnionDataset(
                 dataset.datasets[0], dataset.datasets[1], *args, **kwargs
             )
         else:
-            return super(PairedDataset, cls).__new__(cls)
+            return super(PairedGeoDataset, cls).__new__(cls)
 
     def __getnewargs__(self):
         return self.dataset, self._args, self._kwargs
 
     @overload
-    def __init__(self, dataset: Callable[..., GeoDataset], *args, **kwargs) -> None:
-        ...  # pragma: no cover
+    def __init__(
+        self, dataset: Callable[..., GeoDataset], *args, **kwargs
+    ) -> None: ...  # pragma: no cover
 
     @overload
-    def __init__(self, dataset: GeoDataset, *args, **kwargs) -> None:
-        ...  # pragma: no cover
+    def __init__(
+        self, dataset: GeoDataset, *args, **kwargs
+    ) -> None: ...  # pragma: no cover
 
     def __init__(
         self,
@@ -110,13 +121,13 @@ class PairedDataset(RasterDataset):
             self._res = dataset.res
             self._crs = dataset.crs
 
-        elif callable(dataset):
-            super_sig = inspect.signature(RasterDataset.__init__).parameters.values()
+        elif "paths" in signature(dataset).parameters:
+            super_sig = signature(RasterDataset.__init__).parameters.values()
             super_kwargs = {
                 key.name: kwargs[key.name] for key in super_sig if key.name in kwargs
             }
 
-            # Make sure PairedDataset has access to the `all_bands` attribute of the dataset.
+            # Make sure PairedGeoDataset has access to the `all_bands` attribute of the dataset.
             # Needed for a subset of the bands to be selected if so desired.
             if hasattr(dataset, "all_bands"):
                 self.all_bands = dataset.all_bands
@@ -136,34 +147,34 @@ class PairedDataset(RasterDataset):
             queries[1]
         )
 
-    def __and__(self, other: "PairedDataset") -> IntersectionDataset:  # type: ignore[override]
-        """Take the intersection of two :class:`PairedDataset`.
+    def __and__(self, other: "PairedGeoDataset") -> IntersectionDataset:  # type: ignore[override]
+        """Take the intersection of two :class:`PairedGeoDataset`.
 
         Args:
-            other (PairedDataset): Another dataset.
+            other (PairedGeoDataset): Another dataset.
 
         Returns:
             IntersectionDataset: A single dataset.
 
         Raises:
-            ValueError: If other is not a :class:`PairedDataset`
+            ValueError: If other is not a :class:`PairedGeoDataset`
 
         .. versionadded:: 0.24
         """
-        if not isinstance(other, PairedDataset):
+        if not isinstance(other, PairedGeoDataset):
             raise ValueError(
-                f"Intersecting a dataset of {type(other)} and a PairedDataset is not supported!"
+                f"Intersecting a dataset of {type(other)} and a PairedGeoDataset is not supported!"
             )
 
         return IntersectionDataset(
             self, other, collate_fn=utils.pair_collate(concat_samples)
         )
 
-    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":  # type: ignore[override]
-        """Take the union of two :class:`PairedDataset`.
+    def __or__(self, other: "PairedGeoDataset") -> "PairedUnionDataset":  # type: ignore[override]
+        """Take the union of two :class:`PairedGeoDataset`.
 
         Args:
-            other (PairedDataset): Another dataset.
+            other (PairedGeoDataset): Another dataset.
 
         Returns:
             PairedUnionDataset: A single dataset.
@@ -253,7 +264,7 @@ class PairedUnionDataset(UnionDataset):
 
     ..warning::
 
-        Do not use with :class:`PairedDataset` as this will essentially account for paired sampling twice
+        Do not use with :class:`PairedGeoDataset` as this will essentially account for paired sampling twice
         and cause a :class:`TypeError`.
     """
 
@@ -270,7 +281,7 @@ class PairedUnionDataset(UnionDataset):
 
         new_datasets = []
         for _dataset in self.datasets:
-            if isinstance(_dataset, PairedDataset):
+            if isinstance(_dataset, PairedGeoDataset):
                 new_datasets.append(_dataset.dataset)
             elif isinstance(_dataset, PairedUnionDataset):
                 new_datasets.append(_dataset.datasets[0] | _dataset.datasets[1])
@@ -296,11 +307,11 @@ class PairedUnionDataset(UnionDataset):
         """
         return super().__getitem__(query[0]), super().__getitem__(query[1])
 
-    def __or__(self, other: "PairedDataset") -> "PairedUnionDataset":  # type: ignore[override]
-        """Take the union of a PairedUnionDataset and a :class:`PairedDataset`.
+    def __or__(self, other: "PairedGeoDataset") -> "PairedUnionDataset":  # type: ignore[override]
+        """Take the union of a PairedUnionDataset and a :class:`PairedGeoDataset`.
 
         Args:
-            other (PairedDataset): Another dataset.
+            other (PairedGeoDataset): Another dataset.
 
         Returns:
             PairedUnionDataset: A single dataset.
@@ -308,3 +319,338 @@ class PairedUnionDataset(UnionDataset):
         .. versionadded:: 0.24
         """
         return PairedUnionDataset(self, other)
+
+
+class PairedNonGeoDataset(NonGeoDataset):
+    """Custom dataset to act as a wrapper to other datasets to handle paired sampling.
+
+    Attributes:
+        dataset (~torchgeo.datasets.NonGeoDataset): Wrapped dataset to sampled from.
+        size (int): Size of the each of the samples in the pair to sample.
+        max_r (int): Distance between the centres of each of the samples in the pair.
+
+    Args:
+        dataset (~typing.Callable[..., ~torchgeo.datasets.NonGeoDataset]): Constructor for a
+            :class:`~torchgeo.datasets.NonGeoDataset` to be wrapped for paired sampling.
+        size (tuple(int, int) | int): Size of the each of the samples in the pair to sample.
+        max_r (int): Distance between the centres of each of the samples in the pair.
+
+    .. note::
+        If :param:`size` is a :class:`tuple`, the first entry will be used.
+
+    .. versionadded:: 0.28
+    """
+
+    def __getnewargs__(self):
+        return (
+            self.dataset,
+            self.size,
+            self.max_r,
+            self.season,
+            self._args,
+            self._kwargs,
+        )
+
+    @overload
+    def __init__(
+        self,
+        dataset: Callable[..., NonGeoDataset],
+        size: Union[Tuple[int, int], int],
+        max_r: int,
+        season: bool = False,
+        *args,
+        **kwargs,
+    ) -> None: ...  # pragma: no cover
+
+    @overload
+    def __init__(
+        self,
+        dataset: NonGeoDataset,
+        size: Union[Tuple[int, int], int],
+        max_r: int,
+        season: bool = False,
+        *args,
+        **kwargs,
+    ) -> None: ...  # pragma: no cover
+
+    def __init__(
+        self,
+        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
+        size: Union[Tuple[int, int], int],
+        max_r: int,
+        season: bool = False,
+        *args,
+        **kwargs,
+    ) -> None:
+        # Needed for pickling/ unpickling.
+        self._args = args
+        self._kwargs = kwargs
+
+        if isinstance(size, Sequence):
+            size = size[0]
+
+        self.size = size
+        self.max_r = max_r
+        self.season = season
+
+        if isinstance(dataset, PairedNonGeoDataset):
+            raise ValueError("Cannot pair an already paired dataset!")
+
+        if isinstance(dataset, NonGeoDataset):
+            self.dataset = dataset
+
+        elif "root" in signature(dataset).parameters:
+            # Make sure PairedNonGeoDataset has access to the `all_bands` attribute of the dataset.
+            # Needed for a subset of the bands to be selected if so desired.
+            if hasattr(dataset, "all_bands"):
+                self.all_bands = dataset.all_bands
+
+            self.dataset = dataset(*args, **kwargs)
+
+        else:
+            raise ValueError(
+                f"``dataset`` is of unsupported type {type(dataset)} not NonGeoDataset"
+            )
+
+        # Move the transforms to this wrapper from the dataset
+        # Need to do this for the paired sampling to work correctly.
+        if hasattr(self.dataset, "transform"):
+            self.transforms = self.dataset.transform
+            self.dataset.transform = None
+
+        self.make_geo_pair = SamplePair(self.size, self.max_r, season=season)
+
+    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], ...]:  # type: ignore[override]
+        patch = self.dataset[index]
+        image_a, image_b = self.make_geo_pair(patch["image"])
+
+        if self.transforms:
+            return self.transforms({"image": image_a}), self.transforms(
+                {"image": image_b}
+            )
+        else:
+            return {"image": image_a}, {"image": image_b}
+
+    def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
+        """Take the union of two :class:`PairedNonGeoDataset`.
+
+        Args:
+            other (PairedNonGeoDataset): Another dataset.
+
+        Returns:
+            PairedConcatDataset: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return PairedConcatDataset(self, other)
+
+    def __len__(self) -> int:
+        return self.dataset.__len__()
+
+    def __repr__(self) -> Any:
+        return self.dataset.__repr__()
+
+    @staticmethod
+    def plot(
+        sample: Dict[str, Any],
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> Figure:
+        """Plots a sample from the dataset.
+
+        Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
+
+        Args:
+            sample (dict[str, ~typing.Any]): Sample to plot.
+            show_titles (bool): Optional; Add title to the figure. Defaults to True.
+            suptitle (str): Optional; Super title to add to figure. Defaults to None.
+
+        Returns:
+            ~matplotlib.figure.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+        """
+
+        image = sample["image"][0:3, :, :].permute(1, 2, 0)
+
+        # Setup the figure.
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(4, 4))
+
+        # Plot the image.
+        ax.imshow(image)
+
+        # Turn the axis off.
+        ax.axis("off")
+
+        # Add title to figure.
+        if show_titles:
+            ax.set_title("Image")
+
+        if suptitle is not None:
+            plt.suptitle(suptitle)
+
+        return fig
+
+    def plot_random_sample(
+        self,
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> Figure:
+        """Plots a random sample the dataset at a given size and resolution.
+
+        Adapted from :meth:`torchgeo.datasets.NAIP.plot`.
+
+        Args:
+            show_titles (bool): Optional; Add title to the figure. Defaults to ``True``.
+            suptitle (str): Optional; Super title to add to figure. Defaults to ``None``.
+
+        Returns:
+            ~matplotlib.figure.Figure: :mod:`matplotlib` Figure object with plot of the random patch imagery.
+        """
+
+        # Get a random sample from the dataset.
+        sample = self.dataset[random.randint(0, len(self.dataset))]
+        return self.plot(sample, show_titles, suptitle)
+
+
+class PairedConcatDataset(MinervaConcatDataset):  # type: ignore[type-arg]
+    """Adapted form of :class:`~torch.utils.data.ConcatDataset` to handle paired samples."""
+
+    def __init__(
+        self,
+        dataset1: Union[NonGeoDataset, "PairedConcatDataset"],
+        dataset2: Union[NonGeoDataset, "PairedConcatDataset"],
+        size: Optional[int] = None,
+        max_r: Optional[int] = None,
+    ) -> None:
+        _datasets = [dataset1, dataset2]
+        datasets = []
+        for dataset in _datasets:
+            if isinstance(dataset, GeoDataset):  # type: ignore[unreachable]
+                raise TypeError("Cannot concatenate geo and non-geo datasets!")
+            elif isinstance(dataset, PairedConcatDataset):
+                datasets.extend(dataset.datasets)
+            elif not isinstance(dataset, PairedNonGeoDataset):
+                try:
+                    assert size is not None
+                    assert max_r is not None
+                except AssertionError:
+                    raise ValueError(
+                        "Dataset is not paired. Cannot imply ``size`` and ``max_r``."
+                        + "\nIf dataset is unpaired, you must specify ``size`` and ``max_r``."
+                    )
+                datasets.append(PairedNonGeoDataset(dataset, size, max_r))
+
+            elif isinstance(dataset, PairedNonGeoDataset):
+                datasets.append(dataset)
+            else:
+                raise TypeError(f"Unknown type {type(dataset)} in concatenation.")
+
+        super().__init__(datasets)
+
+    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        """Retrieve image and metadata indexed by query.
+
+        Uses :meth:`torch.utils.data.ConcatDataset.__getitem__` to get the pair of samples from
+        the concatenated :class:`~datasets.paired.PairedNonGeoDataset`
+
+        Args:
+            index (int): Index of the the concatenated datasets to sample.
+
+        Returns:
+            tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]: Sample of data/labels and metadata at that index.
+        """
+        sample_a, sample_b = super().__getitem__(index)
+        assert isinstance(sample_a, dict)
+        assert isinstance(sample_b, dict)
+        return sample_a, sample_b
+
+    def __or__(self, other: "PairedNonGeoDataset") -> "PairedConcatDataset":  # type: ignore[override]
+        """Take the union of a PairedUnionDataset and a :class:`PairedGeoDataset`.
+
+        Args:
+            other (PairedNonGeoDataset): Another dataset.
+
+        Returns:
+            PairedConcatDataset: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return PairedConcatDataset(self, other)
+
+
+class SamplePair:
+    """Creates a pair of samples from an initial patch with a set distance of each other.
+
+    Attributes:
+        size (int): Size of the each of the samples to cut out from the intial patch.
+        max_r (int): Distance between the centres of each of the samples in the pair.
+
+    Args:
+        size (int): Optional; Size of the each of the samples to cut out from the intial patch.
+            Default 64.
+        max_r (int): Optional; Distance between the centres of each of the samples in the pair.
+            Default 20.
+
+    .. versionadded:: 0.28
+    """
+
+    def __init__(self, size: int = 64, max_r: int = 20, season: bool = False) -> None:
+        self.max_r = max_r
+        self.size = size
+        self.season = season
+
+        # Calculate the global max width between samples in a pair, accounting for the max_r.
+        self.max_width = int(1.4 * (self.size + self.max_r))
+
+        # Transform to cut samples out at the desired output size.
+        self.random_crop = RandomCrop(self.size)
+
+    def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+        if self.season:
+            max_width, h, w = self._find_max_width(x[0])
+
+            i, j = self._get_random_crop_params(x[0], max_width)
+
+            # Transform to randomly cut out an area to sample the pair of samples from
+            # that will ensure that the distance between the centres of the samples is
+            # no more than ``max_r`` pixels apart.
+            greater_x0 = ft.crop(x[0], i, j, h, w)
+            greater_x1 = ft.crop(x[1], i, j, h, w)
+
+            # Now cut out 2 random samples from within that sampling area and return.
+            return self.random_crop(greater_x0), self.random_crop(greater_x1)
+
+        else:
+            max_width, _, _ = self._find_max_width(x)
+
+            # Transform to randomly cut out an area to sample the pair of samples from
+            # that will ensure that the distance between the centres of the samples is
+            # no more than ``max_r`` pixels apart.
+            crop_to_sampling_area = RandomCrop(max_width)
+            sampling_area = crop_to_sampling_area(x)
+
+            # Now cut out 2 random samples from within that sampling area and return.
+            return self.random_crop(sampling_area), self.random_crop(sampling_area)
+
+    def _find_max_width(self, x: Tensor) -> Tuple[int, int, int]:
+        max_width = self.max_width
+
+        w = x.shape[-1]
+        h = x.shape[-2]
+
+        # Checks that the ``max_width`` will not exceed the size of this inital patch.
+        # If so, set to the maxium width/ height of ``x``.
+        if max_width > w:
+            max_width = w  # pragma: no cover
+        if max_width > h:
+            max_width = h  # pragma: no cover
+
+        return max_width, h, w
+
+    @staticmethod
+    def _get_random_crop_params(img: Tensor, max_width: int) -> Tuple[int, int]:
+        i = torch.randint(0, img.shape[-1] - max_width + 1, size=(1,)).item()
+        j = torch.randint(0, img.shape[-2] - max_width + 1, size=(1,)).item()
+
+        assert isinstance(i, int)
+        assert isinstance(j, int)
+        return i, j

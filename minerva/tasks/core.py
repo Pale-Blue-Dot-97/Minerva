@@ -48,6 +48,7 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
+import hydra
 import pandas as pd
 import torch
 import torch.distributed as dist
@@ -151,6 +152,7 @@ class MinervaTask(ABC):
             :class:`~logger.steplog.MinervaStepLogger` class within :mod:`~logger.steplog`.
         modelio (str): Specify the IO function to use to handle IO for the model during fitting. Must be the name
             of a function within :mod:`modelio`.
+        target_key (str): Optional; Name of the target key (if supervised task). Either ``mask`` or ``label``.
 
     .. versionadded:: 0.27
     """
@@ -207,6 +209,9 @@ class MinervaTask(ABC):
         self.loaders = loaders
         self.class_dist = class_dist
 
+        # Get the logging rate from params. Logs will only be recorded at this rate of batches.
+        self.log_rate = fallback_params("log_rate", self.params, self.global_params, 1)
+
         # Try to find parameters first in the task params then fall back to the global level params.
         self.batch_size = fallback_params("batch_size", self.params, self.global_params)
 
@@ -215,13 +220,13 @@ class MinervaTask(ABC):
             self.batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
         self.n_batches = n_batches
+
         self.model_type = fallback_params("model_type", self.params, self.global_params)
         self.sample_pairs = fallback_params(
             "sample_pairs", self.params, self.global_params
         )
-        self.n_classes = fallback_params("n_classes", self.params, self.global_params)
 
-        self.output_size = model.output_shape
+        self.n_classes = fallback_params("n_classes", self.params, self.global_params)
 
         self.record_int = utils.fallback_params(
             "record_int", self.params, self.global_params, record_int
@@ -238,10 +243,10 @@ class MinervaTask(ABC):
         # Ensure the model IO function is treated as static not a class method.
         self.modelio = staticmethod(self.get_io_func()).__func__
 
-        self.loaders = loaders
         self.device = device
         self.writer = writer
-        self.step_num = 0
+        self.global_step_num = 0
+        self.local_step_num = 0
 
         # Initialise the Weights and Biases metrics for this task.
         self.init_wandb_metrics()
@@ -273,6 +278,11 @@ class MinervaTask(ABC):
                 ),
             )
 
+            # Refresh the output size of the model and set to `output_size`.
+            self.model.determine_output_dim(sample_pairs=self.sample_pairs)
+
+        self.output_size = self.model.output_shape
+
         # Make the logger for this task.
         self.logger: MinervaTaskLogger = self.make_logger()
 
@@ -288,54 +298,48 @@ class MinervaTask(ABC):
         Returns:
             ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
-        # Gets the loss function requested by config parameters.
-        loss_params: Dict[str, Any] = fallback_params(
-            "loss_params", self.params, self.global_params
-        ).copy()
-        module = loss_params.pop("module", "torch.nn")
-        criterion: Callable[..., Any] = func_by_str(module, loss_params["name"])
 
-        if not utils.check_dict_key(loss_params, "params"):
-            loss_params["params"] = {}
-
+        # Generate the weightings for each class if balance==True and this is a segmentation model.
         if self.balance and utils.check_substrings_in_string(
             self.model_type, "segmentation"
         ):
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
             weights = []
+
             if self.elim:
+                # Eliminate classes.
                 for weight in weights_dict.values():
                     weights.append(weight)
             else:
                 for i in range(self.n_classes):
                     weights.append(weights_dict.get(i, 0.0))
 
-            loss_params["params"]["weight"] = Tensor(weights)
+            _weights = Tensor(weights)
 
-            return criterion(**loss_params["params"])
+            # Use hydra to instantiate the loss function with the weights and return.
+            return hydra.utils.instantiate(self.params["loss_params"], weight=_weights)
 
         else:
-            return criterion(**loss_params["params"])
+            # Use hydra to instantiate the loss function based of the config, without weights.
+            return hydra.utils.instantiate(self.params["loss_params"])
 
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
-        # Gets the optimiser requested by config parameters.
-        optimiser_params: Dict[str, Any] = self.params["optim_params"].copy()
-        module = optimiser_params.pop("module", "torch.optim")
-        optimiser = utils.func_by_str(module, self.params["optim_func"])
-
-        if not utils.check_dict_key(optimiser_params, "params"):
-            optimiser_params["params"] = {}
-
-        # Add learning rate from top-level of config to the optimiser parameters.
-        optimiser_params["params"]["lr"] = self.params["lr"]
-
         # Constructs and sets the optimiser for the model based on supplied config parameters.
-        self.model.set_optimiser(  # type: ignore
-            optimiser(self.model.parameters(), **optimiser_params["params"])
+        optimiser = hydra.utils.instantiate(
+            self.params["optimiser"], params=self.model.parameters()
         )
+        self.model.set_optimiser(optimiser)
+
+        # If scheduler parameters are also specified, instantiate and set to model too.
+        if self.params.get("scheduler") is not None:
+            scheduler = hydra.utils.instantiate(
+                self.params["scheduler"], optimizer=optimiser
+            )
+
+            self.model.set_scheduler(scheduler)
 
     def make_logger(self) -> MinervaTaskLogger:
         """Creates an object to calculate and log the metrics from the experiment, selected by config parameters.
@@ -355,7 +359,7 @@ class MinervaTask(ABC):
         # Initialises the metric logger with arguments.
         logger: MinervaTaskLogger = _logger_cls(
             self.name,
-            self.n_batches,
+            self.n_batches // self.log_rate,
             self.batch_size,
             self.output_size,
             step_logger_params=utils.fallback_params(
@@ -386,10 +390,11 @@ class MinervaTask(ABC):
         return io_func
 
     @abc.abstractmethod
-    def step(self) -> None:
+    def step(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
     def _generic_step(self, epoch_no: int) -> Optional[Dict[str, Any]]:
+        self.local_step_num = 0
         self.step()
 
         # Send the logs to the metric logger.
@@ -401,6 +406,13 @@ class MinervaTask(ABC):
             results = None
 
         self.logger.refresh_step_logger()
+
+        if self.train and self.model.scheduler is not None:
+            assert self.model.optimiser is not None
+            before_lr = self.model.optimiser.param_groups[0]["lr"]
+            self.model.scheduler.step()
+            after_lr = self.model.optimiser.param_groups[0]["lr"]
+            print(f"lr {before_lr:.4f} -> {after_lr:.4f}")
 
         return results
 
@@ -452,7 +464,7 @@ class MinervaTask(ABC):
 
         # Ensures masks are not plotted for model types that do not yield such outputs.
         if utils.check_substrings_in_string(
-            self.model_type, "scene classifier", "mlp", "MLP"
+            self.model_type, "scene-classifier", "mlp", "MLP"
         ):
             plots["Mask"] = False
 
@@ -478,6 +490,7 @@ class MinervaTask(ABC):
             model_name=self.params["model_name"],
             timestamp=self.params["timestamp"],
             results_dir=self.task_dir,
+            cfg=self.params,
             **results,
         )
 
@@ -527,17 +540,17 @@ class MinervaTask(ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_task(task: str, *args, **params) -> MinervaTask:
+def get_task(task_name: str, *args, **params) -> MinervaTask:
     """Get the requested :class:`MinervaTask` by name.
 
     Args:
-        task (str): Name of the task.
+        task_name (str): Name of the task.
         params (dict[str, ~typing.Any]): Parameters for the task to be initialised.
 
     Returns:
         MinervaTask: Constructed :class:`MinervaTask` object.
     """
-    _task = func_by_str("minerva.tasks", task)
+    _task = func_by_str("minerva.tasks", task_name)
 
     task = _task(*args, **params)
     assert isinstance(task, MinervaTask)

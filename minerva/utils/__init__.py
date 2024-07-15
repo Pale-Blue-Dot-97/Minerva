@@ -26,11 +26,7 @@
 """Utility functionality, visualisation and configuration for :mod:`minerva`.
 
 Attributes:
-    CONFIG_NAME (str): Name of the config to be used in the experiment.
-    CONFIG_PATH (str): Path to the config.
     MASTER_PARSER (~argparse.ArgumentParser): Argparser for the CLI for the config loading.
-    CONFIG (dict[str, Any]): The master config loaded by :mod:`config_load`.
-    AUX_CONFIGS (dict[str, Any]): Dictionary containing the auxilary configs loaded by :mod:`config_load`.
 """
 # =====================================================================================================================
 #                                                    METADATA
@@ -41,31 +37,22 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "universal_path",
-    "CONFIG_NAME",
-    "CONFIG_PATH",
+    "DEFAULT_CONF_DIR_PATH",
+    "DEFAULT_CONFIG_NAME",
     "MASTER_PARSER",
-    "CONFIG",
-    "AUX_CONFIGS",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
-import os
-from pathlib import Path
-from typing import Optional
 
-from minerva.utils.config_load import check_paths, load_configs
+from minerva.utils.config_load import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME
 from minerva.utils.config_load import universal_path as universal_path  # noqa: F401
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-# Objects to hold the config name and path.
-CONFIG_NAME: Optional[str]
-CONFIG_PATH: Optional[Path]
-
 MASTER_PARSER = argparse.ArgumentParser(add_help=False)
 MASTER_PARSER.add_argument(
     "-c",
@@ -80,14 +67,3 @@ MASTER_PARSER.add_argument(
     help="Set config path to default",
 )
 _args, _ = MASTER_PARSER.parse_known_args()
-
-# Store the current working directory (i.e where script is being run from).
-_cwd = os.getcwd()
-
-_path, CONFIG_NAME, CONFIG_PATH = check_paths(_args.config, _args.use_default_conf_dir)
-
-# Loads the configs from file using paths found in sys.args.
-CONFIG, AUX_CONFIGS = load_configs(_path)
-
-# Change the working directory back to script location.
-os.chdir(_cwd)
