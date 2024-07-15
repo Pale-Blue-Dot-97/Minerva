@@ -62,8 +62,8 @@ import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import yaml
 import wandb
+import yaml
 from omegaconf import DictConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
