@@ -743,7 +743,7 @@ class SSLStepLogger(MinervaStepLogger):
             z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
 
             euc_dist = 0.0
-            for i in range(len(z_a)):
+            for i, _ in enumerate(z_a):
                 euc_dist += float(
                     utils.calc_norm_euc_dist(
                         z_a[i].detach(),

@@ -148,7 +148,7 @@ def test_caching_datasets(
 
     # Datasets from calls 1 should be the same as those from 2.
     assert isinstance(dataset_1, type(dataset_2))
-    for i in range(len(subdatasets_1)):
+    for i, _ in enumerate(subdatasets_1):
         assert isinstance(subdatasets_1[i], type(subdatasets_2[i]))
 
     # Clean-up.
@@ -247,9 +247,9 @@ def test_make_loaders(default_config: DictConfig) -> None:
 
     assert isinstance(loaders, dict)
     assert isinstance(loaders["val-1"], DataLoader)
-    assert type(n_batches) is dict
-    assert type(n_batches["val-2"]) is int
-    assert type(class_dist) is list
+    assert isinstance(n_batches, dict)
+    assert isinstance(n_batches["val-2"], int)
+    assert isinstance(class_dist, list)
     assert isinstance(params, dict)
 
 

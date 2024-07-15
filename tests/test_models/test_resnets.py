@@ -70,7 +70,7 @@ def resnet_test(
 
     loss, z = model.step(x, y, True)
 
-    assert type(loss.item()) is float
+    assert isinstance(loss.item(), float)
     assert isinstance(z, Tensor)
     assert z.size() == (batch_size, n_classes)
 

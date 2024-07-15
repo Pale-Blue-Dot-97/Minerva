@@ -98,7 +98,7 @@ def test_fcn(
 
     loss, z = model.step(random_rgbi_batch, random_mask_batch, True)
 
-    assert type(loss.item()) is float
+    assert isinstance(loss.item(), float)
     assert isinstance(z, Tensor)
     assert z.size() == (std_batch_size, std_n_classes, *rgbi_input_size[1:])
 

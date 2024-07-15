@@ -73,10 +73,10 @@ def test_print_banner() -> None:
 
 
 @pytest.mark.parametrize(
-    ["input", "expected"], [(1, int), ("we want a shrubery...", str), (str, str)]
+    ["x", "expected"], [(1, int), ("we want a shrubery...", str), (str, str)]
 )
-def test_extract_class_type(input: Any, expected: type) -> None:
-    assert utils.extract_class_type(input) == expected
+def test_extract_class_type(x: Any, expected: type) -> None:
+    assert utils.extract_class_type(x) == expected
 
 
 def test_is_notebook() -> None:
@@ -116,7 +116,7 @@ def test_return_updated_kwargs() -> None:
     results = example_func(arg1, arg2, **old_kwargs)
 
     assert results[0] == 37
-    assert type(results[1]) is dict
+    assert isinstance(results[1], dict)
     assert results[1] == new_kwargs
 
 
@@ -129,9 +129,9 @@ def test_pair_collate() -> None:
 
     output = collator(batch)
 
-    assert type(output) is tuple
-    assert type(output[0]) is defaultdict
-    assert type(output[1]) is defaultdict
+    assert isinstance(output, tuple)
+    assert isinstance(output[0], defaultdict)
+    assert isinstance(output[1], defaultdict)
     assert len(output[0]["image"]) == len(output[1]["image"])
     assert len(output[1]["mask"]) == len(output[0]["image"])
 
@@ -155,7 +155,7 @@ def test_pair_return() -> None:
 
 
 def test_cuda_device() -> None:
-    assert type(utils.get_cuda_device()) is torch.device  # type: ignore[attr-defined]
+    assert isinstance(utils.get_cuda_device(), torch.device)  # type: ignore[attr-defined]
 
 
 @pytest.mark.parametrize(
@@ -280,11 +280,11 @@ def test_file_check() -> None:
     assert fn.exists() is False
 
 
-@pytest.mark.parametrize(["input", "output"], [(1, 1), (5, 0), (3, 3), (4, 2)])
-def test_class_transform(input: int, output: int) -> None:
+@pytest.mark.parametrize(["in_class", "out_class"], [(1, 1), (5, 0), (3, 3), (4, 2)])
+def test_class_transform(in_class: int, out_class: int) -> None:
     matrix = {1: 1, 3: 3, 4: 2, 5: 0}
 
-    assert utils.class_transform(input, matrix) == output
+    assert utils.class_transform(in_class, matrix) == out_class
 
 
 @pytest.mark.parametrize(
@@ -332,19 +332,19 @@ def test_find_geo_similar() -> None:
 
     bbox = BoundingBox(10, 20, 20, 30, 1, 2)
 
-    assert type(utils.find_geo_similar(bbox, max_r)) is BoundingBox
+    assert isinstance(utils.find_geo_similar(bbox, max_r), BoundingBox)
 
 
 @pytest.mark.parametrize(
-    ["input", "exp_len"],
+    ["x", "exp_len"],
     [
         (np.random.rand(256, 256), 256 * 256),
         (np.random.rand(16, 128, 128), 16 * 128 * 128),
         (list(np.random.rand(256, 256)), 256 * 256),
     ],
 )
-def test_batch_flatten(input, exp_len: int) -> None:
-    assert len(utils.batch_flatten(input)) == exp_len
+def test_batch_flatten(x, exp_len: int) -> None:
+    assert len(utils.batch_flatten(x)) == exp_len
 
 
 @pytest.mark.parametrize(
@@ -793,7 +793,7 @@ def test_calc_grad(exp_mlp: MinervaModel) -> None:
     _ = exp_mlp.step(x, y, train=True)
 
     grad = utils.calc_grad(exp_mlp)
-    assert type(grad) is float
+    assert isinstance(grad, float)
     assert grad != 0.0
     assert utils.calc_grad(42) is None  # type: ignore[arg-type]
 

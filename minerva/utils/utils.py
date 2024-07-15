@@ -633,7 +633,7 @@ def transform_coordinates(
     single = False
 
     # Checks if x is a float. Places x in a list if True.
-    if type(x) is float:
+    if isinstance(x, float):
         x = [x]
         single = True
 
@@ -1693,7 +1693,6 @@ def compute_roc_curves(
                 )
             except MemoryError:
                 print("Aborting micro averaging.")
-                pass
 
     if macro:
         # Aggregate all false positive rates.
