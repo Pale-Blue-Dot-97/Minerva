@@ -1790,7 +1790,7 @@ def tsne_cluster(
     tsne = TSNE(
         n_dim,
         learning_rate=lr,
-        n_iter=n_iter,
+        max_iter=n_iter,
         verbose=verbose,
         init="random",
         perplexity=perplexity,
