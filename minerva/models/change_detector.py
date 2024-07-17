@@ -106,7 +106,7 @@ class ChangeDetector(MinervaModel):
             torch.nn.AdaptiveAvgPool2d((1, 1)),
             torch.nn.Flatten(),
             torch.nn.Linear(2 * self.fc_dim, self.intermediate_dim),
-            torch.nn.BatchNorm1d(self.layer_depth[5]),
+            torch.nn.BatchNorm1d(self.intermediate_dim),
             torch.nn.ReLU(),
             torch.nn.Dropout2d(p=0.2),
             torch.nn.Linear(self.intermediate_dim, self.n_classes),
@@ -136,7 +136,8 @@ class ChangeDetector(MinervaModel):
             f_1 = f_1[self.filter_dim]
 
         f = torch.cat((f_0, f_1), 1)
-        f = f.view(f.size(0), -1)
+
+        # f = f.view(f.size(0), -1)
         z: Tensor = self.classification_head(f)
 
         assert isinstance(z, Tensor)

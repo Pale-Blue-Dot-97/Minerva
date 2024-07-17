@@ -83,6 +83,7 @@ __all__ = [
     "UNetR50",
     "UNetR101",
     "UNetR152",
+    "ChangeDetector",
 ]
 
 
@@ -136,3 +137,4 @@ from .siamese import (
     SimSiam50,
 )
 from .unet import UNet, UNetR18, UNetR34, UNetR50, UNetR101, UNetR152
+from .change_detector import ChangeDetector

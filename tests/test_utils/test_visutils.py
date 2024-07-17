@@ -219,8 +219,8 @@ def test_prediction_plot(
     sample = {
         "image": random_image,
         "mask": random_mask,
-        "pred": pred,
-        "bounds": bounds_for_test_img,
+        "prediction": pred,
+        "index": bounds_for_test_img,
     }
     visutils.prediction_plot(sample, "101", exp_classes, src_crs, path=results_dir)
 
@@ -259,7 +259,7 @@ def test_seg_plot(
         z=z,
         y=z,
         ids=ids,  # type: ignore[arg-type]
-        bounds=bboxes,
+        index=bboxes,
         data_dir=data_root,
         dataset_params=exp_dataset_params,
         classes=exp_classes,
