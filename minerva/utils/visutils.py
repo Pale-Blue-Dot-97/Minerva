@@ -85,8 +85,10 @@ from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from scipy import stats
 from sklearn.metrics import ConfusionMatrixDisplay, multilabel_confusion_matrix
+from torchgeo.datasets import GeoDataset, NonGeoDataset
 from torchgeo.datasets.utils import BoundingBox
 from tqdm import tqdm, trange
+import torch
 
 from minerva.utils import universal_path, utils
 
@@ -566,7 +568,7 @@ def prediction_plot(
 
     Args:
         sample (dict[str, ~typing.Any]): Dictionary holding the ``"image"``, ground truth (``"mask"``)
-            and predicted (``"pred"``) masks and the bounding box for this sample.
+            and predicted (``"prediction"``) masks and the bounding box for this sample.
         sample_id (str): ID for the sample.
         classes (dict[int, str]): Dictionary mapping class labels to class names.
         src_crs (~rasterio.crs.CRS): Existing co-ordinate system of the image.
@@ -585,9 +587,9 @@ def prediction_plot(
     """
     # Stacks together the R, G, & B bands to form an array of the RGB image.
     rgb_image = sample["image"]
-    z = sample["pred"]
+    z = sample["prediction"]
     y = sample["mask"]
-    bounds = sample["bounds"]
+    bounds = sample["index"]
 
     extent, lat_extent, lon_extent = dec_extent_to_deg(
         y.shape, bounds, src_crs, new_crs=new_crs, spacing=block_size
@@ -705,7 +707,7 @@ def seg_plot(
     z: Union[List[int], NDArray[Any, Any]],
     y: Union[List[int], NDArray[Any, Any]],
     ids: List[str],
-    bounds: Union[Sequence[Any], NDArray[Any, Any]],
+    index: Union[Sequence[Any], NDArray[Any, Any]],
     data_dir: Union[Path, str],
     dataset_params: Dict[str, Any],
     classes: Dict[int, str],
@@ -765,34 +767,57 @@ def seg_plot(
         data_dir, dataset_params, cache=cache, cache_dir=cache_dir
     )
 
-    # Create a new projection system in lat-lon.
-    crs = dataset.crs
-
-    print("\nPRODUCING PREDICTED MASKS")
-
     # Limits number of masks to produce to a fractional number of total and no more than `_MAX_SAMPLES`.
     n_samples = int(frac * len(flat_ids))
     if n_samples > _MAX_SAMPLES:
         n_samples = _MAX_SAMPLES
 
+    print("\nPRODUCING PREDICTED MASKS")
+
     # Plots the predicted versus ground truth labels for all test patches supplied.
     with tqdm(total=n_samples) as pbar:
         for i in random.sample(range(len(flat_ids)), n_samples):
-            image = stack_rgb(dataset[bounds[i]]["image"].numpy(), max_pixel_value)
-            sample = {"image": image, "pred": z[i], "mask": y[i], "bounds": bounds[i]}
 
-            prediction_plot(
-                sample,
-                flat_ids[i],
-                classes=classes,
-                src_crs=crs,
-                exp_id=model_name,
-                show=False,
-                fn_prefix=fn_prefix,
-                fig_dim=fig_dim,
-                cmap_style=ListedColormap(colours.values(), N=len(colours)),  # type: ignore
-                path=path,
-            )
+            if isinstance(dataset, GeoDataset):
+                image = stack_rgb(dataset[index[i]]["image"].numpy(), max_pixel_value)
+                sample = {"image": image, "prediction": z[i], "mask": y[i], "index": index[i]}
+                prediction_plot(
+                    sample,
+                    flat_ids[i],
+                    classes=classes,
+                    src_crs=dataset.crs,
+                    exp_id=model_name,
+                    show=False,
+                    fn_prefix=fn_prefix,
+                    fig_dim=fig_dim,
+                    cmap_style=ListedColormap(colours.values(), N=len(colours)),  # type: ignore
+                    path=path,
+                )
+
+            elif isinstance(dataset, NonGeoDataset) and hasattr(dataset, "plot"):
+                sample = {"image": dataset[index[i]]["image"], "prediction": torch.LongTensor(z[i]), "mask": torch.LongTensor(y[i]), "index": index[i]}
+                fig = dataset.plot(sample, show_titles=True, suptitle=sample["index"])
+
+                if fn_prefix is None:
+                    _path = universal_path(path)
+                    fn_prefix = str(_path / f"{model_name}_{utils.timestamp_now()}_Mask")
+
+                sample_id = sample["index"]
+
+                # Path and file name of figure.
+                fn = Path(f"{fn_prefix}_{sample_id}.png").absolute()
+
+                # Checks if file already exists. Deletes if true.
+                utils.exist_delete_check(fn)
+
+                # Save figure to fn.
+                fig.savefig(fn)
+
+                # Close figure.
+                plt.close()
+            else:
+                raise NotImplementedError()
+
         pbar.update()
 
 
@@ -1486,6 +1511,8 @@ def plot_results(
         assert ids is not None
         assert index is not None
         assert task_name is not None
+
+        print("\nPRODUCING PRED VS GROUND TRUTH MASK PLOTS")
 
         if cfg:
             try:
