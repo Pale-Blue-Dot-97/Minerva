@@ -468,6 +468,10 @@ class MinervaTask(ABC):
         ):
             plots["Mask"] = False
 
+        # ROC curves not supported for segmentation models.
+        if utils.check_substrings_in_string(self.model_type, "segmentation"):
+            plots["ROC"] = False
+
         if metrics is None:
             plots["History"] = False
 
