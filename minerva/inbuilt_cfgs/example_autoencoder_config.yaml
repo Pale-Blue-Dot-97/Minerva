@@ -23,8 +23,8 @@ model_type: segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 6                          # Number of samples in each batch.
-patch_size: &patch_size [224, 224]     # 2D tuple or float.
 input_size: &input_size [8, 224, 224]  # patch_size plus leading channel dim.
+patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 n_classes: &n_classes 8                # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
@@ -101,7 +101,7 @@ tasks:
                 name: RandomGeoSampler
                 roi: false
                 params:
-                    size: *patch_size
+                    size: ${patch_size}
                     length: 36
 
             image:
@@ -137,7 +137,7 @@ tasks:
                 name: RandomGeoSampler
                 roi: false
                 params:
-                    size: *patch_size
+                    size: ${patch_size}
                     length: 18
 
             image:
@@ -173,7 +173,7 @@ tasks:
                 name: RandomGeoSampler
                 roi: false
                 params:
-                    size: *patch_size
+                    size: ${patch_size}
                     length: 18
 
             image:

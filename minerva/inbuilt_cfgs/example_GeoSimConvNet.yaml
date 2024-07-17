@@ -24,8 +24,8 @@ model_type: siamese-segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 2                          # Number of samples in each batch.
-patch_size: &patch_size [16, 16]     # 2D tuple or float.
 input_size: &input_size [4, 16, 16]    # patch_size plus leading channel dim.
+patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 n_classes: &n_classes 8                # Number of classes in dataset.
 mix_precision: false                    # Activate mixed precision (16-bit)
 torch_compile: true                    # Wrap model in `torch.compile`.
@@ -126,7 +126,7 @@ tasks:
                     RandomResizedCrop:
                         module: kornia.augmentation
                         p: 0.2
-                        size: *patch_size
+                        size: ${patch_size}
                         cropping_mode: resample
                         keepdim: true
                     RandomHorizontalFlip:
@@ -154,7 +154,7 @@ tasks:
                 paths: SSL4EO-S12
                 params:
                     bands: [B2, B3, B4, B8]
-                    size: *patch_size
+                    size: ${patch_size}
                     max_r: *max_r
 
     fit-val:
@@ -180,7 +180,7 @@ tasks:
                     name: RandomGeoSampler
                     roi: false
                     params:
-                        size: *patch_size
+                        size: ${patch_size}
                         length: 16
 
                 image:
@@ -203,7 +203,7 @@ tasks:
                     name: RandomGeoSampler
                     roi: false
                     params:
-                        size: *patch_size
+                        size: ${patch_size}
                         length: 16
 
                 image:
@@ -240,7 +240,7 @@ tasks:
                 name: RandomGeoSampler
                 roi: false
                 params:
-                    size: *patch_size
+                    size: ${patch_size}
                     length: 16
 
             image:

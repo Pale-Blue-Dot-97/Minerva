@@ -795,7 +795,12 @@ def seg_plot(
                 )
 
             elif isinstance(dataset, NonGeoDataset) and hasattr(dataset, "plot"):
-                sample = {"image": dataset[index[i]]["image"], "prediction": torch.LongTensor(z[i]), "mask": torch.LongTensor(y[i]), "index": index[i]}
+                sample = {
+                    "image": dataset[index[i]]["image"],
+                    "prediction": torch.LongTensor(z[i]),
+                    "mask": torch.LongTensor(y[i]),
+                    "index": index[i],
+                }
                 fig = dataset.plot(sample, show_titles=True, suptitle=sample["index"])
 
                 if fn_prefix is None:

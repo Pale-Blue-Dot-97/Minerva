@@ -23,8 +23,8 @@ model_type: siamese
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 8                         # Number of samples in each batch.
-patch_size: &patch_size [32, 32]      # 2D tuple or float.
 input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
+patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 4                         # Maximum number of training epochs.
@@ -105,7 +105,7 @@ tasks:
                 name: RandomPairGeoSampler
                 roi: false
                 params:
-                    size: *patch_size
+                    size: ${patch_size}
                     length: 120
                     max_r: *max_r
 
@@ -125,7 +125,7 @@ tasks:
                     RandomResizedCrop:
                         module: kornia.augmentation
                         p: 0.2
-                        size: *patch_size
+                        size: ${patch_size}
                         cropping_mode: resample
                         keepdim: true
                     RandomHorizontalFlip:
@@ -184,7 +184,7 @@ tasks:
                     name: RandomGeoSampler
                     roi: false
                     params:
-                        size: *patch_size
+                        size: ${patch_size}
                         length: 32
 
                 image:
@@ -207,7 +207,7 @@ tasks:
                     name: RandomGeoSampler
                     roi: false
                     params:
-                        size: *patch_size
+                        size: ${patch_size}
                         length: 32
 
                 image:
@@ -245,7 +245,7 @@ tasks:
                 name: RandomGeoSampler
                 roi: false
                 params:
-                    size: *patch_size
+                    size: ${patch_size}
                     length: 32
 
             image:

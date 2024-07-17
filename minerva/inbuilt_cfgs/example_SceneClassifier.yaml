@@ -23,8 +23,8 @@ model_type: scene-classifier
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 2                          # Number of samples in each batch.
-patch_size: &patch_size [64, 64]     # 2D tuple or float.
 input_size: &input_size [4, 64, 64]  # patch_size plus leading channel dim.
+patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 n_classes: &n_classes 10               # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
@@ -125,7 +125,7 @@ tasks:
                     RandomResizedCrop:
                         module: kornia.augmentation
                         p: 0.2
-                        size: *patch_size
+                        size: ${patch_size}
                         cropping_mode: resample
                         keepdim: true
                     RandomHorizontalFlip:
