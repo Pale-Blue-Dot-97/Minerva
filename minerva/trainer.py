@@ -717,6 +717,8 @@ class Trainer:
             }
         )
 
+        # Ensure ``plot_last_epoch`` is ``True`` as this is a test task.
+        self.params["plot_last_epoch"] = True
         for task_name in test_params.keys():
             task = get_task(
                 test_params[task_name]["type"],
