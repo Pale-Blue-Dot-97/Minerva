@@ -47,6 +47,9 @@ import torch
 from torch import FloatTensor, Tensor
 from torchgeo.datasets import NonGeoDataset
 from tqdm import tqdm
+from matplotlib import pyplot as plt
+from matplotlib.colors import ListedColormap
+from matplotlib.figure import Figure
 
 
 # =====================================================================================================================
@@ -139,6 +142,7 @@ class BaseSenS12MS(NonGeoDataset):
     def load_sample(
         self,
         sample: Dict[str, str],
+        index: int,
     ) -> Dict[str, Any]:
         """Util function for reading data from single sample.
 
@@ -171,9 +175,9 @@ class BaseSenS12MS(NonGeoDataset):
         # Load labels.
         if self.labels:
             lc = self.load_lc(sample["lc"])
-            return {"image": img, "mask": lc, "id": sample["id"]}
+            return {"image": img, "mask": lc, "id": index}
         else:
-            return {"image": img, "id": sample["id"]}
+            return {"image": img, "id": index}
 
     def get_ninputs(self) -> int:
         """Calculate number of input channels.
@@ -316,8 +320,7 @@ class BaseSenS12MS(NonGeoDataset):
         """Get a single example from the dataset"""
 
         # Get and load sample from index file.
-        sample = self.samples[index]
-        sample = self.load_sample(sample)
+        sample = self.load_sample(self.samples[index], index)
         if self.transforms:
             sample = self.transforms(sample)
         return sample
@@ -402,6 +405,71 @@ class DFC2020(BaseSenS12MS):
         self.samples = sorted(self.samples, key=lambda i: i["id"])
 
         print(f"Loaded {len(self.samples)} samples from the DFC2020 {split} subset")
+
+    def plot(
+        self,
+        sample: Dict[str, Tensor],
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+    ) -> Figure:
+        """Plot a sample from the dataset.
+
+        Adapted from :meth:`torchgeo.datasets.DFC2022.plot` for DFC2020.
+
+        Args:
+            sample (dict[str, ~torch.Tensor]): A sample returned by :meth:`__getitem__`.
+            show_titles (bool): Flag indicating whether to show titles above each panel.
+            suptitle (str): Optional; String to use as a suptitle.
+
+        Returns:
+            ~matplotlib.figure.Figure: A :mod:`matplotlib` ``Figure`` with the rendered sample.
+        """
+        ncols = 1
+        image = sample['image'][:3]
+        image = image.to(torch.uint8)
+        image = image.permute(1, 2, 0).numpy()
+
+        showing_mask = 'mask' in sample
+        showing_prediction = 'prediction' in sample
+
+        cmap = ListedColormap(self.colours.values())  # type: ignore[arg-type]
+
+        if showing_mask:
+            mask = sample['mask'].numpy()
+            ncols += 1
+        if showing_prediction:
+            pred = sample['prediction'].numpy()
+            ncols += 1
+
+        fig, axs = plt.subplots(nrows=1, ncols=ncols, figsize=(10, ncols * 10))
+
+        axs[0].imshow(image)
+        axs[0].axis('off')
+
+        if showing_mask:
+            axs[1].imshow(mask, cmap=cmap, interpolation='none')
+            axs[1].axis('off')
+            if showing_prediction:
+                axs[2].imshow(pred, cmap=cmap, interpolation='none')
+                axs[2].axis('off')
+        elif showing_prediction:
+            axs[1].imshow(pred, cmap=cmap, interpolation='none')
+            axs[1].axis('off')
+
+        if show_titles:
+            axs[0].set_title('Image')
+
+            if showing_mask:
+                axs[1].set_title('Ground Truth')
+                if showing_prediction:
+                    axs[2].set_title('Predictions')
+            elif showing_prediction:
+                axs[1].set_title('Predictions')
+
+        if suptitle is not None:
+            plt.suptitle(suptitle)
+
+        return fig
 
 
 # TODO: Add tests to cover SEN12MS dataset
