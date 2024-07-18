@@ -241,7 +241,7 @@ class BaseSenS12MS(NonGeoDataset):
             s2 = data.read(bands_selected)
 
         # s2 = s2.astype(np.float16)
-        # s2 = np.clip(s2, 0, 10000)
+        s2 = np.clip(s2, 0, 4000)
         # s2 /= 10000
 
         # Cast to 32-bit float.
