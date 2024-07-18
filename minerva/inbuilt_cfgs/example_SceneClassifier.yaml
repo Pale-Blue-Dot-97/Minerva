@@ -23,7 +23,7 @@ model_type: scene-classifier
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 2                          # Number of samples in each batch.
-input_size: &input_size [4, 64, 64]  # patch_size plus leading channel dim.
+input_size: [4, 64, 64]                # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 n_classes: &n_classes 10               # Number of classes in dataset.
 
@@ -44,7 +44,7 @@ optim_func: SGD                         # Name of the optimiser function.
 model_params:
     module:
     params:
-        input_size: *input_size
+        input_size: ${input_size}
         n_classes: *n_classes
         encoder_on: true
         filter_dim: -1
@@ -53,7 +53,7 @@ model_params:
         backbone_args:
             module: minerva.models
             name: MinervaPSP
-            input_size: *input_size
+            input_size: ${input_size}
             n_classes: 1
             encoder_name: resnet18
             encoder_weights:

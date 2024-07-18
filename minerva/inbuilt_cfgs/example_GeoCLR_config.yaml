@@ -23,7 +23,7 @@ model_type: siamese
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 8                         # Number of samples in each batch.
-input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
+input_size: [4, 32, 32]               # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 
 # ---+ Experiment Execution +--------------------------------------------------
@@ -50,7 +50,7 @@ val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
 model_params:
     module:
     params:
-        input_size: *input_size
+        input_size: ${input_size}
         # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
