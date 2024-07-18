@@ -441,7 +441,7 @@ class DFC2020(BaseSenS12MS):
             pred = sample['prediction'].numpy()
             ncols += 1
 
-        fig, axs = plt.subplots(nrows=1, ncols=ncols, figsize=(10, ncols * 10))
+        fig, axs = plt.subplots(nrows=1, ncols=ncols, figsize=(ncols * 10, 10))
 
         axs[0].imshow(image)
         axs[0].axis('off')
