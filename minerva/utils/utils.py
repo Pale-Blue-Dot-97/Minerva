@@ -942,7 +942,7 @@ def eliminate_classes(
             * Mapping of remaining class labels to RGB colours.
     """
     if len(empty_classes) == 0:
-        return old_classes, {}, old_cmap
+        return old_classes, {i: i for i in old_classes.keys()}, old_cmap
 
     else:
         # Makes deep copies of the class and cmap dicts.
@@ -1245,7 +1245,7 @@ def modes_from_manifest(
     """Uses the dataset manifest to calculate the fractional size of the classes.
 
     Args:
-        manifest (~pandas.DataFrame): :class:`~pandas.DataFrame` containing the fractional sizes
+        manifest (~pandas.DataFrame): DataFrame containing the fractional sizes
             of classes and centre pixel labels of all samples of the dataset to be used.
         plot (bool): Optional; Whether to plot the class distribution pie chart.
 
