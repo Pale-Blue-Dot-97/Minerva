@@ -278,6 +278,7 @@ class Trainer:
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
         self.sample_pairs: bool = self.params.get("sample_pairs", False)
+        self.change_detection = True if utils.check_substrings_in_string(self.model_type, "change-detector") else False
 
         # Sets the max number of epochs of fitting.
         self.max_epochs = self.params.get("max_epochs", 25)
@@ -375,7 +376,7 @@ class Trainer:
             # Creates and sets the optimiser for the model.
             self.make_optimiser()
 
-            self.model.determine_output_dim(sample_pairs=self.sample_pairs)
+            self.model.determine_output_dim(sample_pairs=self.sample_pairs, change_detection=self.change_detection)
 
             # Transfer to GPU.
             self.model.to(self.device)
@@ -451,6 +452,9 @@ class Trainer:
 
         if self.sample_pairs:
             input_size = (2, *input_size)
+
+        if self.change_detection:
+            input_size = (input_size[0], 2 * input_size[1], *input_size[2:])
 
         return input_size
 
