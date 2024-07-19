@@ -13,3 +13,4 @@ The ``models`` sub-package provides model classes designed for use with ``minerv
    siamese
    unet
    classifiers
+   change_detector
