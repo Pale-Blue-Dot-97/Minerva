@@ -182,13 +182,13 @@ class MinervaModel(Module, ABC):
         """
         self.criterion = criterion
 
-    def determine_output_dim(self, sample_pairs: bool = False) -> None:
+    def determine_output_dim(self, sample_pairs: bool = False, change_detection: bool = False) -> None:
         """Uses :func:`get_output_shape` to find the dimensions of the output of this model and sets to attribute."""
 
         assert self.input_size is not None
 
         self.output_shape = get_output_shape(
-            self, self.input_size, sample_pairs=sample_pairs
+            self, self.input_size, sample_pairs=sample_pairs, change_detection=change_detection,
         )
 
     def _remake_classifier(self) -> None:
@@ -501,6 +501,7 @@ def get_output_shape(
     model: Module,
     image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
+    change_detection: bool = False,
 ) -> Tuple[int, ...]:
     """Gets the output shape of a model.
 
@@ -521,6 +522,7 @@ def get_output_shape(
     except (AssertionError, TypeError):
         if not hasattr(image_dim, "__len__"):
             pass
+    print(change_detection)
 
     if not hasattr(_image_dim, "__len__"):
         assert isinstance(_image_dim, int)
@@ -528,6 +530,10 @@ def get_output_shape(
     elif sample_pairs:
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([2, 4, *_image_dim])
+    elif change_detection:
+        assert isinstance(_image_dim, Iterable)
+        random_input = torch.rand([4, 2*_image_dim[0], *_image_dim[1:]])
+        print(f"{random_input.size()=}")
     else:
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([4, *_image_dim])
