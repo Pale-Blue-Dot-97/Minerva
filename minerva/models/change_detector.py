@@ -115,7 +115,7 @@ class ChangeDetector(MinervaModel):
     def _remake_classifier(self) -> None:
         self._make_classification_head()
 
-    def forward(self, x: Tuple[Tensor, Tensor]) -> Tensor:
+    def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the :class:`ResNet`.
 
         Can be called directly as a method (e.g. ``model.forward``) or when data is parsed
@@ -128,8 +128,11 @@ class ChangeDetector(MinervaModel):
             ~torch.Tensor: Likelihoods the network places on the
             input ``x`` being of each class.
         """
-        f_0 = self.backbone(x[0])
-        f_1 = self.backbone(x[1])
+        x = torch.squeeze(x)
+        x_0, x_1 = torch.chunk(x, 2, dim=1)
+
+        f_0 = self.backbone(x_0)
+        f_1 = self.backbone(x_1)
 
         if self.encoder_on:
             f_0 = f_0[self.filter_dim]
