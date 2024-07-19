@@ -1,5 +1,5 @@
 scheduler
-========
+=========
 
 .. automodule:: scheduler
    :members:
