@@ -37,15 +37,15 @@ autoencoder_data_key: mask
 torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: &loss_func CrossEntropyLoss  # Name of the loss function to use.
-lr: 1.0E-3                              # Learning rate of optimiser.
-optim_func: SGD                         # Name of the optimiser function.
+loss_func: CrossEntropyLoss            # Name of the loss function to use.
+lr: 1.0E-3                             # Learning rate of optimiser.
+optim_func: SGD                        # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
     module:
     params:
-        input_size: *input_size
+        input_size: ${input_size}
         n_classes: *n_classes
         backbone_kwargs:
             torch_weights: false
