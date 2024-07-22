@@ -17,7 +17,7 @@ onnx2torch==1.5.14
 overload==1.1
 pandas==2.2.1
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability.
-psutil==5.9.8
+psutil==6.0.0
 pyyaml==6.0.1
 rasterio>=1.3.6
 requests==2.32.3
