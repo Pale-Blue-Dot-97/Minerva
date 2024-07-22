@@ -109,11 +109,11 @@ def sup_tg(
     y_batch: Tensor
 
     # Squeeze out axis 1 if only 1 element wide.
-    if target_key == "mask" and targets.shape[1] == 1:
-        targets = np.squeeze(targets.detach().cpu().numpy(), axis=1)
+    if target_key == "mask":
+        targets = targets.squeeze()
 
     if isinstance(targets, Tensor):
-        targets = targets.detach().cpu().numpy()
+        targets = targets.detach().cpu()
     y_batch = torch.tensor(targets, dtype=torch.float if multilabel else torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
