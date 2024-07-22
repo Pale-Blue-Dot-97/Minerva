@@ -17,6 +17,7 @@
    source/minerva/optimisers
    source/minerva/pytorchtools
    source/minerva/samplers
+   source/minerva/scheduler
    source/minerva/trainer
    source/minerva/transforms
    source/minerva/models/index
