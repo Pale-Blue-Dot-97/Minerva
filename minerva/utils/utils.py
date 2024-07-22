@@ -749,6 +749,32 @@ def get_centre_loc(bounds: BoundingBox) -> Tuple[float, float]:
     return mid_x, mid_y
 
 
+def get_centre_pixel_value(x: Tensor) -> Any:
+    """Get the value of the centre pixel of a tensor.
+
+    Args:
+        x (Tensor): Tensor to find centre value of. Assumes that it is of shape (B, H, W) or (H, W).
+
+    Raises:
+        ValueError: If ``x`` is not a 2D or 3D tensor.
+
+    Returns:
+        Any: Value at the centre of ``x``.
+    """
+    x = x.squeeze()
+
+    assert len(x.size()) >= 2
+    mid_x = int(x.size()[-2] // 2)
+    mid_y = int(x.size()[-1] // 2)
+
+    if len(x.size()) == 3:
+        return Tensor([y[mid_x][mid_y] for y in x], dtype=x.dtype)
+    elif len(x.size()) == 2:
+        return x[mid_x][mid_y]
+    else:
+        raise ValueError()
+
+
 def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
     """Takes a latitude - longitude co-ordinate and returns a string of the semantic location.
 

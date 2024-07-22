@@ -84,7 +84,12 @@ from torchvision.transforms import (
 )
 from torchvision.transforms.v2 import functional as ft
 
-from minerva.utils.utils import find_tensor_mode, func_by_str, mask_transform
+from minerva.utils.utils import (
+    find_tensor_mode,
+    func_by_str,
+    get_centre_pixel_value,
+    mask_transform,
+)
 
 
 # =====================================================================================================================
@@ -445,7 +450,7 @@ class SingleLabel:
         mode (str): Mode of operation.
 
     Args:
-        mode (str): Mode of operation. Currently only supports ``"modal"``.
+        mode (str): Mode of operation. Currently only supports ``"modal"`` or ``"centre"``.
 
     .. versionadded:: 0.22
 
@@ -467,13 +472,15 @@ class SingleLabel:
             mask (~torch.LongTensor): Input mask to reduce to a single label.
 
         Raises:
-            NotImplementedError: If :attr:`~SingleLabel.mode` is not ``"modal"``.
+            NotImplementedError: If :attr:`~SingleLabel.mode` is not ``"modal"`` or ``"centre"``.
 
         Returns:
             ~torch.LongTensor: The single label as a 0D, 1-element tensor.
         """
         if self.mode == "modal":
             return LongTensor([find_tensor_mode(mask)])
+        elif self.mode == "centre":
+            return get_centre_pixel_value(mask)
         else:
             raise NotImplementedError(
                 f"{self.mode} is not a recognised operating mode!"
@@ -549,26 +556,35 @@ class MinervaCompose:
             return self._transform_input(sample, self.transforms)
         elif isinstance(sample, dict):
             assert isinstance(self.transforms, dict)
+
+            # Special case for "both". Indicates that these transforms should be applied
+            # to both types of data in the dataset.
+            # Assumes the keys must be "image" and "mask"
+            # We need to apply these first before applying any seperate transforms for modalities.
+            if "both" in self.transforms:
+
+                # Transform images with new random states (if applicable).
+                sample["image"] = self._transform_input(
+                    sample["image"], self.transforms["both"]
+                )
+
+                # We'll have to convert the masks to float for these transforms to work
+                # so need to store the current dtype to cast back to after.
+                prior_dtype = sample["mask"].dtype
+
+                # Transform masks reapplying the same random states.
+                sample["mask"] = self._transform_input(
+                    sample["mask"].to(dtype=torch.float),
+                    self.transforms["both"],
+                    reapply=True,
+                ).to(dtype=prior_dtype)
+
+            # Now onto any other transforms.
             for key in self.transforms.keys():
-                # Special case for "both". Indicates that these transforms should be applied
-                # to both types of data in the dataset.
-                # Assumes the keys must be "image" and "mask"
+
+                # Skip "both" as we've already done that above.
                 if key == "both":
-                    # Transform images with new random states (if applicable).
-                    sample["image"] = self._transform_input(
-                        sample["image"], self.transforms["both"]
-                    )
-
-                    # We'll have to convert the masks to float for these transforms to work
-                    # so need to store the current dtype to cast back to after.
-                    prior_dtype = sample["mask"].dtype
-
-                    # Transform masks reapplying the same random states.
-                    sample["mask"] = self._transform_input(
-                        sample["mask"].to(dtype=torch.float),
-                        self.transforms["both"],
-                        reapply=True,
-                    ).to(dtype=prior_dtype)
+                    pass
                 else:
                     sample[key] = self._transform_input(
                         sample[key], self.transforms[key]
