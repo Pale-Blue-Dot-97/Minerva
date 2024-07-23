@@ -424,8 +424,12 @@ class DFC2020(BaseSenS12MS):
         Returns:
             ~matplotlib.figure.Figure: A :mod:`matplotlib` ``Figure`` with the rendered sample.
         """
+        from kornia.color import BgrToRgb
+
+        bgr_to_rgb = BgrToRgb()
+
         ncols = 1
-        image = sample['image'][:3]
+        image = bgr_to_rgb(sample['image'][:3])
         image = image.to(torch.uint8)
         image = image.permute(1, 2, 0).numpy()
 
