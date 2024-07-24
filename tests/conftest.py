@@ -59,7 +59,7 @@ from minerva.datasets import GeoSSL4EOS12Sentinel2, make_dataset
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
 from minerva.utils import DEFAULT_CONFIG_NAME, utils
-from minerva.utils.runner import _config_load_resolver
+from minerva.utils.runner import _config_load_resolver, _construct_patch_size
 
 
 # =====================================================================================================================
@@ -172,6 +172,10 @@ def config_here(inbuilt_cfg_root: Path) -> Generator[Path, None, None]:
 @pytest.fixture
 def default_config(inbuilt_cfg_root: Path) -> DictConfig:
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
+    OmegaConf.register_new_resolver("eval", eval, replace=True)
+    OmegaConf.register_new_resolver(
+        "to_patch_size", _construct_patch_size, replace=True
+    )
 
     with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):
         # config is relative to a module
