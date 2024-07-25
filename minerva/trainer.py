@@ -278,7 +278,11 @@ class Trainer:
         self.model_type: str = self.params["model_type"]
         self.val_freq: int = self.params.get("val_freq", 1)
         self.sample_pairs: bool = self.params.get("sample_pairs", False)
-        self.change_detection = True if utils.check_substrings_in_string(self.model_type, "change-detector") else False
+        self.change_detection = (
+            True
+            if utils.check_substrings_in_string(self.model_type, "change-detector")
+            else False
+        )
 
         # Sets the max number of epochs of fitting.
         self.max_epochs = self.params.get("max_epochs", 25)
@@ -376,7 +380,9 @@ class Trainer:
             # Creates and sets the optimiser for the model.
             self.make_optimiser()
 
-            self.model.determine_output_dim(sample_pairs=self.sample_pairs, change_detection=self.change_detection)
+            self.model.determine_output_dim(
+                sample_pairs=self.sample_pairs, change_detection=self.change_detection
+            )
 
             # Transfer to GPU.
             self.model.to(self.device)
@@ -402,6 +408,11 @@ class Trainer:
                 )
             else:
                 pass
+
+        self.print(
+            "Checkpoint will be saved to "
+            + self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+        )
 
     def _setup_writer(self) -> None:
         if self.gpu == 0:
@@ -807,8 +818,6 @@ class Trainer:
 
     def save_checkpoint(self) -> None:
         fn = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
-
-        self.print(f"Saving checkpoint to {fn}")
 
         # Make sure that the path to the checkpoint exists.
         if not fn.parent.exists():
