@@ -19,10 +19,10 @@ dir:
 model_name: ChangeDetector-test
 
 # Type of model. Can be mlp, scene-classifier, segmentation, ssl or siamese.
-model_type: change-detector
+model_type: change-detector-scene-classifier
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 2                          # Number of samples in each batch.
+batch_size: 8                          # Number of samples in each batch.
 input_size: &input_size [4, 96, 96]  # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 n_classes: &n_classes 2               # Number of classes in dataset.
