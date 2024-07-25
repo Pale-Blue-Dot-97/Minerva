@@ -712,7 +712,7 @@ def seg_plot(
     dataset_params: Dict[str, Any],
     classes: Dict[int, str],
     colours: Dict[int, str],
-    fn_prefix: Union[str, Path],
+    fn_prefix: Optional[Union[str, Path]],
     frac: float = 0.05,
     fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = (9.3, 10.5),
     model_name: str = "",

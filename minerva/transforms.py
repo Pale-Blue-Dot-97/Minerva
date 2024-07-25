@@ -480,7 +480,7 @@ class SingleLabel:
         if self.mode == "modal":
             return LongTensor([find_tensor_mode(mask)])
         elif self.mode == "centre":
-            return get_centre_pixel_value(mask)
+            return LongTensor(get_centre_pixel_value(mask))
         else:
             raise NotImplementedError(
                 f"{self.mode} is not a recognised operating mode!"

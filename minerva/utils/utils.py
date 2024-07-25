@@ -768,7 +768,7 @@ def get_centre_pixel_value(x: Tensor) -> Any:
     mid_y = int(x.size()[-1] // 2)
 
     if len(x.size()) == 3:
-        return Tensor([y[mid_x][mid_y] for y in x], dtype=x.dtype)
+        return Tensor([y[mid_x][mid_y] for y in x], dtype=x.dtype)  # type: ignore[call-overload]
     elif len(x.size()) == 2:
         return x[mid_x][mid_y]
     else:
