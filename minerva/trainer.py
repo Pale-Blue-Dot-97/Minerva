@@ -410,8 +410,8 @@ class Trainer:
                 pass
 
         self.print(
-            "Checkpoint will be saved to "
-            + self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+            "Checkpoint will be saved to " +
+            str(self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt"))
         )
 
     def _setup_writer(self) -> None:
