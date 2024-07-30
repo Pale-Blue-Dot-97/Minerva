@@ -999,15 +999,21 @@ def make_manifest(
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
 
-    def delete_class_transform(params: Dict[str, Any]) -> None:
+    def delete_transforms(params: Dict[str, Any]) -> None:
         assert target_key is not None
         if params[target_key] is None:
             return
 
+        # Delete class transforms.
         if "transforms" in params[target_key]:
             if isinstance(params[target_key]["transforms"], dict):
                 if "ClassTransform" in params[target_key]["transforms"]:
                     del params[target_key]["transforms"]["ClassTransform"]
+
+        # Delete the transforms for both imagery and targets.
+        # This assumes that it is geometric transforms and therefore distort the actual dataset composition.
+        if "transforms" in params:
+            del params["transforms"]
 
     _sampler_params = deepcopy(sampler_params)
     if OmegaConf.is_config(_sampler_params):
@@ -1038,7 +1044,7 @@ def make_manifest(
     target_key = None
     if "mask" in dataset_params or "label" in dataset_params:
         target_key = masks_or_labels(dataset_params)
-        delete_class_transform(dataset_params)
+        delete_transforms(dataset_params)
 
     # There must be targets to construct a manifest of classes!
     assert target_key is not None
