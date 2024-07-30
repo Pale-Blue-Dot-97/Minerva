@@ -1019,6 +1019,10 @@ def make_manifest(
     if OmegaConf.is_config(_sampler_params):
         _sampler_params = OmegaConf.to_object(_sampler_params)  # type: ignore[assignment]
 
+    _dataset_params = deepcopy(dataset_params)
+    if OmegaConf.is_config(_dataset_params):
+        _dataset_params = OmegaConf.to_object(_dataset_params)  # type: ignore[assignment]
+
     if _sampler_params["name"] in (
         "RandomGeoSampler",
         "RandomPairGeoSampler",
@@ -1042,9 +1046,9 @@ def make_manifest(
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
     # sample the dataset. We need the original, un-transformed labels.
     target_key = None
-    if "mask" in dataset_params or "label" in dataset_params:
-        target_key = masks_or_labels(dataset_params)
-        delete_transforms(dataset_params)
+    if "mask" in dataset_params or "label" in _dataset_params:
+        target_key = masks_or_labels(_dataset_params)
+        delete_transforms(_dataset_params)
 
     # There must be targets to construct a manifest of classes!
     assert target_key is not None
@@ -1053,7 +1057,7 @@ def make_manifest(
 
     loader = construct_dataloader(
         data_dir,
-        dataset_params,
+        _dataset_params,
         _sampler_params,
         loader_params,
         batch_size=1,  # To prevent issues with stacking different sized patches, set batch size to 1.
