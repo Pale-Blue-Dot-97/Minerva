@@ -299,9 +299,9 @@ class MinervaTask(ABC):
             ~typing.Any: Initialised :mod:`torch` loss function specified by config parameters.
         """
 
-        # Generate the weightings for each class if balance==True and this is a segmentation model.
-        if self.balance and utils.check_substrings_in_string(
-            self.model_type, "segmentation"
+        # Generate the weightings for each class if balance==True and this is not a siamese model.
+        if self.balance and not utils.check_substrings_in_string(
+            self.model_type, "siamese", "ssl"
         ):
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
 
