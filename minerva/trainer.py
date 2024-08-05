@@ -841,6 +841,9 @@ class Trainer:
 
         torch.save(chkpt, self.checkpoint_path)
 
+        if hasattr(self.model, "get_backbone"):
+            self.save_backbone()
+
     def load_checkpoint(self) -> None:
         checkpoint = torch.load(self.checkpoint_path)
 
