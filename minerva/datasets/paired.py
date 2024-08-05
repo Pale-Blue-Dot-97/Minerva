@@ -421,8 +421,12 @@ class PairedNonGeoDataset(NonGeoDataset):
         self.make_geo_pair = SamplePair(self.size, self.max_r, season=season)
 
     def __getitem__(self, index: int) -> Tuple[Dict[str, Any], ...]:  # type: ignore[override]
-        patch = self.dataset[index]
-        image_a, image_b = self.make_geo_pair(patch["image"])
+
+        if hasattr(self.dataset, "eight_band"):
+            image_a, image_b = self.dataset[index]
+        else:
+            patch = self.dataset[index]
+            image_a, image_b = self.make_geo_pair(patch["image"])
 
         if self.transforms:
             return self.transforms({"image": image_a}), self.transforms(
