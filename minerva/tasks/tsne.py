@@ -38,7 +38,7 @@ __all__ = ["TSNEVis"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 import torch
 from torch import Tensor
@@ -71,6 +71,7 @@ class TSNEVis(MinervaTask):
         rank: int = 0,
         world_size: int = 1,
         writer: Union[SummaryWriter, Run, None] = None,
+        backbone_weight_path: Optional[Union[str, Path]] = None,
         record_int: bool = True,
         record_float: bool = False,
         **params,

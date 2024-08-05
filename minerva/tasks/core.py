@@ -170,6 +170,7 @@ class MinervaTask(ABC):
         rank: int = 0,
         world_size: int = 1,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        backbone_weight_path: Optional[Union[str, Path]] = None,
         record_int: bool = True,
         record_float: bool = False,
         train: bool = False,

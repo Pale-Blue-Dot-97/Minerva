@@ -409,10 +409,10 @@ class Trainer:
             else:
                 pass
 
-        self.print(
-            "Checkpoint will be saved to " +
-            str(self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt"))
-        )
+        self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+        self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
+
+        self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
 
     def _setup_writer(self) -> None:
         if self.gpu == 0:
@@ -629,6 +629,7 @@ class Trainer:
                 self.rank,
                 self.world_size,
                 self.writer,
+                self.backbone_path,
                 **self.params,
             )
 
