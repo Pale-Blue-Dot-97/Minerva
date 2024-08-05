@@ -90,6 +90,7 @@ class TSNEVis(MinervaTask):
             rank,
             world_size,
             writer,
+            backbone_weight_path,
             record_int,
             record_float,
             **params,
