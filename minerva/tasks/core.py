@@ -181,7 +181,7 @@ class MinervaTask(ABC):
         self.model = model
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
-        loaders, n_batches, class_dist, new_params = make_loaders(
+        loaders, n_batches, class_dist, task_params, = make_loaders(
             rank, world_size, task_name=name, **global_params
         )
 
@@ -189,13 +189,13 @@ class MinervaTask(ABC):
         if isinstance(n_batches, dict):
             n_batches = next(iter(n_batches.values()))
 
-        global_params["tasks"][name] = new_params
+        global_params["tasks"][name] = task_params
 
         # ``global_params`` is the whole experiment parameters.
         self.global_params = global_params
 
         # ``params`` is the parameters for just this task.
-        self.params = new_params
+        self.params = task_params
 
         # Modify `exp_fn` with a sub-directory for this task.
         self.task_dir = exp_fn / self.name
@@ -319,25 +319,25 @@ class MinervaTask(ABC):
             _weights = Tensor(weights)
 
             # Use hydra to instantiate the loss function with the weights and return.
-            return hydra.utils.instantiate(self.params["loss_params"], weight=_weights)
+            return hydra.utils.instantiate(fallback_params("loss_params", self.params, self.global_params), weight=_weights)
 
         else:
             # Use hydra to instantiate the loss function based of the config, without weights.
-            return hydra.utils.instantiate(self.params["loss_params"])
+            return hydra.utils.instantiate(fallback_params("loss_params", self.params, self.global_params))
 
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         optimiser = hydra.utils.instantiate(
-            self.params["optimiser"], params=self.model.parameters()
+            fallback_params("optimiser", self.params, self.global_params), params=self.model.parameters()
         )
         self.model.set_optimiser(optimiser)
 
         # If scheduler parameters are also specified, instantiate and set to model too.
-        if self.params.get("scheduler") is not None:
+        if self.global_params.get("scheduler") is not None:
             scheduler = hydra.utils.instantiate(
-                self.params["scheduler"], optimizer=optimiser
+                self.global_params["scheduler"], optimizer=optimiser
             )
 
             self.model.set_scheduler(scheduler)

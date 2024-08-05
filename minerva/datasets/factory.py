@@ -661,7 +661,6 @@ def _make_loader(
     return loaders, n_batches, target_key
 
 
-@utils.return_updated_kwargs
 def make_loaders(
     rank: int = 0,
     world_size: int = 1,
