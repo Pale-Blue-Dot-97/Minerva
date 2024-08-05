@@ -820,11 +820,10 @@ class Trainer:
             )
 
     def save_checkpoint(self) -> None:
-        fn = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
 
         # Make sure that the path to the checkpoint exists.
-        if not fn.parent.exists():
-            fn.parent.mkdir(parents=True, exist_ok=True)
+        if not self.checkpoint_path.parent.exists():
+            self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
 
         optimiser = self.model.optimiser
         assert optimiser
@@ -840,12 +839,10 @@ class Trainer:
         if scheduler is not None:
             chkpt["scheduler_state_dict"] = scheduler.state_dict()
 
-        torch.save(chkpt, self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt"))
+        torch.save(chkpt, self.checkpoint_path)
 
     def load_checkpoint(self) -> None:
-        checkpoint = torch.load(
-            self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
-        )
+        checkpoint = torch.load(self.checkpoint_path)
 
         # Update the number of classes in case it was altered by class balancing.
         self.params["n_classes"] = checkpoint["n_classes"]
@@ -1011,10 +1008,7 @@ class Trainer:
             pass
 
         torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-backbone.pt")
-        torch.save(
-            pre_trained_backbone.state_dict(),
-            self.exp_fn / (self.params["exp_name"] + "-backbone.pt"),
-        )
+        torch.save(pre_trained_backbone.state_dict(), self.backbone_path)
 
     def run_tensorboard(self) -> None:
         """Opens :mod:`tensorboard` log of the current experiment in a locally hosted webpage."""
