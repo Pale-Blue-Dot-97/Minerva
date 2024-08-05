@@ -414,6 +414,10 @@ class Trainer:
 
         self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
 
+        # Checkpoint experiment at the start.
+        if self.checkpoint_experiment:
+            self.save_checkpoint()
+
     def _setup_writer(self) -> None:
         if self.gpu == 0:
             if isinstance(self.writer, Run):
