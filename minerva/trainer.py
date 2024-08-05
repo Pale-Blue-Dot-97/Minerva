@@ -620,7 +620,7 @@ class Trainer:
         for mode in fit_params.keys():
             tasks[mode] = get_task(
                 fit_params[mode]["name"],
-                fit_params[mode]["module"],
+                fit_params[mode].get("module"),
                 mode,
                 self.model,
                 self.device,
@@ -739,7 +739,7 @@ class Trainer:
         for task_name in test_params.keys():
             task = get_task(
                 test_params[task_name]["name"],
-                test_params[task_name]["module"],
+                test_params[task_name].get("module"),
                 task_name,
                 self.model,
                 self.device,
