@@ -29,14 +29,14 @@ n_classes: &n_classes 11               # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                          # Maximum number of training epochs.
-elim: true                             # Eliminates empty classes from schema.
+elim: false                             # Eliminates empty classes from schema.
 balance: false                         # Balances dataset classes.
 pre_train: false                       # Activate pre-training mode.
 fine_tune: false                       # Activate fine-tuning mode.
 torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: AuxCELoss                    # Name of the loss function to use.
+loss_func: CrossEntropyLoss             # Name of the loss function to use.
 lr: 1.0E-3                              # Learning rate of optimiser.
 optim_func: SGD                         # Name of the optimiser function.
 
@@ -46,6 +46,10 @@ model_params:
     params:
         input_size: ${input_size}
         n_classes: *n_classes
+        encoder: true
+        segmentation_on: true
+        classification_on: false
+        upsampling: 32
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -54,7 +58,7 @@ optimiser:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    _target_: minerva.loss.${loss_func}
+    _target_: torch.nn.${loss_func}
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
@@ -80,7 +84,8 @@ collator:
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        type: StandardEpoch
+        name: StandardEpoch
+        module: minerva.tasks
         train: true
         record_float: true
 
@@ -97,7 +102,7 @@ tasks:
             transforms:
                 RandomResizedCrop:
                     module: kornia.augmentation
-                    p: 0.2
+                    p: 1.0
                     size: ${patch_size}
                     cropping_mode: resample
                     keepdim: true
@@ -145,7 +150,8 @@ tasks:
             mask:
 
     test-test:
-        type: StandardEpoch
+        name: StandardEpoch
+        module: minerva.tasks
         train: true
         record_float: true
 

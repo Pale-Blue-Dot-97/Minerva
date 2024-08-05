@@ -87,7 +87,8 @@ collator:
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        type: StandardEpoch
+        name: StandardEpoch
+        module: minerva.tasks
         train: true
         record_float: true
 
@@ -123,7 +124,8 @@ tasks:
                     res: 1.0
 
     fit-val:
-        type: StandardEpoch
+        name: StandardEpoch
+        module: minerva.tasks
         train: true
         record_float: true
 
@@ -159,7 +161,8 @@ tasks:
                     res: 1.0
 
     test-test:
-        type: StandardEpoch
+        name: StandardEpoch
+        module: minerva.tasks
         train: true
         record_float: true
 

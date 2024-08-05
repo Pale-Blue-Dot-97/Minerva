@@ -619,7 +619,8 @@ class Trainer:
         tasks: Dict[str, MinervaTask] = {}
         for mode in fit_params.keys():
             tasks[mode] = get_task(
-                fit_params[mode]["type"],
+                fit_params[mode]["name"],
+                fit_params[mode]["module"],
                 mode,
                 self.model,
                 self.device,
@@ -736,7 +737,8 @@ class Trainer:
         self.params["plot_last_epoch"] = True
         for task_name in test_params.keys():
             task = get_task(
-                test_params[task_name]["type"],
+                test_params[task_name]["name"],
+                test_params[task_name]["module"],
                 task_name,
                 self.model,
                 self.device,

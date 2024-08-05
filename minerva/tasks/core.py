@@ -544,7 +544,7 @@ class MinervaTask(ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_task(task_name: str, *args, **params) -> MinervaTask:
+def get_task(task_name: str, task_module: str = "minerva.tasks", *args, **params) -> MinervaTask:
     """Get the requested :class:`MinervaTask` by name.
 
     Args:
@@ -554,7 +554,7 @@ def get_task(task_name: str, *args, **params) -> MinervaTask:
     Returns:
         MinervaTask: Constructed :class:`MinervaTask` object.
     """
-    _task = func_by_str("minerva.tasks", task_name)
+    _task = func_by_str(task_module, task_name)
 
     task = _task(*args, **params)
     assert isinstance(task, MinervaTask)
