@@ -16,7 +16,7 @@ dir:
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: MinervaPSP-test
+model_name: MinervaPSPUNet-test
 
 # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
 model_type: segmentation
@@ -49,7 +49,7 @@ model_params:
         encoder: true
         segmentation_on: true
         classification_on: false
-        upsampling: 32
+        # upsampling: 32
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:

@@ -32,7 +32,7 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["DynamicPSP", "MinervaPSP"]
+__all__ = ["DynamicPSP", "MinervaPSP", "MinervaPSPUNet"]
 
 
 # =====================================================================================================================
@@ -42,12 +42,19 @@ from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import segmentation_models_pytorch as smp
 import torch
-from segmentation_models_pytorch.base import ClassificationHead, SegmentationHead
+from segmentation_models_pytorch.base import (
+    ClassificationHead,
+    Conv2dReLU,
+    SegmentationHead,
+)
+from segmentation_models_pytorch.decoders.pspnet.decoder import PSPDecoder, PSPModule
 from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
-from minerva.models import MinervaWrapper
+from minerva.models import MinervaWrapper, get_output_shape
+
+from .unet import Up
 
 
 # =====================================================================================================================
@@ -255,3 +262,176 @@ class MinervaPSP(MinervaWrapper):
         self.make_classification_head(
             {"classes": self.n_classes, "activation": torch.nn.PReLU}
         )
+
+
+class PSPDecoderBlock(Module):
+    def __init__(
+        self,
+        encoder_channel,
+        use_batchnorm: bool = True,
+        out_channels: int = 512,
+        dropout: float = 0.2,
+    ):
+        super().__init__()
+
+        self.psp = PSPModule(
+            in_channels=encoder_channel,
+            sizes=(1, 2, 3, 6),
+            use_bathcnorm=use_batchnorm,
+        )
+
+        self.conv = Conv2dReLU(
+            in_channels=encoder_channel * 2,
+            out_channels=out_channels,
+            kernel_size=1,
+            use_batchnorm=use_batchnorm,
+        )
+
+        self.dropout = torch.nn.Dropout2d(p=dropout)
+
+    def forward(self, x):
+        x = self.psp(x)
+        x = self.conv(x)
+        x = self.dropout(x)
+
+        return x
+
+
+class PSPUNetDecoder(Module):
+    def __init__(
+        self,
+        encoder_channels,
+        use_batchnorm: bool = True,
+        out_channels: int = 512,
+        dropout: float = 0.2,
+        bilinear: bool = False,
+    ):
+        super().__init__()
+
+        factor = 2 if bilinear else 1
+
+        blocks = []
+        for channel in encoder_channels:
+            blocks.append(
+                PSPDecoderBlock(channel, use_batchnorm, out_channels, dropout=dropout)
+            )
+
+        self.psp_unet = torch.nn.ModuleList(blocks)
+
+        latent_channels = encoder_channels[-1]
+
+        # De-conv back up concating in skip connections from backbone.
+        self.up1 = Up(latent_channels, latent_channels // 2 * factor, bilinear)
+        self.up2 = Up(latent_channels // 2, latent_channels // 4 * factor, bilinear)
+        self.up3 = Up(latent_channels // 4, latent_channels // 8 * factor, bilinear)
+        self.up4 = Up(latent_channels // 8, latent_channels // 16 * factor, bilinear)
+
+    def forward(self, *x: Tensor) -> Tensor:
+        """Performs a forward pass of the UNet using ``backbone``.
+
+        Passes the input tensor to the ``backbone``. Then passes the output tensors from the
+        resnet residual blocks to corresponding stages of the decoder, upsampling to create
+        an output with the same spatial size as the input size.
+
+        Args:
+            x (~torch.Tensor): Input tensor to the :class:`UNetR`.
+
+        Returns:
+            ~torch.Tensor: Output from the :class:`UNetR`.
+        """
+
+        for _x in x:
+            print(f"{_x.size()=}")
+        # Output tensors from the residual blocks of the resnet.
+        x0, x1, x2, x3, x4, x5 = x
+
+        print(f"{self.psp_unet[-1]=}")
+        print(f"{x5.size()=}")
+
+        # Concats and upsamples the outputs of the resnet.
+        x_psp_5 = self.psp_unet[-1](x5)
+        x_psp_4 = self.psp_unet[-2](x4)
+        print(f"{x_psp_5.size()=}")
+        print(f"{x_psp_4.size()=}")
+
+        x = self.up1(x_psp_5, x_psp_4)
+        print(f"{x.size()=}")
+        x = self.up2(x, self.psp_unet[-3](x3))
+        print(f"{x.size()=}")
+        x = self.up3(x, self.psp_unet[1](x2))
+        print(f"{x.size()=}")
+        x = self.up4(x, self.psp_unet[0](x1))
+        print(f"{x.size()=}")
+
+        # Add the upsampled and deconv tensor to the output of the input convolutional layer of the resnet.
+        if self.early_cat:
+            x = x + x0
+
+        # Upsample this result to match the input spatial size.
+        x = self.upsample1(x)
+        x = self.upsample2(x)
+
+        # Reduces the latent channels to the number of classes for the ouput tensor.
+        logits: Tensor = self.outc(x)
+
+        assert isinstance(logits, Tensor)
+        return logits
+
+
+class MinervaPSPUNet(MinervaWrapper):
+    def __init__(
+        self,
+        criterion: Optional[Module] = None,
+        input_size: Optional[Tuple[int, ...]] = None,
+        n_classes: int = 1,
+        scaler: Optional[GradScaler] = None,
+        encoder_name: str = "resnet34",
+        encoder_weights: Optional[str] = "imagenet",
+        encoder_depth: int = 5,
+        psp_out_channels: int = 512,
+        psp_use_batchnorm: bool = True,
+        psp_dropout: float = 0.2,
+        activation: Optional[Union[str, Callable[..., Any]]] = None,
+        upsampling: int = 8,
+        aux_params: Optional[Dict[str, Any]] = None,
+        backbone_weight_path: Optional[str] = None,
+        freeze_backbone: bool = False,
+        encoder: bool = False,
+        segmentation_on: bool = True,
+        classification_on: bool = False,
+    ) -> None:
+        assert input_size is not None
+        super().__init__(
+            DynamicPSP(
+                encoder_name=encoder_name,
+                encoder_weights=encoder_weights,
+                encoder_depth=encoder_depth,
+                psp_out_channels=psp_out_channels,
+                psp_use_batchnorm=psp_use_batchnorm,
+                psp_dropout=psp_dropout,
+                in_channels=input_size[0],
+                n_classes=n_classes,
+                activation=activation,
+                upsampling=upsampling,
+                aux_params=aux_params,
+                backbone_weight_path=backbone_weight_path,
+                freeze_backbone=freeze_backbone,
+                encoder=encoder,
+                segmentation_on=segmentation_on,
+                classification_on=classification_on,
+            ),
+            criterion=criterion,
+            input_size=input_size,
+            n_classes=n_classes,
+            scaler=scaler,
+        )
+
+        self.model.decoder = PSPUNetDecoder(
+            self.encoder.out_channels,
+            use_batchnorm=True,
+            out_channels=psp_out_channels,
+            dropout=psp_dropout,
+            bilinear=False,
+        )
+
+        print(f"{self.model.decoder}")

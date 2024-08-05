@@ -60,6 +60,7 @@ __all__ = [
     "FCN32ResNet50",
     "DynamicPSP",
     "MinervaPSP",
+    "MinervaPSPUNet",
     "ResNetX",
     "ResNet18",
     "ResNet34",
@@ -92,6 +93,7 @@ __all__ = [
 # =====================================================================================================================
 from .__depreciated import CNN as CNN
 from .__depreciated import MLP as MLP
+from .change_detector import ChangeDetector
 from .classifiers import FlexiSceneClassifier
 from .core import (
     FilterOutputs,
@@ -121,7 +123,7 @@ from .fcn import (
     FCN32ResNet34,
     FCN32ResNet50,
 )
-from .psp import DynamicPSP, MinervaPSP
+from .psp import DynamicPSP, MinervaPSP, MinervaPSPUNet
 from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNetX
 from .siamese import (
     MinervaSiamese,
@@ -137,4 +139,3 @@ from .siamese import (
     SimSiam50,
 )
 from .unet import UNet, UNetR18, UNetR34, UNetR50, UNetR101, UNetR152
-from .change_detector import ChangeDetector
