@@ -190,6 +190,7 @@ class Up(Module):
         """
 
         x1 = self.up(x1)
+
         # input is CHW
         diffy = x2.size()[2] - x1.size()[2]
         diffx = x2.size()[3] - x1.size()[3]
