@@ -256,10 +256,10 @@ class MinervaPSP(MinervaWrapper):
         )
 
     def _remake_classifier(self) -> None:
-        self.make_segmentation_head(
+        self.model.segmentation_head(
             self.n_classes, upsampling=32, activation=torch.nn.PReLU
         )
-        self.make_classification_head(
+        self.model.make_classification_head(
             {"classes": self.n_classes, "activation": torch.nn.PReLU}
         )
 
@@ -309,74 +309,109 @@ class PSPUNetDecoder(Module):
     ):
         super().__init__()
 
-        factor = 2 if bilinear else 1
-
+        self.factor = 2 if bilinear else 1
+        self.encoder_channels = encoder_channels
         self.small_encoder = small_encoder
 
         if self.small_encoder:
             self.psp_0 = PSPDecoderBlock(
-                encoder_channels[0],
+                self.encoder_channels[0],
                 use_batchnorm,
-                encoder_channels[1] // 4,
+                self.encoder_channels[1] // 4,
                 dropout=dropout,
             )
             self.psp_1 = PSPDecoderBlock(
-                encoder_channels[1],
+                self.encoder_channels[1],
                 use_batchnorm,
-                encoder_channels[1] // 2,
+                self.encoder_channels[1] // 2,
                 dropout=dropout,
             )
         else:
             self.psp_0 = PSPDecoderBlock(
-                encoder_channels[0],
+                self.encoder_channels[0],
                 use_batchnorm,
-                encoder_channels[1] // 2,
+                self.encoder_channels[1] // 2,
                 dropout=dropout,
             )
             self.psp_1 = PSPDecoderBlock(
-                encoder_channels[1], use_batchnorm, encoder_channels[1], dropout=dropout
+                self.encoder_channels[1],
+                use_batchnorm,
+                self.encoder_channels[1],
+                dropout=dropout,
             )
             self.psp_2_extra = PSPDecoderBlock(
-                encoder_channels[2],
+                self.encoder_channels[2],
                 use_batchnorm,
-                encoder_channels[2] // 2,
+                self.encoder_channels[2] // 2,
                 dropout=dropout,
             )
 
         self.psp_2 = PSPDecoderBlock(
-            encoder_channels[2], use_batchnorm, encoder_channels[2], dropout=dropout
+            self.encoder_channels[2],
+            use_batchnorm,
+            self.encoder_channels[2],
+            dropout=dropout,
         )
         self.psp_3 = PSPDecoderBlock(
-            encoder_channels[3], use_batchnorm, encoder_channels[3], dropout=dropout
+            self.encoder_channels[3],
+            use_batchnorm,
+            self.encoder_channels[3],
+            dropout=dropout,
         )
         self.psp_4 = PSPDecoderBlock(
-            encoder_channels[4], use_batchnorm, encoder_channels[4], dropout=dropout
+            self.encoder_channels[4],
+            use_batchnorm,
+            self.encoder_channels[4],
+            dropout=dropout,
         )
         self.psp_5 = PSPDecoderBlock(
-            encoder_channels[5], use_batchnorm, encoder_channels[5], dropout=dropout
+            self.encoder_channels[5],
+            use_batchnorm,
+            self.encoder_channels[5],
+            dropout=dropout,
         )
 
         # De-conv back up concating in skip connections from backbone.
-        self.up1 = Up(encoder_channels[5], encoder_channels[4] * factor, bilinear)
-        self.up2 = Up(encoder_channels[4], encoder_channels[3] * factor, bilinear)
-        self.up3 = Up(encoder_channels[3], encoder_channels[2] * factor, bilinear)
+        self.up1 = Up(
+            self.encoder_channels[5], self.encoder_channels[4] * self.factor, bilinear
+        )
+        self.up2 = Up(
+            self.encoder_channels[4], self.encoder_channels[3] * self.factor, bilinear
+        )
+        self.up3 = Up(
+            self.encoder_channels[3], self.encoder_channels[2] * self.factor, bilinear
+        )
 
         if self.small_encoder:
             self.up4 = Up(
-                encoder_channels[2], encoder_channels[2] // 2 * factor, bilinear
+                self.encoder_channels[2],
+                self.encoder_channels[2] // 2 * self.factor,
+                bilinear,
             )
             self.up5 = Up(
-                encoder_channels[2] // 2, encoder_channels[2] // 4 * factor, bilinear
+                self.encoder_channels[2] // 2,
+                self.encoder_channels[2] // 4 * self.factor,
+                bilinear,
             )
-            self.outc = OutConv(encoder_channels[2] // 4 * factor, n_classes)
+            self.outc = OutConv(self.encoder_channels[2] // 4 * self.factor, n_classes)
         else:
             self.up4 = Up(
-                encoder_channels[2] // 2, encoder_channels[1] * factor, bilinear
+                self.encoder_channels[2] // 2,
+                self.encoder_channels[1] * self.factor,
+                bilinear,
             )
             self.up5 = Up(
-                encoder_channels[1], encoder_channels[1] // 2 * factor, bilinear
+                self.encoder_channels[1],
+                self.encoder_channels[1] // 2 * self.factor,
+                bilinear,
             )
-            self.outc = OutConv(encoder_channels[1] // 2 * factor, n_classes)
+            self.outc = OutConv(self.encoder_channels[1] // 2 * self.factor, n_classes)
+
+    def _remake_classifier(self, n_classes: int) -> None:
+        if self.small_encoder:
+            self.outc = OutConv(self.encoder_channels[2] // 4 * self.factor, n_classes)
+        else:
+            self.outc = OutConv(self.encoder_channels[1] // 2 * self.factor, n_classes)
 
     def forward(self, *x: Tensor) -> Tensor:
         """Performs a forward pass of the UNet using ``backbone``.
@@ -478,4 +513,11 @@ class MinervaPSPUNet(MinervaWrapper):
             dropout=psp_dropout,
             bilinear=False,
             small_encoder=small_encoder,
+        )
+
+    def _remake_classifier(self) -> None:
+        self.model.decoder._remake_classifier(self.n_classes)
+        self.model.segmentation_head = torch.nn.Identity()
+        self.model.make_classification_head(
+            {"classes": self.n_classes, "activation": torch.nn.PReLU}
         )
