@@ -317,8 +317,8 @@ class Trainer:
             )
 
         # Path to experiment directory and experiment name.
-        self.params["dir"]["results"] = universal_path(self.params["dir"]["results"])
-        self.exp_fn: Path = self.params["dir"]["results"] / self.params["exp_name"]
+        self.params["results_dir"] = universal_path(self.params["results_dir"])
+        self.exp_fn: Path = self.params["results_dir"] / self.params["exp_name"]
 
         if self.gpu == 0:
             # Makes a directory for this experiment.
@@ -480,7 +480,7 @@ class Trainer:
             ~pathlib.Path: :class:`~pathlib.Path` to cache directory and the filename
             (model name excluding version and file extension).
         """
-        cache_dir = universal_path(self.params["dir"]["cache"])
+        cache_dir = universal_path(self.params["cache_dir"])
         return cache_dir / self.params["model_name"].split("-")[0]  # type: ignore[no-any-return]
 
     def get_weights_path(self) -> Path:
@@ -1005,7 +1005,7 @@ class Trainer:
         assert hasattr(self.model, "get_backbone")
         pre_trained_backbone: Module = self.model.get_backbone()  # type: ignore[operator]
 
-        cache_dir = universal_path(self.params["dir"]["cache"])
+        cache_dir = universal_path(self.params["cache_dir"])
 
         # Saves the pre-trained backbone to the cache.
         cache_fn = cache_dir / self.params["model_name"]
@@ -1021,7 +1021,7 @@ class Trainer:
     def run_tensorboard(self) -> None:
         """Opens :mod:`tensorboard` log of the current experiment in a locally hosted webpage."""
         utils.run_tensorboard(  # pragma: no cover
-            path=self.params["dir"]["results"].parent,
+            path=self.params["results_dir"].parent,
             env_name="env2",
             exp_name=self.params["exp_name"],
             host_num=6006,

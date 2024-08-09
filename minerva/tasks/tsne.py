@@ -117,7 +117,7 @@ class TSNEVis(MinervaTask):
         plot_embedding(
             embeddings.detach().cpu(),
             data["bbox"],
-            self.global_params["dir"]["data"],
+            self.global_params["data_root"],
             self.params["dataset_params"],
             show=True,
             filename=str(self.task_fn / "tsne_cluster_vis.png"),

@@ -58,7 +58,7 @@ def test_standard_epoch(
     exp_name = "{}_{}".format(
         default_config["model_name"], utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
     )
-    exp_fn = universal_path(default_config["dir"]["results"]) / exp_name / exp_name
+    exp_fn = universal_path(default_config["results_dir"]) / exp_name / exp_name
 
     params = OmegaConf.to_object(default_config)
     assert isinstance(params, dict)

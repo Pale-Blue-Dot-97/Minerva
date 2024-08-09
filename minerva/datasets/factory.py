@@ -715,8 +715,8 @@ def make_loaders(
     if task_name is not None:
         task_params = params["tasks"][task_name]
 
-    data_dir = params["dir"]["data"]
-    cache_dir = params["dir"]["cache"]
+    data_dir = utils.fallback_params("data_root", task_params, params)
+    cache_dir = params["cache_dir"]
 
     # Gets out the parameters for the DataLoaders from params.
     dataloader_params: Dict[Any, Any] = deepcopy(
@@ -874,6 +874,9 @@ def make_loaders(
 
     if task_params.get("max_pixel_value") is None:
         task_params["max_pixel_value"] = imagery_config.get("max_pixel_value", 256)
+
+    if task_params.get("model_type") is None:
+        task_params["model_type"] = model_type
 
     # Store the name of the target key (either `mask` or `label`)
     task_params["target_key"] = target_key

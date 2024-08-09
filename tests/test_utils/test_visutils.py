@@ -408,12 +408,12 @@ def test_plot_results(
         probs=probs,
         index=bounds,
         embeddings=embeddings,
-        task_name="test-test",
         class_names=exp_classes,
         colours=exp_cmap_dict,
         save=False,
         results_dir=results_dir,
-        cfg=cfg,  # type: ignore[arg-type]
+        task_cfg=cfg["tasks"]["test-test"],  # type: ignore[arg-type]
+        global_cfg=cfg,
     )
 
 

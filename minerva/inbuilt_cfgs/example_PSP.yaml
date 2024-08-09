@@ -8,15 +8,14 @@
 #               EXAMPLE MASTER CONFIG FILE FOR AN AUTOENCODER
 #
 # === PATHS ===================================================================
-dir:
-    data: tests/fixtures/data
-    results: tests/tmp/results
-    cache: tests/tmp/cache
+data_root: tests/fixtures/data
+results_dir: tests/tmp/results
+cache_dir: tests/tmp/cache
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: MinervaPSP-test
+model_name: MinervaPSPUNet-test
 
 # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
 model_type: segmentation
@@ -49,7 +48,7 @@ model_params:
         encoder: true
         segmentation_on: true
         classification_on: false
-        upsampling: 32
+        # upsampling: 32
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:

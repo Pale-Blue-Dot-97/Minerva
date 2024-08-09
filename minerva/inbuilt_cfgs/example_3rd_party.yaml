@@ -8,10 +8,9 @@
 #             EXAMPLE MASTER CONFIG FILE FOR THIRD PARTY MODELS
 #
 # === PATHS ===================================================================
-dir:
-    data: tests/fixtures/data
-    results: tests/tmp/results
-    cache: tests/tmp/cache
+data_root: tests/fixtures/data
+results_dir: tests/tmp/results
+cache_dir: tests/tmp/cache
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------

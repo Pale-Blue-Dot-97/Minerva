@@ -482,7 +482,7 @@ def default_image_dataset(
 ) -> RasterDataset:
     del exp_dataset_params["mask"]
     dataset, _ = make_dataset(
-        default_config["dir"]["data"], exp_dataset_params, cache=False
+        default_config["data_root"], exp_dataset_params, cache=False
     )
     assert isinstance(dataset, RasterDataset)
     return dataset
