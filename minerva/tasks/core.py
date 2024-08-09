@@ -484,7 +484,6 @@ class MinervaTask(ABC):
 
         visutils.plot_results(
             plots,
-            task_name=self.name,
             metrics=metrics,
             class_names=utils.fallback_params(
                 "classes", self.params, self.global_params
@@ -495,7 +494,8 @@ class MinervaTask(ABC):
             model_name=utils.fallback_params("model_name", self.params, self.global_params),
             timestamp=self.global_params["timestamp"],
             results_dir=self.task_dir,
-            cfg=self.params,
+            task_cfg=self.params,
+            global_cfg=self.global_params,
             **results,
         )
 

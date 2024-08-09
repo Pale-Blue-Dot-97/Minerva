@@ -1349,7 +1349,6 @@ def plot_results(
     y: Optional[Union[List[int], NDArray[Any, Int]]] = None,
     metrics: Optional[Dict[str, Any]] = None,
     ids: Optional[List[str]] = None,
-    task_name: str = "test",
     index: Optional[NDArray[Any, Any]] = None,
     probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
     embeddings: Optional[NDArray[Any, Any]] = None,
@@ -1360,7 +1359,8 @@ def plot_results(
     model_name: Optional[str] = None,
     timestamp: Optional[str] = None,
     results_dir: Optional[Union[Sequence[str], str, Path]] = None,
-    cfg: Optional[Dict[str, Any]] = None,
+    task_cfg: Optional[Dict[str, Any]] = None,
+    global_cfg: Optional[Dict[str, Any]] = None,
 ) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
@@ -1400,10 +1400,16 @@ def plot_results(
         except ImportError:  # pragma: no cover
             pass
 
-    if OmegaConf.is_config(cfg):
-        cfg = OmegaConf.to_object(cfg)  # type: ignore[assignment]
+    if OmegaConf.is_config(task_cfg):
+        task_cfg = OmegaConf.to_object(task_cfg)  # type: ignore[assignment]
 
-    assert isinstance(cfg, dict)
+    if OmegaConf.is_config(global_cfg):
+        global_cfg = OmegaConf.to_object(global_cfg)  # type: ignore[assignment]
+
+    assert isinstance(task_cfg, dict)
+    assert isinstance(global_cfg, dict)
+
+    model_type = utils.fallback_params("model_type", task_cfg, global_cfg)
 
     flat_z = None
     flat_y = None
@@ -1418,20 +1424,16 @@ def plot_results(
         timestamp = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
 
     if model_name is None:
-        if cfg:
-            model_name = cfg.get("model_name", "_name_")
-        else:
-            model_name = "_name_"
+        model_name = utils.fallback_params("model_name", task_cfg, global_cfg, "_name_")
+
     assert model_name is not None
 
     if results_dir is None:
-        if cfg:
-            try:
-                results_dir = cfg["results_dir"]
-            except KeyError:
-                results_dir = ""
+        results_dir = utils.fallback_params("results_dir", task_cfg, global_cfg)
 
-        assert isinstance(results_dir, (Sequence, str, Path))
+    assert isinstance(results_dir, (Sequence, str, Path))
+
+    data_root = utils.fallback_params("data_root", task_cfg, global_cfg)
 
     filenames = format_plot_names(model_name, timestamp, results_dir)
 
@@ -1453,7 +1455,7 @@ def plot_results(
 
         print("\nPLOTTING CONFUSION MATRIX")
 
-        if utils.check_substrings_in_string(cfg["model_type"], "multilabel"):
+        if utils.check_substrings_in_string(model_type, "multilabel"):
             make_multilabel_confusion_matrix(
                 labels=y,  # type: ignore[arg-type]
                 preds=z,  # type: ignore[arg-type]
@@ -1461,7 +1463,7 @@ def plot_results(
                 filename=filenames["CM"],
                 save=save,
                 show=show,
-                figsize=cfg["data_config"]["fig_sizes"]["CM"],
+                figsize=task_cfg["data_config"]["fig_sizes"]["CM"],
             )
         else:
             make_confusion_matrix(
@@ -1471,7 +1473,7 @@ def plot_results(
                 filename=filenames["CM"],
                 save=save,
                 show=show,
-                figsize=cfg["data_config"]["fig_sizes"]["CM"],
+                figsize=task_cfg["data_config"]["fig_sizes"]["CM"],
             )
 
     if plots.get("Pred", False):
@@ -1515,13 +1517,12 @@ def plot_results(
         assert y is not None
         assert ids is not None
         assert index is not None
-        assert task_name is not None
 
         print("\nPRODUCING PRED VS GROUND TRUTH MASK PLOTS")
 
-        if cfg:
+        if task_cfg:
             try:
-                figsize = cfg["data_config"]["fig_sizes"]["Mask"]
+                figsize = task_cfg["data_config"]["fig_sizes"]["Mask"]
             except KeyError:
                 figsize = None
         else:
@@ -1534,26 +1535,25 @@ def plot_results(
             y,
             ids,
             flat_bbox,
-            cfg["data_root"],
-            cfg["tasks"][task_name]["dataset_params"],
+            data_root,
+            task_cfg["dataset_params"],
             fn_prefix=filenames["Mask"],
             classes=class_names,
             colours=colours,
             fig_dim=figsize,
-            model_name=cfg["model_name"],
+            model_name=model_name,
         )
 
     if plots.get("TSNE", False):
         assert embeddings is not None
         assert index is not None
-        assert task_name is not None
 
         print("\nPERFORMING TSNE CLUSTERING")
         plot_embedding(
             embeddings,
             index,  # type: ignore[arg-type]
-            cfg["data_root"],
-            cfg["tasks"][task_name]["dataset_params"],
+            data_root,
+            task_cfg["dataset_params"],
             show=show,
             save=save,
             filename=filenames["TSNE"],
