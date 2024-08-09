@@ -645,6 +645,7 @@ class Trainer:
             self.print(
                 f"\nEpoch: {self.epoch_no}/{self.max_epochs} ======================================================"
             )
+            self.print("testy test test thing works")
 
             # Conduct training or validation epoch.
             for mode in tasks.keys():
