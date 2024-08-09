@@ -126,7 +126,7 @@ def sup_tg(
     # Get the indices of the batch. Either bounding boxes or filenames.
     #index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
     index: Union[Sequence[str], Sequence[BoundingBox]]
-    print(index)
+
     if "bbox" in batch:
         index = batch["bbox"]
     elif "id" in batch:
@@ -233,7 +233,7 @@ def autoencoder_io(
     # Get the indices of the batch. Either bounding boxes or filenames.
     #index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
     index: Union[Sequence[str], Sequence[BoundingBox]]
-    print(index)
+
     if "bbox" in batch:
         index = batch["bbox"]
     elif "id" in batch:
