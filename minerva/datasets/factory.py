@@ -225,7 +225,8 @@ def get_subdataset(
 
                 # Start a blocking action, ensuring only process 0 can create and cache the dataset.
                 # All other processes will wait till 0 is finished.
-                dist.monitored_barrier(timeout=timedelta(hours=4))
+                #dist.monitored_barrier(timeout=timedelta(hours=4))
+                dist.barrier()
 
                 if rank == 0:
                     print(f"\nCreating dataset on {rank}...")
@@ -245,7 +246,8 @@ def get_subdataset(
                     sub_dataset = None
 
                 # End of blocking action.
-                dist.monitored_barrier(timeout=timedelta(hours=4))
+                #dist.monitored_barrier(timeout=timedelta(hours=4))
+                dist.barrier()
 
                 # Now the other processes can load the newly created cached dataset from 0.
                 if rank != 0:
