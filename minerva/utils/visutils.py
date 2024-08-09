@@ -1427,7 +1427,7 @@ def plot_results(
     if results_dir is None:
         if cfg:
             try:
-                results_dir = cfg["dir"]["results"]
+                results_dir = cfg["results_dir"]
             except KeyError:
                 results_dir = ""
 
@@ -1534,7 +1534,7 @@ def plot_results(
             y,
             ids,
             flat_bbox,
-            cfg["dir"]["data"],
+            cfg["data_root"],
             cfg["tasks"][task_name]["dataset_params"],
             fn_prefix=filenames["Mask"],
             classes=class_names,
@@ -1552,7 +1552,7 @@ def plot_results(
         plot_embedding(
             embeddings,
             index,  # type: ignore[arg-type]
-            cfg["dir"]["data"],
+            cfg["data_root"],
             cfg["tasks"][task_name]["dataset_params"],
             show=show,
             save=save,

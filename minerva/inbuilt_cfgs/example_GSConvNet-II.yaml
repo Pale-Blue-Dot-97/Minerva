@@ -8,11 +8,10 @@
 #                 EXAMPLE GeoSimConvNet MASTER CONFIG FILE
 #
 # === PATHS ===================================================================
-dir:
-    data: tests/fixtures/data
-    results: tests/tmp/results
-    cache: tests/tmp/cache
-    wandb_dir: &wandb_dir /test/tmp/wandb
+data_root: tests/fixtures/data
+results_dir: tests/tmp/results
+cache_dir: tests/tmp/cache
+wandb_dir: &wandb_dir /test/tmp/wandb
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------

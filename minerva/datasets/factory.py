@@ -713,8 +713,8 @@ def make_loaders(
     if task_name is not None:
         task_params = params["tasks"][task_name]
 
-    data_dir = params["dir"]["data"]
-    cache_dir = params["dir"]["cache"]
+    data_dir = utils.fallback_params("data_root", task_params, params)
+    cache_dir = params["cache_dir"]
 
     # Gets out the parameters for the DataLoaders from params.
     dataloader_params: Dict[Any, Any] = deepcopy(
