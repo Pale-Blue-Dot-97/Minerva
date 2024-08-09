@@ -358,8 +358,7 @@ class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
         """
         if self.sampler_list is None:
             self.sampler_list = list(self.sampler)
-        else:
-            return self.sampler_list[index]
+        return self.sampler_list[index]
 
     def __len__(self) -> int:
         """
