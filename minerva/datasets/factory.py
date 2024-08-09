@@ -873,6 +873,9 @@ def make_loaders(
     if task_params.get("max_pixel_value") is None:
         task_params["max_pixel_value"] = imagery_config.get("max_pixel_value", 256)
 
+    if task_params.get("model_type") is None:
+        task_params["model_type"] = model_type
+
     # Store the name of the target key (either `mask` or `label`)
     task_params["target_key"] = target_key
 
