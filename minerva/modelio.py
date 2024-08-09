@@ -124,7 +124,9 @@ def sup_tg(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes or filenames.
-    index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
+    #index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
+    index: Union[Sequence[str], Sequence[BoundingBox]]
+    print(index)
     if "bbox" in batch:
         index = batch["bbox"]
     elif "id" in batch:
@@ -229,7 +231,9 @@ def autoencoder_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes or filenames.
-    index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
+    #index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
+    index: Union[Sequence[str], Sequence[BoundingBox]]
+    print(index)
     if "bbox" in batch:
         index = batch["bbox"]
     elif "id" in batch:
