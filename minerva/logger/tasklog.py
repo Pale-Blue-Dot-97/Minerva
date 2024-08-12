@@ -53,6 +53,10 @@ import numpy as np
 from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
+from pathlib import Path
+import os
+from omegaconf import OmegaConf
+import csv
 
 from minerva.utils.utils import check_substrings_in_string
 
@@ -96,6 +100,7 @@ class MinervaTaskLogger(ABC):
         batch_size: int,
         output_size: Tuple[int, ...],
         step_logger_params: Optional[Dict[str, Any]] = None,
+        r_dir: Optional[str] = None,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -112,6 +117,9 @@ class MinervaTaskLogger(ABC):
 
         self.record_int = record_int
         self.record_float = record_float
+        params = OmegaConf.create(params)
+        self.params: Dict[str, Any] = OmegaConf.to_object(params)
+        self.results_dir = r_dir
 
         self.model_type = params.get("model_type", "scene_classifier")
         self.sample_pairs = params.get("sample_pairs", False)
@@ -137,9 +145,30 @@ class MinervaTaskLogger(ABC):
             self.metric_types += self.special_metric_types
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics: Dict[str, Any] = {}
-        for metric in self.metric_types:
-            self.metrics[f"{self.task_name}_{metric}"] = {"x": [], "y": []}
+        # check to see if metrics csv exists 
+        metric_checkpoints = list(Path(r_dir).glob("**/*metrics.csv"))
+        if len(metric_checkpoints) > 0:
+            metric_checkpoints.sort(key=os.path.getmtime)
+            folder = Path("/".join(str(metric_checkpoints[0].parent).split("/")[:-1]))
+            self.metrics: Dict[str, Any] = {}
+            for file in folder.glob("**/*metrics.csv"):
+                task_name = file.parent.name
+                with open(file, mode='r') as infile:
+                    reader = csv.reader(infile)
+                    for i,rows in enumerate(reader):
+                        if i == 0:
+                            headers = rows
+                            for head in headers[1:]:
+                                self.metrics[head] = {"x": [], "y": []}
+                        else:
+                            for x,head in enumerate(headers[1:]):
+                                self.metrics[head]["x"].append(rows[0])
+                                # append values to y as float type
+                                self.metrics[head]["y"].append(float(rows[x+1]))
+        else:
+            self.metrics: Dict[str, Any] = {}
+            for metric in self.metric_types:
+                self.metrics[f"{self.task_name}_{metric}"] = {"x": [], "y": []}
 
     def _make_logger(self) -> None:
         """Builds and sets the logger.
@@ -424,6 +453,7 @@ class SSLTaskLogger(MinervaTaskLogger):
         batch_size: int,
         output_size: Tuple[int, ...],
         step_logger_params: Optional[Dict[str, Any]] = None,
+        r_dir: Optional[str] = None,
         record_int: bool = True,
         record_float: bool = False,
         writer: Optional[Union[SummaryWriter, Run]] = None,
@@ -439,13 +469,14 @@ class SSLTaskLogger(MinervaTaskLogger):
             step_logger_params["params"]["sample_pairs"] = sample_pairs
             step_logger_params["params"]["collapse_level"] = sample_pairs
             step_logger_params["params"]["euclidean"] = sample_pairs
-
+        
         super(SSLTaskLogger, self).__init__(
             task_name,
             n_batches,
             batch_size,
             output_size,
             step_logger_params,
+            r_dir,
             record_int,
             record_float,
             writer,
@@ -456,8 +487,11 @@ class SSLTaskLogger(MinervaTaskLogger):
 
         # Delete space in the metrics log for metrics that will not be calculated for Siamese models.
         if check_substrings_in_string(self.model_type, "siamese"):
-            del self.metrics[f"{self.task_name}_acc"]
-            del self.metrics[f"{self.task_name}_top5_acc"]
+            # check if the key exists before deleting
+            if f"{self.task_name}_acc" in self.metrics:
+                del self.metrics[f"{self.task_name}_acc"]
+            if f"{self.task_name}_top5_acc" in self.metrics:
+                del self.metrics[f"{self.task_name}_top5_acc"]
 
         # Delete space in the metrics log for metrics that will not be calculated if NOT a Siamese model.
         if not getattr(self.step_logger, "collapse_level", False):

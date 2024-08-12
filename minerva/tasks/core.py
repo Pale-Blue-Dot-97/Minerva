@@ -357,6 +357,9 @@ class MinervaTask(ABC):
             ),
         )
 
+
+        r_dir = self.global_params["results_dir"]
+
         # Initialises the metric logger with arguments.
         logger: MinervaTaskLogger = _logger_cls(
             self.name,
@@ -366,6 +369,7 @@ class MinervaTask(ABC):
             step_logger_params=utils.fallback_params(
                 "step_logger", self.params, self.global_params, {}
             ),
+            r_dir=r_dir,
             record_int=self.record_int,
             record_float=self.record_float,
             writer=self.writer,
@@ -532,6 +536,8 @@ class MinervaTask(ABC):
             # Assumes that the length of each metric is the same.
             metrics_df["Epoch"] = list(metrics.values())[0]["x"]
             metrics_df.set_index("Epoch", inplace=True, drop=True)
+            # make directory if it doesn't exist
+            self.task_fn.parent.mkdir(parents=True, exist_ok=True)
             metrics_df.to_csv(f"{self.task_fn}_metrics.csv")
 
         except (ValueError, KeyError) as err:  # pragma: no cover
