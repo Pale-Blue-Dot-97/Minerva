@@ -272,7 +272,19 @@ class Trainer:
             "checkpoint_experiment", True
         )
         self.print(f"\nExperiment checkpointing: {self.checkpoint_experiment}")
-        self.resume: bool = self.params.get("resume_experiment", False)
+        # add process to check for checkpoint file and then set resume to true if file found.
+        # set self.params["exp_name"] to the name of the checkpoint file.
+
+        checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
+        print(checkpoints)
+        if len(checkpoints) > 0:
+            #find the most recent checkpoint
+            checkpoints.sort(key=os.path.getmtime)
+            self.params["exp_name"] = checkpoints[0].name.split("-checkpoint.pt")[0]
+            self.resume = True
+            print("did the thing....")
+        else:
+            self.resume: bool = self.params.get("resume_experiment", False)
 
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
@@ -340,6 +352,10 @@ class Trainer:
         self.model: Union[
             MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
         ]
+
+        self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+        self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
+
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
@@ -409,8 +425,7 @@ class Trainer:
             else:
                 pass
 
-        self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
-        self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
+
 
         self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
 
@@ -710,6 +725,41 @@ class Trainer:
                         # Writes the recorded metrics of the task to file.
                         tasks[mode].save_metrics()
 
+
+                # if self.epoch_no % 10 == 0:
+                #     if self.gpu == 0:
+                        
+                #         chkpt_temp = {
+                #             "epoch": self.epoch_no,
+                #             "model_state_dict": extract_wrapped_model(self.model).state_dict(),
+                #             "optimiser_state_dict": self.model.optimiser.state_dict(),
+                #             "n_classes": self.params.get("n_classes"),
+                #         }
+
+                #         scheduler = self.model.scheduler
+                #         if scheduler is not None:
+                #             chkpt_temp["scheduler_state_dict"] = scheduler.state_dict()
+
+                #         torch.save(chkpt_temp, self.checkpoint_path)
+
+                #         if hasattr(self.model, "get_backbone"):
+                #             """Readies the model for use in downstream tasks and saves to file."""
+                #             # Checks that model has the required method to ready it for use on downstream tasks.
+                #             pre_trained_backbone: Module = self.model.get_backbone()  # type: ignore[operator]
+
+                #             cache_dir = universal_path(self.params["cache_dir"])
+
+                #             # Saves the pre-trained backbone to the cache.
+                #             cache_fn = cache_dir / self.params["model_name"]
+
+                #             try:
+                #                 os.mkdir(cache_dir)
+                #             except FileExistsError:
+                #                 pass
+
+                #             torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-backbone.pt")
+                #             torch.save(pre_trained_backbone.state_dict(), self.backbone_path)
+
                 # If early stopping has been triggered, loads the last model save to replace current model,
                 # ready for testing.
                 if self.early_stop:  # pragma: no cover
@@ -987,6 +1037,7 @@ class Trainer:
             ValueError: If format is not recognised.
         """
         model = extract_wrapped_model(self.model)
+
 
         if fn is None:
             fn = self.exp_fn / self.params["exp_name"]
