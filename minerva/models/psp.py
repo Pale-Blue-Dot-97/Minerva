@@ -255,9 +255,11 @@ class MinervaPSP(MinervaWrapper):
             scaler=scaler,
         )
 
+        self.upsampling = upsampling
+
     def _remake_classifier(self) -> None:
         self.model.segmentation_head(
-            self.n_classes, upsampling=32, activation=torch.nn.PReLU
+            self.n_classes, upsampling=self.upsampling, activation=torch.nn.PReLU
         )
         self.model.make_classification_head(
             {"classes": self.n_classes, "activation": torch.nn.PReLU}
