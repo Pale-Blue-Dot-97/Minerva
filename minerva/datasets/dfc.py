@@ -91,7 +91,6 @@ class BaseSenS12MS(NonGeoDataset):
         self,
         root: str,
         split="val",
-        no_savanna=False,
         use_s2hr=False,
         use_s2mr=False,
         use_s2lr=False,
@@ -116,7 +115,6 @@ class BaseSenS12MS(NonGeoDataset):
         self.use_s1 = use_s1
 
         assert split in self.splits
-        self.no_savanna = no_savanna
 
         # Provide number of input channels
         self.n_inputs = self.get_ninputs()
@@ -125,10 +123,7 @@ class BaseSenS12MS(NonGeoDataset):
         self.display_channels, self.brightness_factor = self.get_display_channels()
 
         # Provide number of classes.
-        if no_savanna:
-            self.n_classes = max(self.DFC2020_CLASSES) - 1
-        else:
-            self.n_classes = max(self.DFC2020_CLASSES)
+        self.n_classes = max(self.DFC2020_CLASSES)
 
         self.labels = labels
 
@@ -240,10 +235,6 @@ class BaseSenS12MS(NonGeoDataset):
         with rasterio.open(path) as data:
             s2 = data.read(bands_selected)
 
-        # s2 = s2.astype(np.float16)
-        s2 = np.clip(s2, 0, 4000)
-        # s2 /= 10000
-
         # Cast to 32-bit float.
         s2 = s2.astype(np.float32)
 
@@ -301,11 +292,6 @@ class BaseSenS12MS(NonGeoDataset):
         else:
             lc = lc.astype(np.int64)
 
-        # Adjust class scheme to ignore class savanna.
-        if self.no_savanna:
-            lc[lc == 3] = 0
-            lc[lc > 3] -= 1
-
         # Convert to zero-based labels and set ignore mask.
         lc -= 1
         lc[lc == -1] = 255
@@ -334,29 +320,29 @@ class DFC2020(BaseSenS12MS):
     """PyTorch dataset class for the DFC2020 dataset"""
 
     classes = {
-        1: "Forest",
-        2: "Shrubland",
-        3: "Savana",
-        4: "Grassland",
-        5: "Wetlands",
-        6: "Croplands",
-        7: "Urban",
-        8: "Snow/Ice",
-        9: "Barren",
-        10: "Water",
+        0: "Forest",
+        1: "Shrubland",
+        2: "Savana",
+        3: "Grassland",
+        4: "Wetlands",
+        5: "Croplands",
+        6: "Urban",
+        7: "Snow/Ice",
+        8: "Barren",
+        9: "Water",
     }
 
     colours = {
-        1: "#009900",
-        2: "#c6b044",
-        3: "#fbff13",
-        4: "#bbff05",
-        5: "#27ff87",
-        6: "#c24f44",
-        7: "#a5a5a5",
-        8: "#69fff8",
-        9: "#f9ffa4",
-        10: "#1c0dff",
+        0: "#009900",
+        1: "#c6b044",
+        2: "#fbff13",
+        3: "#bbff05",
+        4: "#27ff87",
+        5: "#c24f44",
+        6: "#a5a5a5",
+        7: "#69fff8",
+        8: "#f9ffa4",
+        9: "#1c0dff",
     }
 
     splits = ["val", "test"]
@@ -366,7 +352,6 @@ class DFC2020(BaseSenS12MS):
         self,
         root: str,
         split="val",
-        no_savanna=False,
         use_s2hr=False,
         use_s2mr=False,
         use_s2lr=False,
@@ -377,7 +362,6 @@ class DFC2020(BaseSenS12MS):
         super(DFC2020, self).__init__(
             root,
             split,
-            no_savanna,
             use_s2hr,
             use_s2mr,
             use_s2lr,
@@ -430,13 +414,15 @@ class DFC2020(BaseSenS12MS):
 
         ncols = 1
         image = bgr_to_rgb(sample['image'][:3])
-        image = image.to(torch.uint8)
+        #image = image.to(torch.uint8)
         image = image.permute(1, 2, 0).numpy()
 
         showing_mask = 'mask' in sample
         showing_prediction = 'prediction' in sample
 
-        cmap = ListedColormap(self.colours.values())  # type: ignore[arg-type]
+        cmap = ListedColormap(self.colours.values(), N=len(self.colours))  # type: ignore[arg-type]
+        vmin = 0
+        vmax = len(self.colours)
 
         if showing_mask:
             mask = sample['mask'].numpy()
@@ -445,19 +431,19 @@ class DFC2020(BaseSenS12MS):
             pred = sample['prediction'].numpy()
             ncols += 1
 
-        fig, axs = plt.subplots(nrows=1, ncols=ncols, figsize=(ncols * 10, 10))
+        fig, axs = plt.subplots(nrows=1, ncols=ncols, figsize=(ncols * 5, 5))
 
         axs[0].imshow(image)
         axs[0].axis('off')
 
         if showing_mask:
-            axs[1].imshow(mask, cmap=cmap, interpolation='none')
+            axs[1].imshow(mask, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none')
             axs[1].axis('off')
             if showing_prediction:
-                axs[2].imshow(pred, cmap=cmap, interpolation='none')
+                axs[2].imshow(pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none')
                 axs[2].axis('off')
         elif showing_prediction:
-            axs[1].imshow(pred, cmap=cmap, interpolation='none')
+            axs[1].imshow(pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none')
             axs[1].axis('off')
 
         if show_titles:
@@ -499,7 +485,6 @@ class SEN12MS(BaseSenS12MS):  # pragma: no cover
         self,
         root: str,
         split="train",
-        no_savanna=False,
         use_s2hr=False,
         use_s2mr=False,
         use_s2lr=False,
@@ -510,7 +495,6 @@ class SEN12MS(BaseSenS12MS):  # pragma: no cover
         super(SEN12MS, self).__init__(
             root,
             split,
-            no_savanna,
             use_s2hr,
             use_s2mr,
             use_s2lr,
