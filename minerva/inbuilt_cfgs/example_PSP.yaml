@@ -15,7 +15,7 @@ cache_dir: tests/tmp/cache
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
 # Name of model. Substring before hyphen is model class.
-model_name: MinervaPSPUNet-test
+model_name: MinervaPSP-test
 
 # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
 model_type: segmentation
@@ -35,7 +35,7 @@ fine_tune: false                       # Activate fine-tuning mode.
 torch_compile: true                    # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: CrossEntropyLoss             # Name of the loss function to use.
+loss_func: AuxCELoss            # Name of the loss function to use.
 lr: 1.0E-3                              # Learning rate of optimiser.
 optim_func: SGD                         # Name of the optimiser function.
 
@@ -47,8 +47,10 @@ model_params:
         n_classes: *n_classes
         encoder: true
         segmentation_on: true
-        classification_on: false
-        # upsampling: 32
+        classification_on: true
+        upsampling: 8
+        aux_params:
+            classes: ${n_classes}
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -57,7 +59,7 @@ optimiser:
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
-    _target_: torch.nn.${loss_func}
+    _target_: minerva.loss.${loss_func}
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
@@ -147,6 +149,10 @@ tasks:
                     use_s2hr: true
                     labels: true
             mask:
+                transforms:
+                    MaskResize:
+                        module: minerva.transforms
+                        size: 64
 
     test-test:
         name: StandardEpoch
@@ -180,6 +186,10 @@ tasks:
                     labels: true
 
             mask:
+                transforms:
+                    MaskResize:
+                        module: minerva.transforms
+                        size: 64
 
 # === PLOTTING OPTIONS ========================================================
 plots:
