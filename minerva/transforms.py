@@ -81,6 +81,7 @@ from torchvision.transforms import (
     ConvertImageDtype,
     Normalize,
     RandomApply,
+    Resize,
 )
 from torchvision.transforms.v2 import functional as ft
 
@@ -802,6 +803,37 @@ class ConvertDtypeFromStr(ConvertImageDtype):
 
     def __init__(self, dtype: str) -> None:
         super().__init__(getattr(torch, dtype))
+
+
+class MaskResize(Resize):
+    """Wrapper of :class:`torchvision.transforms.Resize` for use with masks that have no channel dimension."""
+
+    def forward(self, img: Tensor) -> Tensor:
+        """
+        Args:
+            img (~torch.Tensor): Image to be scaled.
+
+        Returns:
+            ~torch.Tensor: Rescaled image.
+        """
+        org_shape = img.shape
+
+        tmp_shape: Tuple[int, int, int, int]
+
+        if len(org_shape) == 4:
+            # Mask already has shape [N,C,H,W] so no need to modify shape for Resize.
+            tmp_shape = org_shape
+        elif len(org_shape) == 3:
+            # Assuming mask has shape [N,H,W] so we need to insert an extra channel dimension for Resize.
+            tmp_shape = (org_shape[0], 1, org_shape[1], org_shape[2])
+        elif len(org_shape) == 2:
+            # Mask must have shape [H,W] so we need to insert batch and channel dims.
+            tmp_shape = (1, 1, org_shape[0], org_shape[1])
+        else:
+            # Something has gone wrong!
+            raise ValueError
+
+        return torch.squeeze(super().forward(torch.reshape(img, tmp_shape)))
 
 
 # =====================================================================================================================
