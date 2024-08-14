@@ -258,7 +258,7 @@ class MinervaPSP(MinervaWrapper):
         self.upsampling = upsampling
 
     def _remake_classifier(self) -> None:
-        self.segmentation_head(
+        self.make_segmentation_head(
             self.n_classes, upsampling=self.upsampling, activation=torch.nn.PReLU
         )
         self.make_classification_head(
