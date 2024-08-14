@@ -684,7 +684,14 @@ class Trainer:
                 if self.gpu == 0:
                     tasks[mode].print_epoch_results(self.epoch_no - 1)
                     #if not self.stopper and self.checkpoint_experiment:
-                    if self.epoch_no % 10 == 0:
+                    if self.epoch_no % 1 == 0:
+
+                        try:
+                            azure_ckpt = self.params[azure_ckpt]
+                            azure_datastore = self.params[azure_datastore]
+                            azure_job = True
+                        except:
+                            azue_job = False
 
                         chkpt_temp = {
                             "epoch": self.epoch_no,
@@ -703,6 +710,12 @@ class Trainer:
                         torch.save(chkpt_temp, chkpt_name)
                         tasks[mode].save_metrics()
                         torch.save(chkpt_temp, self.checkpoint_path)
+                        if azure_job:
+                            from azureml.core import Run
+                            run = Run.get_context()
+                            datastore = run.datastores[azure_datastore]
+                            datastore.upload_files(files=self.checkpoint_path, target_path=f"{azure_ckpt}/results/{self.params['exp_name']}", overwrite=True)
+                            datastore.upload_files(files=f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_mectrics.csv", target_path=f"{azure_ckpt}/results/{self.params['exp_name']}/{mode}", overwrite=True)
 
                         if hasattr(self.model, "get_backbone"):
                             """Readies the model for use in downstream tasks and saves to file."""
@@ -721,7 +734,12 @@ class Trainer:
 
                             torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-{self.epoch_no}-backbone.pt")
                             torch.save(pre_trained_backbone.state_dict(),self.backbone_path)
-
+                            if azure_job:
+                                from azureml.core import Run
+                                run = Run.get_context()
+                                datastore = run.datastores[azure_datastore]
+                                datastore.upload_files(files=self.backbone_path, target_path=f"{azure_ckpt}/cache", overwrite=True)
+                            
                     self.save_checkpoint()
                     
                     
