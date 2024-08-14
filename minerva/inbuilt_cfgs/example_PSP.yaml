@@ -28,8 +28,8 @@ n_classes: &n_classes 11               # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                          # Maximum number of training epochs.
-elim: false                             # Eliminates empty classes from schema.
-balance: false                         # Balances dataset classes.
+elim: true                             # Eliminates empty classes from schema.
+balance: true                         # Balances dataset classes.
 pre_train: false                       # Activate pre-training mode.
 fine_tune: false                       # Activate fine-tuning mode.
 torch_compile: true                    # Wrap model in `torch.compile`.
