@@ -686,14 +686,12 @@ class Trainer:
                     #if not self.stopper and self.checkpoint_experiment:
                     if self.epoch_no % 1 == 0:
 
-                        try:
-                            azure_ckpt = self.params[azure_ckpt]
-                            azure_datastore = self.params[azure_datastore]
+                        # check if self.params has azure_ckpt and azure_datastore
+                        azure_job = False
+                        if "azure_ckpt" in self.params.keys() and "azure_datastore" in self.params.keys():
+                            azure_ckpt = self.params["azure_ckpt"]
+                            azure_datastore = self.params["azure_datastore"]
                             azure_job = True
-                        except:
-                            azure_job = False
-                            for key in self.params.keys():
-                                    print(f"Key:{key} - Value:{self.params[key]}")
 
                         chkpt_temp = {
                             "epoch": self.epoch_no,
