@@ -691,7 +691,9 @@ class Trainer:
                             azure_datastore = self.params[azure_datastore]
                             azure_job = True
                         except:
-                            azue_job = False
+                            azure_job = False
+                            for key in self.params.keys():
+                                    print(f"Key:{key} - Value:{self.params[key]}")
 
                         chkpt_temp = {
                             "epoch": self.epoch_no,
