@@ -73,6 +73,7 @@ from minerva.models import (
 from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, TSNEVis, get_task
 from minerva.utils import universal_path, utils
+from azureml.core import Run as AzureRun
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -711,9 +712,8 @@ class Trainer:
                         tasks[mode].save_metrics()
                         torch.save(chkpt_temp, self.checkpoint_path)
                         if azure_job:
-                            from azureml.core import Run
-                            run = Run.get_context()
-                            datastore = run.datastores[azure_datastore]
+                            az_run = AzureRun.get_context()
+                            datastore = az_run.datastores[azure_datastore]
                             datastore.upload_files(files=self.checkpoint_path, target_path=f"{azure_ckpt}/results/{self.params['exp_name']}", overwrite=True)
                             datastore.upload_files(files=f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_mectrics.csv", target_path=f"{azure_ckpt}/results/{self.params['exp_name']}/{mode}", overwrite=True)
 
@@ -735,9 +735,8 @@ class Trainer:
                             torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-{self.epoch_no}-backbone.pt")
                             torch.save(pre_trained_backbone.state_dict(),self.backbone_path)
                             if azure_job:
-                                from azureml.core import Run
-                                run = Run.get_context()
-                                datastore = run.datastores[azure_datastore]
+                                az_run = AzureRun.get_context()
+                                datastore = az_run.datastores[azure_datastore]
                                 datastore.upload_files(files=self.backbone_path, target_path=f"{azure_ckpt}/cache", overwrite=True)
                             
                     self.save_checkpoint()
