@@ -702,6 +702,7 @@ class Trainer:
 
                         torch.save(chkpt_temp, chkpt_name)
                         tasks[mode].save_metrics()
+                        torch.save(chkpt_temp, self.checkpoint_path)
 
                         if hasattr(self.model, "get_backbone"):
                             """Readies the model for use in downstream tasks and saves to file."""
@@ -719,6 +720,7 @@ class Trainer:
                                 pass
 
                             torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-{self.epoch_no}-backbone.pt")
+                            torch.save(pre_trained_backbone.state_dict(),self.backbone_path)
 
                     self.save_checkpoint()
                     
