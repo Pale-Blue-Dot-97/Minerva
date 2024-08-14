@@ -36,6 +36,7 @@ __all__ = ["SegBarlowTwinsLoss", "AuxCELoss"]
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from typing import Optional
 import importlib
 
 import torch
@@ -90,9 +91,9 @@ class AuxCELoss(Module):
     Source: https://github.com/xitongpu/PSPNet/blob/main/src/model/cell.py
     """
 
-    def __init__(self, ignore_index=255, alpha: float = 0.4) -> None:
+    def __init__(self, weight: Optional[Tensor] = None, ignore_index: int = 255, alpha: float = 0.4) -> None:
         super().__init__()
-        self.loss = CrossEntropyLoss(ignore_index=ignore_index)
+        self.loss = CrossEntropyLoss(weight=weight, ignore_index=ignore_index)
         self.alpha = alpha
 
     def forward(self, net_out: Tensor, target: Tensor) -> Tensor:
