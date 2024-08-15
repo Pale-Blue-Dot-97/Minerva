@@ -258,12 +258,13 @@ class MinervaPSP(MinervaWrapper):
         self.upsampling = upsampling
 
     def _remake_classifier(self) -> None:
-        self.make_segmentation_head(
+        self.model.make_segmentation_head(
             self.n_classes, upsampling=self.upsampling, activation=torch.nn.PReLU
         )
-        self.make_classification_head(
-            {"classes": self.n_classes, "activation": torch.nn.PReLU}
-        )
+        if self.model.classification_on:
+            self.make_classification_head(
+                {"classes": self.n_classes, "activation": torch.nn.PReLU}
+            )
 
 
 class PSPDecoderBlock(Module):
@@ -520,6 +521,7 @@ class MinervaPSPUNet(MinervaWrapper):
     def _remake_classifier(self) -> None:
         self.model.decoder._remake_classifier(self.n_classes)
         self.model.segmentation_head = torch.nn.Identity()
-        self.model.make_classification_head(
-            {"classes": self.n_classes, "activation": torch.nn.PReLU}
-        )
+        if self.model.classification_on:
+            self.model.make_classification_head(
+                {"classes": self.n_classes, "activation": torch.nn.PReLU}
+            )
