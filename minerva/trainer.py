@@ -73,7 +73,7 @@ from minerva.models import (
 from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, TSNEVis, get_task
 from minerva.utils import universal_path, utils
-from azureml.core import Run as AzureRun
+
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -276,7 +276,10 @@ class Trainer:
         # add process to check for checkpoint file and then set resume to true if file found.
         # set self.params["exp_name"] to the name of the checkpoint file.
 
-        checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
+        if "azure_datastore" in self.params.keys():
+            checkpoints = list(Path(self.params["tasks"]["fit-train"]["data_root"]).glob("**/*-checkpoint.pt"))
+        else:
+            checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
         if len(checkpoints) > 0:
             #find the most recent checkpoint
             checkpoints.sort(key=os.path.getmtime)
