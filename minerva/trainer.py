@@ -689,8 +689,7 @@ class Trainer:
 
                         # check if self.params has azure_ckpt and azure_datastore
                         azure_job = False
-                        if "azure_ckpt" in self.params.keys() and "azure_datastore" in self.params.keys():
-                            azure_ckpt = self.params["azure_ckpt"]
+                        if "azure_datastore" in self.params.keys():
                             azure_datastore = self.params["azure_datastore"]
                             azure_job = True
 
@@ -712,10 +711,8 @@ class Trainer:
                         tasks[mode].save_metrics()
                         torch.save(chkpt_temp, self.checkpoint_path)
                         if azure_job:
-                            az_run = AzureRun.get_context()
-                            datastore = az_run.datastores[azure_datastore]
-                            datastore.upload_files(files=self.checkpoint_path, target_path=f"{azure_ckpt}/results/{self.params['exp_name']}", overwrite=True)
-                            datastore.upload_files(files=f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_mectrics.csv", target_path=f"{azure_ckpt}/results/{self.params['exp_name']}/{mode}", overwrite=True)
+                            azure_datastore.upload_files(files=self.checkpoint_path, target_path=f"{azure_ckpt}/results/{self.params['exp_name']}", overwrite=True)
+                            azure_datastore.upload_files(files=f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_mectrics.csv", target_path=f"{azure_ckpt}/results/{self.params['exp_name']}/{mode}", overwrite=True)
 
                         if hasattr(self.model, "get_backbone"):
                             """Readies the model for use in downstream tasks and saves to file."""
@@ -735,9 +732,7 @@ class Trainer:
                             torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-{self.epoch_no}-backbone.pt")
                             torch.save(pre_trained_backbone.state_dict(),self.backbone_path)
                             if azure_job:
-                                az_run = AzureRun.get_context()
-                                datastore = az_run.datastores[azure_datastore]
-                                datastore.upload_files(files=self.backbone_path, target_path=f"{azure_ckpt}/cache", overwrite=True)
+                                azure_datastore.upload_files(files=self.backbone_path, target_path=f"{azure_ckpt}/cache", overwrite=True)
                             
                     self.save_checkpoint()
                     
