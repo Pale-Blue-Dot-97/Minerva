@@ -45,6 +45,7 @@ import pandas as pd
 import rasterio
 import torch
 from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
 from torch import FloatTensor, Tensor
@@ -456,8 +457,11 @@ class DFC2020(BaseSenS12MS):
         axs[0].axis("off")
 
         # Plot the ground truth mask and predicted mask.
+        mask_plot: Axes
         if showing_mask:
-            axs[1].imshow(mask, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none")
+            mask_plot = axs[1].imshow(
+                mask, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
+            )
             axs[1].axis("off")
             if showing_prediction:
                 axs[2].imshow(
@@ -465,21 +469,24 @@ class DFC2020(BaseSenS12MS):
                 )
                 axs[2].axis("off")
         elif showing_prediction:
-            axs[1].imshow(pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none")
+            mask_plot = axs[1].imshow(
+                pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
+            )
             axs[1].axis("off")
 
-        # Plots colour bar onto figure.
-        clb = fig.colorbar(
-            axs[2],
-            ax=axs.ravel().tolist(),
-            location="top",
-            ticks=np.arange(0, len(colours)),
-            aspect=75,
-            drawedges=True,
-        )
+        if showing_mask or showing_prediction:
+            # Plots colour bar onto figure.
+            clb = fig.colorbar(
+                mask_plot,
+                ax=axs,
+                location="top",
+                ticks=np.arange(0, len(colours)),
+                aspect=75,
+                drawedges=True,
+            )
 
-        # Sets colour bar ticks to class labels.
-        clb.ax.set_xticklabels(classes.values(), fontsize=9)
+            # Sets colour bar ticks to class labels.
+            clb.ax.set_xticklabels(classes.values(), fontsize=9)
 
         # Add the sub-titles to each of the sub-plots.
         if show_titles:
