@@ -70,6 +70,7 @@ import imageio
 import matplotlib as mlp
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from geopy.exc import GeocoderUnavailable
 from matplotlib import offsetbox
 from matplotlib.axes import Axes
@@ -88,7 +89,6 @@ from sklearn.metrics import ConfusionMatrixDisplay, multilabel_confusion_matrix
 from torchgeo.datasets import GeoDataset, NonGeoDataset
 from torchgeo.datasets.utils import BoundingBox
 from tqdm import tqdm, trange
-import torch
 
 from minerva.utils import universal_path, utils
 
@@ -780,7 +780,12 @@ def seg_plot(
 
             if isinstance(dataset, GeoDataset):
                 image = stack_rgb(dataset[index[i]]["image"].numpy(), max_pixel_value)
-                sample = {"image": image, "prediction": z[i], "mask": y[i], "index": index[i]}
+                sample = {
+                    "image": image,
+                    "prediction": z[i],
+                    "mask": y[i],
+                    "index": index[i],
+                }
                 prediction_plot(
                     sample,
                     flat_ids[i],
@@ -796,16 +801,24 @@ def seg_plot(
 
             elif isinstance(dataset, NonGeoDataset) and hasattr(dataset, "plot"):
                 sample = {
-                    "image": dataset[index[i]]["image"] * 256.0,
+                    "image": dataset[index[i]]["image"],
                     "prediction": torch.LongTensor(z[i]),
                     "mask": torch.LongTensor(y[i]),
                     "index": index[i],
                 }
-                fig = dataset.plot(sample, show_titles=True, suptitle=sample["index"])
+                fig = dataset.plot(
+                    sample,
+                    show_titles=True,
+                    suptitle=sample["index"],
+                    classes=classes,
+                    colours=colours,
+                )
 
                 if fn_prefix is None:
                     _path = universal_path(path)
-                    fn_prefix = str(_path / f"{model_name}_{utils.timestamp_now()}_Mask")
+                    fn_prefix = str(
+                        _path / f"{model_name}_{utils.timestamp_now()}_Mask"
+                    )
 
                 sample_id = sample["index"]
 

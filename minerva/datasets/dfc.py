@@ -44,12 +44,12 @@ import numpy as np
 import pandas as pd
 import rasterio
 import torch
-from torch import FloatTensor, Tensor
-from torchgeo.datasets import NonGeoDataset
-from tqdm import tqdm
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
 from matplotlib.figure import Figure
+from torch import FloatTensor, Tensor
+from torchgeo.datasets import NonGeoDataset
+from tqdm import tqdm
 
 
 # =====================================================================================================================
@@ -395,6 +395,8 @@ class DFC2020(BaseSenS12MS):
         sample: Dict[str, Tensor],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
+        classes: Optional[Dict[int, str]] = None,
+        colours: Optional[Dict[int, str]] = None,
     ) -> Figure:
         """Plot a sample from the dataset.
 
@@ -404,61 +406,97 @@ class DFC2020(BaseSenS12MS):
             sample (dict[str, ~torch.Tensor]): A sample returned by :meth:`__getitem__`.
             show_titles (bool): Flag indicating whether to show titles above each panel.
             suptitle (str): Optional; String to use as a suptitle.
+            classes (dict[int, str]): Optional; Dictionary mapping class labels to class names.
+                Default: :attr:`self.classes`.
+            colours (dict[int, str]): Optional; Dictionary mapping class labels to colours.
+                Default: :attr:`self.colours`.
+
+        .. versionadded:: 0.28
 
         Returns:
             ~matplotlib.figure.Figure: A :mod:`matplotlib` ``Figure`` with the rendered sample.
         """
+        # Reorder image from BGR to RGB.
         from kornia.color import BgrToRgb
 
         bgr_to_rgb = BgrToRgb()
 
-        ncols = 1
-        image = bgr_to_rgb(sample['image'][:3])
-        #image = image.to(torch.uint8)
+        image = bgr_to_rgb(sample["image"][:3])
         image = image.permute(1, 2, 0).numpy()
 
-        showing_mask = 'mask' in sample
-        showing_prediction = 'prediction' in sample
+        # Use inbuilt class colours and classes mappings.
+        if classes is None or colours is None:
+            classes = self.classes
+            colours = self.colours
 
-        cmap = ListedColormap(self.colours.values(), N=len(self.colours))  # type: ignore[arg-type]
-        vmin = 0
-        vmax = len(self.colours)
+        # Number of columns of sub-plots in figure. Will increase for masks and predictions.
+        ncols = 1
+
+        # Will plot mask and prediction if found in the sample provided.
+        showing_mask = "mask" in sample
+        showing_prediction = "prediction" in sample
+
+        # Create the cmap from the colours mapping.
+        cmap = ListedColormap(colours.values(), N=len(colours))  # type: ignore[arg-type]
+        vmin = -0.5
+        vmax = len(classes) - 0.5
 
         if showing_mask:
-            mask = sample['mask'].numpy()
+            mask = sample["mask"].numpy()
             ncols += 1
         if showing_prediction:
-            pred = sample['prediction'].numpy()
+            pred = sample["prediction"].numpy()
             ncols += 1
 
+        # Make the figure and axes objects.
         fig, axs = plt.subplots(nrows=1, ncols=ncols, figsize=(ncols * 5, 5))
 
+        # Plot the image.
         axs[0].imshow(image)
-        axs[0].axis('off')
+        axs[0].axis("off")
 
+        # Plot the ground truth mask and predicted mask.
         if showing_mask:
-            axs[1].imshow(mask, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none')
-            axs[1].axis('off')
+            axs[1].imshow(mask, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none")
+            axs[1].axis("off")
             if showing_prediction:
-                axs[2].imshow(pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none')
-                axs[2].axis('off')
+                axs[2].imshow(
+                    pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
+                )
+                axs[2].axis("off")
         elif showing_prediction:
-            axs[1].imshow(pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation='none')
-            axs[1].axis('off')
+            axs[1].imshow(pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none")
+            axs[1].axis("off")
 
+        # Plots colour bar onto figure.
+        clb = fig.colorbar(
+            axs[2],
+            ax=axs.ravel().tolist(),
+            location="top",
+            ticks=np.arange(0, len(colours)),
+            aspect=75,
+            drawedges=True,
+        )
+
+        # Sets colour bar ticks to class labels.
+        clb.ax.set_xticklabels(classes.values(), fontsize=9)
+
+        # Add the sub-titles to each of the sub-plots.
         if show_titles:
-            axs[0].set_title('Image')
+            axs[0].set_title("Image")
 
             if showing_mask:
-                axs[1].set_title('Ground Truth')
+                axs[1].set_title("Ground Truth")
                 if showing_prediction:
-                    axs[2].set_title('Predictions')
+                    axs[2].set_title("Predictions")
             elif showing_prediction:
-                axs[1].set_title('Predictions')
+                axs[1].set_title("Predictions")
 
+        # Add super-title.
         if suptitle is not None:
             plt.suptitle(suptitle)
 
+        # Return the completed figure object. Will still need to be shown or saved to view.
         return fig
 
 
