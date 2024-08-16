@@ -718,7 +718,7 @@ class Trainer:
                         if azure_job:
                             az_ml_run = ml_run.get_context().experiment.workspace
                             azure_datastore = az_ml_run.datastores["globenet"]
-                            azure_datastore.upload_files(files=[self.checkpoint_path, target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}"], overwrite=True)
+                            azure_datastore.upload_files(files=[self.checkpoint_path], target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}", overwrite=True)
                             azure_datastore.upload_files(files=[f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_metrics.csv"], target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}/{mode}", overwrite=True)
 
                         if hasattr(self.model, "get_backbone"):
