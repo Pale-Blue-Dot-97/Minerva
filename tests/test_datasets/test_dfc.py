@@ -50,19 +50,18 @@ from minerva.datasets import DFC2020
 #                                                       TESTS
 # =====================================================================================================================
 @pytest.mark.parametrize(
-    ["split", "no_savanna", "use_s2hr", "use_s2mr", "use_s2lr", "use_s1", "labels"],
+    ["split", "use_s2hr", "use_s2mr", "use_s2lr", "use_s1", "labels"],
     [
-        ("val", False, False, False, False, False, False),  # Expect error
-        ("val", False, True, True, True, False, True),  # Validation, S2 and labels
-        ("test", True, True, False, False, False, False),  # Test, just high-res S2
-        ("test", False, False, False, False, True, False),  # Test, just S1
-        ("val", True, True, True, True, True, True),  # Validation, S1&2, labels
+        ("val", False, False, False, False, False),  # Expect error
+        ("val", True, True, True, False, True),  # Validation, S2 and labels
+        ("test", True, False, False, False, False),  # Test, just high-res S2
+        ("test", False, False, False, True, False),  # Test, just S1
+        ("val", True, True, True, True, True),  # Validation, S1&2, labels
     ],
 )
 def test_dfc2020(
     data_root: Path,
     split: str,
-    no_savanna: bool,
     use_s2hr: bool,
     use_s2mr: bool,
     use_s2lr: bool,
@@ -72,14 +71,10 @@ def test_dfc2020(
     root = str(data_root / "DFC" / "DFC2020")
     if not any((use_s2hr, use_s2mr, use_s2lr, use_s1)):
         with pytest.raises(ValueError):
-            _ = DFC2020(
-                root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
-            )
+            _ = DFC2020(root, split, use_s2hr, use_s2mr, use_s2lr, use_s1, labels)
         return
     else:
-        dataset = DFC2020(
-            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
-        )
+        dataset = DFC2020(root, split, use_s2hr, use_s2mr, use_s2lr, use_s1, labels)
 
     sampler = RandomSampler(dataset, replacement=True)
     dataloader = DataLoader(dataset, sampler=sampler)
