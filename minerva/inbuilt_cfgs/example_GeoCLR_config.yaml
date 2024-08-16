@@ -31,16 +31,16 @@ elim: false                           # Eliminates empty classes from schema.
 balance: false                        # Balances dataset classes.
 pre_train: true                       # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
-torch_compile: true                    # Wrap model in `torch.compile`.
+torch_compile: false                  # Wrap model in `torch.compile`.
 mix_precision: false
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: &loss_func NTXentLoss      # Name of the loss function to use.
-lr: 1.0E-2                            # Learning rate of optimiser.
-optim_func: SGD                       # Name of the optimiser function.
+loss_func: NTXentLoss                # Name of the loss function to use.
+lr: 1.0E-2                           # Learning rate of optimiser.
+optim_func: SGD                      # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
-sample_pairs: true                    # Activates Siamese paired sampling.
+sample_pairs: true                   # Activates Siamese paired sampling.
 max_r: &max_r 56  # Max distance between patches within a Siamese pair.
 knn_k: 5          # Top-k most similar images used to predict image for KNN val
 val_freq: 2       # Validation epoch every ``val_freq`` training epochs.

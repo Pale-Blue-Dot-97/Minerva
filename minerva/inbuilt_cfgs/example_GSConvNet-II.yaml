@@ -25,9 +25,9 @@ model_type: siamese-segmentation
 batch_size: 2                          # Number of samples in each batch.
 input_size: [4, 16, 16]                # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
-n_classes: &n_classes 8                # Number of classes in dataset.
-mix_precision: false                    # Activate mixed precision (16-bit)
-torch_compile: true                    # Wrap model in `torch.compile`.
+n_classes: 8                           # Number of classes in dataset.
+mix_precision: false                   # Activate mixed precision (16-bit)
+torch_compile: false                   # Wrap model in `torch.compile`.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                         # Maximum number of training epochs.
@@ -37,9 +37,9 @@ pre_train: true                       # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: &loss_func SegBarlowTwinsLoss  # Name of the loss function to use.
-lr: 1.0E-2                                # Learning rate of optimiser.
-optim_func: SGD                           # Name of the optimiser function.
+loss_func: SegBarlowTwinsLoss         # Name of the loss function to use.
+lr: 1.0E-2                            # Learning rate of optimiser.
+optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
@@ -86,7 +86,6 @@ loader_params:
 # === WANDB LOGGING ===========================================================
 wandb_log: true        # Activates wandb logging.
 project: pytest        # Define the project name for wandb.
-wandb_dir: *wandb_dir
 
 # === MODEL IO & LOGGING ======================================================
 record_int: true     # Store integer results in memory.

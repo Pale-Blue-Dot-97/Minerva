@@ -24,7 +24,7 @@ model_type: scene-classifier
 batch_size: 8                         # Number of samples in each batch.
 input_size: [3, 32, 32]               # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
-n_classes: &n_classes 8               # Number of classes in dataset.
+n_classes: 8                          # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 3                         # Maximum number of training epochs.
@@ -32,20 +32,20 @@ pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 elim: false                           # Eliminates empty classes from schema.
 balance: false                        # Balances dataset classes.
-torch_compile: true                    # Wrap model in `torch.compile`.
+torch_compile: false                  # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
-loss_func: &loss_func CrossEntropyLoss  # Name of the loss function to use.
-lr: 1.0E-2                              # Learning rate of optimiser.
-optim_func: SGD                         # Name of the optimiser function.
+loss_func: CrossEntropyLoss           # Name of the loss function to use.
+lr: 1.0E-2                            # Learning rate of optimiser.
+optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
     module: lightly.models
     params:
         input_size: ${input_size}
-        n_classes: *n_classes
-        num_classes: *n_classes
+        n_classes: ${n_classes}
+        num_classes: ${n_classes}
         name: resnet-9
 
 # ---+ Optimiser Parameters +--------------------------------------------------
@@ -59,7 +59,7 @@ loss_params:
 
 # ---+ Dataloader Parameters +-------------------------------------------------
 loader_params:
-    num_workers: 1
+    num_workers: 0
     pin_memory: true
 
 # === MODEL IO & LOGGING ======================================================
@@ -134,7 +134,7 @@ tasks:
     fit-val:
         name: StandardEpoch
         module: minerva.tasks
-        train: true
+        train: false
         record_float: true
 
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
@@ -173,7 +173,7 @@ tasks:
     test-test:
         name: StandardEpoch
         module: minerva.tasks
-        train: true
+        train: false
         record_float: true
 
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
