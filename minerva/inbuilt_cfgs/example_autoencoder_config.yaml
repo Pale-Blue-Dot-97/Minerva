@@ -32,7 +32,6 @@ elim: false                            # Eliminates empty classes from schema.
 balance: false                         # Balances dataset classes.
 pre_train: false                       # Activate pre-training mode.
 fine_tune: false                       # Activate fine-tuning mode.
-autoencoder_data_key: mask
 torch_compile: false                   # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
@@ -90,6 +89,7 @@ tasks:
         module: minerva.tasks
         train: true
         record_float: true
+        autoencoder_data_key: mask
 
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
@@ -127,6 +127,7 @@ tasks:
         module: minerva.tasks
         train: false
         record_float: true
+        autoencoder_data_key: mask
 
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
@@ -164,6 +165,7 @@ tasks:
         module: minerva.tasks
         train: false
         record_float: true
+        autoencoder_data_key: mask
 
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
