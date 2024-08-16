@@ -353,6 +353,17 @@ class MinervaBackbone(MinervaModel):
         """
         return self.backbone
 
+    def freeze_backbone(self, freeze: bool = True) -> None:
+        """Freeze the backbone so that the weights do not change while the rest of the model trains.
+
+        Args:
+            freeze (bool): Whether to 'freeze' the backbone (Set :meth:`~torch.Tensor.requires_grad_` to `False`).
+                Defaults to `True`.
+
+        .. versionadded:: 0.28
+        """
+        self.backbone.requires_grad_(False if freeze else True)
+
 
 class MinervaDataParallel(Module):  # pragma: no cover
     """Wrapper for :class:`~torch.nn.parallel.data_parallel.DataParallel` or
