@@ -54,6 +54,7 @@ dependencies = [
     "wandb",
     "segmentation-models-pytorch",
     "tifffile",
+    "azureml-core",
 ]
 
 [project.optional-dependencies]

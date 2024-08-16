@@ -74,6 +74,8 @@ from minerva.pytorchtools import EarlyStopping
 from minerva.tasks import MinervaTask, TSNEVis, get_task
 from minerva.utils import universal_path, utils
 
+from azureml.core import Run as ml_run
+
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -714,8 +716,10 @@ class Trainer:
                         tasks[mode].save_metrics()
                         torch.save(chkpt_temp, self.checkpoint_path)
                         if azure_job:
-                            azure_datastore.upload_files(files=self.checkpoint_path, target_path=f"{azure_ckpt}/results/{self.params['exp_name']}", overwrite=True)
-                            azure_datastore.upload_files(files=f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_mectrics.csv", target_path=f"{azure_ckpt}/results/{self.params['exp_name']}/{mode}", overwrite=True)
+                            az_ml_run = ml_run.get_context().experiment.workspace
+                            azure_datastore = az_ml_run.datastores["globenet"]
+                            azure_datastore.upload_files(files=self.checkpoint_path, target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}", overwrite=True)
+                            azure_datastore.upload_files(files=f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_mectrics.csv", target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}/{mode}", overwrite=True)
 
                         if hasattr(self.model, "get_backbone"):
                             """Readies the model for use in downstream tasks and saves to file."""
