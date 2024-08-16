@@ -279,7 +279,7 @@ class Trainer:
         # set self.params["exp_name"] to the name of the checkpoint file.
 
         if "azure_datastore" in self.params.keys():
-            checkpoints = list(Path(f'{self.params['azure_ckpt']}/results').glob("**/*-checkpoint.pt"))
+            checkpoints = list(Path(f"{self.params['azure_ckpt']}/results").glob("**/*-checkpoint.pt"))
         else:
             checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
         if len(checkpoints) > 0:
