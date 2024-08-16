@@ -140,11 +140,12 @@ class DynamicPSP(smp.PSPNet):
             backbone = torch.load(
                 backbone_weight_path, map_location=torch.device("cpu")
             )
+
             self.encoder = backbone.encoder
             self.decoder = backbone.decoder
 
-            # Freezes the weights of backbone to avoid end-to-end training.
-            self.encoder.requires_grad_(False if freeze_backbone else True)
+        # Will freeze the weights of the backbone to avoid end-to-end training if `freeze_backbone==True`.
+        self.freeze_backbone(freeze_backbone)
 
     def make_segmentation_head(
         self,
@@ -185,6 +186,17 @@ class DynamicPSP(smp.PSPNet):
 
     def set_classification_on(self, on: bool) -> None:
         self.classification_on = on
+
+    def freeze_backbone(self, freeze: bool = True) -> None:
+        """Freeze the encoder so that the weights do not change while the rest of the model trains.
+
+        Args:
+            freeze (bool): Whether to 'freeze' the encoder (Set :meth:`~torch.Tensor.requires_grad_` to `False`).
+                Defaults to `True`.
+
+        .. versionadded:: 0.28
+        """
+        self.encoder.requires_grad_(False if freeze else True)
 
     def forward(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, ...]]:
         f = self.encoder(x)
