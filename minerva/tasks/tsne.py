@@ -38,7 +38,7 @@ __all__ = ["TSNEVis"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional, Union
 
 import torch
 from torch import Tensor
@@ -108,8 +108,10 @@ class TSNEVis(MinervaTask):
         # Make sure the model is in evaluation mode.
         self.model.eval()
 
-        # Pass the batch of data through the model to get the embeddings.
-        embeddings: Tensor = self.model.forward(data["image"].to(self.device))[0]
+        # Ensure that gradients are not calculated.
+        with torch.no_grad():
+            # Pass the batch of data through the model to get the embeddings.
+            embeddings: Tensor = self.model.forward(data["image"].to(self.device))[0]
 
         # Flatten embeddings.
         embeddings = embeddings.flatten(start_dim=1)
