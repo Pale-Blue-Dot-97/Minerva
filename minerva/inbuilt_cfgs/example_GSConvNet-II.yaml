@@ -11,7 +11,7 @@
 data_root: tests/fixtures/data
 results_dir: tests/tmp/results
 cache_dir: tests/tmp/cache
-wandb_dir: &wandb_dir /test/tmp/wandb
+wandb_dir: /test/tmp/wandb
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
@@ -176,7 +176,7 @@ tasks:
         task_logger: SSLTaskLogger
         step_logger:
             name: KNNStepLogger
-        model_io: ssl_pair_tg
+        model_io: sup_tg
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
@@ -220,8 +220,8 @@ tasks:
         sample_pairs: false
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        task_logger: SSLTaskLogger
-        model_io: ssl_pair_tg
+        task_logger: SupervisedTaskLogger
+        model_io: sup_tg
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:

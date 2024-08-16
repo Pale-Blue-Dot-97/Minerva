@@ -24,12 +24,12 @@ model_type: segmentation
 batch_size: 2                          # Number of samples in each batch.
 input_size: [4, 256, 256]              # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
-n_classes: &n_classes 11               # Number of classes in dataset.
+n_classes: 10                          # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                          # Maximum number of training epochs.
-elim: true                             # Eliminates empty classes from schema.
-balance: true                          # Balances dataset classes.
+elim: false                            # Eliminates empty classes from schema.
+balance: false                         # Balances dataset classes.
 pre_train: false                       # Activate pre-training mode.
 fine_tune: false                       # Activate fine-tuning mode.
 torch_compile: false                   # Wrap model in `torch.compile`.
@@ -44,7 +44,7 @@ model_params:
     module:
     params:
         input_size: ${input_size}
-        n_classes: *n_classes
+        n_classes: ${n_classes}
         encoder: true
         segmentation_on: true
         classification_on: true
