@@ -701,7 +701,7 @@ class Trainer:
                 if self.gpu == 0:
                     tasks[mode].print_epoch_results(self.epoch_no - 1)
                     #if not self.stopper and self.checkpoint_experiment:
-                    if self.epoch_no % 1 == 0:
+                    if self.epoch_no % 10 == 0:
 
                         # check if self.params has azure_ckpt and azure_datastore
                         azure_job = False
