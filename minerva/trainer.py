@@ -281,13 +281,23 @@ class Trainer:
         if "azure_datastore" in self.params.keys():
             print("azure checkpoint:",f"{self.params['azure_ckpt_download']}/results",list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt")))
             checkpoints = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))
+            metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-metrics.csv"))
+            #copy the checkpoint file to the local directory
         else:
             checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
         if len(checkpoints) > 0:
             #find the most recent checkpoint
             checkpoints.sort(key=os.path.getmtime)
+
             self.params["exp_name"] = checkpoints[0].name.split("-checkpoint.pt")[0]
             self.resume = True
+            #copy the checkpoint file to the local directory
+            if "azure_datastore" in self.params.keys():
+                metric_csv.sort(key=os.path.getmtime)
+                az_ml_run = ml_run.get_context().experiment.workspace
+                azure_datastore = az_ml_run.datastores["globenet"]
+                azure_datastore.download_files(files=[str(checkpoints[0])], target_path=f"{self.params['results_dir']}/{self.params['exp_name']}", overwrite=True)
+                azure_datastore.download_files(files=[str(metric_csv[0])], target_path=f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train", overwrite=True)
         else:
             self.resume: bool = self.params.get("resume_experiment", False)
         #self.resume: bool = self.params.get("resume_experiment", False)
