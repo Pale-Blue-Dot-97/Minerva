@@ -287,18 +287,16 @@ class Trainer:
         if len(checkpoints) > 0:
             #find the most recent checkpoint
             checkpoints.sort(key=os.path.getmtime)
-            self.params["exp_name"] = str(checkpoints[0].name).replace("-checkpoint.pt","")
+            self.params["exp_name"] = str(checkpoints[0]).replace("-checkpoint.pt","")
             self.resume = True
             #copy the checkpoint file to the local directory
             if "azure_datastore" in self.params.keys():
                 metric_csv.sort(key=os.path.getmtime)
                 #make a copy of checkpoint locally
-                if not os.path.exists(f"{self.params['results_dir']}/{self.params['exp_name']}"):
-                    os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}")
-                    os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
+                os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}", exist_ok=True)
+                os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train",exist_ok=True)
 
                 shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
-                #make a copy of metrics locally
                 shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
 
         else:
