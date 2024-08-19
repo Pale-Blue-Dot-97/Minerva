@@ -69,6 +69,7 @@ from typing import (
     overload,
 )
 
+import hydra
 import numpy as np
 import rasterio
 import torch
@@ -80,14 +81,12 @@ from torchvision.transforms import (
     ColorJitter,
     ConvertImageDtype,
     Normalize,
-    RandomApply,
     Resize,
 )
 from torchvision.transforms.v2 import functional as ft
 
 from minerva.utils.utils import (
     find_tensor_mode,
-    func_by_str,
     get_centre_pixel_value,
     mask_transform,
 )
@@ -839,16 +838,6 @@ class MaskResize(Resize):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
-    p = random_params.pop("p", 0.5)
-
-    random_transforms = []
-    for ran_name in random_params:
-        random_transforms.append(get_transform(ran_name, random_params[ran_name]))
-
-    return RandomApply(random_transforms, p=p)
-
-
 def init_auto_norm(
     dataset: RasterDataset, params: Dict[str, Any] = {}
 ) -> RasterDataset:
@@ -887,35 +876,24 @@ def init_auto_norm(
     return dataset
 
 
-def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., Any]:
+def get_transform(transform_params: Dict[str, Any]) -> Callable[..., Any]:
     """Creates a transform object based on config parameters.
 
     Args:
-        name (str): Name of transform object to import e.g :class:`~torchvision.transforms.RandomResizedCrop`.
         transform_params (dict[str, ~typing.Any]): Arguements to construct transform with.
-            Should also include ``"module"`` key defining the import path to the transform object.
+            Should also include ``"_target_"`` key defining the import path to the transform object.
 
     Returns:
         Initialised transform object specified by config parameters.
 
-    .. note::
-        If ``transform_params`` contains no ``"module"`` key, it defaults to ``torchvision.transforms``.
-
     Example:
-        >>> name = "RandomResizedCrop"
-        >>> params = {"module": "torchvision.transforms", "size": 128}
-        >>> transform = get_transform(name, params)
+        >>> params = {"_target": "torchvision.transforms.RandomResizedCrop", "size": 128}
+        >>> transform = get_transform(params)
 
     Raises:
         TypeError: If created transform object is itself not :class:`~typing.Callable`.
     """
-    params = transform_params.copy()
-    module = params.pop("module", "torchvision.transforms")
-
-    # Gets the transform requested by config parameters.
-    _transform: Callable[..., Any] = func_by_str(module, name)
-
-    transform: Callable[..., Any] = _transform(**params)
+    transform: Callable[..., Any] = hydra.utils.instantiate(transform_params)
     if callable(transform):
         return transform
     else:
@@ -934,8 +912,8 @@ def make_transformations(
 
     Example:
         >>> transform_params = {
-        >>>    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-        >>>     "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7}
+        >>>    "crop": {"_target_": "torchvision.transforms.CenterCrop", "size": 128},
+        >>>     "flip": {"module": "torchvision.transforms.RandomHorizontalFlip", "p": 0.7}
         >>> }
         >>> transforms = make_transformations(transform_params)
 
@@ -950,17 +928,14 @@ def make_transformations(
 
         # Get each transform.
         for _name in type_transform_params:
-            if _name == "RandomApply":
-                random_params = type_transform_params[_name].copy()
-                type_transformations.append(_construct_random_transforms(random_params))
 
             # AutoNorm needs to be handled separately.
-            elif _name == "AutoNorm":
+            if _name == "AutoNorm":
                 continue
 
             else:
                 type_transformations.append(
-                    get_transform(_name, type_transform_params[_name])
+                    get_transform(type_transform_params[_name])
                 )
 
         return type_transformations

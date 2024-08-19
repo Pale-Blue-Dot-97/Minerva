@@ -113,47 +113,49 @@ tasks:
 
             image:
                 transforms:
-                    SelectChannels:
-                        module: minerva.transforms
+                    - SelectChannels:
+                        _target_: minerva.transforms.SelectChannels
                         channels:
                             - 1
                             - 2
                             - 3
                             - 7
-                    Normalise:
-                        module: minerva.transforms
+                    - Normalise:
+                        _target_: minerva.transforms.Normalise
                         norm_value: 4095
-                    RandomApply:
+                    - RandomApply:
                         p: 0.25
-                        DetachedColorJitter:
-                            module: minerva.transforms
-                            brightness: 0.2
-                            contrast: 0.1
-                            saturation: 0.1
-                            hue: 0.15
-                    RandomResizedCrop:
-                        module: kornia.augmentation
+                        _target_: torchvision.transform.RandomApply
+                        transforms:
+                            - DetachedColorJitter:
+                                _target_: minerva.transforms.DetachedColorJitter
+                                brightness: 0.2
+                                contrast: 0.1
+                                saturation: 0.1
+                                hue: 0.15
+                    - resize_crop:
+                        _target_: kornia.augmentation.RandomResizedCrop
                         p: 0.2
                         size: ${patch_size}
                         cropping_mode: resample
                         keepdim: true
-                    RandomHorizontalFlip:
-                        module: kornia.augmentation
+                    - horizontal_flip:
+                        _target_: kornia.augmentation.RandomHorizontalFlip
                         p: 0.2
                         keepdim: true
-                    RandomGaussianBlur:
-                        module: kornia.augmentation
+                    - gaussian_blur:
+                        _target_: kornia.augmentation.RandomGaussianBlur
                         kernel_size: 9
                         p: 0.2
                         sigma: [0.01, 0.2]
                         keepdim: true
-                    RandomGaussianNoise:
-                        module: kornia.augmentation
+                    - gaussian_noise:
+                        _target_: kornia.augmentation.RandomGaussianNoise
                         p: 0.2
                         std: 0.05
                         keepdim: true
-                    RandomErasing:
-                        module: kornia.augmentation
+                    - random_erasing:
+                        _target_: kornia.augmentation.RandomErasing
                         p: 0.2
                         keepdim: true
 
@@ -187,15 +189,15 @@ tasks:
 
             image:
                 transforms:
-                    SelectChannels:
-                        module: minerva.transforms
+                    - SelectChannels:
+                        _target_: minerva.transforms.SelectChannels
                         channels:
                             - 1
                             - 2
                             - 3
                             - 7
-                    Normalise:
-                        module: minerva.transforms
+                    - Normalise:
+                        _target_: minerva.transforms.Normalise
                         norm_value: 4095
 
                 module: torchgeo.datasets

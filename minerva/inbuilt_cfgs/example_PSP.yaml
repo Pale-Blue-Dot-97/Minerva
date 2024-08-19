@@ -101,43 +101,45 @@ tasks:
                     num_samples: 32
 
             transforms:
-                RandomResizedCrop:
-                    module: kornia.augmentation
+                - RandomResizedCrop:
+                    _target_: kornia.augmentation.RandomResizedCrop
                     p: 1.0
                     size: ${patch_size}
                     cropping_mode: resample
                     keepdim: true
-                RandomHorizontalFlip:
-                    module: kornia.augmentation
+                - RandomHorizontalFlip:
+                    _target_: kornia.augmentation.RandomHorizontalFlip
                     p: 0.2
                     keepdim: true
 
             image:
                 transforms:
-                    Normalise:
-                        module: minerva.transforms
+                    - Normalise:
+                        _target_: minerva.transforms.Normalise
                         norm_value: 4095
-                    RandomApply:
+                    - RandomApply:
+                        _target_: torchvision.transforms.RandomApply
                         p: 0.25
-                        DetachedColorJitter:
-                            module: minerva.transforms
-                            brightness: 0.2
-                            contrast: 0.1
-                            saturation: 0.1
-                            hue: 0.15
-                    RandomGaussianBlur:
-                        module: kornia.augmentation
+                        transforms:
+                            - DetachedColorJitter:
+                                _target_: minerva.transforms
+                                brightness: 0.2
+                                contrast: 0.1
+                                saturation: 0.1
+                                hue: 0.15
+                    - gaussian_blur:
+                        _target_: kornia.augmentation.RandomGaussianBlur
                         kernel_size: 9
                         p: 0.2
                         sigma: [0.01, 0.2]
                         keepdim: true
-                    RandomGaussianNoise:
-                        module: kornia.augmentation
+                    - gaussian_noise:
+                        _target_: kornia.augmentation.RandomGaussianNoise
                         p: 0.2
                         std: 0.05
                         keepdim: true
-                    RandomErasing:
-                        module: kornia.augmentation
+                    - random_erasing:
+                        _target_: kornia.augmentation.RandomErasing
                         p: 0.2
                         keepdim: true
 
@@ -172,8 +174,8 @@ tasks:
 
             image:
                 transforms:
-                    Normalise:
-                        module: minerva.transforms
+                    - Normalise:
+                        _target_: minerva.transforms.Normalise
                         norm_value: 4095
 
                 module: minerva.datasets
@@ -187,7 +189,7 @@ tasks:
             mask:
                 transforms:
                     MaskResize:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.MaskResize
                         size: 64
 
 # === PLOTTING OPTIONS ========================================================

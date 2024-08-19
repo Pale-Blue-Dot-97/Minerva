@@ -592,7 +592,7 @@ def _add_class_transform(
 ) -> Dict[str, Any]:
     class_transform = {
         "ClassTransform": {
-            "module": "minerva.transforms",
+            "_target_": "minerva.transforms.ClassTransform",
             "transform": class_matrix,
         }
     }

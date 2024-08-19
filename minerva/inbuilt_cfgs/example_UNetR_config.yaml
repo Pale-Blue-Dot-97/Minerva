@@ -105,7 +105,7 @@ tasks:
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 255
                 module: minerva.datasets.__testing
                 name: TstImgDataset
@@ -141,7 +141,7 @@ tasks:
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 255
                 module: minerva.datasets.__testing
                 name: TstImgDataset
@@ -176,7 +176,7 @@ tasks:
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 255
                 module: minerva.datasets.__testing
                 name: TstImgDataset

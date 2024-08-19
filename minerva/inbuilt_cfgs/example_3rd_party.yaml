@@ -105,7 +105,7 @@ tasks:
             image:
                 transforms:
                     ToRGB:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.ToRGB
 
                 images_1:
                     module: minerva.datasets.__testing
@@ -124,7 +124,7 @@ tasks:
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.SingleLabel
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7
@@ -153,7 +153,7 @@ tasks:
             image:
                 transforms:
                     ToRGB:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.ToRGB
                 module: minerva.datasets.__testing
                 name: TstImgDataset
                 paths: NAIP
@@ -163,7 +163,7 @@ tasks:
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.SingleLabel
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7
@@ -192,7 +192,7 @@ tasks:
             image:
                 transforms:
                     ToRGB:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.ToRGB
                 module: minerva.datasets.__testing
                 name: TstImgDataset
                 paths: NAIP
@@ -202,7 +202,7 @@ tasks:
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.SingleLabel
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
                 paths: Chesapeake7

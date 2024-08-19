@@ -101,7 +101,7 @@ tasks:
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 255
                 module: minerva.datasets.__testing
                 name: TstImgDataset
@@ -111,7 +111,7 @@ tasks:
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.SingleLabel
                         mode: modal
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
@@ -140,7 +140,7 @@ tasks:
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 255
                 module: minerva.datasets.__testing
                 name: TstImgDataset
@@ -151,7 +151,7 @@ tasks:
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.SingleLabel
                         mode: modal
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
@@ -180,7 +180,7 @@ tasks:
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 255
                 module: minerva.datasets.__testing
                 name: TstImgDataset
@@ -191,7 +191,7 @@ tasks:
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.SingleLabel
                         mode: modal
                 module: minerva.datasets.__testing
                 name: TstMaskDataset
