@@ -75,7 +75,7 @@ from minerva.tasks import MinervaTask, TSNEVis, get_task
 from minerva.utils import universal_path, utils
 
 from azureml.core import Run as ml_run
-from azureml.core import Dataset
+import shutil
 
 
 # =====================================================================================================================
@@ -280,25 +280,23 @@ class Trainer:
         # set self.params["exp_name"] to the name of the checkpoint file.
 
         if "azure_datastore" in self.params.keys():
-            print("azure checkpoint:",f"{self.params['azure_ckpt_download']}/results",list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt")))
             checkpoints = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))
             metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-metrics.csv"))
-            #copy the checkpoint file to the local directory
         else:
             checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
         if len(checkpoints) > 0:
             #find the most recent checkpoint
             checkpoints.sort(key=os.path.getmtime)
-
             self.params["exp_name"] = checkpoints[0].name.split("-checkpoint.pt")[0]
             self.resume = True
             #copy the checkpoint file to the local directory
             if "azure_datastore" in self.params.keys():
                 metric_csv.sort(key=os.path.getmtime)
-                temp = Dataset.File.from_files(str(checkpoints[0]))
-                temp.download(target_path=f"{self.params['results_dir']}/{self.params['exp_name']}", overwrite=True, ignore_not_found=False)
-                temp = Dataset.File.from_files(str(metric_csv[0]))
-                temp.download(target_path=f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train", overwrite=True, ignore_not_found=False)
+                #make a copy of checkpoint locally
+                shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
+                #make a copy of metrics locally
+                shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
+
         else:
             self.resume: bool = self.params.get("resume_experiment", False)
         #self.resume: bool = self.params.get("resume_experiment", False)
