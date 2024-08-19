@@ -1,4 +1,4 @@
-argcomplete==3.4.0
+argcomplete==3.5.0
 fastapi>=0.101.0
 fiona>=1.9.1
 geopy==2.4.1
