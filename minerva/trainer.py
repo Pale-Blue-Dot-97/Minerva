@@ -281,7 +281,7 @@ class Trainer:
 
         if "azure_datastore" in self.params.keys():
             checkpoints = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))
-            metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-metrics.csv"))
+            metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/**/*-metrics.csv"))
         else:
             checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
         if len(checkpoints) > 0:
