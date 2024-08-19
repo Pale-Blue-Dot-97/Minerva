@@ -190,6 +190,7 @@ class Up(Module):
         """
 
         x1 = self.up(x1)
+
         # input is CHW
         diffy = x2.size()[2] - x1.size()[2]
         diffx = x2.size()[3] - x1.size()[3]
@@ -415,6 +416,12 @@ class UNetR(MinervaModel):
         )
 
         self.outc = OutConv(latent_channels // 32, n_classes)
+
+    def _remake_classifier(self) -> None:
+        backbone_out_shape = self.backbone.output_shape
+        assert isinstance(backbone_out_shape, Sequence)
+        assert self.n_classes is not None
+        self.outc = OutConv(backbone_out_shape[0] // 32, self.n_classes)
 
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the UNet using ``backbone``.

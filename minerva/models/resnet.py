@@ -424,7 +424,7 @@ class ResNetX(MinervaModel):
             encoder=encoder,
         )
 
-        if torch_weights:
+        if torch_weights:  # pragma: no cover
             self.network = _preload_weights(
                 self.network, get_torch_weights(self.weights_name), input_size, encoder
             )
@@ -511,13 +511,13 @@ def _preload_weights(
     weights: Optional[Union[WeightsEnum, Any]],
     input_shape: Tuple[int, int, int],
     encoder_on: bool,
-) -> ResNet:
+) -> ResNet:  # pragma: no cover
     if not weights:
         print("Weights are None! The original resnet will be used")
         return resnet
 
     if isinstance(weights, WeightsEnum):
-        weights = weights.get_state_dict(True)
+        weights = weights.get_state_dict()
 
     if input_shape[0] != 3 or input_shape[1] <= 224 or input_shape[2] <= 224:
         weights["conv1.weight"] = resnet.conv1.state_dict()["weight"]  # type: ignore[attr-defined]

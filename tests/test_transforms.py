@@ -150,9 +150,9 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     input_3 = {"image": input_1}
     input_4 = {"image": simple_rgb_img}
 
-    compose_3 = MinervaCompose(transform_1, key="image")
+    compose_3 = MinervaCompose({"image": transform_1})
     compose_4 = MinervaCompose(
-        [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)], key="image"
+        {"image": [transform_1, RandomHorizontalFlip(1.0), RandomVerticalFlip(1.0)]}
     )
 
     output_3 = {"image": output_1}
@@ -174,34 +174,37 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     )
 
     # Check that __add__ works.
-    compose_4 += RandomHorizontalFlip(0.7)
-    new_compose = compose_4 + [RandomHorizontalFlip(0.3), RandomVerticalFlip(0.8)]
+    compose_4 += {"image": RandomHorizontalFlip(0.7)}
+    new_compose = compose_4 + {
+        "image": [RandomHorizontalFlip(0.3), RandomVerticalFlip(0.8)]
+    }
 
     with pytest.raises(
         TypeError,
-        match=f"`new_transform` has type {type(42)}, not callable or sequence of callables",
     ):
         _ = compose_4 + 42  # type: ignore [operator]
 
     assert (
         repr(compose_4)
         == "MinervaCompose("
-        + "\n    Normalise(norm_value=255)"
-        + "\n    {0}".format(RandomHorizontalFlip(1.0))
-        + "\n    {0}".format(RandomVerticalFlip(1.0))
-        + "\n    {0}".format(RandomHorizontalFlip(0.7))
+        + "\n    image:"
+        + "\n        Normalise(norm_value=255)"
+        + "\n        {0}".format(RandomHorizontalFlip(1.0))
+        + "\n        {0}".format(RandomVerticalFlip(1.0))
+        + "\n        {0}".format(RandomHorizontalFlip(0.7))
         + "\n)"
     )
 
     assert (
         repr(new_compose)
         == "MinervaCompose("
-        + "\n    Normalise(norm_value=255)"
-        + "\n    {0}".format(RandomHorizontalFlip(1.0))
-        + "\n    {0}".format(RandomVerticalFlip(1.0))
-        + "\n    {0}".format(RandomHorizontalFlip(0.7))
-        + "\n    {0}".format(RandomHorizontalFlip(0.3))
-        + "\n    {0}".format(RandomVerticalFlip(0.8))
+        + "\n    image:"
+        + "\n        Normalise(norm_value=255)"
+        + "\n        {0}".format(RandomHorizontalFlip(1.0))
+        + "\n        {0}".format(RandomVerticalFlip(1.0))
+        + "\n        {0}".format(RandomHorizontalFlip(0.7))
+        + "\n        {0}".format(RandomHorizontalFlip(0.3))
+        + "\n        {0}".format(RandomVerticalFlip(0.8))
         + "\n)"
     )
 
@@ -399,7 +402,7 @@ def test_get_transform() -> None:
                 "CenterCrop": {"module": "torchvision.transforms", "size": 128},
                 "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
             },
-            None,
+            "mask",
         ),
         (
             {
@@ -409,17 +412,11 @@ def test_get_transform() -> None:
                 },
                 "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
             },
-            None,
+            "image",
         ),
         (
             {
-                "MinervaCompose": {
-                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-                    "RandomHorizontalFlip": {
-                        "module": "torchvision.transforms",
-                        "p": 0.7,
-                    },
-                },
+                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
                 "RandomApply": {
                     "CenterCrop": {"module": "torchvision.transforms", "size": 128},
                     "p": 0.3,
@@ -432,7 +429,7 @@ def test_get_transform() -> None:
 )
 def test_make_transformations(params: Dict[str, Any], key: str) -> None:
     if params:
-        transforms = make_transformations(params, key)
+        transforms = make_transformations({key: params})
         assert callable(transforms)
     else:
         assert make_transformations(False) is None

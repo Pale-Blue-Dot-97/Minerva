@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -44,6 +43,10 @@ __all__ = [
     "SimSiam34",
     "SimSiam50",
     "SimConv",
+    "SimConv18",
+    "SimConv34",
+    "SimConv50",
+    "SimConv101",
 ]
 
 # =====================================================================================================================
@@ -59,8 +62,8 @@ from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
-from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
-from .psp import PSPEncoder
+from .core import MinervaBackbone, MinervaModel, get_model
+from .psp import MinervaPSP
 
 
 # =====================================================================================================================
@@ -479,45 +482,38 @@ class SimConv(MinervaSiamese):
         criterion: Any,
         input_size: Tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 2048,
+        projection_dim: int = 512,
         scaler: Optional[GradScaler] = None,
+        encoder_weights: Optional[str] = None,
         backbone_kwargs: Dict[str, Any] = {},
     ) -> None:
         super(SimConv, self).__init__(
             criterion=criterion, input_size=input_size, scaler=scaler
         )
 
-        # Set of required kwargs for the `PSPNet` adapted from `minerva` style kwargs.
-        new_kwargs = {
-            "encoder_name": self.backbone_name,
-            "psp_out_channels": feature_dim,
-            "in_channels": input_size[0],
-            "encoder_weights": None,
-        }
-
-        # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
-        if backbone_kwargs is not None:
-            new_kwargs.update(backbone_kwargs)
-
-        self.backbone = MinervaWrapper(
-            PSPEncoder,
+        self.backbone = MinervaPSP(
             input_size=input_size,
-            criterion=None,
-            n_classes=None,
-            scaler=None,
-            **new_kwargs,
+            encoder_name=self.backbone_name,
+            psp_out_channels=feature_dim,
+            encoder_weights=encoder_weights,
+            encoder_depth=5,
+            encoder=True,
+            segmentation_on=False,
+            classification_on=False,
+            **backbone_kwargs,
         )
 
         self.proj_head = nn.Sequential(
-            nn.Conv2d(feature_dim, 512, 3, 2, padding=1),  # 3x3 Conv
-            nn.BatchNorm2d(512),
+            nn.Conv2d(feature_dim, projection_dim, 3, 2, padding=1),  # 3x3 Conv
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, 1, padding=0),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, 1, padding=0),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
         )
@@ -598,3 +594,27 @@ class SimConv(MinervaSiamese):
                 self.optimiser.step()
 
         return loss, z
+
+
+class SimConv18(SimConv):
+    """:class:`SimConv` network using a ResNet18 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet18"
+
+
+class SimConv34(SimConv):
+    """:class:`SimConv` network using a ResNet34 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet34"
+
+
+class SimConv50(SimConv):
+    """:class:`SimConv` network using a ResNet50 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet50"
+
+
+class SimConv101(SimConv):
+    """:class:`SimConv` network using a ResNet50 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet101"

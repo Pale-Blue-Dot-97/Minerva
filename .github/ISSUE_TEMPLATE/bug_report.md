@@ -12,6 +12,7 @@ A clear and concise description of what the bug is.
 
 **To Reproduce**
 Steps to reproduce the behavior:
+
 1. Go to '...'
 2. Click on '....'
 3. Scroll down to '....'
@@ -24,10 +25,11 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment (please complete the following information):**
- - OS: [e.g. iOS]
- - Version [e.g. v0.25.0]
- - Python Version [e.g. 3.8]
- - Packages [pytorch==2.0.0 etc]
+
+- OS: \[e.g. iOS\]
+- Version \[e.g. v0.25.0\]
+- Python Version \[e.g. 3.8\]
+- Packages \[pytorch==2.0.0 etc\]
 
 **Additional context**
 Add any other context about the problem here.

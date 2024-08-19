@@ -38,7 +38,7 @@ __all__ = ["TSNEVis"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Union
+from typing import Optional, Union
 
 import torch
 from torch import Tensor
@@ -71,6 +71,7 @@ class TSNEVis(MinervaTask):
         rank: int = 0,
         world_size: int = 1,
         writer: Union[SummaryWriter, Run, None] = None,
+        backbone_weight_path: Optional[Union[str, Path]] = None,
         record_int: bool = True,
         record_float: bool = False,
         **params,
@@ -89,6 +90,7 @@ class TSNEVis(MinervaTask):
             rank,
             world_size,
             writer,
+            backbone_weight_path,
             record_int,
             record_float,
             **params,
@@ -106,8 +108,10 @@ class TSNEVis(MinervaTask):
         # Make sure the model is in evaluation mode.
         self.model.eval()
 
-        # Pass the batch of data through the model to get the embeddings.
-        embeddings: Tensor = self.model.forward(data["image"].to(self.device))[0]
+        # Ensure that gradients are not calculated.
+        with torch.no_grad():
+            # Pass the batch of data through the model to get the embeddings.
+            embeddings: Tensor = self.model.forward(data["image"].to(self.device))[0]
 
         # Flatten embeddings.
         embeddings = embeddings.flatten(start_dim=1)
@@ -115,7 +119,8 @@ class TSNEVis(MinervaTask):
         plot_embedding(
             embeddings.detach().cpu(),
             data["bbox"],
-            self.name,
+            self.global_params["data_root"],
+            self.params["dataset_params"],
             show=True,
             filename=str(self.task_fn / "tsne_cluster_vis.png"),
         )

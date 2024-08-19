@@ -1,0 +1,236 @@
+---
+#       *       *    __  ________   ____________ _    _____
+#   *        *      /  |/  /  _/ | / / ____/ __ \ |  / /   |  *           *
+#       *          / /|_/ // //  |/ / __/ / /_/ / | / / /| |     *
+#   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
+#    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
+#
+#            EXAMPLE MASTER CONFIG FILE FOR A SCENE CLASSIFIER
+#
+# === PATHS ===================================================================
+data_root: tests/fixtures/data
+results_dir: tests/tmp/results
+cache_dir: tests/tmp/cache
+
+# === HYPERPARAMETERS =========================================================
+# ---+ Model Specification +---------------------------------------------------
+# Name of model. Substring before hyphen is model class.
+model_name: ChangeDetector-test
+
+# Type of model. Can be mlp, scene-classifier, segmentation, ssl or siamese.
+model_type: change-detector-scene-classifier
+
+# ---+ Sizing +----------------------------------------------------------------
+batch_size: 8                          # Number of samples in each batch.
+input_size: [4, 96, 96]                # patch_size plus leading channel dim.
+patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
+n_classes: 2                           # Number of classes in dataset.
+
+# ---+ Experiment Execution +--------------------------------------------------
+max_epochs: 2                          # Maximum number of training epochs.
+elim: false                            # Eliminates empty classes from schema.
+balance: true                          # Balances dataset classes.
+pre_train: false                       # Activate pre-training mode.
+fine_tune: false                       # Activate fine-tuning mode.
+torch_compile: false                   # Wrap model in `torch.compile`.
+sample_pairs: false
+
+# ---+ Loss and Optimisers +---------------------------------------------------
+loss_func: CrossEntropyLoss            # Name of the loss function to use.
+lr: 1.0E-3                             # Learning rate of optimiser.
+optim_func: Adam                       # Name of the optimiser function.
+
+# ---+ Model Parameters +------------------------------------------------------
+model_params:
+    module:
+    params:
+        input_size: ${input_size}
+        n_classes: ${n_classes}
+        encoder_on: true
+        filter_dim: -1
+        fc_dim: 512
+        freeze_backbone: false
+        backbone_args:
+            module: minerva.models
+            name: MinervaPSP
+            input_size: ${input_size}
+            n_classes: 1
+            encoder_name: resnet18
+            encoder_weights:
+            psp_out_channels: 512
+            segmentation_on: false
+            classification_on: false
+            encoder: false
+
+# ---+ Optimiser Parameters +--------------------------------------------------
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
+
+# ---+ Loss Function Parameters +----------------------------------------------
+loss_params:
+    _target_: torch.nn.${loss_func}
+
+# ---+ Dataloader Parameters +-------------------------------------------------
+loader_params:
+    num_workers: 0
+    pin_memory: true
+
+# === WANDB LOGGING ===========================================================
+wandb_log: true              # Activates wandb logging.
+project: pytest              # Define the project name for wandb.
+wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
+
+# === MODEL IO & LOGGING ======================================================
+# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
+
+record_int: true     # Store integer results in memory.
+record_float: false  # Store floating point results too. Beware memory overload!
+
+# ---+ Collator +--------------------------------------------------------------
+collator:
+    module: torchgeo.datasets
+    name: stack_samples
+
+# === TASKS ===================================================================
+tasks:
+    fit-train:
+        name: StandardEpoch
+        module: minerva.tasks
+        train: true
+        record_float: true
+        sample_pairs: false
+
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/OSCD.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
+        dataset_params:
+            sampler:
+                module: torch.utils.data
+                name: RandomSampler
+                params:
+                    num_samples: 32
+
+            transforms:
+                RandomCrop:
+                    module: kornia.augmentation
+                    size: ${patch_size}
+                    keepdim: true
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 4095
+                    SelectChannels:
+                        module: minerva.transforms
+                        channels:
+                            - 1
+                            - 2
+                            - 3
+                            - 7
+                            - 14
+                            - 15
+                            - 16
+                            - 20
+
+                module: torchgeo.datasets
+                name: OSCD
+                paths: OSCD
+                params:
+                    split: train
+                    bands: all
+                    download: true
+
+            mask:
+                transforms:
+                    SingleLabel:
+                        module: minerva.transforms
+                        mode: centre
+
+    test-test:
+        name: StandardEpoch
+        module: minerva.tasks
+        train: false
+        record_float: true
+        sample_pairs: false
+
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/OSCD.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
+        dataset_params:
+            sampler:
+                module: torch.utils.data
+                name: RandomSampler
+                params:
+                    num_samples: 16
+
+            transforms:
+                RandomCrop:
+                    module: kornia.augmentation
+                    size: ${patch_size}
+                    keepdim: true
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 4095
+                    SelectChannels:
+                        module: minerva.transforms
+                        channels:
+                            - 1
+                            - 2
+                            - 3
+                            - 7
+                            - 14
+                            - 15
+                            - 16
+                            - 20
+
+                module: torchgeo.datasets
+                name: OSCD
+                paths: OSCD
+                params:
+                    split: test
+                    bands: all
+                    download: true
+
+            mask:
+                transforms:
+                    SingleLabel:
+                        module: minerva.transforms
+                        mode: centre
+
+# === PLOTTING OPTIONS ========================================================
+plots:
+    History: true   # Plot of the training and validation metrics over epochs.
+    CM: true        # Confusion matrix.
+    Pred: true      # Pie chart of the distribution of the predicted classes.
+    ROC: false      # Receiver Operator Characteristics for each class.
+    micro: false    # Include micro averaging in ROC plot.
+    macro: false    # Include macro averaging in ROC plot.
+    Mask: true      # Plot predicted masks against ground truth and imagery.
+
+# === MISCELLANEOUS OPTIONS ===================================================
+# ---+ Early Stopping +--------------------------------------------------------
+stopping:
+    patience: 2    # No. of val epochs with increasing loss before stopping.
+    verbose: true  # Verbosity of early stopping prints to stdout.
+
+# ---+ Verbosity and Saving +--------------------------------------------------
+verbose: true           # Verbosity of Trainer print statements to stdout.
+save: true              # Saves created figures to file.
+show: false             # Shows created figures in a pop-up window.
+p_dist: false           # Shows the distribution of classes to stdout.
+plot_last_epoch: false  # Plot the results of the last training and val epochs.
+
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+save_model: false
+
+# ---+ Other +-----------------------------------------------------------------
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+run_tensorboard: false
+calc_norm: false

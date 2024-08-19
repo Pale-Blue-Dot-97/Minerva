@@ -43,7 +43,7 @@ def main():
 
     print(manifest)
 
-    output_dir = universal_path(CONFIG["dir"]["cache"])
+    output_dir = universal_path(CONFIG["cache_dir"])
 
     fn = output_dir / f"{utils.get_dataset_name()}_Manifest.csv"
 

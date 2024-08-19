@@ -38,10 +38,12 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 import importlib
 import os
+from platform import python_version
 from typing import Tuple
 
 import internet_sabotage
 import numpy as np
+import packaging
 import pytest
 import torch
 from pytest_lazyfixture import lazy_fixture
@@ -107,7 +109,7 @@ def test_minerva_model(x_entropy_loss, std_n_classes: int, std_n_batches: int) -
     for train in (True, False):
         loss, z = model.step(x, y, train=train)
 
-        assert type(loss.item()) is float
+        assert isinstance(loss.item(), float)
         assert isinstance(z, Tensor)
         assert z.size() == (std_n_batches, std_n_classes)
 
@@ -152,7 +154,7 @@ def test_minerva_wrapper(
     for train in (True, False):
         loss, z = model.step(x, y, train=train)
 
-        assert type(loss.item()) is float
+        assert isinstance(loss.item(), float)
         assert isinstance(z, Tensor)
         assert z.size() == (std_n_batches, std_n_classes)
 
@@ -200,7 +202,11 @@ def test_bilinear_init() -> None:
 )
 @pytest.mark.parametrize("compile_model", (True, False))
 def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> None:
-    if compile_model and os.name != "nt":
+    if (
+        compile_model
+        and os.name != "nt"
+        and packaging.version.parse(python_version()) < packaging.version.parse("3.12")
+    ):
         model = torch.compile(model)
 
     assert is_minerva_model(model) == answer
@@ -219,7 +225,11 @@ def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> N
 def test_is_minerva_subtype(
     model: Module, subtype: type, compile_model: bool, answer: bool
 ) -> None:
-    if compile_model and os.name != "nt":
+    if (
+        compile_model
+        and os.name != "nt"
+        and packaging.version.parse(python_version()) < packaging.version.parse("3.12")
+    ):
         model = torch.compile(model)
 
     assert is_minerva_subtype(model, subtype) == answer
@@ -231,7 +241,11 @@ def test_is_minerva_subtype(
 )
 @pytest.mark.parametrize("compile_model", (True, False))
 def test_extract_wrapped_model(model, compile_model: bool) -> None:
-    if compile_model and os.name != "nt":
+    if (
+        compile_model
+        and os.name != "nt"
+        and packaging.version.parse(python_version()) < packaging.version.parse("3.12")
+    ):
         model = torch.compile(model)
 
     assert isinstance(extract_wrapped_model(model), MinervaModel)

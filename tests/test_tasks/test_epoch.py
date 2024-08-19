@@ -32,6 +32,8 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
+from omegaconf import DictConfig, OmegaConf
+
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
@@ -39,26 +41,29 @@ from torch.optim import SGD
 
 from minerva.models import MinervaModel
 from minerva.tasks import MinervaTask, StandardEpoch
-from minerva.utils import CONFIG, universal_path, utils
+from minerva.utils import universal_path, utils
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_standard_epoch(default_device, exp_fcn: MinervaModel):
+def test_standard_epoch(
+    default_device, default_config: DictConfig, exp_fcn: MinervaModel
+):
     exp_fcn.determine_output_dim()
     optimiser = SGD(exp_fcn.parameters(), lr=1.0e-3)
     exp_fcn.set_optimiser(optimiser)
     exp_fcn.to(default_device)
 
     exp_name = "{}_{}".format(
-        CONFIG["model_name"], utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
+        default_config["model_name"], utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
     )
-    exp_fn = universal_path(CONFIG["dir"]["results"]) / exp_name / exp_name
+    exp_fn = universal_path(default_config["results_dir"]) / exp_name / exp_name
 
-    params = CONFIG.copy()
+    params = OmegaConf.to_object(default_config)
+    assert isinstance(params, dict)
 
-    task = StandardEpoch(
+    task = StandardEpoch(  # type: ignore[arg-type]
         name="fit-train",
         model=exp_fcn,
         device=default_device,

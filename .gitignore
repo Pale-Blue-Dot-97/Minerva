@@ -139,12 +139,13 @@ dmypy.json
 *.xml
 *.iml
 
+# npm
+package-lock.json
+package.json
+node_modules/*
+
 # Weights and Biases stuff
 /wandb
-
-# Exclusions
-!docs/images/*.png
-!tests/fixtures/data/**/*.tif
 
 lightning_logs/
 **/data/*
@@ -159,3 +160,10 @@ inbuilt_cfgs/config.yml
 inbuilt_cfgs/mf_config.yml
 
 .vscode/settings.json
+
+# Exclusions
+!docs/images/*.png
+!tests/fixtures/data/**/*.png
+!tests/fixtures/data/**/*.txt
+!tests/fixtures/data/**/*.csv
+!tests/fixtures/data/**/*.tif

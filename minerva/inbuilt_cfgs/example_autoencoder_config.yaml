@@ -1,0 +1,232 @@
+---
+#       *       *    __  ________   ____________ _    _____
+#   *        *      /  |/  /  _/ | / / ____/ __ \ |  / /   |  *           *
+#       *          / /|_/ // //  |/ / __/ / /_/ / | / / /| |     *
+#   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *
+#    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *
+#
+#               EXAMPLE MASTER CONFIG FILE FOR AN AUTOENCODER
+#
+# === PATHS ===================================================================
+data_root: tests/fixtures/data
+results_dir: tests/tmp/results
+cache_dir: tests/tmp/cache
+
+# === HYPERPARAMETERS =========================================================
+# ---+ Model Specification +---------------------------------------------------
+# Name of model. Substring before hyphen is model class.
+model_name: UNetR18-test
+
+# Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
+model_type: segmentation
+
+# ---+ Sizing +----------------------------------------------------------------
+batch_size: 6                          # Number of samples in each batch.
+input_size: [8, 224, 224]              # patch_size plus leading channel dim.
+patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
+n_classes: 8                           # Number of classes in dataset.
+
+# ---+ Experiment Execution +--------------------------------------------------
+max_epochs: 2                          # Maximum number of training epochs.
+elim: false                            # Eliminates empty classes from schema.
+balance: false                         # Balances dataset classes.
+pre_train: false                       # Activate pre-training mode.
+fine_tune: false                       # Activate fine-tuning mode.
+torch_compile: false                   # Wrap model in `torch.compile`.
+
+# ---+ Loss and Optimisers +---------------------------------------------------
+loss_func: CrossEntropyLoss            # Name of the loss function to use.
+lr: 1.0E-3                             # Learning rate of optimiser.
+optim_func: SGD                        # Name of the optimiser function.
+
+# ---+ Model Parameters +------------------------------------------------------
+model_params:
+    module:
+    params:
+        input_size: ${input_size}
+        n_classes: ${n_classes}
+        backbone_kwargs:
+            torch_weights: false
+
+# ---+ Optimiser Parameters +--------------------------------------------------
+optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
+
+# ---+ Loss Function Parameters +----------------------------------------------
+loss_params:
+    _target_: torch.nn.${loss_func}
+
+# ---+ Dataloader Parameters +-------------------------------------------------
+loader_params:
+    num_workers: 0
+    pin_memory: true
+
+# === WANDB LOGGING ===========================================================
+wandb_log: true              # Activates wandb logging.
+project: pytest              # Define the project name for wandb.
+wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
+
+# === MODEL IO & LOGGING ======================================================
+# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
+task_logger: SupervisedTaskLogger
+step_logger:
+    name: SupervisedStepLogger
+model_io: autoencoder_io
+
+record_int: true     # Store integer results in memory.
+record_float: false  # Store floating point results too. Beware memory overload!
+
+# ---+ Collator +--------------------------------------------------------------
+collator:
+    module: torchgeo.datasets
+    name: stack_samples
+
+# === TASKS ===================================================================
+tasks:
+    fit-train:
+        name: StandardEpoch
+        module: minerva.tasks
+        train: true
+        record_float: true
+        autoencoder_data_key: mask
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: ${patch_size}
+                    length: 36
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                module: minerva.datasets.__testing
+                name: TstImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
+
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                paths: Chesapeake7
+                params:
+                    res: 1.0
+
+    fit-val:
+        name: StandardEpoch
+        module: minerva.tasks
+        train: false
+        record_float: true
+        autoencoder_data_key: mask
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: ${patch_size}
+                    length: 18
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                module: minerva.datasets.__testing
+                name: TstImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
+
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                paths: Chesapeake7
+                params:
+                    res: 1.0
+
+    test-test:
+        name: StandardEpoch
+        module: minerva.tasks
+        train: false
+        record_float: true
+        autoencoder_data_key: mask
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Dataset Parameters +--------------------------------------------
+        dataset_params:
+            sampler:
+                module: torchgeo.samplers
+                name: RandomGeoSampler
+                roi: false
+                params:
+                    size: ${patch_size}
+                    length: 18
+
+            image:
+                transforms:
+                    Normalise:
+                        module: minerva.transforms
+                        norm_value: 255
+                module: minerva.datasets.__testing
+                name: TstImgDataset
+                paths: NAIP
+                params:
+                    res: 1.0
+
+            mask:
+                module: minerva.datasets.__testing
+                name: TstMaskDataset
+                paths: Chesapeake7
+                params:
+                    res: 1.0
+
+# === PLOTTING OPTIONS ========================================================
+plots:
+    History: true   # Plot of the training and validation metrics over epochs.
+    CM: true        # Confusion matrix.
+    Pred: true      # Pie chart of the distribution of the predicted classes.
+    ROC: true       # Receiver Operator Characteristics for each class.
+    micro: false    # Include micro averaging in ROC plot.
+    macro: true     # Include macro averaging in ROC plot.
+    Mask: true      # Plot predicted masks against ground truth and imagery.
+
+# === MISCELLANEOUS OPTIONS ===================================================
+# ---+ Early Stopping +--------------------------------------------------------
+stopping:
+    patience: 2    # No. of val epochs with increasing loss before stopping.
+    verbose: true  # Verbosity of early stopping prints to stdout.
+
+# ---+ Verbosity and Saving +--------------------------------------------------
+verbose: true           # Verbosity of Trainer print statements to stdout.
+save: true              # Saves created figures to file.
+show: false             # Shows created figures in a pop-up window.
+p_dist: false           # Shows the distribution of classes to stdout.
+plot_last_epoch: false  # Plot the results of the last training and val epochs.
+
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+save_model: false
+
+# ---+ Other +-----------------------------------------------------------------
+# opt to ask at runtime; auto or True to automatically do so; or False,
+# None etc to not
+run_tensorboard: false
+calc_norm: false

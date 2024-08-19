@@ -1,0 +1,30 @@
+---
+name: EuroSAT
+
+classes:
+    0: Annual Crop
+    1: Forest
+    2: Vegetation
+    3: Highway
+    4: Industrial
+    5: Pasture
+    6: Crops
+    7: Residential
+    8: River
+    9: Sea Lake
+
+colours:
+    0: '#C00000'
+    1: '#009900'
+    2: '#c6b044'
+    3: '#ED7D31'
+    4: '#70AD47'
+    5: '#27ff87'
+    6: '#c24f44'
+    7: '#A9D18E'
+    8: '#41719C'
+    9: '#f9ffa4'
+
+fig_sizes:
+    CM: [9, 8]
+    Mask: [12, 10]

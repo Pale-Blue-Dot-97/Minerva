@@ -13,6 +13,7 @@ authors = [
 requires-python = ">=3.9"
 license = {file = "LICENSE"}
 classifiers = [
+        "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.9",
@@ -29,8 +30,10 @@ dependencies = [
     "imageio",
     "inputimeout",
     "lightly",
+    "kornia",
     "matplotlib",
-    "mlflow",
+    "hydra-core",
+    "mlflow-skinny",
     "nptyping",
     "numba>=0.57.0; python_version>='3.11'",
     "numpy",
@@ -41,6 +44,7 @@ dependencies = [
     "requests",
     "scikit-learn",
     "tabulate",
+    "torcheval",
     "torchgeo>=0.5.0",
     "torchinfo",
     "tqdm",
@@ -49,6 +53,7 @@ dependencies = [
     "types-tabulate",
     "wandb",
     "segmentation-models-pytorch",
+    "tifffile",
 ]
 
 [project.optional-dependencies]
@@ -80,6 +85,10 @@ onnx = [
 
 tensorflow = [
     "tensorflow",
+]
+
+dfc = [
+    "torchdata",
 ]
 
 [project.urls]

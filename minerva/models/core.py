@@ -34,6 +34,7 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
 __all__ = [
+    "FilterOutputs",
     "MinervaModel",
     "MinervaWrapper",
     "MinervaDataParallel",
@@ -61,6 +62,7 @@ from typing import (
     Any,
     Callable,
     Iterable,
+    List,
     Optional,
     Sequence,
     Tuple,
@@ -80,6 +82,7 @@ from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.optim import Optimizer
+from torch.optim.lr_scheduler import LRScheduler
 from torchvision.models._api import WeightsEnum
 
 from minerva.utils.utils import func_by_str
@@ -88,6 +91,23 @@ from minerva.utils.utils import func_by_str
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
+class FilterOutputs(Module):
+    """Helper class for use in :class:~`torch.nn.Sequential` to filter previous layer's outputs by index.
+
+    Attributes:
+        indexes (int | list[int]): Index(es) of the inputs to pass forward.
+
+    Args:
+        indexes (int | list[int]): Index(es) of the inputs to pass forward.
+    """
+
+    def __init__(self, indexes: Union[int, List[int]]) -> None:
+        self.indexes = indexes
+
+    def forward(self, inputs: Tensor) -> Tensor:
+        return inputs[self.indexes]
+
+
 class MinervaModel(Module, ABC):
     """Abstract class to act as a base for all Minerva Models.
 
@@ -134,6 +154,10 @@ class MinervaModel(Module, ABC):
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
         self.optimiser: Optional[Optimizer] = None
 
+        # Like the optimiser, the scheduler needs to be set after the model is inited as it needs to wrap
+        # the optimiser. Use ``set_scheduler`` to add the scheduler to the model.
+        self.scheduler: Optional[LRScheduler] = None
+
     def set_optimiser(self, optimiser: Optimizer) -> None:
         """Sets the optimiser used by the model.
 
@@ -147,6 +171,9 @@ class MinervaModel(Module, ABC):
         """
         self.optimiser = optimiser
 
+    def set_scheduler(self, scheduler: LRScheduler) -> None:
+        self.scheduler = scheduler
+
     def set_criterion(self, criterion: Module) -> None:
         """Set the internal criterion.
 
@@ -155,13 +182,18 @@ class MinervaModel(Module, ABC):
         """
         self.criterion = criterion
 
-    def determine_output_dim(self, sample_pairs: bool = False) -> None:
+    def determine_output_dim(
+        self, sample_pairs: bool = False, change_detection: bool = False
+    ) -> None:
         """Uses :func:`get_output_shape` to find the dimensions of the output of this model and sets to attribute."""
 
         assert self.input_size is not None
 
         self.output_shape = get_output_shape(
-            self, self.input_size, sample_pairs=sample_pairs
+            self,
+            self.input_size,
+            sample_pairs=sample_pairs,
+            change_detection=change_detection,
         )
 
     def _remake_classifier(self) -> None:
@@ -257,8 +289,8 @@ class MinervaWrapper(MinervaModel):
         model (~torch.nn.Module): The wrapped :mod:`torch` model that is now compatible with :mod:`minerva`.
 
     Args:
-        model_cls (~typing.Callable[..., ~torch.nn.Module]): The :mod:`torch` model class to wrap, initialise
-            and place in :attr:`~MinervaWrapper.model`.
+        model (~torch.nn.Module | ~typing.Callable[..., ~torch.nn.Module]): The :mod:`torch` model object or
+            constructor to, initialise and then wrap in :attr:`~MinervaWrapper.model`.
         criterion (~torch.nn.Module): Optional; :mod:`torch` loss function model will use.
         input_shape (tuple[int, ...]): Optional; Defines the shape of the input data. Typically in order of
             number of channels, image width, image height but may vary dependant on model specs.
@@ -268,7 +300,7 @@ class MinervaWrapper(MinervaModel):
 
     def __init__(
         self,
-        model_cls: Callable[..., Module],
+        model: Union[Module, Callable[..., Module]],
         criterion: Optional[Module] = None,
         input_size: Optional[Tuple[int, ...]] = None,
         n_classes: Optional[int] = None,
@@ -278,7 +310,10 @@ class MinervaWrapper(MinervaModel):
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)
 
-        self.model = model_cls(*args, **kwargs)
+        if isinstance(model, Module):
+            self.model = model
+        else:
+            self.model = model(*args, **kwargs)
 
     def __call__(self, *inputs) -> Any:
         return self.forward(*inputs)
@@ -297,14 +332,18 @@ class MinervaWrapper(MinervaModel):
 
 
 class MinervaBackbone(MinervaModel):
-    """Abstract class to mark a model for use as a backbone."""
+    """Abstract class to mark a model for use as a backbone.
+
+    Attributes:
+        backbone (~torch.nn.Module): Backbone of the the model.
+    """
 
     __metaclass__ = abc.ABCMeta
 
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
-        self.backbone: MinervaModel
+        self.backbone: Module
 
     def get_backbone(self) -> Module:
         """Gets the :attr:`~MinervaBackbone.backbone` network of the model.
@@ -313,6 +352,17 @@ class MinervaBackbone(MinervaModel):
             ~torch.nn.Module: The :attr:`~MinervaModel.backbone` of the model.
         """
         return self.backbone
+
+    def freeze_backbone(self, freeze: bool = True) -> None:
+        """Freeze the backbone so that the weights do not change while the rest of the model trains.
+
+        Args:
+            freeze (bool): Whether to 'freeze' the backbone (Set :meth:`~torch.Tensor.requires_grad_` to `False`).
+                Defaults to `True`.
+
+        .. versionadded:: 0.28
+        """
+        self.backbone.requires_grad_(False if freeze else True)
 
 
 class MinervaDataParallel(Module):  # pragma: no cover
@@ -467,6 +517,7 @@ def get_output_shape(
     model: Module,
     image_dim: Union[Sequence[int], int],
     sample_pairs: bool = False,
+    change_detection: bool = False,
 ) -> Tuple[int, ...]:
     """Gets the output shape of a model.
 
@@ -494,6 +545,9 @@ def get_output_shape(
     elif sample_pairs:
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([2, 4, *_image_dim])
+    elif change_detection:
+        assert isinstance(_image_dim, Iterable)
+        random_input = torch.rand([4, 2 * _image_dim[0], *_image_dim[1:]])
     else:
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([4, *_image_dim])
@@ -634,7 +688,7 @@ def wrap_model(model, gpu: int, torch_compile: bool = False):
             assert is_minerva_model(_compiled_model)
             assert isinstance(_compiled_model, OptimizedModule)
             model = _compiled_model
-        except RuntimeError as err:
+        except RuntimeError as err:  # pragma: no cover
             warnings.warn(str(err))
 
     return model

@@ -82,6 +82,6 @@ def test_cnn(x_entropy_loss) -> None:
 
     loss, z = model.step(x, y, train=True)
 
-    assert type(loss.item()) is float
+    assert isinstance(loss.item(), float)
     assert isinstance(z, Tensor)
     assert z.size() == (6, 8)

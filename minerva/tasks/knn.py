@@ -149,6 +149,7 @@ class WeightedKNN(MinervaTask):
         rank: int = 0,
         world_size: int = 1,
         writer: Optional[Union[SummaryWriter, Run]] = None,
+        backbone_weight_path: Optional[Union[str, Path]] = None,
         record_int: bool = True,
         record_float: bool = False,
         k: int = 5,
@@ -164,6 +165,7 @@ class WeightedKNN(MinervaTask):
             rank,
             world_size,
             writer,
+            backbone_weight_path,
             record_int,
             record_float,
             **params,
@@ -283,7 +285,9 @@ class WeightedKNN(MinervaTask):
 
                 # [B*K, C]
                 one_hot_label = one_hot_label.scatter(
-                    dim=-1, index=sim_labels.view(-1, 1), value=1.0
+                    dim=-1,
+                    index=sim_labels.to(dtype=torch.int64).view(-1, 1),
+                    value=1.0,
                 )
 
                 # Weighted score ---> [B, C]
@@ -298,7 +302,7 @@ class WeightedKNN(MinervaTask):
 
                 # Calculate loss between predicted and ground truth labels by KNN.
                 criterion = torch.nn.CrossEntropyLoss()
-                loss = criterion(pred_scores, test_target)
+                loss = criterion(pred_scores, test_target.to(dtype=torch.long))
 
                 # Pack results together for the logger.
                 results = (loss, pred_scores, test_target, _)
@@ -310,7 +314,8 @@ class WeightedKNN(MinervaTask):
                     results = (loss, *results[1:])
 
                 # Sends results to logger.
-                self.logger.step(self.step_num, *results)
+                self.logger.step(self.global_step_num, self.local_step_num, *results)
 
                 # Update global step number for this mode of model fitting.
-                self.step_num += 1
+                self.global_step_num += 1
+                self.local_step_num += 1
