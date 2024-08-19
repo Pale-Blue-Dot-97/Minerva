@@ -75,6 +75,7 @@ from minerva.tasks import MinervaTask, TSNEVis, get_task
 from minerva.utils import universal_path, utils
 
 from azureml.core import Run as ml_run
+from azureml.core import Dataset
 
 
 # =====================================================================================================================
@@ -294,10 +295,10 @@ class Trainer:
             #copy the checkpoint file to the local directory
             if "azure_datastore" in self.params.keys():
                 metric_csv.sort(key=os.path.getmtime)
-                az_ml_run = ml_run.get_context().experiment.workspace
-                azure_datastore = az_ml_run.datastores["globenet"]
-                azure_datastore.download_files(files=[str(checkpoints[0])], target_path=f"{self.params['results_dir']}/{self.params['exp_name']}", overwrite=True)
-                azure_datastore.download_files(files=[str(metric_csv[0])], target_path=f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train", overwrite=True)
+                temp = Dataset.File.from_files(str(checkpoints[0]))
+                temp.download(target_path=f"{self.params['results_dir']}/{self.params['exp_name']}", overwrite=True, ignore_not_found=False)
+                temp = Dataset.File.from_files(str(metric_csv[0]))
+                temp.download(target_path=f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train", overwrite=True, ignore_not_found=False)
         else:
             self.resume: bool = self.params.get("resume_experiment", False)
         #self.resume: bool = self.params.get("resume_experiment", False)
