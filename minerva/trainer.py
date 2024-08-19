@@ -287,7 +287,7 @@ class Trainer:
         if len(checkpoints) > 0:
             #find the most recent checkpoint
             checkpoints.sort(key=os.path.getmtime)
-            self.params["exp_name"] = str(checkpoints[0]).replace("-checkpoint.pt","")
+            self.params["exp_name"] = str(checkpoints[0]).split("/")[-1].replace("-checkpoint.pt","")
             self.resume = True
             #copy the checkpoint file to the local directory
             if "azure_datastore" in self.params.keys():
