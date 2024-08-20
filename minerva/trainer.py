@@ -649,27 +649,29 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in tasks.keys():
                 # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
-                if (
-                    utils.check_substrings_in_string(mode, "val")
-                    and (self.epoch_no) % self.val_freq != 0
-                ):
-                    tasks[mode].log_null(self.epoch_no - 1)
-                    break
+                if utils.check_substrings_in_string(mode, "val"):
+                    tasks[mode].model = self.model
+
+                    if self.epoch_no % self.val_freq != 0:
+                        tasks[mode].log_null(self.epoch_no - 1)
+                        break
 
                 if tasks[mode].train:
                     self.model.train()
                 else:
                     self.model.eval()
 
-                results: Optional[Dict[str, Any]]
-
-                results = tasks[mode](self.epoch_no - 1)
+                results: Optional[Dict[str, Any]] = tasks[mode](self.epoch_no - 1)
 
                 # Print epoch results.
                 if self.gpu == 0:
                     tasks[mode].print_epoch_results(self.epoch_no - 1)
                     if not self.stopper and self.checkpoint_experiment:
                         self.save_checkpoint()
+
+                # Update Trainer's copy of the model from the training task.
+                if utils.check_substrings_in_string(mode, "train"):
+                    self.model = tasks[mode].model
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if (
