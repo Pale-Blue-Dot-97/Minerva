@@ -95,10 +95,8 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torch.utils.data
-                name: RandomSampler
-                params:
-                    num_samples: 32
+                _target_: torch.utils.data.RandomSampler
+                num_samples: 32
 
             transforms:
                 RandomResizedCrop:
@@ -166,10 +164,8 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torch.utils.data
-                name: RandomSampler
-                params:
-                    num_samples: 16
+                _target_: torch.utils.data.RandomSampler
+                num_samples: 16
 
             image:
                 transforms:

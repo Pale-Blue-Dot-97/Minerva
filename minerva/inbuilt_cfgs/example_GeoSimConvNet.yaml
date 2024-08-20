@@ -104,10 +104,8 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torch.utils.data
-                name: RandomSampler
-                params:
-                    num_samples: 32
+                _target_: torch.utils.data.RandomSampler
+                num_samples: 32
 
             image:
                 transforms:
@@ -176,12 +174,10 @@ tasks:
         dataset_params:
             features:
                 sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
+                    _target_: torchgeo.samplers.RandomGeoSampler
                     roi: false
-                    params:
-                        size: ${patch_size}
-                        length: 16
+                    size: ${patch_size}
+                    length: 16
 
                 image:
                     module: minerva.datasets.__testing
@@ -199,12 +195,10 @@ tasks:
 
             test:
                 sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
+                    _target_: torchgeo.samplers.RandomGeoSampler
                     roi: false
-                    params:
-                        size: ${patch_size}
-                        length: 16
+                    size: ${patch_size}
+                    length: 16
 
                 image:
                     module: minerva.datasets.__testing
@@ -237,12 +231,10 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 16
+                size: ${patch_size}
+                length: 16
 
             image:
                 module: minerva.datasets.__testing

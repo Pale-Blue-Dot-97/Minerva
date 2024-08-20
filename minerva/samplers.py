@@ -41,22 +41,26 @@ __all__ = [
     "DistributedSamplerWrapper",
     "get_greater_bbox",
     "get_pair_bboxes",
+    "get_sampler",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import random
+import re
 from operator import itemgetter
-from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
 
+import hydra
 import torch
 from torch.utils.data import Dataset, DistributedSampler, Sampler
-from torchgeo.datasets import GeoDataset
+from torchgeo.datasets import GeoDataset, NonGeoDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers import BatchGeoSampler, RandomGeoSampler, Units
 from torchgeo.samplers.utils import _to_tuple, get_random_bounding_box
 
+from minerva.datasets.utils import make_bounding_box
 from minerva.utils import utils
 
 
@@ -366,3 +370,40 @@ class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
             int: Length of the dataset
         """
         return len(self.sampler)  # type: ignore[arg-type]
+
+
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
+def get_sampler(
+    params: Dict[str, Any],
+    dataset: Union[GeoDataset, NonGeoDataset],
+    batch_size: Optional[int] = None,
+) -> Sampler:
+    """Use :meth:`hydra.utils.instantiate` to get the sampler using config parameters.
+
+    Args:
+        params (dict[str, ~typing.Any]): Sampler parameters. Must include the ``_target_`` key pointing to
+            the sampler class.
+        dataset (~torchgeo.datasets.GeoDataset, ~torchgeo.datasets.NonGeoDataset]): Dataset to sample.
+        batch_size (int): Optional; Batch size to sample if using a batch sampler.
+            Use if you need to overwrite the config parameters due to distributed computing as the batch size
+            needs to modified to split the batch across devices. Defaults to ``None``.
+
+    Returns:
+        ~torch.utils.data.Sampler: Sampler requested by config parameters.
+    """
+
+    batch_sampler = True if re.search(r"Batch", params["_target_"]) else False
+    if batch_sampler and batch_size is not None:
+        params["batch_size"] = batch_size
+
+    if "roi" in params:
+        return hydra.utils.instantiate(
+            params, dataset=dataset, roi=make_bounding_box(params["roi"])
+        )
+    else:
+        if "torchgeo" in params["_target_"]:
+            return hydra.utils.instantiate(params, dataset=dataset)
+        else:
+            return hydra.utils.instantiate(params, data_source=dataset)

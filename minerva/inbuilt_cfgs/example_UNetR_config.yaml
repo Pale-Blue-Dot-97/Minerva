@@ -95,12 +95,10 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 320
+                size: ${patch_size}
+                length: 320
 
             image:
                 transforms:
@@ -131,12 +129,10 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 80
+                size: ${patch_size}
+                length: 80
 
             image:
                 transforms:
@@ -167,12 +163,10 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 160
+                size: ${patch_size}
+                length: 160
             image:
                 transforms:
                     Normalise:

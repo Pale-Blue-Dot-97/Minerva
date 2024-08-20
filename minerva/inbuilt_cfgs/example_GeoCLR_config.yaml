@@ -101,13 +101,11 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: minerva.samplers
-                name: RandomPairGeoSampler
+                _target_: minerva.samplers.RandomPairGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 120
-                    max_r: *max_r
+                size: ${patch_size}
+                length: 120
+                max_r: *max_r
 
             image:
                 transforms:
@@ -181,12 +179,10 @@ tasks:
         dataset_params:
             features:
                 sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
+                    _target_: torchgeo.samplers.RandomGeoSampler
                     roi: false
-                    params:
-                        size: ${patch_size}
-                        length: 32
+                    size: ${patch_size}
+                    length: 32
 
                 image:
                     module: minerva.datasets.__testing
@@ -204,12 +200,10 @@ tasks:
 
             test:
                 sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
+                    _target_: torchgeo.samplers.RandomGeoSampler
                     roi: false
-                    params:
-                        size: ${patch_size}
-                        length: 32
+                    size: ${patch_size}
+                    length: 32
 
                 image:
                     module: minerva.datasets.__testing
@@ -243,12 +237,10 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 32
+                size: ${patch_size}
+                length: 32
 
             image:
                 module: minerva.datasets.__testing

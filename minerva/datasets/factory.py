@@ -60,12 +60,11 @@ import torch.distributed as dist
 from omegaconf import OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import DataLoader
 from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
-from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
 
-from minerva.samplers import DistributedSamplerWrapper
+from minerva.samplers import DistributedSamplerWrapper, get_sampler
 from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
 
@@ -78,7 +77,6 @@ from .utils import (
     intersect_datasets,
     load_all_samples,
     load_dataset_from_cache,
-    make_bounding_box,
     masks_or_labels,
     unionise_datasets,
 )
@@ -524,34 +522,18 @@ def construct_dataloader(
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
-    _sampler: Callable[..., Union[BatchGeoSampler, GeoSampler]] = utils.func_by_str(
-        module_path=sampler_params["module"], func=sampler_params["name"]
+    per_device_batch_size = None
+
+    batch_sampler = True if re.search(r"Batch", sampler_params["_target_"]) else False
+    if batch_sampler and dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+        assert sampler_params["batch_size"] % world_size == 0  # pragma: no cover
+        per_device_batch_size = (
+            sampler_params["batch_size"] // world_size
+        )  # pragma: no cover
+
+    sampler = get_sampler(
+        sampler_params, subdatasets[0], batch_size=per_device_batch_size
     )
-
-    batch_sampler = True if re.search(r"Batch", sampler_params["name"]) else False
-    if batch_sampler:
-        sampler_params["params"]["batch_size"] = batch_size
-
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
-            assert (
-                sampler_params["params"]["batch_size"] % world_size == 0
-            )  # pragma: no cover
-            per_device_batch_size = (
-                sampler_params["params"]["batch_size"] // world_size
-            )  # pragma: no cover
-            sampler_params["params"][
-                "batch_size"
-            ] = per_device_batch_size  # pragma: no cover
-
-    sampler: Sampler[Any]
-    if "roi" in signature(_sampler).parameters:
-        sampler = _sampler(
-            subdatasets[0],
-            roi=make_bounding_box(sampler_params["roi"]),
-            **sampler_params["params"],
-        )
-    else:
-        sampler = _sampler(subdatasets[0], **sampler_params["params"])
 
     # --+ MAKE DATALOADERS +==========================================================================================+
     collator = get_collator(collator_params)
@@ -651,9 +633,9 @@ def _make_loader(
     # Calculates number of batches.
     assert hasattr(loaders.dataset, "__len__")
     n_batches = int(
-        sampler_params["params"].get(
+        sampler_params.get(
             "length",
-            sampler_params["params"].get("num_samples", len(loaders.dataset)),
+            sampler_params.get("num_samples", len(loaders.dataset)),
         )
         / batch_size
     )
@@ -1025,24 +1007,22 @@ def make_manifest(
     if OmegaConf.is_config(_dataset_params):
         _dataset_params = OmegaConf.to_object(_dataset_params)  # type: ignore[assignment]
 
-    if _sampler_params["name"] in (
+    if _sampler_params["_target_"].rpartition(".")[2] in (
         "RandomGeoSampler",
         "RandomPairGeoSampler",
         "RandomBatchGeoSampler",
         "RandomPairBatchGeoSampler",
     ):
-        _sampler_params["module"] = "torchgeo.samplers"
-        _sampler_params["name"] = "GridGeoSampler"
-        _sampler_params["params"]["stride"] = [
-            0.9 * x for x in _to_tuple(_sampler_params["params"]["size"])
+        _sampler_params["_target_"] = "torchgeo.samplers.GridGeoSampler"
+        _sampler_params["stride"] = [
+            0.9 * x for x in _to_tuple(_sampler_params["size"])
         ]
 
-    if _sampler_params["name"] == "RandomSampler":
-        _sampler_params["name"] = "SequentialSampler"
-        _sampler_params["params"] = {}
+    if _sampler_params["_target_"].rpartition(".")[2] == "RandomSampler":
+        _sampler_params = {"_target_": "torch.utils.data.sampler.SequentialSampler"}
 
-    if "length" in _sampler_params["params"]:
-        del _sampler_params["params"]["length"]
+    if "length" in _sampler_params:
+        del _sampler_params["length"]
 
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
