@@ -119,10 +119,10 @@ tasks:
 
             image:
                 transforms:
-                    - Normalise:
+                    Normalise:
                         _target_: minerva.transforms.Normalise
                         norm_value: 4095
-                    - SelectChannels:
+                    SelectChannels:
                         _target_: minerva.transforms.SelectChannels
                         channels:
                             - 1
@@ -173,10 +173,10 @@ tasks:
 
             image:
                 transforms:
-                    - Normalise:
+                    Normalise:
                         _target_: minerva.transforms.Normalise
                         norm_value: 4095
-                    - SelectChannels:
+                    SelectChannels:
                         _target_: minerva.transforms.SelectChannels
                         channels:
                             - 1

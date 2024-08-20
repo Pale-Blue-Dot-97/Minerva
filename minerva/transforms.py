@@ -80,8 +80,10 @@ from torchgeo.samplers import RandomGeoSampler
 from torchvision.transforms import (
     ColorJitter,
     ConvertImageDtype,
+    InterpolationMode,
     Normalize,
     Resize,
+    RandomApply,
 )
 from torchvision.transforms.v2 import functional as ft
 
@@ -807,6 +809,10 @@ class ConvertDtypeFromStr(ConvertImageDtype):
 class MaskResize(Resize):
     """Wrapper of :class:`torchvision.transforms.Resize` for use with masks that have no channel dimension."""
 
+    def __init__(self, size, interpolation: str = "NEAREST", max_size=None, antialias: bool = True) -> None:
+        interpolation_mode = getattr(InterpolationMode, interpolation)
+        super().__init__(size, interpolation_mode, max_size, antialias)
+
     def forward(self, img: Tensor) -> Tensor:
         """
         Args:
@@ -838,6 +844,16 @@ class MaskResize(Resize):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
+def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
+    p = random_params.pop("p", 0.5)
+
+    random_transforms = []
+    for ran_name in random_params:
+        random_transforms.append(get_transform(random_params[ran_name]))
+
+    return RandomApply(random_transforms, p=p)
+
+
 def init_auto_norm(
     dataset: RasterDataset, params: Dict[str, Any] = {}
 ) -> RasterDataset:
@@ -913,7 +929,7 @@ def make_transformations(
     Example:
         >>> transform_params = {
         >>>    "crop": {"_target_": "torchvision.transforms.CenterCrop", "size": 128},
-        >>>     "flip": {"module": "torchvision.transforms.RandomHorizontalFlip", "p": 0.7}
+        >>>     "flip": {"_target_": "torchvision.transforms.RandomHorizontalFlip", "p": 0.7}
         >>> }
         >>> transforms = make_transformations(transform_params)
 
@@ -928,9 +944,12 @@ def make_transformations(
 
         # Get each transform.
         for _name in type_transform_params:
+            if _name == "RandomApply":
+                random_params = type_transform_params[_name].copy()
+                type_transformations.append(_construct_random_transforms(random_params))
 
             # AutoNorm needs to be handled separately.
-            if _name == "AutoNorm":
+            elif _name == "AutoNorm":
                 continue
 
             else:
