@@ -132,13 +132,11 @@ tasks:
                             - 16
                             - 20
 
-                module: torchgeo.datasets
-                name: OSCD
-                paths: OSCD
-                params:
-                    split: train
-                    bands: all
-                    download: true
+                _target_: torchgeo.datasets.OSCD
+                root: OSCD
+                split: train
+                bands: all
+                download: true
 
             mask:
                 transforms:
@@ -184,13 +182,11 @@ tasks:
                             - 16
                             - 20
 
-                module: torchgeo.datasets
-                name: OSCD
-                paths: OSCD
-                params:
-                    split: test
-                    bands: all
-                    download: true
+                _target_: torchgeo.datasets.OSCD
+                root: OSCD
+                split: test
+                bands: all
+                download: true
 
             mask:
                 transforms:

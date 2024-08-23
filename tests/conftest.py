@@ -425,17 +425,16 @@ def exp_dataset_params() -> Dict[str, Any]:
     return {
         "image": {
             "transforms": {"AutoNorm": {"length": 12}},
-            "module": "minerva.datasets.__testing",
-            "name": "TstImgDataset",
+            "_target_": "minerva.datasets.__testing.TstImgDataset",
             "paths": "NAIP",
-            "params": {"res": 1.0, "crs": 26918},
+            "res": 1.0,
+            "crs": 26918,
         },
         "mask": {
             "transforms": False,
-            "module": "minerva.datasets.__testing",
-            "name": "TstMaskDataset",
+            "_target_": "minerva.datasets.__testing.TstMaskDataset",
             "paths": "Chesapeake7",
-            "params": {"res": 1.0},
+            "res": 1.0,
         },
     }
 
@@ -443,13 +442,10 @@ def exp_dataset_params() -> Dict[str, Any]:
 @pytest.fixture
 def exp_sampler_params(small_patch_size: Tuple[int, int]):
     return {
-        "module": "torchgeo.samplers",
-        "name": "RandomGeoSampler",
+        "_target_": "torchgeo.samplers.RandomGeoSampler",
         "roi": False,
-        "params": {
-            "size": small_patch_size,
-            "length": 120,
-        },
+        "size": small_patch_size,
+        "length": 120,
     }
 
 

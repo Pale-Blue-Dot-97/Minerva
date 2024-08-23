@@ -145,18 +145,14 @@ tasks:
                         _target_: kornia.augmentation.RandomErasing
                         p: 0.2
                         keepdim: true
-
-                image1:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
+                subdatasets:
+                    image1:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
                         res: 1.0
-                image2:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
+                    image2:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
                         res: 1.0
 
     fit-val:
@@ -185,18 +181,14 @@ tasks:
                     length: 32
 
                 image:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
+                    _target_: minerva.datasets.__testing.TstImgDataset
                     paths: NAIP
-                    params:
-                        res: 1.0
+                    res: 1.0
 
                 mask:
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
+                    _target_: minerva.datasets.__testing.TstMaskDataset
                     paths: Chesapeake7
-                    params:
-                        res: 1.0
+                    res: 1.0
 
             test:
                 sampler:
@@ -206,18 +198,14 @@ tasks:
                     length: 32
 
                 image:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
+                    _target_: minerva.datasets.__testing.TstImgDataset
                     paths: NAIP
-                    params:
-                        res: 1.0
+                    res: 1.0
 
                 mask:
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
+                    _target_: minerva.datasets.__testing.TstMaskDataset
                     paths: Chesapeake7
-                    params:
-                        res: 1.0
+                    res: 1.0
 
     test-test:
         name: StandardEpoch
@@ -243,18 +231,14 @@ tasks:
                 length: 32
 
             image:
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
 
             mask:
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:

@@ -384,14 +384,13 @@ def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> Non
 
 
 def test_get_transform() -> None:
-    name = "RandomResizedCrop"
-    params = {"module": "torchvision.transforms", "size": 128}
-    transform = get_transform(name, params)
+    params = {"_target_": "torchvision.transforms.RandomResizedCrop", "size": 128}
+    transform = get_transform(params)
 
     assert callable(transform)
 
     with pytest.raises(TypeError):
-        _ = get_transform("DataFrame", {"module": "pandas"})
+        _ = get_transform({"_target_": "pandas.DataFrame"})
 
 
 @pytest.mark.parametrize(
@@ -399,29 +398,44 @@ def test_get_transform() -> None:
     [
         (
             {
-                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+                "crop": {"_target_": "torchvision.transforms.CenterCrop", "size": 128},
+                "flip": {
+                    "_target_": "torchvision.transforms.RandomHorizontalFlip",
+                    "p": 0.7,
+                },
             },
             "mask",
         ),
         (
             {
                 "RandomApply": {
-                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "crop": {
+                        "_target_": "torchvision.transforms.CenterCrop",
+                        "size": 128,
+                    },
                     "p": 0.3,
                 },
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+                "flip": {
+                    "_target_": "torchvision.transforms.RandomHorizontalFlip",
+                    "p": 0.7,
+                },
             },
             "image",
         ),
         (
             {
-                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                "crop": {"_target_": "torchvision.transforms.CenterCrop", "size": 128},
                 "RandomApply": {
-                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "crop": {
+                        "_target_": "torchvision.transforms.CenterCrop",
+                        "size": 128,
+                    },
                     "p": 0.3,
                 },
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+                "flip": {
+                    "_target_": "torchvision.transforms.RandomHorizontalFlip",
+                    "p": 0.7,
+                },
             },
             "image",
         ),

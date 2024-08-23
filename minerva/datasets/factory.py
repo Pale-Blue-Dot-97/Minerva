@@ -49,10 +49,10 @@ import platform
 import re
 from copy import deepcopy
 from datetime import timedelta
-from inspect import signature
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
+import hydra
 import numpy as np
 import pandas as pd
 import torch
@@ -86,7 +86,6 @@ from .utils import (
 #                                                     METHODS
 # =====================================================================================================================
 def create_subdataset(
-    dataset_class: Union[Callable[..., GeoDataset], Callable[..., NonGeoDataset]],
     paths: Union[str, Iterable[str]],
     subdataset_params: Dict[Literal["params"], Dict[str, Any]],
     transformations: Optional[Any],
@@ -95,72 +94,38 @@ def create_subdataset(
     """Creates a sub-dataset based on the parameters supplied.
 
     Args:
-        dataset_class (Callable[..., ~typing.datasets.GeoDataset]): Constructor for the sub-dataset.
         paths (str | ~typing.Iterable[str]): Paths to where the data for the dataset is located.
         subdataset_params (dict[Literal[params], dict[str, ~typing.Any]]): Parameters for the sub-dataset.
         transformations (~typing.Any): Transformations to apply to this sub-dataset.
         sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
 
     Returns:
-        ~torchgeo.datasets.GeoDataset: Subdataset requested.
+        ~torchgeo.datasets.GeoDataset | ~torchgeo.datasets.NonGeoDataset: Subdataset requested.
     """
-    copy_params = deepcopy(subdataset_params)
+    crs = None
+    if "crs" in subdataset_params:
+        crs = CRS.from_epsg(subdataset_params["crs"])
 
-    if "crs" in copy_params["params"]:
-        copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
-
-    if sample_pairs:
-        if "paths" in signature(dataset_class).parameters:
-            return PairedGeoDataset(
-                dataset_class,  # type: ignore[arg-type]
-                paths=paths,
-                transforms=transformations,
-                **copy_params["params"],
-            )
-
-        elif "season_transform" in signature(dataset_class).parameters:
-            if isinstance(paths, list):
-                paths = paths[0]
-            assert isinstance(paths, str)
-            del copy_params["params"]["season_transform"]
-            return PairedNonGeoDataset(
-                dataset_class,  # type: ignore[arg-type]
-                root=paths,
-                transforms=transformations,
-                season=True,
-                season_transform="pair",
-                **copy_params["params"],
-            )
-        elif "root" in signature(dataset_class).parameters:
-            if isinstance(paths, list):
-                paths = paths[0]
-            assert isinstance(paths, str)
-            return PairedNonGeoDataset(
-                dataset_class,  # type: ignore[arg-type]
-                root=paths,
-                transforms=transformations,
-                **copy_params["params"],
-            )
-        else:
-            raise TypeError
+    subdataset: Union[GeoDataset, NonGeoDataset]
+    if "paths" in subdataset_params:
+        subdataset = hydra.utils.instantiate(
+            subdataset_params, paths=paths, transforms=transformations, crs=crs
+        )
+        if sample_pairs:
+            subdataset = PairedGeoDataset(subdataset)
+    elif "root" in subdataset_params:
+        if isinstance(paths, list):
+            paths = paths[0]
+        assert isinstance(paths, str)
+        subdataset = hydra.utils.instantiate(
+            subdataset_params, root=paths, transforms=transformations
+        )
+        if sample_pairs:
+            subdataset = PairedNonGeoDataset(subdataset)
     else:
-        if "paths" in signature(dataset_class).parameters:
-            return dataset_class(
-                paths=paths,
-                transforms=transformations,
-                **copy_params["params"],
-            )
-        elif "root" in signature(dataset_class).parameters:
-            if isinstance(paths, list):
-                paths = paths[0]
-            assert isinstance(paths, str)
-            return dataset_class(
-                root=paths,
-                transforms=transformations,
-                **copy_params["params"],
-            )
-        else:
-            raise TypeError
+        raise TypeError
+
+    return subdataset
 
 
 def get_subdataset(
@@ -171,6 +136,7 @@ def get_subdataset(
     sample_pairs: bool = False,
     cache: bool = True,
     cache_dir: Union[str, Path] = "",
+    auto_norm: bool = False,
 ) -> Union[GeoDataset, NonGeoDataset]:
     """Get a subdataset based on the parameters specified.
 
@@ -194,14 +160,10 @@ def get_subdataset(
     # Get the params for this sub-dataset.
     sub_dataset_params = dataset_params[key]
 
-    # Get the constructor for the class of dataset defined in params.
-    _sub_dataset: Callable[..., GeoDataset] = utils.func_by_str(
-        module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
-    )
-
     # Construct the path to the sub-dataset's files.
     sub_dataset_paths = utils.compile_dataset_paths(
-        universal_path(data_directory), sub_dataset_params["paths"]
+        universal_path(data_directory),
+        sub_dataset_params.get("paths", sub_dataset_params.get("root")),
     )
 
     sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
@@ -228,7 +190,6 @@ def get_subdataset(
                 if rank == 0:
                     print(f"\nCreating dataset on {rank}...")
                     sub_dataset = create_subdataset(
-                        _sub_dataset,
                         sub_dataset_paths,
                         sub_dataset_params,
                         transformations,
@@ -253,7 +214,6 @@ def get_subdataset(
             else:
                 print("\nCreating dataset...")
                 sub_dataset = create_subdataset(
-                    _sub_dataset,
                     sub_dataset_paths,
                     sub_dataset_params,
                     transformations,
@@ -265,7 +225,6 @@ def get_subdataset(
 
     else:
         sub_dataset = create_subdataset(
-            _sub_dataset,
             sub_dataset_paths,
             sub_dataset_params,
             transformations,
@@ -273,6 +232,16 @@ def get_subdataset(
         )
 
     assert sub_dataset is not None
+
+    if auto_norm:
+        if isinstance(sub_dataset, RasterDataset):
+            init_auto_norm(sub_dataset, auto_norm)
+        else:
+            raise TypeError(  # pragma: no cover
+                "AutoNorm only supports normalisation of data "
+                + f"from RasterDatasets, not {type(sub_dataset)}!"
+            )
+
     return sub_dataset
 
 
@@ -343,36 +312,39 @@ def make_dataset(
 
         auto_norm = None
         master_transforms: Optional[Any] = None
-        for area_key in type_dataset_params.keys():
+
+        for sub_type_key in type_dataset_params.keys():
             # If any of these keys are present, this must be a parameter set for a singular dataset at this level.
-            if area_key in ("module", "name", "params", "paths"):
+            if sub_type_key in ("_target_", "paths", "root"):
                 multi_datasets_exist = False
                 continue
 
             # If there are transforms specified, make them. These could cover a single dataset or many.
-            elif area_key == "transforms":
-                if isinstance(type_dataset_params[area_key], dict):
-                    transform_params = type_dataset_params[area_key]
+            elif sub_type_key == "transforms":
+                if isinstance(type_dataset_params[sub_type_key], dict):
+                    transform_params = type_dataset_params[sub_type_key]
                     auto_norm = transform_params.get("AutoNorm")
 
                     # If transforms aren't specified for a particular modality of the sample,
                     # assume they're for the same type as the dataset.
                     if (
                         not ("image", "mask", "label")
-                        in type_dataset_params[area_key].keys()
+                        in type_dataset_params[sub_type_key].keys()
                     ):
-                        transform_params = {type_key: type_dataset_params[area_key]}
+                        transform_params = {type_key: type_dataset_params[sub_type_key]}
                 else:
                     transform_params = False
 
                 master_transforms = make_transformations(transform_params)
 
             # Assuming that these keys are names of datasets.
-            else:
+            elif sub_type_key == "subdatasets":
                 multi_datasets_exist = True
 
-                if isinstance(type_dataset_params[area_key].get("transforms"), dict):
-                    transform_params = type_dataset_params[area_key]["transforms"]
+                if isinstance(
+                    type_dataset_params[sub_type_key].get("transforms"), dict
+                ):
+                    transform_params = type_dataset_params[sub_type_key]["transforms"]
                     auto_norm = transform_params.get("AutoNorm")
                 else:
                     transform_params = False
@@ -380,31 +352,25 @@ def make_dataset(
                 transformations = make_transformations({type_key: transform_params})
 
                 # Send the params for this area key back through this function to make the sub-dataset.
-                sub_dataset = get_subdataset(
-                    data_directory,
-                    type_dataset_params,
-                    area_key,
-                    transformations,
-                    sample_pairs=sample_pairs,
-                    cache=cache,
-                    cache_dir=cache_dir,
-                )
-
-                # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
-                # to make a transform, then adds the transform to the dataset's existing transforms.
-                if auto_norm:
-                    if isinstance(sub_dataset, RasterDataset):
-                        init_auto_norm(sub_dataset, auto_norm)
-                    else:
-                        raise TypeError(  # pragma: no cover
-                            "AutoNorm only supports normalisation of data "
-                            + f"from RasterDatasets, not {type(sub_dataset)}!"
-                        )
+                for area_key in type_dataset_params[sub_type_key]:
+                    sub_dataset = get_subdataset(
+                        data_directory,
+                        type_dataset_params[sub_type_key],
+                        area_key,
+                        transformations,
+                        sample_pairs=sample_pairs,
+                        cache=cache,
+                        cache_dir=cache_dir,
+                        auto_norm=auto_norm,
+                    )
 
                     # Reset back to None.
                     auto_norm = None
 
-                type_subdatasets.append(sub_dataset)  # type: ignore[arg-type]
+                    type_subdatasets.append(sub_dataset)  # type: ignore[arg-type]
+
+            else:
+                continue
 
         # Unionise all the sub-datsets of this modality together.
         if multi_datasets_exist:
@@ -423,20 +389,11 @@ def make_dataset(
                 sample_pairs=sample_pairs,
                 cache=cache,
                 cache_dir=cache_dir,
+                auto_norm=auto_norm,
             )
 
-            # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
-            # to make a transform, then adds the transform to the dataset's existing transforms.
-            if auto_norm:
-                if isinstance(sub_dataset, RasterDataset):
-                    init_auto_norm(sub_dataset, auto_norm)
-
-                    # Reset back to None.
-                    auto_norm = None
-                else:
-                    raise TypeError(  # pragma: no cover
-                        f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
-                    )
+            # Reset back to None.
+            auto_norm = None
 
             sub_datasets.append(sub_dataset)  # type: ignore[arg-type]
 
@@ -525,11 +482,13 @@ def construct_dataloader(
     per_device_batch_size = None
 
     batch_sampler = True if re.search(r"Batch", sampler_params["_target_"]) else False
-    if batch_sampler and dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
-        assert sampler_params["batch_size"] % world_size == 0  # pragma: no cover
-        per_device_batch_size = (
-            sampler_params["batch_size"] // world_size
-        )  # pragma: no cover
+    if batch_sampler:
+        per_device_batch_size = sampler_params.get("batch_size", batch_size)
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            assert per_device_batch_size % world_size == 0  # pragma: no cover
+            per_device_batch_size = (
+                per_device_batch_size // world_size
+            )  # pragma: no cover
 
     sampler = get_sampler(
         sampler_params, subdatasets[0], batch_size=per_device_batch_size

@@ -139,13 +139,11 @@ tasks:
                         p: 0.2
                         keepdim: true
 
-                module: minerva.datasets
-                name: DFC2020
-                paths: DFC/DFC2020
-                params:
-                    split: test
-                    use_s2hr: true
-                    labels: true
+                _target_: minerva.datasets.DFC2020
+                root: DFC/DFC2020
+                split: test
+                use_s2hr: true
+                labels: true
             mask:
                 transforms:
                     MaskResize:
@@ -173,13 +171,11 @@ tasks:
                         _target_: minerva.transforms.Normalise
                         norm_value: 4095
 
-                module: minerva.datasets
-                name: DFC2020
-                paths: DFC/DFC2020
-                params:
-                    split: test
-                    use_s2hr: true
-                    labels: true
+                _target_: minerva.datasets.DFC2020
+                root: DFC/DFC2020
+                split: test
+                use_s2hr: true
+                labels: true
 
             mask:
                 transforms:

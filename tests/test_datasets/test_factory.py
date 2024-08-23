@@ -60,8 +60,10 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
 
     dataset_params2 = {
         "image": {
-            "image_1": exp_dataset_params["image"],
-            "image_2": exp_dataset_params["image"],
+            "subdatasets": {
+                "image_1": exp_dataset_params["image"],
+                "image_2": exp_dataset_params["image"],
+            },
         },
         "mask": exp_dataset_params["mask"],
     }
@@ -80,8 +82,12 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
     assert isinstance(subdatasets_4[0], UnionDataset)
 
     dataset_params3 = dataset_params2
-    dataset_params3["image"]["image_1"]["transforms"] = {"AutoNorm": {"length": 12}}
-    dataset_params3["image"]["image_2"]["transforms"] = {"AutoNorm": {"length": 12}}
+    dataset_params3["image"]["subdatasets"]["image_1"]["transforms"] = {
+        "AutoNorm": {"length": 12}
+    }
+    dataset_params3["image"]["subdatasets"]["image_2"]["transforms"] = {
+        "AutoNorm": {"length": 12}
+    }
     dataset_params3["image"]["transforms"] = {"AutoNorm": {"length": 12}}
 
     dataset_5, subdatasets_5 = mdt.make_dataset(data_root, dataset_params3, cache=False)
@@ -160,37 +166,28 @@ def test_caching_datasets(
     [
         (
             {
-                "module": "torchgeo.samplers",
-                "name": "RandomBatchGeoSampler",
+                "_target_": "torchgeo.samplers.RandomBatchGeoSampler",
                 "roi": False,
-                "params": {
-                    "size": 224,
-                    "length": 4096,
-                },
+                "size": 224,
+                "length": 4096,
             },
             {},
         ),
         (
             {
-                "module": "minerva.samplers",
-                "name": "RandomPairGeoSampler",
+                "_target_": "minerva.samplers.RandomPairGeoSampler",
                 "roi": False,
-                "params": {
-                    "size": 224,
-                    "length": 4096,
-                },
+                "size": 224,
+                "length": 4096,
             },
             {"sample_pairs": True},
         ),
         (
             {
-                "module": "torchgeo.samplers",
-                "name": "RandomBatchGeoSampler",
+                "_target_": "torchgeo.samplers.RandomBatchGeoSampler",
                 "roi": False,
-                "params": {
-                    "size": 224,
-                    "length": 4096,
-                },
+                "size": 224,
+                "length": 4096,
             },
             {"world_size": 2},
         ),
@@ -236,9 +233,10 @@ def test_make_loaders(default_config: DictConfig) -> None:
     old_params_2 = OmegaConf.to_object(deepcopy(default_config))
     assert isinstance(old_params_2, dict)
     dataset_params = old_params_2["tasks"]["fit-val"]["dataset_params"].copy()
-    old_params_2["tasks"]["fit-val"]["dataset_params"] = {}
-    old_params_2["tasks"]["fit-val"]["dataset_params"]["val-1"] = dataset_params
-    old_params_2["tasks"]["fit-val"]["dataset_params"]["val-2"] = dataset_params
+    old_params_2["tasks"]["fit-val"]["dataset_params"] = {
+        "val-1": dataset_params,
+        "val-2": dataset_params,
+    }
 
     loaders, n_batches, class_dist, params = mdt.make_loaders(  # type: ignore[arg-type]
         **old_params_2,

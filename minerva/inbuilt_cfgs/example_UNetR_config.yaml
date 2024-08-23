@@ -24,7 +24,7 @@ model_type: segmentation
 batch_size: 8                          # Number of samples in each batch.
 input_size: [4, 224, 224]              # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
-n_classes: &n_classes 8                # Number of classes in dataset.
+n_classes: 8                           # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                         # Maximum number of training epochs.
@@ -44,7 +44,7 @@ model_params:
     module:
     params:
         input_size: ${input_size}
-        n_classes: *n_classes
+        n_classes: ${n_classes}
         backbone_kwargs:
             torch_weights: true
 
@@ -105,17 +105,13 @@ tasks:
                     Normalise:
                         _target_: minerva.transforms.Normalise
                         norm_value: 255
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
             mask:
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
     fit-val:
         name: StandardEpoch
@@ -139,17 +135,13 @@ tasks:
                     Normalise:
                         _target_: minerva.transforms.Normalise
                         norm_value: 255
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
             mask:
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
     test-test:
         name: StandardEpoch
@@ -172,17 +164,13 @@ tasks:
                     Normalise:
                         _target_: minerva.transforms.Normalise
                         norm_value: 255
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
             mask:
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:

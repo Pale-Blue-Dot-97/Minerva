@@ -146,13 +146,11 @@ tasks:
                         p: 0.2
                         keepdim: true
 
-                module: minerva.datasets
-                name: NonGeoSSL4EOS12Sentinel2
-                paths: SSL4EO-S12
-                params:
-                    bands: [B2, B3, B4, B8]
-                    size: ${patch_size}
-                    max_r: *max_r
+                _target_: minerva.datasets.NonGeoSSL4EOS12Sentinel2
+                root: SSL4EO-S12
+                bands: [B2, B3, B4, B8]
+                size: ${patch_size}
+                max_r: *max_r
 
     fit-val:
         name: WeightedKNN
@@ -180,18 +178,14 @@ tasks:
                     length: 16
 
                 image:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
+                    _target_: minerva.datasets.__testing.TstImgDataset
                     paths: NAIP
-                    params:
-                        res: 1.0
+                    res: 1.0
 
                 mask:
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
+                    _target_: minerva.datasets.__testing.TstMaskDataset
                     paths: Chesapeake7
-                    params:
-                        res: 1.0
+                    res: 1.0
 
             test:
                 sampler:
@@ -201,18 +195,14 @@ tasks:
                     length: 16
 
                 image:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
+                    _target_: minerva.datasets.__testing.TstImgDataset
                     paths: NAIP
-                    params:
-                        res: 1.0
+                    res: 1.0
 
                 mask:
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
+                    _target_: minerva.datasets.__testing.TstMaskDataset
                     paths: Chesapeake7
-                    params:
-                        res: 1.0
+                    res: 1.0
 
     test-test:
         name: StandardEpoch
@@ -237,18 +227,14 @@ tasks:
                 length: 16
 
             image:
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
 
             mask:
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:

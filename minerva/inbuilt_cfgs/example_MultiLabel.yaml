@@ -24,7 +24,7 @@ model_type: multilabel-scene-classifier
 batch_size: 2                          # Number of samples in each batch.
 input_size: [4, 120, 120]              # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
-n_classes: &n_classes 19               # Number of classes in dataset.
+n_classes: 19                          # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                          # Maximum number of training epochs.
@@ -44,7 +44,7 @@ model_params:
     module:
     params:
         input_size: ${input_size}
-        n_classes: *n_classes
+        n_classes: ${n_classes}
         encoder_on: true
         filter_dim: -1
         fc_dim: 512
@@ -155,14 +155,12 @@ tasks:
                         p: 0.2
                         keepdim: true
 
-                module: torchgeo.datasets
-                name: BigEarthNet
-                paths: BigEarthNet-mini
-                params:
-                    split: train
-                    bands: s2
-                    download: true
-                    num_classes: *n_classes
+                _target_: torchgeo.datasets.BigEarthNet
+                root: BigEarthNet-mini
+                split: train
+                bands: s2
+                download: true
+                num_classes: ${n_classes}
 
             label:
 
@@ -194,14 +192,12 @@ tasks:
                         _target_: minerva.transforms.Normalise
                         norm_value: 4095
 
-                module: torchgeo.datasets
-                name: BigEarthNet
-                paths: BigEarthNet-mini
-                params:
-                    split: test
-                    bands: s2
-                    download: true
-                    num_classes: *n_classes
+                _target_: torchgeo.datasets.BigEarthNet
+                root: BigEarthNet-mini
+                split: test
+                bands: s2
+                download: true
+                num_classes: ${n_classes}
 
             label:
 
