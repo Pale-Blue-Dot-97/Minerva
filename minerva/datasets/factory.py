@@ -69,7 +69,6 @@ from minerva.transforms import MinervaCompose, init_auto_norm, make_transformati
 from minerva.utils import universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
-from .paired import PairedGeoDataset, PairedNonGeoDataset
 from .utils import (
     MinervaConcatDataset,
     cache_dataset,
@@ -102,26 +101,35 @@ def create_subdataset(
     Returns:
         ~torchgeo.datasets.GeoDataset | ~torchgeo.datasets.NonGeoDataset: Subdataset requested.
     """
+    params = deepcopy(subdataset_params)
+
     crs = None
-    if "crs" in subdataset_params:
-        crs = CRS.from_epsg(subdataset_params["crs"])
+    if "crs" in params:
+        crs = CRS.from_epsg(params["crs"])
 
     subdataset: Union[GeoDataset, NonGeoDataset]
-    if "paths" in subdataset_params:
-        subdataset = hydra.utils.instantiate(
-            subdataset_params, paths=paths, transforms=transformations, crs=crs
-        )
+    if "paths" in params:
         if sample_pairs:
-            subdataset = PairedGeoDataset(subdataset)
-    elif "root" in subdataset_params:
+            params["dataset"] = params["_target_"]
+            params["_target_"] = "minerva.datasets.paired.PairedGeoDataset"
+
+        subdataset = hydra.utils.instantiate(
+            params, paths=paths, transforms=transformations, crs=crs
+        )
+
+    elif "root" in params:
         if isinstance(paths, list):
             paths = paths[0]
         assert isinstance(paths, str)
-        subdataset = hydra.utils.instantiate(
-            subdataset_params, root=paths, transforms=transformations
-        )
+
         if sample_pairs:
-            subdataset = PairedNonGeoDataset(subdataset)
+            params["dataset"] = params["_target_"]
+            params["_target_"] = "minerva.datasets.paired.PairedNonGeoDataset"
+
+        subdataset = hydra.utils.instantiate(
+            params, root=paths, transforms=transformations
+        )
+
     else:
         raise TypeError
 

@@ -46,6 +46,7 @@ import random
 from inspect import signature
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
 
+import hydra
 import matplotlib.pyplot as plt
 import torch
 from matplotlib.figure import Figure
@@ -116,6 +117,9 @@ class PairedGeoDataset(RasterDataset):
         self._args = args
         self._kwargs = kwargs
 
+        if isinstance(dataset, str):
+            dataset = hydra.utils.get_method(dataset)
+
         if isinstance(dataset, GeoDataset):
             self.dataset = dataset
             self._res = dataset.res
@@ -170,11 +174,11 @@ class PairedGeoDataset(RasterDataset):
             self, other, collate_fn=utils.pair_collate(concat_samples)
         )
 
-    def __or__(self, other: "PairedGeoDataset") -> "PairedUnionDataset":  # type: ignore[override]
-        """Take the union of two :class:`PairedGeoDataset`.
+    def __or__(self, other: GeoDataset) -> "PairedUnionDataset":  # type: ignore[override]
+        """Take the union of two :class:~`torchgeo.datasets.GeoDataset`.
 
         Args:
-            other (PairedGeoDataset): Another dataset.
+            other (~torchgeo.datasets.GeoDataset): Another dataset.
 
         Returns:
             PairedUnionDataset: A single dataset.
@@ -183,13 +187,35 @@ class PairedGeoDataset(RasterDataset):
         """
         return PairedUnionDataset(self, other)
 
-    def __getattr__(self, item):
-        if item in self.dataset.__dict__:
-            return getattr(self.dataset, item)  # pragma: no cover
-        elif item in self.__dict__:
-            return getattr(self, item)
-        else:
-            raise AttributeError
+    def __getattr__(self, name: str) -> Any:
+        """
+        Called only if the attribute 'name' is not found by usual means.
+        Checks if 'name' exists in the dataset attribute.
+        """
+        # Instead of calling __getattr__ directly, access the dataset attribute directly
+        dataset = super().__getattribute__("dataset")
+        if hasattr(dataset, name):
+            return getattr(dataset, name)
+        # If not found in dataset, raise an AttributeError
+        raise AttributeError(f"{name} cannot be found in self or dataset")
+
+    def __getattribute__(self, name: str) -> Any:
+        """
+        Overrides default attribute access method to prevent recursion.
+        Checks 'self' first and uses __getattr__ for fallback.
+        """
+        try:
+            # First, try to get the attribute from the current instance
+            return super().__getattribute__(name)
+        except AttributeError:
+            # If not found in self, __getattr__ will check in the dataset
+            dataset = super().__getattribute__("dataset")
+            if hasattr(dataset, name):
+                return getattr(dataset, name)
+            # Raise AttributeError if not found in dataset either
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
 
     def __repr__(self) -> Any:
         return self.dataset.__repr__()
@@ -277,6 +303,13 @@ class PairedUnionDataset(UnionDataset):
         ] = merge_samples,
         transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
     ) -> None:
+
+        # Extract the actual dataset out of the paired dataset (otherwise we'll be pairing the datasets twice!)
+        if isinstance(dataset1, PairedGeoDataset):
+            dataset1 = dataset1.dataset
+        if isinstance(dataset2, PairedGeoDataset):
+            dataset2 = dataset2.dataset
+
         super().__init__(dataset1, dataset2, collate_fn, transforms)
 
         new_datasets = []
@@ -319,6 +352,16 @@ class PairedUnionDataset(UnionDataset):
         .. versionadded:: 0.24
         """
         return PairedUnionDataset(self, other)
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self.__dict__:
+            return getattr(self, name)
+        elif name in self.datasets[0].__dict__:
+            return getattr(self.datasets[0], name)  # pragma: no cover
+        elif name in self.datasets[1].__dict__:
+            return getattr(self.datasets[1], name)  # pragma: no cover
+        else:
+            raise AttributeError
 
 
 class PairedNonGeoDataset(NonGeoDataset):
@@ -396,6 +439,9 @@ class PairedNonGeoDataset(NonGeoDataset):
         if isinstance(dataset, PairedNonGeoDataset):
             raise ValueError("Cannot pair an already paired dataset!")
 
+        if isinstance(dataset, str):
+            dataset = hydra.utils.get_method(dataset)
+
         if isinstance(dataset, NonGeoDataset):
             self.dataset = dataset
 
@@ -449,6 +495,36 @@ class PairedNonGeoDataset(NonGeoDataset):
 
     def __repr__(self) -> Any:
         return self.dataset.__repr__()
+
+    def __getattr__(self, name: str) -> Any:
+        """
+        Called only if the attribute 'name' is not found by usual means.
+        Checks if 'name' exists in the dataset attribute.
+        """
+        # Instead of calling __getattr__ directly, access the dataset attribute directly
+        dataset = super().__getattribute__("dataset")
+        if hasattr(dataset, name):
+            return getattr(dataset, name)
+        # If not found in dataset, raise an AttributeError
+        raise AttributeError(f"{name} cannot be found in self or dataset")
+
+    def __getattribute__(self, name: str) -> Any:
+        """
+        Overrides default attribute access method to prevent recursion.
+        Checks 'self' first and uses __getattr__ for fallback.
+        """
+        try:
+            # First, try to get the attribute from the current instance
+            return super().__getattribute__(name)
+        except AttributeError:
+            # If not found in self, __getattr__ will check in the dataset
+            dataset = super().__getattribute__("dataset")
+            if hasattr(dataset, name):
+                return getattr(dataset, name)
+            # Raise AttributeError if not found in dataset either
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
 
     @staticmethod
     def plot(

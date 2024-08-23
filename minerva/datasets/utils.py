@@ -113,6 +113,16 @@ class MinervaConcatDataset(ConcatDataset):  # type: ignore[type-arg]
         """
         return MinervaConcatDataset([self, other])
 
+    def __getattr__(self, name: str) -> Any:
+        if name in self.__dict__:
+            return getattr(self, name)
+        elif name in self.datasets[0].__dict__:
+            return getattr(self.datasets[0], name)  # pragma: no cover
+        elif name in self.datasets[1].__dict__:
+            return getattr(self.datasets[1], name)  # pragma: no cover
+        else:
+            raise AttributeError
+
 
 # =====================================================================================================================
 #                                                     METHODS

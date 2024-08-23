@@ -94,7 +94,6 @@ def test_paired_geodatasets(img_root: Path) -> None:
         assert isinstance(dataset.crs, CRS)
         assert isinstance(getattr(dataset, "crs"), CRS)
         assert isinstance(dataset.dataset, TstImgDataset)
-        assert isinstance(dataset.__getattr__("dataset"), TstImgDataset)
 
         with pytest.raises(AttributeError):
             _ = dataset.roi
