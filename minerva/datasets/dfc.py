@@ -428,8 +428,7 @@ class DFC2020(BaseSenS12MS):
         image = adjust_gamma(bgr_to_rgb(sample["image"][:3]))
         image = image.permute(1, 2, 0).numpy()
 
-        block_x_size = image.shape[0] // 8
-        block_y_size = image.shape[1] // 8
+        block_size_factor = 8
 
         # Use inbuilt class colours and classes mappings.
         if classes is None or colours is None:
@@ -462,8 +461,8 @@ class DFC2020(BaseSenS12MS):
         axs[0].imshow(image)
 
         # Sets tick intervals to block size.
-        axs[0].set_xticks(np.arange(0, image.shape[0] + 1, block_x_size))
-        axs[0].set_yticks(np.arange(0, image.shape[1] + 1, block_y_size))
+        axs[0].set_xticks(np.arange(0, image.shape[0] + 1, image.shape[0] // block_size_factor))
+        axs[0].set_yticks(np.arange(0, image.shape[1] + 1, image.shape[1] // block_size_factor))
 
         # Add grid overlay.
         axs[0].grid(which="both", color="#CCCCCC", linestyle=":")
@@ -476,8 +475,8 @@ class DFC2020(BaseSenS12MS):
             )
 
             # Sets tick intervals to block size.
-            axs[1].set_xticks(np.arange(0, image.shape[0] + 1, block_x_size))
-            axs[1].set_yticks(np.arange(0, image.shape[1] + 1, block_y_size))
+            axs[1].set_xticks(np.arange(0, mask.shape[0] + 1, mask.shape[0] // block_size_factor))
+            axs[1].set_yticks(np.arange(0, mask.shape[1] + 1, mask.shape[1] // block_size_factor))
 
             # Add grid overlay.
             axs[1].grid(which="both", color="#CCCCCC", linestyle=":")
@@ -488,8 +487,8 @@ class DFC2020(BaseSenS12MS):
                 )
 
                 # Sets tick intervals to block size.
-                axs[2].set_xticks(np.arange(0, image.shape[0] + 1, block_x_size))
-                axs[2].set_yticks(np.arange(0, image.shape[1] + 1, block_y_size))
+                axs[2].set_xticks(np.arange(0, pred.shape[0] + 1, pred.shape[0] // block_size_factor))
+                axs[2].set_yticks(np.arange(0, pred.shape[1] + 1, pred.shape[1] // block_size_factor))
 
                 # Add grid overlay.
                 axs[2].grid(which="both", color="#CCCCCC", linestyle=":")
@@ -500,8 +499,8 @@ class DFC2020(BaseSenS12MS):
             )
 
             # Sets tick intervals to block size.
-            axs[1].set_xticks(np.arange(0, image.shape[0] + 1, block_x_size))
-            axs[1].set_yticks(np.arange(0, image.shape[1] + 1, block_y_size))
+            axs[1].set_xticks(np.arange(0, pred.shape[0] + 1, pred.shape[0] // block_size_factor))
+            axs[1].set_yticks(np.arange(0, pred.shape[1] + 1, pred.shape[1] // block_size_factor))
 
             # Add grid overlay.
             axs[1].grid(which="both", color="#CCCCCC", linestyle=":")
