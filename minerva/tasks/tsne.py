@@ -38,7 +38,7 @@ __all__ = ["TSNEVis"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Dict, Optional, Union
 
 import torch
 from torch import Tensor
@@ -103,7 +103,8 @@ class TSNEVis(MinervaTask):
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
         # Get a batch of data.
-        data = next(iter(self.loaders))
+        assert isinstance(self.loaders, torch.utils.data.DataLoader)
+        data: Dict[str, Any] = next(iter(self.loaders))
 
         # Make sure the model is in evaluation mode.
         self.model.eval()

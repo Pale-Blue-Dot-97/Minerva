@@ -50,7 +50,7 @@ import re
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Iterable, List, Optional, Tuple, Union
 
 import hydra
 import numpy as np
@@ -86,7 +86,7 @@ from .utils import (
 # =====================================================================================================================
 def create_subdataset(
     paths: Union[str, Iterable[str]],
-    subdataset_params: Dict[Literal["params"], Dict[str, Any]],
+    subdataset_params: Dict[str, Any],
     transformations: Optional[Any],
     sample_pairs: bool = False,
 ) -> Union[GeoDataset, NonGeoDataset]:
@@ -243,7 +243,7 @@ def get_subdataset(
 
     if auto_norm:
         if isinstance(sub_dataset, RasterDataset):
-            init_auto_norm(sub_dataset, auto_norm)
+            init_auto_norm(sub_dataset, length=sub_dataset_params.get("length"), roi=sub_dataset_params.get("roi"))
         else:
             raise TypeError(  # pragma: no cover
                 "AutoNorm only supports normalisation of data "
@@ -318,7 +318,7 @@ def make_dataset(
 
         multi_datasets_exist = False
 
-        auto_norm = None
+        auto_norm = False
         master_transforms: Optional[Any] = None
 
         for sub_type_key in type_dataset_params.keys():
@@ -331,7 +331,7 @@ def make_dataset(
             elif sub_type_key == "transforms":
                 if isinstance(type_dataset_params[sub_type_key], dict):
                     transform_params = type_dataset_params[sub_type_key]
-                    auto_norm = transform_params.get("AutoNorm")
+                    auto_norm = transform_params.get("AutoNorm", False)
 
                     # If transforms aren't specified for a particular modality of the sample,
                     # assume they're for the same type as the dataset.
@@ -353,7 +353,7 @@ def make_dataset(
                     type_dataset_params[sub_type_key].get("transforms"), dict
                 ):
                     transform_params = type_dataset_params[sub_type_key]["transforms"]
-                    auto_norm = transform_params.get("AutoNorm")
+                    auto_norm = transform_params.get("AutoNorm", False)
                 else:
                     transform_params = False
 
@@ -372,8 +372,8 @@ def make_dataset(
                         auto_norm=auto_norm,
                     )
 
-                    # Reset back to None.
-                    auto_norm = None
+                    # Reset back to False.
+                    auto_norm = False
 
                     type_subdatasets.append(sub_dataset)  # type: ignore[arg-type]
 
@@ -400,8 +400,8 @@ def make_dataset(
                 auto_norm=auto_norm,
             )
 
-            # Reset back to None.
-            auto_norm = None
+            # Reset back to False.
+            auto_norm = False
 
             sub_datasets.append(sub_dataset)  # type: ignore[arg-type]
 
@@ -418,9 +418,9 @@ def make_dataset(
         if hasattr(dataset, "transforms"):
             if isinstance(dataset.transforms, MinervaCompose):
                 assert target_transforms is not None
-                dataset.transforms += target_transforms
+                dataset.transforms += target_transforms  # type: ignore[union-attr]
             else:
-                dataset.transforms = target_transforms
+                dataset.transforms = target_transforms  # type: ignore[union-attr]
         else:
             raise TypeError(
                 f"dataset of type {type(dataset)} has no ``transforms`` atttribute!"
@@ -433,9 +433,9 @@ def make_dataset(
         if hasattr(dataset, "transforms"):
             if isinstance(dataset.transforms, MinervaCompose):
                 assert multi_modal_transforms is not None
-                dataset.transforms += multi_modal_transforms
+                dataset.transforms += multi_modal_transforms  # type: ignore[union-attr]
             else:
-                dataset.transforms = multi_modal_transforms
+                dataset.transforms = multi_modal_transforms  # type: ignore[union-attr]
         else:
             raise TypeError(
                 f"dataset of type {type(dataset)} has no ``transforms`` atttribute!"
@@ -836,7 +836,7 @@ def get_data_specs(
     dataset_params: Optional[Dict[str, Any]] = None,
     sampler_params: Optional[Dict[str, Any]] = None,
     dataloader_params: Optional[Dict[str, Any]] = None,
-    collator_target: Optional[str] = None,
+    collator_target: str = "torchgeo.datasets.stack_samples",
     elim: bool = True,
 ):
     # Load manifest from cache for this dataset.
@@ -932,7 +932,7 @@ def make_manifest(
     dataset_params: Dict[str, Any],
     sampler_params: Dict[str, Any],
     loader_params: Dict[str, Any],
-    collator_target: Optional[str] = None,
+    collator_target: str = "torchgeo.datasets.stack_samples",
 ) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 

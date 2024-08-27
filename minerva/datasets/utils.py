@@ -201,7 +201,7 @@ def concatenate_datasets(
         master_dataset = master_dataset | datasets[i + 1]  # type: ignore[operator]
 
     if hasattr(master_dataset, "transforms"):
-        master_dataset.transforms = transforms
+        master_dataset.transforms = transforms  # type: ignore[union-attr]
     assert isinstance(master_dataset, MinervaConcatDataset)
     return master_dataset
 

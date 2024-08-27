@@ -107,9 +107,14 @@ class PairedGeoDataset(RasterDataset):
         self, dataset: GeoDataset, *args, **kwargs
     ) -> None: ...  # pragma: no cover
 
+    @overload
+    def __init__(
+        self, dataset: str, *args, **kwargs
+    ) -> None: ...  # pragma: no cover
+
     def __init__(
         self,
-        dataset: Union[Callable[..., GeoDataset], GeoDataset],
+        dataset: Union[Callable[..., GeoDataset], GeoDataset, str],
         *args,
         **kwargs,
     ) -> None:
@@ -416,9 +421,20 @@ class PairedNonGeoDataset(NonGeoDataset):
         **kwargs,
     ) -> None: ...  # pragma: no cover
 
+    @overload
     def __init__(
         self,
-        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
+        dataset: str,
+        size: Union[Tuple[int, int], int],
+        max_r: int,
+        season: bool = False,
+        *args,
+        **kwargs,
+    ) -> None: ...  # pragma: no cover
+
+    def __init__(
+        self,
+        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset, str],
         size: Union[Tuple[int, int], int],
         max_r: int,
         season: bool = False,

@@ -178,6 +178,8 @@ class WeightedKNN(MinervaTask):
         feature_list = []
         target_list = []
 
+        assert isinstance(self.loaders, dict)
+
         for batch in tqdm(self.loaders["features"]):
             val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
             val_target: Tensor = batch["mask"].to(self.device, non_blocking=True)
@@ -230,6 +232,8 @@ class WeightedKNN(MinervaTask):
         with torch.no_grad():
             # Generate feature bank and target bank.
             feature_bank, feature_labels = self.generate_feature_bank()
+
+            assert isinstance(self.loaders, dict)
 
             # Loop test data to predict the label by weighted KNN search.
             for batch in tqdm(self.loaders["test"]):

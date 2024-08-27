@@ -862,7 +862,9 @@ class AdjustGamma():
         self.gain = gain
 
     def forward(self, img: Tensor) -> Tensor:
-        return ft.adjust_gamma(img, gamma=self.gamma, gain=self.gain)
+        img = ft.adjust_gamma(img, gamma=self.gamma, gain=self.gain)
+        assert isinstance(img, Tensor)
+        return img
 
     def __call__(self, img: Tensor) -> Tensor:
         return self.forward(img)
@@ -882,7 +884,10 @@ def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
 
 
 def init_auto_norm(
-    dataset: RasterDataset, params: Dict[str, Any] = {}
+    dataset: RasterDataset,
+    length: int = 128,
+    roi: Optional[BoundingBox] = None,
+    inplace=False,
 ) -> RasterDataset:
     """Uses :class:~`minerva.transforms.AutoNorm` to automatically find the mean and standard deviation of `dataset`
     to create a normalisation transform that is then added to the existing transforms of `dataset`.
@@ -896,7 +901,7 @@ def init_auto_norm(
         added to it's :attr:~`torchgeo.datasets.RasterDataset.transforms` attribute.
     """
     # Creates the AutoNorm transform by sampling `dataset` for its mean and standard deviation stats.
-    auto_norm = AutoNorm(dataset, **params)
+    auto_norm = AutoNorm(dataset, length=length, roi=roi, inplace=inplace)
 
     if dataset.transforms is None:
         dataset.transforms = MinervaCompose(auto_norm)

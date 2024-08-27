@@ -379,7 +379,7 @@ def get_sampler(
     params: Dict[str, Any],
     dataset: Union[GeoDataset, NonGeoDataset],
     batch_size: Optional[int] = None,
-) -> Sampler:
+) -> Sampler[Any]:
     """Use :meth:`hydra.utils.instantiate` to get the sampler using config parameters.
 
     Args:
@@ -399,11 +399,14 @@ def get_sampler(
         params["batch_size"] = batch_size
 
     if "roi" in params:
-        return hydra.utils.instantiate(
+        sampler = hydra.utils.instantiate(
             params, dataset=dataset, roi=make_bounding_box(params["roi"])
         )
     else:
         if "torchgeo" in params["_target_"]:
-            return hydra.utils.instantiate(params, dataset=dataset)
+            sampler = hydra.utils.instantiate(params, dataset=dataset)
         else:
-            return hydra.utils.instantiate(params, data_source=dataset)
+            sampler = hydra.utils.instantiate(params, data_source=dataset)
+
+    assert isinstance(sampler, Sampler)
+    return sampler

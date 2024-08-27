@@ -508,7 +508,7 @@ class DFC2020(BaseSenS12MS):
         if showing_mask or showing_prediction:
             # Plots colour bar onto figure.
             clb = fig.colorbar(
-                mask_plot,
+                mask_plot,  # type: ignore[arg-type]
                 ax=axs,
                 location="top",
                 ticks=np.arange(0, len(colours)),
