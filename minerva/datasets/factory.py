@@ -450,7 +450,7 @@ def construct_dataloader(
     sampler_params: Dict[str, Any],
     dataloader_params: Dict[str, Any],
     batch_size: int,
-    collator_params: Optional[Dict[str, Any]] = None,
+    collator_target: Optional[str] = None,
     rank: int = 0,
     world_size: int = 1,
     sample_pairs: bool = False,
@@ -468,7 +468,7 @@ def construct_dataloader(
             to sample from the dataset.
         dataloader_params (dict[str, ~typing.Any]): Dictionary of parameters for the DataLoader itself.
         batch_size (int): Number of samples per (global) batch.
-        collator_params (dict[str, ~typing.Any]): Optional; Dictionary of parameters defining the function to collate
+        collator_target (str): Optional; Import target path for collator function to collate
             and stack samples from the sampler.
         rank (int): Optional; The rank of this process for distributed computing.
         world_size (int): Optional; The total number of processes within a distributed run.
@@ -503,7 +503,7 @@ def construct_dataloader(
     )
 
     # --+ MAKE DATALOADERS +==========================================================================================+
-    collator = get_collator(collator_params)
+    collator = get_collator(collator_target)
 
     # Add batch size from top-level parameters to the dataloader parameters.
     dataloader_params["batch_size"] = batch_size
@@ -564,7 +564,7 @@ def _make_loader(
     dataset_params,
     sampler_params,
     dataloader_params,
-    collator_params,
+    collator_target,
     class_matrix,
     batch_size,
     model_type,
@@ -589,7 +589,7 @@ def _make_loader(
         sampler_params,
         dataloader_params,
         batch_size,
-        collator_params=collator_params,
+        collator_target=collator_target,
         rank=rank,
         world_size=world_size,
         sample_pairs=sample_pairs,
@@ -645,9 +645,7 @@ def make_loaders(
         sampler_params (dict[str, ~typing.Any]): Parameters to construct the samplers for each mode of model fitting.
         transform_params (dict[str, ~typing.Any]): Parameters to construct the transforms for each dataset.
             See documentation for the structure of these.
-        collator (dict[str, ~typing.Any]): Defines the collator to use that will collate samples together into batches.
-            Contains the ``module`` key to define the import path and the ``name`` key
-            for name of the collation function.
+        collator (str): Optional; Defines the collator to use that will collate samples together into batches.
         sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
 
     Returns:
@@ -710,9 +708,7 @@ def make_loaders(
     n_batches: Union[Dict[str, int], int]
     loaders: Union[Dict[str, DataLoader[Iterable[Any]]], DataLoader[Iterable[Any]]]
 
-    collator_params = deepcopy(utils.fallback_params("collator", task_params, params))
-    if OmegaConf.is_config(collator_params):
-        collator_params = OmegaConf.to_object(collator_params)
+    collator_target = utils.fallback_params("collator", task_params, params, None)
 
     if "sampler" in dataset_params.keys():
         sampler_params: Dict[str, Any] = dataset_params["sampler"]
@@ -727,7 +723,7 @@ def make_loaders(
                 dataset_params,
                 sampler_params,
                 dataloader_params,
-                collator_params,
+                collator_target,
                 elim=elim,
             )
 
@@ -740,7 +736,7 @@ def make_loaders(
             dataset_params,
             sampler_params,
             dataloader_params,
-            collator_params,
+            collator_target,
             class_matrix,
             batch_size,
             model_type,
@@ -770,7 +766,7 @@ def make_loaders(
                     dataset_params[mode],
                     mode_sampler_params,
                     dataloader_params,
-                    collator_params,
+                    collator_target,
                     elim=elim,
                 )
 
@@ -784,7 +780,7 @@ def make_loaders(
                 dataset_params[mode],
                 mode_sampler_params,
                 dataloader_params,
-                collator_params,
+                collator_target,
                 class_matrix,
                 batch_size,
                 model_type,
@@ -840,7 +836,7 @@ def get_data_specs(
     dataset_params: Optional[Dict[str, Any]] = None,
     sampler_params: Optional[Dict[str, Any]] = None,
     dataloader_params: Optional[Dict[str, Any]] = None,
-    collator_params: Optional[Dict[str, Any]] = None,
+    collator_target: Optional[str] = None,
     elim: bool = True,
 ):
     # Load manifest from cache for this dataset.
@@ -850,7 +846,7 @@ def get_data_specs(
         dataset_params,
         sampler_params,
         dataloader_params,
-        collator_params=collator_params,
+        collator_target=collator_target,
     )
 
     class_dist = utils.modes_from_manifest(manifest, classes)
@@ -877,7 +873,7 @@ def get_manifest(
     dataset_params: Optional[Dict[str, Any]] = None,
     sampler_params: Optional[Dict[str, Any]] = None,
     loader_params: Optional[Dict[str, Any]] = None,
-    collator_params: Optional[Dict[str, Any]] = None,
+    collator_target: Optional[str] = None,
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
@@ -918,7 +914,7 @@ def get_manifest(
             dataset_params,
             sampler_params,
             loader_params,
-            collator_params=collator_params,
+            collator_target=collator_target,
         )
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
@@ -936,7 +932,7 @@ def make_manifest(
     dataset_params: Dict[str, Any],
     sampler_params: Dict[str, Any],
     loader_params: Dict[str, Any],
-    collator_params: Optional[Dict[str, Any]] = None,
+    collator_target: Optional[str] = None,
 ) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -1010,7 +1006,7 @@ def make_manifest(
         _sampler_params,
         loader_params,
         batch_size=1,  # To prevent issues with stacking different sized patches, set batch size to 1.
-        collator_params=collator_params,
+        collator_target=collator_target,
         cache=False,
     )
 
