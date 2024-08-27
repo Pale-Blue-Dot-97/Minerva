@@ -425,6 +425,9 @@ class DFC2020(BaseSenS12MS):
         image = bgr_to_rgb(sample["image"][:3])
         image = image.permute(1, 2, 0).numpy()
 
+        block_x_size = image.shape[0] // 8
+        block_y_size = image.shape[1] // 8
+
         # Use inbuilt class colours and classes mappings.
         if classes is None or colours is None:
             classes = self.classes
@@ -454,7 +457,13 @@ class DFC2020(BaseSenS12MS):
 
         # Plot the image.
         axs[0].imshow(image)
-        axs[0].axis("off")
+
+        # Sets tick intervals to block size.
+        axs[0].set_xticks(np.arange(0, image.shape[0] + 1, block_x_size))
+        axs[0].set_yticks(np.arange(0, image.shape[1] + 1, block_y_size))
+
+        # Add grid overlay.
+        axs[0].grid(which="both", color="#CCCCCC", linestyle=":")
 
         # Plot the ground truth mask and predicted mask.
         mask_plot: Axes
@@ -462,17 +471,37 @@ class DFC2020(BaseSenS12MS):
             mask_plot = axs[1].imshow(
                 mask, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
             )
-            axs[1].axis("off")
+
+            # Sets tick intervals to block size.
+            axs[1].set_xticks(np.arange(0, image.shape[0] + 1, block_x_size))
+            axs[1].set_yticks(np.arange(0, image.shape[1] + 1, block_y_size))
+
+            # Add grid overlay.
+            axs[1].grid(which="both", color="#CCCCCC", linestyle=":")
+
             if showing_prediction:
                 axs[2].imshow(
                     pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
                 )
-                axs[2].axis("off")
+
+                # Sets tick intervals to block size.
+                axs[2].set_xticks(np.arange(0, image.shape[0] + 1, block_x_size))
+                axs[2].set_yticks(np.arange(0, image.shape[1] + 1, block_y_size))
+
+                # Add grid overlay.
+                axs[2].grid(which="both", color="#CCCCCC", linestyle=":")
+
         elif showing_prediction:
             mask_plot = axs[1].imshow(
                 pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
             )
-            axs[1].axis("off")
+
+            # Sets tick intervals to block size.
+            axs[1].set_xticks(np.arange(0, image.shape[0] + 1, block_x_size))
+            axs[1].set_yticks(np.arange(0, image.shape[1] + 1, block_y_size))
+
+            # Add grid overlay.
+            axs[1].grid(which="both", color="#CCCCCC", linestyle=":")
 
         if showing_mask or showing_prediction:
             # Plots colour bar onto figure.
