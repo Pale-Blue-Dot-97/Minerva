@@ -181,9 +181,12 @@ class MinervaTask(ABC):
         self.model = model
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
-        loaders, n_batches, class_dist, task_params, = make_loaders(
-            rank, world_size, task_name=name, **global_params
-        )
+        (
+            loaders,
+            n_batches,
+            class_dist,
+            task_params,
+        ) = make_loaders(rank, world_size, task_name=name, **global_params)
 
         # If there are multiple modes and therefore number of batches, just take the value of the first one.
         if isinstance(n_batches, dict):
@@ -319,18 +322,24 @@ class MinervaTask(ABC):
             _weights = Tensor(weights)
 
             # Use hydra to instantiate the loss function with the weights and return.
-            return hydra.utils.instantiate(fallback_params("loss_params", self.params, self.global_params), weight=_weights)
+            return hydra.utils.instantiate(
+                fallback_params("loss_params", self.params, self.global_params),
+                weight=_weights,
+            )
 
         else:
             # Use hydra to instantiate the loss function based of the config, without weights.
-            return hydra.utils.instantiate(fallback_params("loss_params", self.params, self.global_params))
+            return hydra.utils.instantiate(
+                fallback_params("loss_params", self.params, self.global_params)
+            )
 
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         optimiser = hydra.utils.instantiate(
-            fallback_params("optimiser", self.params, self.global_params), params=self.model.parameters()
+            fallback_params("optimiser", self.params, self.global_params),
+            params=self.model.parameters(),
         )
         self.model.set_optimiser(optimiser)
 
@@ -491,7 +500,9 @@ class MinervaTask(ABC):
             colours=utils.fallback_params("colours", self.params, self.global_params),
             save=save,
             show=show,
-            model_name=utils.fallback_params("model_name", self.params, self.global_params),
+            model_name=utils.fallback_params(
+                "model_name", self.params, self.global_params
+            ),
             timestamp=self.global_params["timestamp"],
             results_dir=self.task_dir,
             task_cfg=self.params,
@@ -545,7 +556,7 @@ class MinervaTask(ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_task(task_name: str, task_module: str = "minerva.tasks", *args, **params) -> MinervaTask:
+def get_task(task_name: str, *args, **params) -> MinervaTask:
     """Get the requested :class:`MinervaTask` by name.
 
     Args:
@@ -555,7 +566,7 @@ def get_task(task_name: str, task_module: str = "minerva.tasks", *args, **params
     Returns:
         MinervaTask: Constructed :class:`MinervaTask` object.
     """
-    _task = func_by_str(task_module, task_name)
+    _task = hydra.utils.get_class(task_name)
 
     task = _task(*args, **params)
     assert isinstance(task, MinervaTask)

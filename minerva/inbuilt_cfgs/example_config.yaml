@@ -82,8 +82,7 @@ collator:
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
 
@@ -118,8 +117,7 @@ tasks:
                 res: 1.0
 
     fit-val:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
 
@@ -152,8 +150,7 @@ tasks:
                 res: 1.0
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         record_float: true
 
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length

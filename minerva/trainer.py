@@ -409,7 +409,9 @@ class Trainer:
             else:
                 pass
 
-        self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+        self.checkpoint_path = self.exp_fn / (
+            self.params["exp_name"] + "-checkpoint.pt"
+        )
         self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
 
         self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
@@ -623,8 +625,7 @@ class Trainer:
         tasks: Dict[str, MinervaTask] = {}
         for mode in fit_params.keys():
             tasks[mode] = get_task(
-                fit_params[mode]["name"],
-                fit_params[mode].get("module", "minerva.tasks"),
+                fit_params[mode]["_target_"],
                 mode,
                 self.model,
                 self.device,
@@ -744,8 +745,7 @@ class Trainer:
         self.params["plot_last_epoch"] = True
         for task_name in test_params.keys():
             task = get_task(
-                test_params[task_name]["name"],
-                test_params[task_name].get("module", "minerva.tasks"),
+                test_params[task_name]["_target_"],
                 task_name,
                 self.model,
                 self.device,

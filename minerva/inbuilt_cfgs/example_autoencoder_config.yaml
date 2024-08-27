@@ -85,8 +85,7 @@ collator:
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
         autoencoder_data_key: mask
@@ -117,8 +116,7 @@ tasks:
                 res: 1.0
 
     fit-val:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
         autoencoder_data_key: mask
@@ -149,8 +147,7 @@ tasks:
                 res: 1.0
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
         autoencoder_data_key: mask

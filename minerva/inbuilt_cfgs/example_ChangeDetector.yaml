@@ -95,8 +95,7 @@ collator:
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
         sample_pairs: false
@@ -145,8 +144,7 @@ tasks:
                         mode: centre
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
         sample_pairs: false

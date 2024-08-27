@@ -84,8 +84,7 @@ collator:
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
         sample_pairs: true
@@ -156,8 +155,7 @@ tasks:
                         res: 1.0
 
     fit-val:
-        name: WeightedKNN
-        module: minerva.tasks
+        _target_: minerva.tasks.WeightedKNN
         train: false
         sample_pairs: false
         n_classes: 8
@@ -208,8 +206,7 @@ tasks:
                     res: 1.0
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
         sample_pairs: false
