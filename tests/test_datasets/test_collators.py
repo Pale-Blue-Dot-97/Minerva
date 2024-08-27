@@ -39,6 +39,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 from collections import defaultdict
 from typing import Any, Dict, List, Union
 
+import pytest
 import torch
 from numpy.testing import assert_array_equal
 from torch import Tensor
@@ -50,12 +51,15 @@ from minerva import datasets as mdt
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_get_collator() -> None:
-    collator_params_1 = {"module": "torchgeo.datasets.utils", "name": "stack_samples"}
-    collator_params_2 = {"name": "stack_sample_pairs"}
-
-    assert callable(mdt.get_collator(collator_params_1))
-    assert callable(mdt.get_collator(collator_params_2))
+@pytest.mark.parametrize(
+    "target",
+    (
+        "torchgeo.datasets.utils.stack_samples",
+        "minerva.datasets.collators.stack_sample_pairs",
+    ),
+)
+def test_get_collator(target: str) -> None:
+    assert callable(mdt.get_collator(target))
 
 
 def test_stack_sample_pairs() -> None:
