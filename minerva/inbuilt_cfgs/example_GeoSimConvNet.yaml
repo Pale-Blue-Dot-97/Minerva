@@ -59,12 +59,11 @@ optimiser:
     lr: ${lr}
 
 # ---+ Scheduler Parameters +--------------------------------------------------
-scheduler_params:
-    name: LinearLR
-    params:
-        start_factor: *lr
-        end_factor: 5.0E-4
-        total_iters: 2
+scheduler:
+    _target_: torch.optim.lr_scheduler.LinearLR
+    start_factor: ${lr}
+    end_factor: 5.0E-4
+    total_iters: 2
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
