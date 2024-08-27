@@ -767,6 +767,8 @@ class SeasonTransform:
         season (str): How to handle what seasons to return:
         * ``pair``: Randomly pick 2 seasons to return that will form a pair.
         * ``random``: Randomly pick a single season to return.
+
+    .. versionadded:: 0.28
     """
 
     def __init__(self, season: str = "random") -> None:
@@ -800,6 +802,8 @@ class ConvertDtypeFromStr(ConvertImageDtype):
 
     Args:
         dtype (str): A tensor type as :class:`str`.
+
+    .. versionadded:: 0.28
     """
 
     def __init__(self, dtype: str) -> None:
@@ -807,7 +811,10 @@ class ConvertDtypeFromStr(ConvertImageDtype):
 
 
 class MaskResize(Resize):
-    """Wrapper of :class:`torchvision.transforms.Resize` for use with masks that have no channel dimension."""
+    """Wrapper of :class:`torchvision.transforms.Resize` for use with masks that have no channel dimension.
+
+    .. versionadded:: 0.28
+    """
 
     def __init__(self, size, interpolation: str = "NEAREST", max_size=None, antialias: bool = True) -> None:
         interpolation_mode = getattr(InterpolationMode, interpolation)
@@ -839,6 +846,26 @@ class MaskResize(Resize):
             raise ValueError
 
         return torch.squeeze(super().forward(torch.reshape(img, tmp_shape)))
+
+
+class AdjustGamma():
+    """Callable version of :meth:`torchvision.transforms.functional.adjust_gamma`
+
+    Args:
+        gamma (float): Optional; Gamma factor.
+        gain (float): Optional; Gain scalar.
+
+    .. versionadded:: 0.28
+    """
+    def __init__(self, gamma: float = 1.0, gain: float = 1.0) -> None:
+        self.gamma = gamma
+        self.gain = gain
+
+    def forward(self, img: Tensor) -> Tensor:
+        return ft.adjust_gamma(img, gamma=self.gamma, gain=self.gain)
+
+    def __call__(self, img: Tensor) -> Tensor:
+        return self.forward(img)
 
 
 # =====================================================================================================================

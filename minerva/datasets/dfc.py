@@ -419,10 +419,13 @@ class DFC2020(BaseSenS12MS):
         """
         # Reorder image from BGR to RGB.
         from kornia.color import BgrToRgb
+        from minerva.transforms import AdjustGamma
 
         bgr_to_rgb = BgrToRgb()
+        adjust_gamma = AdjustGamma(gamma=0.8)
 
-        image = bgr_to_rgb(sample["image"][:3])
+        # Reorder channels from BGR to RGB and adjust the gamma ready for plotting.
+        image = adjust_gamma(bgr_to_rgb(sample["image"][:3]))
         image = image.permute(1, 2, 0).numpy()
 
         block_x_size = image.shape[0] // 8
