@@ -450,7 +450,7 @@ def construct_dataloader(
     sampler_params: Dict[str, Any],
     dataloader_params: Dict[str, Any],
     batch_size: int,
-    collator_target: Optional[str] = None,
+    collator_target: str = "torchgeo.datasets.stack_samples",
     rank: int = 0,
     world_size: int = 1,
     sample_pairs: bool = False,
@@ -468,7 +468,7 @@ def construct_dataloader(
             to sample from the dataset.
         dataloader_params (dict[str, ~typing.Any]): Dictionary of parameters for the DataLoader itself.
         batch_size (int): Number of samples per (global) batch.
-        collator_target (str): Optional; Import target path for collator function to collate
+        collator_target (str): Import target path for collator function to collate
             and stack samples from the sampler.
         rank (int): Optional; The rank of this process for distributed computing.
         world_size (int): Optional; The total number of processes within a distributed run.
@@ -873,7 +873,7 @@ def get_manifest(
     dataset_params: Optional[Dict[str, Any]] = None,
     sampler_params: Optional[Dict[str, Any]] = None,
     loader_params: Optional[Dict[str, Any]] = None,
-    collator_target: Optional[str] = None,
+    collator_target: str = "torchgeo.datasets.stack_samples",
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 

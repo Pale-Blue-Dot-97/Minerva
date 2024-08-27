@@ -45,4 +45,4 @@ from minerva.tasks import get_task
 # =====================================================================================================================
 def test_get_task():
     with pytest.raises(TypeError):
-        _ = get_task("MinervaTask")
+        _ = get_task("minerva.tasks.MinervaTask")

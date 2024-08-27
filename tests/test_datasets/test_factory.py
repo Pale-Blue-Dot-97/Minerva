@@ -254,7 +254,6 @@ def test_make_loaders(default_config: DictConfig) -> None:
 def test_get_manifest(
     data_root: Path,
     exp_dataset_params: Dict[str, Any],
-    exp_loader_params: Dict[str, Any],
     exp_sampler_params: Dict[str, Any],
 ) -> None:
     manifest_path = Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
