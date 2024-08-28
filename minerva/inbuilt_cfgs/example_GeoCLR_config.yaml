@@ -47,10 +47,9 @@ val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
-        input_size: ${input_size}
-        # any other params...
+    _target_: minerva.models.SimCLR18
+    input_size: ${input_size}
+    # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:

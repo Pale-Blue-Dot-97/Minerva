@@ -14,7 +14,7 @@ cache_dir: tests/tmp/cache
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
-# Name of model. Substring before hyphen is model class.
+# Name of model. This no longer used for model class (see model_params).
 model_name: FCN32ResNet18-test
 
 # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
@@ -40,11 +40,10 @@ optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
-        input_size: ${input_size}
-        n_classes: *n_classes
-        # any other params...
+    _target_: minerva.models.FCN32ResNet18
+    input_size: ${input_size}
+    n_classes: ${n_classes}
+    # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:

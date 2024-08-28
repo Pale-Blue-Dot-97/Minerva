@@ -41,25 +41,24 @@ optim_func: SGD                        # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
+    _target_: minerva.models.FlexiSceneClassifier
+    input_size: ${input_size}
+    n_classes: ${n_classes}
+    encoder_on: true
+    filter_dim: -1
+    fc_dim: 512
+    freeze_backbone: false
+    backbone_args:
+        module: minerva.models
+        name: MinervaPSP
         input_size: ${input_size}
-        n_classes: ${n_classes}
-        encoder_on: true
-        filter_dim: -1
-        fc_dim: 512
-        freeze_backbone: false
-        backbone_args:
-            module: minerva.models
-            name: MinervaPSP
-            input_size: ${input_size}
-            n_classes: 1
-            encoder_name: resnet18
-            encoder_weights:
-            psp_out_channels: 512
-            segmentation_on: false
-            classification_on: false
-            encoder: false
+        n_classes: 1
+        encoder_name: resnet18
+        encoder_weights:
+        psp_out_channels: 512
+        segmentation_on: false
+        classification_on: false
+        encoder: false
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:

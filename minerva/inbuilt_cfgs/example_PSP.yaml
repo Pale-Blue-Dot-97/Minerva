@@ -41,16 +41,15 @@ optim_func: SGD                        # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
-        input_size: ${input_size}
-        n_classes: ${n_classes}
-        encoder: true
-        segmentation_on: true
-        classification_on: true
-        upsampling: 8
-        aux_params:
-            classes: ${n_classes}
+    _target_: minerva.models.MinervaPSP
+    input_size: ${input_size}
+    n_classes: ${n_classes}
+    encoder: true
+    segmentation_on: true
+    classification_on: true
+    upsampling: 8
+    aux_params:
+        classes: ${n_classes}
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:

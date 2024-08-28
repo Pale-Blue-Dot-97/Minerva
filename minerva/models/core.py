@@ -146,6 +146,8 @@ class MinervaModel(Module, ABC):
         self.input_size = input_size
         self.n_classes = n_classes
         self.scaler = scaler
+        
+        print(f"{self.input_size=}")
 
         # Output shape initialised as None. Should be set by calling determine_output_dim.
         self.output_shape: Optional[Tuple[int, ...]] = None

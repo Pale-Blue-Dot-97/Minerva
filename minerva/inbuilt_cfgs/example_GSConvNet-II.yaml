@@ -49,10 +49,9 @@ val_freq: 1         # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
-        input_size: ${input_size}
-        encoder_weights: imagenet
+    _target_: minerva.models.SimConv
+    input_size: ${input_size}
+    encoder_weights: imagenet
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:

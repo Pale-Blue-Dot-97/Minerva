@@ -43,6 +43,7 @@ import warnings
 from copy import deepcopy
 from pathlib import Path
 from platform import python_version
+import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 
 import hydra
@@ -503,39 +504,37 @@ class Trainer:
         if OmegaConf.is_config(model_params):
             model_params = OmegaConf.to_object(model_params)  # type: ignore[assignment]
 
-        module = model_params.pop("module", "minerva.models")
-        if not module:
-            module = "minerva.models"
-        is_minerva = True if module == "minerva.models" else False
-
-        # Gets the model requested by config parameters.
-        _model = utils.func_by_str(module, self.params["model_name"].split("-")[0])
+        is_minerva = True if re.search(r"minerva", model_params["_target_"]) else False
+        
+        print(f"{is_minerva=}")
 
         if self.fine_tune:
             # Add the path to the pre-trained weights to the model params.
             model_params["backbone_weight_path"] = f"{self.get_weights_path()}.pt"
 
-        params = model_params.get("params", {})
-        if "n_classes" in params.keys():
+        if "n_classes" in model_params.keys():
             # Updates the number of classes in case it has been altered by class balancing.
-            params["n_classes"] = self.params["n_classes"]
+            model_params["n_classes"] = self.params["n_classes"]
 
-        if "num_classes" in params.keys():
+        if "num_classes" in model_params.keys():
             # Updates the number of classes in case it has been altered by class balancing.
-            params["num_classes"] = self.params["n_classes"]
+            model_params["num_classes"] = self.params["n_classes"]
 
         if self.params.get("mix_precision", False):
-            params["scaler"] = torch.cuda.amp.grad_scaler.GradScaler()
+            model_params["scaler"] = torch.cuda.amp.grad_scaler.GradScaler()
 
+        print(model_params["input_size"])
         # Initialise model.
         model: MinervaModel
         if is_minerva:
-            model = _model(self.make_criterion(), **params)
+            model = hydra.utils.instantiate(model_params, criterion=self.make_criterion())
+            print(model)
         else:
-            model = MinervaWrapper(
-                _model,
-                self.make_criterion(),
-                **params,
+            model_params["model"] = model_params["_target_"]
+            model_params["_target_"] = "minerva.models.MinervaWrapper"
+            model = hydra.utils.instantiate(
+                model_params,
+                criterion=self.make_criterion(),
             )
 
         if self.params.get("reload", False):
