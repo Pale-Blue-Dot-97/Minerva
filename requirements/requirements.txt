@@ -18,7 +18,7 @@ numba>=0.57.0 # not directly required but pinned to ensure Python 3.11 compatibi
 numpy==1.26.4
 onnx==1.16.2
 onnx2torch==1.5.14
-opencv-python==4.9.0.80
+opencv-python-headless==4.10.0.84
 overload==1.1
 pandas==2.2.2
 patch-ng==1.17.4
