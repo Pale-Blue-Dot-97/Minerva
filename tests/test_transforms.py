@@ -376,9 +376,9 @@ def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> Non
         and transforms is not None
     ):
         with pytest.raises(TypeError):
-            _ = init_auto_norm(default_image_dataset, params)
+            _ = init_auto_norm(default_image_dataset, **params)
     else:
-        dataset = init_auto_norm(default_image_dataset, params)
+        dataset = init_auto_norm(default_image_dataset, **params)
         assert isinstance(dataset, RasterDataset)
         assert isinstance(dataset.transforms.transforms[-1], AutoNorm)  # type: ignore[union-attr]
 
