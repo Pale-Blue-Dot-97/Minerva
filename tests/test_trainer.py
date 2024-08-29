@@ -145,10 +145,17 @@ def test_trainer_3(default_config: DictConfig) -> None:
     params1 = deepcopy(default_config)
 
     trainer1 = Trainer(0, **params1)
-    trainer1.save_model(fn=trainer1.get_model_cache_path())
+
+    pre_train_path = trainer1.get_model_cache_path()
+    trainer1.save_model(fn=pre_train_path, fmt="onnx")
 
     params2 = deepcopy(default_config)
-    OmegaConf.update(params2, "pre_train_name", params1["model_name"], force_add=True)
+    OmegaConf.update(
+        params2,
+        "pre_train_name",
+        str(pre_train_path.with_suffix(".onnx")),
+        force_add=True,
+    )
     params2["fine_tune"] = True
     params2["max_epochs"] = 2
     params2["elim"] = False

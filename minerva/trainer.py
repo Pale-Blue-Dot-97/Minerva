@@ -39,11 +39,11 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+import re
 import warnings
 from copy import deepcopy
 from pathlib import Path
 from platform import python_version
-import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
 
 import hydra
@@ -67,7 +67,6 @@ from minerva.models import (
     MinervaDataParallel,
     MinervaModel,
     MinervaOnnxModel,
-    MinervaWrapper,
     extract_wrapped_model,
     wrap_model,
 )
@@ -341,6 +340,7 @@ class Trainer:
         self.model: Union[
             MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
         ]
+
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
@@ -505,8 +505,6 @@ class Trainer:
             model_params = OmegaConf.to_object(model_params)  # type: ignore[assignment]
 
         is_minerva = True if re.search(r"minerva", model_params["_target_"]) else False
-        
-        print(f"{is_minerva=}")
 
         if self.fine_tune:
             # Add the path to the pre-trained weights to the model params.
@@ -523,14 +521,14 @@ class Trainer:
         if self.params.get("mix_precision", False):
             model_params["scaler"] = torch.cuda.amp.grad_scaler.GradScaler()
 
-        print(model_params["input_size"])
         # Initialise model.
         model: MinervaModel
         if is_minerva:
-            model = hydra.utils.instantiate(model_params, criterion=self.make_criterion())
-            print(model)
+            model = hydra.utils.instantiate(
+                model_params, criterion=self.make_criterion()
+            )
         else:
-            model_params["model"] = model_params["_target_"]
+            model_params["model"] = hydra.utils.get_method(model_params["_target_"])
             model_params["_target_"] = "minerva.models.MinervaWrapper"
             model = hydra.utils.instantiate(
                 model_params,
@@ -563,7 +561,10 @@ class Trainer:
             package="onnx2torch",
         )
 
-        model_params = self.params["model_params"].get("params", {})
+        model_params = deepcopy(self.params["model_params"])
+
+        if "_target_" in model_params:
+            del model_params["_target_"]
 
         onnx_model = convert(onnx_load(f"{self.get_weights_path()}.onnx"))
         model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
