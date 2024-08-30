@@ -266,7 +266,7 @@ class Trainer:
                 "\n==+ Experiment Parameters +====================================================="
             )
             utils.print_config(params)  # type: ignore[arg-type]
-
+        
         # Now that we have pretty printed the config, it is easier to handle as a dict.
         self.params: Dict[str, Any] = OmegaConf.to_object(params)  # type: ignore[assignment]
         assert isinstance(self.params, dict)
@@ -349,7 +349,7 @@ class Trainer:
         self.params["results_dir"] = universal_path(self.params["results_dir"])
         self.exp_fn: Path = self.params["results_dir"] / self.params["exp_name"]
 
-        if self.gpu == 0:
+        if self.gpu == 0 and self.rank == 0:
             # Makes a directory for this experiment.
             utils.mkexpdir(self.params["exp_name"])
 
@@ -451,7 +451,7 @@ class Trainer:
             self.save_checkpoint()
 
     def _setup_writer(self) -> None:
-        if self.gpu == 0:
+        if self.gpu == 0 and self.rank == 0:
             if isinstance(self.writer, Run):
                 self.writer.config.update(self.params)
 
@@ -699,7 +699,7 @@ class Trainer:
                 results = tasks[mode](self.epoch_no - 1)
 
                 # Print epoch results.
-                if self.gpu == 0:
+                if self.gpu == 0 and self.rank == 0:
                     tasks[mode].print_epoch_results(self.epoch_no - 1)
                     #if not self.stopper and self.checkpoint_experiment:
                     if self.epoch_no % 10 == 0:
@@ -767,7 +767,7 @@ class Trainer:
                     ]
                     self.stopper(val_loss, self.model)
                     self.early_stop = self.stopper.early_stop
-                    if self.stopper.save_model and self.gpu == 0:
+                    if self.stopper.save_model and self.gpu == 0 and self.rank == 0:
                         self.save_checkpoint()
 
                 # Special case for final train/ val epoch to plot results if configured so.
@@ -788,7 +788,7 @@ class Trainer:
 
                     assert results is not None
 
-                    if self.gpu == 0:
+                    if self.gpu == 0 and self.rank == 0:
                         # Plots the results of this epoch.
                         tasks[mode].plot(results, fit_metrics)
 
@@ -851,7 +851,7 @@ class Trainer:
 
             assert results is not None
 
-            if self.gpu == 0:
+            if self.gpu == 0 and self.rank == 0:
                 # Print epoch results.
                 task.print_epoch_results(0)
 
@@ -870,7 +870,7 @@ class Trainer:
         # encountered in plotting of results.
         self.close()
 
-        if self.gpu == 0:
+        if self.gpu == 0 and self.rank == 0:
             # Checks whether to run TensorBoard on the log from the experiment. If defined as optional in the config,
             # a user confirmation is required to run TensorBoard with a 60s timeout.
             if self.params.get("run_tensorboard", False) in (
@@ -1011,7 +1011,7 @@ class Trainer:
             # Ensures all the `wandb` runs finish and sync.
             self.writer.finish()
 
-        if self.gpu == 0:
+        if self.gpu == 0 and self.rank == 0:
             self.print("\nSAVING EXPERIMENT CONFIG TO FILE")
             fn = self.exp_fn / self.params["exp_name"]
             # Outputs the modified YAML parameters config file used for this experiment to file.
@@ -1123,5 +1123,5 @@ class Trainer:
         Args:
             msg (object): Object or message to print.
         """
-        if self.verbose and self.gpu == 0:
+        if self.verbose and self.gpu == 0 and self.rank == 0:
             print(msg)
