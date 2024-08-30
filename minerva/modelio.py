@@ -94,31 +94,30 @@ def sup_tg(
     multilabel = True if check_substrings_in_string(model_type, "multilabel") else False
 
     # Extracts the x and y batches from the dict.
-    images: Tensor = batch["image"]
-    targets: Tensor = batch[target_key]
+    x: Tensor = batch["image"]
+    y: Tensor = batch[target_key]
 
     # Check that none of the data is NaN or infinity.
     if kwargs.get("validate_variables", False):
-        assert not images.isnan().any()
-        assert not images.isinf().any()
-        assert not targets.isnan().any()
-        assert not targets.isinf().any()
+        assert not x.isnan().any()
+        assert not x.isinf().any()
+        assert not y.isnan().any()
+        assert not y.isinf().any()
 
     # Re-arranges the x and y batches.
-    x_batch: Tensor = images.to(float_dtype)  # type: ignore[attr-defined]
-    y_batch: Tensor
+    x = x.to(float_dtype)  # type: ignore[attr-defined]
 
     # Squeeze out axis 1 if only 1 element wide.
     if target_key == "mask":
-        targets = targets.squeeze()
+        y = y.squeeze()
 
-    if isinstance(targets, Tensor):
-        targets = targets.detach().cpu()
-    y_batch = torch.tensor(targets, dtype=torch.float if multilabel else torch.long)  # type: ignore[attr-defined]
+    if isinstance(y, Tensor):
+        y = y.detach().cpu()
+    y = y.to(dtype=torch.float if multilabel else torch.long)  # type: ignore[attr-defined]
 
     # Transfer to GPU.
-    x: Tensor = x_batch.to(device)
-    y: Tensor = y_batch.to(device)
+    x = x.to(device)
+    y = y.to(device)
 
     # Runs a step of the epoch.
     loss, z = model.step(x, y, train=train)
@@ -273,13 +272,9 @@ def ssl_pair_tg(
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
 
-    # Extracts the x_i batch from the dict.
-    x_i_batch: Tensor = batch[0]["image"]
-    x_j_batch: Tensor = batch[1]["image"]
-
-    # Ensures images are floats.
-    x_i_batch = x_i_batch.to(float_dtype)  # type: ignore[attr-defined]
-    x_j_batch = x_j_batch.to(float_dtype)  # type: ignore[attr-defined]
+    # Extracts both batches from the dict and ensures images are floats.
+    x_i_batch: Tensor = batch[0]["image"].to(float_dtype)  # type: ignore[attr-defined]
+    x_j_batch: Tensor = batch[1]["image"].to(float_dtype)  # type: ignore[attr-defined]
 
     if kwargs.get("validate_variables", False):
         try:
@@ -287,11 +282,8 @@ def ssl_pair_tg(
         except AssertionError:
             print("WARNING: Batches are the same!")
 
-    # Stacks each side of the pair batches together.
-    x_batch = torch.stack([x_i_batch, x_j_batch])
-
-    # Transfer to GPU.
-    x = x_batch.to(device, non_blocking=True)
+    # Stacks each side of the pair batches together and transfer to GPU.
+    x = torch.stack([x_i_batch, x_j_batch]).to(device, non_blocking=True)
 
     # Check that none of the data is NaN or infinity.
     if kwargs.get("validate_variables", False):
