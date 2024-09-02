@@ -46,6 +46,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from wandb.sdk.wandb_run import Run
 
 from minerva.models import MinervaDataParallel, MinervaModel
+from minerva.utils.utils import get_sample_index
 from minerva.utils.visutils import plot_embedding
 
 from .core import MinervaTask
@@ -119,7 +120,7 @@ class TSNEVis(MinervaTask):
 
         plot_embedding(
             embeddings.detach().cpu(),
-            data["bbox"],
+            get_sample_index(data),
             self.global_params["data_root"],
             self.params["dataset_params"],
             show=True,

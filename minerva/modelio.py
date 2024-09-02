@@ -48,7 +48,11 @@ from torch import LongTensor, Tensor
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva.models import MinervaModel
-from minerva.utils.utils import check_substrings_in_string, mask_to_ohe
+from minerva.utils.utils import (
+    check_substrings_in_string,
+    get_sample_index,
+    mask_to_ohe,
+)
 
 
 # =====================================================================================================================
@@ -70,7 +74,7 @@ def sup_tg(
 
     Args:
         batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
-            Must have ``"image"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"id"`` keys.
+            Must have ``"image"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"bounds"`` / ``"id"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
         train (bool): True to run a step of the model in training mode. False for eval mode.
@@ -122,14 +126,10 @@ def sup_tg(
     # Runs a step of the epoch.
     loss, z = model.step(x, y, train=train)
 
-    # Get the indices of the batch. Either bounding boxes or filenames.
-    index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
-    if "bbox" in batch:
-        index = batch["bbox"]
-    elif "id" in batch:
-        index = batch["id"]
-    else:
-        index = None
+    # Get the indices of the batch. Either bounding boxes, filenames or index number.
+    index: Optional[Union[Sequence[str], Sequence[int], Sequence[BoundingBox]]] = (
+        get_sample_index(batch)
+    )
 
     return loss, z, y, index
 
@@ -151,7 +151,7 @@ def autoencoder_io(
 
     Args:
         batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
-            Must have ``"image"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"id"`` keys.
+            Must have ``"image"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"bounds"`` / ``"id"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
         train (bool): True to run a step of the model in training mode. False for eval mode.
@@ -227,14 +227,10 @@ def autoencoder_io(
     # Runs a step of the epoch.
     loss, z = model.step(x, y, train=train)
 
-    # Get the indices of the batch. Either bounding boxes or filenames.
-    index: Optional[Union[Sequence[str], Sequence[BoundingBox]]]
-    if "bbox" in batch:
-        index = batch["bbox"]
-    elif "id" in batch:
-        index = batch["id"]
-    else:
-        index = None
+    # Get the indices of the batch. Either bounding boxes, filenames or index number.
+    index: Optional[Union[Sequence[str], Sequence[int], Sequence[BoundingBox]]] = (
+        get_sample_index(batch)
+    )
 
     return loss, z, y, index
 
@@ -255,7 +251,7 @@ def ssl_pair_tg(
 
     Args:
         batch (tuple[dict[str, ~typing.Any], dict[str, ~typing.Any]]): Pair of batches of data in :class:`dict` (s).
-            Must have ``"image"`` and ``"bbox"`` keys.
+            Must have ``"image"`` and ``"bbox"`` / ``"bounds"`` / ``"id"`` keys.
         model (MinervaModel): Model being fitted.
         device (~torch.device): :mod:`torch` device object to send data to (e.g. ``CUDA`` device).
         train (bool): True to run a step of the model in training mode. False for eval mode.
@@ -293,12 +289,7 @@ def ssl_pair_tg(
     # Runs a step of the epoch.
     loss, z = model.step(x, train=train)
 
-    if "bbox" in batch[0].keys():
-        return loss, z, None, batch[0]["bbox"] + batch[1]["bbox"]
-    elif "id" in batch[0].keys():
-        return loss, z, None, batch[0]["id"] + batch[1]["id"]
-    else:
-        return loss, z, None, None
+    return loss, z, get_sample_index(batch[0]) + get_sample_index(batch[1])
 
 
 def _determine_float_dtype(device: torch.device, mix_precision: bool) -> torch.dtype:

@@ -1958,3 +1958,30 @@ def closest_factors(n):
         best_pair = (best_pair[1], best_pair[0])
 
     return best_pair
+
+
+def get_sample_index(sample: Dict[str, Any]) -> Optional[Any]:
+    """Get the index for a sample with unkown index key.
+
+    Will try:
+        * ``bbox`` (:mod:`torchgeo` < 0.6.0) for :class:~`torchgeo.datasets.GeoDataset`
+        * ``bounds`` (:mod:`torchgeo` >= 0.6.0) for :class:~`torchgeo.datasets.GeoDataset`
+        * ``id`` for :class:~`torchgeo.datasets.NonGeoDataset`
+
+    Args:
+        sample (dict[str, ~typing.Any]): Sample dictionary to find index in.
+
+    Returns:
+        None | ~typing.Any: Sample index or ``None`` if not found.
+
+    """
+    if "bbox" in sample:
+        index = sample["bbox"]
+    elif "bounds" in sample:
+        index = sample["bounds"]
+    elif "id" in sample:
+        index = sample["id"]
+    else:
+        index = None
+
+    return index
