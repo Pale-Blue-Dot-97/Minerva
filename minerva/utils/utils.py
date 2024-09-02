@@ -1964,9 +1964,9 @@ def get_sample_index(sample: Dict[str, Any]) -> Optional[Any]:
     """Get the index for a sample with unkown index key.
 
     Will try:
-        * ``bbox`` (:mod:`torchgeo` < 0.6.0) for :class:~`torchgeo.datasets.GeoDataset`
-        * ``bounds`` (:mod:`torchgeo` >= 0.6.0) for :class:~`torchgeo.datasets.GeoDataset`
-        * ``id`` for :class:~`torchgeo.datasets.NonGeoDataset`
+        * ``bbox`` (:mod:`torchgeo` < 0.6.0) for :class:`~torchgeo.datasets.GeoDataset`
+        * ``bounds`` (:mod:`torchgeo` >= 0.6.0) for :class:`~torchgeo.datasets.GeoDataset`
+        * ``id`` for :class:`~torchgeo.datasets.NonGeoDataset`
 
     Args:
         sample (dict[str, ~typing.Any]): Sample dictionary to find index in.
@@ -1974,6 +1974,7 @@ def get_sample_index(sample: Dict[str, Any]) -> Optional[Any]:
     Returns:
         None | ~typing.Any: Sample index or ``None`` if not found.
 
+    .. versionadded:: 0.28
     """
     if "bbox" in sample:
         index = sample["bbox"]
@@ -1985,3 +1986,33 @@ def get_sample_index(sample: Dict[str, Any]) -> Optional[Any]:
         index = None
 
     return index
+
+
+def compare_models(model_1: Module, model_2: Module) -> None:
+    """Compare two models weight-by-weight.
+
+    Source: https://discuss.pytorch.org/t/check-if-models-have-same-weights/4351/5
+
+    Args:
+        model_1 (torch.nn.Module): First model.
+        model_2 (torch.nn.Module): Second model.
+
+    Raises:
+        AssertionError: If models do not match exactly.
+
+    .. versionadded:: 0.28
+    """
+    models_differ = 0
+    for key_item_1, key_item_2 in zip(
+        model_1.state_dict().items(), model_2.state_dict().items()
+    ):
+        if torch.equal(key_item_1[1], key_item_2[1]):
+            pass
+        else:
+            models_differ += 1
+            if key_item_1[0] == key_item_2[0]:
+                print("Mismtach found at", key_item_1[0])
+            else:
+                raise AssertionError
+    if models_differ == 0:
+        print("Models match perfectly! :)")
