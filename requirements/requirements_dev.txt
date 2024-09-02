@@ -16,7 +16,7 @@ mypy==1.10.1
 myst_parser==2.0.0
 nptyping==2.5.0
 numba>=0.57.0 # not directly required but pinned to ensure Python 3.11 compatibility.
-numpy==1.26.4
+numpy==2.1.0
 onnx==1.16.2
 onnx2torch==1.5.14
 overload==1.1
