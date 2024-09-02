@@ -638,7 +638,9 @@ class Trainer:
                 **self.params,
             )
 
-            if tasks[mode].params.get("elim", False):
+            # Update the number of classes from the task
+            # if class elimination and training is active in the task.
+            if tasks[mode].elim and tasks[mode].train:
                 self.params["n_classes"] = tasks[mode].n_classes
 
         while self.epoch_no < self.max_epochs:
@@ -667,7 +669,11 @@ class Trainer:
                 # Print epoch results.
                 if self.gpu == 0:
                     tasks[mode].print_epoch_results(self.epoch_no - 1)
-                    if not self.stopper and self.checkpoint_experiment:
+                    if (
+                        not self.stopper
+                        and self.checkpoint_experiment
+                        and utils.check_substrings_in_string(mode, "train")
+                    ):
                         self.save_checkpoint()
 
                 # Update Trainer's copy of the model from the training task.
@@ -873,6 +879,11 @@ class Trainer:
         # If the scheduler exists, load from checkpoint.
         if self.model.scheduler is not None and "scheduler_state_dict" in checkpoint:
             self.model.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+
+        # Calculate the output dimensions of the model.
+        self.model.determine_output_dim(
+            sample_pairs=self.sample_pairs, change_detection=self.change_detection
+        )
 
         # Transfer to GPU.
         self.model.to(self.device)

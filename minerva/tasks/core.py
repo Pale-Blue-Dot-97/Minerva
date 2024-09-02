@@ -262,7 +262,7 @@ class MinervaTask(ABC):
         self.model.to(self.device)
 
         # To eliminate classes, we're going to have to do a fair bit of rebuilding of the model...
-        if self.elim:
+        if self.elim and self.train:
             # Update the stored number of classes within the model and
             # then rebuild the classification layers that are dependent on the number of classes.
             self.model.update_n_classes(self.n_classes)
