@@ -289,7 +289,12 @@ def ssl_pair_tg(
     # Runs a step of the epoch.
     loss, z = model.step(x, train=train)
 
-    return loss, z, get_sample_index(batch[0]) + get_sample_index(batch[1])
+    index_0, index_1 = get_sample_index(batch[0]), get_sample_index(batch[1])
+
+    if index_0 is None or index_1 is None:
+        return loss, z, None, None
+    else:
+        return loss, z, None, index_0 + index_1
 
 
 def _determine_float_dtype(device: torch.device, mix_precision: bool) -> torch.dtype:
