@@ -116,22 +116,11 @@ tasks:
                     Normalise:
                         _target_: minerva.transforms.Normalise
                         norm_value: 4095
-                    SelectChannels:
-                        _target_: minerva.transforms.SelectChannels
-                        channels:
-                            - 1
-                            - 2
-                            - 3
-                            - 7
-                            - 14
-                            - 15
-                            - 16
-                            - 20
 
                 _target_: torchgeo.datasets.OSCD
                 root: OSCD
                 split: train
-                bands: all
+                bands: [B02, B03, B04, B08]
                 download: true
 
             mask:
@@ -165,22 +154,11 @@ tasks:
                     Normalise:
                         _target_: minerva.transforms.Normalise
                         norm_value: 4095
-                    SelectChannels:
-                        _target_: minerva.transforms.SelectChannels
-                        channels:
-                            - 1
-                            - 2
-                            - 3
-                            - 7
-                            - 14
-                            - 15
-                            - 16
-                            - 20
 
                 _target_: torchgeo.datasets.OSCD
                 root: OSCD
                 split: test
-                bands: all
+                bands: [B02, B03, B04, B08]
                 download: true
 
             mask:
