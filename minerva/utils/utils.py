@@ -1889,7 +1889,14 @@ def compile_dataset_paths(
     for path in out_paths:
         compiled_paths.extend(glob.glob(str(path), recursive=True))
 
-    # For each path, get the absolute path, convert to string and return.
+    # Convert to paths
+    raw_paths = [Path(path) for path in compiled_paths]
+
+    # Check if each path exists. If not, make the path.
+    for path in raw_paths:
+        path.mkdir(parents=True, exist_ok=True)
+
+    # For each path, get the absolute path, make the path if it does not exist then convert to string and return.
     return [str(Path(path).absolute()) for path in compiled_paths]
 
 
