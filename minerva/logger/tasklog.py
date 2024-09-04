@@ -49,6 +49,7 @@ if TYPE_CHECKING:  # pragma: no cover
 else:  # pragma: no cover
     SummaryWriter = None
 
+import hydra
 import numpy as np
 from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
@@ -119,15 +120,14 @@ class MinervaTaskLogger(ABC):
 
         self.writer = writer
 
-        if isinstance(step_logger_params, dict):
-            self._logger = get_logger(step_logger_params.get("name", self.logger_cls))
-            if "params" not in step_logger_params:
-                step_logger_params["params"] = {}
-
+        if not isinstance(step_logger_params, dict):
+            step_logger_params = {"_target_": self.logger_cls}
+        elif "_target_" not in step_logger_params:
+            step_logger_params["_target_"] = self.logger_cls
         else:
-            step_logger_params = {"params": {}}
+            pass
 
-        step_logger_params["params"]["n_classes"] = self.n_classes
+        step_logger_params["n_classes"] = self.n_classes
 
         self.step_logger_params = step_logger_params
 
@@ -147,7 +147,8 @@ class MinervaTaskLogger(ABC):
         .. note::
             Will overwrite ``self.logger`` with new logger.
         """
-        self.step_logger: MinervaStepLogger = self._logger(
+        self.step_logger: MinervaStepLogger = hydra.utils.instantiate(
+            self.step_logger_params,
             task_name=self.task_name,
             n_batches=self.n_batches,
             batch_size=self.batch_size,
@@ -156,7 +157,6 @@ class MinervaTaskLogger(ABC):
             record_float=self.record_float,
             writer=self.writer,
             model_type=self.model_type,
-            **self.step_logger_params.get("params", {}),
         )
 
     def refresh_step_logger(self) -> None:
@@ -316,7 +316,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
     """
 
     metric_types: List[str] = ["loss", "acc", "miou"]
-    logger_cls = "SupervisedStepLogger"
+    logger_cls = "minerva.logger.tasklog.SupervisedStepLogger"
 
     def __init__(
         self,
@@ -415,7 +415,7 @@ class SSLTaskLogger(MinervaTaskLogger):
 
     metric_types = ["loss", "acc", "top5_acc"]
     special_metric_types = ["collapse_level", "euc_dist"]
-    logger_cls = "SSLStepLogger"
+    logger_cls = "minerva.logger.steplog.SSLStepLogger"
 
     def __init__(
         self,
@@ -432,13 +432,11 @@ class SSLTaskLogger(MinervaTaskLogger):
         **params,
     ) -> None:
         if not step_logger_params:
-            step_logger_params = {}
-        if "params" not in step_logger_params:
-            step_logger_params["params"] = {}
+            step_logger_params = {"_target_": self.logger_cls}
 
-            step_logger_params["params"]["sample_pairs"] = sample_pairs
-            step_logger_params["params"]["collapse_level"] = sample_pairs
-            step_logger_params["params"]["euclidean"] = sample_pairs
+        step_logger_params["sample_pairs"] = step_logger_params.get("sample_pairs", sample_pairs)
+        step_logger_params["collapse_level"] = step_logger_params.get("collapse_level", sample_pairs)
+        step_logger_params["euclidean"] = step_logger_params.get("euclidean", sample_pairs)
 
         super(SSLTaskLogger, self).__init__(
             task_name,

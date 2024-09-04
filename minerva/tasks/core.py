@@ -362,8 +362,7 @@ class MinervaTask(ABC):
         """
 
         # Gets constructor of the metric logger from name in the config.
-        _logger_cls = func_by_str(
-            "minerva.logger.tasklog",
+        _logger_cls = hydra.utils.get_class(
             utils.fallback_params(
                 "task_logger", self.params, self.global_params, self.logger_cls
             ),

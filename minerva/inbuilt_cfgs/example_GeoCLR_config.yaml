@@ -89,9 +89,9 @@ tasks:
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        task_logger: SSLTaskLogger
+        task_logger: minerva.logger.tasklog.SSLTaskLogger
         step_logger:
-            name: SSLStepLogger
+            _target_: minerva.logger.steplog.SSLStepLogger
         model_io: minerva.modelio.ssl_pair_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
@@ -161,9 +161,9 @@ tasks:
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        task_logger: SSLTaskLogger
+        task_logger: minerva.logger.tasklog.SSLTaskLogger
         step_logger:
-            name: KNNStepLogger
+            _target_: minerva.logger.steplog.KNNStepLogger
         model_io: minerva.modelio.ssl_pair_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
@@ -213,7 +213,7 @@ tasks:
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        task_logger: SupervisedTaskLogger
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
         model_io: minerva.modelio.supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------

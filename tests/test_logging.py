@@ -134,7 +134,7 @@ def test_SupervisedStepLogger(
         record_float=True,
         writer=writer,
         model_type=model_type,
-        step_logger_params={"params": {"n_classes": std_n_classes}},
+        step_logger_params={"n_classes": std_n_classes},
     )
 
     correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
