@@ -132,6 +132,7 @@ class ResNet(MinervaModel):
         replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
         norm_layer: Optional[Callable[..., Module]] = None,
         encoder: bool = False,
+        simCLR_train: bool = False
     ) -> None:
         super(ResNet, self).__init__()
 
@@ -142,6 +143,9 @@ class ResNet(MinervaModel):
 
         # Specifies if this network is to be configured as an encoder backbone or an end-to-end classifier.
         self.encoder_on = encoder
+
+        # Specifies if this network is to be used for SimCLR training.
+        self.simCLR_train = simCLR_train
 
         # Sets the number of input feature maps to an init of 64.
         self.inplanes = 64
@@ -198,9 +202,11 @@ class ResNet(MinervaModel):
         # =============================================================================================================
 
         # Adds average pooling and classification layer to network if this is an end-to-end classifier.
+
         if not self.encoder_on:
             self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-            self.fc = nn.Linear(512 * block.expansion, n_classes)
+            if not self.simCLR_train:
+                self.fc = nn.Linear(512 * block.expansion, n_classes)
 
         # Performs weight initialisation across network.
         for m in self.modules():
@@ -309,11 +315,11 @@ class ResNet(MinervaModel):
 
         if self.encoder_on:
             return x4, x3, x2, x1, x0
-
         else:
             x5 = self.avgpool(x4)
-            x5 = torch.flatten(x5, 1)  # type: ignore[attr-defined]
-            x5 = self.fc(x5)
+            if not self.simCLR_train:
+                x5 = torch.flatten(x5, 1)  # type: ignore[attr-defined]
+                x5 = self.fc(x5)
 
             assert isinstance(x5, Tensor)
             return x5
@@ -405,6 +411,7 @@ class ResNetX(MinervaModel):
         replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
         norm_layer: Optional[Callable[..., Module]] = None,
         encoder: bool = False,
+        simCLR_train: bool = False,
         torch_weights: bool = False,
     ) -> None:
         super(ResNetX, self).__init__(
@@ -422,6 +429,7 @@ class ResNetX(MinervaModel):
             replace_stride_with_dilation=replace_stride_with_dilation,
             norm_layer=norm_layer,
             encoder=encoder,
+            simCLR_train=simCLR_train
         )
 
         if torch_weights:  # pragma: no cover
