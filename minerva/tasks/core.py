@@ -66,7 +66,7 @@ from minerva.models import (
     wrap_model,
 )
 from minerva.utils import utils, visutils
-from minerva.utils.utils import fallback_params, func_by_str
+from minerva.utils.utils import fallback_params
 
 
 # =====================================================================================================================

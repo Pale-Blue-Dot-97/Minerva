@@ -57,7 +57,7 @@ from wandb.sdk.wandb_run import Run
 
 from minerva.utils.utils import check_substrings_in_string
 
-from .steplog import MinervaStepLogger, get_logger
+from .steplog import MinervaStepLogger
 
 
 # =====================================================================================================================
@@ -316,7 +316,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
     """
 
     metric_types: List[str] = ["loss", "acc", "miou"]
-    logger_cls = "minerva.logger.tasklog.SupervisedStepLogger"
+    logger_cls = "minerva.logger.steplog.SupervisedStepLogger"
 
     def __init__(
         self,
@@ -434,9 +434,15 @@ class SSLTaskLogger(MinervaTaskLogger):
         if not step_logger_params:
             step_logger_params = {"_target_": self.logger_cls}
 
-        step_logger_params["sample_pairs"] = step_logger_params.get("sample_pairs", sample_pairs)
-        step_logger_params["collapse_level"] = step_logger_params.get("collapse_level", sample_pairs)
-        step_logger_params["euclidean"] = step_logger_params.get("euclidean", sample_pairs)
+        step_logger_params["sample_pairs"] = step_logger_params.get(
+            "sample_pairs", sample_pairs
+        )
+        step_logger_params["collapse_level"] = step_logger_params.get(
+            "collapse_level", sample_pairs
+        )
+        step_logger_params["euclidean"] = step_logger_params.get(
+            "euclidean", sample_pairs
+        )
 
         super(SSLTaskLogger, self).__init__(
             task_name,

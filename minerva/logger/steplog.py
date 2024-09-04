@@ -38,7 +38,6 @@ __all__ = [
     "SupervisedStepLogger",
     "SSLStepLogger",
     "KNNStepLogger",
-    "get_logger",
 ]
 
 # =====================================================================================================================
@@ -76,7 +75,7 @@ from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
 from minerva.utils import utils
-from minerva.utils.utils import check_substrings_in_string, func_by_str
+from minerva.utils.utils import check_substrings_in_string
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -798,19 +797,3 @@ class SSLStepLogger(MinervaStepLogger):
 
         # Writes the loss to the writer.
         self.write_metric("loss", ls, step_num=global_step_num)
-
-
-# =====================================================================================================================
-#                                                     METHODS
-# =====================================================================================================================
-def get_logger(name) -> Callable[..., Any]:
-    """Gets the constructor for a step logger to log the results from each step of model fitting during an epoch.
-
-    Returns:
-        ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logging.step.log.MinervaStepLogger`
-        to be intialised within the epoch.
-
-    .. versionadded:: 0.27
-    """
-    logger: Callable[..., Any] = func_by_str("minerva.logger.steplog", name)
-    return logger

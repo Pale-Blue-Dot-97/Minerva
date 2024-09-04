@@ -137,7 +137,7 @@ class WeightedKNN(MinervaTask):
     .. versionadded:: 0.27
     """
 
-    logger_cls = "SSLTaskLogger"
+    logger_cls = "minerva.logger.tasklog.SSLTaskLogger"
 
     def __init__(
         self,
