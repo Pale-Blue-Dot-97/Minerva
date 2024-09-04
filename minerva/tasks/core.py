@@ -229,6 +229,9 @@ class MinervaTask(ABC):
         self.sample_pairs = fallback_params(
             "sample_pairs", self.params, self.global_params
         )
+        self.change_detection = fallback_params(
+            "change_detection", self.params, self.global_params
+        )
 
         self.n_classes = fallback_params("n_classes", self.params, self.global_params)
 

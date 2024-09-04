@@ -468,11 +468,8 @@ class Trainer:
         assert input_shape is not None
         input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
 
-        if self.sample_pairs:
+        if self.sample_pairs or self.change_detection:
             input_size = (2, *input_size)
-
-        if self.change_detection:
-            input_size = (input_size[0], 2 * input_size[1], *input_size[2:])
 
         return input_size
 

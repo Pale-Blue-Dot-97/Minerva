@@ -134,6 +134,86 @@ def sup_tg(
     return loss, z, y, index
 
 
+def change_detection(
+    batch: Dict[Any, Any],
+    model: MinervaModel,
+    device: torch.device,  # type: ignore[name-defined]
+    train: bool,
+    **kwargs,
+) -> Tuple[
+    Tensor,
+    Union[Tensor, Tuple[Tensor, ...]],
+    Tensor,
+    Optional[Union[Sequence[str], Sequence[BoundingBox]]],
+]:
+    """Provides IO functionality for a change_detection model.
+
+    Args:
+        batch (dict[~typing.Any, ~typing.Any]): Batch of data in a :class:`dict`.
+            Must have ``"image1"``, ``"image2"``, ``"mask"``/ ``"label"`` and ``"bbox"`` / ``"bounds"`` / ``"id"`` keys.
+        model (MinervaModel): Model being fitted.
+        device (~torch.device): `torch` device object to send data to (e.g. CUDA device).
+        train (bool): True to run a step of the model in training mode. False for eval mode.
+
+    Kwargs:
+        mix_precision (bool): Use mixed-precision. Will set the floating tensors to 16-bit
+            rather than the default 32-bit.
+        target_key (str): Should be either ``"mask"`` or ``"label"``.
+
+    Returns:
+        tuple[
+            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]:
+        The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
+        of the input images supplied.
+    """
+    float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
+    target_key = kwargs.get("target_key", "mask")
+
+    model_type = kwargs.get("model_type", "")
+    multilabel = True if check_substrings_in_string(model_type, "multilabel") else False
+
+    # Extracts the x and y batches from the dict.
+    x1: Tensor = batch["image1"]
+    x2: Tensor = batch["image2"]
+    y: Tensor = batch[target_key]
+
+    # Check that none of the data is NaN or infinity.
+    if kwargs.get("validate_variables", False):
+        assert not x1.isnan().any()
+        assert not x1.isinf().any()
+        assert not x2.isnan().any()
+        assert not x2.isinf().any()
+        assert not y.isnan().any()
+        assert not y.isinf().any()
+
+    # Re-arranges the x and y batches.
+    x1 = x1.to(float_dtype)  # type: ignore[attr-defined]
+    x2 = x2.to(float_dtype)  # type: ignore[attr-defined]
+
+    # Squeeze out axis 1 if only 1 element wide.
+    if target_key == "mask":
+        y = y.squeeze()
+
+    if isinstance(y, Tensor):
+        y = y.detach().cpu()
+    y = y.to(dtype=torch.float if multilabel else torch.long)  # type: ignore[attr-defined]
+
+    # Transfer to GPU.
+    x = torch.stack([x1, x2]).to(device)
+    y = y.to(device)
+
+    # Runs a step of the epoch.
+    loss, z = model.step(x, y, train=train)
+
+    # Get the indices of the batch. Either bounding boxes, filenames or index number.
+    index: Optional[Union[Sequence[str], Sequence[int], Sequence[BoundingBox]]] = (
+        get_sample_index(batch)
+    )
+
+    return loss, z, y, index
+
+
 def autoencoder_io(
     batch: Dict[Any, Any],
     model: MinervaModel,

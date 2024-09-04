@@ -243,7 +243,11 @@ def get_subdataset(
 
     if auto_norm:
         if isinstance(sub_dataset, RasterDataset):
-            init_auto_norm(sub_dataset, length=sub_dataset_params.get("length"), roi=sub_dataset_params.get("roi"))
+            init_auto_norm(
+                sub_dataset,
+                length=sub_dataset_params.get("length"),
+                roi=sub_dataset_params.get("roi"),
+            )
         else:
             raise TypeError(  # pragma: no cover
                 "AutoNorm only supports normalisation of data "
@@ -257,6 +261,7 @@ def make_dataset(
     data_directory: Union[Iterable[str], str, Path],
     dataset_params: Dict[Any, Any],
     sample_pairs: bool = False,
+    change_detection: bool = False,
     cache: bool = True,
     cache_dir: Union[str, Path] = "",
 ) -> Tuple[Any, List[Any]]:
@@ -268,6 +273,8 @@ def make_dataset(
         dataset_params (dict[~typing.Any, ~typing.Any]): Dictionary of parameters defining each sub-datasets to be used.
         sample_pairs (bool): Optional; ``True`` if paired sampling. This will ensure paired samples are handled
             correctly in the datasets.
+        change_detection (bool): Flag for a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
         cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
         cache_dir (str | ~pathlib.Path): Path to the directory to save the cached dataset (if ``cache==True``).
             Defaults to CWD.
@@ -343,7 +350,9 @@ def make_dataset(
                 else:
                     transform_params = False
 
-                master_transforms = make_transformations(transform_params)
+                master_transforms = make_transformations(
+                    transform_params, change_detection=change_detection
+                )
 
             # Assuming that these keys are names of datasets.
             elif sub_type_key == "subdatasets":
@@ -357,7 +366,9 @@ def make_dataset(
                 else:
                     transform_params = False
 
-                transformations = make_transformations({type_key: transform_params})
+                transformations = make_transformations(
+                    {type_key: transform_params}, change_detection=change_detection
+                )
 
                 # Send the params for this area key back through this function to make the sub-dataset.
                 for area_key in type_dataset_params[sub_type_key]:
@@ -413,7 +424,9 @@ def make_dataset(
 
     if add_target_transforms is not None:
         target_key = masks_or_labels(dataset_params)
-        target_transforms = make_transformations({target_key: add_target_transforms})
+        target_transforms = make_transformations(
+            {target_key: add_target_transforms}, change_detection=change_detection
+        )
 
         if hasattr(dataset, "transforms"):
             if isinstance(dataset.transforms, MinervaCompose):
@@ -428,7 +441,8 @@ def make_dataset(
 
     if add_multi_modal_transforms is not None:
         multi_modal_transforms = make_transformations(
-            {"both": add_multi_modal_transforms}
+            {"both": add_multi_modal_transforms},
+            change_detection=change_detection,
         )
         if hasattr(dataset, "transforms"):
             if isinstance(dataset.transforms, MinervaCompose):
@@ -454,6 +468,7 @@ def construct_dataloader(
     rank: int = 0,
     world_size: int = 1,
     sample_pairs: bool = False,
+    change_detection: bool = False,
     cache: bool = True,
     cache_dir: Union[Path, str] = "",
 ) -> DataLoader[Iterable[Any]]:
@@ -474,6 +489,8 @@ def construct_dataloader(
         world_size (int): Optional; The total number of processes within a distributed run.
         sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function
             for paired samples.
+        change_detection (bool): Flag for if using a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Returns:
         ~torch.utils.data.DataLoader: Object to handle the returning of batched samples from the dataset.
@@ -482,6 +499,7 @@ def construct_dataloader(
         data_directory,
         dataset_params,
         sample_pairs=sample_pairs,
+        change_detection=change_detection,
         cache=cache,
         cache_dir=cache_dir,
     )
@@ -570,6 +588,7 @@ def _make_loader(
     model_type,
     elim,
     sample_pairs,
+    change_detection,
     cache,
 ):
     target_key = None
@@ -593,6 +612,7 @@ def _make_loader(
         rank=rank,
         world_size=world_size,
         sample_pairs=sample_pairs,
+        change_detection=change_detection,
         cache=cache,
         cache_dir=cache_dir,
     )
@@ -699,8 +719,10 @@ def make_loaders(
     sample_pairs: Union[bool, Any] = utils.fallback_params(
         "sample_pairs", task_params, params, False
     )
-    if not isinstance(sample_pairs, bool):  # pragma: no cover
-        sample_pairs = False
+
+    change_detection: Union[bool, Any] = utils.fallback_params(
+        "change_detection", task_params, params, False
+    )
 
     elim = utils.fallback_params("elim", task_params, params, False)
     cache = utils.fallback_params("cache_dataset", task_params, params, True)
@@ -724,6 +746,7 @@ def make_loaders(
                 sampler_params,
                 dataloader_params,
                 collator_target,
+                change_detection=change_detection,
                 elim=elim,
             )
 
@@ -742,6 +765,7 @@ def make_loaders(
             model_type,
             elim=elim,
             sample_pairs=sample_pairs,
+            change_detection=change_detection,
             cache=cache,
         )
 
@@ -767,6 +791,7 @@ def make_loaders(
                     mode_sampler_params,
                     dataloader_params,
                     collator_target,
+                    change_detection=change_detection,
                     elim=elim,
                 )
 
@@ -786,6 +811,7 @@ def make_loaders(
                 model_type,
                 elim=elim,
                 sample_pairs=sample_pairs if mode == "train" else False,
+                change_detection=change_detection,
                 cache=cache,
             )
 
@@ -837,6 +863,7 @@ def get_data_specs(
     sampler_params: Optional[Dict[str, Any]] = None,
     dataloader_params: Optional[Dict[str, Any]] = None,
     collator_target: str = "torchgeo.datasets.stack_samples",
+    change_detection: bool = False,
     elim: bool = True,
 ):
     # Load manifest from cache for this dataset.
@@ -847,6 +874,7 @@ def get_data_specs(
         sampler_params,
         dataloader_params,
         collator_target=collator_target,
+        change_detection=change_detection,
     )
 
     class_dist = utils.modes_from_manifest(manifest, classes)
@@ -874,6 +902,7 @@ def get_manifest(
     sampler_params: Optional[Dict[str, Any]] = None,
     loader_params: Optional[Dict[str, Any]] = None,
     collator_target: str = "torchgeo.datasets.stack_samples",
+    change_detection: bool = False,
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
@@ -893,6 +922,8 @@ def get_manifest(
         manifest_path (str | ~pathlib.Path): Path (including filename and extension) to the manifest
             saved as a ``csv``.
         task_name (str): Optional; Name of the task to which the dataset to create a manifest of belongs to.
+        change_detection (bool): Flag for if using a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Returns:
         ~pandas.DataFrame: Manifest either loaded from ``manifest_path`` or created from parameters in :data:`CONFIG`.
@@ -915,6 +946,7 @@ def get_manifest(
             sampler_params,
             loader_params,
             collator_target=collator_target,
+            change_detection=change_detection,
         )
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
@@ -933,6 +965,7 @@ def make_manifest(
     sampler_params: Dict[str, Any],
     loader_params: Dict[str, Any],
     collator_target: str = "torchgeo.datasets.stack_samples",
+    change_detection: bool = False,
 ) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -941,6 +974,8 @@ def make_manifest(
     Args:
         mf_config (dict[~typing.Any, ~typing.Any]): Config to use to construct the manifest with.
         task_name (str): Optional; Name of the task to which the dataset to create a manifest of belongs to.
+        change_detection (bool): Flag for if using a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
@@ -1007,6 +1042,7 @@ def make_manifest(
         loader_params,
         batch_size=1,  # To prevent issues with stacking different sized patches, set batch size to 1.
         collator_target=collator_target,
+        change_detection=change_detection,
         cache=False,
     )
 

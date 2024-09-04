@@ -82,16 +82,12 @@ from torchvision.transforms import (
     ConvertImageDtype,
     InterpolationMode,
     Normalize,
-    Resize,
     RandomApply,
+    Resize,
 )
 from torchvision.transforms.v2 import functional as ft
 
-from minerva.utils.utils import (
-    find_tensor_mode,
-    get_centre_pixel_value,
-    mask_transform,
-)
+from minerva.utils.utils import find_tensor_mode, get_centre_pixel_value, mask_transform
 
 
 # =====================================================================================================================
@@ -502,8 +498,8 @@ class MinervaCompose:
     Args:
         transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
             List of transforms to compose.
-        key (str): Optional; For use with :mod:`torchgeo` samples and must be assigned a value if using.
-            The key of the data type in the sample dict to transform.
+        change_detection (bool): Flag for if transforming a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Example:
         >>> transforms.MinervaCompose([
@@ -520,16 +516,23 @@ class MinervaCompose:
             Callable[..., Any],
             Dict[str, Union[List[Callable[..., Any]], Callable[..., Any]]],
         ],
+        change_detection: bool = False,
     ) -> None:
         self.transforms: Union[
             List[Callable[..., Any]], Dict[str, List[Callable[..., Any]]]
         ]
+
+        self.change_detection = change_detection
 
         if isinstance(transforms, Sequence):
             self.transforms = list(transforms)
         elif callable(transforms):
             self.transforms = [transforms]
         elif isinstance(transforms, dict):
+            if self.change_detection and "image" in transforms:
+                transforms["image1"] = transforms["image"]
+                transforms["image2"] = transforms["image"]
+                del transforms["image"]
             self.transforms = transforms  # type: ignore[assignment]
             assert isinstance(self.transforms, dict)
             for key in transforms.keys():
@@ -564,11 +567,24 @@ class MinervaCompose:
             # Assumes the keys must be "image" and "mask"
             # We need to apply these first before applying any seperate transforms for modalities.
             if "both" in self.transforms:
+                if self.change_detection:
+                    # Transform images1 with new random states (if applicable).
+                    sample["image1"] = self._transform_input(
+                        sample["image1"], self.transforms["both"]
+                    )
 
-                # Transform images with new random states (if applicable).
-                sample["image"] = self._transform_input(
-                    sample["image"], self.transforms["both"]
-                )
+                    # Transform images1 with new random states (if applicable).
+                    sample["image2"] = self._transform_input(
+                        sample["image2"],
+                        self.transforms["both"],
+                        reapply=True,
+                    )
+
+                else:
+                    # Transform images with new random states (if applicable).
+                    sample["image"] = self._transform_input(
+                        sample["image"], self.transforms["both"]
+                    )
 
                 # We'll have to convert the masks to float for these transforms to work
                 # so need to store the current dtype to cast back to after.
@@ -816,7 +832,13 @@ class MaskResize(Resize):
     .. versionadded:: 0.28
     """
 
-    def __init__(self, size, interpolation: str = "NEAREST", max_size=None, antialias: bool = True) -> None:
+    def __init__(
+        self,
+        size,
+        interpolation: str = "NEAREST",
+        max_size=None,
+        antialias: bool = True,
+    ) -> None:
         interpolation_mode = getattr(InterpolationMode, interpolation)
         super().__init__(size, interpolation_mode, max_size, antialias)
 
@@ -848,7 +870,7 @@ class MaskResize(Resize):
         return torch.squeeze(super().forward(torch.reshape(img, tmp_shape)))
 
 
-class AdjustGamma():
+class AdjustGamma:
     """Callable version of :meth:`torchvision.transforms.functional.adjust_gamma`
 
     Args:
@@ -857,6 +879,7 @@ class AdjustGamma():
 
     .. versionadded:: 0.28
     """
+
     def __init__(self, gamma: float = 1.0, gain: float = 1.0) -> None:
         self.gamma = gamma
         self.gain = gain
@@ -949,7 +972,8 @@ def get_transform(transform_params: Dict[str, Any]) -> Callable[..., Any]:
 
 
 def make_transformations(
-    transform_params: Union[Dict[str, Any], Literal[False]]
+    transform_params: Union[Dict[str, Any], Literal[False]],
+    change_detection: bool = False,
 ) -> Optional[MinervaCompose]:
     """Constructs a transform or series of transforms based on parameters provided.
 
@@ -957,6 +981,8 @@ def make_transformations(
         transform_params (dict[str, ~typing.Any] | ~typing.Literal[False]): Parameters defining transforms desired.
             The name of each transform should be the key, while the kwargs for the transform should
             be the value of that key as a dict.
+        change_detection (bool): Flag for if transforming a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Example:
         >>> transform_params = {
@@ -985,9 +1011,7 @@ def make_transformations(
                 continue
 
             else:
-                type_transformations.append(
-                    get_transform(type_transform_params[_name])
-                )
+                type_transformations.append(get_transform(type_transform_params[_name]))
 
         return type_transformations
 
@@ -1006,6 +1030,8 @@ def make_transformations(
             else:
                 transformations[name] = construct(transform_params[name])
         else:
-            return MinervaCompose(construct(transform_params))
+            return MinervaCompose(
+                construct(transform_params), change_detection=change_detection
+            )
 
-    return MinervaCompose(transformations)
+    return MinervaCompose(transformations, change_detection=change_detection)

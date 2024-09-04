@@ -542,12 +542,9 @@ def get_output_shape(
     if not hasattr(_image_dim, "__len__"):
         assert isinstance(_image_dim, int)
         random_input = torch.rand([4, _image_dim])
-    elif sample_pairs:
+    elif sample_pairs or change_detection:
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([2, 4, *_image_dim])
-    elif change_detection:
-        assert isinstance(_image_dim, Iterable)
-        random_input = torch.rand([4, 2 * _image_dim[0], *_image_dim[1:]])
     else:
         assert isinstance(_image_dim, Iterable)
         random_input = torch.rand([4, *_image_dim])

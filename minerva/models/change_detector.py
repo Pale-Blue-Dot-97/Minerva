@@ -128,8 +128,7 @@ class ChangeDetector(MinervaModel):
             ~torch.Tensor: Likelihoods the network places on the
             input ``x`` being of each class.
         """
-        x = torch.squeeze(x)
-        x_0, x_1 = torch.chunk(x, 2, dim=1)
+        x_0, x_1 = x[0], x[1]
 
         f_0 = self.backbone(x_0)
         f_1 = self.backbone(x_1)
@@ -140,7 +139,6 @@ class ChangeDetector(MinervaModel):
 
         f = torch.cat((f_0, f_1), 1)
 
-        # f = f.view(f.size(0), -1)
         z: Tensor = self.classification_head(f)
 
         assert isinstance(z, Tensor)

@@ -34,6 +34,7 @@ pre_train: false                       # Activate pre-training mode.
 fine_tune: false                       # Activate fine-tuning mode.
 torch_compile: false                   # Wrap model in `torch.compile`.
 sample_pairs: false
+change_detection: true
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: CrossEntropyLoss            # Name of the loss function to use.
@@ -82,7 +83,7 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-
+model_io: change_detection
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
 
