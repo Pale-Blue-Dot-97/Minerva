@@ -83,7 +83,7 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-model_io: change_detection
+model_io: change_detection_io
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
 

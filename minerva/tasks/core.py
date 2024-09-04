@@ -158,7 +158,7 @@ class MinervaTask(ABC):
     """
 
     logger_cls: str = "SupervisedTaskLogger"
-    model_io_name: str = "sup_tg"
+    model_io_name: str = "supervised_torchgeo_io"
 
     def __init__(
         self,

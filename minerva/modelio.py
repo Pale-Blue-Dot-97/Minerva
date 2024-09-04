@@ -32,8 +32,10 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "sup_tg",
-    "ssl_pair_tg",
+    "supervised_torchgeo_io",
+    "change_detection_io",
+    "autoencoder_io",
+    "ssl_pair_torchgeo_io",
 ]
 
 # =====================================================================================================================
@@ -58,7 +60,7 @@ from minerva.utils.utils import (
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def sup_tg(
+def supervised_torchgeo_io(
     batch: Dict[Any, Any],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
@@ -134,7 +136,7 @@ def sup_tg(
     return loss, z, y, index
 
 
-def change_detection(
+def change_detection_io(
     batch: Dict[Any, Any],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
@@ -315,7 +317,7 @@ def autoencoder_io(
     return loss, z, y, index
 
 
-def ssl_pair_tg(
+def ssl_pair_torchgeo_io(
     batch: Tuple[Dict[str, Any], Dict[str, Any]],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]

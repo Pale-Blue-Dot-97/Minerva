@@ -123,7 +123,7 @@ tasks:
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         # logger: STGLogger
         # metrics: SPMetrics
-        # model_io: sup_tg
+        # model_io: supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
@@ -155,7 +155,7 @@ tasks:
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         # logger: STGLogger
         # metrics: SPMetrics
-        # model_io: sup_tg
+        # model_io: supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:

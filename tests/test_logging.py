@@ -62,7 +62,7 @@ from torchgeo.datasets.utils import BoundingBox
 from minerva.logger.steplog import SupervisedStepLogger
 from minerva.logger.tasklog import SSLTaskLogger, SupervisedTaskLogger
 from minerva.loss import SegBarlowTwinsLoss
-from minerva.modelio import ssl_pair_tg, sup_tg
+from minerva.modelio import ssl_pair_torchgeo_io, supervised_torchgeo_io
 from minerva.models import FCN16ResNet18, MinervaSiamese, SimCLR18, SimConv
 from minerva.utils import utils
 
@@ -156,7 +156,7 @@ def test_SupervisedStepLogger(
             }
             data.append(batch)
 
-            logger.step(i, i, *sup_tg(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
+            logger.step(i, i, *supervised_torchgeo_io(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
 
         logs = logger.get_logs
         assert logs["batch_num"] == std_n_batches - 1
@@ -297,7 +297,7 @@ def test_SSLStepLogger(
             logger.step(
                 i,
                 i,
-                *ssl_pair_tg((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]
+                *ssl_pair_torchgeo_io((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]
             )
 
         logs = logger.get_logs
