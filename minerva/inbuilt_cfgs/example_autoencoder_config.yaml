@@ -71,7 +71,7 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 task_logger: SupervisedTaskLogger
 step_logger:
     name: SupervisedStepLogger
-model_io: autoencoder_io
+model_io: minerva.modelio.autoencoder_io
 
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!

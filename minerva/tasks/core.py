@@ -158,7 +158,7 @@ class MinervaTask(ABC):
     """
 
     logger_cls: str = "SupervisedTaskLogger"
-    model_io_name: str = "supervised_torchgeo_io"
+    model_io_name: str = "minerva.modelio.supervised_torchgeo_io"
 
     def __init__(
         self,
@@ -394,8 +394,7 @@ class MinervaTask(ABC):
         Returns:
             ~typing.Callable[..., ~typing.Any]: Model IO function requested from parameters.
         """
-        io_func: Callable[..., Any] = func_by_str(
-            "minerva.modelio",
+        io_func: Callable[..., Any] = hydra.utils.get_method(
             utils.fallback_params(
                 "model_io", self.params, self.global_params, self.model_io_name
             ),

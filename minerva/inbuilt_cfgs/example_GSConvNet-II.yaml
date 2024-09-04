@@ -103,7 +103,7 @@ tasks:
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: SSLTaskLogger
-        model_io: ssl_pair_torchgeo_io
+        model_io: minerva.modelio.ssl_pair_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
@@ -167,7 +167,7 @@ tasks:
         task_logger: SSLTaskLogger
         step_logger:
             name: KNNStepLogger
-        model_io: supervised_torchgeo_io
+        model_io: minerva.modelio.supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
@@ -203,7 +203,7 @@ tasks:
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: SupervisedTaskLogger
-        model_io: supervised_torchgeo_io
+        model_io: minerva.modelio.supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
