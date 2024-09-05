@@ -108,9 +108,7 @@ class PairedGeoDataset(RasterDataset):
     ) -> None: ...  # pragma: no cover
 
     @overload
-    def __init__(
-        self, dataset: str, *args, **kwargs
-    ) -> None: ...  # pragma: no cover
+    def __init__(self, dataset: str, *args, **kwargs) -> None: ...  # pragma: no cover
 
     def __init__(
         self,

@@ -62,7 +62,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import wandb
 import yaml
-from omegaconf import DictConfig, OmegaConf, ListConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
@@ -334,7 +334,9 @@ def distributed_run(
 
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
     OmegaConf.register_new_resolver("eval", eval, replace=True)
-    OmegaConf.register_new_resolver("to_patch_size", _construct_patch_size, replace=True)
+    OmegaConf.register_new_resolver(
+        "to_patch_size", _construct_patch_size, replace=True
+    )
 
     @functools.wraps(run)
     def inner_decorator(cfg: DictConfig):

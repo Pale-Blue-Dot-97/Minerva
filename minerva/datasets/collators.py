@@ -48,7 +48,9 @@ from torchgeo.datasets.utils import stack_samples
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_collator(collator_target: str = "torchgeo.datasets.stack_samples") -> Callable[..., Any]:
+def get_collator(
+    collator_target: str = "torchgeo.datasets.stack_samples",
+) -> Callable[..., Any]:
     """Gets the function defined in parameters to collate samples together to form a batch.
 
     Args:
