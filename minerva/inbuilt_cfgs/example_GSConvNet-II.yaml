@@ -150,11 +150,14 @@ tasks:
                         p: 0.2
                         keepdim: true
 
-                _target_: minerva.datasets.NonGeoSSL4EOS12Sentinel2
+                _target_: minerva.datasets.MinervaSSL4EO
                 root: SSL4EO-S12
+                mode: s2a
                 bands: [B2, B3, B4, B8]
                 size: ${patch_size}
                 max_r: *max_r
+                season: true
+                season_transform: pair
 
     fit-val:
         _target_: minerva.tasks.WeightedKNN

@@ -121,8 +121,7 @@ tasks:
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        logger: STGLogger
-        metrics: SPMetrics
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
         model_io: minerva.modelio.supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
@@ -153,8 +152,7 @@ tasks:
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        logger: STGLogger
-        metrics: SPMetrics
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
         model_io: minerva.modelio.supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
