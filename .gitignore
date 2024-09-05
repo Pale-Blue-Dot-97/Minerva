@@ -152,8 +152,7 @@ lightning_logs/
 **/results/*
 **/cache/*
 **/outputs/*
-tests/tmp/cache/*
-tests/tmp/results/*
+tests/tmp/*
 user_cfgs/*
 
 inbuilt_cfgs/config.yml
@@ -162,8 +161,14 @@ inbuilt_cfgs/mf_config.yml
 .vscode/settings.json
 
 # Exclusions
+!docs/
+docs/*
+!docs/images/
+docs/images/*
 !docs/images/*.png
+
 !tests/fixtures/data/**/*.png
 !tests/fixtures/data/**/*.txt
 !tests/fixtures/data/**/*.csv
 !tests/fixtures/data/**/*.tif
+!tests/fixtures/data/**/*.json
