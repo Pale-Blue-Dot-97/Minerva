@@ -107,7 +107,6 @@ __all__ = [
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import cmath
 import functools
-import glob
 import hashlib
 import importlib
 import inspect

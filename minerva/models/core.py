@@ -81,8 +81,8 @@ from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 from torch.nn.parallel import DataParallel
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch.optim import Optimizer
 from torch.optim.lr_scheduler import LRScheduler
+from torch.optim.optimizer import Optimizer
 from torchvision.models._api import WeightsEnum
 
 from minerva.utils.utils import func_by_str

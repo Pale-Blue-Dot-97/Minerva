@@ -156,7 +156,7 @@ def test_SupervisedStepLogger(
             }
             data.append(batch)
 
-            logger.step(i, i, *supervised_torchgeo_io(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
+            logger.step(i, i, *supervised_torchgeo_io(batch, model, device=default_device, train=train))  # type: ignore[arg-type]  # noqa: E501
 
         logs = logger.get_logs
         assert logs["batch_num"] == std_n_batches - 1
@@ -297,7 +297,7 @@ def test_SSLStepLogger(
             logger.step(
                 i,
                 i,
-                *ssl_pair_torchgeo_io((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]
+                *ssl_pair_torchgeo_io((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]  # noqa: E501
             )
 
         logs = logger.get_logs

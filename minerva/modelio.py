@@ -41,7 +41,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import torch
@@ -61,16 +61,16 @@ from minerva.utils.utils import (
 #                                                     METHODS
 # =====================================================================================================================
 def supervised_torchgeo_io(
-    batch: Dict[Any, Any],
+    batch: dict[Any, Any],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[
+) -> tuple[
     Tensor,
-    Union[Tensor, Tuple[Tensor, ...]],
+    Tensor | tuple[Tensor, ...],
     Tensor,
-    Optional[Union[Sequence[str], Sequence[BoundingBox]]],
+    Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
 ]:
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
 
@@ -129,7 +129,7 @@ def supervised_torchgeo_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes, filenames or index number.
-    index: Optional[Union[Sequence[str], Sequence[int], Sequence[BoundingBox]]] = (
+    index: Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]] = (
         get_sample_index(batch)
     )
 
@@ -137,16 +137,16 @@ def supervised_torchgeo_io(
 
 
 def change_detection_io(
-    batch: Dict[Any, Any],
+    batch: dict[Any, Any],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[
+) -> tuple[
     Tensor,
-    Union[Tensor, Tuple[Tensor, ...]],
+    Tensor | tuple[Tensor, ...],
     Tensor,
-    Optional[Union[Sequence[str], Sequence[BoundingBox]]],
+    Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
 ]:
     """Provides IO functionality for a change_detection model.
 
@@ -209,7 +209,7 @@ def change_detection_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes, filenames or index number.
-    index: Optional[Union[Sequence[str], Sequence[int], Sequence[BoundingBox]]] = (
+    index: Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]] = (
         get_sample_index(batch)
     )
 
@@ -217,16 +217,16 @@ def change_detection_io(
 
 
 def autoencoder_io(
-    batch: Dict[Any, Any],
+    batch: dict[Any, Any],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[
+) -> tuple[
     Tensor,
-    Union[Tensor, Tuple[Tensor, ...]],
+    Tensor | tuple[Tensor, ...],
     Tensor,
-    Optional[Union[Sequence[str], Sequence[BoundingBox]]],
+    Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
 ]:
     """Provides IO functionality for an autoencoder using :mod:`torchgeo` datasets by only using the same data
     for input and ground truth.
@@ -286,15 +286,13 @@ def autoencoder_io(
         )
         output_masks: LongTensor = masks
 
-        if isinstance(input_masks, Tensor):
-            input_masks = input_masks.detach().cpu().numpy()
-
-        if isinstance(output_masks, Tensor):
-            output_masks = output_masks.detach().cpu().numpy()
-
         # Transfer to GPU and cast to correct dtypes.
-        x = torch.tensor(input_masks, dtype=float_dtype, device=device)
-        y = torch.tensor(output_masks, dtype=torch.long, device=device)
+        x = torch.tensor(
+            input_masks.detach().cpu().numpy(), dtype=float_dtype, device=device
+        )
+        y = torch.tensor(
+            output_masks.detach().cpu().numpy(), dtype=torch.long, device=device
+        )
 
     elif key == "image":
         # Extract the images from the batch, set to float, transfer to GPU and make x and y.
@@ -310,7 +308,7 @@ def autoencoder_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes, filenames or index number.
-    index: Optional[Union[Sequence[str], Sequence[int], Sequence[BoundingBox]]] = (
+    index: Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]] = (
         get_sample_index(batch)
     )
 
@@ -318,16 +316,16 @@ def autoencoder_io(
 
 
 def ssl_pair_torchgeo_io(
-    batch: Tuple[Dict[str, Any], Dict[str, Any]],
+    batch: tuple[dict[str, Any], dict[str, Any]],
     model: MinervaModel,
     device: torch.device,  # type: ignore[name-defined]
     train: bool,
     **kwargs,
-) -> Tuple[
+) -> tuple[
     Tensor,
-    Union[Tensor, Tuple[Tensor, ...]],
+    Tensor | tuple[Tensor, ...],
     None,
-    Optional[Union[Sequence[BoundingBox], Sequence[int]]],
+    Optional[Sequence[BoundingBox] | Sequence[int]],
 ]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 

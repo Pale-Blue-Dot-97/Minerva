@@ -426,8 +426,7 @@ class DFC2020(BaseSenS12MS):
         adjust_gamma = AdjustGamma(gamma=0.8)
 
         # Reorder channels from BGR to RGB and adjust the gamma ready for plotting.
-        image = adjust_gamma(bgr_to_rgb(sample["image"][:3]))
-        image = image.permute(1, 2, 0).numpy()
+        image = adjust_gamma(bgr_to_rgb(sample["image"][:3])).permute(1, 2, 0).numpy()
 
         block_size_factor = 8
 
