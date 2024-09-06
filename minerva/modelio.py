@@ -303,7 +303,7 @@ def ssl_pair_tg(
     print(f"Stack batch: {time.time() - split_batch}")############################## delete after testing
     # Transfer to GPU.
     split_batch = time.time() ###################################################### delete after testing
-    x = x_batch.to(device, non_blocking=True)
+    x = x_batch.to(device, non_blocking=False) # check if non_blocking=True is faster or slower
     print(f"batch to GPU: {time.time() - split_batch}")############################## delete after testing
     # Check that none of the data is NaN or infinity.
     if kwargs.get("validate_variables", False):
