@@ -39,7 +39,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, Tuple
+from typing import Any, Callable, Iterable
 
 from hydra.utils import get_method
 from torchgeo.datasets.utils import stack_samples
@@ -67,8 +67,8 @@ def get_collator(
 
 
 def stack_sample_pairs(
-    samples: Iterable[Tuple[Dict[Any, Any], Dict[Any, Any]]]
-) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+    samples: Iterable[tuple[dict[Any, Any], dict[Any, Any]]]
+) -> tuple[dict[Any, Any], dict[Any, Any]]:
     """Takes a list of paired sample dicts and stacks them into a tuple of batches of sample dicts.
 
     Args:

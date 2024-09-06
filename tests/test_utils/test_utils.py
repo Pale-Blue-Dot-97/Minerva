@@ -45,7 +45,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -85,7 +85,7 @@ def test_is_notebook() -> None:
 
 def test_return_updated_kwargs() -> None:
     @utils.return_updated_kwargs
-    def example_func(*args, **kwargs) -> Tuple[Any, Dict[str, Any]]:
+    def example_func(*args, **kwargs) -> tuple[Any, dict[str, Any]]:
         _ = (
             kwargs["update_1"] * kwargs["update_3"]
             - kwargs["static_2"] / args[1] * args[0]
@@ -196,13 +196,13 @@ def test_ohe_labels() -> None:
     assert_array_equal(correct_targets, targets)
 
 
-def test_empty_classes(exp_classes: Dict[int, str]) -> None:
+def test_empty_classes(exp_classes: dict[int, str]) -> None:
     class_distribution = [(3, 321), (4, 112), (1, 671), (5, 456)]
     assert utils.find_empty_classes(class_distribution, exp_classes) == [0, 2, 6, 7]
 
 
 def test_eliminate_classes(
-    exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]
+    exp_classes: dict[int, str], exp_cmap_dict: dict[int, str]
 ) -> None:
     empty = [0, 2, 7]
     new_classes = {
@@ -246,12 +246,12 @@ def test_eliminate_classes(
     ],
 )
 def test_check_test_empty(
-    exp_classes: Dict[int, str],
-    in_labels: List[int],
-    in_pred: List[int],
-    out_labels: List[int],
-    out_pred: List[int],
-    out_classes: Dict[int, str],
+    exp_classes: dict[int, str],
+    in_labels: list[int],
+    in_pred: list[int],
+    out_labels: list[int],
+    out_pred: list[int],
+    out_classes: dict[int, str],
 ) -> None:
     results = utils.check_test_empty(in_pred, in_labels, exp_classes)
 
@@ -260,7 +260,7 @@ def test_check_test_empty(
     assert results[2] == out_classes
 
 
-def test_find_modes(exp_classes: Dict[int, str]) -> None:
+def test_find_modes(exp_classes: dict[int, str]) -> None:
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
     class_dist = utils.find_modes(labels, plot=True)
@@ -370,12 +370,12 @@ def test_batch_flatten(x, exp_len: int) -> None:
     ],
 )
 def test_transform_coordinates(
-    x: Union[List[float], float],
-    y: Union[List[float], float],
+    x: list[float] | float,
+    y: list[float] | float,
     src_crs: CRS,
     dest_crs: CRS,
-    exp_x: Union[List[float], float],
-    exp_y: Union[List[float], float],
+    exp_x: list[float] | float,
+    exp_y: list[float] | float,
 ) -> None:
     out_x, out_y = utils.transform_coordinates(x, y, src_crs, dest_crs)
 
@@ -451,9 +451,7 @@ def test_get_centre_loc() -> None:
         (-77.844504, 166.707506, "McMurdo Station"),  # McMurdo Station, Antartica.
     ],
 )
-def test_lat_lon_to_loc(
-    lat: Union[float, str], lon: Union[float, str], loc: str
-) -> None:
+def test_lat_lon_to_loc(lat: float | str, lon: float | str, loc: str) -> None:
     try:
         requests.head("http://www.google.com/", timeout=1.0)
     except (requests.ConnectionError, requests.ReadTimeout):
@@ -546,7 +544,7 @@ def test_find_best_of() -> None:
     assert scene == ["2018_06_21"]
 
 
-def test_modes_from_manifest(exp_classes: Dict[int, str]) -> None:
+def test_modes_from_manifest(exp_classes: dict[int, str]) -> None:
     df = pd.DataFrame()
 
     class_dist = [
@@ -608,7 +606,7 @@ def test_compute_roc_curves() -> None:
     labels = [0, 3, 2, 1, 3, 2, 1, 0]
     class_labels = [0, 1, 2, 3]
 
-    fpr: Dict[Any, NDArray[Any, Any]] = {
+    fpr: dict[Any, NDArray[Any, Any]] = {
         0: np.array([0.0, 0.0, 0.0, 0.5, 5.0 / 6.0, 1.0]),
         1: np.array([0.0, 0.0, 1.0 / 6.0, 1.0 / 6.0, 1.0]),
         2: np.array([0.0, 0.0, 1.0 / 6.0, 0.5, 0.5, 1.0]),
@@ -637,7 +635,7 @@ def test_compute_roc_curves() -> None:
         "macro": np.array([0.0, 1.0 / 6.0, 0.5, 5.0 / 6.0, 1.0]),
     }
 
-    tpr: Dict[Any, NDArray[Any, Any]] = {
+    tpr: dict[Any, NDArray[Any, Any]] = {
         0: np.array([0.0, 0.5, 1.0, 1.0, 1.0, 1.0]),
         1: np.array([0.0, 0.5, 0.5, 1.0, 1.0]),
         2: np.array([0.0, 0.5, 0.5, 0.5, 1.0, 1.0]),

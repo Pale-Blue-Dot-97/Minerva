@@ -39,7 +39,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 import os
 import subprocess
 import time
-from typing import Optional, Union
+from typing import Optional
 
 import pytest
 import requests
@@ -111,7 +111,7 @@ def test_config_env_vars(default_config: DictConfig) -> None:
 
 @runner.distributed_run
 def _run_func(
-    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+    gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig
 ) -> None:
     time.sleep(0.5)
     return

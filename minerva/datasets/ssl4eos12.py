@@ -32,7 +32,7 @@ __all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
 # =====================================================================================================================
 import os
 import pickle
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional
 
 import cv2
 import lmdb
@@ -263,7 +263,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         with self.env.begin(write=False) as txn:  # type: ignore[unreachable]
             self.length = txn.stat()["entries"]
 
-    def __getitem__(self, index: int) -> Dict[str, Union[Tuple[Tensor, ...], Tensor]]:
+    def __getitem__(self, index: int) -> dict[str, tuple[Tensor, ...] | Tensor]:
         if self.lmdb_file:
             if self.is_slurm_job:
                 # Delay loading LMDB data until after initialization

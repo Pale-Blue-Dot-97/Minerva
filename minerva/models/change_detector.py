@@ -38,7 +38,7 @@ __all__ = ["ChangeDetector"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Optional
 
 import torch
 from torch import Tensor
@@ -57,7 +57,7 @@ class ChangeDetector(MinervaModel):
     def __init__(
         self,
         criterion: Optional[Module] = None,
-        input_size: Optional[Tuple[int]] = None,
+        input_size: Optional[tuple[int]] = None,
         n_classes: int = 1,
         scaler: Optional[GradScaler] = None,
         fc_dim: int = 512,
@@ -65,8 +65,8 @@ class ChangeDetector(MinervaModel):
         encoder_on: bool = False,
         filter_dim: int = 0,
         freeze_backbone: bool = False,
-        backbone_weight_path: Optional[Union[str, Path]] = None,
-        backbone_args: Dict[str, Any] = {},
+        backbone_weight_path: Optional[str | Path] = None,
+        backbone_args: dict[str, Any] = {},
         clamp_outputs: bool = False,
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)

@@ -51,7 +51,7 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 import torch
 import torch.nn.functional as F
@@ -267,7 +267,7 @@ class UNet(MinervaModel):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
+        input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
         scaler: Optional[GradScaler] = None,
@@ -356,13 +356,13 @@ class UNetR(MinervaModel):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
+        input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
         scaler: Optional[GradScaler] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(UNetR, self).__init__(
             criterion=criterion,

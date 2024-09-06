@@ -41,7 +41,7 @@ from pathlib import Path
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional
 
 import torch
 import torch.distributed as dist
@@ -142,14 +142,14 @@ class WeightedKNN(MinervaTask):
     def __init__(
         self,
         name: str,
-        model: Union[MinervaModel, MinervaDataParallel],
+        model: MinervaModel | MinervaDataParallel,
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
-        backbone_weight_path: Optional[Union[str, Path]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
+        backbone_weight_path: Optional[str | Path] = None,
         record_int: bool = True,
         record_float: bool = False,
         k: int = 5,
@@ -174,7 +174,7 @@ class WeightedKNN(MinervaTask):
         self.temp = temp
         self.k = k
 
-    def generate_feature_bank(self) -> Tuple[Tensor, Tensor]:
+    def generate_feature_bank(self) -> tuple[Tensor, Tensor]:
         feature_list = []
         target_list = []
 

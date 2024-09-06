@@ -37,7 +37,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 #                                                      IMPORTS
 # =====================================================================================================================
 from collections import defaultdict
-from typing import Any, Dict, List, Union
+from typing import Any
 
 import pytest
 import torch
@@ -71,13 +71,13 @@ def test_stack_sample_pairs() -> None:
     mask_2 = torch.randint(0, 8, (52, 52))  # type: ignore[attr-defined]
     bbox_2 = [BoundingBox(0, 1, 0, 1, 0, 1)]
 
-    sample_1: Dict[str, Union[Tensor, List[Any]]] = {
+    sample_1: dict[str, Tensor | list[Any]] = {
         "image": image_1,
         "mask": mask_1,
         "bbox": bbox_1,
     }
 
-    sample_2: Dict[str, Union[Tensor, List[Any]]] = {
+    sample_2: dict[str, Tensor | list[Any]] = {
         "image": image_2,
         "mask": mask_2,
         "bbox": bbox_2,

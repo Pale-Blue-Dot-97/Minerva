@@ -37,7 +37,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 from collections import OrderedDict
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import torch.nn.modules as nn
@@ -80,7 +80,7 @@ class MLP(MinervaModel):
         criterion: Optional[Any] = None,
         input_size: int = 288,
         n_classes: int = 8,
-        hidden_sizes: Union[Tuple[int, ...], List[int], int] = (256, 144),
+        hidden_sizes: tuple[int, ...] | list[int] | int = (256, 144),
     ) -> None:
         super(MLP, self).__init__(
             criterion=criterion, input_size=(input_size,), n_classes=n_classes
@@ -161,14 +161,14 @@ class CNN(MinervaModel):
     def __init__(
         self,
         criterion,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         n_classes: int = 8,
-        features: Union[Tuple[int, ...], List[int]] = (2, 1, 1),
-        fc_sizes: Union[Tuple[int, ...], List[int]] = (128, 64),
-        conv_kernel_size: Union[int, Tuple[int, ...]] = 3,
-        conv_stride: Union[int, Tuple[int, ...]] = 1,
-        max_kernel_size: Union[int, Tuple[int, ...]] = 2,
-        max_stride: Union[int, Tuple[int, ...]] = 2,
+        features: tuple[int, ...] | list[int] = (2, 1, 1),
+        fc_sizes: tuple[int, ...] | list[int] = (128, 64),
+        conv_kernel_size: int | tuple[int, ...] = 3,
+        conv_stride: int | tuple[int, ...] = 1,
+        max_kernel_size: int | tuple[int, ...] = 2,
+        max_stride: int | tuple[int, ...] = 2,
         conv_do: bool = True,
         fc_do: bool = True,
         p_conv_do: float = 0.1,

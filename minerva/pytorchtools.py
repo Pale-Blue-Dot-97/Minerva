@@ -35,7 +35,7 @@ __copyright__ = "Copyright (C) 2018 Bjarte Mehus Sunde"
 #                                                    IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 import numpy as np
 import torch
@@ -81,7 +81,7 @@ class EarlyStopping:
         patience: int = 7,
         verbose: bool = False,
         delta: float = 0.0,
-        path: Union[str, Path] = "checkpoint.pt",
+        path: str | Path = "checkpoint.pt",
         trace_func: Callable[..., None] = print,
         external_save: bool = False,
     ):
@@ -92,7 +92,7 @@ class EarlyStopping:
         self.early_stop: bool = False
         self.val_loss_min: float = np.Inf
         self.delta: float = delta
-        self.path: Union[str, Path] = path
+        self.path: str | Path = path
         self.trace_func: Callable[..., None] = trace_func
         self.external_save: bool = external_save
         self.save_model: bool = False

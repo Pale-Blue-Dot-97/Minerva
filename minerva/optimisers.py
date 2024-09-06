@@ -31,7 +31,7 @@ __copyright__ = "Copyright (c) 2018 Noah Golmant"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Callable, Iterable, Optional
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -67,7 +67,7 @@ class LARS(Optimizer):
 
     def __init__(
         self,
-        params: Union[Iterable[Any], Dict[Any, Any]],
+        params: Iterable[Any] | dict[Any, Any],
         lr: float,
         momentum: float = 0.9,
         weight_decay: float = 0.0005,

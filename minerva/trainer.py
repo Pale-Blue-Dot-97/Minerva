@@ -44,7 +44,7 @@ import warnings
 from copy import deepcopy
 from pathlib import Path
 from platform import python_version
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import hydra
 import packaging
@@ -237,7 +237,7 @@ class Trainer:
         rank: int = 0,
         world_size: int = 1,
         verbose: bool = True,
-        wandb_run: Optional[Union[Run, RunDisabled]] = None,
+        wandb_run: Optional[Run | RunDisabled] = None,
         **params,
     ) -> None:
         assert not isinstance(wandb_run, RunDisabled)
@@ -264,7 +264,7 @@ class Trainer:
             utils.print_config(params)  # type: ignore[arg-type]
 
         # Now that we have pretty printed the config, it is easier to handle as a dict.
-        self.params: Dict[str, Any] = OmegaConf.to_object(params)  # type: ignore[assignment]
+        self.params: dict[str, Any] = OmegaConf.to_object(params)  # type: ignore[assignment]
         assert isinstance(self.params, dict)
 
         # Set variables for checkpointing the experiment or loading from a previous checkpoint.
@@ -324,7 +324,7 @@ class Trainer:
             # Makes a directory for this experiment.
             utils.mkexpdir(self.params["exp_name"])
 
-        self.writer: Optional[Union[SummaryWriter, Run]] = None
+        self.writer: Optional[SummaryWriter | Run] = None
         if self.params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
             self.writer = wandb_run
@@ -337,9 +337,9 @@ class Trainer:
             else:  # pragma: no cover
                 self.writer = None
 
-        self.model: Union[
-            MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
-        ]
+        self.model: (
+            MinervaModel | MinervaDataParallel | MinervaBackbone | OptimizedModule
+        )
 
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
@@ -352,7 +352,7 @@ class Trainer:
             self.model = self.make_model()
 
         # Determines the output shape of the model.
-        sample_pairs: Union[bool, Any] = self.sample_pairs
+        sample_pairs: bool | Any = self.sample_pairs
         if not isinstance(sample_pairs, bool):
             sample_pairs = False
             self.params["sample_pairs"] = False
@@ -458,15 +458,15 @@ class Trainer:
         if isinstance(self.writer, Run):
             self.writer.watch(self.model)
 
-    def get_input_size(self) -> Tuple[int, ...]:
+    def get_input_size(self) -> tuple[int, ...]:
         """Determines the input size of the model.
 
         Returns:
             tuple[int, ...]: :class:`tuple` describing the input shape of the model.
         """
-        input_shape: Optional[Tuple[int, ...]] = self.model.input_size  # type: ignore
+        input_shape: Optional[tuple[int, ...]] = self.model.input_size  # type: ignore
         assert input_shape is not None
-        input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
+        input_size: tuple[int, ...] = (self.batch_size, *input_shape)
 
         if self.sample_pairs or self.change_detection:
             input_size = (2, *input_size)
@@ -497,7 +497,7 @@ class Trainer:
         Returns:
             MinervaModel: Initialised model.
         """
-        model_params: Dict[str, Any] = deepcopy(self.params["model_params"])
+        model_params: dict[str, Any] = deepcopy(self.params["model_params"])
         if OmegaConf.is_config(model_params):
             model_params = OmegaConf.to_object(model_params)  # type: ignore[assignment]
 
@@ -619,7 +619,7 @@ class Trainer:
             }
         )
 
-        tasks: Dict[str, MinervaTask] = {}
+        tasks: dict[str, MinervaTask] = {}
         for mode in fit_params.keys():
             tasks[mode] = get_task(
                 fit_params[mode]["_target_"],
@@ -661,7 +661,7 @@ class Trainer:
                 else:
                     self.model.eval()
 
-                results: Optional[Dict[str, Any]] = tasks[mode](self.epoch_no - 1)
+                results: Optional[dict[str, Any]] = tasks[mode](self.epoch_no - 1)
 
                 # Print epoch results.
                 if self.gpu == 0:
@@ -698,7 +698,7 @@ class Trainer:
                         self.print("\nEarly stopping triggered")
 
                     # Create a subset of metrics for plotting model history.
-                    fit_metrics: Dict[str, Any] = {}
+                    fit_metrics: dict[str, Any] = {}
                     for _mode in tasks.keys():
                         fit_metrics = {**fit_metrics, **tasks[_mode].get_metrics}
 
@@ -970,7 +970,7 @@ class Trainer:
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
 
-    def save_model_weights(self, fn: Optional[Union[str, Path]] = None) -> None:
+    def save_model_weights(self, fn: Optional[str | Path] = None) -> None:
         """Saves model state dict to :mod:`torch` file.
 
         Args:
@@ -983,9 +983,7 @@ class Trainer:
 
         torch.save(model.state_dict(), f"{fn}.pt")
 
-    def save_model(
-        self, fn: Optional[Union[Path, str]] = None, fmt: str = "pt"
-    ) -> None:
+    def save_model(self, fn: Optional[Path | str] = None, fmt: str = "pt") -> None:
         """Saves the model object itself to :mod:`torch` file.
 
         Args:

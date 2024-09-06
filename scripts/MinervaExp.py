@@ -39,7 +39,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Optional, Union
+from typing import Optional
 
 import hydra
 from omegaconf import DictConfig
@@ -58,9 +58,7 @@ from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, ut
     config_name=DEFAULT_CONFIG_NAME,
 )
 @runner.distributed_run
-def main(
-    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
-) -> None:
+def main(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig) -> None:
 
     # Due to the nature of multiprocessing and its interaction with hydra, wandb and SLURM,
     # the actual code excuted in the job is contained in `run_trainer` in `runner`.

@@ -38,7 +38,7 @@ __all__ = [
 # =====================================================================================================================
 from glob import glob
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -84,7 +84,7 @@ class BaseSenS12MS(NonGeoDataset):
     S2_BANDS_MR = [5, 6, 7, 9, 12, 13]
     S2_BANDS_LR = [1, 10, 11]
 
-    splits: List[str] = []
+    splits: list[str] = []
 
     igbp = False
 
@@ -133,13 +133,13 @@ class BaseSenS12MS(NonGeoDataset):
         # Make sure parent dir exists.
         assert self.root.exists()
 
-        self.samples: List[Dict[str, str]]
+        self.samples: list[dict[str, str]]
 
     def load_sample(
         self,
-        sample: Dict[str, str],
+        sample: dict[str, str],
         index: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Util function for reading data from single sample.
 
         Args:
@@ -192,7 +192,7 @@ class BaseSenS12MS(NonGeoDataset):
             n_inputs += 2
         return n_inputs
 
-    def get_display_channels(self) -> Tuple[List[int], int]:
+    def get_display_channels(self) -> tuple[list[int], int]:
         """Select channels for preview images.
 
         Returns:
@@ -303,7 +303,7 @@ class BaseSenS12MS(NonGeoDataset):
 
         return lc
 
-    def __getitem__(self, index: int) -> Dict[str, Any]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         """Get a single example from the dataset"""
 
         # Get and load sample from index file.
@@ -393,11 +393,11 @@ class DFC2020(BaseSenS12MS):
 
     def plot(
         self,
-        sample: Dict[str, Tensor],
+        sample: dict[str, Tensor],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
-        classes: Optional[Dict[int, str]] = None,
-        colours: Optional[Dict[int, str]] = None,
+        classes: Optional[dict[int, str]] = None,
+        colours: Optional[dict[int, str]] = None,
     ) -> Figure:
         """Plot a sample from the dataset.
 

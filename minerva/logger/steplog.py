@@ -46,16 +46,7 @@ __all__ = [
 import abc
 import math
 from abc import ABC
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Optional,
-    SupportsFloat,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Optional, SupportsFloat
 
 import mlflow
 import numpy as np
@@ -132,10 +123,10 @@ class MinervaStepLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
+        output_size: tuple[int, ...],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
@@ -156,8 +147,8 @@ class MinervaStepLogger(ABC):
 
         self.model_type = model_type
 
-        self.logs: Dict[str, Any] = {}
-        self.results: Dict[str, Any] = {}
+        self.logs: dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
 
     def __call__(
         self,
@@ -185,7 +176,7 @@ class MinervaStepLogger(ABC):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        index: Optional[Union[int, BoundingBox]] = None,
+        index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -242,7 +233,7 @@ class MinervaStepLogger(ABC):
             mlflow.log_metric(key, value)  # pragma: no cover
 
     @property
-    def get_logs(self) -> Dict[str, Any]:
+    def get_logs(self) -> dict[str, Any]:
         """Gets the logs dictionary.
 
         Returns:
@@ -251,7 +242,7 @@ class MinervaStepLogger(ABC):
         return self.logs
 
     @property
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """Gets the results dictionary.
 
         Returns:
@@ -308,10 +299,10 @@ class SupervisedStepLogger(MinervaStepLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        output_size: tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "",
         n_classes: Optional[int] = None,
         **kwargs,
@@ -329,13 +320,13 @@ class SupervisedStepLogger(MinervaStepLogger):
         if n_classes is None:
             raise ValueError("`n_classes` must be specified for this type of logger!")
 
-        self.logs: Dict[str, Any] = {
+        self.logs: dict[str, Any] = {
             "batch_num": 0,
             "total_loss": 0.0,
             "total_correct": 0.0,
         }
 
-        self.results: Dict[str, Any] = {
+        self.results: dict[str, Any] = {
             "y": None,
             "z": None,
             "probs": None,
@@ -353,7 +344,7 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
-            int_log_shape: Tuple[int, ...]
+            int_log_shape: tuple[int, ...]
             if check_substrings_in_string(self.model_type, "scene-classifier"):
                 if check_substrings_in_string(self.model_type, "multilabel"):
                     int_log_shape = (self.n_batches, self.batch_size, n_classes)
@@ -374,7 +365,7 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         # Allocate memory for the floating point values to be recorded.
         if self.record_float:
-            float_log_shape: Tuple[int, ...]
+            float_log_shape: tuple[int, ...]
             if check_substrings_in_string(self.model_type, "scene-classifier"):
                 float_log_shape = (self.n_batches, self.batch_size, n_classes)
             else:
@@ -415,7 +406,7 @@ class SupervisedStepLogger(MinervaStepLogger):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        index: Optional[Union[int, BoundingBox]] = None,
+        index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -542,7 +533,7 @@ class KNNStepLogger(MinervaStepLogger):
         batch_size: int,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
@@ -557,14 +548,14 @@ class KNNStepLogger(MinervaStepLogger):
             **kwargs,
         )
 
-        self.logs: Dict[str, Any] = {
+        self.logs: dict[str, Any] = {
             "batch_num": 0,
             "total_loss": 0.0,
             "total_correct": 0.0,
             "total_top5": 0.0,
         }
 
-        self.results: Dict[str, Any] = {
+        self.results: dict[str, Any] = {
             "y": None,
             "z": None,
             "probs": None,
@@ -579,7 +570,7 @@ class KNNStepLogger(MinervaStepLogger):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        index: Optional[Union[int, BoundingBox]] = None,
+        index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
@@ -662,10 +653,10 @@ class SSLStepLogger(MinervaStepLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        output_size: tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
@@ -681,7 +672,7 @@ class SSLStepLogger(MinervaStepLogger):
             **kwargs,
         )
 
-        self.logs: Dict[str, Any] = {
+        self.logs: dict[str, Any] = {
             "batch_num": 0,
             "total_loss": 0.0,
             "avg_loss": 0.0,
@@ -706,7 +697,7 @@ class SSLStepLogger(MinervaStepLogger):
         loss: Tensor,
         z: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        index: Optional[Union[int, BoundingBox]] = None,
+        index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:

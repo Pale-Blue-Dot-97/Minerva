@@ -38,8 +38,6 @@ from pathlib import Path
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Tuple
-
 import matplotlib.pyplot as plt
 import pytest
 from rasterio.crs import CRS
@@ -162,7 +160,7 @@ def test_paired_nongeodatasets(data_root: Path) -> None:
 
 
 def test_paired_concat_datasets(
-    data_root: Path, small_patch_size: Tuple[int, int]
+    data_root: Path, small_patch_size: tuple[int, int]
 ) -> None:
     def dataset_test(_dataset) -> None:
         for sub_dataset in _dataset.datasets:

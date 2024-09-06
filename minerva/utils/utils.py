@@ -125,7 +125,7 @@ from subprocess import Popen
 from types import ModuleType
 from typing import Any, Callable
 from typing import Counter as CounterType
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple, Union, overload
+from typing import Iterable, Optional, Sequence, overload
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import numpy as np
@@ -171,8 +171,8 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 #                                                   DECORATORS
 # =====================================================================================================================
 def return_updated_kwargs(
-    func: Callable[..., Tuple[Any, ...]]
-) -> Callable[..., Tuple[Any, ...]]:
+    func: Callable[..., tuple[Any, ...]]
+) -> Callable[..., tuple[Any, ...]]:
     """Decorator that allows the `kwargs` supplied to the wrapped function to be returned with updated values.
 
     Assumes that the wrapped function returns a :class:`dict` in the last position of the
@@ -211,7 +211,7 @@ def pair_collate(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
     """
 
     @functools.wraps(func)
-    def wrapper(samples: Iterable[Tuple[Any, Any]]) -> Tuple[Any, Any]:
+    def wrapper(samples: Iterable[tuple[Any, Any]]) -> tuple[Any, Any]:
         a, b = tuple(zip(*samples))
         return func(a), func(b)
 
@@ -226,7 +226,7 @@ def dublicator(cls):
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
 
-        def __call__(self, pair: Tuple[Any, Any]) -> Tuple[Any, Any]:
+        def __call__(self, pair: tuple[Any, Any]) -> tuple[Any, Any]:
             a, b = pair
 
             return self.wrap.__call__(a), self.wrap.__call__(b)
@@ -257,26 +257,26 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
         def __init__(self, *args, **kwargs) -> None:
             self.wrap: Callable[
                 [
-                    Union[Dict[str, Any], Tensor],
+                    dict[str, Any] | Tensor,
                 ],
-                Dict[str, Any],
+                dict[str, Any],
             ] = cls(*args, **kwargs)
             self.keys = keys
 
         @overload
         def __call__(
-            self, batch: Dict[str, Any]
-        ) -> Dict[str, Any]: ...  # pragma: no cover
+            self, batch: dict[str, Any]
+        ) -> dict[str, Any]: ...  # pragma: no cover
 
         @overload
-        def __call__(self, batch: Tensor) -> Dict[str, Any]: ...  # pragma: no cover
+        def __call__(self, batch: Tensor) -> dict[str, Any]: ...  # pragma: no cover
 
-        def __call__(self, batch: Union[Dict[str, Any], Tensor]) -> Dict[str, Any]:
+        def __call__(self, batch: dict[str, Any] | Tensor) -> dict[str, Any]:
             if isinstance(batch, Tensor):
                 return self.wrap(batch)
 
             elif isinstance(batch, dict) and isinstance(self.keys, Sequence):
-                aug_batch: Dict[str, Any] = {}
+                aug_batch: dict[str, Any] = {}
                 for key in self.keys:
                     aug_batch[key] = self.wrap(batch.pop(key))
 
@@ -310,7 +310,7 @@ def pair_return(cls):
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
 
-        def __getitem__(self, queries: Any = None) -> Tuple[Any, Any]:
+        def __getitem__(self, queries: Any = None) -> tuple[Any, Any]:
             return self.wrap[queries[0]], self.wrap[queries[1]]
 
         def __getattr__(self, item):
@@ -398,7 +398,7 @@ def _optional_import(
 
 def _optional_import(
     module: str, *, name: Optional[str] = None, package: Optional[str] = None
-) -> Union[ModuleType, Callable[..., Any]]:
+) -> ModuleType | Callable[..., Any]:
     try:
         _module: ModuleType = importlib.import_module(module)
         return _module if name is None else getattr(_module, name)
@@ -461,7 +461,7 @@ def is_notebook() -> bool:
         return True
 
 
-def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
+def get_cuda_device(device_sig: int | str = "cuda:0") -> _device:
     """Finds and returns the ``CUDA`` device, if one is available. Else, returns CPU as device.
     Assumes there is at most only one ``CUDA`` device.
 
@@ -477,7 +477,7 @@ def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
     return device
 
 
-def exist_delete_check(fn: Union[str, Path]) -> None:
+def exist_delete_check(fn: str | Path) -> None:
     """Checks if given file exists then deletes if true.
 
     Args:
@@ -490,7 +490,7 @@ def exist_delete_check(fn: Union[str, Path]) -> None:
     Path(fn).unlink(missing_ok=True)
 
 
-def mkexpdir(name: str, results_dir: Union[Path, str] = "results") -> None:
+def mkexpdir(name: str, results_dir: Path | str = "results") -> None:
     """Makes a new directory below the results directory with name provided. If directory already exists,
     no action is taken.
 
@@ -520,7 +520,7 @@ def set_seeds(seed: int) -> None:
     torch.cuda.random.manual_seed_all(seed)
 
 
-def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
+def check_dict_key(dictionary: dict[Any, Any], key: Any) -> bool:
     """Checks if a key exists in a dictionary and if it is ``None`` or ``False``.
 
     Args:
@@ -582,7 +582,7 @@ def transform_coordinates(
     y: Sequence[float],
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
+) -> tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
@@ -591,7 +591,7 @@ def transform_coordinates(
     y: float,
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
+) -> tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
@@ -600,21 +600,21 @@ def transform_coordinates(
     y: Sequence[float],
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
+) -> tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
 def transform_coordinates(
     x: float, y: float, src_crs: CRS, new_crs: CRS = WGS84
-) -> Tuple[float, float]: ...  # pragma: no cover
+) -> tuple[float, float]: ...  # pragma: no cover
 
 
 def transform_coordinates(
-    x: Union[Sequence[float], float],
-    y: Union[Sequence[float], float],
+    x: Sequence[float] | float,
+    y: Sequence[float] | float,
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Union[Tuple[Sequence[float], Sequence[float]], Tuple[float, float]]:
+) -> tuple[Sequence[float], Sequence[float]] | tuple[float, float]:
     """Transforms co-ordinates from one :class:`~rasterio.crs.CRS` to another.
 
     Args:
@@ -640,7 +640,7 @@ def transform_coordinates(
     y = check_len(y, x)
 
     # Transform co-ordinates from source to new CRS and returns a tuple of (x, y)
-    co_ordinates: Tuple[Sequence[float], Sequence[float]] = rt.warp.transform(  # type: ignore
+    co_ordinates: tuple[Sequence[float], Sequence[float]] = rt.warp.transform(  # type: ignore
         src_crs=src_crs, dst_crs=new_crs, xs=x, ys=y
     )
 
@@ -714,9 +714,9 @@ def deg_to_dms(deg: float, axis: str = "lat") -> str:
 
 
 def dec2deg(
-    dec_co: Union[Sequence[float], NDArray[Shape["*"], Float]],  # noqa: F722
+    dec_co: Sequence[float] | NDArray[Shape["*"], Float],  # noqa: F722
     axis: str = "lat",
-) -> List[str]:
+) -> list[str]:
     """Wrapper for :func:`deg_to_dms`.
 
     Args:
@@ -726,14 +726,14 @@ def dec2deg(
     Returns:
         list[str]: List of formatted strings in degrees, minutes and seconds.
     """
-    deg_co: List[str] = []
+    deg_co: list[str] = []
     for co in dec_co:
         deg_co.append(deg_to_dms(co, axis=axis))
 
     return deg_co
 
 
-def get_centre_loc(bounds: BoundingBox) -> Tuple[float, float]:
+def get_centre_loc(bounds: BoundingBox) -> tuple[float, float]:
     """Gets the centre co-ordinates of the parsed bounding box.
 
     Args:
@@ -774,7 +774,7 @@ def get_centre_pixel_value(x: Tensor) -> Any:
         raise ValueError()
 
 
-def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
+def lat_lon_to_loc(lat: str | float, lon: str | float) -> str:
     """Takes a latitude - longitude co-ordinate and returns a string of the semantic location.
 
     Args:
@@ -803,7 +803,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         location = query.raw["properties"]  # type: ignore
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
-        locs: List[str] = []
+        locs: list[str] = []
         try:
             locs.append(location["city"])
         except KeyError:
@@ -888,8 +888,8 @@ def mask_to_ohe(mask: LongTensor, n_classes: int) -> LongTensor:
 
 
 def class_weighting(
-    class_dist: List[Tuple[int, int]], normalise: bool = False
-) -> Dict[int, float]:
+    class_dist: list[tuple[int, int]], normalise: bool = False
+) -> dict[int, float]:
     """Constructs weights for each class defined by the distribution provided.
 
     Note:
@@ -911,7 +911,7 @@ def class_weighting(
             n_samples += mode[1]
 
     # Constructs class weights. Each weight is 1 / number of samples for that class.
-    class_weights: Dict[int, float] = {}
+    class_weights: dict[int, float] = {}
     if normalise:
         for mode in class_dist:
             class_weights[mode[0]] = n_samples / mode[1]
@@ -923,8 +923,8 @@ def class_weighting(
 
 
 def find_empty_classes(
-    class_dist: List[Tuple[int, int]], class_names: Dict[int, str]
-) -> List[int]:
+    class_dist: list[tuple[int, int]], class_names: dict[int, str]
+) -> list[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
     Args:
@@ -935,7 +935,7 @@ def find_empty_classes(
     Returns:
         list[int]: List of classes not found in ``class_dist`` and are thus empty/ not present in dataset.
     """
-    empty: List[int] = []
+    empty: list[int] = []
 
     # Checks which classes are not present in class_dist
     for label in class_names.keys():
@@ -947,10 +947,10 @@ def find_empty_classes(
 
 
 def eliminate_classes(
-    empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any, Int]],
-    old_classes: Dict[int, str],
-    old_cmap: Optional[Dict[int, str]] = None,
-) -> Tuple[Dict[int, str], Dict[int, int], Optional[Dict[int, str]]]:
+    empty_classes: list[int] | tuple[int, ...] | NDArray[Any, Int],
+    old_classes: dict[int, str],
+    old_cmap: Optional[dict[int, str]] = None,
+) -> tuple[dict[int, str], dict[int, int], Optional[dict[int, str]]]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
 
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
@@ -1019,7 +1019,7 @@ def eliminate_classes(
         return reordered_classes, conversion, reordered_colours
 
 
-def class_transform(label: int, matrix: Dict[int, int]) -> int:
+def class_transform(label: int, matrix: dict[int, int]) -> int:
     """Transforms labels from one schema to another mapped by a supplied dictionary.
 
     Args:
@@ -1034,20 +1034,20 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
 
 @overload
 def mask_transform(  # type: ignore[overload-overlap]
-    array: NDArray[Any, Int], matrix: Dict[int, int]
+    array: NDArray[Any, Int], matrix: dict[int, int]
 ) -> NDArray[Any, Int]: ...  # pragma: no cover
 
 
 @overload
 def mask_transform(
-    array: LongTensor, matrix: Dict[int, int]
+    array: LongTensor, matrix: dict[int, int]
 ) -> LongTensor: ...  # pragma: no cover
 
 
 def mask_transform(
-    array: Union[NDArray[Any, Int], LongTensor],
-    matrix: Dict[int, int],
-) -> Union[NDArray[Any, Int], LongTensor]:
+    array: NDArray[Any, Int] | LongTensor,
+    matrix: dict[int, int],
+) -> NDArray[Any, Int] | LongTensor:
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
@@ -1064,11 +1064,11 @@ def mask_transform(
 
 
 def check_test_empty(
-    pred: Union[Sequence[int], NDArray[Any, Int]],
-    labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_labels: Optional[Dict[int, str]] = None,
+    pred: Sequence[int] | NDArray[Any, Int],
+    labels: Sequence[int] | NDArray[Any, Int],
+    class_labels: Optional[dict[int, str]] = None,
     p_dist: bool = True,
-) -> Tuple[NDArray[Any, Int], NDArray[Any, Int], Dict[int, str]]:
+) -> tuple[NDArray[Any, Int], NDArray[Any, Int], dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class labels.
 
@@ -1119,8 +1119,8 @@ def check_test_empty(
 
 
 def class_dist_transform(
-    class_dist: List[Tuple[int, int]], matrix: Dict[int, int]
-) -> List[Tuple[int, int]]:
+    class_dist: list[tuple[int, int]], matrix: dict[int, int]
+) -> list[tuple[int, int]]:
     """Transforms the class distribution from an old schema to a new one.
 
     Args:
@@ -1131,14 +1131,14 @@ def class_dist_transform(
     Returns:
         list[tuple[int, int]]: Class distribution updated to new labels.
     """
-    new_class_dist: List[Tuple[int, int]] = []
+    new_class_dist: list[tuple[int, int]] = []
     for mode in class_dist:
         new_class_dist.append((class_transform(mode[0], matrix), mode[1]))
 
     return new_class_dist
 
 
-def class_frac(patch: pd.Series) -> Dict[Any, Any]:
+def class_frac(patch: pd.Series) -> dict[Any, Any]:
     """Computes the fractional sizes of the classes of the given :term:`patch` and returns a
     :class:`dict` of the results.
 
@@ -1149,7 +1149,7 @@ def class_frac(patch: pd.Series) -> Dict[Any, Any]:
         Mapping: Dictionary-like object with keys as class numbers and associated values
         of fractional size of class plus a key-value pair for the :term:`patch` ID.
     """
-    new_columns: Dict[Any, Any] = dict(patch.to_dict())
+    new_columns: dict[Any, Any] = dict(patch.to_dict())
     counts = 0
     for mode in patch["MODES"]:
         counts += mode[1]
@@ -1172,7 +1172,7 @@ def cloud_cover(scene: NDArray[Any, Any]) -> Any:
     return np.sum(scene) / scene.size
 
 
-def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
+def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> list[str]:
     """Selects all scenes in a :term:`patch` with a cloud cover less than the threshold provided.
 
     Args:
@@ -1190,9 +1190,9 @@ def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
 def find_best_of(
     patch_id: str,
     manifest: DataFrame,
-    selector: Callable[[DataFrame], List[str]] = threshold_scene_select,
+    selector: Callable[[DataFrame], list[str]] = threshold_scene_select,
     **kwargs,
-) -> List[str]:
+) -> list[str]:
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
@@ -1233,9 +1233,9 @@ def timestamp_now(fmt: str = "%d-%m-%Y_%H%M") -> str:
 def find_modes(
     labels: Iterable[int],
     plot: bool = False,
-    classes: Optional[Dict[int, str]] = None,
-    cmap_dict: Optional[Dict[int, str]] = None,
-) -> List[Tuple[int, int]]:
+    classes: Optional[dict[int, str]] = None,
+    cmap_dict: Optional[dict[int, str]] = None,
+) -> list[tuple[int, int]]:
     """Finds the modal distribution of the classes within the labels provided.
 
     Can plot the results as a pie chart if ``plot=True``.
@@ -1248,7 +1248,7 @@ def find_modes(
         list[tuple[int, int]]: Modal distribution of classes in input in order of most common class.
     """
     # Finds the distribution of the classes within the data
-    class_dist: List[Tuple[int, int]] = Counter(
+    class_dist: list[tuple[int, int]] = Counter(
         np.array(labels).flatten()
     ).most_common()
 
@@ -1263,10 +1263,10 @@ def find_modes(
 
 def modes_from_manifest(
     manifest: DataFrame,
-    classes: Dict[int, str],
+    classes: dict[int, str],
     plot: bool = False,
-    cmap_dict: Optional[Dict[int, str]] = None,
-) -> List[Tuple[int, int]]:
+    cmap_dict: Optional[dict[int, str]] = None,
+) -> list[tuple[int, int]]:
     """Uses the dataset manifest to calculate the fractional size of the classes.
 
     Args:
@@ -1294,7 +1294,7 @@ def modes_from_manifest(
                 class_counter[classification] = count
         except KeyError:
             continue
-    class_dist: List[Tuple[int, int]] = class_counter.most_common()
+    class_dist: list[tuple[int, int]] = class_counter.most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
@@ -1324,7 +1324,7 @@ def func_by_str(module_path: str, func: str) -> Callable[..., Any]:
     return func
 
 
-def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
+def check_len(param: Any, comparator: Any) -> Any | Sequence[Any]:
     """Checks the length of one object against a comparator object.
 
     Args:
@@ -1382,8 +1382,8 @@ def calc_grad(model: Module) -> Optional[float]:
 
 
 def print_class_dist(
-    class_dist: List[Tuple[int, int]],
-    class_labels: Optional[Dict[int, str]] = None,
+    class_dist: list[tuple[int, int]],
+    class_labels: Optional[dict[int, str]] = None,
 ) -> None:
     """Prints the supplied ``class_dist`` in a pretty table format using :mod:`tabulate`.
 
@@ -1434,7 +1434,7 @@ def print_class_dist(
 
 
 def batch_flatten(
-    x: Union[NDArray[Any, Any], ArrayLike]
+    x: NDArray[Any, Any] | ArrayLike
 ) -> NDArray[Shape["*"], Any]:  # noqa: F722
     """Flattens the supplied array with :func:`numpy`.
 
@@ -1454,9 +1454,9 @@ def batch_flatten(
 
 
 def make_classification_report(
-    pred: Union[Sequence[int], NDArray[Any, Int]],
-    labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_labels: Optional[Dict[int, str]] = None,
+    pred: Sequence[int] | NDArray[Any, Int],
+    labels: Sequence[int] | NDArray[Any, Int],
+    class_labels: Optional[dict[int, str]] = None,
     print_cr: bool = True,
     p_dist: bool = False,
 ) -> DataFrame:
@@ -1563,9 +1563,9 @@ def calc_contrastive_acc(z: Tensor) -> Tensor:
 
 def run_tensorboard(
     exp_name: str,
-    path: Union[str, List[str], Tuple[str, ...], Path] = "",
+    path: str | list[str] | tuple[str, ...] | Path = "",
     env_name: str = "env",
-    host_num: Union[str, int] = 6006,
+    host_num: str | int = 6006,
     _testing: bool = False,
 ) -> Optional[int]:
     """Runs the :mod:`TensorBoard` logs and hosts on a local webpage.
@@ -1626,11 +1626,11 @@ def run_tensorboard(
 
 def compute_roc_curves(
     probs: NDArray[Any, Float],
-    labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_labels: List[int],
+    labels: Sequence[int] | NDArray[Any, Int],
+    class_labels: list[int],
     micro: bool = True,
     macro: bool = True,
-) -> Tuple[Dict[Any, float], Dict[Any, float], Dict[Any, float]]:
+) -> tuple[dict[Any, float], dict[Any, float], dict[Any, float]]:
     """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
     The micro and macro averages are for each of these variables is also computed.
 
@@ -1659,13 +1659,13 @@ def compute_roc_curves(
 
     # Dicts to hold the false-positive rate, true-positive rate and Area Under Curves
     # of each class and micro, macro averages.
-    fpr: Dict[Any, Any] = {}
-    tpr: Dict[Any, Any] = {}
-    roc_auc: Dict[Any, Any] = {}
+    fpr: dict[Any, Any] = {}
+    tpr: dict[Any, Any] = {}
+    roc_auc: dict[Any, Any] = {}
 
     # Holds a list of the classes that were in the targets supplied to the model.
     # Avoids warnings about empty targets from sklearn!
-    populated_classes: List[int] = []
+    populated_classes: list[int] = []
 
     print("Computing class ROC curves")
 
@@ -1843,8 +1843,8 @@ def calc_norm_euc_dist(a: Tensor, b: Tensor) -> Tensor:
 
 def fallback_params(
     key: str,
-    params_a: Dict[str, Any],
-    params_b: Dict[str, Any],
+    params_a: dict[str, Any],
+    params_b: dict[str, Any],
     fallback: Optional[Any] = None,
 ) -> Any:
     """Search for a value associated with ``key`` from
@@ -1867,9 +1867,9 @@ def fallback_params(
 
 
 def compile_dataset_paths(
-    data_dir: Union[Path, str],
-    in_paths: Union[List[Union[Path, str]], Union[Path, str]],
-) -> List[str]:
+    data_dir: Path | str,
+    in_paths: list[Path | str] | Path | str,
+) -> list[str]:
     """Ensures that a list of paths is returned with the data directory prepended, even if a single string is supplied
 
     Args:
@@ -1892,7 +1892,7 @@ def compile_dataset_paths(
     return [str(Path(path).absolute()) for path in out_paths]
 
 
-def make_hash(obj: Dict[Any, Any]) -> str:
+def make_hash(obj: dict[Any, Any]) -> str:
     """Make a deterministic MD5 hash of a serialisable object using JSON.
 
     Source: https://death.andgravity.com/stable-hashing
@@ -1959,7 +1959,7 @@ def closest_factors(n):
     return best_pair
 
 
-def get_sample_index(sample: Dict[str, Any]) -> Optional[Any]:
+def get_sample_index(sample: dict[str, Any]) -> Optional[Any]:
     """Get the index for a sample with unkown index key.
 
     Will try:

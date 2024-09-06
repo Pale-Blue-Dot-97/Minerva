@@ -41,7 +41,7 @@ from pathlib import Path
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import numpy as np
 import torch
@@ -80,7 +80,7 @@ def test_SupervisedStepLogger(
     std_n_batches: int,
     std_n_classes: int,
     std_batch_size: int,
-    small_patch_size: Tuple[int, int],
+    small_patch_size: tuple[int, int],
     default_device: torch.device,
     train: bool,
     model_type: str,
@@ -137,19 +137,19 @@ def test_SupervisedStepLogger(
         step_logger_params={"n_classes": std_n_classes},
     )
 
-    correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_acc: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_miou: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_loss: dict[str, list[float]] = {"x": [], "y": []}
+    correct_acc: dict[str, list[float]] = {"x": [], "y": []}
+    correct_miou: dict[str, list[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
-        data: List[Dict[str, Union[Tensor, List[Any]]]] = []
+        data: list[dict[str, Tensor | list[Any]]] = []
         for i in range(std_n_batches):
             images = torch.rand(size=(std_batch_size, 4, *small_patch_size))
             masks = torch.randint(  # type: ignore[attr-defined]
                 0, std_n_classes, (std_batch_size, *small_patch_size)
             )
             bboxes = [simple_bbox] * std_batch_size
-            batch: Dict[str, Union[Tensor, List[Any]]] = {
+            batch: dict[str, Tensor | list[Any]] = {
                 "image": images,
                 "mask": masks,
                 "bbox": bboxes,
@@ -184,7 +184,7 @@ def test_SupervisedStepLogger(
             (std_n_batches, std_batch_size, *output_shape), dtype=np.uint8
         )
         for i in range(std_n_batches):
-            mask: Union[Tensor, List[Any]] = data[i]["mask"]
+            mask: Tensor | list[Any] = data[i]["mask"]
             assert isinstance(mask, Tensor)
             y[i] = mask.cpu().numpy()
 
@@ -239,7 +239,7 @@ def test_SSLStepLogger(
     simple_bbox: BoundingBox,
     std_n_batches: int,
     std_batch_size: int,
-    small_patch_size: Tuple[int, int],
+    small_patch_size: tuple[int, int],
     default_device: torch.device,
     model_cls: MinervaSiamese,
     model_type: str,
@@ -284,9 +284,9 @@ def test_SSLStepLogger(
         sample_pairs=True,
     )
 
-    correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_collapse_level: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_euc_dist: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_loss: dict[str, list[float]] = {"x": [], "y": []}
+    correct_collapse_level: dict[str, list[float]] = {"x": [], "y": []}
+    correct_euc_dist: dict[str, list[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
         for i in range(std_n_batches):

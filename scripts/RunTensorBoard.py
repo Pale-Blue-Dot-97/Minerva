@@ -33,7 +33,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
-from typing import List, Optional, Union
+from typing import Optional
 
 from minerva.utils import utils
 
@@ -42,7 +42,7 @@ from minerva.utils import utils
 #                                                      MAIN
 # =====================================================================================================================
 def main(
-    path: Optional[Union[str, List[str]]] = None,
+    path: Optional[str | list[str]] = None,
     env_name: str = "env2",
     exp_name: Optional[str] = None,
     host_num: int = 6006,

@@ -36,7 +36,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pytest
 import torch
@@ -77,7 +77,7 @@ from minerva.utils import utils
     ],
 )
 def test_class_transform(
-    example_matrix: Dict[int, int], input_mask: LongTensor, output: LongTensor
+    example_matrix: dict[int, int], input_mask: LongTensor, output: LongTensor
 ) -> None:
     transform = ClassTransform(example_matrix)
 
@@ -276,7 +276,7 @@ def test_dublicator(
     ],
 )
 def test_tg_to_torch(
-    transform, keys: Optional[List[str]], args: Any, in_img, expected
+    transform, keys: Optional[list[str]], args: Any, in_img, expected
 ) -> None:
     transformation = (utils.tg_to_torch(transform, keys=keys))(args)
 
@@ -441,7 +441,7 @@ def test_get_transform() -> None:
         ),
     ],
 )
-def test_make_transformations(params: Dict[str, Any], key: str) -> None:
+def test_make_transformations(params: dict[str, Any], key: str) -> None:
     if params:
         transforms = make_transformations({key: params})
         assert callable(transforms)

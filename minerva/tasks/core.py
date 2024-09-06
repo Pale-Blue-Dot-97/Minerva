@@ -41,7 +41,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 import abc
 from abc import ABC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -163,14 +163,14 @@ class MinervaTask(ABC):
     def __init__(
         self,
         name: str,
-        model: Union[MinervaModel, MinervaDataParallel, OptimizedModule],
+        model: MinervaModel | MinervaDataParallel | OptimizedModule,
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
-        backbone_weight_path: Optional[Union[str, Path]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
+        backbone_weight_path: Optional[str | Path] = None,
         record_int: bool = True,
         record_float: bool = False,
         train: bool = False,
@@ -404,7 +404,7 @@ class MinervaTask(ABC):
     def step(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def _generic_step(self, epoch_no: int) -> Optional[Dict[str, Any]]:
+    def _generic_step(self, epoch_no: int) -> Optional[dict[str, Any]]:
         self.local_step_num = 0
         self.step()
 
@@ -431,11 +431,11 @@ class MinervaTask(ABC):
         return self._generic_step(epoch_no)
 
     @property
-    def get_logs(self) -> Dict[str, Any]:
+    def get_logs(self) -> dict[str, Any]:
         return self.logger.get_logs
 
     @property
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         return self.logger.get_metrics
 
     def log_null(self, epoch_no: int) -> None:
@@ -455,8 +455,8 @@ class MinervaTask(ABC):
 
     def plot(
         self,
-        results: Dict[str, Any],
-        metrics: Optional[Dict[str, Any]] = None,
+        results: dict[str, Any],
+        metrics: Optional[dict[str, Any]] = None,
         save: bool = True,
         show: bool = False,
     ) -> None:

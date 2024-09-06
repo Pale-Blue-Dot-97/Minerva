@@ -39,7 +39,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pandas as pd
 import pytest
@@ -56,7 +56,7 @@ from minerva.utils.utils import make_hash
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> None:
+def test_make_dataset(exp_dataset_params: dict[str, Any], data_root: Path) -> None:
 
     dataset_params2 = {
         "image": {
@@ -117,7 +117,7 @@ def test_make_dataset(exp_dataset_params: Dict[str, Any], data_root: Path) -> No
 
 @pytest.mark.parametrize("sample_pairs", (False, True))
 def test_caching_datasets(
-    exp_dataset_params: Dict[str, Any],
+    exp_dataset_params: dict[str, Any],
     data_root: Path,
     cache_dir: Path,
     sample_pairs: bool,
@@ -194,10 +194,10 @@ def test_caching_datasets(
     ],
 )
 def test_construct_dataloader(
-    exp_dataset_params: Dict[str, Any],
+    exp_dataset_params: dict[str, Any],
     data_root: Path,
-    sampler_params: Dict[str, Any],
-    kwargs: Dict[str, Any],
+    sampler_params: dict[str, Any],
+    kwargs: dict[str, Any],
 ) -> None:
     batch_size = 256
 
@@ -253,8 +253,8 @@ def test_make_loaders(default_config: DictConfig) -> None:
 
 def test_get_manifest(
     data_root: Path,
-    exp_dataset_params: Dict[str, Any],
-    exp_sampler_params: Dict[str, Any],
+    exp_dataset_params: dict[str, Any],
+    exp_sampler_params: dict[str, Any],
 ) -> None:
     manifest_path = Path("tests", "tmp", "cache", "Chesapeake7_Manifest.csv")
 

@@ -46,18 +46,7 @@ __all__ = [
 # =====================================================================================================================
 import pickle
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Any, Callable, Iterable, Literal, Optional, Sequence
 
 import numpy as np
 from nptyping import NDArray
@@ -81,7 +70,7 @@ from minerva.utils import utils
 class MinervaNonGeoDataset(NonGeoDataset):
     def __or__(
         self,
-        other: Union["MinervaNonGeoDataset", "MinervaConcatDataset"],
+        other: "MinervaNonGeoDataset" | "MinervaConcatDataset",
     ) -> "MinervaConcatDataset":
         """Take the union of two :class:`MinervaNonGeoDataset`.
 
@@ -99,7 +88,7 @@ class MinervaNonGeoDataset(NonGeoDataset):
 class MinervaConcatDataset(ConcatDataset):  # type: ignore[type-arg]
     def __or__(
         self,
-        other: Union[MinervaNonGeoDataset, "MinervaConcatDataset"],
+        other: MinervaNonGeoDataset | "MinervaConcatDataset",
     ) -> "MinervaConcatDataset":
         """Take the union of two :class:`MinervaNonGeoDataset`.
 
@@ -139,7 +128,7 @@ def intersect_datasets(datasets: Sequence[GeoDataset]) -> IntersectionDataset:
         ~torchgeo.datasets.IntersectionDataset: Final dataset object representing an intersection
         of all the parsed datasets.
     """
-    master_dataset: Union[GeoDataset, IntersectionDataset] = datasets[0]
+    master_dataset: GeoDataset | IntersectionDataset = datasets[0]
 
     for i in range(len(datasets) - 1):
         master_dataset = master_dataset & datasets[i + 1]
@@ -150,7 +139,7 @@ def intersect_datasets(datasets: Sequence[GeoDataset]) -> IntersectionDataset:
 
 def unionise_datasets(
     datasets: Sequence[GeoDataset],
-    transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+    transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
 ) -> UnionDataset:
     """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
@@ -166,7 +155,7 @@ def unionise_datasets(
     Returns:
         ~torchgeo.datasets.UnionDataset: Final dataset object representing an union of all the parsed datasets.
     """
-    master_dataset: Union[GeoDataset, UnionDataset] = datasets[0]
+    master_dataset: GeoDataset | UnionDataset = datasets[0]
 
     for i in range(len(datasets) - 1):
         master_dataset = master_dataset | datasets[i + 1]
@@ -178,7 +167,7 @@ def unionise_datasets(
 
 def concatenate_datasets(
     datasets: Sequence[NonGeoDataset],
-    transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+    transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
 ) -> MinervaConcatDataset:
     """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
@@ -195,7 +184,7 @@ def concatenate_datasets(
         ~minerva.datasets.MinervaConcatDataset: Final dataset object representing an union of all the parsed datasets.
     """
     assert isinstance(datasets[0], MinervaNonGeoDataset)
-    master_dataset: Union[MinervaNonGeoDataset, MinervaConcatDataset] = datasets[0]
+    master_dataset: MinervaNonGeoDataset | MinervaConcatDataset = datasets[0]
 
     for i in range(len(datasets) - 1):
         master_dataset = master_dataset | datasets[i + 1]  # type: ignore[operator]
@@ -206,9 +195,7 @@ def concatenate_datasets(
     return master_dataset
 
 
-def make_bounding_box(
-    roi: Union[Sequence[float], bool] = False
-) -> Optional[BoundingBox]:
+def make_bounding_box(roi: Sequence[float] | bool = False) -> Optional[BoundingBox]:
     """Construct a :class:`~torchgeo.datasets.utils.BoundingBox` object from the corners of the box.
     ``False`` for no :class:`~torchgeo.datasets.utils.BoundingBox`.
 
@@ -246,7 +233,7 @@ def load_all_samples(
         ~numpy.ndarray: 2D array of the class modes within every sample defined by the parsed
         :class:`~torch.utils.data.DataLoader`.
     """
-    sample_modes: List[List[Tuple[int, int]]] = []
+    sample_modes: list[list[tuple[int, int]]] = []
     for sample in tqdm(dataloader):
         modes = utils.find_modes(sample[target_key])
         sample_modes.append(modes)
@@ -255,8 +242,8 @@ def load_all_samples(
 
 
 def get_random_sample(
-    dataset: GeoDataset, size: Union[Tuple[int, int], int], res: float
-) -> Dict[str, Any]:
+    dataset: GeoDataset, size: tuple[int, int] | int, res: float
+) -> dict[str, Any]:
     """Gets a random sample from the provided dataset of size ``size`` and at ``res`` resolution.
 
     Args:
@@ -272,7 +259,7 @@ def get_random_sample(
 
 def load_dataset_from_cache(
     cached_dataset_path: Path,
-) -> Union[NonGeoDataset, GeoDataset]:
+) -> NonGeoDataset | GeoDataset:
     """Load a pickled dataset object in from a cache.
 
     Args:
@@ -290,7 +277,7 @@ def load_dataset_from_cache(
 
 
 def cache_dataset(
-    dataset: Union[GeoDataset, NonGeoDataset], cached_dataset_path: Path
+    dataset: GeoDataset | NonGeoDataset, cached_dataset_path: Path
 ) -> None:
     """Pickle and cache a dataset object.
 
@@ -305,7 +292,7 @@ def cache_dataset(
         pickle.dump(dataset, fp)
 
 
-def masks_or_labels(dataset_params: Dict[str, Any]) -> str:
+def masks_or_labels(dataset_params: dict[str, Any]) -> str:
     for key in dataset_params.keys():
         if key not in (
             "sampler",

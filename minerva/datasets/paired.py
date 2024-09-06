@@ -44,7 +44,7 @@ __all__ = [
 # =====================================================================================================================
 import random
 from inspect import signature
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
+from typing import Any, Callable, Optional, Sequence, overload
 
 import hydra
 import matplotlib.pyplot as plt
@@ -83,10 +83,10 @@ class PairedGeoDataset(RasterDataset):
 
     def __new__(  # type: ignore[misc]
         cls,
-        dataset: Union[Callable[..., GeoDataset], GeoDataset],
+        dataset: Callable[..., GeoDataset] | GeoDataset,
         *args,
         **kwargs,
-    ) -> Union["PairedGeoDataset", "PairedUnionDataset"]:
+    ) -> "PairedGeoDataset" | "PairedUnionDataset":
         if isinstance(dataset, UnionDataset):
             return PairedUnionDataset(
                 dataset.datasets[0], dataset.datasets[1], *args, **kwargs
@@ -112,7 +112,7 @@ class PairedGeoDataset(RasterDataset):
 
     def __init__(
         self,
-        dataset: Union[Callable[..., GeoDataset], GeoDataset, str],
+        dataset: Callable[..., GeoDataset] | GeoDataset | str,
         *args,
         **kwargs,
     ) -> None:
@@ -148,8 +148,8 @@ class PairedGeoDataset(RasterDataset):
             )
 
     def __getitem__(  # type: ignore[override]
-        self, queries: Tuple[BoundingBox, BoundingBox]
-    ) -> Tuple[Dict[str, Any], ...]:
+        self, queries: tuple[BoundingBox, BoundingBox]
+    ) -> tuple[dict[str, Any], ...]:
         return self.dataset.__getitem__(queries[0]), self.dataset.__getitem__(
             queries[1]
         )
@@ -225,7 +225,7 @@ class PairedGeoDataset(RasterDataset):
 
     @staticmethod
     def plot(
-        sample: Dict[str, Any],
+        sample: dict[str, Any],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
     ) -> Figure:
@@ -264,7 +264,7 @@ class PairedGeoDataset(RasterDataset):
 
     def plot_random_sample(
         self,
-        size: Union[Tuple[int, int], int],
+        size: tuple[int, int] | int,
         res: float,
         show_titles: bool = True,
         suptitle: Optional[str] = None,
@@ -327,8 +327,8 @@ class PairedUnionDataset(UnionDataset):
         self.datasets = new_datasets
 
     def __getitem__(  # type: ignore[override]
-        self, query: Tuple[BoundingBox, BoundingBox]
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        self, query: tuple[BoundingBox, BoundingBox]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Retrieve image and metadata indexed by query.
 
         Uses :meth:`torchgeo.datasets.UnionDataset.__getitem__` to send each query of the pair off to get a
@@ -401,7 +401,7 @@ class PairedNonGeoDataset(NonGeoDataset):
     def __init__(
         self,
         dataset: Callable[..., NonGeoDataset],
-        size: Union[Tuple[int, int], int],
+        size: tuple[int, int] | int,
         max_r: int,
         season: bool = False,
         *args,
@@ -412,7 +412,7 @@ class PairedNonGeoDataset(NonGeoDataset):
     def __init__(
         self,
         dataset: NonGeoDataset,
-        size: Union[Tuple[int, int], int],
+        size: tuple[int, int] | int,
         max_r: int,
         season: bool = False,
         *args,
@@ -423,7 +423,7 @@ class PairedNonGeoDataset(NonGeoDataset):
     def __init__(
         self,
         dataset: str,
-        size: Union[Tuple[int, int], int],
+        size: tuple[int, int] | int,
         max_r: int,
         season: bool = False,
         *args,
@@ -432,8 +432,8 @@ class PairedNonGeoDataset(NonGeoDataset):
 
     def __init__(
         self,
-        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset, str],
-        size: Union[Tuple[int, int], int],
+        dataset: Callable[..., NonGeoDataset] | NonGeoDataset | str,
+        size: tuple[int, int] | int,
         max_r: int,
         season: bool = False,
         *args,
@@ -480,7 +480,7 @@ class PairedNonGeoDataset(NonGeoDataset):
 
         self.make_geo_pair = SamplePair(self.size, self.max_r, season=season)
 
-    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], ...]:  # type: ignore[override]
+    def __getitem__(self, index: int) -> tuple[dict[str, Any], ...]:  # type: ignore[override]
         patch = self.dataset[index]
         image_a, image_b = self.make_geo_pair(patch["image"])
 
@@ -542,7 +542,7 @@ class PairedNonGeoDataset(NonGeoDataset):
 
     @staticmethod
     def plot(
-        sample: Dict[str, Any],
+        sample: dict[str, Any],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
     ) -> Figure:
@@ -606,8 +606,8 @@ class PairedConcatDataset(MinervaConcatDataset):  # type: ignore[type-arg]
 
     def __init__(
         self,
-        dataset1: Union[NonGeoDataset, "PairedConcatDataset"],
-        dataset2: Union[NonGeoDataset, "PairedConcatDataset"],
+        dataset1: NonGeoDataset | "PairedConcatDataset",
+        dataset2: NonGeoDataset | "PairedConcatDataset",
         size: Optional[int] = None,
         max_r: Optional[int] = None,
     ) -> None:
@@ -636,7 +636,7 @@ class PairedConcatDataset(MinervaConcatDataset):  # type: ignore[type-arg]
 
         super().__init__(datasets)
 
-    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def __getitem__(self, index: int) -> tuple[dict[str, Any], dict[str, Any]]:
         """Retrieve image and metadata indexed by query.
 
         Uses :meth:`torch.utils.data.ConcatDataset.__getitem__` to get the pair of samples from
@@ -694,7 +694,7 @@ class SamplePair:
         # Transform to cut samples out at the desired output size.
         self.random_crop = RandomCrop(self.size)
 
-    def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def __call__(self, x: Tensor) -> tuple[Tensor, Tensor]:
         if self.season:
             max_width, h, w = self._find_max_width(x[0])
 
@@ -721,7 +721,7 @@ class SamplePair:
             # Now cut out 2 random samples from within that sampling area and return.
             return self.random_crop(sampling_area), self.random_crop(sampling_area)
 
-    def _find_max_width(self, x: Tensor) -> Tuple[int, int, int]:
+    def _find_max_width(self, x: Tensor) -> tuple[int, int, int]:
         max_width = self.max_width
 
         w = x.shape[-1]
@@ -737,7 +737,7 @@ class SamplePair:
         return max_width, h, w
 
     @staticmethod
-    def _get_random_crop_params(img: Tensor, max_width: int) -> Tuple[int, int]:
+    def _get_random_crop_params(img: Tensor, max_width: int) -> tuple[int, int]:
         i = torch.randint(0, img.shape[-1] - max_width + 1, size=(1,)).item()
         j = torch.randint(0, img.shape[-2] - max_width + 1, size=(1,)).item()
 

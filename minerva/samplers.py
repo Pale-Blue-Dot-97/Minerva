@@ -50,7 +50,7 @@ __all__ = [
 import random
 import re
 from operator import itemgetter
-from typing import Any, Dict, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Iterator, Optional, Sequence
 
 import hydra
 import torch
@@ -94,7 +94,7 @@ class RandomPairGeoSampler(RandomGeoSampler):
     def __init__(
         self,
         dataset: GeoDataset,
-        size: Union[Tuple[float, float], float],
+        size: tuple[float, float] | float,
         length: int,
         roi: Optional[BoundingBox] = None,
         units: Units = Units.PIXELS,
@@ -103,7 +103,7 @@ class RandomPairGeoSampler(RandomGeoSampler):
         super().__init__(dataset, size, length, roi, units)
         self.max_r = max_r
 
-    def __iter__(self) -> Iterator[Tuple[BoundingBox, BoundingBox]]:  # type: ignore[override]
+    def __iter__(self) -> Iterator[tuple[BoundingBox, BoundingBox]]:  # type: ignore[override]
         """Return a pair of :class:`~torchgeo.datasets.utils.BoundingBox` indices of a dataset
         that are geospatially close.
 
@@ -159,7 +159,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
     def __init__(
         self,
         dataset: GeoDataset,
-        size: Union[Tuple[float, float], float],
+        size: tuple[float, float] | float,
         batch_size: int,
         length: int,
         roi: Optional[BoundingBox] = None,
@@ -180,7 +180,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         else:
             raise ValueError(f"{tiles_per_batch=} is not a multiple of {batch_size=}")
 
-    def __iter__(self) -> Iterator[List[Tuple[BoundingBox, BoundingBox]]]:  # type: ignore[override]
+    def __iter__(self) -> Iterator[list[tuple[BoundingBox, BoundingBox]]]:  # type: ignore[override]
         """Return the indices of a dataset.
 
         Returns:
@@ -212,7 +212,9 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
 
 
 def get_greater_bbox(
-    bbox: BoundingBox, r: float, size: Union[float, int, Sequence[float]]
+    bbox: BoundingBox,
+    r: float,
+    size: float | int | Sequence[float],
 ) -> BoundingBox:
     """Return a bounding box at ``r`` distance around the first box.
 
@@ -250,10 +252,10 @@ def get_greater_bbox(
 
 def get_pair_bboxes(
     bounds: BoundingBox,
-    size: Union[Tuple[float, float], float],
+    size: tuple[float, float] | float,
     res: float,
     max_r: float,
-) -> Tuple[BoundingBox, BoundingBox]:
+) -> tuple[BoundingBox, BoundingBox]:
     """Samples a pair of bounding boxes geo-spatially close to each other.
 
     Args:
@@ -349,7 +351,7 @@ class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
     def __init__(self, sampler: Sampler[Any]):
         """Initialisation for :class:`DatasetFromSampler`."""
         self.sampler = sampler
-        self.sampler_list: Optional[List[Sampler[Any]]] = None
+        self.sampler_list: Optional[list[Sampler[Any]]] = None
 
     def __getitem__(self, index: int) -> Any:
         """Gets element of the dataset.
@@ -376,8 +378,8 @@ class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
 #                                                     METHODS
 # =====================================================================================================================
 def get_sampler(
-    params: Dict[str, Any],
-    dataset: Union[GeoDataset, NonGeoDataset],
+    params: dict[str, Any],
+    dataset: GeoDataset | NonGeoDataset,
     batch_size: Optional[int] = None,
 ) -> Sampler[Any]:
     """Use :meth:`hydra.utils.instantiate` to get the sampler using config parameters.

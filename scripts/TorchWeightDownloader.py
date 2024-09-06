@@ -21,7 +21,7 @@
 """Loads :mod:`torch` weights from Torch Hub into cache.
 
 Attributes:
-    resnets (List[str]): List of tags for ``pytorch`` resnet weights to download.
+    resnets (list[str]): List of tags for ``pytorch`` resnet weights to download.
 """
 
 # =====================================================================================================================

@@ -38,7 +38,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional
 
 import hydra
 import pytest
@@ -56,9 +56,7 @@ from minerva.utils import runner, utils
 #                                                       TESTS
 # =====================================================================================================================
 @runner.distributed_run
-def run_trainer(
-    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
-):
+def run_trainer(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig):
     params = deepcopy(cfg)
     params["calc_norm"] = True
 
@@ -184,8 +182,8 @@ def test_trainer_3(default_config: DictConfig) -> None:
 def test_trainer_4(
     inbuilt_cfg_root: Path,
     cfg_name: str,
-    cfg_args: Dict[str, Any],
-    kwargs: Dict[str, Any],
+    cfg_args: dict[str, Any],
+    kwargs: dict[str, Any],
 ) -> None:
 
     with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):

@@ -64,7 +64,7 @@ __all__ = [
 import os
 import random
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence
 
 import imageio
 import matplotlib as mlp
@@ -126,7 +126,7 @@ def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any, Any]:
     Returns:
         ~numpy.ndarray[~typing.Any]: De-interlaced array. Each source array is now sequentially connected.
     """
-    new_x: List[NDArray[Any, Any]] = []
+    new_x: list[NDArray[Any, Any]] = []
     for i in range(f):
         x_i = []
         for j in np.arange(start=i, stop=len(x), step=f):
@@ -137,12 +137,12 @@ def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any, Any]:
 
 
 def dec_extent_to_deg(
-    shape: Tuple[int, int],
+    shape: tuple[int, int],
     bounds: BoundingBox,
     src_crs: CRS,
     new_crs: CRS = WGS84,
     spacing: int = 32,
-) -> Tuple[Tuple[int, int, int, int], NDArray[Any, Float], NDArray[Any, Float]]:
+) -> tuple[tuple[int, int, int, int], NDArray[Any, Float], NDArray[Any, Float]]:
     """Gets the extent of the image with ``shape`` and with ``bounds`` in latitude, longitude of system ``new_crs``.
 
     Args:
@@ -194,7 +194,7 @@ def dec_extent_to_deg(
 
 
 def get_mlp_cmap(
-    cmap_style: Optional[Union[Colormap, str]] = None, n_classes: Optional[int] = None
+    cmap_style: Optional[Colormap | str] = None, n_classes: Optional[int] = None
 ) -> Optional[Colormap]:
     """Creates a cmap from query
 
@@ -225,8 +225,8 @@ def get_mlp_cmap(
 
 def discrete_heatmap(
     data: NDArray[Shape["*, *"], Int],  # noqa: F722
-    classes: Union[List[str], Tuple[str, ...]],
-    cmap_style: Optional[Union[str, ListedColormap]] = None,
+    classes: list[str] | tuple[str, ...],
+    cmap_style: Optional[str | ListedColormap] = None,
     block_size: int = 32,
 ) -> None:
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
@@ -329,16 +329,16 @@ def labelled_rgb_image(
     mask: NDArray[Shape["*, *"], Int],  # noqa: F722
     bounds: BoundingBox,
     src_crs: CRS,
-    path: Union[str, Path],
+    path: str | Path,
     name: str,
-    classes: Union[List[str], Tuple[str, ...]],
-    cmap_style: Optional[Union[str, ListedColormap]] = None,
+    classes: list[str] | tuple[str, ...],
+    cmap_style: Optional[str | ListedColormap] = None,
     new_crs: Optional[CRS] = WGS84,
     block_size: int = 32,
     alpha: float = 0.5,
     show: bool = True,
     save: bool = True,
-    figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32),
+    figdim: tuple[int | float, int | float] = (8.02, 10.32),
 ) -> Path:
     """Produces a layered image of an RGB image, and it's associated label mask heat map alpha blended on top.
 
@@ -363,7 +363,7 @@ def labelled_rgb_image(
         str: Path to figure save location.
     """
     # Checks that the mask and image shapes will align.
-    mask_shape: Tuple[int, int] = mask.shape  # type: ignore[assignment]
+    mask_shape: tuple[int, int] = mask.shape  # type: ignore[assignment]
     assert mask_shape == image.shape[:2]
 
     assert new_crs is not None
@@ -475,14 +475,14 @@ def make_gif(
     masks: NDArray[Shape["*, *, *"], Any],  # noqa: F722
     bounds: BoundingBox,
     src_crs: CRS,
-    classes: Union[List[str], Tuple[str, ...]],
+    classes: list[str] | tuple[str, ...],
     gif_name: str,
-    path: Union[str, Path],
-    cmap_style: Optional[Union[str, ListedColormap]] = None,
+    path: str | Path,
+    cmap_style: Optional[str | ListedColormap] = None,
     fps: float = 1.0,
     new_crs: Optional[CRS] = WGS84,
     alpha: float = 0.5,
-    figdim: Tuple[Union[int, float], Union[int, float]] = (8.02, 10.32),
+    figdim: tuple[int | float, int | float] = (8.02, 10.32),
 ) -> None:
     """Wrapper to :func:`labelled_rgb_image` to make a GIF for a patch out of scenes.
 
@@ -548,19 +548,19 @@ def make_gif(
 
 
 def prediction_plot(
-    sample: Dict[str, Any],
+    sample: dict[str, Any],
     sample_id: str,
-    classes: Dict[int, str],
+    classes: dict[int, str],
     src_crs: CRS,
     new_crs: CRS = WGS84,
     path: str = "",
-    cmap_style: Optional[Union[str, ListedColormap]] = None,
+    cmap_style: Optional[str | ListedColormap] = None,
     exp_id: Optional[str] = None,
-    fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = None,
+    fig_dim: Optional[tuple[int | float, int | float]] = None,
     block_size: int = 32,
     show: bool = True,
     save: bool = True,
-    fn_prefix: Optional[Union[str, Path]] = None,
+    fn_prefix: Optional[str | Path] = None,
 ) -> None:
     """
     Produces a figure containing subplots of the predicted label mask, the ground truth label mask
@@ -704,21 +704,21 @@ def prediction_plot(
 
 
 def seg_plot(
-    z: Union[List[int], NDArray[Any, Any]],
-    y: Union[List[int], NDArray[Any, Any]],
-    ids: List[str],
-    index: Union[Sequence[Any], NDArray[Any, Any]],
-    data_dir: Union[Path, str],
-    dataset_params: Dict[str, Any],
-    classes: Dict[int, str],
-    colours: Dict[int, str],
-    fn_prefix: Optional[Union[str, Path]],
+    z: list[int] | NDArray[Any, Any],
+    y: list[int] | NDArray[Any, Any],
+    ids: list[str],
+    index: Sequence[Any] | NDArray[Any, Any],
+    data_dir: Path | str,
+    dataset_params: dict[str, Any],
+    classes: dict[int, str],
+    colours: dict[int, str],
+    fn_prefix: Optional[str | Path],
     frac: float = 0.05,
-    fig_dim: Optional[Tuple[Union[int, float], Union[int, float]]] = (9.3, 10.5),
+    fig_dim: Optional[tuple[int | float, int | float]] = (9.3, 10.5),
     model_name: str = "",
     path: str = "",
     max_pixel_value: int = 255,
-    cache_dir: Optional[Union[str, Path]] = None,
+    cache_dir: Optional[str | Path] = None,
 ) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -840,10 +840,10 @@ def seg_plot(
 
 
 def plot_subpopulations(
-    class_dist: List[Tuple[int, int]],
-    class_names: Optional[Dict[int, str]] = None,
-    cmap_dict: Optional[Dict[int, str]] = None,
-    filename: Optional[Union[str, Path]] = None,
+    class_dist: list[tuple[int, int]],
+    class_names: Optional[dict[int, str]] = None,
+    cmap_dict: Optional[dict[int, str]] = None,
+    filename: Optional[str | Path] = None,
     save: bool = True,
     show: bool = False,
 ) -> None:
@@ -867,7 +867,7 @@ def plot_subpopulations(
     counts = []
 
     # List to hold colours of classes in the correct order.
-    colours: Optional[List[str]] = []
+    colours: Optional[list[str]] = []
 
     if class_names is None:
         class_numbers = [x[0] for x in class_dist]
@@ -920,8 +920,8 @@ def plot_subpopulations(
 
 
 def plot_history(
-    metrics: Dict[str, Any],
-    filename: Optional[Union[str, Path]] = None,
+    metrics: dict[str, Any],
+    filename: Optional[str | Path] = None,
     save: bool = True,
     show: bool = False,
 ) -> None:
@@ -972,12 +972,12 @@ def plot_history(
 
 
 def make_confusion_matrix(
-    pred: Union[List[int], NDArray[Any, Int]],
-    labels: Union[List[int], NDArray[Any, Int]],
-    classes: Dict[int, str],
-    filename: Optional[Union[str, Path]] = None,
+    pred: list[int] | NDArray[Any, Int],
+    labels: list[int] | NDArray[Any, Int],
+    classes: dict[int, str],
+    filename: Optional[str | Path] = None,
     cmap_style: str = "Blues",
-    figsize: Tuple[int, int] = (2, 2),
+    figsize: tuple[int, int] = (2, 2),
     show: bool = True,
     save: bool = False,
 ) -> None:
@@ -1029,12 +1029,12 @@ def make_confusion_matrix(
 
 
 def make_multilabel_confusion_matrix(
-    preds: Union[List[int], NDArray[Any, Int]],
-    labels: Union[List[int], NDArray[Any, Int]],
-    classes: Dict[int, str],
-    filename: Optional[Union[str, Path]] = None,
+    preds: list[int] | NDArray[Any, Int],
+    labels: list[int] | NDArray[Any, Int],
+    classes: dict[int, str],
+    filename: Optional[str | Path] = None,
     cmap_style: str = "Blues",
-    figsize: Tuple[int, int] = (2, 2),
+    figsize: tuple[int, int] = (2, 2),
     show: bool = True,
     save: bool = False,
 ) -> None:
@@ -1105,12 +1105,12 @@ def make_multilabel_confusion_matrix(
 
 def make_roc_curves(
     probs: ArrayLike,
-    labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_names: Dict[int, str],
-    colours: Dict[int, str],
+    labels: Sequence[int] | NDArray[Any, Int],
+    class_names: dict[int, str],
+    colours: dict[int, str],
     micro: bool = True,
     macro: bool = True,
-    filename: Optional[Union[str, Path]] = None,
+    filename: Optional[str | Path] = None,
     show: bool = False,
     save: bool = True,
 ) -> None:
@@ -1206,15 +1206,15 @@ def make_roc_curves(
 
 def plot_embedding(
     embeddings: Any,
-    index: Union[Sequence[BoundingBox], Sequence[int]],
-    data_dir: Union[Path, str],
-    dataset_params: Dict[str, Any],
+    index: Sequence[BoundingBox] | Sequence[int],
+    data_dir: Path | str,
+    dataset_params: dict[str, Any],
     title: Optional[str] = None,
     show: bool = False,
     save: bool = True,
-    filename: Optional[Union[Path, str]] = None,
+    filename: Optional[Path | str] = None,
     max_pixel_value: int = 255,
-    cache_dir: Optional[Union[Path, str]] = None,
+    cache_dir: Optional[Path | str] = None,
 ) -> None:
     """Using TSNE Clustering, visualises the embeddings from a model.
 
@@ -1316,8 +1316,8 @@ def plot_embedding(
 
 
 def format_plot_names(
-    model_name: str, timestamp: str, path: Union[Sequence[str], str, Path]
-) -> Dict[str, Path]:
+    model_name: str, timestamp: str, path: Sequence[str] | str | Path
+) -> dict[str, Path]:
     """Creates unique filenames of plots in a standardised format.
 
     Args:
@@ -1357,23 +1357,23 @@ def format_plot_names(
 
 
 def plot_results(
-    plots: Dict[str, bool],
-    z: Optional[Union[List[int], NDArray[Any, Int]]] = None,
-    y: Optional[Union[List[int], NDArray[Any, Int]]] = None,
-    metrics: Optional[Dict[str, Any]] = None,
-    ids: Optional[List[str]] = None,
+    plots: dict[str, bool],
+    z: Optional[list[int] | NDArray[Any, Int]] = None,
+    y: Optional[list[int] | NDArray[Any, Int]] = None,
+    metrics: Optional[dict[str, Any]] = None,
+    ids: Optional[list[str]] = None,
     index: Optional[NDArray[Any, Any]] = None,
-    probs: Optional[Union[List[float], NDArray[Any, Float]]] = None,
+    probs: Optional[list[float] | NDArray[Any, Float]] = None,
     embeddings: Optional[NDArray[Any, Any]] = None,
-    class_names: Optional[Dict[int, str]] = None,
-    colours: Optional[Dict[int, str]] = None,
+    class_names: Optional[dict[int, str]] = None,
+    colours: Optional[dict[int, str]] = None,
     save: bool = True,
     show: bool = False,
     model_name: Optional[str] = None,
     timestamp: Optional[str] = None,
-    results_dir: Optional[Union[Sequence[str], str, Path]] = None,
-    task_cfg: Optional[Dict[str, Any]] = None,
-    global_cfg: Optional[Dict[str, Any]] = None,
+    results_dir: Optional[Sequence[str] | str | Path] = None,
+    task_cfg: Optional[dict[str, Any]] = None,
+    global_cfg: Optional[dict[str, Any]] = None,
 ) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 

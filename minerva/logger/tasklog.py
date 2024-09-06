@@ -42,7 +42,7 @@ __all__ = [
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -86,8 +86,8 @@ class MinervaTaskLogger(ABC):
 
     __metaclass__ = abc.ABCMeta
 
-    metric_types: List[str] = []
-    special_metric_types: List[str] = []
+    metric_types: list[str] = []
+    special_metric_types: list[str] = []
     logger_cls: str
 
     def __init__(
@@ -95,11 +95,11 @@ class MinervaTaskLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         **params,
     ) -> None:
         super(MinervaTaskLogger, self).__init__()
@@ -137,7 +137,7 @@ class MinervaTaskLogger(ABC):
             self.metric_types += self.special_metric_types
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics: Dict[str, Any] = {}
+        self.metrics: dict[str, Any] = {}
         for metric in self.metric_types:
             self.metrics[f"{self.task_name}_{metric}"] = {"x": [], "y": []}
 
@@ -207,7 +207,7 @@ class MinervaTaskLogger(ABC):
         self.log_epoch_number(epoch_no)
 
     @abc.abstractmethod
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Must be defined before use.
@@ -226,7 +226,7 @@ class MinervaTaskLogger(ABC):
             self.metrics[metric]["x"].append(epoch_no)
 
     @property
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get the ``metrics`` dictionary.
 
         Returns:
@@ -235,7 +235,7 @@ class MinervaTaskLogger(ABC):
         return self.metrics
 
     @property
-    def get_logs(self) -> Dict[str, Any]:
+    def get_logs(self) -> dict[str, Any]:
         """Get the logs of each step from the latest epoch of the task.
 
         Returns:
@@ -246,7 +246,7 @@ class MinervaTaskLogger(ABC):
         return self.step_logger.get_logs
 
     @property
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """Get the results of each step from the latest epoch of the task.
 
         Returns:
@@ -266,8 +266,8 @@ class MinervaTaskLogger(ABC):
             self.metrics[metric]["y"].append(np.NAN)
 
     def get_sub_metrics(
-        self, pattern: Tuple[str, ...] = ("train", "val")
-    ) -> Dict[str, Any]:
+        self, pattern: tuple[str, ...] = ("train", "val")
+    ) -> dict[str, Any]:
         """Gets a subset of the metrics dictionary with keys containing strings in the pattern.
 
         Useful for getting the train and validation metrics for plotting for example.
@@ -315,7 +315,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
     .. versionadded:: 0.27
     """
 
-    metric_types: List[str] = ["loss", "acc", "miou"]
+    metric_types: list[str] = ["loss", "acc", "miou"]
     logger_cls = "minerva.logger.steplog.SupervisedStepLogger"
 
     def __init__(
@@ -323,11 +323,11 @@ class SupervisedTaskLogger(MinervaTaskLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "segmentation",
         **params,
     ) -> None:
@@ -344,7 +344,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             **params,
         )
 
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
@@ -422,11 +422,11 @@ class SSLTaskLogger(MinervaTaskLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "segmentation",
         sample_pairs: bool = False,
         **params,
@@ -469,7 +469,7 @@ class SSLTaskLogger(MinervaTaskLogger):
         if not getattr(self.step_logger, "euclidean", False):
             del self.metrics[f"{self.task_name}_euc_dist"]
 
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:

@@ -36,8 +36,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Tuple
-
 import pytest
 import torch
 from torch import LongTensor, Tensor
@@ -94,7 +92,7 @@ def test_resnets(
     random_scene_classification_batch: LongTensor,
     std_batch_size: int,
     std_n_classes: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
 ) -> None:
     model: MinervaModel = model_cls(
         x_entropy_loss, input_size=rgbi_input_size, zero_init_residual=zero_init
@@ -121,7 +119,7 @@ def test_replace_stride(
     random_scene_classification_batch: LongTensor,
     std_batch_size: int,
     std_n_classes: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
 ) -> None:
     for model in (
         ResNet50(x_entropy_loss, input_size=rgbi_input_size),
@@ -144,7 +142,7 @@ def test_replace_stride(
 def test_resnet_encoder(
     x_entropy_loss,
     random_rgbi_batch: Tensor,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
 ) -> None:
     encoder = ResNet18(x_entropy_loss, input_size=rgbi_input_size, encoder=True)
     optimiser = torch.optim.SGD(encoder.parameters(), lr=1.0e-3)
@@ -157,7 +155,7 @@ def test_resnet_encoder(
     assert len(encoder(random_rgbi_batch)) == 5
 
 
-def test_preload_weights(rgbi_input_size: Tuple[int, int, int]) -> None:
+def test_preload_weights(rgbi_input_size: tuple[int, int, int]) -> None:
     resnet = ResNet(BasicBlock, [2, 2, 2, 2])
     new_resnet = _preload_weights(resnet, None, rgbi_input_size, encoder_on=False)
 
