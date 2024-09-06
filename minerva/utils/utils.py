@@ -1885,19 +1885,12 @@ def compile_dataset_paths(
     else:
         out_paths = [universal_path(data_dir) / in_paths]
 
-    compiled_paths = []
-    for path in out_paths:
-        compiled_paths.extend(glob.glob(str(path), recursive=True))
-
-    # Convert to paths
-    raw_paths = [Path(path) for path in compiled_paths]
-
     # Check if each path exists. If not, make the path.
-    for path in raw_paths:
+    for path in out_paths:
         path.mkdir(parents=True, exist_ok=True)
 
     # For each path, get the absolute path, make the path if it does not exist then convert to string and return.
-    return [str(Path(path).absolute()) for path in compiled_paths]
+    return [str(Path(path).absolute()) for path in out_paths]
 
 
 def make_hash(obj: Dict[Any, Any]) -> str:
