@@ -46,7 +46,7 @@ __all__ = [
 # =====================================================================================================================
 import pickle
 from pathlib import Path
-from typing import Any, Callable, Iterable, Literal, Optional, Sequence
+from typing import Any, Callable, Iterable, Literal, Optional, Sequence, Union
 
 import numpy as np
 from nptyping import NDArray
@@ -70,7 +70,7 @@ from minerva.utils import utils
 class MinervaNonGeoDataset(NonGeoDataset):
     def __or__(
         self,
-        other: "MinervaNonGeoDataset" | "MinervaConcatDataset",
+        other: Union["MinervaNonGeoDataset", "MinervaConcatDataset"],
     ) -> "MinervaConcatDataset":
         """Take the union of two :class:`MinervaNonGeoDataset`.
 
@@ -88,7 +88,7 @@ class MinervaNonGeoDataset(NonGeoDataset):
 class MinervaConcatDataset(ConcatDataset):  # type: ignore[type-arg]
     def __or__(
         self,
-        other: MinervaNonGeoDataset | "MinervaConcatDataset",
+        other: Union[MinervaNonGeoDataset, "MinervaConcatDataset"],
     ) -> "MinervaConcatDataset":
         """Take the union of two :class:`MinervaNonGeoDataset`.
 

@@ -44,7 +44,7 @@ __all__ = [
 # =====================================================================================================================
 import random
 from inspect import signature
-from typing import Any, Callable, Optional, Sequence, overload
+from typing import Any, Callable, Optional, Sequence, Union, overload
 
 import hydra
 import matplotlib.pyplot as plt
@@ -86,7 +86,7 @@ class PairedGeoDataset(RasterDataset):
         dataset: Callable[..., GeoDataset] | GeoDataset,
         *args,
         **kwargs,
-    ) -> "PairedGeoDataset" | "PairedUnionDataset":
+    ) -> Union["PairedGeoDataset", "PairedUnionDataset"]:
         if isinstance(dataset, UnionDataset):
             return PairedUnionDataset(
                 dataset.datasets[0], dataset.datasets[1], *args, **kwargs
@@ -606,8 +606,8 @@ class PairedConcatDataset(MinervaConcatDataset):  # type: ignore[type-arg]
 
     def __init__(
         self,
-        dataset1: NonGeoDataset | "PairedConcatDataset",
-        dataset2: NonGeoDataset | "PairedConcatDataset",
+        dataset1: Union[NonGeoDataset, "PairedConcatDataset"],
+        dataset2: Union[NonGeoDataset, "PairedConcatDataset"],
         size: Optional[int] = None,
         max_r: Optional[int] = None,
     ) -> None:
