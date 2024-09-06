@@ -65,6 +65,9 @@ from torch.nn.modules import Module
 from .core import MinervaBackbone, MinervaModel, get_model
 from .psp import MinervaPSP
 
+################################################### delete after testing ###################################################
+import time
+
 
 # =====================================================================================================================
 #                                                     CLASSES
@@ -209,8 +212,12 @@ class SimCLR(MinervaSiamese):
             tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from the
             :attr:`~SimCLR.proj_head` and the detached embedding vector from the :attr:`~SimCLR.backbone`.
         """
+        timing = time.time() ######################################### delete after testing #########################################
         f: Tensor = torch.flatten(self.backbone(x)[0], start_dim=1)
+        print(f"backbone and flatten: {time.time() - timing}") ######################################### delete after testing #########################################
+        timing = time.time() ######################################### delete after testing #########################################
         g: Tensor = self.proj_head(f)
+        print(f"proj_head: {time.time() - timing}")
 
         return g, f
 
@@ -231,6 +238,7 @@ class SimCLR(MinervaSiamese):
             tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
             with both projection's logits.
         """
+        step_timing = time.time() ######################################### delete after testing #########################################
 
         if self.optimiser is None:
             raise NotImplementedError("Optimiser has not been set!")
@@ -257,11 +265,14 @@ class SimCLR(MinervaSiamese):
             z, z_a, z_b, _, _ = self.forward(x)
 
             # Compute Loss.
+            timing = time.time() ######################################### delete after testing #########################################
             loss = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+            print(f"loss: {time.time() - timing}") ######################################### delete after testing #########################################
 
         # Performs a backward pass if this is a training step.
         if train:
             # Scales the gradients if using mixed precision training.
+            timing = time.time() ######################################### delete after testing #########################################
             if self.scaler is not None:
                 self.scaler.scale(loss).backward()
                 self.scaler.step(self.optimiser)
@@ -271,6 +282,9 @@ class SimCLR(MinervaSiamese):
                 loss.backward()
                 self.optimiser.step()
 
+            print(f"backward: {time.time() - timing}") ######################################### delete after testing #########################################
+
+        print(f"step time: {time.time() - step_timing}") ######################################### delete after testing #########################################
         return loss, z
 
 

@@ -51,6 +51,9 @@ from minerva.models import MinervaModel
 from minerva.utils.utils import check_substrings_in_string, mask_to_ohe
 
 
+###############################################remove after testing#####################################################
+import time
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
@@ -277,26 +280,31 @@ def ssl_pair_tg(
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
 
+    split_batch = time.time() ###################################################### delete after testing
     # Extracts the x_i batch from the dict.
     x_i_batch: Tensor = batch[0]["image"]
     x_j_batch: Tensor = batch[1]["image"]
+    print(f"Split batch: {time.time() - split_batch}")############################## delete after testing
 
+    split_batch = time.time() ###################################################### delete after testing
     # Ensures images are floats.
     x_i_batch = x_i_batch.to(float_dtype)  # type: ignore[attr-defined]
     x_j_batch = x_j_batch.to(float_dtype)  # type: ignore[attr-defined]
+    print(f"Convert to float: {time.time() - split_batch}")############################## delete after testing
 
     if kwargs.get("validate_variables", False):
         try:
             assert_raises(AssertionError, assert_array_equal, x_i_batch, x_j_batch)
         except AssertionError:
             print("WARNING: Batches are the same!")
-
+    split_batch = time.time() ###################################################### delete after testing
     # Stacks each side of the pair batches together.
     x_batch = torch.stack([x_i_batch, x_j_batch])
-
+    print(f"Stack batch: {time.time() - split_batch}")############################## delete after testing
     # Transfer to GPU.
+    split_batch = time.time() ###################################################### delete after testing
     x = x_batch.to(device, non_blocking=True)
-
+    print(f"batch to GPU: {time.time() - split_batch}")############################## delete after testing
     # Check that none of the data is NaN or infinity.
     if kwargs.get("validate_variables", False):
         assert not x.isnan().any()
