@@ -60,12 +60,12 @@ import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
+import wandb
 import yaml
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
-import wandb
 from minerva.trainer import Trainer
 from minerva.utils import utils
 
