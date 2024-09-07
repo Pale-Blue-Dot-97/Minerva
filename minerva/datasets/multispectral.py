@@ -56,14 +56,14 @@ from .utils import MinervaNonGeoDataset
 class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
     """Generic dataset class for multi-spectral images that works within :mod:`torchgeo`"""
 
-    all_bands: List[str] = []
-    rgb_bands: List[str] = []
+    all_bands: tuple[str, ...] = ()
+    rgb_bands: tuple[str, ...] = ()
 
     def __init__(
         self,
         root: str,
         transforms: Optional[Callable[..., Any]] = None,
-        bands: Optional[List[str]] = None,
+        bands: Optional[tuple[str, ...]] = None,
         as_type=np.float32,
     ) -> None:
         super().__init__(root, transform=transforms, target_transform=None)

@@ -53,7 +53,7 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import torch
@@ -86,7 +86,7 @@ class MinervaSiamese(MinervaBackbone):
         self.backbone: MinervaModel
         self.proj_head: Module
 
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of the network by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -106,7 +106,7 @@ class MinervaSiamese(MinervaBackbone):
         """
         return self.forward_pair(x)
 
-    def forward_pair(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def forward_pair(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of the network by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -131,7 +131,7 @@ class MinervaSiamese(MinervaBackbone):
         return g, g_a, g_b, f_a, f_b
 
     @abc.abstractmethod
-    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Performs a forward pass of a single head of the network by using the forward methods of the backbone
         and feeding its output into the projection heads.
 
@@ -171,10 +171,10 @@ class SimCLR(MinervaSiamese):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         scaler: Optional[GradScaler] = None,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(SimCLR, self).__init__(
             criterion=criterion, input_size=input_size, scaler=scaler
@@ -196,7 +196,7 @@ class SimCLR(MinervaSiamese):
             nn.Linear(512, feature_dim, bias=False),
         )
 
-    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Performs a forward pass of a single head of the network by using the forward methods of the
         :attr:`~SimCLR.backbone` and feeding its output into the :attr:`~SimCLR.proj_head`.
 
@@ -214,7 +214,7 @@ class SimCLR(MinervaSiamese):
 
         return g, f
 
-    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
+    def step(self, x: Tensor, *args, train: bool = False) -> tuple[Tensor, Tensor]:
         """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
 
         Raises:
@@ -318,11 +318,11 @@ class SimSiam(MinervaSiamese):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         pred_dim: int = 512,
         scaler: Optional[GradScaler] = None,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(SimSiam, self).__init__(
             criterion=criterion, input_size=input_size, scaler=scaler
@@ -359,7 +359,7 @@ class SimSiam(MinervaSiamese):
             nn.Linear(pred_dim, feature_dim),
         )  # output layer
 
-    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Performs a forward pass of a single head of :class:`SimSiam` by using the forward methods of the backbone
         and feeding its output into the :attr:`~SimSiam.proj_head`.
 
@@ -376,7 +376,7 @@ class SimSiam(MinervaSiamese):
 
         return p, z.detach()
 
-    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
+    def step(self, x: Tensor, *args, train: bool = False) -> tuple[Tensor, Tensor]:
         """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
 
         Raises:
@@ -480,12 +480,12 @@ class SimConv(MinervaSiamese):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 2048,
         projection_dim: int = 512,
         scaler: Optional[GradScaler] = None,
         encoder_weights: Optional[str] = None,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(SimConv, self).__init__(
             criterion=criterion, input_size=input_size, scaler=scaler
@@ -518,7 +518,7 @@ class SimConv(MinervaSiamese):
             nn.UpsamplingBilinear2d(scale_factor=4),
         )
 
-    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Performs a forward pass of a single head of the network by using the forward methods of the
         :attr:`~SimCLR.backbone` and feeding its output into the :attr:`~SimCLR.proj_head`.
 
@@ -536,7 +536,7 @@ class SimConv(MinervaSiamese):
 
         return g, f
 
-    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
+    def step(self, x: Tensor, *args, train: bool = False) -> tuple[Tensor, Tensor]:
         """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
 
         Raises:

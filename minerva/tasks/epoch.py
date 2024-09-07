@@ -60,7 +60,7 @@ class StandardEpoch(MinervaTask):
     .. versionadded:: 0.27
     """
 
-    logger_cls = "SupervisedTaskLogger"
+    logger_cls = "minerva.logger.tasklog.SupervisedTaskLogger"
 
     def step(self) -> None:
         # Initialises a progress bar for the epoch.
@@ -72,7 +72,7 @@ class StandardEpoch(MinervaTask):
                 self.model.eval()
 
             # Ensure gradients will not be calculated if this is not a training task.
-            with torch.no_grad() if not self.train else nullcontext():
+            with torch.no_grad() if not self.train else nullcontext():  # type: ignore[attr-defined]
 
                 # Core of the epoch.
                 for batch in self.loaders:
@@ -85,7 +85,7 @@ class StandardEpoch(MinervaTask):
                     )
 
                     if self.local_step_num % self.log_rate == 0:
-                        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
+                        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover  # noqa: E501
                             loss = results[0].data.clone()
                             dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                             results = (loss, *results[1:])

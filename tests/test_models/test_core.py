@@ -39,7 +39,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 import importlib
 import os
 from platform import python_version
-from typing import Tuple
 
 import internet_sabotage
 import numpy as np
@@ -114,7 +113,7 @@ def test_minerva_model(x_entropy_loss, std_n_classes: int, std_n_batches: int) -
         assert z.size() == (std_n_batches, std_n_classes)
 
 
-def test_minerva_backbone(rgbi_input_size: Tuple[int, int, int]) -> None:
+def test_minerva_backbone(rgbi_input_size: tuple[int, int, int]) -> None:
     loss_func = NTXentLoss(0.3)
 
     model = SimCLR18(loss_func, input_size=rgbi_input_size)
@@ -124,7 +123,7 @@ def test_minerva_backbone(rgbi_input_size: Tuple[int, int, int]) -> None:
 
 def test_minerva_wrapper(
     x_entropy_loss,
-    small_patch_size: Tuple[int, int],
+    small_patch_size: tuple[int, int],
     std_n_classes: int,
     std_n_batches: int,
 ) -> None:

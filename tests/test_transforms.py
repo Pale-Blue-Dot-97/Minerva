@@ -36,7 +36,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import pytest
 import torch
@@ -77,7 +77,7 @@ from minerva.utils import utils
     ],
 )
 def test_class_transform(
-    example_matrix: Dict[int, int], input_mask: LongTensor, output: LongTensor
+    example_matrix: dict[int, int], input_mask: LongTensor, output: LongTensor
 ) -> None:
     transform = ClassTransform(example_matrix)
 
@@ -276,7 +276,7 @@ def test_dublicator(
     ],
 )
 def test_tg_to_torch(
-    transform, keys: Optional[List[str]], args: Any, in_img, expected
+    transform, keys: Optional[list[str]], args: Any, in_img, expected
 ) -> None:
     transformation = (utils.tg_to_torch(transform, keys=keys))(args)
 
@@ -376,22 +376,21 @@ def test_init_auto_norm(default_image_dataset: RasterDataset, transforms) -> Non
         and transforms is not None
     ):
         with pytest.raises(TypeError):
-            _ = init_auto_norm(default_image_dataset, params)
+            _ = init_auto_norm(default_image_dataset, **params)
     else:
-        dataset = init_auto_norm(default_image_dataset, params)
+        dataset = init_auto_norm(default_image_dataset, **params)
         assert isinstance(dataset, RasterDataset)
         assert isinstance(dataset.transforms.transforms[-1], AutoNorm)  # type: ignore[union-attr]
 
 
 def test_get_transform() -> None:
-    name = "RandomResizedCrop"
-    params = {"module": "torchvision.transforms", "size": 128}
-    transform = get_transform(name, params)
+    params = {"_target_": "torchvision.transforms.RandomResizedCrop", "size": 128}
+    transform = get_transform(params)
 
     assert callable(transform)
 
     with pytest.raises(TypeError):
-        _ = get_transform("DataFrame", {"module": "pandas"})
+        _ = get_transform({"_target_": "pandas.DataFrame"})
 
 
 @pytest.mark.parametrize(
@@ -399,35 +398,50 @@ def test_get_transform() -> None:
     [
         (
             {
-                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+                "crop": {"_target_": "torchvision.transforms.CenterCrop", "size": 128},
+                "flip": {
+                    "_target_": "torchvision.transforms.RandomHorizontalFlip",
+                    "p": 0.7,
+                },
             },
             "mask",
         ),
         (
             {
                 "RandomApply": {
-                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "crop": {
+                        "_target_": "torchvision.transforms.CenterCrop",
+                        "size": 128,
+                    },
                     "p": 0.3,
                 },
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+                "flip": {
+                    "_target_": "torchvision.transforms.RandomHorizontalFlip",
+                    "p": 0.7,
+                },
             },
             "image",
         ),
         (
             {
-                "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                "crop": {"_target_": "torchvision.transforms.CenterCrop", "size": 128},
                 "RandomApply": {
-                    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
+                    "crop": {
+                        "_target_": "torchvision.transforms.CenterCrop",
+                        "size": 128,
+                    },
                     "p": 0.3,
                 },
-                "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7},
+                "flip": {
+                    "_target_": "torchvision.transforms.RandomHorizontalFlip",
+                    "p": 0.7,
+                },
             },
             "image",
         ),
     ],
 )
-def test_make_transformations(params: Dict[str, Any], key: str) -> None:
+def test_make_transformations(params: dict[str, Any], key: str) -> None:
     if params:
         transforms = make_transformations({key: params})
         assert callable(transforms)

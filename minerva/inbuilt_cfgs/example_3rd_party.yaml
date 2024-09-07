@@ -41,12 +41,11 @@ optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module: lightly.models
-    params:
-        input_size: ${input_size}
-        n_classes: ${n_classes}
-        num_classes: ${n_classes}
-        name: resnet-9
+    _target_: lightly.models.resnet.ResNetGenerator
+    input_size: ${input_size}
+    n_classes: ${n_classes}
+    num_classes: ${n_classes}
+    name: resnet-9
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -68,24 +67,16 @@ wandb_log: true              # Activates wandb logging.
 project: pytest              # Define the project name for wandb.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
-# ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-# task_logger: SupervisedTaskLogger
-# step_logger: SupervisedGeoStepLogger
-# model_io: sup_tg
-
 record_int: true    # Store integer results in memory.
 record_float: true  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
-collator:
-    module: torchgeo.datasets
-    name: stack_samples
+collator: torchgeo.datasets.stack_samples
 
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
 
@@ -95,45 +86,36 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 120
+                size: ${patch_size}
+                length: 120
 
             image:
                 transforms:
                     ToRGB:
-                        module: minerva.transforms
-
-                images_1:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
+                        _target_: minerva.transforms.ToRGB
+                subdatasets:
+                    images_1:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
                         res: 1.0
 
-                image2:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
+                    image2:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
                         res: 1.0
 
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                        _target_: minerva.transforms.SingleLabel
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
     fit-val:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
 
@@ -143,36 +125,29 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 32
+                size: ${patch_size}
+                length: 32
 
             image:
                 transforms:
                     ToRGB:
-                        module: minerva.transforms
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                        _target_: minerva.transforms.ToRGB
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
 
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                        _target_: minerva.transforms.SingleLabel
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
 
@@ -182,32 +157,26 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 32
+                size: ${patch_size}
+                length: 32
 
             image:
                 transforms:
                     ToRGB:
-                        module: minerva.transforms
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                        _target_: minerva.transforms.ToRGB
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
 
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                        _target_: minerva.transforms.SingleLabel
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:

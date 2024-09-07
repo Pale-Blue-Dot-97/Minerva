@@ -41,7 +41,7 @@ from pathlib import Path
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional
 
 import torch
 import torch.distributed as dist
@@ -137,19 +137,19 @@ class WeightedKNN(MinervaTask):
     .. versionadded:: 0.27
     """
 
-    logger_cls = "SSLTaskLogger"
+    logger_cls = "minerva.logger.tasklog.SSLTaskLogger"
 
     def __init__(
         self,
         name: str,
-        model: Union[MinervaModel, MinervaDataParallel],
+        model: MinervaModel | MinervaDataParallel,
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
-        backbone_weight_path: Optional[Union[str, Path]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
+        backbone_weight_path: Optional[str | Path] = None,
         record_int: bool = True,
         record_float: bool = False,
         k: int = 5,
@@ -174,9 +174,11 @@ class WeightedKNN(MinervaTask):
         self.temp = temp
         self.k = k
 
-    def generate_feature_bank(self) -> Tuple[Tensor, Tensor]:
+    def generate_feature_bank(self) -> tuple[Tensor, Tensor]:
         feature_list = []
         target_list = []
+
+        assert isinstance(self.loaders, dict)
 
         for batch in tqdm(self.loaders["features"]):
             val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
@@ -230,6 +232,8 @@ class WeightedKNN(MinervaTask):
         with torch.no_grad():
             # Generate feature bank and target bank.
             feature_bank, feature_labels = self.generate_feature_bank()
+
+            assert isinstance(self.loaders, dict)
 
             # Loop test data to predict the label by weighted KNN search.
             for batch in tqdm(self.loaders["test"]):

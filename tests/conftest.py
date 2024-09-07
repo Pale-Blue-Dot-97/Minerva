@@ -41,7 +41,7 @@ import multiprocessing
 import os
 import shutil
 from pathlib import Path
-from typing import Any, Dict, Generator, Tuple
+from typing import Any, Generator
 
 import hydra
 import numpy as np
@@ -199,7 +199,7 @@ def std_batch_size() -> int:
 
 
 @pytest.fixture
-def std_n_classes(exp_classes: Dict[int, str]) -> int:
+def std_n_classes(exp_classes: dict[int, str]) -> int:
     return len(exp_classes)
 
 
@@ -214,12 +214,12 @@ def x_entropy_loss() -> nn.CrossEntropyLoss:
 
 
 @pytest.fixture
-def small_patch_size() -> Tuple[int, int]:
+def small_patch_size() -> tuple[int, int]:
     return (32, 32)
 
 
 @pytest.fixture
-def rgbi_input_size() -> Tuple[int, int, int]:
+def rgbi_input_size() -> tuple[int, int, int]:
     return (4, 32, 32)
 
 
@@ -230,7 +230,7 @@ def exp_mlp(x_entropy_loss: nn.CrossEntropyLoss) -> MLP:
 
 @pytest.fixture
 def exp_cnn(
-    x_entropy_loss: nn.CrossEntropyLoss, rgbi_input_size: Tuple[int, int, int]
+    x_entropy_loss: nn.CrossEntropyLoss, rgbi_input_size: tuple[int, int, int]
 ) -> CNN:
     return CNN(x_entropy_loss, rgbi_input_size)
 
@@ -238,7 +238,7 @@ def exp_cnn(
 @pytest.fixture
 def exp_fcn(
     x_entropy_loss: nn.CrossEntropyLoss,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
     std_n_classes: int,
 ) -> FCN32ResNet18:
     return FCN32ResNet18(x_entropy_loss, rgbi_input_size, std_n_classes)
@@ -246,14 +246,14 @@ def exp_fcn(
 
 @pytest.fixture
 def exp_simconv(
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
 ) -> SimConv:
     return SimConv(SegBarlowTwinsLoss(), rgbi_input_size, feature_dim=128)
 
 
 @pytest.fixture
 def random_mask(
-    small_patch_size: Tuple[int, int], std_n_classes: int
+    small_patch_size: tuple[int, int], std_n_classes: int
 ) -> NDArray[Shape["32, 32"], Int]:
     mask = np.random.randint(0, std_n_classes - 1, size=small_patch_size)
     assert isinstance(mask, np.ndarray)
@@ -262,20 +262,20 @@ def random_mask(
 
 @pytest.fixture
 def random_image(
-    small_patch_size: Tuple[int, int]
+    small_patch_size: tuple[int, int]
 ) -> NDArray[Shape["32, 32, 3"], Float]:
     return np.random.rand(*small_patch_size, 3)
 
 
 @pytest.fixture
 def random_rgbi_image(
-    small_patch_size: Tuple[int, int]
+    small_patch_size: tuple[int, int]
 ) -> NDArray[Shape["32, 32, 4"], Float]:
     return np.random.rand(*small_patch_size, 4)
 
 
 @pytest.fixture
-def random_rgbi_tensor(rgbi_input_size: Tuple[int, int, int]) -> Tensor:
+def random_rgbi_tensor(rgbi_input_size: tuple[int, int, int]) -> Tensor:
     return torch.rand(rgbi_input_size)
 
 
@@ -305,27 +305,27 @@ def flipped_rgb_img() -> Tensor:
 
 
 @pytest.fixture
-def simple_sample(simple_rgb_img: Tensor, simple_mask: LongTensor) -> Dict[str, Tensor]:
+def simple_sample(simple_rgb_img: Tensor, simple_mask: LongTensor) -> dict[str, Tensor]:
     return {"image": simple_rgb_img, "mask": simple_mask}
 
 
 @pytest.fixture
 def flipped_simple_sample(
     flipped_rgb_img: Tensor, flipped_simple_mask: LongTensor
-) -> Dict[str, Tensor]:
+) -> dict[str, Tensor]:
     return {"image": flipped_rgb_img, "mask": flipped_simple_mask}
 
 
 @pytest.fixture
 def random_rgbi_batch(
-    rgbi_input_size: Tuple[int, int, int], std_batch_size: int
+    rgbi_input_size: tuple[int, int, int], std_batch_size: int
 ) -> Tensor:
     return torch.rand((std_batch_size, *rgbi_input_size))
 
 
 @pytest.fixture
 def random_tensor_mask(
-    std_n_classes: int, small_patch_size: Tuple[int, int]
+    std_n_classes: int, small_patch_size: tuple[int, int]
 ) -> LongTensor:
     mask = torch.randint(0, std_n_classes - 1, size=small_patch_size, dtype=torch.long)
     assert isinstance(mask, LongTensor)
@@ -334,7 +334,7 @@ def random_tensor_mask(
 
 @pytest.fixture
 def random_mask_batch(
-    std_batch_size: int, std_n_classes: int, rgbi_input_size: Tuple[int, int, int]
+    std_batch_size: int, std_n_classes: int, rgbi_input_size: tuple[int, int, int]
 ) -> LongTensor:
     mask = torch.randint(
         0,
@@ -368,7 +368,7 @@ def bounds_for_test_img() -> BoundingBox:
 
 
 @pytest.fixture
-def exp_classes() -> Dict[int, str]:
+def exp_classes() -> dict[int, str]:
     return {
         0: "No Data",
         1: "Water",
@@ -382,7 +382,7 @@ def exp_classes() -> Dict[int, str]:
 
 
 @pytest.fixture
-def exp_cmap_dict() -> Dict[int, str]:
+def exp_cmap_dict() -> dict[int, str]:
     return {
         0: "#000000",  # Transparent
         1: "#00c5ff",  # Light Blue
@@ -411,7 +411,7 @@ def flipped_simple_mask() -> LongTensor:
 
 
 @pytest.fixture
-def example_matrix() -> Dict[int, int]:
+def example_matrix() -> dict[int, int]:
     return {1: 1, 3: 3, 4: 2, 5: 0}
 
 
@@ -421,35 +421,31 @@ def simple_bbox() -> BoundingBox:
 
 
 @pytest.fixture
-def exp_dataset_params() -> Dict[str, Any]:
+def exp_dataset_params() -> dict[str, Any]:
     return {
         "image": {
             "transforms": {"AutoNorm": {"length": 12}},
-            "module": "minerva.datasets.__testing",
-            "name": "TstImgDataset",
+            "_target_": "minerva.datasets.__testing.TstImgDataset",
             "paths": "NAIP",
-            "params": {"res": 1.0, "crs": 26918},
+            "res": 1.0,
+            "crs": 26918,
         },
         "mask": {
             "transforms": False,
-            "module": "minerva.datasets.__testing",
-            "name": "TstMaskDataset",
+            "_target_": "minerva.datasets.__testing.TstMaskDataset",
             "paths": "Chesapeake7",
-            "params": {"res": 1.0},
+            "res": 1.0,
         },
     }
 
 
 @pytest.fixture
-def exp_sampler_params(small_patch_size: Tuple[int, int]):
+def exp_sampler_params(small_patch_size: tuple[int, int]):
     return {
-        "module": "torchgeo.samplers",
-        "name": "RandomGeoSampler",
+        "_target_": "torchgeo.samplers.RandomGeoSampler",
         "roi": False,
-        "params": {
-            "size": small_patch_size,
-            "length": 120,
-        },
+        "size": small_patch_size,
+        "length": 120,
     }
 
 
@@ -478,7 +474,7 @@ def default_dataset(
 
 @pytest.fixture
 def default_image_dataset(
-    default_config: DictConfig, exp_dataset_params: Dict[str, Any]
+    default_config: DictConfig, exp_dataset_params: dict[str, Any]
 ) -> RasterDataset:
     del exp_dataset_params["mask"]
     dataset, _ = make_dataset(

@@ -39,11 +39,12 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+import re
 import warnings
 from copy import deepcopy
 from pathlib import Path
 from platform import python_version
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import hydra
 import packaging
@@ -66,7 +67,6 @@ from minerva.models import (
     MinervaDataParallel,
     MinervaModel,
     MinervaOnnxModel,
-    MinervaWrapper,
     extract_wrapped_model,
     wrap_model,
 )
@@ -237,7 +237,7 @@ class Trainer:
         rank: int = 0,
         world_size: int = 1,
         verbose: bool = True,
-        wandb_run: Optional[Union[Run, RunDisabled]] = None,
+        wandb_run: Optional[Run | RunDisabled] = None,
         **params,
     ) -> None:
         assert not isinstance(wandb_run, RunDisabled)
@@ -264,7 +264,7 @@ class Trainer:
             utils.print_config(params)  # type: ignore[arg-type]
 
         # Now that we have pretty printed the config, it is easier to handle as a dict.
-        self.params: Dict[str, Any] = OmegaConf.to_object(params)  # type: ignore[assignment]
+        self.params: dict[str, Any] = OmegaConf.to_object(params)  # type: ignore[assignment]
         assert isinstance(self.params, dict)
 
         # Set variables for checkpointing the experiment or loading from a previous checkpoint.
@@ -324,7 +324,7 @@ class Trainer:
             # Makes a directory for this experiment.
             utils.mkexpdir(self.params["exp_name"])
 
-        self.writer: Optional[Union[SummaryWriter, Run]] = None
+        self.writer: Optional[SummaryWriter | Run] = None
         if self.params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
             self.writer = wandb_run
@@ -337,9 +337,10 @@ class Trainer:
             else:  # pragma: no cover
                 self.writer = None
 
-        self.model: Union[
-            MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
-        ]
+        self.model: (
+            MinervaModel | MinervaDataParallel | MinervaBackbone | OptimizedModule
+        )
+
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
@@ -351,7 +352,7 @@ class Trainer:
             self.model = self.make_model()
 
         # Determines the output shape of the model.
-        sample_pairs: Union[bool, Any] = self.sample_pairs
+        sample_pairs: bool | Any = self.sample_pairs
         if not isinstance(sample_pairs, bool):
             sample_pairs = False
             self.params["sample_pairs"] = False
@@ -409,7 +410,9 @@ class Trainer:
             else:
                 pass
 
-        self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+        self.checkpoint_path = self.exp_fn / (
+            self.params["exp_name"] + "-checkpoint.pt"
+        )
         self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
 
         self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
@@ -455,21 +458,18 @@ class Trainer:
         if isinstance(self.writer, Run):
             self.writer.watch(self.model)
 
-    def get_input_size(self) -> Tuple[int, ...]:
+    def get_input_size(self) -> tuple[int, ...]:
         """Determines the input size of the model.
 
         Returns:
             tuple[int, ...]: :class:`tuple` describing the input shape of the model.
         """
-        input_shape: Optional[Tuple[int, ...]] = self.model.input_size  # type: ignore
+        input_shape: Optional[tuple[int, ...]] = self.model.input_size  # type: ignore
         assert input_shape is not None
-        input_size: Tuple[int, ...] = (self.batch_size, *input_shape)
+        input_size: tuple[int, ...] = (self.batch_size, *input_shape)
 
-        if self.sample_pairs:
+        if self.sample_pairs or self.change_detection:
             input_size = (2, *input_size)
-
-        if self.change_detection:
-            input_size = (input_size[0], 2 * input_size[1], *input_size[2:])
 
         return input_size
 
@@ -497,43 +497,39 @@ class Trainer:
         Returns:
             MinervaModel: Initialised model.
         """
-        model_params: Dict[str, Any] = deepcopy(self.params["model_params"])
+        model_params: dict[str, Any] = deepcopy(self.params["model_params"])
         if OmegaConf.is_config(model_params):
             model_params = OmegaConf.to_object(model_params)  # type: ignore[assignment]
 
-        module = model_params.pop("module", "minerva.models")
-        if not module:
-            module = "minerva.models"
-        is_minerva = True if module == "minerva.models" else False
-
-        # Gets the model requested by config parameters.
-        _model = utils.func_by_str(module, self.params["model_name"].split("-")[0])
+        is_minerva = True if re.search(r"minerva", model_params["_target_"]) else False
 
         if self.fine_tune:
             # Add the path to the pre-trained weights to the model params.
             model_params["backbone_weight_path"] = f"{self.get_weights_path()}.pt"
 
-        params = model_params.get("params", {})
-        if "n_classes" in params.keys():
+        if "n_classes" in model_params.keys():
             # Updates the number of classes in case it has been altered by class balancing.
-            params["n_classes"] = self.params["n_classes"]
+            model_params["n_classes"] = self.params["n_classes"]
 
-        if "num_classes" in params.keys():
+        if "num_classes" in model_params.keys():
             # Updates the number of classes in case it has been altered by class balancing.
-            params["num_classes"] = self.params["n_classes"]
+            model_params["num_classes"] = self.params["n_classes"]
 
         if self.params.get("mix_precision", False):
-            params["scaler"] = torch.cuda.amp.grad_scaler.GradScaler()
+            model_params["scaler"] = torch.cuda.amp.grad_scaler.GradScaler()
 
         # Initialise model.
         model: MinervaModel
         if is_minerva:
-            model = _model(self.make_criterion(), **params)
+            model = hydra.utils.instantiate(
+                model_params, criterion=self.make_criterion()
+            )
         else:
-            model = MinervaWrapper(
-                _model,
-                self.make_criterion(),
-                **params,
+            model_params["model"] = hydra.utils.get_method(model_params["_target_"])
+            model_params["_target_"] = "minerva.models.MinervaWrapper"
+            model = hydra.utils.instantiate(
+                model_params,
+                criterion=self.make_criterion(),
             )
 
         if self.params.get("reload", False):
@@ -562,7 +558,10 @@ class Trainer:
             package="onnx2torch",
         )
 
-        model_params = self.params["model_params"].get("params", {})
+        model_params = deepcopy(self.params["model_params"])
+
+        if "_target_" in model_params:
+            del model_params["_target_"]
 
         onnx_model = convert(onnx_load(f"{self.get_weights_path()}.onnx"))
         model = MinervaOnnxModel(onnx_model, self.make_criterion(), **model_params)
@@ -620,11 +619,10 @@ class Trainer:
             }
         )
 
-        tasks: Dict[str, MinervaTask] = {}
+        tasks: dict[str, MinervaTask] = {}
         for mode in fit_params.keys():
             tasks[mode] = get_task(
-                fit_params[mode]["name"],
-                fit_params[mode].get("module", "minerva.tasks"),
+                fit_params[mode]["_target_"],
                 mode,
                 self.model,
                 self.device,
@@ -637,7 +635,9 @@ class Trainer:
                 **self.params,
             )
 
-            if tasks[mode].params.get("elim", False):
+            # Update the number of classes from the task
+            # if class elimination and training is active in the task.
+            if tasks[mode].elim and tasks[mode].train:
                 self.params["n_classes"] = tasks[mode].n_classes
 
         while self.epoch_no < self.max_epochs:
@@ -649,27 +649,33 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in tasks.keys():
                 # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
-                if (
-                    utils.check_substrings_in_string(mode, "val")
-                    and (self.epoch_no) % self.val_freq != 0
-                ):
-                    tasks[mode].log_null(self.epoch_no - 1)
-                    break
+                if utils.check_substrings_in_string(mode, "val"):
+                    tasks[mode].model = self.model
+
+                    if self.epoch_no % self.val_freq != 0:
+                        tasks[mode].log_null(self.epoch_no - 1)
+                        break
 
                 if tasks[mode].train:
                     self.model.train()
                 else:
                     self.model.eval()
 
-                results: Optional[Dict[str, Any]]
-
-                results = tasks[mode](self.epoch_no - 1)
+                results: Optional[dict[str, Any]] = tasks[mode](self.epoch_no - 1)
 
                 # Print epoch results.
                 if self.gpu == 0:
                     tasks[mode].print_epoch_results(self.epoch_no - 1)
-                    if not self.stopper and self.checkpoint_experiment:
+                    if (
+                        not self.stopper
+                        and self.checkpoint_experiment
+                        and utils.check_substrings_in_string(mode, "train")
+                    ):
                         self.save_checkpoint()
+
+                # Update Trainer's copy of the model from the training task.
+                if utils.check_substrings_in_string(mode, "train"):
+                    self.model = tasks[mode].model
 
                 # Sends validation loss to the stopper and updates early stop bool.
                 if (
@@ -692,7 +698,7 @@ class Trainer:
                         self.print("\nEarly stopping triggered")
 
                     # Create a subset of metrics for plotting model history.
-                    fit_metrics: Dict[str, Any] = {}
+                    fit_metrics: dict[str, Any] = {}
                     for _mode in tasks.keys():
                         fit_metrics = {**fit_metrics, **tasks[_mode].get_metrics}
 
@@ -742,8 +748,7 @@ class Trainer:
         self.params["plot_last_epoch"] = True
         for task_name in test_params.keys():
             task = get_task(
-                test_params[task_name]["name"],
-                test_params[task_name].get("module", "minerva.tasks"),
+                test_params[task_name]["_target_"],
                 task_name,
                 self.model,
                 self.device,
@@ -872,6 +877,11 @@ class Trainer:
         if self.model.scheduler is not None and "scheduler_state_dict" in checkpoint:
             self.model.scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
 
+        # Calculate the output dimensions of the model.
+        self.model.determine_output_dim(
+            sample_pairs=self.sample_pairs, change_detection=self.change_detection
+        )
+
         # Transfer to GPU.
         self.model.to(self.device)
 
@@ -960,7 +970,7 @@ class Trainer:
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
 
-    def save_model_weights(self, fn: Optional[Union[str, Path]] = None) -> None:
+    def save_model_weights(self, fn: Optional[str | Path] = None) -> None:
         """Saves model state dict to :mod:`torch` file.
 
         Args:
@@ -973,9 +983,7 @@ class Trainer:
 
         torch.save(model.state_dict(), f"{fn}.pt")
 
-    def save_model(
-        self, fn: Optional[Union[Path, str]] = None, fmt: str = "pt"
-    ) -> None:
+    def save_model(self, fn: Optional[Path | str] = None, fmt: str = "pt") -> None:
         """Saves the model object itself to :mod:`torch` file.
 
         Args:

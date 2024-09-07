@@ -33,11 +33,12 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = ["SegBarlowTwinsLoss", "AuxCELoss"]
 
+import importlib
+
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 from typing import Optional
-import importlib
 
 import torch
 from torch import Tensor
@@ -91,7 +92,12 @@ class AuxCELoss(Module):
     Source: https://github.com/xitongpu/PSPNet/blob/main/src/model/cell.py
     """
 
-    def __init__(self, weight: Optional[Tensor] = None, ignore_index: int = 255, alpha: float = 0.4) -> None:
+    def __init__(
+        self,
+        weight: Optional[Tensor] = None,
+        ignore_index: int = 255,
+        alpha: float = 0.4,
+    ) -> None:
         super().__init__()
         self.loss = CrossEntropyLoss(weight=weight, ignore_index=ignore_index)
         self.alpha = alpha

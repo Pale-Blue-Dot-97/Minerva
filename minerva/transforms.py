@@ -55,20 +55,9 @@ __all__ = [
 import re
 from copy import deepcopy
 from pathlib import Path
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-    overload,
-)
+from typing import Any, Callable, Literal, Optional, Sequence, cast, overload
 
+import hydra
 import numpy as np
 import rasterio
 import torch
@@ -79,18 +68,14 @@ from torchgeo.samplers import RandomGeoSampler
 from torchvision.transforms import (
     ColorJitter,
     ConvertImageDtype,
+    InterpolationMode,
     Normalize,
     RandomApply,
     Resize,
 )
 from torchvision.transforms.v2 import functional as ft
 
-from minerva.utils.utils import (
-    find_tensor_mode,
-    func_by_str,
-    get_centre_pixel_value,
-    mask_transform,
-)
+from minerva.utils.utils import find_tensor_mode, get_centre_pixel_value, mask_transform
 
 
 # =====================================================================================================================
@@ -106,7 +91,7 @@ class ClassTransform:
         transform (dict[int, int]): Mapping from one labelling schema to another.
     """
 
-    def __init__(self, transform: Dict[int, int]) -> None:
+    def __init__(self, transform: dict[int, int]) -> None:
         self.transform = transform
 
     def __call__(self, mask: LongTensor) -> LongTensor:
@@ -134,14 +119,14 @@ class PairCreate:
     def __init__(self) -> None:
         pass
 
-    def __call__(self, sample: Any) -> Tuple[Any, Any]:
+    def __call__(self, sample: Any) -> tuple[Any, Any]:
         return self.forward(sample)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}()"
 
     @staticmethod
-    def forward(sample: Any) -> Tuple[Any, Any]:
+    def forward(sample: Any) -> tuple[Any, Any]:
         """Takes a sample and returns it and a copy as a :class:`tuple` pair.
 
         Args:
@@ -220,7 +205,7 @@ class AutoNorm(Normalize):
 
         super().__init__(mean, std, inplace)
 
-    def _calc_mean_std(self) -> Tuple[List[float], List[float]]:
+    def _calc_mean_std(self) -> tuple[list[float], list[float]]:
         per_img_means = []
         per_img_stds = []
         for query in self.sampler:
@@ -236,7 +221,7 @@ class AutoNorm(Normalize):
 
         return per_band_mean, per_band_std
 
-    def _get_tile_mean_std(self, query: BoundingBox) -> Tuple[List[float], List[float]]:
+    def _get_tile_mean_std(self, query: BoundingBox) -> tuple[list[float], list[float]]:
         hits = self.dataset.index.intersection(tuple(query), objects=True)
         filepaths = cast(list[str], [hit.object for hit in hits])
 
@@ -245,8 +230,8 @@ class AutoNorm(Normalize):
                 f"query: {query} not found in index with bounds: {self.dataset.bounds}"
             )
 
-        means: List[float]
-        stds: List[float]
+        means: list[float]
+        stds: list[float]
         if self.dataset.separate_files:
             filename_regex = re.compile(self.dataset.filename_regex, re.VERBOSE)
 
@@ -277,9 +262,9 @@ class AutoNorm(Normalize):
 
     def _get_image_mean_std(
         self,
-        filepaths: List[str],
+        filepaths: list[str],
         band_indexes: Optional[Sequence[int]] = None,
-    ) -> Tuple[List[float], List[float]]:
+    ) -> tuple[list[float], list[float]]:
         stats = [self._get_meta_mean_std(fp, band_indexes) for fp in filepaths]
 
         means = list(np.mean([stat[0] for stat in stats], axis=0))
@@ -289,7 +274,7 @@ class AutoNorm(Normalize):
 
     def _get_meta_mean_std(
         self, filepath, band_indexes: Optional[Sequence[int]] = None
-    ) -> Tuple[List[float], List[float]]:
+    ) -> tuple[list[float], list[float]]:
         # Open the Tiff file and get the statistics from the meta (min, max, mean, std).
         means = []
         stds = []
@@ -374,7 +359,7 @@ class ToRGB:
 
     """
 
-    def __init__(self, channels: Optional[Tuple[int, int, int]] = None) -> None:
+    def __init__(self, channels: Optional[tuple[int, int, int]] = None) -> None:
         self.channels = channels
 
     def __call__(self, img: Tensor) -> Tensor:
@@ -426,7 +411,7 @@ class SelectChannels:
         channels (list[int]): Channel indices to keep.
     """
 
-    def __init__(self, channels: List[int]) -> None:
+    def __init__(self, channels: list[int]) -> None:
         self.channels = channels
 
     def __call__(self, img: Tensor) -> Tensor:
@@ -501,8 +486,8 @@ class MinervaCompose:
     Args:
         transforms (~typing.Sequence[~typing.Callable[..., ~typing.Any]] | ~typing.Callable[..., ~typing.Any]):
             List of transforms to compose.
-        key (str): Optional; For use with :mod:`torchgeo` samples and must be assigned a value if using.
-            The key of the data type in the sample dict to transform.
+        change_detection (bool): Flag for if transforming a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Example:
         >>> transforms.MinervaCompose([
@@ -514,21 +499,26 @@ class MinervaCompose:
 
     def __init__(
         self,
-        transforms: Union[
-            List[Callable[..., Any]],
-            Callable[..., Any],
-            Dict[str, Union[List[Callable[..., Any]], Callable[..., Any]]],
-        ],
+        transforms: (
+            list[Callable[..., Any]]
+            | Callable[..., Any]
+            | dict[str, list[Callable[..., Any]] | Callable[..., Any]]
+        ),
+        change_detection: bool = False,
     ) -> None:
-        self.transforms: Union[
-            List[Callable[..., Any]], Dict[str, List[Callable[..., Any]]]
-        ]
+        self.transforms: list[Callable[..., Any]] | dict[str, list[Callable[..., Any]]]
+
+        self.change_detection = change_detection
 
         if isinstance(transforms, Sequence):
             self.transforms = list(transforms)
         elif callable(transforms):
             self.transforms = [transforms]
         elif isinstance(transforms, dict):
+            if self.change_detection and "image" in transforms:
+                transforms["image1"] = transforms["image"]
+                transforms["image2"] = transforms["image"]
+                del transforms["image"]
             self.transforms = transforms  # type: ignore[assignment]
             assert isinstance(self.transforms, dict)
             for key in transforms.keys():
@@ -546,12 +536,10 @@ class MinervaCompose:
 
     @overload
     def __call__(
-        self, sample: Dict[str, Any]
-    ) -> Dict[str, Any]: ...  # pragma: no cover
+        self, sample: dict[str, Any]
+    ) -> dict[str, Any]: ...  # pragma: no cover
 
-    def __call__(
-        self, sample: Union[Tensor, Dict[str, Any]]
-    ) -> Union[Tensor, Dict[str, Any]]:
+    def __call__(self, sample: Tensor | dict[str, Any]) -> Tensor | dict[str, Any]:
         if isinstance(sample, Tensor):
             assert not isinstance(self.transforms, dict)
             return self._transform_input(sample, self.transforms)
@@ -563,11 +551,24 @@ class MinervaCompose:
             # Assumes the keys must be "image" and "mask"
             # We need to apply these first before applying any seperate transforms for modalities.
             if "both" in self.transforms:
+                if self.change_detection:
+                    # Transform images1 with new random states (if applicable).
+                    sample["image1"] = self._transform_input(
+                        sample["image1"], self.transforms["both"]
+                    )
 
-                # Transform images with new random states (if applicable).
-                sample["image"] = self._transform_input(
-                    sample["image"], self.transforms["both"]
-                )
+                    # Transform images1 with new random states (if applicable).
+                    sample["image2"] = self._transform_input(
+                        sample["image2"],
+                        self.transforms["both"],
+                        reapply=True,
+                    )
+
+                else:
+                    # Transform images with new random states (if applicable).
+                    sample["image"] = self._transform_input(
+                        sample["image"], self.transforms["both"]
+                    )
 
                 # We'll have to convert the masks to float for these transforms to work
                 # so need to store the current dtype to cast back to after.
@@ -596,7 +597,7 @@ class MinervaCompose:
 
     @staticmethod
     def _transform_input(
-        img: Tensor, transforms: List[Callable[..., Any]], reapply: bool = False
+        img: Tensor, transforms: list[Callable[..., Any]], reapply: bool = False
     ) -> Tensor:
         if isinstance(transforms, Sequence):
             for t in transforms:
@@ -615,17 +616,17 @@ class MinervaCompose:
 
     def _add(
         self,
-        new_transform: Union[
-            "MinervaCompose",
-            Sequence[Callable[..., Any]],
-            Callable[..., Any],
-            Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
-        ],
-    ) -> Union[Dict[str, List[Callable[..., Any]]], List[Callable[..., Any]]]:
+        new_transform: (
+            "MinervaCompose"
+            | Sequence[Callable[..., Any]]
+            | Callable[..., Any]
+            | dict[str, Sequence[Callable[..., Any]] | Callable[..., Any]]
+        ),
+    ) -> dict[str, list[Callable[..., Any]]] | list[Callable[..., Any]]:
         def add_transforms(
-            _new_transform: Union[Sequence[Callable[..., Any]], Callable[..., Any]],
-            old_transform: List[Callable[..., Any]],
-        ) -> List[Callable[..., Any]]:
+            _new_transform: Sequence[Callable[..., Any]] | Callable[..., Any],
+            old_transform: list[Callable[..., Any]],
+        ) -> list[Callable[..., Any]]:
             if isinstance(_new_transform, Sequence):
                 old_transform.extend(_new_transform)
                 return old_transform
@@ -665,12 +666,12 @@ class MinervaCompose:
 
     def __add__(
         self,
-        new_transform: Union[
-            "MinervaCompose",
-            Sequence[Callable[..., Any]],
-            Callable[..., Any],
-            Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
-        ],
+        new_transform: (
+            "MinervaCompose"
+            | Sequence[Callable[..., Any]]
+            | Callable[..., Any]
+            | dict[str, Sequence[Callable[..., Any]] | Callable[..., Any]]
+        ),
     ) -> "MinervaCompose":
         new_compose = deepcopy(self)
         new_compose.transforms = self._add(new_transform)
@@ -678,12 +679,12 @@ class MinervaCompose:
 
     def __iadd__(
         self,
-        new_transform: Union[
-            "MinervaCompose",
-            Sequence[Callable[..., Any]],
-            Callable[..., Any],
-            Dict[str, Union[Sequence[Callable[..., Any]], Callable[..., Any]]],
-        ],
+        new_transform: (
+            "MinervaCompose"
+            | Sequence[Callable[..., Any]]
+            | Callable[..., Any]
+            | dict[str, Sequence[Callable[..., Any]] | Callable[..., Any]]
+        ),
     ) -> "MinervaCompose":
         self.transforms = self._add(new_transform)
         return self
@@ -738,13 +739,13 @@ class SwapKeys:
         self.from_key = from_key
         self.to_key = to_key
 
-    def __call__(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+    def __call__(self, sample: dict[str, Any]) -> dict[str, Any]:
         return self.forward(sample)
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self.from_key} -> {self.to_key})"
 
-    def forward(self, sample: Dict[str, Any]) -> Dict[str, Any]:
+    def forward(self, sample: dict[str, Any]) -> dict[str, Any]:
         """Sets the ``to_key`` of ``sample`` to the ``from_key`` and returns.
 
         Args:
@@ -766,12 +767,14 @@ class SeasonTransform:
         season (str): How to handle what seasons to return:
         * ``pair``: Randomly pick 2 seasons to return that will form a pair.
         * ``random``: Randomly pick a single season to return.
+
+    .. versionadded:: 0.28
     """
 
     def __init__(self, season: str = "random") -> None:
         self.season = season
 
-    def __call__(self, x: Tensor) -> Union[Tuple[Tensor, Tensor], Tensor]:
+    def __call__(self, x: Tensor) -> tuple[Tensor, Tensor] | Tensor:
 
         if self.season == "pair":
             season1 = np.random.choice([0, 1, 2, 3])
@@ -799,6 +802,8 @@ class ConvertDtypeFromStr(ConvertImageDtype):
 
     Args:
         dtype (str): A tensor type as :class:`str`.
+
+    .. versionadded:: 0.28
     """
 
     def __init__(self, dtype: str) -> None:
@@ -806,7 +811,20 @@ class ConvertDtypeFromStr(ConvertImageDtype):
 
 
 class MaskResize(Resize):
-    """Wrapper of :class:`torchvision.transforms.Resize` for use with masks that have no channel dimension."""
+    """Wrapper of :class:`torchvision.transforms.Resize` for use with masks that have no channel dimension.
+
+    .. versionadded:: 0.28
+    """
+
+    def __init__(
+        self,
+        size,
+        interpolation: str = "NEAREST",
+        max_size=None,
+        antialias: bool = True,
+    ) -> None:
+        interpolation_mode = getattr(InterpolationMode, interpolation)
+        super().__init__(size, interpolation_mode, max_size, antialias)
 
     def forward(self, img: Tensor) -> Tensor:
         """
@@ -818,7 +836,7 @@ class MaskResize(Resize):
         """
         org_shape = img.shape
 
-        tmp_shape: Tuple[int, int, int, int]
+        tmp_shape: tuple[int, int, int, int]
 
         if len(org_shape) == 4:
             # Mask already has shape [N,C,H,W] so no need to modify shape for Resize.
@@ -836,35 +854,61 @@ class MaskResize(Resize):
         return torch.squeeze(super().forward(torch.reshape(img, tmp_shape)))
 
 
+class AdjustGamma:
+    """Callable version of :meth:`torchvision.transforms.functional.adjust_gamma`
+
+    Args:
+        gamma (float): Optional; Gamma factor.
+        gain (float): Optional; Gain scalar.
+
+    .. versionadded:: 0.28
+    """
+
+    def __init__(self, gamma: float = 1.0, gain: float = 1.0) -> None:
+        self.gamma = gamma
+        self.gain = gain
+
+    def forward(self, img: Tensor) -> Tensor:
+        img = ft.adjust_gamma(img, gamma=self.gamma, gain=self.gain)
+        assert isinstance(img, Tensor)
+        return img
+
+    def __call__(self, img: Tensor) -> Tensor:
+        return self.forward(img)
+
+
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def _construct_random_transforms(random_params: Dict[str, Any]) -> Any:
+def _construct_random_transforms(random_params: dict[str, Any]) -> Any:
     p = random_params.pop("p", 0.5)
 
     random_transforms = []
     for ran_name in random_params:
-        random_transforms.append(get_transform(ran_name, random_params[ran_name]))
+        random_transforms.append(get_transform(random_params[ran_name]))
 
     return RandomApply(random_transforms, p=p)
 
 
 def init_auto_norm(
-    dataset: RasterDataset, params: Dict[str, Any] = {}
+    dataset: RasterDataset,
+    length: int = 128,
+    roi: Optional[BoundingBox] = None,
+    inplace=False,
 ) -> RasterDataset:
     """Uses :class:~`minerva.transforms.AutoNorm` to automatically find the mean and standard deviation of `dataset`
     to create a normalisation transform that is then added to the existing transforms of `dataset`.
 
     Args:
         dataset (RasterDataset): Dataset to find and apply the normalisation conditions to.
-        params (Dict[str, Any]): Parameters for :class:~`minerva.transforms.AutoNorm`.
+        params (dict[str, Any]): Parameters for :class:~`minerva.transforms.AutoNorm`.
 
     Returns:
         RasterDataset: `dataset` with an additional :class:~`minerva.transforms.AutoNorm` transform
         added to it's :attr:~`torchgeo.datasets.RasterDataset.transforms` attribute.
     """
     # Creates the AutoNorm transform by sampling `dataset` for its mean and standard deviation stats.
-    auto_norm = AutoNorm(dataset, **params)
+    auto_norm = AutoNorm(dataset, length=length, roi=roi, inplace=inplace)
 
     if dataset.transforms is None:
         dataset.transforms = MinervaCompose(auto_norm)
@@ -887,35 +931,24 @@ def init_auto_norm(
     return dataset
 
 
-def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., Any]:
+def get_transform(transform_params: dict[str, Any]) -> Callable[..., Any]:
     """Creates a transform object based on config parameters.
 
     Args:
-        name (str): Name of transform object to import e.g :class:`~torchvision.transforms.RandomResizedCrop`.
         transform_params (dict[str, ~typing.Any]): Arguements to construct transform with.
-            Should also include ``"module"`` key defining the import path to the transform object.
+            Should also include ``"_target_"`` key defining the import path to the transform object.
 
     Returns:
         Initialised transform object specified by config parameters.
 
-    .. note::
-        If ``transform_params`` contains no ``"module"`` key, it defaults to ``torchvision.transforms``.
-
     Example:
-        >>> name = "RandomResizedCrop"
-        >>> params = {"module": "torchvision.transforms", "size": 128}
-        >>> transform = get_transform(name, params)
+        >>> params = {"_target": "torchvision.transforms.RandomResizedCrop", "size": 128}
+        >>> transform = get_transform(params)
 
     Raises:
         TypeError: If created transform object is itself not :class:`~typing.Callable`.
     """
-    params = transform_params.copy()
-    module = params.pop("module", "torchvision.transforms")
-
-    # Gets the transform requested by config parameters.
-    _transform: Callable[..., Any] = func_by_str(module, name)
-
-    transform: Callable[..., Any] = _transform(**params)
+    transform: Callable[..., Any] = hydra.utils.instantiate(transform_params)
     if callable(transform):
         return transform
     else:
@@ -923,7 +956,8 @@ def get_transform(name: str, transform_params: Dict[str, Any]) -> Callable[..., 
 
 
 def make_transformations(
-    transform_params: Union[Dict[str, Any], Literal[False]]
+    transform_params: dict[str, Any] | Literal[False],
+    change_detection: bool = False,
 ) -> Optional[MinervaCompose]:
     """Constructs a transform or series of transforms based on parameters provided.
 
@@ -931,11 +965,13 @@ def make_transformations(
         transform_params (dict[str, ~typing.Any] | ~typing.Literal[False]): Parameters defining transforms desired.
             The name of each transform should be the key, while the kwargs for the transform should
             be the value of that key as a dict.
+        change_detection (bool): Flag for if transforming a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Example:
         >>> transform_params = {
-        >>>    "CenterCrop": {"module": "torchvision.transforms", "size": 128},
-        >>>     "RandomHorizontalFlip": {"module": "torchvision.transforms", "p": 0.7}
+        >>>    "crop": {"_target_": "torchvision.transforms.CenterCrop", "size": 128},
+        >>>     "flip": {"_target_": "torchvision.transforms.RandomHorizontalFlip", "p": 0.7}
         >>> }
         >>> transforms = make_transformations(transform_params)
 
@@ -945,7 +981,7 @@ def make_transformations(
         If multiple transforms are defined, a Compose object of Transform objects is returned.
     """
 
-    def construct(type_transform_params: Dict[str, Any]) -> List[Callable[..., Any]]:
+    def construct(type_transform_params: dict[str, Any]) -> list[Callable[..., Any]]:
         type_transformations = []
 
         # Get each transform.
@@ -959,9 +995,7 @@ def make_transformations(
                 continue
 
             else:
-                type_transformations.append(
-                    get_transform(_name, type_transform_params[_name])
-                )
+                type_transformations.append(get_transform(type_transform_params[_name]))
 
         return type_transformations
 
@@ -971,7 +1005,7 @@ def make_transformations(
     if all(transform_params.values()) is None:
         return None
 
-    transformations: Dict[str, Any] = {}
+    transformations: dict[str, Any] = {}
 
     for name in transform_params:
         if name in ("image", "mask", "label", "both"):
@@ -980,6 +1014,8 @@ def make_transformations(
             else:
                 transformations[name] = construct(transform_params[name])
         else:
-            return MinervaCompose(construct(transform_params))
+            return MinervaCompose(
+                construct(transform_params), change_detection=change_detection
+            )
 
-    return MinervaCompose(transformations)
+    return MinervaCompose(transformations, change_detection=change_detection)

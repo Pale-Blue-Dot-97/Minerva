@@ -40,7 +40,7 @@ import os
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any
 
 import matplotlib as mlp
 import numpy as np
@@ -116,7 +116,7 @@ def test_get_mlp_cmap() -> None:
 
 
 def test_discrete_heatmap(
-    random_mask, exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]
+    random_mask, exp_classes: dict[int, str], exp_cmap_dict: dict[int, str]
 ) -> None:
     cmap = ListedColormap(exp_cmap_dict.values())  # type: ignore
     visutils.discrete_heatmap(random_mask, list(exp_classes.values()), cmap_style=cmap)
@@ -151,8 +151,8 @@ def test_labelled_rgb_image(
     random_mask,
     random_image,
     bounds_for_test_img,
-    exp_classes: Dict[int, str],
-    exp_cmap_dict: Dict[int, str],
+    exp_classes: dict[int, str],
+    exp_cmap_dict: dict[int, str],
 ) -> None:
     path = tempfile.gettempdir()
     name = "pretty_pic"
@@ -174,7 +174,7 @@ def test_labelled_rgb_image(
 
 
 def test_make_gif(
-    bounds_for_test_img, exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]
+    bounds_for_test_img, exp_classes: dict[int, str], exp_cmap_dict: dict[int, str]
 ) -> None:
     dates = ["2018-01-15", "2018-07-03", "2018-11-30"]
     images = np.random.rand(3, 32, 32, 3)
@@ -209,7 +209,7 @@ def test_prediction_plot(
     random_image,
     random_mask,
     bounds_for_test_img,
-    exp_classes: Dict[int, str],
+    exp_classes: dict[int, str],
     results_dir: Path,
 ) -> None:
     pred = np.random.randint(0, 8, size=(32, 32))
@@ -229,9 +229,9 @@ def test_seg_plot(
     results_root: Path,
     data_root: Path,
     default_dataset: GeoDataset,
-    exp_dataset_params: Dict[str, Any],
-    exp_classes: Dict[int, str],
-    exp_cmap_dict: Dict[int, str],
+    exp_dataset_params: dict[str, Any],
+    exp_classes: dict[int, str],
+    exp_cmap_dict: dict[int, str],
     cache_dir: Path,
     monkeypatch,
 ) -> None:
@@ -271,7 +271,7 @@ def test_seg_plot(
 
 
 def test_plot_subpopulations(
-    exp_classes: Dict[int, str], exp_cmap_dict: Dict[int, str]
+    exp_classes: dict[int, str], exp_cmap_dict: dict[int, str]
 ) -> None:
     class_dist = [(1, 25000), (0, 1300), (2, 100), (3, 2)]
 
@@ -305,7 +305,7 @@ def test_plot_history() -> None:
     filename.unlink(missing_ok=True)
 
 
-def test_make_confusion_matrix(exp_classes: Dict[int, str]) -> None:
+def test_make_confusion_matrix(exp_classes: dict[int, str]) -> None:
     batch_size = 2
     patch_size = (32, 32)
 
@@ -346,11 +346,11 @@ def test_format_names() -> None:
 
 def test_plot_results(
     default_dataset: GeoDataset,
-    exp_classes: Dict[int, str],
-    exp_cmap_dict: Dict[int, str],
+    exp_classes: dict[int, str],
+    exp_cmap_dict: dict[int, str],
     results_dir: Path,
-    default_config: Dict[str, Any],
-    small_patch_size: Tuple[int, int],
+    default_config: dict[str, Any],
+    small_patch_size: tuple[int, int],
     std_batch_size: int,
     std_n_classes: int,
 ) -> None:
@@ -420,7 +420,7 @@ def test_plot_results(
 def test_plot_embeddings(
     results_root: Path,
     default_dataset: GeoDataset,
-    exp_dataset_params: Dict[str, Any],
+    exp_dataset_params: dict[str, Any],
     data_root: Path,
     cache_dir: Path,
 ) -> None:

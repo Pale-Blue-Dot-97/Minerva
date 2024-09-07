@@ -37,7 +37,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 #                                                      IMPORTS
 # =====================================================================================================================
 import importlib
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import torch
 import torch.nn.modules as nn
@@ -53,20 +53,20 @@ from numpy.testing import assert_array_equal
 from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.modelio import autoencoder_io, ssl_pair_tg, sup_tg
+from minerva.modelio import autoencoder_io, ssl_pair_torchgeo_io, supervised_torchgeo_io
 from minerva.models import FCN32ResNet18, SimCLR34
 
 
 # =====================================================================================================================
 #                                                       TESTS
 # =====================================================================================================================
-def test_sup_tg(
+def test_supervised_torchgeo_io(
     simple_bbox: BoundingBox,
     random_rgbi_batch: Tensor,
     random_mask_batch: Tensor,
     std_batch_size: int,
     std_n_classes: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
     default_device: torch.device,
 ) -> None:
     criterion = nn.CrossEntropyLoss()
@@ -76,13 +76,13 @@ def test_sup_tg(
 
     for train in (True, False):
         bboxes = [simple_bbox] * std_batch_size
-        batch: Dict[str, Union[Tensor, List[Any]]] = {
+        batch: dict[str, Tensor | list[Any]] = {
             "image": random_rgbi_batch,
             "mask": random_mask_batch,
             "bbox": bboxes,
         }
 
-        results = sup_tg(batch, model, default_device, train)
+        results = supervised_torchgeo_io(batch, model, default_device, train)
 
         assert isinstance(results[0], Tensor)
         assert isinstance(results[1], Tensor)
@@ -95,10 +95,10 @@ def test_sup_tg(
         assert results[3] == batch["bbox"]
 
 
-def test_ssl_pair_tg(
+def test_ssl_pair_torchgeo_io(
     simple_bbox: BoundingBox,
     std_batch_size: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
     default_device: torch.device,
 ) -> None:
     criterion = NTXentLoss(0.5)
@@ -123,7 +123,7 @@ def test_ssl_pair_tg(
             "bbox": bboxes_2,
         }
 
-        results = ssl_pair_tg((batch_1, batch_2), model, default_device, train)
+        results = ssl_pair_torchgeo_io((batch_1, batch_2), model, default_device, train)
 
         assert isinstance(results[0], Tensor)
         assert isinstance(results[1], Tensor)
@@ -138,7 +138,7 @@ def test_mask_autoencoder_io(
     simple_bbox: BoundingBox,
     std_batch_size: int,
     std_n_classes: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
     default_device: torch.device,
 ) -> None:
     criterion = nn.CrossEntropyLoss()
@@ -152,7 +152,7 @@ def test_mask_autoencoder_io(
         images = torch.rand(size=(std_batch_size, *rgbi_input_size))
         masks = torch.randint(0, 8, (std_batch_size, *rgbi_input_size[1:]))  # type: ignore[attr-defined]
         bboxes = [simple_bbox] * std_batch_size
-        batch: Dict[str, Union[Tensor, List[Any]]] = {
+        batch: dict[str, Tensor | list[Any]] = {
             "image": images,
             "mask": masks,
             "bbox": bboxes,
@@ -191,7 +191,7 @@ def test_image_autoencoder_io(
     random_rgbi_batch: Tensor,
     random_mask_batch: Tensor,
     std_batch_size: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
     default_device: torch.device,
 ) -> None:
     criterion = nn.CrossEntropyLoss()
@@ -203,7 +203,7 @@ def test_image_autoencoder_io(
 
     for train in (True, False):
         bboxes = [simple_bbox] * std_batch_size
-        batch: Dict[str, Union[Tensor, List[Any]]] = {
+        batch: dict[str, Tensor | list[Any]] = {
             "image": random_rgbi_batch,
             "mask": random_mask_batch,
             "bbox": bboxes,

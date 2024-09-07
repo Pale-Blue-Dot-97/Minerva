@@ -14,7 +14,7 @@ cache_dir: tests/tmp/cache
 
 # === HYPERPARAMETERS =========================================================
 # ---+ Model Specification +---------------------------------------------------
-# Name of model. Substring before hyphen is model class.
+# Name of model. This no longer used for model class (see model_params).
 model_name: FCN32ResNet18-test
 
 # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
@@ -40,11 +40,10 @@ optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
-        input_size: ${input_size}
-        n_classes: *n_classes
-        # any other params...
+    _target_: minerva.models.FCN32ResNet18
+    input_size: ${input_size}
+    n_classes: ${n_classes}
+    # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -52,12 +51,11 @@ optimiser:
     lr: ${lr}
 
 # ---+ Scheduler Parameters +--------------------------------------------------
-scheduler_params:
-    name: LinearLR
-    params:
-        start_factor: 1.0
-        end_factor: 0.5
-        total_iters: 5
+scheduler:
+    _target_: torch.optim.lr_scheduler.LinearLR
+    start_factor: 1.0
+    end_factor: 0.5
+    total_iters: 5
 
 # ---+ Loss Function Parameters +----------------------------------------------
 loss_params:
@@ -75,15 +73,12 @@ project: pytest              # Define the project name for wandb.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # ---+ Collator +--------------------------------------------------------------
-collator:
-    module: torchgeo.datasets
-    name: stack_samples
+collator: torchgeo.datasets.stack_samples
 
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
 
@@ -93,40 +88,32 @@ tasks:
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 120
+                size: ${patch_size}
+                length: 120
 
             image:
                 transforms: false
-                images_1:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
+                subdatasets:
+                    images_1:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
                         res: 1.0
 
-                image2:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
+                    image2:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
                         res: 1.0
 
             mask:
                 transforms: false
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
     fit-val:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
 
@@ -134,74 +121,59 @@ tasks:
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        # logger: STGLogger
-        # metrics: SPMetrics
-        # model_io: sup_tg
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
+        model_io: minerva.modelio.supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 32
+                size: ${patch_size}
+                length: 32
 
             image:
                 transforms: false
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
 
             mask:
                 transforms: false
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         record_float: true
 
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        # logger: STGLogger
-        # metrics: SPMetrics
-        # model_io: sup_tg
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
+        model_io: minerva.modelio.supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 32
+                size: ${patch_size}
+                length: 32
 
             image:
                 transforms: false
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
 
             mask:
                 transforms: false
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:

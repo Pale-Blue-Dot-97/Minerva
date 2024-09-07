@@ -32,7 +32,7 @@ __all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
 # =====================================================================================================================
 import os
 import pickle
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional
 
 import cv2
 import lmdb
@@ -69,7 +69,7 @@ class GeoSSL4EOS12Sentinel2(Sentinel2):
     filename_glob = "{}.*"
     filename_regex = r"""(?P<band>B[^[0-1]?[0-9]|B[^[1]?[0-9][\dA])\..*$"""
     date_format = ""
-    all_bands = [
+    all_bands: tuple[str, ...] = (
         "B1",
         "B2",
         "B3",
@@ -82,12 +82,12 @@ class GeoSSL4EOS12Sentinel2(Sentinel2):
         "B9",
         "B11",
         "B12",
-    ]
-    rgb_bands = ["B4", "B3", "B2"]
+    )
+    rgb_bands: tuple[str, str, str] = ("B4", "B3", "B2")
 
 
 class NonGeoSSL4EOS12Sentinel2(MultiSpectralDataset):
-    all_bands = [
+    all_bands: tuple[str, ...] = (
         "B1",
         "B2",
         "B3",
@@ -100,8 +100,8 @@ class NonGeoSSL4EOS12Sentinel2(MultiSpectralDataset):
         "B9",
         "B11",
         "B12",
-    ]
-    rgb_bands = ["B4", "B3", "B2"]
+    )
+    rgb_bands: tuple[str, str, str] = ("B4", "B3", "B2")
 
 
 class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
@@ -110,7 +110,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
     Source: https://github.com/zhu-xlab/SSL4EO-S12/tree/main/src/benchmark/pretrain_ssl/datasets/SSL4EO
     """
 
-    ALL_BANDS_S2_L2A = [
+    ALL_BANDS_S2_L2A: tuple[str, ...] = (
         "B1",
         "B2",
         "B3",
@@ -123,8 +123,8 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         "B9",
         "B11",
         "B12",
-    ]
-    ALL_BANDS_S2_L1C = [
+    )
+    ALL_BANDS_S2_L1C: tuple[str, ...] = (
         "B1",
         "B2",
         "B3",
@@ -138,9 +138,9 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         "B10",
         "B11",
         "B12",
-    ]
-    RGB_BANDS = ["B4", "B3", "B2"]
-    ALL_BANDS_S1_GRD = ["VV", "VH"]
+    )
+    RGB_BANDS: tuple[str, str, str] = ("B4", "B3", "B2")
+    ALL_BANDS_S1_GRD: tuple[str, str] = ("VV", "VH")
 
     # Band statistics: mean & std
     # Calculated from 50k data
@@ -215,7 +215,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         lmdb_file: Optional[str] = None,
         normalize: bool = False,
         mode: str = "s2a",
-        bands: Optional[List[str]] = None,
+        bands: Optional[tuple[str, ...]] = None,
         dtype: str = "uint8",
         is_slurm_job=False,
         transforms=None,
@@ -263,7 +263,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         with self.env.begin(write=False) as txn:  # type: ignore[unreachable]
             self.length = txn.stat()["entries"]
 
-    def __getitem__(self, index: int) -> Dict[str, Union[Tuple[Tensor, ...], Tensor]]:
+    def __getitem__(self, index: int) -> dict[str, tuple[Tensor, ...] | Tensor]:
         if self.lmdb_file:
             if self.is_slurm_job:
                 # Delay loading LMDB data until after initialization
@@ -363,7 +363,9 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
 
             return {"image": img_4s}
 
-    def get_array(self, patch_id: str, mode: str, bands: Optional[List[str]] = None):
+    def get_array(
+        self, patch_id: str, mode: str, bands: Optional[tuple[str, ...]] = None
+    ):
         data_root_patch = os.path.join(self.root, mode, patch_id)
         patch_seasons = os.listdir(data_root_patch)
         seasons = []

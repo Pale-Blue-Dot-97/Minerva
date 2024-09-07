@@ -41,16 +41,15 @@ optim_func: SGD                        # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
-        input_size: ${input_size}
-        n_classes: ${n_classes}
-        encoder: true
-        segmentation_on: true
-        classification_on: true
-        upsampling: 8
-        aux_params:
-            classes: ${n_classes}
+    _target_: minerva.models.MinervaPSP
+    input_size: ${input_size}
+    n_classes: ${n_classes}
+    encoder: true
+    segmentation_on: true
+    classification_on: true
+    upsampling: 8
+    aux_params:
+        classes: ${n_classes}
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -78,15 +77,12 @@ record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
-collator:
-    module: torchgeo.datasets
-    name: stack_samples
+collator: torchgeo.datasets.stack_samples
 
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
 
@@ -95,68 +91,64 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torch.utils.data
-                name: RandomSampler
-                params:
-                    num_samples: 32
+                _target_: torch.utils.data.RandomSampler
+                num_samples: 32
 
             transforms:
                 RandomResizedCrop:
-                    module: kornia.augmentation
+                    _target_: kornia.augmentation.RandomResizedCrop
                     p: 1.0
                     size: ${patch_size}
                     cropping_mode: resample
                     keepdim: true
                 RandomHorizontalFlip:
-                    module: kornia.augmentation
+                    _target_: kornia.augmentation.RandomHorizontalFlip
                     p: 0.2
                     keepdim: true
 
             image:
                 transforms:
-                    Normalise:
-                        module: minerva.transforms
+                    normalise:
+                        _target_: minerva.transforms.Normalise
                         norm_value: 4095
                     RandomApply:
                         p: 0.25
-                        DetachedColorJitter:
-                            module: minerva.transforms
+                        jitter:
+                            _target_: minerva.transforms.DetachedColorJitter
                             brightness: 0.2
                             contrast: 0.1
                             saturation: 0.1
                             hue: 0.15
-                    RandomGaussianBlur:
-                        module: kornia.augmentation
+                    gaussian_blur:
+                        _target_: kornia.augmentation.RandomGaussianBlur
                         kernel_size: 9
                         p: 0.2
                         sigma: [0.01, 0.2]
                         keepdim: true
-                    RandomGaussianNoise:
-                        module: kornia.augmentation
+                    gaussian_noise:
+                        _target_: kornia.augmentation.RandomGaussianNoise
                         p: 0.2
                         std: 0.05
                         keepdim: true
-                    RandomErasing:
-                        module: kornia.augmentation
+                    random_erasing:
+                        _target_: kornia.augmentation.RandomErasing
                         p: 0.2
                         keepdim: true
 
-                module: minerva.datasets
-                name: DFC2020
-                paths: DFC/DFC2020
-                params:
-                    split: test
-                    use_s2hr: true
-                    labels: true
+                _target_: minerva.datasets.DFC2020
+                root: DFC/DFC2020
+                split: test
+                use_s2hr: true
+                labels: true
             mask:
                 transforms:
                     MaskResize:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.MaskResize
                         size: 64
+                        interpolation: NEAREST
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
 
@@ -165,30 +157,27 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torch.utils.data
-                name: RandomSampler
-                params:
-                    num_samples: 16
+                _target_: torch.utils.data.RandomSampler
+                num_samples: 16
 
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 4095
 
-                module: minerva.datasets
-                name: DFC2020
-                paths: DFC/DFC2020
-                params:
-                    split: test
-                    use_s2hr: true
-                    labels: true
+                _target_: minerva.datasets.DFC2020
+                root: DFC/DFC2020
+                split: test
+                use_s2hr: true
+                labels: true
 
             mask:
                 transforms:
                     MaskResize:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.MaskResize
                         size: 64
+                        interpolation: NEAREST
 
 # === PLOTTING OPTIONS ========================================================
 plots:

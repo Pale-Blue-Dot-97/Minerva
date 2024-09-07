@@ -42,13 +42,14 @@ __all__ = [
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 else:  # pragma: no cover
     SummaryWriter = None
 
+import hydra
 import numpy as np
 from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
@@ -56,7 +57,7 @@ from wandb.sdk.wandb_run import Run
 
 from minerva.utils.utils import check_substrings_in_string
 
-from .steplog import MinervaStepLogger, get_logger
+from .steplog import MinervaStepLogger
 
 
 # =====================================================================================================================
@@ -85,8 +86,8 @@ class MinervaTaskLogger(ABC):
 
     __metaclass__ = abc.ABCMeta
 
-    metric_types: List[str] = []
-    special_metric_types: List[str] = []
+    metric_types: list[str] = []
+    special_metric_types: list[str] = []
     logger_cls: str
 
     def __init__(
@@ -94,11 +95,11 @@ class MinervaTaskLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         **params,
     ) -> None:
         super(MinervaTaskLogger, self).__init__()
@@ -119,15 +120,14 @@ class MinervaTaskLogger(ABC):
 
         self.writer = writer
 
-        if isinstance(step_logger_params, dict):
-            self._logger = get_logger(step_logger_params.get("name", self.logger_cls))
-            if "params" not in step_logger_params:
-                step_logger_params["params"] = {}
-
+        if not isinstance(step_logger_params, dict):
+            step_logger_params = {"_target_": self.logger_cls}
+        elif "_target_" not in step_logger_params:
+            step_logger_params["_target_"] = self.logger_cls
         else:
-            step_logger_params = {"params": {}}
+            pass
 
-        step_logger_params["params"]["n_classes"] = self.n_classes
+        step_logger_params["n_classes"] = self.n_classes
 
         self.step_logger_params = step_logger_params
 
@@ -137,7 +137,7 @@ class MinervaTaskLogger(ABC):
             self.metric_types += self.special_metric_types
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics: Dict[str, Any] = {}
+        self.metrics: dict[str, Any] = {}
         for metric in self.metric_types:
             self.metrics[f"{self.task_name}_{metric}"] = {"x": [], "y": []}
 
@@ -147,7 +147,8 @@ class MinervaTaskLogger(ABC):
         .. note::
             Will overwrite ``self.logger`` with new logger.
         """
-        self.step_logger: MinervaStepLogger = self._logger(
+        self.step_logger: MinervaStepLogger = hydra.utils.instantiate(
+            self.step_logger_params,
             task_name=self.task_name,
             n_batches=self.n_batches,
             batch_size=self.batch_size,
@@ -156,7 +157,6 @@ class MinervaTaskLogger(ABC):
             record_float=self.record_float,
             writer=self.writer,
             model_type=self.model_type,
-            **self.step_logger_params.get("params", {}),
         )
 
     def refresh_step_logger(self) -> None:
@@ -207,7 +207,7 @@ class MinervaTaskLogger(ABC):
         self.log_epoch_number(epoch_no)
 
     @abc.abstractmethod
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Must be defined before use.
@@ -226,7 +226,7 @@ class MinervaTaskLogger(ABC):
             self.metrics[metric]["x"].append(epoch_no)
 
     @property
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get the ``metrics`` dictionary.
 
         Returns:
@@ -235,7 +235,7 @@ class MinervaTaskLogger(ABC):
         return self.metrics
 
     @property
-    def get_logs(self) -> Dict[str, Any]:
+    def get_logs(self) -> dict[str, Any]:
         """Get the logs of each step from the latest epoch of the task.
 
         Returns:
@@ -246,7 +246,7 @@ class MinervaTaskLogger(ABC):
         return self.step_logger.get_logs
 
     @property
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """Get the results of each step from the latest epoch of the task.
 
         Returns:
@@ -266,8 +266,8 @@ class MinervaTaskLogger(ABC):
             self.metrics[metric]["y"].append(np.NAN)
 
     def get_sub_metrics(
-        self, pattern: Tuple[str, ...] = ("train", "val")
-    ) -> Dict[str, Any]:
+        self, pattern: tuple[str, ...] = ("train", "val")
+    ) -> dict[str, Any]:
         """Gets a subset of the metrics dictionary with keys containing strings in the pattern.
 
         Useful for getting the train and validation metrics for plotting for example.
@@ -315,19 +315,19 @@ class SupervisedTaskLogger(MinervaTaskLogger):
     .. versionadded:: 0.27
     """
 
-    metric_types: List[str] = ["loss", "acc", "miou"]
-    logger_cls = "SupervisedStepLogger"
+    metric_types: list[str] = ["loss", "acc", "miou"]
+    logger_cls = "minerva.logger.steplog.SupervisedStepLogger"
 
     def __init__(
         self,
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "segmentation",
         **params,
     ) -> None:
@@ -344,7 +344,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             **params,
         )
 
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
@@ -415,30 +415,34 @@ class SSLTaskLogger(MinervaTaskLogger):
 
     metric_types = ["loss", "acc", "top5_acc"]
     special_metric_types = ["collapse_level", "euc_dist"]
-    logger_cls = "SSLStepLogger"
+    logger_cls = "minerva.logger.steplog.SSLStepLogger"
 
     def __init__(
         self,
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "segmentation",
         sample_pairs: bool = False,
         **params,
     ) -> None:
         if not step_logger_params:
-            step_logger_params = {}
-        if "params" not in step_logger_params:
-            step_logger_params["params"] = {}
+            step_logger_params = {"_target_": self.logger_cls}
 
-            step_logger_params["params"]["sample_pairs"] = sample_pairs
-            step_logger_params["params"]["collapse_level"] = sample_pairs
-            step_logger_params["params"]["euclidean"] = sample_pairs
+        step_logger_params["sample_pairs"] = step_logger_params.get(
+            "sample_pairs", sample_pairs
+        )
+        step_logger_params["collapse_level"] = step_logger_params.get(
+            "collapse_level", sample_pairs
+        )
+        step_logger_params["euclidean"] = step_logger_params.get(
+            "euclidean", sample_pairs
+        )
 
         super(SSLTaskLogger, self).__init__(
             task_name,
@@ -465,7 +469,7 @@ class SSLTaskLogger(MinervaTaskLogger):
         if not getattr(self.step_logger, "euclidean", False):
             del self.metrics[f"{self.task_name}_euc_dist"]
 
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:

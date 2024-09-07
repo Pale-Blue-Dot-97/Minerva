@@ -38,7 +38,7 @@ __all__ = ["DynamicPSP", "MinervaPSP", "MinervaPSPUNet"]
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Optional
 
 import segmentation_models_pytorch as smp
 import torch
@@ -106,9 +106,9 @@ class DynamicPSP(smp.PSPNet):
         psp_dropout: float = 0.2,
         in_channels: Optional[int] = None,
         n_classes: int = 1,
-        activation: Optional[Union[str, Callable[..., Any]]] = None,
+        activation: Optional[str | Callable[..., Any]] = None,
         upsampling: int = 8,
-        aux_params: Optional[Dict[str, Any]] = None,
+        aux_params: Optional[dict[str, Any]] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         encoder: bool = True,
@@ -150,7 +150,7 @@ class DynamicPSP(smp.PSPNet):
     def make_segmentation_head(
         self,
         n_classes: int,
-        activation: Optional[Union[str, Callable[..., Any]]] = None,
+        activation: Optional[str | Callable[..., Any]] = None,
         upsampling: int = 8,
     ) -> None:
         self.segmentation_head = SegmentationHead(
@@ -164,7 +164,7 @@ class DynamicPSP(smp.PSPNet):
         self.encoder_mode = True
         self.segmentation_on = True
 
-    def make_classification_head(self, aux_params: Dict[str, Any]) -> None:
+    def make_classification_head(self, aux_params: dict[str, Any]) -> None:
         # Makes the classification head.
         self.classification_head = ClassificationHead(
             in_channels=self.encoder.out_channels[-1], **aux_params
@@ -198,7 +198,7 @@ class DynamicPSP(smp.PSPNet):
         """
         self.encoder.requires_grad_(False if freeze else True)
 
-    def forward(self, x: Tensor) -> Union[Tensor, Tuple[Tensor, ...]]:
+    def forward(self, x: Tensor) -> Tensor | tuple[Tensor, ...]:
         f = self.encoder(x)
 
         if not self.encoder_mode:
@@ -223,7 +223,7 @@ class MinervaPSP(MinervaWrapper):
     def __init__(
         self,
         criterion: Optional[Module] = None,
-        input_size: Optional[Tuple[int, ...]] = None,
+        input_size: Optional[tuple[int, ...]] = None,
         n_classes: int = 1,
         scaler: Optional[GradScaler] = None,
         encoder_name: str = "resnet34",
@@ -232,9 +232,9 @@ class MinervaPSP(MinervaWrapper):
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
-        activation: Optional[Union[str, Callable[..., Any]]] = None,
+        activation: Optional[str | Callable[..., Any]] = None,
         upsampling: int = 8,
-        aux_params: Optional[Dict[str, Any]] = None,
+        aux_params: Optional[dict[str, Any]] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         encoder: bool = False,
@@ -315,7 +315,7 @@ class PSPDecoderBlock(Module):
 class PSPUNetDecoder(Module):
     def __init__(
         self,
-        encoder_channels: Tuple[int, int, int, int, int, int],
+        encoder_channels: tuple[int, int, int, int, int, int],
         n_classes: int,
         use_batchnorm: bool = True,
         dropout: float = 0.2,
@@ -467,7 +467,7 @@ class MinervaPSPUNet(MinervaWrapper):
     def __init__(
         self,
         criterion: Optional[Module] = None,
-        input_size: Optional[Tuple[int, ...]] = None,
+        input_size: Optional[tuple[int, ...]] = None,
         n_classes: int = 1,
         scaler: Optional[GradScaler] = None,
         encoder_name: str = "resnet34",
@@ -476,9 +476,9 @@ class MinervaPSPUNet(MinervaWrapper):
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
-        activation: Optional[Union[str, Callable[..., Any]]] = None,
+        activation: Optional[str | Callable[..., Any]] = None,
         upsampling: int = 8,
-        aux_params: Optional[Dict[str, Any]] = None,
+        aux_params: Optional[dict[str, Any]] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         encoder: bool = False,

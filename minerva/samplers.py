@@ -41,22 +41,26 @@ __all__ = [
     "DistributedSamplerWrapper",
     "get_greater_bbox",
     "get_pair_bboxes",
+    "get_sampler",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import random
+import re
 from operator import itemgetter
-from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Iterator, Optional, Sequence
 
+import hydra
 import torch
 from torch.utils.data import Dataset, DistributedSampler, Sampler
-from torchgeo.datasets import GeoDataset
+from torchgeo.datasets import GeoDataset, NonGeoDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers import BatchGeoSampler, RandomGeoSampler, Units
 from torchgeo.samplers.utils import _to_tuple, get_random_bounding_box
 
+from minerva.datasets.utils import make_bounding_box
 from minerva.utils import utils
 
 
@@ -90,7 +94,7 @@ class RandomPairGeoSampler(RandomGeoSampler):
     def __init__(
         self,
         dataset: GeoDataset,
-        size: Union[Tuple[float, float], float],
+        size: tuple[float, float] | float,
         length: int,
         roi: Optional[BoundingBox] = None,
         units: Units = Units.PIXELS,
@@ -99,7 +103,7 @@ class RandomPairGeoSampler(RandomGeoSampler):
         super().__init__(dataset, size, length, roi, units)
         self.max_r = max_r
 
-    def __iter__(self) -> Iterator[Tuple[BoundingBox, BoundingBox]]:  # type: ignore[override]
+    def __iter__(self) -> Iterator[tuple[BoundingBox, BoundingBox]]:  # type: ignore[override]
         """Return a pair of :class:`~torchgeo.datasets.utils.BoundingBox` indices of a dataset
         that are geospatially close.
 
@@ -155,7 +159,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
     def __init__(
         self,
         dataset: GeoDataset,
-        size: Union[Tuple[float, float], float],
+        size: tuple[float, float] | float,
         batch_size: int,
         length: int,
         roi: Optional[BoundingBox] = None,
@@ -176,7 +180,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         else:
             raise ValueError(f"{tiles_per_batch=} is not a multiple of {batch_size=}")
 
-    def __iter__(self) -> Iterator[List[Tuple[BoundingBox, BoundingBox]]]:  # type: ignore[override]
+    def __iter__(self) -> Iterator[list[tuple[BoundingBox, BoundingBox]]]:  # type: ignore[override]
         """Return the indices of a dataset.
 
         Returns:
@@ -208,7 +212,9 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
 
 
 def get_greater_bbox(
-    bbox: BoundingBox, r: float, size: Union[float, int, Sequence[float]]
+    bbox: BoundingBox,
+    r: float,
+    size: float | int | Sequence[float],
 ) -> BoundingBox:
     """Return a bounding box at ``r`` distance around the first box.
 
@@ -246,10 +252,10 @@ def get_greater_bbox(
 
 def get_pair_bboxes(
     bounds: BoundingBox,
-    size: Union[Tuple[float, float], float],
+    size: tuple[float, float] | float,
     res: float,
     max_r: float,
-) -> Tuple[BoundingBox, BoundingBox]:
+) -> tuple[BoundingBox, BoundingBox]:
     """Samples a pair of bounding boxes geo-spatially close to each other.
 
     Args:
@@ -345,7 +351,7 @@ class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
     def __init__(self, sampler: Sampler[Any]):
         """Initialisation for :class:`DatasetFromSampler`."""
         self.sampler = sampler
-        self.sampler_list: Optional[List[Sampler[Any]]] = None
+        self.sampler_list: Optional[list[Sampler[Any]]] = None
 
     def __getitem__(self, index: int) -> Any:
         """Gets element of the dataset.
@@ -366,3 +372,43 @@ class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
             int: Length of the dataset
         """
         return len(self.sampler)  # type: ignore[arg-type]
+
+
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
+def get_sampler(
+    params: dict[str, Any],
+    dataset: GeoDataset | NonGeoDataset,
+    batch_size: Optional[int] = None,
+) -> Sampler[Any]:
+    """Use :meth:`hydra.utils.instantiate` to get the sampler using config parameters.
+
+    Args:
+        params (dict[str, ~typing.Any]): Sampler parameters. Must include the ``_target_`` key pointing to
+            the sampler class.
+        dataset (~torchgeo.datasets.GeoDataset, ~torchgeo.datasets.NonGeoDataset]): Dataset to sample.
+        batch_size (int): Optional; Batch size to sample if using a batch sampler.
+            Use if you need to overwrite the config parameters due to distributed computing as the batch size
+            needs to modified to split the batch across devices. Defaults to ``None``.
+
+    Returns:
+        ~torch.utils.data.Sampler: Sampler requested by config parameters.
+    """
+
+    batch_sampler = True if re.search(r"Batch", params["_target_"]) else False
+    if batch_sampler and batch_size is not None:
+        params["batch_size"] = batch_size
+
+    if "roi" in params:
+        sampler = hydra.utils.instantiate(
+            params, dataset=dataset, roi=make_bounding_box(params["roi"])
+        )
+    else:
+        if "torchgeo" in params["_target_"]:
+            sampler = hydra.utils.instantiate(params, dataset=dataset)
+        else:
+            sampler = hydra.utils.instantiate(params, data_source=dataset)
+
+    assert isinstance(sampler, Sampler)
+    return sampler

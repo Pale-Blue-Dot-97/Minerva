@@ -38,7 +38,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional
 
 import hydra
 import pytest
@@ -56,9 +56,7 @@ from minerva.utils import runner, utils
 #                                                       TESTS
 # =====================================================================================================================
 @runner.distributed_run
-def run_trainer(
-    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
-):
+def run_trainer(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig):
     params = deepcopy(cfg)
     params["calc_norm"] = True
 
@@ -145,10 +143,17 @@ def test_trainer_3(default_config: DictConfig) -> None:
     params1 = deepcopy(default_config)
 
     trainer1 = Trainer(0, **params1)
-    trainer1.save_model(fn=trainer1.get_model_cache_path())
+
+    pre_train_path = trainer1.get_model_cache_path()
+    trainer1.save_model(fn=pre_train_path, fmt="onnx")
 
     params2 = deepcopy(default_config)
-    OmegaConf.update(params2, "pre_train_name", params1["model_name"], force_add=True)
+    OmegaConf.update(
+        params2,
+        "pre_train_name",
+        str(pre_train_path.with_suffix(".onnx")),
+        force_add=True,
+    )
     params2["fine_tune"] = True
     params2["max_epochs"] = 2
     params2["elim"] = False
@@ -177,8 +182,8 @@ def test_trainer_3(default_config: DictConfig) -> None:
 def test_trainer_4(
     inbuilt_cfg_root: Path,
     cfg_name: str,
-    cfg_args: Dict[str, Any],
-    kwargs: Dict[str, Any],
+    cfg_args: dict[str, Any],
+    kwargs: dict[str, Any],
 ) -> None:
 
     with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):

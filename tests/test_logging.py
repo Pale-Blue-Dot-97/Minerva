@@ -41,7 +41,7 @@ from pathlib import Path
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import numpy as np
 import torch
@@ -62,7 +62,7 @@ from torchgeo.datasets.utils import BoundingBox
 from minerva.logger.steplog import SupervisedStepLogger
 from minerva.logger.tasklog import SSLTaskLogger, SupervisedTaskLogger
 from minerva.loss import SegBarlowTwinsLoss
-from minerva.modelio import ssl_pair_tg, sup_tg
+from minerva.modelio import ssl_pair_torchgeo_io, supervised_torchgeo_io
 from minerva.models import FCN16ResNet18, MinervaSiamese, SimCLR18, SimConv
 from minerva.utils import utils
 
@@ -80,7 +80,7 @@ def test_SupervisedStepLogger(
     std_n_batches: int,
     std_n_classes: int,
     std_batch_size: int,
-    small_patch_size: Tuple[int, int],
+    small_patch_size: tuple[int, int],
     default_device: torch.device,
     train: bool,
     model_type: str,
@@ -134,29 +134,29 @@ def test_SupervisedStepLogger(
         record_float=True,
         writer=writer,
         model_type=model_type,
-        step_logger_params={"params": {"n_classes": std_n_classes}},
+        step_logger_params={"n_classes": std_n_classes},
     )
 
-    correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_acc: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_miou: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_loss: dict[str, list[float]] = {"x": [], "y": []}
+    correct_acc: dict[str, list[float]] = {"x": [], "y": []}
+    correct_miou: dict[str, list[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
-        data: List[Dict[str, Union[Tensor, List[Any]]]] = []
+        data: list[dict[str, Tensor | list[Any]]] = []
         for i in range(std_n_batches):
             images = torch.rand(size=(std_batch_size, 4, *small_patch_size))
             masks = torch.randint(  # type: ignore[attr-defined]
                 0, std_n_classes, (std_batch_size, *small_patch_size)
             )
             bboxes = [simple_bbox] * std_batch_size
-            batch: Dict[str, Union[Tensor, List[Any]]] = {
+            batch: dict[str, Tensor | list[Any]] = {
                 "image": images,
                 "mask": masks,
                 "bbox": bboxes,
             }
             data.append(batch)
 
-            logger.step(i, i, *sup_tg(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
+            logger.step(i, i, *supervised_torchgeo_io(batch, model, device=default_device, train=train))  # type: ignore[arg-type]  # noqa: E501
 
         logs = logger.get_logs
         assert logs["batch_num"] == std_n_batches - 1
@@ -184,7 +184,7 @@ def test_SupervisedStepLogger(
             (std_n_batches, std_batch_size, *output_shape), dtype=np.uint8
         )
         for i in range(std_n_batches):
-            mask: Union[Tensor, List[Any]] = data[i]["mask"]
+            mask: Tensor | list[Any] = data[i]["mask"]
             assert isinstance(mask, Tensor)
             y[i] = mask.cpu().numpy()
 
@@ -239,7 +239,7 @@ def test_SSLStepLogger(
     simple_bbox: BoundingBox,
     std_n_batches: int,
     std_batch_size: int,
-    small_patch_size: Tuple[int, int],
+    small_patch_size: tuple[int, int],
     default_device: torch.device,
     model_cls: MinervaSiamese,
     model_type: str,
@@ -284,9 +284,9 @@ def test_SSLStepLogger(
         sample_pairs=True,
     )
 
-    correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_collapse_level: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_euc_dist: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_loss: dict[str, list[float]] = {"x": [], "y": []}
+    correct_collapse_level: dict[str, list[float]] = {"x": [], "y": []}
+    correct_euc_dist: dict[str, list[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
         for i in range(std_n_batches):
@@ -297,7 +297,7 @@ def test_SSLStepLogger(
             logger.step(
                 i,
                 i,
-                *ssl_pair_tg((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]
+                *ssl_pair_torchgeo_io((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]  # noqa: E501
             )
 
         logs = logger.get_logs

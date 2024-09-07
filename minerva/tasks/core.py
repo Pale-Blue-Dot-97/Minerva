@@ -41,7 +41,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 import abc
 from abc import ABC
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Dict, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -66,7 +66,7 @@ from minerva.models import (
     wrap_model,
 )
 from minerva.utils import utils, visutils
-from minerva.utils.utils import fallback_params, func_by_str
+from minerva.utils.utils import fallback_params
 
 
 # =====================================================================================================================
@@ -158,19 +158,19 @@ class MinervaTask(ABC):
     """
 
     logger_cls: str = "SupervisedTaskLogger"
-    model_io_name: str = "sup_tg"
+    model_io_name: str = "minerva.modelio.supervised_torchgeo_io"
 
     def __init__(
         self,
         name: str,
-        model: Union[MinervaModel, MinervaDataParallel, OptimizedModule],
+        model: MinervaModel | MinervaDataParallel | OptimizedModule,
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
-        backbone_weight_path: Optional[Union[str, Path]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
+        backbone_weight_path: Optional[str | Path] = None,
         record_int: bool = True,
         record_float: bool = False,
         train: bool = False,
@@ -181,9 +181,12 @@ class MinervaTask(ABC):
         self.model = model
 
         # Gets the datasets, number of batches, class distribution and the modfied parameters for the experiment.
-        loaders, n_batches, class_dist, task_params, = make_loaders(
-            rank, world_size, task_name=name, **global_params
-        )
+        (
+            loaders,
+            n_batches,
+            class_dist,
+            task_params,
+        ) = make_loaders(rank, world_size, task_name=name, **global_params)
 
         # If there are multiple modes and therefore number of batches, just take the value of the first one.
         if isinstance(n_batches, dict):
@@ -226,6 +229,9 @@ class MinervaTask(ABC):
         self.sample_pairs = fallback_params(
             "sample_pairs", self.params, self.global_params
         )
+        self.change_detection = fallback_params(
+            "change_detection", self.params, self.global_params
+        )
 
         self.n_classes = fallback_params("n_classes", self.params, self.global_params)
 
@@ -259,7 +265,7 @@ class MinervaTask(ABC):
         self.model.to(self.device)
 
         # To eliminate classes, we're going to have to do a fair bit of rebuilding of the model...
-        if self.elim:
+        if self.elim and self.train:
             # Update the stored number of classes within the model and
             # then rebuild the classification layers that are dependent on the number of classes.
             self.model.update_n_classes(self.n_classes)
@@ -319,18 +325,24 @@ class MinervaTask(ABC):
             _weights = Tensor(weights)
 
             # Use hydra to instantiate the loss function with the weights and return.
-            return hydra.utils.instantiate(fallback_params("loss_params", self.params, self.global_params), weight=_weights)
+            return hydra.utils.instantiate(
+                fallback_params("loss_params", self.params, self.global_params),
+                weight=_weights,
+            )
 
         else:
             # Use hydra to instantiate the loss function based of the config, without weights.
-            return hydra.utils.instantiate(fallback_params("loss_params", self.params, self.global_params))
+            return hydra.utils.instantiate(
+                fallback_params("loss_params", self.params, self.global_params)
+            )
 
     def make_optimiser(self) -> None:
         """Creates a :mod:`torch` optimiser based on config parameters and sets optimiser."""
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         optimiser = hydra.utils.instantiate(
-            fallback_params("optimiser", self.params, self.global_params), params=self.model.parameters()
+            fallback_params("optimiser", self.params, self.global_params),
+            params=self.model.parameters(),
         )
         self.model.set_optimiser(optimiser)
 
@@ -350,8 +362,7 @@ class MinervaTask(ABC):
         """
 
         # Gets constructor of the metric logger from name in the config.
-        _logger_cls = func_by_str(
-            "minerva.logger.tasklog",
+        _logger_cls = hydra.utils.get_class(
             utils.fallback_params(
                 "task_logger", self.params, self.global_params, self.logger_cls
             ),
@@ -382,8 +393,7 @@ class MinervaTask(ABC):
         Returns:
             ~typing.Callable[..., ~typing.Any]: Model IO function requested from parameters.
         """
-        io_func: Callable[..., Any] = func_by_str(
-            "minerva.modelio",
+        io_func: Callable[..., Any] = hydra.utils.get_method(
             utils.fallback_params(
                 "model_io", self.params, self.global_params, self.model_io_name
             ),
@@ -394,7 +404,7 @@ class MinervaTask(ABC):
     def step(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def _generic_step(self, epoch_no: int) -> Optional[Dict[str, Any]]:
+    def _generic_step(self, epoch_no: int) -> Optional[dict[str, Any]]:
         self.local_step_num = 0
         self.step()
 
@@ -421,11 +431,11 @@ class MinervaTask(ABC):
         return self._generic_step(epoch_no)
 
     @property
-    def get_logs(self) -> Dict[str, Any]:
+    def get_logs(self) -> dict[str, Any]:
         return self.logger.get_logs
 
     @property
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         return self.logger.get_metrics
 
     def log_null(self, epoch_no: int) -> None:
@@ -445,8 +455,8 @@ class MinervaTask(ABC):
 
     def plot(
         self,
-        results: Dict[str, Any],
-        metrics: Optional[Dict[str, Any]] = None,
+        results: dict[str, Any],
+        metrics: Optional[dict[str, Any]] = None,
         save: bool = True,
         show: bool = False,
     ) -> None:
@@ -491,7 +501,9 @@ class MinervaTask(ABC):
             colours=utils.fallback_params("colours", self.params, self.global_params),
             save=save,
             show=show,
-            model_name=utils.fallback_params("model_name", self.params, self.global_params),
+            model_name=utils.fallback_params(
+                "model_name", self.params, self.global_params
+            ),
             timestamp=self.global_params["timestamp"],
             results_dir=self.task_dir,
             task_cfg=self.params,
@@ -545,7 +557,7 @@ class MinervaTask(ABC):
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def get_task(task_name: str, task_module: str = "minerva.tasks", *args, **params) -> MinervaTask:
+def get_task(task_name: str, *args, **params) -> MinervaTask:
     """Get the requested :class:`MinervaTask` by name.
 
     Args:
@@ -555,7 +567,7 @@ def get_task(task_name: str, task_module: str = "minerva.tasks", *args, **params
     Returns:
         MinervaTask: Constructed :class:`MinervaTask` object.
     """
-    _task = func_by_str(task_module, task_name)
+    _task = hydra.utils.get_class(task_name)
 
     task = _task(*args, **params)
     assert isinstance(task, MinervaTask)

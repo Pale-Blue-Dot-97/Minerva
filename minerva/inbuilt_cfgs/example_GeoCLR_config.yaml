@@ -47,10 +47,9 @@ val_freq: 2       # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
-        input_size: ${input_size}
-        # any other params...
+    _target_: minerva.models.SimCLR18
+    input_size: ${input_size}
+    # any other params...
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -77,15 +76,12 @@ record_int: true    # Store integer results in memory.
 record_float: true  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
-collator:
-    module: torchgeo.datasets
-    name: stack_samples
+collator: torchgeo.datasets.stack_samples
 
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
         sample_pairs: true
@@ -93,77 +89,70 @@ tasks:
         imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        task_logger: SSLTaskLogger
+        task_logger: minerva.logger.tasklog.SSLTaskLogger
         step_logger:
-            name: SSLStepLogger
-        model_io: ssl_pair_tg
+            _target_: minerva.logger.steplog.SSLStepLogger
+        model_io: minerva.modelio.ssl_pair_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: minerva.samplers
-                name: RandomPairGeoSampler
+                _target_: minerva.samplers.RandomPairGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 120
-                    max_r: *max_r
+                size: ${patch_size}
+                length: 120
+                max_r: *max_r
 
             image:
                 transforms:
-                    Normalise:
-                        module: minerva.transforms
+                    normalise:
+                        _target_: minerva.transforms.Normalise
                         norm_value: 255
                     RandomApply:
                         p: 0.25
-                        DetachedColorJitter:
-                            module: minerva.transforms
+                        jitter:
+                            _target_: minerva.transforms.DetachedColorJitter
                             brightness: 0.2
                             contrast: 0.1
                             saturation: 0.1
                             hue: 0.15
-                    RandomResizedCrop:
-                        module: kornia.augmentation
+                    resize_crop:
+                        _target_: kornia.augmentation.RandomResizedCrop
                         p: 0.2
                         size: ${patch_size}
                         cropping_mode: resample
                         keepdim: true
-                    RandomHorizontalFlip:
-                        module: kornia.augmentation
+                    horizontal_flip:
+                        _target_: kornia.augmentation.RandomHorizontalFlip
                         p: 0.2
                         keepdim: true
-                    RandomGaussianBlur:
-                        module: kornia.augmentation
+                    gaussian_blur:
+                        _target_: kornia.augmentation.RandomGaussianBlur
                         kernel_size: 9
                         p: 0.2
                         sigma: [0.01, 0.2]
                         keepdim: true
-                    RandomGaussianNoise:
-                        module: kornia.augmentation
+                    gaussian_noise:
+                        _target_: kornia.augmentation.RandomGaussianNoise
                         p: 0.2
                         std: 0.05
                         keepdim: true
-                    RandomErasing:
-                        module: kornia.augmentation
+                    random_erasing:
+                        _target_: kornia.augmentation.RandomErasing
                         p: 0.2
                         keepdim: true
-
-                image1:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
+                subdatasets:
+                    image1:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
                         res: 1.0
-                image2:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
-                    paths: NAIP
-                    params:
+                    image2:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
                         res: 1.0
 
     fit-val:
-        name: WeightedKNN
-        module: minerva.tasks
+        _target_: minerva.tasks.WeightedKNN
         train: false
         sample_pairs: false
         n_classes: 8
@@ -172,62 +161,49 @@ tasks:
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        task_logger: SSLTaskLogger
+        task_logger: minerva.logger.tasklog.SSLTaskLogger
         step_logger:
-            name: KNNStepLogger
-        model_io: ssl_pair_tg
+            _target_: minerva.logger.steplog.KNNStepLogger
+        model_io: minerva.modelio.ssl_pair_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             features:
                 sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
+                    _target_: torchgeo.samplers.RandomGeoSampler
                     roi: false
-                    params:
-                        size: ${patch_size}
-                        length: 32
+                    size: ${patch_size}
+                    length: 32
 
                 image:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
+                    _target_: minerva.datasets.__testing.TstImgDataset
                     paths: NAIP
-                    params:
-                        res: 1.0
+                    res: 1.0
 
                 mask:
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
+                    _target_: minerva.datasets.__testing.TstMaskDataset
                     paths: Chesapeake7
-                    params:
-                        res: 1.0
+                    res: 1.0
 
             test:
                 sampler:
-                    module: torchgeo.samplers
-                    name: RandomGeoSampler
+                    _target_: torchgeo.samplers.RandomGeoSampler
                     roi: false
-                    params:
-                        size: ${patch_size}
-                        length: 32
+                    size: ${patch_size}
+                    length: 32
 
                 image:
-                    module: minerva.datasets.__testing
-                    name: TstImgDataset
+                    _target_: minerva.datasets.__testing.TstImgDataset
                     paths: NAIP
-                    params:
-                        res: 1.0
+                    res: 1.0
 
                 mask:
-                    module: minerva.datasets.__testing
-                    name: TstMaskDataset
+                    _target_: minerva.datasets.__testing.TstMaskDataset
                     paths: Chesapeake7
-                    params:
-                        res: 1.0
+                    res: 1.0
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
         sample_pairs: false
@@ -237,32 +213,26 @@ tasks:
         data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        task_logger: SupervisedTaskLogger
-        model_io: sup_tg
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
+        model_io: minerva.modelio.supervised_torchgeo_io
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
             sampler:
-                module: torchgeo.samplers
-                name: RandomGeoSampler
+                _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
-                params:
-                    size: ${patch_size}
-                    length: 32
+                size: ${patch_size}
+                length: 32
 
             image:
-                module: minerva.datasets.__testing
-                name: TstImgDataset
+                _target_: minerva.datasets.__testing.TstImgDataset
                 paths: NAIP
-                params:
-                    res: 1.0
+                res: 1.0
 
             mask:
-                module: minerva.datasets.__testing
-                name: TstMaskDataset
+                _target_: minerva.datasets.__testing.TstMaskDataset
                 paths: Chesapeake7
-                params:
-                    res: 1.0
+                res: 1.0
 
 # === PLOTTING OPTIONS ========================================================
 plots:

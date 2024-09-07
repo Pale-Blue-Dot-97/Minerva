@@ -44,8 +44,9 @@ __all__ = [
 # =====================================================================================================================
 import random
 from inspect import signature
-from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union, overload
+from typing import Any, Callable, Optional, Sequence, Union, overload
 
+import hydra
 import matplotlib.pyplot as plt
 import torch
 from matplotlib.figure import Figure
@@ -82,7 +83,7 @@ class PairedGeoDataset(RasterDataset):
 
     def __new__(  # type: ignore[misc]
         cls,
-        dataset: Union[Callable[..., GeoDataset], GeoDataset],
+        dataset: Callable[..., GeoDataset] | GeoDataset,
         *args,
         **kwargs,
     ) -> Union["PairedGeoDataset", "PairedUnionDataset"]:
@@ -106,15 +107,21 @@ class PairedGeoDataset(RasterDataset):
         self, dataset: GeoDataset, *args, **kwargs
     ) -> None: ...  # pragma: no cover
 
+    @overload
+    def __init__(self, dataset: str, *args, **kwargs) -> None: ...  # pragma: no cover
+
     def __init__(
         self,
-        dataset: Union[Callable[..., GeoDataset], GeoDataset],
+        dataset: Callable[..., GeoDataset] | GeoDataset | str,
         *args,
         **kwargs,
     ) -> None:
         # Needed for pickling/ unpickling.
         self._args = args
         self._kwargs = kwargs
+
+        if isinstance(dataset, str):
+            dataset = hydra.utils.get_method(dataset)
 
         if isinstance(dataset, GeoDataset):
             self.dataset = dataset
@@ -141,8 +148,8 @@ class PairedGeoDataset(RasterDataset):
             )
 
     def __getitem__(  # type: ignore[override]
-        self, queries: Tuple[BoundingBox, BoundingBox]
-    ) -> Tuple[Dict[str, Any], ...]:
+        self, queries: tuple[BoundingBox, BoundingBox]
+    ) -> tuple[dict[str, Any], ...]:
         return self.dataset.__getitem__(queries[0]), self.dataset.__getitem__(
             queries[1]
         )
@@ -170,11 +177,11 @@ class PairedGeoDataset(RasterDataset):
             self, other, collate_fn=utils.pair_collate(concat_samples)
         )
 
-    def __or__(self, other: "PairedGeoDataset") -> "PairedUnionDataset":  # type: ignore[override]
-        """Take the union of two :class:`PairedGeoDataset`.
+    def __or__(self, other: GeoDataset) -> "PairedUnionDataset":  # type: ignore[override]
+        """Take the union of two :class:~`torchgeo.datasets.GeoDataset`.
 
         Args:
-            other (PairedGeoDataset): Another dataset.
+            other (~torchgeo.datasets.GeoDataset): Another dataset.
 
         Returns:
             PairedUnionDataset: A single dataset.
@@ -183,20 +190,42 @@ class PairedGeoDataset(RasterDataset):
         """
         return PairedUnionDataset(self, other)
 
-    def __getattr__(self, item):
-        if item in self.dataset.__dict__:
-            return getattr(self.dataset, item)  # pragma: no cover
-        elif item in self.__dict__:
-            return getattr(self, item)
-        else:
-            raise AttributeError
+    def __getattr__(self, name: str) -> Any:
+        """
+        Called only if the attribute 'name' is not found by usual means.
+        Checks if 'name' exists in the dataset attribute.
+        """
+        # Instead of calling __getattr__ directly, access the dataset attribute directly
+        dataset = super().__getattribute__("dataset")
+        if hasattr(dataset, name):
+            return getattr(dataset, name)
+        # If not found in dataset, raise an AttributeError
+        raise AttributeError(f"{name} cannot be found in self or dataset")
+
+    def __getattribute__(self, name: str) -> Any:
+        """
+        Overrides default attribute access method to prevent recursion.
+        Checks 'self' first and uses __getattr__ for fallback.
+        """
+        try:
+            # First, try to get the attribute from the current instance
+            return super().__getattribute__(name)
+        except AttributeError:
+            # If not found in self, __getattr__ will check in the dataset
+            dataset = super().__getattribute__("dataset")
+            if hasattr(dataset, name):
+                return getattr(dataset, name)
+            # Raise AttributeError if not found in dataset either
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
 
     def __repr__(self) -> Any:
         return self.dataset.__repr__()
 
     @staticmethod
     def plot(
-        sample: Dict[str, Any],
+        sample: dict[str, Any],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
     ) -> Figure:
@@ -235,7 +264,7 @@ class PairedGeoDataset(RasterDataset):
 
     def plot_random_sample(
         self,
-        size: Union[Tuple[int, int], int],
+        size: tuple[int, int] | int,
         res: float,
         show_titles: bool = True,
         suptitle: Optional[str] = None,
@@ -277,6 +306,13 @@ class PairedUnionDataset(UnionDataset):
         ] = merge_samples,
         transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
     ) -> None:
+
+        # Extract the actual dataset out of the paired dataset (otherwise we'll be pairing the datasets twice!)
+        if isinstance(dataset1, PairedGeoDataset):
+            dataset1 = dataset1.dataset
+        if isinstance(dataset2, PairedGeoDataset):
+            dataset2 = dataset2.dataset
+
         super().__init__(dataset1, dataset2, collate_fn, transforms)
 
         new_datasets = []
@@ -291,8 +327,8 @@ class PairedUnionDataset(UnionDataset):
         self.datasets = new_datasets
 
     def __getitem__(  # type: ignore[override]
-        self, query: Tuple[BoundingBox, BoundingBox]
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        self, query: tuple[BoundingBox, BoundingBox]
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Retrieve image and metadata indexed by query.
 
         Uses :meth:`torchgeo.datasets.UnionDataset.__getitem__` to send each query of the pair off to get a
@@ -319,6 +355,16 @@ class PairedUnionDataset(UnionDataset):
         .. versionadded:: 0.24
         """
         return PairedUnionDataset(self, other)
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self.__dict__:
+            return getattr(self, name)
+        elif name in self.datasets[0].__dict__:
+            return getattr(self.datasets[0], name)  # pragma: no cover
+        elif name in self.datasets[1].__dict__:
+            return getattr(self.datasets[1], name)  # pragma: no cover
+        else:
+            raise AttributeError
 
 
 class PairedNonGeoDataset(NonGeoDataset):
@@ -355,7 +401,7 @@ class PairedNonGeoDataset(NonGeoDataset):
     def __init__(
         self,
         dataset: Callable[..., NonGeoDataset],
-        size: Union[Tuple[int, int], int],
+        size: tuple[int, int] | int,
         max_r: int,
         season: bool = False,
         *args,
@@ -366,7 +412,18 @@ class PairedNonGeoDataset(NonGeoDataset):
     def __init__(
         self,
         dataset: NonGeoDataset,
-        size: Union[Tuple[int, int], int],
+        size: tuple[int, int] | int,
+        max_r: int,
+        season: bool = False,
+        *args,
+        **kwargs,
+    ) -> None: ...  # pragma: no cover
+
+    @overload
+    def __init__(
+        self,
+        dataset: str,
+        size: tuple[int, int] | int,
         max_r: int,
         season: bool = False,
         *args,
@@ -375,8 +432,8 @@ class PairedNonGeoDataset(NonGeoDataset):
 
     def __init__(
         self,
-        dataset: Union[Callable[..., NonGeoDataset], NonGeoDataset],
-        size: Union[Tuple[int, int], int],
+        dataset: Callable[..., NonGeoDataset] | NonGeoDataset | str,
+        size: tuple[int, int] | int,
         max_r: int,
         season: bool = False,
         *args,
@@ -395,6 +452,9 @@ class PairedNonGeoDataset(NonGeoDataset):
 
         if isinstance(dataset, PairedNonGeoDataset):
             raise ValueError("Cannot pair an already paired dataset!")
+
+        if isinstance(dataset, str):
+            dataset = hydra.utils.get_method(dataset)
 
         if isinstance(dataset, NonGeoDataset):
             self.dataset = dataset
@@ -420,7 +480,7 @@ class PairedNonGeoDataset(NonGeoDataset):
 
         self.make_geo_pair = SamplePair(self.size, self.max_r, season=season)
 
-    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], ...]:  # type: ignore[override]
+    def __getitem__(self, index: int) -> tuple[dict[str, Any], ...]:  # type: ignore[override]
         patch = self.dataset[index]
         image_a, image_b = self.make_geo_pair(patch["image"])
 
@@ -450,9 +510,39 @@ class PairedNonGeoDataset(NonGeoDataset):
     def __repr__(self) -> Any:
         return self.dataset.__repr__()
 
+    def __getattr__(self, name: str) -> Any:
+        """
+        Called only if the attribute 'name' is not found by usual means.
+        Checks if 'name' exists in the dataset attribute.
+        """
+        # Instead of calling __getattr__ directly, access the dataset attribute directly
+        dataset = super().__getattribute__("dataset")
+        if hasattr(dataset, name):
+            return getattr(dataset, name)
+        # If not found in dataset, raise an AttributeError
+        raise AttributeError(f"{name} cannot be found in self or dataset")
+
+    def __getattribute__(self, name: str) -> Any:
+        """
+        Overrides default attribute access method to prevent recursion.
+        Checks 'self' first and uses __getattr__ for fallback.
+        """
+        try:
+            # First, try to get the attribute from the current instance
+            return super().__getattribute__(name)
+        except AttributeError:
+            # If not found in self, __getattr__ will check in the dataset
+            dataset = super().__getattribute__("dataset")
+            if hasattr(dataset, name):
+                return getattr(dataset, name)
+            # Raise AttributeError if not found in dataset either
+            raise AttributeError(
+                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+            )
+
     @staticmethod
     def plot(
-        sample: Dict[str, Any],
+        sample: dict[str, Any],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
     ) -> Figure:
@@ -546,7 +636,7 @@ class PairedConcatDataset(MinervaConcatDataset):  # type: ignore[type-arg]
 
         super().__init__(datasets)
 
-    def __getitem__(self, index: int) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def __getitem__(self, index: int) -> tuple[dict[str, Any], dict[str, Any]]:
         """Retrieve image and metadata indexed by query.
 
         Uses :meth:`torch.utils.data.ConcatDataset.__getitem__` to get the pair of samples from
@@ -604,7 +694,7 @@ class SamplePair:
         # Transform to cut samples out at the desired output size.
         self.random_crop = RandomCrop(self.size)
 
-    def __call__(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def __call__(self, x: Tensor) -> tuple[Tensor, Tensor]:
         if self.season:
             max_width, h, w = self._find_max_width(x[0])
 
@@ -631,7 +721,7 @@ class SamplePair:
             # Now cut out 2 random samples from within that sampling area and return.
             return self.random_crop(sampling_area), self.random_crop(sampling_area)
 
-    def _find_max_width(self, x: Tensor) -> Tuple[int, int, int]:
+    def _find_max_width(self, x: Tensor) -> tuple[int, int, int]:
         max_width = self.max_width
 
         w = x.shape[-1]
@@ -647,7 +737,7 @@ class SamplePair:
         return max_width, h, w
 
     @staticmethod
-    def _get_random_crop_params(img: Tensor, max_width: int) -> Tuple[int, int]:
+    def _get_random_crop_params(img: Tensor, max_width: int) -> tuple[int, int]:
         i = torch.randint(0, img.shape[-1] - max_width + 1, size=(1,)).item()
         j = torch.randint(0, img.shape[-2] - max_width + 1, size=(1,)).item()
 

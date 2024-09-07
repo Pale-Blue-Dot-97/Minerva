@@ -54,7 +54,7 @@ import shlex
 import signal
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Optional, Tuple, Union
+from typing import Any, Callable, Optional
 
 import requests
 import torch
@@ -62,7 +62,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 import wandb
 import yaml
-from omegaconf import DictConfig, OmegaConf, ListConfig
+from omegaconf import DictConfig, ListConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
@@ -120,14 +120,14 @@ def _config_load_resolver(path: str):
     return cfg
 
 
-def _construct_patch_size(input_size: Tuple[int, int, int]) -> ListConfig:
+def _construct_patch_size(input_size: tuple[int, int, int]) -> ListConfig:
     return ListConfig(input_size[-2:])
 
 
 def setup_wandb_run(
     gpu: int,
     cfg: DictConfig,
-) -> Tuple[Optional[Union[Run, RunDisabled]], DictConfig]:
+) -> tuple[Optional[Run | RunDisabled], DictConfig]:
     """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
 
     Note:
@@ -148,7 +148,7 @@ def setup_wandb_run(
         ~wandb.sdk.wandb_run.Run | ~wandb.sdk.lib.RunDisabled | None: The :mod:`wandb` run object
         for this process or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
-    run: Optional[Union[Run, RunDisabled]] = None
+    run: Optional[Run | RunDisabled] = None
     if cfg.get("wandb_log", False) or cfg.get("project", None):
         try:
             if cfg.get("log_all", False) and cfg.world_size > 1:
@@ -290,7 +290,7 @@ def config_args(cfg: DictConfig) -> DictConfig:
 
 def _run_preamble(
     gpu: int,
-    run: Callable[[int, Optional[Union[Run, RunDisabled]], DictConfig], Any],
+    run: Callable[[int, Optional[Run | RunDisabled], DictConfig], Any],
     cfg: DictConfig,
 ) -> None:  # pragma: no cover
     # Calculates the global rank of this process.
@@ -301,7 +301,7 @@ def _run_preamble(
 
     if cfg.world_size > 1:
         dist.init_process_group(  # type: ignore[attr-defined]
-            backend="nccl",
+            backend=cfg.get("dist_backend", "gloo"),
             init_method=cfg.dist_url,
             world_size=cfg.world_size,
             rank=cfg.rank,
@@ -316,7 +316,7 @@ def _run_preamble(
 
 
 def distributed_run(
-    run: Callable[[int, Optional[Union[Run, RunDisabled]], DictConfig], Any]
+    run: Callable[[int, Optional[Run | RunDisabled], DictConfig], Any]
 ) -> Callable[..., Any]:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
@@ -334,7 +334,9 @@ def distributed_run(
 
     OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
     OmegaConf.register_new_resolver("eval", eval, replace=True)
-    OmegaConf.register_new_resolver("to_patch_size", _construct_patch_size, replace=True)
+    OmegaConf.register_new_resolver(
+        "to_patch_size", _construct_patch_size, replace=True
+    )
 
     @functools.wraps(run)
     def inner_decorator(cfg: DictConfig):
@@ -360,7 +362,7 @@ def distributed_run(
 
 
 def run_trainer(
-    gpu: int, wandb_run: Optional[Union[Run, RunDisabled]], cfg: DictConfig
+    gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig
 ) -> None:
 
     trainer = Trainer(

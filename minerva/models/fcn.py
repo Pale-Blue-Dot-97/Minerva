@@ -52,7 +52,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Literal, Optional, Sequence, Tuple
+from typing import Any, Literal, Optional, Sequence
 
 import torch
 import torch.nn.modules as nn
@@ -100,12 +100,12 @@ class FCN(MinervaBackbone):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
+        input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         scaler: Optional[GradScaler] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(FCN, self).__init__(
             criterion=criterion,
@@ -294,7 +294,7 @@ class DCN(MinervaModel):
                 f"Variant {self.variant} does not match known types"
             )
 
-    def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
+    def forward(self, x: tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
 

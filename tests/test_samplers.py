@@ -38,7 +38,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from torch.utils.data import DataLoader
@@ -60,7 +60,7 @@ def test_randompairgeosampler(img_root: Path) -> None:
     dataset = PairedGeoDataset(TstImgDataset, str(img_root), res=1.0)
 
     sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
-    loader: DataLoader[Dict[str, Any]] = DataLoader(
+    loader: DataLoader[dict[str, Any]] = DataLoader(
         dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs
     )
 
@@ -78,7 +78,7 @@ def test_randompairbatchgeosampler(img_root: Path) -> None:
     sampler = RandomPairBatchGeoSampler(
         dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1
     )
-    loader: DataLoader[Dict[str, Any]] = DataLoader(
+    loader: DataLoader[dict[str, Any]] = DataLoader(
         dataset, batch_sampler=sampler, collate_fn=stack_sample_pairs
     )
 

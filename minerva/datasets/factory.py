@@ -49,10 +49,10 @@ import platform
 import re
 from copy import deepcopy
 from datetime import timedelta
-from inspect import signature
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Any, Iterable, Optional
 
+import hydra
 import numpy as np
 import pandas as pd
 import torch
@@ -60,17 +60,15 @@ import torch.distributed as dist
 from omegaconf import OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
-from torch.utils.data import DataLoader, Sampler
+from torch.utils.data import DataLoader
 from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
-from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
 
-from minerva.samplers import DistributedSamplerWrapper
+from minerva.samplers import DistributedSamplerWrapper, get_sampler
 from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
 
 from .collators import get_collator, stack_sample_pairs
-from .paired import PairedGeoDataset, PairedNonGeoDataset
 from .utils import (
     MinervaConcatDataset,
     cache_dataset,
@@ -78,7 +76,6 @@ from .utils import (
     intersect_datasets,
     load_all_samples,
     load_dataset_from_cache,
-    make_bounding_box,
     masks_or_labels,
     unionise_datasets,
 )
@@ -88,92 +85,67 @@ from .utils import (
 #                                                     METHODS
 # =====================================================================================================================
 def create_subdataset(
-    dataset_class: Union[Callable[..., GeoDataset], Callable[..., NonGeoDataset]],
-    paths: Union[str, Iterable[str]],
-    subdataset_params: Dict[Literal["params"], Dict[str, Any]],
+    paths: str | Iterable[str],
+    subdataset_params: dict[str, Any],
     transformations: Optional[Any],
     sample_pairs: bool = False,
-) -> Union[GeoDataset, NonGeoDataset]:
+) -> GeoDataset | NonGeoDataset:
     """Creates a sub-dataset based on the parameters supplied.
 
     Args:
-        dataset_class (Callable[..., ~typing.datasets.GeoDataset]): Constructor for the sub-dataset.
         paths (str | ~typing.Iterable[str]): Paths to where the data for the dataset is located.
         subdataset_params (dict[Literal[params], dict[str, ~typing.Any]]): Parameters for the sub-dataset.
         transformations (~typing.Any): Transformations to apply to this sub-dataset.
         sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
 
     Returns:
-        ~torchgeo.datasets.GeoDataset: Subdataset requested.
+        ~torchgeo.datasets.GeoDataset | ~torchgeo.datasets.NonGeoDataset: Subdataset requested.
     """
-    copy_params = deepcopy(subdataset_params)
+    params = deepcopy(subdataset_params)
 
-    if "crs" in copy_params["params"]:
-        copy_params["params"]["crs"] = CRS.from_epsg(copy_params["params"]["crs"])
+    crs = None
+    if "crs" in params:
+        crs = CRS.from_epsg(params["crs"])
 
-    if sample_pairs:
-        if "paths" in signature(dataset_class).parameters:
-            return PairedGeoDataset(
-                dataset_class,  # type: ignore[arg-type]
-                paths=paths,
-                transforms=transformations,
-                **copy_params["params"],
-            )
+    subdataset: GeoDataset | NonGeoDataset
+    if "paths" in params:
+        if sample_pairs:
+            params["dataset"] = params["_target_"]
+            params["_target_"] = "minerva.datasets.paired.PairedGeoDataset"
 
-        elif "season_transform" in signature(dataset_class).parameters:
-            if isinstance(paths, list):
-                paths = paths[0]
-            assert isinstance(paths, str)
-            del copy_params["params"]["season_transform"]
-            return PairedNonGeoDataset(
-                dataset_class,  # type: ignore[arg-type]
-                root=paths,
-                transforms=transformations,
-                season=True,
-                season_transform="pair",
-                **copy_params["params"],
-            )
-        elif "root" in signature(dataset_class).parameters:
-            if isinstance(paths, list):
-                paths = paths[0]
-            assert isinstance(paths, str)
-            return PairedNonGeoDataset(
-                dataset_class,  # type: ignore[arg-type]
-                root=paths,
-                transforms=transformations,
-                **copy_params["params"],
-            )
-        else:
-            raise TypeError
+        subdataset = hydra.utils.instantiate(
+            params, paths=paths, transforms=transformations, crs=crs
+        )
+
+    elif "root" in params:
+        if isinstance(paths, list):
+            paths = paths[0]
+        assert isinstance(paths, str)
+
+        if sample_pairs:
+            params["dataset"] = params["_target_"]
+            params["_target_"] = "minerva.datasets.paired.PairedNonGeoDataset"
+
+        subdataset = hydra.utils.instantiate(
+            params, root=paths, transforms=transformations
+        )
+
     else:
-        if "paths" in signature(dataset_class).parameters:
-            return dataset_class(
-                paths=paths,
-                transforms=transformations,
-                **copy_params["params"],
-            )
-        elif "root" in signature(dataset_class).parameters:
-            if isinstance(paths, list):
-                paths = paths[0]
-            assert isinstance(paths, str)
-            return dataset_class(
-                root=paths,
-                transforms=transformations,
-                **copy_params["params"],
-            )
-        else:
-            raise TypeError
+        raise TypeError
+
+    return subdataset
 
 
 def get_subdataset(
-    data_directory: Union[Iterable[str], str, Path],
-    dataset_params: Dict[str, Any],
+    data_directory: Iterable[str] | str | Path,
+    dataset_params: dict[str, Any],
     key: str,
     transformations: Optional[Any],
     sample_pairs: bool = False,
     cache: bool = True,
-    cache_dir: Union[str, Path] = "",
-) -> Union[GeoDataset, NonGeoDataset]:
+    cache_dir: str | Path = "",
+    auto_norm: bool = False,
+) -> GeoDataset | NonGeoDataset:
     """Get a subdataset based on the parameters specified.
 
     If ``cache==True``, this will attempt to load a cached version of the dataset instance.
@@ -196,17 +168,13 @@ def get_subdataset(
     # Get the params for this sub-dataset.
     sub_dataset_params = dataset_params[key]
 
-    # Get the constructor for the class of dataset defined in params.
-    _sub_dataset: Callable[..., GeoDataset] = utils.func_by_str(
-        module_path=sub_dataset_params["module"], func=sub_dataset_params["name"]
-    )
-
     # Construct the path to the sub-dataset's files.
     sub_dataset_paths = utils.compile_dataset_paths(
-        universal_path(data_directory), sub_dataset_params["paths"]
+        universal_path(data_directory),
+        sub_dataset_params.get("paths", sub_dataset_params.get("root")),
     )
 
-    sub_dataset: Optional[Union[GeoDataset, NonGeoDataset]]
+    sub_dataset: Optional[GeoDataset | NonGeoDataset]
 
     if cache or sub_dataset_params.get("cache_dataset"):
         this_hash = utils.make_hash(sub_dataset_params)
@@ -230,7 +198,6 @@ def get_subdataset(
                 if rank == 0:
                     print(f"\nCreating dataset on {rank}...")
                     sub_dataset = create_subdataset(
-                        _sub_dataset,
                         sub_dataset_paths,
                         sub_dataset_params,
                         transformations,
@@ -255,7 +222,6 @@ def get_subdataset(
             else:
                 print("\nCreating dataset...")
                 sub_dataset = create_subdataset(
-                    _sub_dataset,
                     sub_dataset_paths,
                     sub_dataset_params,
                     transformations,
@@ -267,7 +233,6 @@ def get_subdataset(
 
     else:
         sub_dataset = create_subdataset(
-            _sub_dataset,
             sub_dataset_paths,
             sub_dataset_params,
             transformations,
@@ -275,16 +240,31 @@ def get_subdataset(
         )
 
     assert sub_dataset is not None
+
+    if auto_norm:
+        if isinstance(sub_dataset, RasterDataset):
+            init_auto_norm(
+                sub_dataset,
+                length=sub_dataset_params.get("length"),
+                roi=sub_dataset_params.get("roi"),
+            )
+        else:
+            raise TypeError(  # pragma: no cover
+                "AutoNorm only supports normalisation of data "
+                + f"from RasterDatasets, not {type(sub_dataset)}!"
+            )
+
     return sub_dataset
 
 
 def make_dataset(
-    data_directory: Union[Iterable[str], str, Path],
-    dataset_params: Dict[Any, Any],
+    data_directory: Iterable[str] | str | Path,
+    dataset_params: dict[Any, Any],
     sample_pairs: bool = False,
+    change_detection: bool = False,
     cache: bool = True,
-    cache_dir: Union[str, Path] = "",
-) -> Tuple[Any, List[Any]]:
+    cache_dir: str | Path = "",
+) -> tuple[Any, list[Any]]:
     """Constructs a dataset object from ``n`` sub-datasets given by the parameters supplied.
 
     Args:
@@ -293,6 +273,8 @@ def make_dataset(
         dataset_params (dict[~typing.Any, ~typing.Any]): Dictionary of parameters defining each sub-datasets to be used.
         sample_pairs (bool): Optional; ``True`` if paired sampling. This will ensure paired samples are handled
             correctly in the datasets.
+        change_detection (bool): Flag for a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
         cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
         cache_dir (str | ~pathlib.Path): Path to the directory to save the cached dataset (if ``cache==True``).
             Defaults to CWD.
@@ -303,9 +285,7 @@ def make_dataset(
     """
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
-    sub_datasets: Union[
-        List[GeoDataset], List[Union[NonGeoDataset, MinervaConcatDataset]]
-    ] = []
+    sub_datasets: list[GeoDataset] | list[NonGeoDataset | MinervaConcatDataset] = []
 
     if OmegaConf.is_config(dataset_params):
         dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
@@ -339,74 +319,75 @@ def make_dataset(
             add_target_transforms = type_dataset_params["transforms"]
             continue
 
-        type_subdatasets: Union[List[GeoDataset], List[NonGeoDataset]] = []
+        type_subdatasets: list[GeoDataset] | list[NonGeoDataset] = []
 
         multi_datasets_exist = False
 
-        auto_norm = None
+        auto_norm = False
         master_transforms: Optional[Any] = None
-        for area_key in type_dataset_params.keys():
+
+        for sub_type_key in type_dataset_params.keys():
             # If any of these keys are present, this must be a parameter set for a singular dataset at this level.
-            if area_key in ("module", "name", "params", "paths"):
+            if sub_type_key in ("_target_", "paths", "root"):
                 multi_datasets_exist = False
                 continue
 
             # If there are transforms specified, make them. These could cover a single dataset or many.
-            elif area_key == "transforms":
-                if isinstance(type_dataset_params[area_key], dict):
-                    transform_params = type_dataset_params[area_key]
-                    auto_norm = transform_params.get("AutoNorm")
+            elif sub_type_key == "transforms":
+                if isinstance(type_dataset_params[sub_type_key], dict):
+                    transform_params = type_dataset_params[sub_type_key]
+                    auto_norm = transform_params.get("AutoNorm", False)
 
                     # If transforms aren't specified for a particular modality of the sample,
                     # assume they're for the same type as the dataset.
                     if (
                         not ("image", "mask", "label")
-                        in type_dataset_params[area_key].keys()
+                        in type_dataset_params[sub_type_key].keys()
                     ):
-                        transform_params = {type_key: type_dataset_params[area_key]}
+                        transform_params = {type_key: type_dataset_params[sub_type_key]}
                 else:
                     transform_params = False
 
-                master_transforms = make_transformations(transform_params)
-
-            # Assuming that these keys are names of datasets.
-            else:
-                multi_datasets_exist = True
-
-                if isinstance(type_dataset_params[area_key].get("transforms"), dict):
-                    transform_params = type_dataset_params[area_key]["transforms"]
-                    auto_norm = transform_params.get("AutoNorm")
-                else:
-                    transform_params = False
-
-                transformations = make_transformations({type_key: transform_params})
-
-                # Send the params for this area key back through this function to make the sub-dataset.
-                sub_dataset = get_subdataset(
-                    data_directory,
-                    type_dataset_params,
-                    area_key,
-                    transformations,
-                    sample_pairs=sample_pairs,
-                    cache=cache,
-                    cache_dir=cache_dir,
+                master_transforms = make_transformations(
+                    transform_params, change_detection=change_detection
                 )
 
-                # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
-                # to make a transform, then adds the transform to the dataset's existing transforms.
-                if auto_norm:
-                    if isinstance(sub_dataset, RasterDataset):
-                        init_auto_norm(sub_dataset, auto_norm)
-                    else:
-                        raise TypeError(  # pragma: no cover
-                            "AutoNorm only supports normalisation of data "
-                            + f"from RasterDatasets, not {type(sub_dataset)}!"
-                        )
+            # Assuming that these keys are names of datasets.
+            elif sub_type_key == "subdatasets":
+                multi_datasets_exist = True
 
-                    # Reset back to None.
-                    auto_norm = None
+                if isinstance(
+                    type_dataset_params[sub_type_key].get("transforms"), dict
+                ):
+                    transform_params = type_dataset_params[sub_type_key]["transforms"]
+                    auto_norm = transform_params.get("AutoNorm", False)
+                else:
+                    transform_params = False
 
-                type_subdatasets.append(sub_dataset)  # type: ignore[arg-type]
+                transformations = make_transformations(
+                    {type_key: transform_params}, change_detection=change_detection
+                )
+
+                # Send the params for this area key back through this function to make the sub-dataset.
+                for area_key in type_dataset_params[sub_type_key]:
+                    sub_dataset = get_subdataset(
+                        data_directory,
+                        type_dataset_params[sub_type_key],
+                        area_key,
+                        transformations,
+                        sample_pairs=sample_pairs,
+                        cache=cache,
+                        cache_dir=cache_dir,
+                        auto_norm=auto_norm,
+                    )
+
+                    # Reset back to False.
+                    auto_norm = False
+
+                    type_subdatasets.append(sub_dataset)  # type: ignore[arg-type]
+
+            else:
+                continue
 
         # Unionise all the sub-datsets of this modality together.
         if multi_datasets_exist:
@@ -425,20 +406,11 @@ def make_dataset(
                 sample_pairs=sample_pairs,
                 cache=cache,
                 cache_dir=cache_dir,
+                auto_norm=auto_norm,
             )
 
-            # Performs an auto-normalisation initialisation which finds the mean and std of the dataset
-            # to make a transform, then adds the transform to the dataset's existing transforms.
-            if auto_norm:
-                if isinstance(sub_dataset, RasterDataset):
-                    init_auto_norm(sub_dataset, auto_norm)
-
-                    # Reset back to None.
-                    auto_norm = None
-                else:
-                    raise TypeError(  # pragma: no cover
-                        f"AutoNorm only supports normalisation of data from RasterDatasets, not {type(sub_dataset)}!"
-                    )
+            # Reset back to False.
+            auto_norm = False
 
             sub_datasets.append(sub_dataset)  # type: ignore[arg-type]
 
@@ -450,14 +422,16 @@ def make_dataset(
 
     if add_target_transforms is not None:
         target_key = masks_or_labels(dataset_params)
-        target_transforms = make_transformations({target_key: add_target_transforms})
+        target_transforms = make_transformations(
+            {target_key: add_target_transforms}, change_detection=change_detection
+        )
 
         if hasattr(dataset, "transforms"):
             if isinstance(dataset.transforms, MinervaCompose):
                 assert target_transforms is not None
-                dataset.transforms += target_transforms
+                dataset.transforms += target_transforms  # type: ignore[union-attr]
             else:
-                dataset.transforms = target_transforms
+                dataset.transforms = target_transforms  # type: ignore[union-attr]
         else:
             raise TypeError(
                 f"dataset of type {type(dataset)} has no ``transforms`` atttribute!"
@@ -465,14 +439,15 @@ def make_dataset(
 
     if add_multi_modal_transforms is not None:
         multi_modal_transforms = make_transformations(
-            {"both": add_multi_modal_transforms}
+            {"both": add_multi_modal_transforms},
+            change_detection=change_detection,
         )
         if hasattr(dataset, "transforms"):
             if isinstance(dataset.transforms, MinervaCompose):
                 assert multi_modal_transforms is not None
-                dataset.transforms += multi_modal_transforms
+                dataset.transforms += multi_modal_transforms  # type: ignore[union-attr]
             else:
-                dataset.transforms = multi_modal_transforms
+                dataset.transforms = multi_modal_transforms  # type: ignore[union-attr]
         else:
             raise TypeError(
                 f"dataset of type {type(dataset)} has no ``transforms`` atttribute!"
@@ -482,17 +457,18 @@ def make_dataset(
 
 
 def construct_dataloader(
-    data_directory: Union[Iterable[str], str, Path],
-    dataset_params: Dict[str, Any],
-    sampler_params: Dict[str, Any],
-    dataloader_params: Dict[str, Any],
+    data_directory: Iterable[str] | str | Path,
+    dataset_params: dict[str, Any],
+    sampler_params: dict[str, Any],
+    dataloader_params: dict[str, Any],
     batch_size: int,
-    collator_params: Optional[Dict[str, Any]] = None,
+    collator_target: str = "torchgeo.datasets.stack_samples",
     rank: int = 0,
     world_size: int = 1,
     sample_pairs: bool = False,
+    change_detection: bool = False,
     cache: bool = True,
-    cache_dir: Union[Path, str] = "",
+    cache_dir: Path | str = "",
 ) -> DataLoader[Iterable[Any]]:
     """Constructs a :class:`~torch.utils.data.DataLoader` object from the parameters provided for the
     datasets, sampler, collator and transforms.
@@ -505,12 +481,14 @@ def construct_dataloader(
             to sample from the dataset.
         dataloader_params (dict[str, ~typing.Any]): Dictionary of parameters for the DataLoader itself.
         batch_size (int): Number of samples per (global) batch.
-        collator_params (dict[str, ~typing.Any]): Optional; Dictionary of parameters defining the function to collate
+        collator_target (str): Import target path for collator function to collate
             and stack samples from the sampler.
         rank (int): Optional; The rank of this process for distributed computing.
         world_size (int): Optional; The total number of processes within a distributed run.
         sample_pairs (bool): Optional; True if paired sampling. This will wrap the collation function
             for paired samples.
+        change_detection (bool): Flag for if using a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Returns:
         ~torch.utils.data.DataLoader: Object to handle the returning of batched samples from the dataset.
@@ -519,42 +497,29 @@ def construct_dataloader(
         data_directory,
         dataset_params,
         sample_pairs=sample_pairs,
+        change_detection=change_detection,
         cache=cache,
         cache_dir=cache_dir,
     )
 
     # --+ MAKE SAMPLERS +=============================================================================================+
-    _sampler: Callable[..., Union[BatchGeoSampler, GeoSampler]] = utils.func_by_str(
-        module_path=sampler_params["module"], func=sampler_params["name"]
+    per_device_batch_size = None
+
+    batch_sampler = True if re.search(r"Batch", sampler_params["_target_"]) else False
+    if batch_sampler:
+        per_device_batch_size = sampler_params.get("batch_size", batch_size)
+        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
+            assert per_device_batch_size % world_size == 0  # pragma: no cover
+            per_device_batch_size = (
+                per_device_batch_size // world_size
+            )  # pragma: no cover
+
+    sampler = get_sampler(
+        sampler_params, subdatasets[0], batch_size=per_device_batch_size
     )
 
-    batch_sampler = True if re.search(r"Batch", sampler_params["name"]) else False
-    if batch_sampler:
-        sampler_params["params"]["batch_size"] = batch_size
-
-        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]
-            assert (
-                sampler_params["params"]["batch_size"] % world_size == 0
-            )  # pragma: no cover
-            per_device_batch_size = (
-                sampler_params["params"]["batch_size"] // world_size
-            )  # pragma: no cover
-            sampler_params["params"][
-                "batch_size"
-            ] = per_device_batch_size  # pragma: no cover
-
-    sampler: Sampler[Any]
-    if "roi" in signature(_sampler).parameters:
-        sampler = _sampler(
-            subdatasets[0],
-            roi=make_bounding_box(sampler_params["roi"]),
-            **sampler_params["params"],
-        )
-    else:
-        sampler = _sampler(subdatasets[0], **sampler_params["params"])
-
     # --+ MAKE DATALOADERS +==========================================================================================+
-    collator = get_collator(collator_params)
+    collator = get_collator(collator_target)
 
     # Add batch size from top-level parameters to the dataloader parameters.
     dataloader_params["batch_size"] = batch_size
@@ -588,11 +553,11 @@ def construct_dataloader(
 
 
 def _add_class_transform(
-    class_matrix: Dict[int, int], dataset_params: Dict[str, Any], target_key: str
-) -> Dict[str, Any]:
+    class_matrix: dict[int, int], dataset_params: dict[str, Any], target_key: str
+) -> dict[str, Any]:
     class_transform = {
         "ClassTransform": {
-            "module": "minerva.transforms",
+            "_target_": "minerva.transforms.ClassTransform",
             "transform": class_matrix,
         }
     }
@@ -615,12 +580,13 @@ def _make_loader(
     dataset_params,
     sampler_params,
     dataloader_params,
-    collator_params,
+    collator_target,
     class_matrix,
     batch_size,
     model_type,
     elim,
     sample_pairs,
+    change_detection,
     cache,
 ):
     target_key = None
@@ -640,10 +606,11 @@ def _make_loader(
         sampler_params,
         dataloader_params,
         batch_size,
-        collator_params=collator_params,
+        collator_target=collator_target,
         rank=rank,
         world_size=world_size,
         sample_pairs=sample_pairs,
+        change_detection=change_detection,
         cache=cache,
         cache_dir=cache_dir,
     )
@@ -651,9 +618,9 @@ def _make_loader(
     # Calculates number of batches.
     assert hasattr(loaders.dataset, "__len__")
     n_batches = int(
-        sampler_params["params"].get(
+        sampler_params.get(
             "length",
-            sampler_params["params"].get("num_samples", len(loaders.dataset)),
+            sampler_params.get("num_samples", len(loaders.dataset)),
         )
         / batch_size
     )
@@ -667,11 +634,11 @@ def make_loaders(
     p_dist: bool = False,
     task_name: Optional[str] = None,
     **params,
-) -> Tuple[
-    Union[Dict[str, DataLoader[Iterable[Any]]], DataLoader[Iterable[Any]]],
-    Union[Dict[str, int], int],
-    List[Tuple[int, int]],
-    Dict[Any, Any],
+) -> tuple[
+    dict[str, DataLoader[Iterable[Any]]] | DataLoader[Iterable[Any]],
+    dict[str, int] | int,
+    list[tuple[int, int]],
+    dict[Any, Any],
 ]:
     """Constructs train, validation and test datasets and places into :class:`~torch.utils.data.DataLoader` objects.
 
@@ -696,9 +663,7 @@ def make_loaders(
         sampler_params (dict[str, ~typing.Any]): Parameters to construct the samplers for each mode of model fitting.
         transform_params (dict[str, ~typing.Any]): Parameters to construct the transforms for each dataset.
             See documentation for the structure of these.
-        collator (dict[str, ~typing.Any]): Defines the collator to use that will collate samples together into batches.
-            Contains the ``module`` key to define the import path and the ``name`` key
-            for name of the collation function.
+        collator (str): Optional; Defines the collator to use that will collate samples together into batches.
         sample_pairs (bool): Activates paired sampling for Siamese models. Only used for ``train`` datasets.
 
     Returns:
@@ -717,14 +682,14 @@ def make_loaders(
     cache_dir = params["cache_dir"]
 
     # Gets out the parameters for the DataLoaders from params.
-    dataloader_params: Dict[Any, Any] = deepcopy(
+    dataloader_params: dict[Any, Any] = deepcopy(
         utils.fallback_params("loader_params", task_params, params)
     )
 
     if OmegaConf.is_config(dataloader_params):
         dataloader_params = OmegaConf.to_object(dataloader_params)  # type: ignore[assignment]
 
-    dataset_params: Dict[str, Any] = utils.fallback_params(
+    dataset_params: dict[str, Any] = utils.fallback_params(
         "dataset_params", task_params, params
     )
 
@@ -734,7 +699,7 @@ def make_loaders(
     batch_size: int = utils.fallback_params("batch_size", task_params, params)
 
     model_type = utils.fallback_params("model_type", task_params, params)
-    class_dist: List[Tuple[int, int]] = [(0, 0)]
+    class_dist: list[tuple[int, int]] = [(0, 0)]
 
     classes = utils.fallback_params("classes", data_config, params, None)
     cmap_dict = utils.fallback_params("colours", data_config, params, None)
@@ -745,28 +710,26 @@ def make_loaders(
         if n_classes:
             classes = {i: f"class {i}" for i in range(n_classes)}
 
-    new_classes: Dict[int, str] = {}
-    new_colours: Dict[int, str] = {}
-    class_matrix: Dict[int, int] = {}
+    new_classes: dict[int, str] = {}
+    new_colours: dict[int, str] = {}
+    class_matrix: dict[int, int] = {}
 
-    sample_pairs: Union[bool, Any] = utils.fallback_params(
-        "sample_pairs", task_params, params, False
+    sample_pairs = utils.fallback_params("sample_pairs", task_params, params, False)
+
+    change_detection = utils.fallback_params(
+        "change_detection", task_params, params, False
     )
-    if not isinstance(sample_pairs, bool):  # pragma: no cover
-        sample_pairs = False
 
     elim = utils.fallback_params("elim", task_params, params, False)
     cache = utils.fallback_params("cache_dataset", task_params, params, True)
 
-    n_batches: Union[Dict[str, int], int]
-    loaders: Union[Dict[str, DataLoader[Iterable[Any]]], DataLoader[Iterable[Any]]]
+    n_batches: dict[str, int] | int
+    loaders: dict[str, DataLoader[Iterable[Any]]] | DataLoader[Iterable[Any]]
 
-    collator_params = deepcopy(utils.fallback_params("collator", task_params, params))
-    if OmegaConf.is_config(collator_params):
-        collator_params = OmegaConf.to_object(collator_params)
+    collator_target = utils.fallback_params("collator", task_params, params, None)
 
     if "sampler" in dataset_params.keys():
-        sampler_params: Dict[str, Any] = dataset_params["sampler"]
+        sampler_params: dict[str, Any] = dataset_params["sampler"]
 
         if not utils.check_substrings_in_string(model_type, "siamese"):
             new_classes, class_matrix, new_colours, class_dist = get_data_specs(
@@ -778,7 +741,8 @@ def make_loaders(
                 dataset_params,
                 sampler_params,
                 dataloader_params,
-                collator_params,
+                collator_target,
+                change_detection=change_detection,
                 elim=elim,
             )
 
@@ -791,12 +755,13 @@ def make_loaders(
             dataset_params,
             sampler_params,
             dataloader_params,
-            collator_params,
+            collator_target,
             class_matrix,
             batch_size,
             model_type,
             elim=elim,
             sample_pairs=sample_pairs,
+            change_detection=change_detection,
             cache=cache,
         )
 
@@ -806,7 +771,7 @@ def make_loaders(
         loaders = {}
 
         for mode in dataset_params.keys():
-            mode_sampler_params: Dict[str, Any] = dataset_params[mode]["sampler"]
+            mode_sampler_params: dict[str, Any] = dataset_params[mode]["sampler"]
 
             if (
                 not utils.check_substrings_in_string(model_type, "siamese")
@@ -821,7 +786,8 @@ def make_loaders(
                     dataset_params[mode],
                     mode_sampler_params,
                     dataloader_params,
-                    collator_params,
+                    collator_target,
+                    change_detection=change_detection,
                     elim=elim,
                 )
 
@@ -835,12 +801,13 @@ def make_loaders(
                 dataset_params[mode],
                 mode_sampler_params,
                 dataloader_params,
-                collator_params,
+                collator_target,
                 class_matrix,
                 batch_size,
                 model_type,
                 elim=elim,
                 sample_pairs=sample_pairs if mode == "train" else False,
+                change_detection=change_detection,
                 cache=cache,
             )
 
@@ -883,15 +850,16 @@ def make_loaders(
 
 
 def get_data_specs(
-    manifest_name: Union[str, Path],
-    classes: Dict[int, str],
-    cmap_dict: Dict[int, str],
-    cache_dir: Optional[Union[str, Path]] = None,
-    data_dir: Optional[Union[str, Path]] = None,
-    dataset_params: Optional[Dict[str, Any]] = None,
-    sampler_params: Optional[Dict[str, Any]] = None,
-    dataloader_params: Optional[Dict[str, Any]] = None,
-    collator_params: Optional[Dict[str, Any]] = None,
+    manifest_name: str | Path,
+    classes: dict[int, str],
+    cmap_dict: dict[int, str],
+    cache_dir: Optional[str | Path] = None,
+    data_dir: Optional[str | Path] = None,
+    dataset_params: Optional[dict[str, Any]] = None,
+    sampler_params: Optional[dict[str, Any]] = None,
+    dataloader_params: Optional[dict[str, Any]] = None,
+    collator_target: str = "torchgeo.datasets.stack_samples",
+    change_detection: bool = False,
     elim: bool = True,
 ):
     # Load manifest from cache for this dataset.
@@ -901,7 +869,8 @@ def get_data_specs(
         dataset_params,
         sampler_params,
         dataloader_params,
-        collator_params=collator_params,
+        collator_target=collator_target,
+        change_detection=change_detection,
     )
 
     class_dist = utils.modes_from_manifest(manifest, classes)
@@ -923,12 +892,13 @@ def get_data_specs(
 
 
 def get_manifest(
-    manifest_path: Union[str, Path],
-    data_dir: Optional[Union[str, Path]] = None,
-    dataset_params: Optional[Dict[str, Any]] = None,
-    sampler_params: Optional[Dict[str, Any]] = None,
-    loader_params: Optional[Dict[str, Any]] = None,
-    collator_params: Optional[Dict[str, Any]] = None,
+    manifest_path: str | Path,
+    data_dir: Optional[str | Path] = None,
+    dataset_params: Optional[dict[str, Any]] = None,
+    sampler_params: Optional[dict[str, Any]] = None,
+    loader_params: Optional[dict[str, Any]] = None,
+    collator_target: str = "torchgeo.datasets.stack_samples",
+    change_detection: bool = False,
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
@@ -948,6 +918,8 @@ def get_manifest(
         manifest_path (str | ~pathlib.Path): Path (including filename and extension) to the manifest
             saved as a ``csv``.
         task_name (str): Optional; Name of the task to which the dataset to create a manifest of belongs to.
+        change_detection (bool): Flag for if using a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Returns:
         ~pandas.DataFrame: Manifest either loaded from ``manifest_path`` or created from parameters in :data:`CONFIG`.
@@ -969,7 +941,8 @@ def get_manifest(
             dataset_params,
             sampler_params,
             loader_params,
-            collator_params=collator_params,
+            collator_target=collator_target,
+            change_detection=change_detection,
         )
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
@@ -983,11 +956,12 @@ def get_manifest(
 
 
 def make_manifest(
-    data_dir: Union[str, Path],
-    dataset_params: Dict[str, Any],
-    sampler_params: Dict[str, Any],
-    loader_params: Dict[str, Any],
-    collator_params: Optional[Dict[str, Any]] = None,
+    data_dir: str | Path,
+    dataset_params: dict[str, Any],
+    sampler_params: dict[str, Any],
+    loader_params: dict[str, Any],
+    collator_target: str = "torchgeo.datasets.stack_samples",
+    change_detection: bool = False,
 ) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -996,12 +970,14 @@ def make_manifest(
     Args:
         mf_config (dict[~typing.Any, ~typing.Any]): Config to use to construct the manifest with.
         task_name (str): Optional; Name of the task to which the dataset to create a manifest of belongs to.
+        change_detection (bool): Flag for if using a change detection dataset which has
+            ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
 
     Returns:
         ~pandas.DataFrame: The completed manifest as a :class:`~pandas.DataFrame`.
     """
 
-    def delete_transforms(params: Dict[str, Any]) -> None:
+    def delete_transforms(params: dict[str, Any]) -> None:
         assert target_key is not None
         if params[target_key] is None:
             return
@@ -1025,24 +1001,22 @@ def make_manifest(
     if OmegaConf.is_config(_dataset_params):
         _dataset_params = OmegaConf.to_object(_dataset_params)  # type: ignore[assignment]
 
-    if _sampler_params["name"] in (
+    if _sampler_params["_target_"].rpartition(".")[2] in (
         "RandomGeoSampler",
         "RandomPairGeoSampler",
         "RandomBatchGeoSampler",
         "RandomPairBatchGeoSampler",
     ):
-        _sampler_params["module"] = "torchgeo.samplers"
-        _sampler_params["name"] = "GridGeoSampler"
-        _sampler_params["params"]["stride"] = [
-            0.9 * x for x in _to_tuple(_sampler_params["params"]["size"])
+        _sampler_params["_target_"] = "torchgeo.samplers.GridGeoSampler"
+        _sampler_params["stride"] = [
+            0.9 * x for x in _to_tuple(_sampler_params["size"])
         ]
 
-    if _sampler_params["name"] == "RandomSampler":
-        _sampler_params["name"] = "SequentialSampler"
-        _sampler_params["params"] = {}
+    if _sampler_params["_target_"].rpartition(".")[2] == "RandomSampler":
+        _sampler_params = {"_target_": "torch.utils.data.sampler.SequentialSampler"}
 
-    if "length" in _sampler_params["params"]:
-        del _sampler_params["params"]["length"]
+    if "length" in _sampler_params:
+        del _sampler_params["length"]
 
     # Ensure there are no errant `ClassTransform` transforms in the parameters from previous runs.
     # A `ClassTransform` can only be defined with a correct manifest so we cannot use an old one to
@@ -1063,7 +1037,8 @@ def make_manifest(
         _sampler_params,
         loader_params,
         batch_size=1,  # To prevent issues with stacking different sized patches, set batch size to 1.
-        collator_params=collator_params,
+        collator_target=collator_target,
+        change_detection=change_detection,
         cache=False,
     )
 

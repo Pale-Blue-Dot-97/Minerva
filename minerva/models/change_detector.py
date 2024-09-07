@@ -38,7 +38,7 @@ __all__ = ["ChangeDetector"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Optional
 
 import torch
 from torch import Tensor
@@ -57,7 +57,7 @@ class ChangeDetector(MinervaModel):
     def __init__(
         self,
         criterion: Optional[Module] = None,
-        input_size: Optional[Tuple[int]] = None,
+        input_size: Optional[tuple[int]] = None,
         n_classes: int = 1,
         scaler: Optional[GradScaler] = None,
         fc_dim: int = 512,
@@ -65,8 +65,8 @@ class ChangeDetector(MinervaModel):
         encoder_on: bool = False,
         filter_dim: int = 0,
         freeze_backbone: bool = False,
-        backbone_weight_path: Optional[Union[str, Path]] = None,
-        backbone_args: Dict[str, Any] = {},
+        backbone_weight_path: Optional[str | Path] = None,
+        backbone_args: dict[str, Any] = {},
         clamp_outputs: bool = False,
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)
@@ -128,8 +128,7 @@ class ChangeDetector(MinervaModel):
             ~torch.Tensor: Likelihoods the network places on the
             input ``x`` being of each class.
         """
-        x = torch.squeeze(x)
-        x_0, x_1 = torch.chunk(x, 2, dim=1)
+        x_0, x_1 = x[0], x[1]
 
         f_0 = self.backbone(x_0)
         f_1 = self.backbone(x_1)
@@ -140,7 +139,6 @@ class ChangeDetector(MinervaModel):
 
         f = torch.cat((f_0, f_1), 1)
 
-        # f = f.view(f.size(0), -1)
         z: Tensor = self.classification_head(f)
 
         assert isinstance(z, Tensor)

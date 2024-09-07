@@ -38,7 +38,7 @@ __all__ = ["TSNEVis"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional
 
 import torch
 from torch import Tensor
@@ -46,6 +46,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from wandb.sdk.wandb_run import Run
 
 from minerva.models import MinervaDataParallel, MinervaModel
+from minerva.utils.utils import get_sample_index
 from minerva.utils.visutils import plot_embedding
 
 from .core import MinervaTask
@@ -64,14 +65,14 @@ class TSNEVis(MinervaTask):
     def __init__(
         self,
         name: str,
-        model: Union[MinervaModel, MinervaDataParallel],
+        model: MinervaModel | MinervaDataParallel,
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Union[SummaryWriter, Run, None] = None,
-        backbone_weight_path: Optional[Union[str, Path]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
+        backbone_weight_path: Optional[str | Path] = None,
         record_int: bool = True,
         record_float: bool = False,
         **params,
@@ -79,7 +80,7 @@ class TSNEVis(MinervaTask):
         backbone = model.get_backbone()  # type: ignore[assignment, operator]
 
         # Set dummy optimiser. It won't be used as this is a test.
-        backbone.set_optimiser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))
+        backbone.set_optimiser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))  # type: ignore[attr-defined]
 
         super().__init__(
             name,
@@ -103,7 +104,8 @@ class TSNEVis(MinervaTask):
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
         # Get a batch of data.
-        data = next(iter(self.loaders))
+        assert isinstance(self.loaders, torch.utils.data.DataLoader)
+        data: dict[str, Any] = next(iter(self.loaders))
 
         # Make sure the model is in evaluation mode.
         self.model.eval()
@@ -118,7 +120,7 @@ class TSNEVis(MinervaTask):
 
         plot_embedding(
             embeddings.detach().cpu(),
-            data["bbox"],
+            get_sample_index(data),  # type: ignore[arg-type]
             self.global_params["data_root"],
             self.params["dataset_params"],
             show=True,

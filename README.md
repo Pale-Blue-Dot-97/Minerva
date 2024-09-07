@@ -57,7 +57,7 @@ datasets with upcoming support for [torchvision](https://pytorch.org/vision/stab
 
 Required Python modules for `minerva` are stated in the `setup.cfg`.
 
-`minerva` currently only supports `python` 3.9 -- 3.12.
+`minerva` currently only supports `python` 3.10 -- 3.12.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

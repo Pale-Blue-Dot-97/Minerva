@@ -38,7 +38,7 @@ __all__ = [
 # =====================================================================================================================
 from glob import glob
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Optional
 
 import numpy as np
 import pandas as pd
@@ -84,7 +84,7 @@ class BaseSenS12MS(NonGeoDataset):
     S2_BANDS_MR = [5, 6, 7, 9, 12, 13]
     S2_BANDS_LR = [1, 10, 11]
 
-    splits: List[str] = []
+    splits: list[str] = []
 
     igbp = False
 
@@ -133,13 +133,13 @@ class BaseSenS12MS(NonGeoDataset):
         # Make sure parent dir exists.
         assert self.root.exists()
 
-        self.samples: List[Dict[str, str]]
+        self.samples: list[dict[str, str]]
 
     def load_sample(
         self,
-        sample: Dict[str, str],
+        sample: dict[str, str],
         index: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Util function for reading data from single sample.
 
         Args:
@@ -192,7 +192,7 @@ class BaseSenS12MS(NonGeoDataset):
             n_inputs += 2
         return n_inputs
 
-    def get_display_channels(self) -> Tuple[List[int], int]:
+    def get_display_channels(self) -> tuple[list[int], int]:
         """Select channels for preview images.
 
         Returns:
@@ -303,7 +303,7 @@ class BaseSenS12MS(NonGeoDataset):
 
         return lc
 
-    def __getitem__(self, index: int) -> Dict[str, Any]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         """Get a single example from the dataset"""
 
         # Get and load sample from index file.
@@ -393,11 +393,11 @@ class DFC2020(BaseSenS12MS):
 
     def plot(
         self,
-        sample: Dict[str, Tensor],
+        sample: dict[str, Tensor],
         show_titles: bool = True,
         suptitle: Optional[str] = None,
-        classes: Optional[Dict[int, str]] = None,
-        colours: Optional[Dict[int, str]] = None,
+        classes: Optional[dict[int, str]] = None,
+        colours: Optional[dict[int, str]] = None,
     ) -> Figure:
         """Plot a sample from the dataset.
 
@@ -420,10 +420,15 @@ class DFC2020(BaseSenS12MS):
         # Reorder image from BGR to RGB.
         from kornia.color import BgrToRgb
 
-        bgr_to_rgb = BgrToRgb()
+        from minerva.transforms import AdjustGamma
 
-        image = bgr_to_rgb(sample["image"][:3])
-        image = image.permute(1, 2, 0).numpy()
+        bgr_to_rgb = BgrToRgb()
+        adjust_gamma = AdjustGamma(gamma=0.8)
+
+        # Reorder channels from BGR to RGB and adjust the gamma ready for plotting.
+        image = adjust_gamma(bgr_to_rgb(sample["image"][:3])).permute(1, 2, 0).numpy()
+
+        block_size_factor = 8
 
         # Use inbuilt class colours and classes mappings.
         if classes is None or colours is None:
@@ -454,7 +459,17 @@ class DFC2020(BaseSenS12MS):
 
         # Plot the image.
         axs[0].imshow(image)
-        axs[0].axis("off")
+
+        # Sets tick intervals to block size.
+        axs[0].set_xticks(
+            np.arange(0, image.shape[0] + 1, image.shape[0] // block_size_factor)
+        )
+        axs[0].set_yticks(
+            np.arange(0, image.shape[1] + 1, image.shape[1] // block_size_factor)
+        )
+
+        # Add grid overlay.
+        axs[0].grid(which="both", color="#CCCCCC", linestyle=":")
 
         # Plot the ground truth mask and predicted mask.
         mask_plot: Axes
@@ -462,22 +477,54 @@ class DFC2020(BaseSenS12MS):
             mask_plot = axs[1].imshow(
                 mask, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
             )
-            axs[1].axis("off")
+
+            # Sets tick intervals to block size.
+            axs[1].set_xticks(
+                np.arange(0, mask.shape[0] + 1, mask.shape[0] // block_size_factor)
+            )
+            axs[1].set_yticks(
+                np.arange(0, mask.shape[1] + 1, mask.shape[1] // block_size_factor)
+            )
+
+            # Add grid overlay.
+            axs[1].grid(which="both", color="#CCCCCC", linestyle=":")
+
             if showing_prediction:
                 axs[2].imshow(
                     pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
                 )
-                axs[2].axis("off")
+
+                # Sets tick intervals to block size.
+                axs[2].set_xticks(
+                    np.arange(0, pred.shape[0] + 1, pred.shape[0] // block_size_factor)
+                )
+                axs[2].set_yticks(
+                    np.arange(0, pred.shape[1] + 1, pred.shape[1] // block_size_factor)
+                )
+
+                # Add grid overlay.
+                axs[2].grid(which="both", color="#CCCCCC", linestyle=":")
+
         elif showing_prediction:
             mask_plot = axs[1].imshow(
                 pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
             )
-            axs[1].axis("off")
+
+            # Sets tick intervals to block size.
+            axs[1].set_xticks(
+                np.arange(0, pred.shape[0] + 1, pred.shape[0] // block_size_factor)
+            )
+            axs[1].set_yticks(
+                np.arange(0, pred.shape[1] + 1, pred.shape[1] // block_size_factor)
+            )
+
+            # Add grid overlay.
+            axs[1].grid(which="both", color="#CCCCCC", linestyle=":")
 
         if showing_mask or showing_prediction:
             # Plots colour bar onto figure.
             clb = fig.colorbar(
-                mask_plot,
+                mask_plot,  # type: ignore[arg-type]
                 ax=axs,
                 location="top",
                 ticks=np.arange(0, len(colours)),

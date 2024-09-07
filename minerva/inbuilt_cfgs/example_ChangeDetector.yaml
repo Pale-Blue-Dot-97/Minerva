@@ -34,6 +34,7 @@ pre_train: false                       # Activate pre-training mode.
 fine_tune: false                       # Activate fine-tuning mode.
 torch_compile: false                   # Wrap model in `torch.compile`.
 sample_pairs: false
+change_detection: true
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: CrossEntropyLoss            # Name of the loss function to use.
@@ -42,25 +43,24 @@ optim_func: Adam                       # Name of the optimiser function.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    module:
-    params:
+    _target_: minerva.models.ChangeDetector
+    input_size: ${input_size}
+    n_classes: ${n_classes}
+    encoder_on: true
+    filter_dim: -1
+    fc_dim: 512
+    freeze_backbone: false
+    backbone_args:
+        module: minerva.models
+        name: MinervaPSP
         input_size: ${input_size}
-        n_classes: ${n_classes}
-        encoder_on: true
-        filter_dim: -1
-        fc_dim: 512
-        freeze_backbone: false
-        backbone_args:
-            module: minerva.models
-            name: MinervaPSP
-            input_size: ${input_size}
-            n_classes: 1
-            encoder_name: resnet18
-            encoder_weights:
-            psp_out_channels: 512
-            segmentation_on: false
-            classification_on: false
-            encoder: false
+        n_classes: 1
+        encoder_name: resnet18
+        encoder_weights:
+        psp_out_channels: 512
+        segmentation_on: false
+        classification_on: false
+        encoder: false
 
 # ---+ Optimiser Parameters +--------------------------------------------------
 optimiser:
@@ -83,20 +83,17 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # === MODEL IO & LOGGING ======================================================
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-
+model_io: minerva.modelio.change_detection_io
 record_int: true     # Store integer results in memory.
 record_float: false  # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
-collator:
-    module: torchgeo.datasets
-    name: stack_samples
+collator: torchgeo.datasets.stack_samples
 
 # === TASKS ===================================================================
 tasks:
     fit-train:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: true
         record_float: true
         sample_pairs: false
@@ -106,51 +103,35 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torch.utils.data
-                name: RandomSampler
-                params:
-                    num_samples: 32
+                _target_: torch.utils.data.RandomSampler
+                num_samples: 32
 
             transforms:
                 RandomCrop:
-                    module: kornia.augmentation
+                    _target_: kornia.augmentation.RandomCrop
                     size: ${patch_size}
                     keepdim: true
 
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 4095
-                    SelectChannels:
-                        module: minerva.transforms
-                        channels:
-                            - 1
-                            - 2
-                            - 3
-                            - 7
-                            - 14
-                            - 15
-                            - 16
-                            - 20
 
-                module: torchgeo.datasets
-                name: OSCD
-                paths: OSCD
-                params:
-                    split: train
-                    bands: all
-                    download: true
+                _target_: torchgeo.datasets.OSCD
+                root: OSCD
+                split: train
+                bands: [B02, B03, B04, B08]
+                download: true
 
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.SingleLabel
                         mode: centre
 
     test-test:
-        name: StandardEpoch
-        module: minerva.tasks
+        _target_: minerva.tasks.StandardEpoch
         train: false
         record_float: true
         sample_pairs: false
@@ -160,46 +141,31 @@ tasks:
         # ---+ Dataset Parameters +--------------------------------------------
         dataset_params:
             sampler:
-                module: torch.utils.data
-                name: RandomSampler
-                params:
-                    num_samples: 16
+                _target_: torch.utils.data.RandomSampler
+                num_samples: 16
 
             transforms:
                 RandomCrop:
-                    module: kornia.augmentation
+                    _target_: kornia.augmentation.RandomCrop
                     size: ${patch_size}
                     keepdim: true
 
             image:
                 transforms:
                     Normalise:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.Normalise
                         norm_value: 4095
-                    SelectChannels:
-                        module: minerva.transforms
-                        channels:
-                            - 1
-                            - 2
-                            - 3
-                            - 7
-                            - 14
-                            - 15
-                            - 16
-                            - 20
 
-                module: torchgeo.datasets
-                name: OSCD
-                paths: OSCD
-                params:
-                    split: test
-                    bands: all
-                    download: true
+                _target_: torchgeo.datasets.OSCD
+                root: OSCD
+                split: test
+                bands: [B02, B03, B04, B08]
+                download: true
 
             mask:
                 transforms:
                     SingleLabel:
-                        module: minerva.transforms
+                        _target_: minerva.transforms.SingleLabel
                         mode: centre
 
 # === PLOTTING OPTIONS ========================================================

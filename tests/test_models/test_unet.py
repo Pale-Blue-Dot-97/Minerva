@@ -36,8 +36,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Tuple
-
 import pytest
 import torch
 from torch import Tensor
@@ -62,7 +60,7 @@ def unet_test(
     y: Tensor,
     batch_size: int,
     n_classes: int,
-    input_size: Tuple[int, int, int],
+    input_size: tuple[int, int, int],
 ) -> None:
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
@@ -97,7 +95,7 @@ def test_unetrs(
     random_mask_batch: Tensor,
     std_batch_size: int,
     std_n_classes: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
 ) -> None:
     model: MinervaModel = model_cls(x_entropy_loss, rgbi_input_size)
 
@@ -117,7 +115,7 @@ def test_unet(
     random_mask_batch: Tensor,
     std_batch_size: int,
     std_n_classes: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
 ) -> None:
     model = UNet(x_entropy_loss, input_size=rgbi_input_size)
     unet_test(
