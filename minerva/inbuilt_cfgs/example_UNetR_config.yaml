@@ -88,7 +88,7 @@ tasks:
                 _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
                 size: ${patch_size}
-                length: 320
+                length: 32
 
             image:
                 transforms:
@@ -117,7 +117,7 @@ tasks:
                 _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
                 size: ${patch_size}
-                length: 80
+                length: 16
 
             image:
                 transforms:
@@ -146,7 +146,7 @@ tasks:
                 _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
                 size: ${patch_size}
-                length: 160
+                length: 16
             image:
                 transforms:
                     Normalise:

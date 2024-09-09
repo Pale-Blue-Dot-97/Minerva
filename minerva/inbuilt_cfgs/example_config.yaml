@@ -21,18 +21,18 @@ model_name: FCN32ResNet18-test
 model_type: segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
-batch_size: 8                         # Number of samples in each batch.
+batch_size: 8                               # Number of samples in each batch.
 input_size: [4, 32, 32]   # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
-n_classes: &n_classes 8               # Number of classes in dataset.
+n_classes: 8                                   # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
-max_epochs: 5                         # Maximum number of training epochs.
+max_epochs: 4                         # Maximum number of training epochs.
 pre_train: false                      # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
 elim: true                            # Eliminates empty classes from schema.
 balance: true                         # Balances dataset classes.
-torch_compile: true                    # Wrap model in `torch.compile`.
+torch_compile: true                   # Wrap model in `torch.compile`.
 
 # ---+ Optimisers +---------------------------------------------------
 lr: 1.0E-2                            # Learning rate of optimiser.
@@ -91,7 +91,7 @@ tasks:
                 _target_: torchgeo.samplers.RandomGeoSampler
                 roi: false
                 size: ${patch_size}
-                length: 120
+                length: 32
 
             image:
                 transforms: false
@@ -188,7 +188,7 @@ plots:
 # === MISCELLANEOUS OPTIONS ===================================================
 # ---+ Early Stopping +--------------------------------------------------------
 stopping:
-    patience: 2    # No. of val epochs with increasing loss before stopping.
+    patience: 1    # No. of val epochs with increasing loss before stopping.
     verbose: true  # Verbosity of early stopping prints to stdout.
 
 # ---+ Verbosity and Saving +--------------------------------------------------
