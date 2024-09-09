@@ -18,6 +18,7 @@ Mostly adapted from:
 https://github.com/zhu-xlab/SSL4EO-S12/tree/main/src/benchmark/pretrain_ssl/datasets/SSL4EO
 
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -221,7 +222,6 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
         transforms=None,
         season_transform=None,
     ) -> None:
-
         super().__init__(root, transform=transforms, target_transform=None)
 
         self.normalize = normalize
@@ -428,7 +428,6 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
 
 
 class Subset(Dataset):  # type: ignore[type-arg]
-
     def __init__(self, dataset, indices):
         self.dataset = dataset
         self.indices = indices

@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.datasets.paired`.
-"""
+r"""Tests for :mod:`minerva.datasets.paired`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -99,7 +99,8 @@ def test_paired_geodatasets(img_root: Path) -> None:
         assert isinstance(dataset.__repr__(), str)
 
         assert isinstance(
-            dataset.plot_random_sample((32, 32), 1.0, suptitle="test"), plt.Figure  # type: ignore[attr-defined]
+            dataset.plot_random_sample((32, 32), 1.0, suptitle="test"),
+            plt.Figure,  # type: ignore[attr-defined]
         )
 
 

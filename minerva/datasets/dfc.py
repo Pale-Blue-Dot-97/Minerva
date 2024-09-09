@@ -21,6 +21,7 @@ r"""Implementation for the DFC2020 competition dataset using Sentinel 1&2 data a
 .. note::
     Adapted from https://github.com/lukasliebel/dfc2020_baseline/blob/master/code/datasets.py
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

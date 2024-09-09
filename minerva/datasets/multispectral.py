@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Adaption of :class:`~torchvision.datasets.VisionDataset` for use with :class:`~torchgeo.datasets.NonGeoDataset`.
-"""
+r"""Adaption of :class:`~torchvision.datasets.VisionDataset` for use with :class:`~torchgeo.datasets.NonGeoDataset`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

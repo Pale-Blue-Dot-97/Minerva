@@ -29,6 +29,7 @@ Attributes:
     DEFAULT_CONF_DIR_PATH (~pathlib.Path): Path to the default config directory.
     DEFAULT_CONFIG_NAME (str): Name of the default, example config.
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

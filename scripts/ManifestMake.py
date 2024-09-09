@@ -19,6 +19,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Script to create manifests of data for use in Minerva pre-processing to reduce computation time."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

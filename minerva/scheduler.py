@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module containing custom learning rate schedulers for use in :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

@@ -30,6 +30,7 @@ Attributes:
     WGS84 (~rasterio.crs.CRS): WGS84 co-ordinate reference system acting as a
         default :class:`~rasterio.crs.CRS` for transformations.
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -388,7 +389,12 @@ def labelled_rgb_image(
 
     # Plots heatmap onto figure.
     heatmap = ax1.imshow(
-        mask, cmap=cmap, vmin=-0.5, vmax=len(classes) - 0.5, extent=extent, alpha=alpha  # type: ignore[arg-type]
+        mask,
+        cmap=cmap,
+        vmin=-0.5,
+        vmax=len(classes) - 0.5,
+        extent=extent,
+        alpha=alpha,  # type: ignore[arg-type]
     )
 
     # Sets tick intervals to standard 32x32 block size.
@@ -777,7 +783,6 @@ def seg_plot(
     # Plots the predicted versus ground truth labels for all test patches supplied.
     with tqdm(total=n_samples) as pbar:
         for i in random.sample(range(len(flat_ids)), n_samples):
-
             if isinstance(dataset, GeoDataset):
                 image = stack_rgb(dataset[index[i]]["image"].numpy(), max_pixel_value)
                 sample = {
@@ -1293,7 +1298,8 @@ def plot_embedding(
 
             shown_images = np.r_[shown_images, [x[i]]]
             imagebox = offsetbox.AnnotationBbox(
-                offsetbox.OffsetImage(image, cmap=plt.cm.gray_r), x[i]  # type: ignore
+                offsetbox.OffsetImage(image, cmap=plt.cm.gray_r),
+                x[i],  # type: ignore
             )
 
             ax.add_artist(imagebox)

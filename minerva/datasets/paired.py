@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 r"""Datasets to handle paired sampling for use in Siamese learning."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -306,7 +307,6 @@ class PairedUnionDataset(UnionDataset):
         ] = merge_samples,
         transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
     ) -> None:
-
         # Extract the actual dataset out of the paired dataset (otherwise we'll be pairing the datasets twice!)
         if isinstance(dataset1, PairedGeoDataset):
             dataset1 = dataset1.dataset

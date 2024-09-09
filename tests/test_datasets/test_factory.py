@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.datasets.factory`.
-"""
+r"""Tests for :mod:`minerva.datasets.factory`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -57,7 +57,6 @@ from minerva.utils.utils import make_hash
 #                                                       TESTS
 # =====================================================================================================================
 def test_make_dataset(exp_dataset_params: dict[str, Any], data_root: Path) -> None:
-
     dataset_params2 = {
         "image": {
             "subdatasets": {

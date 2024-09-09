@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 r"""Collation functions designed for :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -67,7 +68,7 @@ def get_collator(
 
 
 def stack_sample_pairs(
-    samples: Iterable[tuple[dict[Any, Any], dict[Any, Any]]]
+    samples: Iterable[tuple[dict[Any, Any], dict[Any, Any]]],
 ) -> tuple[dict[Any, Any], dict[Any, Any]]:
     """Takes a list of paired sample dicts and stacks them into a tuple of batches of sample dicts.
 

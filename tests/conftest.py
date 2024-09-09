@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r""":mod:`pytest` fixtures for :mod:`minerva` CI/CD.
-"""
+r""":mod:`pytest` fixtures for :mod:`minerva` CI/CD."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -262,14 +262,14 @@ def random_mask(
 
 @pytest.fixture
 def random_image(
-    small_patch_size: tuple[int, int]
+    small_patch_size: tuple[int, int],
 ) -> NDArray[Shape["32, 32, 3"], Float]:
     return np.random.rand(*small_patch_size, 3)
 
 
 @pytest.fixture
 def random_rgbi_image(
-    small_patch_size: tuple[int, int]
+    small_patch_size: tuple[int, int],
 ) -> NDArray[Shape["32, 32, 4"], Float]:
     return np.random.rand(*small_patch_size, 4)
 
@@ -398,7 +398,8 @@ def exp_cmap_dict() -> dict[int, str]:
 @pytest.fixture
 def simple_mask() -> LongTensor:
     mask: LongTensor = torch.tensor(  # type: ignore[attr-defined, assignment]
-        [[1, 3, 5], [4, 5, 1], [1, 1, 1]], dtype=torch.long  # type: ignore[attr-defined]
+        [[1, 3, 5], [4, 5, 1], [1, 1, 1]],
+        dtype=torch.long,  # type: ignore[attr-defined]
     )
     return mask
 

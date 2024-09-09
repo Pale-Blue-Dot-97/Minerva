@@ -25,6 +25,7 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing Fully Convolutional Network (FCN) models."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -116,7 +117,10 @@ class FCN(MinervaBackbone):
 
         # Initialises the selected Minerva backbone.
         self.backbone: MinervaModel = get_model(self.backbone_name)(
-            input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs  # type: ignore
+            input_size=input_size,
+            n_classes=n_classes,
+            encoder=True,
+            **backbone_kwargs,  # type: ignore
         )
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.

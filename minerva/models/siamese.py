@@ -25,6 +25,7 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing Siamese models."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -181,7 +182,9 @@ class SimCLR(MinervaSiamese):
         )
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
-            input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
+            input_size=input_size,
+            encoder=True,
+            **backbone_kwargs,  # type: ignore[arg-type]
         )
 
         self.backbone.determine_output_dim()
@@ -329,7 +332,9 @@ class SimSiam(MinervaSiamese):
         )
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
-            input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
+            input_size=input_size,
+            encoder=True,
+            **backbone_kwargs,  # type: ignore[arg-type]
         )
 
         self.backbone.determine_output_dim()

@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.datasets.multispectral`.
-"""
+r"""Tests for :mod:`minerva.datasets.multispectral`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

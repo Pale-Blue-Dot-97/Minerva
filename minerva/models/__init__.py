@@ -25,6 +25,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """:mod:`models` contains several types of models designed to work within :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module containing custom transforms to be used with :mod:`torchvision.transforms`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -583,7 +584,6 @@ class MinervaCompose:
 
             # Now onto any other transforms.
             for key in self.transforms.keys():
-
                 # Skip "both" as we've already done that above.
                 if key == "both":
                     pass
@@ -775,7 +775,6 @@ class SeasonTransform:
         self.season = season
 
     def __call__(self, x: Tensor) -> tuple[Tensor, Tensor] | Tensor:
-
         if self.season == "pair":
             season1 = np.random.choice([0, 1, 2, 3])
             season2 = np.random.choice([0, 1, 2, 3])

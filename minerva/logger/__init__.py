@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """:mod:`minerva.logger` contains functionality for logging and analysing results within :mod:`minerva`"""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

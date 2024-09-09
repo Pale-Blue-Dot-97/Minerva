@@ -28,6 +28,7 @@
 :class:`DistributedSamplerWrapper` is sourced from :mod:`catalyst`
 https://github.com/catalyst-team/catalyst/blob/master/catalyst/data/dataset.py#L6
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

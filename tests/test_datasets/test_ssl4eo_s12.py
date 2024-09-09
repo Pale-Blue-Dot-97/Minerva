@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.datasets.ssl4eo_s12`.
-"""
+r"""Tests for :mod:`minerva.datasets.ssl4eo_s12`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

@@ -27,6 +27,7 @@
 
 .. versionadded:: 0.27
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -73,7 +74,6 @@ class StandardEpoch(MinervaTask):
 
             # Ensure gradients will not be calculated if this is not a training task.
             with torch.no_grad() if not self.train else nullcontext():  # type: ignore[attr-defined]
-
                 # Core of the epoch.
                 for batch in self.loaders:
                     results = self.modelio(

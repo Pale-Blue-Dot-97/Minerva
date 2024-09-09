@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-"""Functionality for constructing datasets, manifests and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
-"""
+"""Functionality for constructing datasets, manifests and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -340,10 +340,9 @@ def make_dataset(
 
                     # If transforms aren't specified for a particular modality of the sample,
                     # assume they're for the same type as the dataset.
-                    if (
-                        not ("image", "mask", "label")
-                        in type_dataset_params[sub_type_key].keys()
-                    ):
+                    if ("image", "mask", "label") not in type_dataset_params[
+                        sub_type_key
+                    ].keys():
                         transform_params = {type_key: type_dataset_params[sub_type_key]}
                 else:
                     transform_params = False
@@ -392,9 +391,13 @@ def make_dataset(
         # Unionise all the sub-datsets of this modality together.
         if multi_datasets_exist:
             if isinstance(type_subdatasets[0], GeoDataset):
-                sub_datasets.append(unionise_datasets(type_subdatasets, master_transforms))  # type: ignore[arg-type]
+                sub_datasets.append(
+                    unionise_datasets(type_subdatasets, master_transforms)
+                )  # type: ignore[arg-type]
             else:
-                sub_datasets.append(concatenate_datasets(type_subdatasets, master_transforms))  # type: ignore[arg-type]
+                sub_datasets.append(
+                    concatenate_datasets(type_subdatasets, master_transforms)
+                )  # type: ignore[arg-type]
 
         # Add the subdataset of this modality to the list.
         else:

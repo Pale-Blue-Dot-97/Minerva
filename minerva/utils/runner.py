@@ -30,6 +30,7 @@ Attributes:
     GENERIC_PARSER (~argparse.ArgumentParser): A standard argparser with arguments for use in :mod:`minerva`.
         Can be used as the basis for a user defined extended argparser.
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -60,12 +61,12 @@ import requests
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
-import wandb
 import yaml
 from omegaconf import DictConfig, ListConfig, OmegaConf
 from wandb.sdk.lib import RunDisabled
 from wandb.sdk.wandb_run import Run
 
+import wandb
 from minerva.trainer import Trainer
 from minerva.utils import utils
 
@@ -316,7 +317,7 @@ def _run_preamble(
 
 
 def distributed_run(
-    run: Callable[[int, Optional[Run | RunDisabled], DictConfig], Any]
+    run: Callable[[int, Optional[Run | RunDisabled], DictConfig], Any],
 ) -> Callable[..., Any]:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
@@ -364,7 +365,6 @@ def distributed_run(
 def run_trainer(
     gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig
 ) -> None:
-
     trainer = Trainer(
         gpu=gpu,
         wandb_run=wandb_run,

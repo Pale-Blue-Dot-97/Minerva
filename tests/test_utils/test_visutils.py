@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.utils.visutils`.
-"""
+r"""Tests for :mod:`minerva.utils.visutils`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -235,7 +235,6 @@ def test_seg_plot(
     cache_dir: Path,
     monkeypatch,
 ) -> None:
-
     batch_size = 2
     n_batches = 2
 
@@ -354,7 +353,6 @@ def test_plot_results(
     std_batch_size: int,
     std_n_classes: int,
 ) -> None:
-
     plots = {
         "History": True,
         "Pred": True,

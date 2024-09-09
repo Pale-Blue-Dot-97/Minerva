@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 r"""Tests for :mod:`minerva.trainer`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -83,7 +84,6 @@ def run_trainer(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfi
 def test_trainer_1(default_config: DictConfig) -> None:
     with runner.WandbConnectionManager():
         if torch.distributed.is_available():  # type: ignore
-
             # Configure the arguments and environment variables.
             OmegaConf.update(default_config, "log_all", False, force_add=True)
             OmegaConf.update(default_config, "entity", None, force_add=True)
@@ -185,7 +185,6 @@ def test_trainer_4(
     cfg_args: dict[str, Any],
     kwargs: dict[str, Any],
 ) -> None:
-
     with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):
         cfg = hydra.compose(config_name=cfg_name)
 

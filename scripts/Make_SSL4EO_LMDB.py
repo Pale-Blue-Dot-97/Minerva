@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Script to make a LMBD file of the SSL4EO-S12 dataset.
-"""
+r"""Script to make a LMBD file of the SSL4EO-S12 dataset."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -50,7 +50,6 @@ from minerva.datasets.ssl4eos12 import MinervaSSL4EO, make_lmdb, random_subset
 #                                                      MAIN
 # =====================================================================================================================
 def main(args) -> None:
-
     # Make lmdb dataset.
     if args.make_lmdb_file:
         if os.path.isdir(args.save_path):
@@ -84,7 +83,6 @@ def main(args) -> None:
 
 
 if __name__ == "__main__":
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", type=str)
     parser.add_argument("--save_path", type=str)

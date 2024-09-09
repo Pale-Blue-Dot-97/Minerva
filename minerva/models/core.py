@@ -25,6 +25,7 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing core utility functions and abstract classes for :mod:`models`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -668,9 +669,7 @@ def wrap_model(model, gpu: int, torch_compile: bool = False):
         and os.name != "nt"
     ):
         try:
-            _compiled_model: OptimizedModule = torch.compile(
-                model
-            )  # type:ignore[assignment]
+            _compiled_model: OptimizedModule = torch.compile(model)  # type:ignore[assignment]
             assert is_minerva_model(_compiled_model)
             assert isinstance(_compiled_model, OptimizedModule)
             model = _compiled_model

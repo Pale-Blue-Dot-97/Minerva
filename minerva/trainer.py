@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module containing the class :class:`~trainer.Trainer` to handle the fitting of neural networks."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -829,7 +830,6 @@ class Trainer:
             )
 
     def save_checkpoint(self) -> None:
-
         # Make sure that the path to the checkpoint exists.
         if not self.checkpoint_path.parent.exists():
             self.checkpoint_path.parent.mkdir(parents=True, exist_ok=True)

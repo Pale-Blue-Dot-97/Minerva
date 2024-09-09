@@ -59,7 +59,6 @@ from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, ut
 )
 @runner.distributed_run
 def main(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig) -> None:
-
     # Due to the nature of multiprocessing and its interaction with hydra, wandb and SLURM,
     # the actual code excuted in the job is contained in `run_trainer` in `runner`.
     #

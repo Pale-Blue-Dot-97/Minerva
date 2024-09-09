@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """These loggers are designed to handle the logging and analysis for a whole task."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================

@@ -41,6 +41,7 @@ Attributes:
     WGS84 (~rasterio.crs.CRS): WGS84 co-ordinate reference system acting as a default :class:`~rasterio.crs.CRS`
         for transformations.
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -169,7 +170,7 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 #                                                   DECORATORS
 # =====================================================================================================================
 def return_updated_kwargs(
-    func: Callable[..., tuple[Any, ...]]
+    func: Callable[..., tuple[Any, ...]],
 ) -> Callable[..., tuple[Any, ...]]:
     """Decorator that allows the `kwargs` supplied to the wrapped function to be returned with updated values.
 
@@ -1210,7 +1211,9 @@ def find_best_of(
 
     # Re-indexes the DataFrame to datetime
     patch_df.set_index(
-        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"), drop=True, inplace=True  # type: ignore
+        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"),
+        drop=True,
+        inplace=True,  # type: ignore
     )
 
     # Sends DataFrame to scene_selection() and returns the selected scenes
@@ -1432,9 +1435,7 @@ def print_class_dist(
     print(tabulate(df, headers="keys", tablefmt="psql"))  # type: ignore
 
 
-def batch_flatten(
-    x: NDArray[Any, Any] | ArrayLike
-) -> NDArray[Shape["*"], Any]:  # noqa: F722
+def batch_flatten(x: NDArray[Any, Any] | ArrayLike) -> NDArray[Shape["*"], Any]:  # noqa: F722
     """Flattens the supplied array with :func:`numpy`.
 
     Args:
