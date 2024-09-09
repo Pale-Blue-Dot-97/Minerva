@@ -133,7 +133,6 @@ import pandas as pd
 import psutil
 import rasterio as rt
 import torch
-from geopy.adapters import AdapterHTTPError
 from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Photon
 from nptyping import Float, Int, NDArray, Shape
@@ -152,7 +151,6 @@ from torch.nn.modules import Module
 from torch.types import _device
 from torchgeo.datasets.utils import BoundingBox
 from tqdm import trange
-from urllib3.exceptions import NewConnectionError
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
 from minerva.utils import universal_path, visutils
@@ -792,7 +790,8 @@ def lat_lon_to_loc(lat: str | float, lon: str | float) -> str:
         query = geolocator.reverse(f"{lat},{lon}")
 
     # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
-    except (GeocoderUnavailable, NewConnectionError, AdapterHTTPError):
+    # Using a bare except here as exception types used previously didn't always cover a connection issue.
+    except:  # noqa: E722
         raise GeocoderUnavailable("\nGeocoder unavailable")
 
     else:
