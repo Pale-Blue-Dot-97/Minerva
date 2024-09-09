@@ -5,7 +5,7 @@ The most comprehensive way to config an experiment in ``minerva`` is to use ``YA
 This guide will walk through all the possible config options and their structure.
 It will also explain how to use the config file for an experiment.
 
-A good example to look at is ``example_config.yml``
+A good example to look at is ``example_config.yaml``
 
 .. code-block:: yaml
     :caption: The ``example_config.yml`` demonstrating how to construct a master config to define an experiment in ``minerva``.
@@ -20,59 +20,63 @@ A good example to look at is ``example_config.yml``
     #                          EXAMPLE MASTER CONFIG FILE
     #
     # === PATHS ===================================================================
-    dir:
-        data: tests/tmp/data
-        configs:
-            data_config: Chesapeake7.yml
-            imagery_config: NAIP.yml
-        results: tests/tmp/results
-        cache: tests/tmp/cache
+    data_root: tests/fixtures/data
+    results_dir: tests/tmp/results
+    cache_dir: tests/tmp/cache
 
     # === HYPERPARAMETERS =========================================================
     # ---+ Model Specification +---------------------------------------------------
-    # Name of model. Substring before hyphen is model class.
-    model_name: FCN32ResNet18-MkI
+    # Name of model. This no longer used for model class (see model_params).
+    model_name: FCN32ResNet18-test
 
-    # Type of model. Can be mlp, scene_classifier, segmentation, ssl or siamese.
+    # Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.
     model_type: segmentation
 
     # ---+ Sizing +----------------------------------------------------------------
-    batch_size: 8                         # Number of samples in each batch.
-    patch_size: &patch_size [32, 32]      # 2D tuple or float.
-    input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
-    n_classes: &n_classes 8               # Number of classes in dataset.
+    batch_size: 8                               # Number of samples in each batch.
+    input_size: [4, 32, 32]   # patch_size plus leading channel dim.
+    patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
+    n_classes: 8                                   # Number of classes in dataset.
 
-    # ---+ Loss and Optimisers +---------------------------------------------------
-    loss_func: CrossEntropyLoss           # Name of the loss function to use.
+    # ---+ Experiment Execution +--------------------------------------------------
+    max_epochs: 4                         # Maximum number of training epochs.
+    pre_train: false                      # Activate pre-training mode.
+    fine_tune: false                      # Activate fine-tuning mode.
+    elim: true                            # Eliminates empty classes from schema.
+    balance: true                         # Balances dataset classes.
+    torch_compile: true                   # Wrap model in `torch.compile`.
+
+    # ---+ Optimisers +---------------------------------------------------
     lr: 1.0E-2                            # Learning rate of optimiser.
     optim_func: SGD                       # Name of the optimiser function.
 
-    # ---+ Miscellaneous +---------------------------------------------------------
-    max_epochs: 5                         # Maximum number of training epochs.
-    sample_pairs: false                   # Activates Siamese paired sampling.
-    elim: true                            # Eliminates empty classes from schema.
-    balance: true                         # Balances dataset classes.
-    pre_train: false                      # Activate pre-training mode.
-    fine_tune: false                      # Activate fine-tuning mode.
-
     # ---+ Model Parameters +------------------------------------------------------
     model_params:
-        input_size: *input_size
-        n_classes: *n_classes
-        # any other params...
+    _target_: minerva.models.FCN32ResNet18
+    input_size: ${input_size}
+    n_classes: ${n_classes}
+    # any other params...
 
     # ---+ Optimiser Parameters +--------------------------------------------------
-    optim_params:
-        params:
+    optimiser:
+    _target_: torch.optim.${optim_func}
+    lr: ${lr}
+
+    # ---+ Scheduler Parameters +--------------------------------------------------
+    scheduler:
+    _target_: torch.optim.lr_scheduler.LinearLR
+    start_factor: 1.0
+    end_factor: 0.5
+    total_iters: 5
 
     # ---+ Loss Function Parameters +----------------------------------------------
     loss_params:
-        params:
+    _target_: torch.nn.CrossEntropyLoss
 
     # ---+ Dataloader Parameters +-------------------------------------------------
     loader_params:
-        num_workers: 1
-        pin_memory: true
+    num_workers: 0
+    pin_memory: true
 
     # === MODEL IO & LOGGING ======================================================
     # ---+ wandb Logging +---------------------------------------------------------
@@ -80,122 +84,108 @@ A good example to look at is ``example_config.yml``
     project: pytest              # Define the project name for wandb.
     wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
-    # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
-    logger: STGLogger
-    metrics: SPMetrics
-    model_io: sup_tg
-
-    record_int: true    # Store integer results in memory.
-    record_float: true  # Store floating point results too. Beware memory overload!
-
     # ---+ Collator +--------------------------------------------------------------
-    collator:
-        module: torchgeo.datasets
-        name: stack_samples
+    collator: torchgeo.datasets.stack_samples
 
-    # === DATASET PARAMETERS ======================================================
-    dataset_params:
-        # Training Dataset
-        train:
-            image:
-                images_1:
-                    module: minerva.datasets
-                    name: TstImgDataset
-                    root: test_images
-                    params:
-                        res: 1.0
+    # === TASKS ===================================================================
+    tasks:
+    fit-train:
+        _target_: minerva.tasks.StandardEpoch
+        train: true
+        record_float: true
 
-                image2:
-                    module: minerva.datasets
-                    name: TstImgDataset
-                    root: test_images
-                    params:
-                        res: 1.0
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
 
-            mask:
-                module: minerva.datasets
-                name: TstMaskDataset
-                root: test_lc
-                params:
-                    res: 1.0
-
-        # Validation Dataset
-        val:
-            image:
-                module: minerva.datasets
-                name: TstImgDataset
-                root: test_images
-                params:
-                    res: 1.0
-
-            mask:
-                module: minerva.datasets
-                name: TstMaskDataset
-                root: test_lc
-                params:
-                    res: 1.0
-
-        # Test Dataset
-        test:
-            image:
-                module: minerva.datasets
-                name: TstImgDataset
-                root: test_images
-                params:
-                    res: 1.0
-
-            mask:
-                module: minerva.datasets
-                name: TstMaskDataset
-                root: test_lc
-                params:
-                    res: 1.0
-
-    # === SAMPLER PARAMETERS ======================================================
-    sampler_params:
-        # Training Dataset Sampler
-        train:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: false
-            params:
-                size: *patch_size
-                length: 120
-
-        # Validation Dataset Sampler
-        val:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: false
-            params:
-                size: *patch_size
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                _target_: torchgeo.samplers.RandomGeoSampler
+                roi: false
+                size: ${patch_size}
                 length: 32
 
-        # Test Dataset Sampler
-        test:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: false
-            params:
-                size: *patch_size
+            image:
+                transforms: false
+                subdatasets:
+                    images_1:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
+                        res: 1.0
+
+                    image2:
+                        _target_: minerva.datasets.__testing.TstImgDataset
+                        paths: NAIP
+                        res: 1.0
+
+            mask:
+                transforms: false
+                _target_: minerva.datasets.__testing.TstMaskDataset
+                paths: Chesapeake7
+                res: 1.0
+
+    fit-val:
+        _target_: minerva.tasks.StandardEpoch
+        train: false
+        record_float: true
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
+        model_io: minerva.modelio.supervised_torchgeo_io
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                _target_: torchgeo.samplers.RandomGeoSampler
+                roi: false
+                size: ${patch_size}
                 length: 32
 
-    # === TRANSFORM PARAMETERS ====================================================
-    transform_params:
-        # Training Dataset Transforms
-        train:
-            image: false
-            mask: false
+            image:
+                transforms: false
+                _target_: minerva.datasets.__testing.TstImgDataset
+                paths: NAIP
+                res: 1.0
 
-        # Validation Dataset Transforms
-        val:
-            image: false
-            mask: false
+            mask:
+                transforms: false
+                _target_: minerva.datasets.__testing.TstMaskDataset
+                paths: Chesapeake7
+                res: 1.0
 
-        # Test Dataset Transforms
-        test:
-            image: false
-            mask: false
+    test-test:
+        _target_: minerva.tasks.StandardEpoch
+        record_float: true
+
+        imagery_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/NAIP.yaml}}'  # yamllint disable-line rule:line-length
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}'  # yamllint disable-line rule:line-length
+
+        # ---+ Minerva Inbuilt Logging Functions +-------------------------
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
+        model_io: minerva.modelio.supervised_torchgeo_io
+
+        # ---+ Dataset Parameters +----------------------------------------
+        dataset_params:
+            sampler:
+                _target_: torchgeo.samplers.RandomGeoSampler
+                roi: false
+                size: ${patch_size}
+                length: 32
+
+            image:
+                transforms: false
+                _target_: minerva.datasets.__testing.TstImgDataset
+                paths: NAIP
+                res: 1.0
+
+            mask:
+                transforms: false
+                _target_: minerva.datasets.__testing.TstMaskDataset
+                paths: Chesapeake7
+                res: 1.0
 
     # === PLOTTING OPTIONS ========================================================
     plots:
@@ -210,8 +200,8 @@ A good example to look at is ``example_config.yml``
     # === MISCELLANEOUS OPTIONS ===================================================
     # ---+ Early Stopping +--------------------------------------------------------
     stopping:
-        patience: 2    # No. of val epochs with increasing loss before stopping.
-        verbose: true  # Verbosity of early stopping prints to stdout.
+    patience: 1    # No. of val epochs with increasing loss before stopping.
+    verbose: true  # Verbosity of early stopping prints to stdout.
 
     # ---+ Verbosity and Saving +--------------------------------------------------
     verbose: true           # Verbosity of Trainer print statements to stdout.
@@ -234,52 +224,37 @@ A good example to look at is ``example_config.yml``
 Paths
 -----
 
-Paths to required directories are contained in the ``dir`` sub-dictionary with these keys:
+Paths to required directories are defined in the ``data_root``, ``results_dir`` and ``cache_dir`` keys.
 
 .. code-block:: yaml
     :caption: Example ``dir`` dictionary describing the paths to directories needed in experiment.
 
-    dir:
-        data: tests/tmp/data
-        configs:
-            data_config: Chesapeake7.yml
-            imagery_config: NAIP.yml
-        results: tests/tmp/results
-        cache: tests/tmp/cache
+    # === PATHS ===================================================================
+    data_root: tests/fixtures/data
+    results_dir: tests/tmp/results
+    cache_dir: tests/tmp/cache
 
-
-.. py:data:: data
+.. py:data:: data_root
 
     Path to the data directory where the input data is stored within. Can be relative or absolute.
-    Either defined as a string or a list of sequencial levels describing the path.
 
-    :type: str | list
+    :type: str
 
 
-.. py:data:: cache
+.. py:data:: cache_dir
 
     Path to the cache directory storing dataset manifests and a place to output the latest / best version
-    of a model. Can be relative or absolute. Either defined as a string or a list of sequencial levels
-    describing the path.
+    of a model. Can be relative or absolute.
 
-    :type: str | list
+    :type: str
 
 
-.. py:data:: results
+.. py:data:: results_dir
 
     Path to the results directory where the results from all experiments will be stored.
-    Can be relative or absolute. Either defined as a string or a list of sequencial levels
-    describing the path.
+    Can be relative or absolute.
 
-    :type: str | list
-
-
-.. py:data:: configs
-
-    Dictionary with two keys giving the paths to the auxillary configs:
-    ``imagery_config`` and ``data_config``.
-
-    :type: dict
+    :type: str
 
 
 Hyperparameters
@@ -287,7 +262,7 @@ Hyperparameters
 
 This section of the config file covers hyperparmeters of the model and experiment.
 The most important of these are now top-level variables in the config.
-Most are also accessible from the CLI and thus are mostly not ``list`` or ``dict``.
+Most are also accessible from the CLI.
 
 Model Specification
 ^^^^^^^^^^^^^^^^^^^
@@ -299,7 +274,7 @@ These parameters focus on defining the model, such as class, version and type.
     # Name of model. Substring before hyphen is model class.
     model_name: FCN32ResNet18-MkI
 
-    # Type of model. Can be mlp, scene_classifier, segmentation, ssl or siamese.
+    # Type of model.
     model_type: segmentation
 
 .. py:data:: model_name
@@ -326,10 +301,10 @@ These parameters concern the shapes and sizes of the IO to the model.
 
 .. code-block:: yaml
 
-    batch_size: 8                         # Number of samples in each batch.
-    patch_size: &patch_size [32, 32]      # 2D tuple or float.
-    input_size: &input_size [4, 32, 32]   # patch_size plus leading channel dim.
-    n_classes: &n_classes 8               # Number of classes in dataset.
+    batch_size: 8             # Number of samples in each batch.
+    patch_size: [32, 32]      # 2D tuple or float.
+    input_size: [4, 32, 32]   # patch_size plus leading channel dim.
+    n_classes: 8              # Number of classes in dataset.
 
 .. py:data:: batch_size
 
