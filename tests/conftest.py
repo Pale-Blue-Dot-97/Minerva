@@ -104,7 +104,7 @@ def use_detect_anomaly(request):
 def results_dir() -> Generator[Path, None, None]:
     path = Path(__file__).parent / "tmp" / "results"
     if not path.exists():
-        path.mkdir(parents=True)
+        path.mkdir(parents=True, exist_ok=True)
 
     yield path
     if path.exists():
@@ -115,7 +115,7 @@ def results_dir() -> Generator[Path, None, None]:
 def cache_dir() -> Generator[Path, None, None]:
     path = Path(__file__).parent / "tmp" / "cache"
     if not path.exists():
-        path.mkdir(parents=True)
+        path.mkdir(parents=True, exist_ok=True)
 
     yield path
     if path.exists():
