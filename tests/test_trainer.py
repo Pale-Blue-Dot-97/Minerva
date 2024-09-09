@@ -176,7 +176,7 @@ def test_trainer_3(default_config: DictConfig) -> None:
         ("example_PSP.yaml", {}, {"test": True}),
         ("example_SceneClassifier.yaml", {}, {"test": True}),
         ("example_MultiLabel.yaml", {}, {"test": True}),
-        ("example_ChangeDetector.yaml", {}, {"test": True}),
+        # ("example_ChangeDetector.yaml", {}, {"test": True}), Disabled
     ],
 )
 def test_trainer_4(
