@@ -142,7 +142,7 @@ def get_subdataset(
     key: str,
     transformations: Optional[Any],
     sample_pairs: bool = False,
-    cache: bool = True,
+    cache: bool = False,
     cache_dir: str | Path = "",
     auto_norm: bool = False,
 ) -> GeoDataset | NonGeoDataset:
@@ -158,7 +158,7 @@ def get_subdataset(
         key (str): The key for this subdataset within ``dataset_params``.
         transformations (~typing.Any): Transformations to apply to this sub-dataset.
         sample_pairs (bool): Will configure the dataset for paired sampling. Defaults to False.
-        cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
+        cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to False.
         cache_dir (str | ~pathlib.Path): Path to the directory to save the cached dataset (if ``cache==True``).
             Defaults to CWD.
 
@@ -262,7 +262,7 @@ def make_dataset(
     dataset_params: dict[Any, Any],
     sample_pairs: bool = False,
     change_detection: bool = False,
-    cache: bool = True,
+    cache: bool = False,
     cache_dir: str | Path = "",
 ) -> tuple[Any, list[Any]]:
     """Constructs a dataset object from ``n`` sub-datasets given by the parameters supplied.
@@ -275,7 +275,7 @@ def make_dataset(
             correctly in the datasets.
         change_detection (bool): Flag for a change detection dataset which has
             ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
-        cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to True.
+        cache (bool): Cache the dataset or load from cache if pre-existing. Defaults to False.
         cache_dir (str | ~pathlib.Path): Path to the directory to save the cached dataset (if ``cache==True``).
             Defaults to CWD.
 
@@ -470,7 +470,7 @@ def construct_dataloader(
     world_size: int = 1,
     sample_pairs: bool = False,
     change_detection: bool = False,
-    cache: bool = True,
+    cache: bool = False,
     cache_dir: Path | str = "",
 ) -> DataLoader[Iterable[Any]]:
     """Constructs a :class:`~torch.utils.data.DataLoader` object from the parameters provided for the
@@ -492,6 +492,9 @@ def construct_dataloader(
             for paired samples.
         change_detection (bool): Flag for if using a change detection dataset which has
             ``"image1"`` and ``"image2"`` keys rather than ``"image"``.
+        cache (bool): Cache the datasets or load from cache if pre-existing. Defaults to False.
+        cache_dir (str | ~pathlib.Path): Path to the directory to save the cached datasets to (if ``cache==True``).
+            Defaults to CWD.
 
     Returns:
         ~torch.utils.data.DataLoader: Object to handle the returning of batched samples from the dataset.
