@@ -1559,6 +1559,7 @@ def plot_results(
             fn_prefix=filenames["Mask"],
             classes=class_names,
             colours=colours,
+            frac=task_cfg.get("seg_plot_samples_frac", 0.05),
             fig_dim=figsize,
             model_name=model_name,
         )
