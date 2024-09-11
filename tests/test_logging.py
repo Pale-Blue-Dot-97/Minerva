@@ -100,9 +100,8 @@ def test_SupervisedStepLogger(
     else:
         writer = tensorboard_writer(log_dir=path)
 
-    model = FCN16ResNet18(x_entropy_loss, input_size=(4, *small_patch_size)).to(
-        default_device
-    )
+    input_size = (4, *small_patch_size)
+    model = FCN16ResNet18(x_entropy_loss, input_size=input_size).to(default_device)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
     model.determine_output_dim()
@@ -117,6 +116,7 @@ def test_SupervisedStepLogger(
             task_name="pytest",
             n_batches=std_n_batches,
             batch_size=std_batch_size,
+            input_size=input_size,
             output_size=output_shape,
             record_int=True,
             record_float=True,
@@ -128,6 +128,7 @@ def test_SupervisedStepLogger(
         task_name="pytest",
         n_batches=std_n_batches,
         batch_size=std_batch_size,
+        input_size=input_size,
         output_size=output_shape,
         n_classes=std_n_classes,
         record_int=True,
@@ -182,6 +183,11 @@ def test_SupervisedStepLogger(
             std_n_batches,
             std_batch_size,
             *small_patch_size,
+        )
+        assert results["x"].shape == (
+            std_n_batches,
+            std_batch_size,
+            *input_size,
         )
         assert np.array(results["ids"]).shape == (std_n_batches, std_batch_size)
 
@@ -268,7 +274,8 @@ def test_SSLStepLogger(
     else:
         writer = tensorboard_writer(log_dir=path)
 
-    model: MinervaSiamese = model_cls(criterion, input_size=(4, *small_patch_size)).to(
+    input_size = (4, *small_patch_size)
+    model: MinervaSiamese = model_cls(criterion, input_size=input_size).to(
         default_device
     )
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
@@ -282,6 +289,7 @@ def test_SSLStepLogger(
         task_name="pytest",
         n_batches=std_n_batches,
         batch_size=std_batch_size,
+        input_size=input_size,
         output_size=small_patch_size,
         record_int=True,
         record_float=True,
