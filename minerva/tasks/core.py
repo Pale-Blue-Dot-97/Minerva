@@ -206,6 +206,7 @@ class MinervaTask(ABC):
             del self.params["train"]
 
         self.gpu = gpu
+        self.rank = rank
 
         self.loaders = loaders
         self.class_dist = class_dist
