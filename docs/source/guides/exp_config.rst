@@ -279,16 +279,21 @@ These parameters focus on defining the model, such as class, version and type.
 
 .. py:data:: model_name
 
-    Name of the model. Should take the form ``{class_name}-{version}`` where ``class_name``
-    is a :class:`~minerva.models.MinervaModel` class name and ``version`` is any string that can be used
-    to differeniate version numbers of models and will be included in the ``exp_name`` used for results.
+    Name of the model. Used to create the unique ``exp_name`` that is created dynamically for each experiment run.
 
     :type: str
 
 
 .. py:data:: model_type
 
-    Type of model. Should be either ``"segmentation"``, ``"scene_classifier"``, ``"mlp"`` or ``"ssl"``.
+    Type of model. Can contain these key words seperated by hyphens:
+        * ``"segmentation"``
+        * ``"scene_classifier"``
+        * ``"mlp"``
+        * ``"ssl"``
+        * ``"siamese"``
+        * ``"change_detection"``
+        * ``"multilabel"``
 
     :type: str
     :value: "scene_classifier"
@@ -425,8 +430,9 @@ These are the parameters parsed to the model class to initiate it.
 .. code-block:: yaml
 
     model_params:
-        input_size: *input_size
-        n_classes: *n_classes
+        _target_: minerva.models.FCN32ResNet18
+        input_size: ${input_size}
+        n_classes: ${n_classes}
         # any other params...
 
 Two common parameters are:
@@ -443,7 +449,7 @@ Two common parameters are:
     :noindex:
 
     Number of possible classes to predict in output.
-    Best to parse :data:`n_classes` using ``*n_classes``.
+    Best to parse :data:`n_classes` using ``${n_classes}``.
 
     :type: int
 
@@ -458,9 +464,9 @@ If using a non-torch optimiser, use the ``module`` key to specify the import pat
 
 .. code-block:: yaml
 
-    optim_params:
-        params:
-
+    optimiser:
+        _target_: torch.optim.${optim_func}
+        lr: ${lr}
 
 Loss Paramaters
 ^^^^^^^^^^^^^^^
@@ -471,15 +477,16 @@ with the ``module`` key.
 
 .. code-block:: yaml
 
-    loss_params:
-        params:
+    loss:
+        _target_: torch.nn.${loss_func}
+        # any other params...
 
 Dataloader Paramaters
 ^^^^^^^^^^^^^^^^^^^^^
 
 Finally, this is where to define parameters for the
-:class:`~torch.utils.data.DataLoader`. Unlike the other ``x_params`` dicts,
-parameters are placed at the immediate ``loader_params`` level (not in a ``params`` key).
+:class:`~torch.utils.data.DataLoader`. Unlike other parameters, there is no ``_target_`` field
+as it is locked to ``DataLoader``.
 
 .. code-block:: yaml
 
@@ -514,9 +521,12 @@ and IO function using inbuilt ``minerva`` functionality:
 
 .. code-block:: yaml
 
-    logger: STGLogger
-    metrics: SPMetrics
-    model_io: sup_tg
+    task_logger: minerva.logger.tasklog.SupervisedTaskLogger
+    step_logger:
+        _target_: minerva.logger.steplog.SupervisedStepLogger
+        # any other params...
+
+    model_io: minerva.modelio.supervised_torchgeo_io
 
     record_int: true    # Store integer results in memory.
     record_float: true  # Store floating point results too. Beware memory overload!
@@ -567,265 +577,18 @@ Collator
 ^^^^^^^^
 
 The collator is the function that collates the samples from the datset to make a mini-batch. It can be
-defined using the simple ``collator`` :class:`dict`.
+defined using the simple ``collator`` param at the global-level.
 
 .. code-block:: yaml
 
-    collator:
-        module: torchgeo.datasets
-        name: stack_samples
+    collator: torchgeo.datasets.stack_samples
 
 
-.. py:data:: module
-    :noindex:
+.. py:data:: collator
 
-    Name of module that collator function can be imported from.
+    Dot-based import path to the desired collator.
 
     :type: str
-
-
-.. py:data:: name
-    :noindex:
-
-    Name of collator function.
-
-    :type: str
-
-
-Dataset Parameters
-------------------
-
-To define what datasets to use in the experiment, use the ``dataset_params`` dictionary in the following structure.
-
-.. code-block:: yaml
-    :caption: Example ``dataset_params`` defining train, validation and test datasets with image and mask sub-datasets.
-
-    dataset_params:
-    # Training Dataset
-    train:
-        image:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP/NAIP 2013/Train
-            params:
-                res: 1.0
-        mask:
-            module: torchgeo.datasets
-            name: Chesapeake13
-            root: Chesapeake13
-            params:
-                res: 1.0
-                download: False
-                checksum: False
-
-    # Validation Dataset
-    val:
-        image:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP/NAIP 2013/Validation
-            params:
-                res: 1.0
-        mask:
-            module: torchgeo.datasets
-            name: Chesapeake13
-            root: Chesapeake13
-            params:
-                res: 1.0
-                download: False
-
-    # Test Dataset
-    test:
-        image:
-            module: torchgeo.datasets
-            name: NAIP
-            root: NAIP/NAIP 2013/Test
-            params:
-                res: 1.0
-        mask:
-            module: torchgeo.datasets
-            name: Chesapeake13
-            root: Chesapeake13
-            params:
-                res: 1.0
-                download: False
-
-
-The first level of keys defines the modes of model fitting: ``"train"``, ``"val"`` and ``"test"``.
-The presence (or not) of these keys in ``dataset_params`` defines which modes of fitting will be conducted.
-Currently, ``"train"`` and ``"val"`` must be present with ``"test"`` being optional.
-
-The keys within each mode define the sub-datasets that will be intersected together to form
-the dataset for that mode. Currently, only ``"image"`` and ``"mask"`` keys are allowed, in line with
-:mod:`torchgeo` use of the same keys.
-
-Within each sub-dataset params, there are four possible keys:
-
-.. py:data:: module
-
-    Defines the module the dataset class is in.
-
-    :type: str
-    :value: "torchgeo.datasets"
-
-
-.. py:data:: name
-
-    Name of the dataset class that is within ``module``.
-
-    :type: str
-
-
-.. py:data:: root
-
-    Path from the data directory (given in ``dir["data"]``) to the directory containing the sub-dataset data.
-
-    :type: str
-
-
-.. py:data:: params
-
-    Arguments to the dataset class (excluding ``root``).
-
-    :type: Dict[str, Any]
-
-
-Sampler Parameters
-------------------
-
-Defining the samplers used to provide indices from the dataset to samples is done in a
-similar structure to ``dataset_params``. The first level is again the modes of model fitting.
-These keys *MUST* match those in ``dataset_params``.
-
-.. code-block:: yaml
-    :caption: Exampler ``sampler_params``.
-
-    sampler_params:
-        # Training Dataset Sampler
-        train:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: False
-            params:
-                size: 224
-                length: 96000
-
-        # Validation Dataset Sampler
-        val:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: False
-            params:
-                size: 224
-                length: 3200
-
-        # Test Dataset Sampler
-        test:
-            module: torchgeo.samplers
-            name: RandomGeoSampler
-            roi: False
-            params:
-                size: 224
-                length: 9600
-
-
-There is only a sampler for the overall intersected and unionised dataset, not for each sub-dataset.
-Within each mode, there are 4 recognised keys again:
-
-
-.. py:data:: module
-    :noindex:
-
-    Module name that the sampler class resides in.
-
-    :type: str
-
-
-.. py:data:: name
-    :noindex:
-
-    Name of sampler class within ``module``.
-
-    :type: str
-
-
-.. py:data:: roi
-
-    Region-of-interest. Providing ``False`` uses dataset ROI. Else, one can provide a 6-element :class:`tuple`
-    in the order ``minx``, ``maxx``, ``miny``, ``maxy``, ``mint`` and ``maxt`` that defines a reduced area
-    to sample from that are within the dataset ROI.
-
-    :type: Literal[False] | Tuple[float, float, float, float, float, float]
-
-
-.. py:data:: params
-    :noindex:
-
-    Arguments to sampler constructor (excluding ROI).
-
-    :type: dict
-
-
-Transform Parameters
---------------------
-
-The ``transform_params`` follows a similar structure as ``dataset_params`` and ``sampler_params`` but with
-some extra functionality in order and types of transforms that can be specified.
-
-Again, the first level of keys is the modes of model fitting and these *MUST* match those in ``dataset_params``.
-
-.. code-block:: yaml
-    :caption: Example ``transform_params``.
-
-    transform_params:
-        # Training Dataset Transforms
-        train:
-            image:
-                Normalise:
-                    module: minerva.transforms
-                    norm_value: 255
-                RandomHorizontalFlip:
-                    module: torchvision.transforms
-                RandomVerticalFlip:
-                    module: torchvision.transforms
-                RandomResizedCrop:
-                    module: torchvision.transforms
-                    size: 224
-                GaussianBlur:
-                    module: torchvision.transforms
-                    kernel_size: 25
-
-        # Validation Dataset Transforms
-        val:
-            image:
-                Normalise:
-                    module: minerva.transforms
-                    norm_value: 255
-                RandomHorizontalFlip:
-                    module: torchvision.transforms
-                RandomVerticalFlip:
-                    module: torchvision.transforms
-                RandomResizedCrop:
-                    module: torchvision.transforms
-                    size: 224
-                GaussianBlur:
-                    module: torchvision.transforms
-                    kernel_size: 25
-
-
-The transforms are added to each sub-datasets, not the overall intersected dataset of the mode.
-So the next level down is the sub-dataset keys which again must match the same ones provided for that
-mode in ``dataset_params``.
-
-Within each sub-dataset, the transforms are defined. Each key is the name of the transform class.
-The order the transforms are given is respected.
-
-Within each transform :class:`dict`, the ``module`` key again gives the module name.
-The default is ``"torchvison.transforms"``. All other keys given are parsed to the transform constructor.
-
-There is one exception to this structure and that is the use of :class:`~torchvision.transforms.RandomApply`.
-If the transform key is :class:`~torchvision.transforms.RandomApply`` then transforms can be provided within that :class:`dict` in the same
-structure with the addition of a ``p`` key that gives the propability that the transforms within are applied.
 
 
 Plots Dictionary
