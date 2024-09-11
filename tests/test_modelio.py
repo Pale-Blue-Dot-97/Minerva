@@ -55,6 +55,7 @@ from torchgeo.datasets.utils import BoundingBox
 
 from minerva.modelio import autoencoder_io, ssl_pair_torchgeo_io, supervised_torchgeo_io
 from minerva.models import FCN32ResNet18, SimCLR34
+from minerva.utils.utils import mask_to_ohe
 
 
 # =====================================================================================================================
@@ -79,20 +80,27 @@ def test_supervised_torchgeo_io(
         batch: dict[str, Tensor | list[Any]] = {
             "image": random_rgbi_batch,
             "mask": random_mask_batch,
-            "bbox": bboxes,
+            "bounds": bboxes,
         }
 
         results = supervised_torchgeo_io(batch, model, default_device, train)
 
-        assert isinstance(results[0], Tensor)
-        assert isinstance(results[1], Tensor)
-        assert results[1].size() == (
+        assert isinstance(results[0], Tensor)  # Loss
+
+        # Images
+        assert_array_equal(results[1].detach().cpu(), batch["image"].detach().cpu())
+
+        # Ground truth
+        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())  # type: ignore[union-attr]
+
+        # Predictions
+        assert results[3].size() == (
             std_batch_size,
             std_n_classes,
             *rgbi_input_size[1:],
         )
-        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())  # type: ignore[union-attr]
-        assert results[3] == batch["bbox"]
+        # Bounds/ index
+        assert results[4] == batch["bounds"]
 
 
 def test_ssl_pair_torchgeo_io(
@@ -112,7 +120,7 @@ def test_ssl_pair_torchgeo_io(
 
         batch_1 = {
             "image": images_1,
-            "bbox": bboxes_1,
+            "bounds": bboxes_1,
         }
 
         images_2 = torch.rand(size=(std_batch_size, *rgbi_input_size))
@@ -120,18 +128,33 @@ def test_ssl_pair_torchgeo_io(
 
         batch_2 = {
             "image": images_2,
-            "bbox": bboxes_2,
+            "bounds": bboxes_2,
         }
 
         results = ssl_pair_torchgeo_io((batch_1, batch_2), model, default_device, train)
 
+        # Loss
         assert isinstance(results[0], Tensor)
-        assert isinstance(results[1], Tensor)
-        assert results[1].size() == (2 * std_batch_size, 128)
+
+        # Images
+        assert_array_equal(
+            batch_1["image"].detach().cpu(), results[1][0].detach().cpu()
+        )
+        assert_array_equal(
+            batch_2["image"].detach().cpu(), results[1][1].detach().cpu()
+        )
+
+        # Predictions
+        assert isinstance(results[3], Tensor)
+        assert results[3].size() == (2 * std_batch_size, 128)
+
+        # Ground truth
         assert results[2] is None
-        assert isinstance(batch_1["bbox"], list)
-        assert isinstance(batch_2["bbox"], list)
-        assert results[3] == batch_1["bbox"] + batch_2["bbox"]
+
+        # Bounds/ index
+        assert isinstance(batch_1["bounds"], list)
+        assert isinstance(batch_2["bounds"], list)
+        assert results[4] == batch_1["bounds"] + batch_2["bounds"]
 
 
 def test_mask_autoencoder_io(
@@ -155,7 +178,7 @@ def test_mask_autoencoder_io(
         batch: dict[str, Tensor | list[Any]] = {
             "image": images,
             "mask": masks,
-            "bbox": bboxes,
+            "bounds": bboxes,
         }
 
         with pytest.raises(
@@ -175,15 +198,26 @@ def test_mask_autoencoder_io(
             n_classes=std_n_classes,
         )
 
-        assert isinstance(results[0], Tensor)
-        assert isinstance(results[1], Tensor)
-        assert results[1].size() == (
+        assert isinstance(results[0], Tensor)  # Loss
+
+        # Images are made from the masks in this case
+        input_masks = torch.stack(
+            tuple([mask_to_ohe(mask, std_n_classes) for mask in masks])
+        )
+        assert_array_equal(results[1].detach().cpu(), input_masks.detach().cpu())
+
+        # Ground truth
+        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())  # type: ignore[union-attr]
+
+        # Predictions
+        assert results[3].size() == (
             std_batch_size,
             std_n_classes,
             *rgbi_input_size[1:],
         )
-        assert_array_equal(results[2].detach().cpu(), batch["mask"].detach().cpu())  # type: ignore[union-attr]
-        assert results[3] == batch["bbox"]
+
+        # Bounds/ index
+        assert results[4] == batch["bounds"]
 
 
 def test_image_autoencoder_io(
@@ -206,15 +240,23 @@ def test_image_autoencoder_io(
         batch: dict[str, Tensor | list[Any]] = {
             "image": random_rgbi_batch,
             "mask": random_mask_batch,
-            "bbox": bboxes,
+            "bounds": bboxes,
         }
 
         results = autoencoder_io(
             batch, model, default_device, train, autoencoder_data_key="image"
         )
 
-        assert isinstance(results[0], Tensor)
-        assert isinstance(results[1], Tensor)
-        assert results[1].size() == (std_batch_size, *rgbi_input_size)
+        assert isinstance(results[0], Tensor)  # Loss
+
+        # Images
+        assert_array_equal(results[1].detach().cpu(), batch["image"].detach().cpu())
+
+        # Ground truth is the images in this case
         assert_array_equal(results[2].detach().cpu(), batch["image"].detach().cpu())  # type: ignore[union-attr]
-        assert results[3] == batch["bbox"]
+
+        # Predictions
+        assert results[3].size() == (std_batch_size, *rgbi_input_size)
+
+        # Bounds/ index
+        assert results[4] == batch["bounds"]
