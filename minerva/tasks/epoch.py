@@ -63,8 +63,8 @@ class StandardEpoch(MinervaTask):
 
     def step(self) -> None:
         # Initialises a progress bar for the epoch.
-        print(self.local_rank)
-        with tqdm(total=self.n_batches) if (self.gpu == 0 and self.rank == 1) else nullcontext() as bar:
+        print(self.rank)
+        with tqdm(total=self.n_batches) if (self.gpu == 0 and self.rank == 0) else nullcontext() as bar:
             # Sets the model up for training or evaluation modes.
             if self.train:
                 self.model.train()
