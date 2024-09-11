@@ -63,8 +63,8 @@ class StandardEpoch(MinervaTask):
 
     def step(self) -> None:
         # Initialises a progress bar for the epoch.
-        print("step rank / GPU:",self.rank,"/", self.gpu)
-        with tqdm(total=self.n_batches) if (self.gpu == 0 and self.rank == 0) else nullcontext() as bar:
+        
+        with tqdm(total=self.n_batches) if self.gpu == 0  else nullcontext() as bar:
             # Sets the model up for training or evaluation modes.
             if self.train:
                 self.model.train()
@@ -95,7 +95,7 @@ class StandardEpoch(MinervaTask):
                 self.local_step_num += 1
 
                 # Updates progress bar that batch has been processed.
-                if self.gpu == 0:
+                if self.gpu == 0 and self.rank == 0:
                     bar.update()  # type: ignore
 
         # If configured to do so, calculates the grad norms.
