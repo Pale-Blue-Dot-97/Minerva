@@ -786,7 +786,9 @@ def seg_plot(
         for i in random.sample(range(len(flat_ids)), n_samples):
             if isinstance(dataset, GeoDataset):
                 image = stack_rgb(
-                    x[i] if x is not None else dataset[index[i]]["image"].numpy(),
+                    torch.Tensor(x[i])
+                    if x is not None
+                    else dataset[index[i]]["image"].numpy(),
                     max_pixel_value,
                 )
                 sample = {
@@ -1393,7 +1395,7 @@ def plot_results(
     Args:
         plots (dict[str, bool]): Dictionary defining which plots to make.
         x (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): Optional; List of images supplied to the model.
-        y (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): Optional; List of corresponding ground truth label masks.
+        y (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): Optional; List of corresponding ground truth labels.
         z (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): Optional; List of predicted label masks.
         metrics (dict[str, ~typing.Any]): Optional; Dictionary containing a log of various metrics used to assess
             the performance of a model.
