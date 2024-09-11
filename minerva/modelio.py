@@ -69,8 +69,9 @@ def supervised_torchgeo_io(
     **kwargs,
 ) -> tuple[
     Tensor,
-    Tensor | tuple[Tensor, ...],
     Tensor,
+    Tensor,
+    Tensor | tuple[Tensor, ...],
     Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
 ]:
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
@@ -89,10 +90,13 @@ def supervised_torchgeo_io(
 
     Returns:
         tuple[
-            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
-        ]:
-        The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
-        of the input images supplied.
+            ~torch.Tensor,
+            ~torch.Tensor,
+            ~torch.Tensor,
+            ~torch.Tensor | tuple[~torch.Tensor, ...],
+            ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]: The ``loss``, the input supplied to the the model, ``x``, the ground truth, ``y``, the model output ``z``, the ``y`` supplied and the bounding boxes
+        of the original input images supplied.
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
     target_key = kwargs.get("target_key", "mask")
@@ -134,7 +138,7 @@ def supervised_torchgeo_io(
         get_sample_index(batch)
     )
 
-    return loss, z, y, index
+    return loss, x, y, z, index
 
 
 def change_detection_io(
@@ -145,8 +149,9 @@ def change_detection_io(
     **kwargs,
 ) -> tuple[
     Tensor,
-    Tensor | tuple[Tensor, ...],
     Tensor,
+    Tensor,
+    Tensor | tuple[Tensor, ...],
     Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
 ]:
     """Provides IO functionality for a change_detection model.
@@ -165,10 +170,13 @@ def change_detection_io(
 
     Returns:
         tuple[
-            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
-        ]:
-        The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
-        of the input images supplied.
+            ~torch.Tensor,
+            ~torch.Tensor,
+            ~torch.Tensor,
+            ~torch.Tensor | tuple[~torch.Tensor, ...],
+            ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]: The ``loss``, the input supplied to the the model, ``x``, the ground truth, ``y``, the model output ``z``, the ``y`` supplied and the bounding boxes
+        of the original input images supplied.
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
     target_key = kwargs.get("target_key", "mask")
@@ -214,7 +222,7 @@ def change_detection_io(
         get_sample_index(batch)
     )
 
-    return loss, z, y, index
+    return loss, x, y, z, index
 
 
 def autoencoder_io(
@@ -225,8 +233,9 @@ def autoencoder_io(
     **kwargs,
 ) -> tuple[
     Tensor,
-    Tensor | tuple[Tensor, ...],
     Tensor,
+    Tensor,
+    Tensor | tuple[Tensor, ...],
     Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
 ]:
     """Provides IO functionality for an autoencoder using :mod:`torchgeo` datasets by only using the same data
@@ -247,10 +256,13 @@ def autoencoder_io(
 
     Returns:
         tuple[
-            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
-        ]:
-        The ``loss``, the model output ``z``, the ground truth ``y`` supplied and the bounding boxes
-        of the input images supplied.
+            ~torch.Tensor,
+            ~torch.Tensor,
+            ~torch.Tensor,
+            ~torch.Tensor | tuple[~torch.Tensor, ...],
+            ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]: The ``loss``, the input supplied to the the model, ``x``, the ground truth, ``y``, the model output ``z``, the ``y`` supplied and the bounding boxes
+        of the original input images supplied.
 
     Raises:
         ValueError: If the value given for ``key`` is not ``"mask"`` or ``"image"``.
@@ -313,7 +325,7 @@ def autoencoder_io(
         get_sample_index(batch)
     )
 
-    return loss, z, y, index
+    return loss, x, y, z, index
 
 
 def ssl_pair_torchgeo_io(
@@ -323,6 +335,7 @@ def ssl_pair_torchgeo_io(
     train: bool,
     **kwargs,
 ) -> tuple[
+    Tensor,
     Tensor,
     Tensor | tuple[Tensor, ...],
     None,
@@ -343,8 +356,12 @@ def ssl_pair_torchgeo_io(
 
     Returns:
         tuple[
-            ~torch.Tensor, ~torch.Tensor, ~torch.Tensor, ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
-        ]: The ``loss``, the model output ``z``, the ``y`` supplied and the bounding boxes
+            ~torch.Tensor,
+            ~torch.Tensor,
+            None,
+            ~torch.Tensor | tuple[~torch.Tensor, ...],
+            ~typing.Sequence[~torchgeo.datasets.utils.BoundingBox] | None
+        ]: The ``loss``, the input supplied to the the model, ``x``, ``None`` (as there are no labels), the model output ``z``, the ``y`` supplied and the bounding boxes
         of the original input images supplied.
     """
     float_dtype = _determine_float_dtype(device, kwargs.get("mix_precision", False))
@@ -373,9 +390,9 @@ def ssl_pair_torchgeo_io(
     index_0, index_1 = get_sample_index(batch[0]), get_sample_index(batch[1])
 
     if index_0 is None or index_1 is None:
-        return loss, z, None, None
+        return loss, x, None, z, None
     else:
-        return loss, z, None, index_0 + index_1
+        return loss, x, None, z, index_0 + index_1
 
 
 def _determine_float_dtype(device: torch.device, mix_precision: bool) -> torch.dtype:

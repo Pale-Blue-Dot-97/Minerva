@@ -290,6 +290,7 @@ class MinervaTask(ABC):
             self.model.determine_output_dim(sample_pairs=self.sample_pairs)
 
         self.output_size = self.model.output_shape
+        self.input_size = self.model.input_size
 
         # Make the logger for this task.
         self.logger: MinervaTaskLogger = self.make_logger()
@@ -374,6 +375,7 @@ class MinervaTask(ABC):
             self.name,
             self.n_batches // self.log_rate,
             self.batch_size,
+            self.input_size,
             self.output_size,
             step_logger_params=utils.fallback_params(
                 "step_logger", self.params, self.global_params, {}

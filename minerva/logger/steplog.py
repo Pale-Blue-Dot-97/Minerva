@@ -124,6 +124,7 @@ class MinervaStepLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
+        input_size: tuple[int, int, int],
         output_size: tuple[int, ...],
         record_int: bool = True,
         record_float: bool = False,
@@ -135,6 +136,7 @@ class MinervaStepLogger(ABC):
         self.record_int = record_int
         self.record_float = record_float
         self.n_batches = n_batches
+        self.input_size = input_size
         self.output_size = output_size
         self.batch_size = batch_size
 
@@ -175,8 +177,9 @@ class MinervaStepLogger(ABC):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
+        z: Optional[Tensor] = None,
         index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
@@ -187,8 +190,9 @@ class MinervaStepLogger(ABC):
             global_step_num (int): The global step number of for the mode of model fitting.
             local_step_num (int): The local step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Optional; Output tensor from the model.
+            x (~torch.Tensor): Optional; Images supplied to the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
+            z (~torch.Tensor): Optional; Output tensor from the model.
             index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
@@ -270,6 +274,7 @@ class SupervisedStepLogger(MinervaStepLogger):
             * ``probs``
             * ``ids``
             * ``index``
+            * ``images``
 
         calc_miou (bool): Activates the calculating and logging of :term:`MIoU` for segmentation models.
             Places the metric in the ``total_miou`` key of ``logs``.
@@ -300,6 +305,7 @@ class SupervisedStepLogger(MinervaStepLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
+        input_size: tuple[int, int, int],
         output_size: tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
@@ -312,6 +318,7 @@ class SupervisedStepLogger(MinervaStepLogger):
             task_name,
             n_batches,
             batch_size,
+            input_size,
             output_size,
             record_int,
             record_float,
@@ -328,6 +335,7 @@ class SupervisedStepLogger(MinervaStepLogger):
         }
 
         self.results: dict[str, Any] = {
+            "x": None,
             "y": None,
             "z": None,
             "probs": None,
@@ -384,6 +392,8 @@ class SupervisedStepLogger(MinervaStepLogger):
                         *self.output_size,
                     )
 
+            images_shape = (self.n_batches, self.batch_size, *self.input_size)
+
             try:
                 self.results["probs"] = np.empty(float_log_shape, dtype=np.float16)
             except MemoryError:  # pragma: no cover
@@ -400,13 +410,19 @@ class SupervisedStepLogger(MinervaStepLogger):
                     "Dataset too large to record bounding boxes of samples!"
                 )
 
+            try:
+                self.results["x"] = np.empty(images_shape, dtype=np.float16)
+            except MemoryError:  # pragma: no cover
+                raise MemoryError("Dataset too large to record the images supplied!")
+
     def log(
         self,
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
+        z: Optional[Tensor] = None,
         index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
@@ -417,8 +433,9 @@ class SupervisedStepLogger(MinervaStepLogger):
             global_step_num (int): The global step number of the model fitting.
             local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Output tensor from the model.
-            y (~torch.Tensor): Labels to assess model output against.
+            x (~torch.Tensor): Optional; Images supplied to the model.
+            y (~torch.Tensor): Optional; Labels to assess model output against.
+            z (~torch.Tensor): Optional; Output tensor from the model.
             index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
@@ -456,9 +473,10 @@ class SupervisedStepLogger(MinervaStepLogger):
             self.results["ids"].append(batch_ids)
 
         if self.record_float:
-            # Add the estimated probabilities to probs.
+            # Add the floating point results to the logs.
             self.results["probs"][self.logs["batch_num"]] = z.detach().cpu().numpy()
             self.results["index"][self.logs["batch_num"]] = index
+            self.results["x"][self.logs["batch_num"]] = x.detach().cpu().numpy()
 
         # Computes the loss and the correct predictions from this step.
         ls = loss.item()
@@ -569,8 +587,9 @@ class KNNStepLogger(MinervaStepLogger):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
+        z: Optional[Tensor] = None,
         index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
@@ -581,8 +600,9 @@ class KNNStepLogger(MinervaStepLogger):
             global_step_num (int): The global step number of the model fitting.
             local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Output tensor from the model.
-            y (~torch.Tensor): Labels to assess model output against.
+            x (~torch.Tensor): Optional; Images supplied to the model.
+            y (~torch.Tensor): Optional; Labels to assess model output against.
+            z (~torch.Tensor): Optional; Output tensor from the model.
             index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
@@ -654,6 +674,7 @@ class SSLStepLogger(MinervaStepLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
+        input_size: tuple[int, int, int],
         output_size: tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
@@ -665,6 +686,7 @@ class SSLStepLogger(MinervaStepLogger):
             task_name,
             n_batches,
             batch_size,
+            input_size,
             output_size,
             record_int=record_int,
             record_float=record_float,
@@ -696,8 +718,9 @@ class SSLStepLogger(MinervaStepLogger):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
+        z: Optional[Tensor] = None,
         index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
@@ -708,8 +731,9 @@ class SSLStepLogger(MinervaStepLogger):
             global_step_num (int): The global step number of the model fitting.
             local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Optional; Output tensor from the model.
+            x (~torch.Tensor): Optional; Images supplied to the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
+            z (~torch.Tensor): Optional; Output tensor from the model.
             index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:

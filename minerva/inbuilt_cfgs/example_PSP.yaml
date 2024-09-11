@@ -74,7 +74,7 @@ wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 # ---+ Minerva Inbuilt Logging Functions +-------------------------------------
 
 record_int: true     # Store integer results in memory.
-record_float: false  # Store floating point results too. Beware memory overload!
+record_float: true   # Store floating point results too. Beware memory overload!
 
 # ---+ Collator +--------------------------------------------------------------
 collator: torchgeo.datasets.stack_samples
@@ -84,7 +84,6 @@ tasks:
     fit-train:
         _target_: minerva.tasks.StandardEpoch
         train: true
-        record_float: true
 
         seg_plot_samples_frac: 1.0
 
@@ -130,7 +129,6 @@ tasks:
     test-test:
         _target_: minerva.tasks.StandardEpoch
         train: false
-        record_float: true
 
         seg_plot_samples_frac: 1.0
 

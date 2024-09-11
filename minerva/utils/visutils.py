@@ -719,6 +719,7 @@ def seg_plot(
     classes: dict[int, str],
     colours: dict[int, str],
     fn_prefix: Optional[str | Path],
+    x: Optional[list[int] | NDArray[Any, Any]] = None,
     frac: float = 0.05,
     fig_dim: Optional[tuple[int | float, int | float]] = (9.3, 10.5),
     model_name: str = "",
@@ -784,7 +785,10 @@ def seg_plot(
     with tqdm(total=n_samples) as pbar:
         for i in random.sample(range(len(flat_ids)), n_samples):
             if isinstance(dataset, GeoDataset):
-                image = stack_rgb(dataset[index[i]]["image"].numpy(), max_pixel_value)
+                image = stack_rgb(
+                    x[i] if x is not None else dataset[index[i]]["image"].numpy(),
+                    max_pixel_value,
+                )
                 sample = {
                     "image": image,
                     "prediction": z[i],
@@ -806,7 +810,9 @@ def seg_plot(
 
             elif isinstance(dataset, NonGeoDataset) and hasattr(dataset, "plot"):
                 sample = {
-                    "image": dataset[index[i]]["image"],
+                    "image": torch.Tensor(x[i])
+                    if x is not None
+                    else dataset[index[i]]["image"],
                     "prediction": torch.LongTensor(z[i]),
                     "mask": torch.LongTensor(y[i]),
                     "index": index[i],
@@ -1364,8 +1370,9 @@ def format_plot_names(
 
 def plot_results(
     plots: dict[str, bool],
-    z: Optional[list[int] | NDArray[Any, Int]] = None,
+    x: Optional[list[int] | NDArray[Any, Int]] = None,
     y: Optional[list[int] | NDArray[Any, Int]] = None,
+    z: Optional[list[int] | NDArray[Any, Int]] = None,
     metrics: Optional[dict[str, Any]] = None,
     ids: Optional[list[str]] = None,
     index: Optional[NDArray[Any, Any]] = None,
@@ -1385,8 +1392,9 @@ def plot_results(
 
     Args:
         plots (dict[str, bool]): Dictionary defining which plots to make.
-        z (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): List of predicted label masks.
-        y (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): List of corresponding ground truth label masks.
+        x (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): Optional; List of images supplied to the model.
+        y (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): Optional; List of corresponding ground truth label masks.
+        z (list[list[int]] | ~numpy.ndarray[~numpy.ndarray[int]]): Optional; List of predicted label masks.
         metrics (dict[str, ~typing.Any]): Optional; Dictionary containing a log of various metrics used to assess
             the performance of a model.
         ids (list[str]): Optional; List of IDs defining the origin of samples to the model.
@@ -1430,14 +1438,15 @@ def plot_results(
 
     model_type = utils.fallback_params("model_type", task_cfg, global_cfg)
 
-    flat_z = None
     flat_y = None
+    flat_z = None
 
-    if z is not None:
-        flat_z = utils.batch_flatten(z)
-
+    if x is not None:
+        x = x.reshape(-1, *x.shape[-3:])
     if y is not None:
         flat_y = utils.batch_flatten(y)
+    if z is not None:
+        flat_z = utils.batch_flatten(z)
 
     if timestamp is None:
         timestamp = utils.timestamp_now(fmt="%d-%m-%Y_%H%M")
@@ -1532,8 +1541,8 @@ def plot_results(
     if plots.get("Mask", False):
         assert class_names is not None
         assert colours is not None
-        assert z is not None
-        assert y is not None
+        assert flat_z is not None
+        assert flat_y is not None
         assert ids is not None
         assert index is not None
 
@@ -1559,6 +1568,7 @@ def plot_results(
             fn_prefix=filenames["Mask"],
             classes=class_names,
             colours=colours,
+            x=x,
             frac=task_cfg.get("seg_plot_samples_frac", 0.05),
             fig_dim=figsize,
             model_name=model_name,

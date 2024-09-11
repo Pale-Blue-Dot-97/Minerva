@@ -96,6 +96,7 @@ class MinervaTaskLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
+        input_size: tuple[int, int, int],
         output_size: tuple[int, ...],
         step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
@@ -109,6 +110,7 @@ class MinervaTaskLogger(ABC):
         self.batch_size = batch_size
         self.n_samples = self.n_batches * self.batch_size
 
+        self.input_size = input_size
         self.output_size = output_size
         self.task_name = task_name
 
@@ -153,6 +155,7 @@ class MinervaTaskLogger(ABC):
             task_name=self.task_name,
             n_batches=self.n_batches,
             batch_size=self.batch_size,
+            input_size=self.input_size,
             output_size=self.output_size,
             record_int=self.record_int,
             record_float=self.record_float,
@@ -168,8 +171,9 @@ class MinervaTaskLogger(ABC):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
+        z: Optional[Tensor] = None,
         index: Optional[BoundingBox] = None,
         *args,
         **kwargs,
@@ -180,8 +184,9 @@ class MinervaTaskLogger(ABC):
             global_step_num (int): The global step number of the model fitting.
             local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Optional; Output tensor from the model.
+            x (~torch.Tensor): Optional; Images supplied to the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
+            z (~torch.Tensor): Optional; Output tensor from the model.
             index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
@@ -191,8 +196,9 @@ class MinervaTaskLogger(ABC):
             global_step_num,
             local_step_num,
             loss,
-            z,
+            x,
             y,
+            z,
             index,
             *args,
             **kwargs,
@@ -324,6 +330,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
+        input_size: tuple[int, int, int],
         output_size: tuple[int, ...],
         step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
@@ -336,6 +343,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             task_name,
             n_batches,
             batch_size,
+            input_size,
             output_size,
             step_logger_params,
             record_int,
@@ -423,6 +431,7 @@ class SSLTaskLogger(MinervaTaskLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
+        input_size: tuple[int, int, int],
         output_size: tuple[int, ...],
         step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
@@ -449,6 +458,7 @@ class SSLTaskLogger(MinervaTaskLogger):
             task_name,
             n_batches,
             batch_size,
+            input_size,
             output_size,
             step_logger_params,
             record_int,
