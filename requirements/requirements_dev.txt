@@ -2,14 +2,14 @@ argcomplete==3.5.0
 certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerability.
 fastapi>=0.101.0
 fiona>=1.9.1
-flake8==7.1.0
+flake8==7.1.1
 geopy==2.4.1
 GitPython>=3.1.35
 imageio==2.34.2
 inputimeout==1.0.4
 internet-sabotage3==0.1.6
 ipykernel==6.29.5
-lightly==1.5.11
+lightly==1.5.12
 matplotlib==3.9.0
 mlflow==2.15.1
 mypy==1.10.1
