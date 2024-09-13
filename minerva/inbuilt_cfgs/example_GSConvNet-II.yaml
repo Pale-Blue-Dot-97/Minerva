@@ -25,7 +25,6 @@ model_type: siamese-segmentation
 batch_size: 2                          # Number of samples in each batch.
 input_size: [4, 16, 16]                # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
-n_classes: 8                           # Number of classes in dataset.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                         # Maximum number of training epochs.
@@ -203,6 +202,7 @@ tasks:
         train: false
         record_float: true
         sample_pairs: false
+        n_classes: 8
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
         task_logger: minerva.logger.tasklog.SupervisedTaskLogger
