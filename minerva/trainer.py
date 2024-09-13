@@ -41,14 +41,11 @@ __all__ = ["Trainer"]
 # =====================================================================================================================
 import os
 import re
-import warnings
 from copy import deepcopy
 from pathlib import Path
-from platform import python_version
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import hydra
-import packaging
 import torch
 import yaml
 from inputimeout import TimeoutOccurred, inputimeout
@@ -395,21 +392,7 @@ class Trainer:
 
             # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
             # Will also wrap the model in torch.compile if specified to do so in params.
-            # TODO: Waiting on https://github.com/pytorch/pytorch/issues/120233 for torch.compile python 3.12 support.
-            if packaging.version.parse(python_version()) < packaging.version.parse(
-                "3.12"
-            ):
-                self.model = wrap_model(
-                    self.model, gpu, self.params.get("torch_compile", False)
-                )
-            elif packaging.version.parse(python_version()) >= packaging.version.parse(
-                "3.12"
-            ) and self.params.get("torch_compile"):
-                warnings.warn(
-                    "WARNING: python 3.12+ is not yet compatible with torch.compile. Disabling torch.compile"
-                )
-            else:
-                pass
+            self.model = wrap_model(self.model, gpu, self.params.get("torch_compile", False))
 
         self.checkpoint_path = self.exp_fn / (
             self.params["exp_name"] + "-checkpoint.pt"
