@@ -400,9 +400,10 @@ def test_plot_results(
 
     visutils.plot_results(
         plots,
-        z,
-        y,
-        metrics,
+        x=None,
+        y=y,
+        z=z,
+        metrics=metrics,
         probs=probs,
         index=bounds,
         embeddings=embeddings,
