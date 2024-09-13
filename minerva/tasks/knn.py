@@ -310,7 +310,13 @@ class WeightedKNN(MinervaTask):
                 loss = criterion(pred_scores, test_target.to(dtype=torch.long))
 
                 # Pack results together for the logger.
-                results = (loss, pred_scores, test_target, _)
+                results = (
+                    loss,
+                    test_data,
+                    test_target,
+                    pred_scores,
+                    utils.get_sample_index(batch),
+                )
 
                 # Gathers the losses across devices together if a distributed job.
                 if dist.is_available() and dist.is_initialized():  # pragma: no cover
