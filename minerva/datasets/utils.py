@@ -48,12 +48,12 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
-from alive_progress import alive_it
 from nptyping import NDArray
 from torch.utils.data import DataLoader
 from torchgeo.datasets import GeoDataset, IntersectionDataset, UnionDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
+from tqdm import tqdm
 
 from minerva.utils import utils
 
@@ -146,7 +146,7 @@ def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]
         :class:`~torch.utils.data.DataLoader`.
     """
     sample_modes: List[List[Tuple[int, int]]] = []
-    for sample in alive_it(dataloader):
+    for sample in tqdm(dataloader):
         modes = utils.find_modes(sample["mask"])
         sample_modes.append(modes)
 
