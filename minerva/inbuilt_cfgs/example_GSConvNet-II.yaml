@@ -26,8 +26,6 @@ batch_size: 2                          # Number of samples in each batch.
 input_size: [4, 16, 16]                # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 n_classes: 8                           # Number of classes in dataset.
-mix_precision: false                   # Activate mixed precision (16-bit)
-torch_compile: false                   # Wrap model in `torch.compile`.
 
 # ---+ Experiment Execution +--------------------------------------------------
 max_epochs: 2                         # Maximum number of training epochs.
@@ -35,6 +33,8 @@ elim: false                           # Eliminates empty classes from schema.
 balance: false                        # Balances dataset classes.
 pre_train: true                       # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
+mix_precision: true                   # Activate mixed precision (16-bit)
+torch_compile: true                   # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
 loss_func: SegBarlowTwinsLoss         # Name of the loss function to use.

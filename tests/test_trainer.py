@@ -126,6 +126,7 @@ def test_trainer_2(default_config: DictConfig, cache_dir: Path) -> None:
     params2.wandb_log = False
     params2.project = False
     params2.max_epochs = 2
+    del params2.stopping
 
     trainer2 = Trainer(0, **params2)
     if suffix == "onnx":
