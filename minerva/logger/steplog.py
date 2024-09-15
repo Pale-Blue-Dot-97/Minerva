@@ -446,6 +446,7 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         assert z is not None
         assert y is not None
+        assert x is not None
 
         if isinstance(z, tuple):  # type: ignore[unreachable]
             z = z[0]  # type: ignore[unreachable]

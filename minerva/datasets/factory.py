@@ -61,7 +61,7 @@ from omegaconf import OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
 from torch.utils.data import DataLoader
-from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
+from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset, UnionDataset
 from torchgeo.samplers.utils import _to_tuple
 
 from minerva.samplers import DistributedSamplerWrapper, get_sampler
@@ -285,7 +285,9 @@ def make_dataset(
     """
     # --+ MAKE SUB-DATASETS +=========================================================================================+
     # List to hold all the sub-datasets defined by dataset_params to be intersected together into a single dataset.
-    sub_datasets: list[GeoDataset] | list[NonGeoDataset | MinervaConcatDataset] = []
+    sub_datasets: (
+        list[GeoDataset | UnionDataset] | list[NonGeoDataset | MinervaConcatDataset]
+    ) = []
 
     if OmegaConf.is_config(dataset_params):
         dataset_params = OmegaConf.to_object(dataset_params)  # type: ignore[assignment]
@@ -392,12 +394,12 @@ def make_dataset(
         if multi_datasets_exist:
             if isinstance(type_subdatasets[0], GeoDataset):
                 sub_datasets.append(
-                    unionise_datasets(type_subdatasets, master_transforms)
-                )  # type: ignore[arg-type]
+                    unionise_datasets(type_subdatasets, master_transforms)  # type: ignore[arg-type]
+                )
             else:
                 sub_datasets.append(
-                    concatenate_datasets(type_subdatasets, master_transforms)
-                )  # type: ignore[arg-type]
+                    concatenate_datasets(type_subdatasets, master_transforms)  # type: ignore[arg-type]
+                )
 
         # Add the subdataset of this modality to the list.
         else:
