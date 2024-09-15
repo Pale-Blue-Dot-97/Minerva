@@ -33,7 +33,7 @@ elim: false                           # Eliminates empty classes from schema.
 balance: false                        # Balances dataset classes.
 pre_train: true                       # Activate pre-training mode.
 fine_tune: false                      # Activate fine-tuning mode.
-mix_precision: true                   # Activate mixed precision (16-bit)
+mix_precision: false                  # Activate mixed precision (16-bit)
 torch_compile: true                   # Wrap model in `torch.compile`.
 
 # ---+ Loss and Optimisers +---------------------------------------------------
