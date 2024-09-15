@@ -392,7 +392,9 @@ class Trainer:
 
             # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
             # Will also wrap the model in torch.compile if specified to do so in params.
-            self.model = wrap_model(self.model, gpu, self.params.get("torch_compile", False))
+            self.model = wrap_model(
+                self.model, gpu, self.params.get("torch_compile", False)
+            )
 
         self.checkpoint_path = self.exp_fn / (
             self.params["exp_name"] + "-checkpoint.pt"
