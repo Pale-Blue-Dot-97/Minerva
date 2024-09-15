@@ -8,7 +8,7 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/f961aed541494e4db7317bead5f84fef)](https://app.codacy.com/gh/Pale-Blue-Dot-97/Minerva/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![tests](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/tests.yml/badge.svg)
 [![Read the Docs](https://img.shields.io/readthedocs/smp?)](https://pale-blue-dot-97.github.io/Minerva/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Pale-Blue-Dot-97/Minerva/main.svg)](https://results.pre-commit.ci/latest/github/Pale-Blue-Dot-97/Minerva/main)
 [![codecov](https://codecov.io/gh/Pale-Blue-Dot-97/Minerva/graph/badge.svg?token=8TUR8A8XZ5)](https://codecov.io/gh/Pale-Blue-Dot-97/Minerva)
@@ -20,7 +20,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> v0.27</b>
+    <b style="font-size:26px;"> v0.28.0</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
@@ -57,7 +57,7 @@ datasets with upcoming support for [torchvision](https://pytorch.org/vision/stab
 
 Required Python modules for `minerva` are stated in the `setup.cfg`.
 
-`minerva` currently only supports `python` 3.9 -- 3.12.
+`minerva` currently only supports `python` 3.10 -- 3.12.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -70,25 +70,29 @@ initialising a Trainer and model, and fitting and testing that model then output
 ### MWE Driver Script 📄
 
 ```python
-from minerva.utils import CONFIG  # Module containing various utility functions.
+import hydra
+from omegaconf import DictConfig
+
 from minerva.trainer import Trainer  # Class designed to handle fitting of model.
 
 
-# Initialise a Trainer. Also creates the model.
-trainer = Trainer(**CONFIG)
+@hydra.main(version_base="1.3")
+def main(cfg: DictConfig) -> None:
+    # Initialise a Trainer. Also creates the model.
+    trainer = Trainer(**cfg)
 
-# Run the fitting (train and validation epochs).
-trainer.fit()
+    # Run the fitting (train and validation epochs).
+    trainer.fit()
 
-# Run the testing epoch and output results.
-trainer.test()
+    # Run the testing epoch and output results.
+    trainer.test()
 ```
 
 See `scripts\MinervaExp.py` as an example script implementing `minerva`.
 
 ### Config Structure ⚙
 
-See `minerva\inbuilt_cfgs\example_config.yml` as an example config file.
+See `minerva\inbuilt_cfgs\example_config.yaml` as an example config file.
 
 ### Creating a Manifest for your Dataset 📑
 
