@@ -124,7 +124,6 @@ def test_trainer_2(default_config: DictConfig, cache_dir: Path) -> None:
     OmegaConf.update(params2, "sample_pairs", "false", force_add=True)
     params2.plot_last_epoch = False
     params2.wandb_log = False
-    params2.project = False
     params2.max_epochs = 2
     del params2.stopping
 
