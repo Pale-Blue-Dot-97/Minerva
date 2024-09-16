@@ -15,7 +15,7 @@ numpy==1.26.4
 onnx==1.16.2
 onnx2torch==1.5.14
 overload==1.1
-pandas==2.2.1
+pandas==2.2.2
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability.
 psutil==6.0.0
 pyyaml==6.0.1
