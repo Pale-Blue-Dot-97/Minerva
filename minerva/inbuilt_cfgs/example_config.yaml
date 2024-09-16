@@ -70,7 +70,7 @@ loader_params:
 # === MODEL IO & LOGGING ======================================================
 # ---+ wandb Logging +---------------------------------------------------------
 wandb_log: true              # Activates wandb logging.
-project: pytest              # Define the project name for wandb.
+wandb_anonymous_mode: allow  # Set wandb to anonymous logging.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # ---+ Collator +--------------------------------------------------------------
