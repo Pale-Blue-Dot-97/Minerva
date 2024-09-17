@@ -118,4 +118,8 @@ def _run_func(
 
 
 def test_distributed_run(default_config: DictConfig) -> None:
+    # Disable wandb logging on Windows in CI/CD due to pwd.
+    if os.name == "nt":
+        OmegaConf.update(default_config, "wandb_log", False, force_add=True)
+
     _run_func(default_config)

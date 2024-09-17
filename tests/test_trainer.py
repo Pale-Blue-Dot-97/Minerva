@@ -33,9 +33,11 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
+
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
+import os
 import shutil
 from copy import deepcopy
 from pathlib import Path
@@ -88,12 +90,21 @@ def test_trainer_1(default_config: DictConfig) -> None:
             OmegaConf.update(default_config, "log_all", False, force_add=True)
             OmegaConf.update(default_config, "entity", None, force_add=True)
             OmegaConf.update(default_config, "project", "pytest", force_add=True)
-            OmegaConf.update(default_config, "wandb_log", True, force_add=True)
+
+            # Disable wandb logging on Windows in CI/CD due to pwd.
+            if os.name == "nt":
+                OmegaConf.update(default_config, "wandb_log", False, force_add=True)
+            else:
+                OmegaConf.update(default_config, "wandb_log", True, force_add=True)
 
             # Run the specified main with distributed computing and the arguments provided.
             run_trainer(default_config)
 
         else:
+            # Disable wandb logging on Windows in CI/CD due to pwd.
+            if os.name == "nt":
+                OmegaConf.update(default_config, "wandb_log", False, force_add=True)
+
             run_trainer(default_config)
 
 
