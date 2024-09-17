@@ -157,6 +157,7 @@ def test_trainer_3(default_config: DictConfig) -> None:
     params2["fine_tune"] = True
     params2["max_epochs"] = 2
     params2["elim"] = False
+    del params2.stopping
 
     trainer2 = Trainer(0, **params2)
     trainer2.fit()
