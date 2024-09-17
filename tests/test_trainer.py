@@ -86,15 +86,14 @@ def run_trainer(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfi
 def test_trainer_1(default_config: DictConfig) -> None:
     with runner.WandbConnectionManager():
         if torch.distributed.is_available():  # type: ignore
-            # Configure the arguments and environment variables.
-            OmegaConf.update(default_config, "log_all", False, force_add=True)
-            OmegaConf.update(default_config, "entity", None, force_add=True)
-            OmegaConf.update(default_config, "project", "pytest", force_add=True)
-
             # Disable wandb logging on Windows in CI/CD due to pwd.
             if os.name == "nt":
                 OmegaConf.update(default_config, "wandb_log", False, force_add=True)
             else:
+                # Configure the arguments and environment variables.
+                OmegaConf.update(default_config, "log_all", False, force_add=True)
+                OmegaConf.update(default_config, "entity", None, force_add=True)
+                OmegaConf.update(default_config, "project", "pytest", force_add=True)
                 OmegaConf.update(default_config, "wandb_log", True, force_add=True)
 
             # Run the specified main with distributed computing and the arguments provided.
