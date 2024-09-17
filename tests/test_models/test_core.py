@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.models.core`.
-"""
+r"""Tests for :mod:`minerva.models.core`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -38,10 +38,11 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 import importlib
 import os
-from typing import Tuple
+from platform import python_version
 
 import internet_sabotage
 import numpy as np
+import packaging
 import pytest
 import torch
 from pytest_lazyfixture import lazy_fixture
@@ -107,12 +108,12 @@ def test_minerva_model(x_entropy_loss, std_n_classes: int, std_n_batches: int) -
     for train in (True, False):
         loss, z = model.step(x, y, train=train)
 
-        assert type(loss.item()) is float
+        assert isinstance(loss.item(), float)
         assert isinstance(z, Tensor)
         assert z.size() == (std_n_batches, std_n_classes)
 
 
-def test_minerva_backbone(rgbi_input_size: Tuple[int, int, int]) -> None:
+def test_minerva_backbone(rgbi_input_size: tuple[int, int, int]) -> None:
     loss_func = NTXentLoss(0.3)
 
     model = SimCLR18(loss_func, input_size=rgbi_input_size)
@@ -122,7 +123,7 @@ def test_minerva_backbone(rgbi_input_size: Tuple[int, int, int]) -> None:
 
 def test_minerva_wrapper(
     x_entropy_loss,
-    small_patch_size: Tuple[int, int],
+    small_patch_size: tuple[int, int],
     std_n_classes: int,
     std_n_batches: int,
 ) -> None:
@@ -152,7 +153,7 @@ def test_minerva_wrapper(
     for train in (True, False):
         loss, z = model.step(x, y, train=train)
 
-        assert type(loss.item()) is float
+        assert isinstance(loss.item(), float)
         assert isinstance(z, Tensor)
         assert z.size() == (std_n_batches, std_n_classes)
 
@@ -200,7 +201,11 @@ def test_bilinear_init() -> None:
 )
 @pytest.mark.parametrize("compile_model", (True, False))
 def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> None:
-    if compile_model and os.name != "nt":
+    if (
+        compile_model
+        and os.name != "nt"
+        and packaging.version.parse(python_version()) < packaging.version.parse("3.12")
+    ):
         model = torch.compile(model)
 
     assert is_minerva_model(model) == answer
@@ -219,7 +224,11 @@ def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> N
 def test_is_minerva_subtype(
     model: Module, subtype: type, compile_model: bool, answer: bool
 ) -> None:
-    if compile_model and os.name != "nt":
+    if (
+        compile_model
+        and os.name != "nt"
+        and packaging.version.parse(python_version()) < packaging.version.parse("3.12")
+    ):
         model = torch.compile(model)
 
     assert is_minerva_subtype(model, subtype) == answer
@@ -231,7 +240,11 @@ def test_is_minerva_subtype(
 )
 @pytest.mark.parametrize("compile_model", (True, False))
 def test_extract_wrapped_model(model, compile_model: bool) -> None:
-    if compile_model and os.name != "nt":
+    if (
+        compile_model
+        and os.name != "nt"
+        and packaging.version.parse(python_version()) < packaging.version.parse("3.12")
+    ):
         model = torch.compile(model)
 
     assert isinstance(extract_wrapped_model(model), MinervaModel)

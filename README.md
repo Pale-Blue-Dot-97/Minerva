@@ -8,7 +8,7 @@
 [![Codacy Badge](https://app.codacy.com/project/badge/Grade/f961aed541494e4db7317bead5f84fef)](https://app.codacy.com/gh/Pale-Blue-Dot-97/Minerva/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 ![tests](https://github.com/Pale-Blue-Dot-97/Minerva/actions/workflows/tests.yml/badge.svg)
 [![Read the Docs](https://img.shields.io/readthedocs/smp?)](https://pale-blue-dot-97.github.io/Minerva/)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Pale-Blue-Dot-97/Minerva/main.svg)](https://results.pre-commit.ci/latest/github/Pale-Blue-Dot-97/Minerva/main)
 [![codecov](https://codecov.io/gh/Pale-Blue-Dot-97/Minerva/graph/badge.svg?token=8TUR8A8XZ5)](https://codecov.io/gh/Pale-Blue-Dot-97/Minerva)
@@ -20,7 +20,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> v0.27</b>
+    <b style="font-size:26px;"> v0.28.0</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
@@ -57,7 +57,7 @@ datasets with upcoming support for [torchvision](https://pytorch.org/vision/stab
 
 Required Python modules for `minerva` are stated in the `setup.cfg`.
 
-`minerva` currently only supports `python` 3.9 -- 3.11.
+`minerva` currently only supports `python` 3.10 -- 3.12.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -70,25 +70,29 @@ initialising a Trainer and model, and fitting and testing that model then output
 ### MWE Driver Script 📄
 
 ```python
-from minerva.utils import CONFIG  # Module containing various utility functions.
+import hydra
+from omegaconf import DictConfig
+
 from minerva.trainer import Trainer  # Class designed to handle fitting of model.
 
 
-# Initialise a Trainer. Also creates the model.
-trainer = Trainer(**CONFIG)
+@hydra.main(version_base="1.3")
+def main(cfg: DictConfig) -> None:
+    # Initialise a Trainer. Also creates the model.
+    trainer = Trainer(**cfg)
 
-# Run the fitting (train and validation epochs).
-trainer.fit()
+    # Run the fitting (train and validation epochs).
+    trainer.fit()
 
-# Run the testing epoch and output results.
-trainer.test()
+    # Run the testing epoch and output results.
+    trainer.test()
 ```
 
 See `scripts\MinervaExp.py` as an example script implementing `minerva`.
 
 ### Config Structure ⚙
 
-See `minerva\inbuilt_cfgs\example_config.yml` as an example config file.
+See `minerva\inbuilt_cfgs\example_config.yaml` as an example config file.
 
 ### Creating a Manifest for your Dataset 📑
 
@@ -104,11 +108,11 @@ Contributions are what make the open source community such an amazing place to l
 If you have a suggestion that would make this better, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
 Don't forget to give the project a star! Thanks again!
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+ 1. Fork the Project
+ 2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+ 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+ 4. Push to the Branch (`git push origin feature/AmazingFeature`)
+ 5. Open a Pull Request
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -126,8 +130,9 @@ University of Southampton. Funded by the Ordnance Survey Ltd.
 Contributions also provided by:
 
 - [Jo Walsh](https://github.com/metazool)
-- [Navid Rahimi](https://github.com/NavidCOMSC)
+- [Jonathon Hare](https://github.com/jonhare)
 - [Isabel Sargent](https://github.com/PenguinJunk)
+- [Navid Rahimi](https://github.com/NavidCOMSC)
 - [Steve Coupland](https://github.com/scoupland-os)
 - [Joe Guyatt](https://github.com/joeguyatt97)
 - [Ben Dickens](https://github.com/BenDickens)
@@ -152,6 +157,7 @@ This repositry also contains some small samples from various public datasets for
 | ChesapeakeCVPR | Robinson C, Hou L, Malkin K, Soobitsky R, Czawlytko J, Dilkina B, Jojic N, "Large Scale High-Resolution Land Cover Mapping with Multi-Resolution Data". Proceedings of the 2019 Conference on Computer Vision and Pattern Recognition (CVPR 2019) | Unknown | [ChesapeakeCVPR](https://lila.science/datasets/chesapeakelandcover) |
 | SSL4EO-S12 | Wang Y, Braham N A A, Xiong Z, Liu C, Albrecht C M, Zhu X X, "SSL4EO-S12: A Large-Scale Multi-Modal, Multi-Temporal Dataset for Self-Supervised Learning in Earth Observation". arXiv preprint, 2023 | [Apache 2.0](https://github.com/zhu-xlab/SSL4EO-S12/blob/main/LICENSE) | [SSL4E0-S12](https://github.com/zhu-xlab/SSL4EO-S12) |
 | DFC2020 | M. Schmitt, L. H. Hughes, C. Qiu, and X. X. Zhu, “SEN12MS – A curated dataset of georeferenced multi-spectral sentinel-1/2 imagery for deep learning and data fusion,” in ISPRS Ann. Photogramm. Remote Sens. Spatial Inf. Sci. IV-2/W7, 2019, pp. 153–160. | [Creative Commons Attribution](https://creativecommons.org/licenses/by/4.0/) | [IEEE DFC2020](https://ieee-dataport.org/competitions/2020-ieee-grss-data-fusion-contest#files)
+BigEarthNet | G. Sumbul, A. d. Wall, T. Kreuziger, F. Marcelino, H. Costa, P. Benevides, M. Caetano, B. Demir, V. Markl, “BigEarthNet-MM: A Large Scale Multi-Modal Multi-Label Benchmark Archive for Remote Sensing Image Classification and Retrieval”,  IEEE Geoscience and Remote Sensing Magazine, vol. 9, no. 3, pp. 174-180, 2021, doi: 10.1109/MGRS.2021.3089174. | [Community Data License Agreement – Permissive, Version 1.0](https://cdla.dev/permissive-1-0/) | [BigEarthNet](https://bigearth.net/)
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 

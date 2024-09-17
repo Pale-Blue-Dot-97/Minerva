@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 r"""Utility functions for datasets in :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -32,30 +33,85 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
+    "MinervaNonGeoDataset",
     "load_all_samples",
     "make_bounding_box",
     "intersect_datasets",
     "unionise_datasets",
     "get_random_sample",
+    "masks_or_labels",
 ]
-
-import pickle
-from pathlib import Path
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple, Union
+import pickle
+from pathlib import Path
+from typing import Any, Callable, Iterable, Literal, Optional, Sequence, Union
 
 import numpy as np
 from nptyping import NDArray
-from torch.utils.data import DataLoader
-from torchgeo.datasets import GeoDataset, IntersectionDataset, UnionDataset
+from torch.utils.data import ConcatDataset, DataLoader
+from torchgeo.datasets import (
+    GeoDataset,
+    IntersectionDataset,
+    NonGeoDataset,
+    UnionDataset,
+)
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers.utils import get_random_bounding_box
 from tqdm import tqdm
 
 from minerva.utils import utils
+
+
+# =====================================================================================================================
+#                                                     CLASSES
+# =====================================================================================================================
+class MinervaNonGeoDataset(NonGeoDataset):
+    def __or__(
+        self,
+        other: Union["MinervaNonGeoDataset", "MinervaConcatDataset"],
+    ) -> "MinervaConcatDataset":
+        """Take the union of two :class:`MinervaNonGeoDataset`.
+
+        Args:
+            other (MinervaNonGeoDataset | ~torch.utils.data.ConcatDataset): Another dataset.
+
+        Returns:
+            ~torch.utils.data.ConcatDataset[MinervaNonGeoDataset]: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return MinervaConcatDataset([self, other])
+
+
+class MinervaConcatDataset(ConcatDataset):  # type: ignore[type-arg]
+    def __or__(
+        self,
+        other: Union[MinervaNonGeoDataset, "MinervaConcatDataset"],
+    ) -> "MinervaConcatDataset":
+        """Take the union of two :class:`MinervaNonGeoDataset`.
+
+        Args:
+            other (MinervaNonGeoDataset | MinervaConcatDataset): Another dataset.
+
+        Returns:
+            MinervaConcatDataset: A single dataset.
+
+        .. versionadded:: 0.28
+        """
+        return MinervaConcatDataset([self, other])
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self.__dict__:
+            return getattr(self, name)
+        elif name in self.datasets[0].__dict__:
+            return getattr(self.datasets[0], name)  # pragma: no cover
+        elif name in self.datasets[1].__dict__:
+            return getattr(self.datasets[1], name)  # pragma: no cover
+        else:
+            raise AttributeError
 
 
 # =====================================================================================================================
@@ -73,7 +129,7 @@ def intersect_datasets(datasets: Sequence[GeoDataset]) -> IntersectionDataset:
         ~torchgeo.datasets.IntersectionDataset: Final dataset object representing an intersection
         of all the parsed datasets.
     """
-    master_dataset: Union[GeoDataset, IntersectionDataset] = datasets[0]
+    master_dataset: GeoDataset | IntersectionDataset = datasets[0]
 
     for i in range(len(datasets) - 1):
         master_dataset = master_dataset & datasets[i + 1]
@@ -84,7 +140,7 @@ def intersect_datasets(datasets: Sequence[GeoDataset]) -> IntersectionDataset:
 
 def unionise_datasets(
     datasets: Sequence[GeoDataset],
-    transforms: Optional[Callable[[Dict[str, Any]], Dict[str, Any]]] = None,
+    transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
 ) -> UnionDataset:
     """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
@@ -100,7 +156,7 @@ def unionise_datasets(
     Returns:
         ~torchgeo.datasets.UnionDataset: Final dataset object representing an union of all the parsed datasets.
     """
-    master_dataset: Union[GeoDataset, UnionDataset] = datasets[0]
+    master_dataset: GeoDataset | UnionDataset = datasets[0]
 
     for i in range(len(datasets) - 1):
         master_dataset = master_dataset | datasets[i + 1]
@@ -110,9 +166,37 @@ def unionise_datasets(
     return master_dataset
 
 
-def make_bounding_box(
-    roi: Union[Sequence[float], bool] = False
-) -> Optional[BoundingBox]:
+def concatenate_datasets(
+    datasets: Sequence[NonGeoDataset],
+    transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+) -> MinervaConcatDataset:
+    """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
+
+    Args:
+        datasets (list[~minerva.datasets.MinervaNonGeoDataset]): List of datasets to concatenate together.
+        transforms (): Optional; Function that will transform any sample yielded from the union.
+
+    .. note::
+        The transforms of ``transforms`` will be applied to the sample after any transforms applied to it by
+        the constituent dataset of the union the dataset came from. Therefore, ``transforms`` needs to compatible
+        with all possible samples of the union.
+
+    Returns:
+        ~minerva.datasets.MinervaConcatDataset: Final dataset object representing an union of all the parsed datasets.
+    """
+    assert isinstance(datasets[0], MinervaNonGeoDataset)
+    master_dataset: MinervaNonGeoDataset | MinervaConcatDataset = datasets[0]
+
+    for i in range(len(datasets) - 1):
+        master_dataset = master_dataset | datasets[i + 1]  # type: ignore[operator]
+
+    if hasattr(master_dataset, "transforms"):
+        master_dataset.transforms = transforms  # type: ignore[union-attr]
+    assert isinstance(master_dataset, MinervaConcatDataset)
+    return master_dataset
+
+
+def make_bounding_box(roi: Sequence[float] | bool = False) -> Optional[BoundingBox]:
     """Construct a :class:`~torchgeo.datasets.utils.BoundingBox` object from the corners of the box.
     ``False`` for no :class:`~torchgeo.datasets.utils.BoundingBox`.
 
@@ -134,28 +218,33 @@ def make_bounding_box(
         return BoundingBox(*roi)
 
 
-def load_all_samples(dataloader: DataLoader[Iterable[Any]]) -> NDArray[Any, Any]:
+def load_all_samples(
+    dataloader: DataLoader[Iterable[Any]],
+    target_key: Literal["mask", "label"] = "mask",
+) -> NDArray[Any, Any]:
     """Loads all sample masks from parsed :class:`~torch.utils.data.DataLoader` and computes the modes of their classes.
 
     Args:
         dataloader (~torch.utils.data.DataLoader): DataLoader containing samples. Must be using a dataset with
-            ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` key.
+            ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` or ``"label"`` key.
+        target_key (~typing.Literal["mask", "label"]): Optional; Key for the targets in the dataset.
+            Either ``"mask"`` or ``"label"``.
 
     Returns:
         ~numpy.ndarray: 2D array of the class modes within every sample defined by the parsed
         :class:`~torch.utils.data.DataLoader`.
     """
-    sample_modes: List[List[Tuple[int, int]]] = []
+    sample_modes: list[list[tuple[int, int]]] = []
     for sample in tqdm(dataloader):
-        modes = utils.find_modes(sample["mask"])
+        modes = utils.find_modes(sample[target_key])
         sample_modes.append(modes)
 
     return np.array(sample_modes, dtype=object)
 
 
 def get_random_sample(
-    dataset: GeoDataset, size: Union[Tuple[int, int], int], res: float
-) -> Dict[str, Any]:
+    dataset: GeoDataset, size: tuple[int, int] | int, res: float
+) -> dict[str, Any]:
     """Gets a random sample from the provided dataset of size ``size`` and at ``res`` resolution.
 
     Args:
@@ -169,7 +258,9 @@ def get_random_sample(
     return dataset[get_random_bounding_box(dataset.bounds, size, res)]
 
 
-def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
+def load_dataset_from_cache(
+    cached_dataset_path: Path,
+) -> NonGeoDataset | GeoDataset:
     """Load a pickled dataset object in from a cache.
 
     Args:
@@ -182,15 +273,17 @@ def load_dataset_from_cache(cached_dataset_path: Path) -> GeoDataset:
     with open(cached_dataset_path, "rb") as fp:
         dataset = pickle.load(fp)
 
-    assert isinstance(dataset, GeoDataset)
+    assert isinstance(dataset, (NonGeoDataset, GeoDataset))
     return dataset
 
 
-def cache_dataset(dataset: GeoDataset, cached_dataset_path: Path) -> None:
+def cache_dataset(
+    dataset: GeoDataset | NonGeoDataset, cached_dataset_path: Path
+) -> None:
     """Pickle and cache a dataset object.
 
     Args:
-        dataset (~torchgeo.datasets.GeoDataset): Dataset object to cache.
+        dataset (~torchgeo.datasets.GeoDataset | ~torchgeo.datasets.NonGeoDataset): Dataset object to cache.
         cached_dataset_path (~pathlib.Path): Path to save dataset to.
     """
     # Create missing directories in the path if they don't exist.
@@ -198,3 +291,20 @@ def cache_dataset(dataset: GeoDataset, cached_dataset_path: Path) -> None:
 
     with open(cached_dataset_path, "xb") as fp:
         pickle.dump(dataset, fp)
+
+
+def masks_or_labels(dataset_params: dict[str, Any]) -> str:
+    for key in dataset_params.keys():
+        if key not in (
+            "sampler",
+            "transforms",
+            "image",
+            "imagery_config",
+            "data_config",
+        ):
+            if key == "mask" or key == "label":
+                return key
+            else:
+                raise ValueError("Invalid keys in dataset params!")
+
+    raise ValueError("No mask or label data was specified in the dataset parameters")

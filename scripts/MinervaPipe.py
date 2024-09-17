@@ -36,7 +36,7 @@ import argparse
 import shlex
 import subprocess
 import sys
-from typing import Any, Dict
+from typing import Any
 
 import yaml
 
@@ -46,7 +46,7 @@ import yaml
 # =====================================================================================================================
 def main(config_path: str):
     with open(config_path) as f:
-        config: Dict[str, Any] = yaml.safe_load(f)
+        config: dict[str, Any] = yaml.safe_load(f)
 
     for key in config.keys():
         print(

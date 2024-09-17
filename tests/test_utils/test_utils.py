@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.utils.utils`.
-"""
+r"""Tests for :mod:`minerva.utils.utils`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -45,7 +45,7 @@ import tempfile
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -62,7 +62,7 @@ from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
 
 from minerva.models import MinervaModel
-from minerva.utils import AUX_CONFIGS, CONFIG, utils, visutils
+from minerva.utils import utils, visutils
 
 
 # =====================================================================================================================
@@ -73,10 +73,10 @@ def test_print_banner() -> None:
 
 
 @pytest.mark.parametrize(
-    ["input", "expected"], [(1, int), ("we want a shrubery...", str), (str, str)]
+    ["x", "expected"], [(1, int), ("we want a shrubery...", str), (str, str)]
 )
-def test_extract_class_type(input: Any, expected: type) -> None:
-    assert utils.extract_class_type(input) == expected
+def test_extract_class_type(x: Any, expected: type) -> None:
+    assert utils.extract_class_type(x) == expected
 
 
 def test_is_notebook() -> None:
@@ -85,7 +85,7 @@ def test_is_notebook() -> None:
 
 def test_return_updated_kwargs() -> None:
     @utils.return_updated_kwargs
-    def example_func(*args, **kwargs) -> Tuple[Any, Dict[str, Any]]:
+    def example_func(*args, **kwargs) -> tuple[Any, dict[str, Any]]:
         _ = (
             kwargs["update_1"] * kwargs["update_3"]
             - kwargs["static_2"] / args[1] * args[0]
@@ -116,7 +116,7 @@ def test_return_updated_kwargs() -> None:
     results = example_func(arg1, arg2, **old_kwargs)
 
     assert results[0] == 37
-    assert type(results[1]) is dict
+    assert isinstance(results[1], dict)
     assert results[1] == new_kwargs
 
 
@@ -129,9 +129,9 @@ def test_pair_collate() -> None:
 
     output = collator(batch)
 
-    assert type(output) is tuple
-    assert type(output[0]) is defaultdict
-    assert type(output[1]) is defaultdict
+    assert isinstance(output, tuple)
+    assert isinstance(output[0], defaultdict)
+    assert isinstance(output[1], defaultdict)
     assert len(output[0]["image"]) == len(output[1]["image"])
     assert len(output[1]["mask"]) == len(output[0]["image"])
 
@@ -155,12 +155,7 @@ def test_pair_return() -> None:
 
 
 def test_cuda_device() -> None:
-    assert type(utils.get_cuda_device()) is torch.device  # type: ignore[attr-defined]
-
-
-def test_config_loading() -> None:
-    assert type(CONFIG) is dict
-    assert type(AUX_CONFIGS) is dict
+    assert isinstance(utils.get_cuda_device(), torch.device)  # type: ignore[attr-defined]
 
 
 @pytest.mark.parametrize(
@@ -201,20 +196,29 @@ def test_ohe_labels() -> None:
     assert_array_equal(correct_targets, targets)
 
 
-def test_empty_classes(exp_classes: Dict[int, str]) -> None:
-    labels = [(3, 321), (4, 112), (1, 671), (5, 456)]
-    assert utils.find_empty_classes(labels, exp_classes) == [0, 2]
+def test_empty_classes(exp_classes: dict[int, str]) -> None:
+    class_distribution = [(3, 321), (4, 112), (1, 671), (5, 456)]
+    assert utils.find_empty_classes(class_distribution, exp_classes) == [0, 2, 6, 7]
 
 
-def test_eliminate_classes(exp_classes: Dict[int, str]) -> None:
-    empty = [0, 2]
-    old_cmap = {0: "0", 1: "1", 2: "2", 3: "3", 4: "4", 5: "5"}
-    new_classes = {0: "5", 1: "1", 2: "4", 3: "3"}
-    new_cmap = {0: "5", 1: "1", 2: "4", 3: "3"}
-    conversion = {1: 1, 3: 3, 4: 2, 5: 0}
+def test_eliminate_classes(
+    exp_classes: dict[int, str], exp_cmap_dict: dict[int, str]
+) -> None:
+    empty = [0, 2, 7]
+    new_classes = {
+        0: "Roads",
+        1: "Water",
+        2: "Surfaces",
+        3: "Low Vegetation",
+        4: "Barren",
+    }
+    new_cmap = {0: "#000000", 1: "#00c5ff", 2: "#9c9c9c", 3: "#a3ff73", 4: "#ffaa00"}
+    conversion = {6: 0, 1: 1, 5: 2, 3: 3, 4: 4}
 
     results = utils.eliminate_classes(
-        empty_classes=empty, old_classes=exp_classes, old_cmap=old_cmap
+        empty_classes=empty,
+        old_classes=exp_classes,
+        old_cmap=exp_cmap_dict,
     )
 
     assert new_classes == results[0]
@@ -230,24 +234,24 @@ def test_eliminate_classes(exp_classes: Dict[int, str]) -> None:
             [1, 4, 1, 5, 1, 4, 1, 5, 1],
             [1, 1, 3, 0, 1, 2, 1, 0, 3],
             [1, 2, 1, 0, 1, 2, 1, 0, 1],
-            {0: "5", 1: "1", 2: "4", 3: "3"},
+            {0: "Surfaces", 1: "Water", 2: "Barren", 3: "Low Vegetation"},
         ),
         (
-            [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
-            [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
-            [2, 4, 5, 1, 1, 3, 0, 2, 1, 5, 1],
-            [2, 1, 5, 1, 3, 3, 0, 1, 1, 5, 1],
+            [2, 4, 5, 1, 6, 3, 0, 2, 1, 5, 7],
+            [2, 1, 5, 1, 6, 3, 0, 1, 1, 5, 7],
+            [2, 4, 5, 1, 6, 3, 0, 2, 1, 5, 7],
+            [2, 1, 5, 1, 6, 3, 0, 1, 1, 5, 7],
             lazy_fixture("exp_classes"),
         ),
     ],
 )
 def test_check_test_empty(
-    exp_classes: Dict[int, str],
-    in_labels: List[int],
-    in_pred: List[int],
-    out_labels: List[int],
-    out_pred: List[int],
-    out_classes: Dict[int, str],
+    exp_classes: dict[int, str],
+    in_labels: list[int],
+    in_pred: list[int],
+    out_labels: list[int],
+    out_pred: list[int],
+    out_classes: dict[int, str],
 ) -> None:
     results = utils.check_test_empty(in_pred, in_labels, exp_classes)
 
@@ -255,12 +259,8 @@ def test_check_test_empty(
     assert_array_equal(results[1], out_labels)
     assert results[2] == out_classes
 
-    assert_array_equal(np.array(results[0]), np.array(out_pred))
-    assert_array_equal(np.array(results[1]), np.array(out_labels))
-    assert np.array(results[2]) == np.array(out_classes)
 
-
-def test_find_modes(exp_classes: Dict[int, str]) -> None:
+def test_find_modes(exp_classes: dict[int, str]) -> None:
     labels = [1, 1, 3, 5, 1, 4, 1, 5, 3, 3]
 
     class_dist = utils.find_modes(labels, plot=True)
@@ -280,11 +280,11 @@ def test_file_check() -> None:
     assert fn.exists() is False
 
 
-@pytest.mark.parametrize(["input", "output"], [(1, 1), (5, 0), (3, 3), (4, 2)])
-def test_class_transform(input: int, output: int) -> None:
+@pytest.mark.parametrize(["in_class", "out_class"], [(1, 1), (5, 0), (3, 3), (4, 2)])
+def test_class_transform(in_class: int, out_class: int) -> None:
     matrix = {1: 1, 3: 3, 4: 2, 5: 0}
 
-    assert utils.class_transform(input, matrix) == output
+    assert utils.class_transform(in_class, matrix) == out_class
 
 
 @pytest.mark.parametrize(
@@ -332,19 +332,19 @@ def test_find_geo_similar() -> None:
 
     bbox = BoundingBox(10, 20, 20, 30, 1, 2)
 
-    assert type(utils.find_geo_similar(bbox, max_r)) is BoundingBox
+    assert isinstance(utils.find_geo_similar(bbox, max_r), BoundingBox)
 
 
 @pytest.mark.parametrize(
-    ["input", "exp_len"],
+    ["x", "exp_len"],
     [
         (np.random.rand(256, 256), 256 * 256),
         (np.random.rand(16, 128, 128), 16 * 128 * 128),
         (list(np.random.rand(256, 256)), 256 * 256),
     ],
 )
-def test_batch_flatten(input, exp_len: int) -> None:
-    assert len(utils.batch_flatten(input)) == exp_len
+def test_batch_flatten(x, exp_len: int) -> None:
+    assert len(utils.batch_flatten(x)) == exp_len
 
 
 @pytest.mark.parametrize(
@@ -370,12 +370,12 @@ def test_batch_flatten(input, exp_len: int) -> None:
     ],
 )
 def test_transform_coordinates(
-    x: Union[List[float], float],
-    y: Union[List[float], float],
+    x: list[float] | float,
+    y: list[float] | float,
     src_crs: CRS,
     dest_crs: CRS,
-    exp_x: Union[List[float], float],
-    exp_y: Union[List[float], float],
+    exp_x: list[float] | float,
+    exp_y: list[float] | float,
 ) -> None:
     out_x, out_y = utils.transform_coordinates(x, y, src_crs, dest_crs)
 
@@ -451,9 +451,7 @@ def test_get_centre_loc() -> None:
         (-77.844504, 166.707506, "McMurdo Station"),  # McMurdo Station, Antartica.
     ],
 )
-def test_lat_lon_to_loc(
-    lat: Union[float, str], lon: Union[float, str], loc: str
-) -> None:
+def test_lat_lon_to_loc(lat: float | str, lon: float | str, loc: str) -> None:
     try:
         requests.head("http://www.google.com/", timeout=1.0)
     except (requests.ConnectionError, requests.ReadTimeout):
@@ -546,7 +544,7 @@ def test_find_best_of() -> None:
     assert scene == ["2018_06_21"]
 
 
-def test_modes_from_manifest() -> None:
+def test_modes_from_manifest(exp_classes: dict[int, str]) -> None:
     df = pd.DataFrame()
 
     class_dist = [
@@ -571,7 +569,7 @@ def test_modes_from_manifest() -> None:
     for mode in counts:
         df[mode[0]] = mode[1]
 
-    assert utils.modes_from_manifest(df, plot=True) == class_dist
+    assert utils.modes_from_manifest(df, exp_classes, plot=True) == class_dist
 
 
 def test_make_classification_report() -> None:
@@ -608,7 +606,7 @@ def test_compute_roc_curves() -> None:
     labels = [0, 3, 2, 1, 3, 2, 1, 0]
     class_labels = [0, 1, 2, 3]
 
-    fpr: Dict[Any, NDArray[Any, Any]] = {
+    fpr: dict[Any, NDArray[Any, Any]] = {
         0: np.array([0.0, 0.0, 0.0, 0.5, 5.0 / 6.0, 1.0]),
         1: np.array([0.0, 0.0, 1.0 / 6.0, 1.0 / 6.0, 1.0]),
         2: np.array([0.0, 0.0, 1.0 / 6.0, 0.5, 0.5, 1.0]),
@@ -637,7 +635,7 @@ def test_compute_roc_curves() -> None:
         "macro": np.array([0.0, 1.0 / 6.0, 0.5, 5.0 / 6.0, 1.0]),
     }
 
-    tpr: Dict[Any, NDArray[Any, Any]] = {
+    tpr: dict[Any, NDArray[Any, Any]] = {
         0: np.array([0.0, 0.5, 1.0, 1.0, 1.0, 1.0]),
         1: np.array([0.0, 0.5, 0.5, 1.0, 1.0]),
         2: np.array([0.0, 0.5, 0.5, 0.5, 1.0, 1.0]),
@@ -722,57 +720,30 @@ def test_check_dict_key(key: str, outcome: bool) -> None:
     assert utils.check_dict_key(dictionary, key) is outcome
 
 
-def test_load_data_specs() -> None:
-    class_dist = [(3, 321), (4, 112), (1, 671), (5, 456)]
-
-    new_classes = {
-        0: "Surfaces",
-        1: "Water",
-        2: "Barren",
-        3: "Low Vegetation",
-    }
-    new_cmap = {0: "#9c9c9c", 1: "#00c5ff", 2: "#ffaa00", 3: "#a3ff73"}
-    conversion = {1: 1, 3: 3, 4: 2, 5: 0}
-
-    results_1 = utils.load_data_specs(class_dist, elim=False)
-    results_2 = utils.load_data_specs(class_dist, elim=True)
-
-    assert results_1[0] == utils.CLASSES
-    assert results_1[1] == {}
-    assert results_1[2] == utils.CMAP_DICT
-    assert new_classes == results_2[0]
-    assert conversion == results_2[1]
-    assert new_cmap == results_2[2]
-
-
-def test_mkexpdir() -> None:
+def test_mkexpdir(results_root: Path) -> None:
     name = "exp1"
 
     try:
-        utils.RESULTS_DIR.mkdir(parents=True)
+        results_root.mkdir(parents=True)
     except FileExistsError:
         pass
 
-    utils.mkexpdir(name)
+    utils.mkexpdir(name, results_root)
 
-    assert (utils.RESULTS_DIR / name).is_dir()
+    assert (results_root / name).is_dir()
 
-    utils.mkexpdir(name)
+    utils.mkexpdir(name, results_root)
 
-    (utils.RESULTS_DIR / name).rmdir()
-
-
-def test_get_dataset_name() -> None:
-    assert utils.get_dataset_name() == "Chesapeake7"
+    (results_root / name).rmdir()
 
 
-def test_run_tensorboard() -> None:
+def test_run_tensorboard(results_root: Path) -> None:
     try:
         env_name = Path(os.environ["CONDA_DEFAULT_ENV"]).name
     except KeyError:
         env_name = "base"
 
-    assert utils.run_tensorboard("non_exp", env_name=env_name) is None
+    assert utils.run_tensorboard("non_exp", results_root, env_name=env_name) is None
 
     exp_name = "exp1"
 
@@ -788,12 +759,7 @@ def test_run_tensorboard() -> None:
         == 0
     )
 
-    results_dir = CONFIG["dir"]["results"]
-    del CONFIG["dir"]["results"]
-
-    assert utils.run_tensorboard(exp_name, env_name=env_name) is None
-
-    utils.CONFIG["dir"]["results"] = results_dir
+    assert utils.run_tensorboard(exp_name, results_root, env_name=env_name) is None
 
     path.rmdir()
 
@@ -815,11 +781,6 @@ def test_calc_constrastive_acc() -> None:
     assert results == correct
 
 
-def test_print_config() -> None:
-    utils.print_config()
-    utils.print_config(utils.CLASSES)
-
-
 def test_calc_grad(exp_mlp: MinervaModel) -> None:
     batch_size = 16
     x = torch.rand(batch_size, (64))
@@ -830,7 +791,7 @@ def test_calc_grad(exp_mlp: MinervaModel) -> None:
     _ = exp_mlp.step(x, y, train=True)
 
     grad = utils.calc_grad(exp_mlp)
-    assert type(grad) is float
+    assert isinstance(grad, float)
     assert grad != 0.0
     assert utils.calc_grad(42) is None  # type: ignore[arg-type]
 
@@ -842,12 +803,7 @@ def test_tsne_cluster() -> None:
 
 
 def test_calc_norm_euc_dist() -> None:
-    a1 = np.random.random_integers(0, 8, 10)
-    b1 = np.random.random_integers(0, 8, 10)
+    a1 = torch.rand(0, 8, 10)
+    b1 = torch.rand(0, 8, 10)
 
-    b2 = np.random.random_integers(0, 8, 8)
-
-    assert isinstance(utils.calc_norm_euc_dist(a1, b1), float)
-
-    with pytest.raises(AssertionError):
-        utils.calc_norm_euc_dist(a1, b2)
+    assert isinstance(utils.calc_norm_euc_dist(a1, b1), torch.Tensor)

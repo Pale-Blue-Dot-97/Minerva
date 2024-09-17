@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Module for redundant model classes."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -37,7 +38,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 from collections import OrderedDict
-from typing import Any, List, Optional, Sequence, Tuple, Union
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import torch.nn.modules as nn
@@ -80,7 +81,7 @@ class MLP(MinervaModel):
         criterion: Optional[Any] = None,
         input_size: int = 288,
         n_classes: int = 8,
-        hidden_sizes: Union[Tuple[int, ...], List[int], int] = (256, 144),
+        hidden_sizes: tuple[int, ...] | list[int] | int = (256, 144),
     ) -> None:
         super(MLP, self).__init__(
             criterion=criterion, input_size=(input_size,), n_classes=n_classes
@@ -93,7 +94,7 @@ class MLP(MinervaModel):
         self._layers: OrderedDict[str, Module] = OrderedDict()
 
         # Constructs layers of the network based on the input size, the hidden sizes and the number of classes.
-        for i in range(len(hidden_sizes)):
+        for i, _ in enumerate(hidden_sizes):
             if i == 0:
                 self._layers["Linear-0"] = nn.Linear(input_size, hidden_sizes[i])
             else:
@@ -161,14 +162,14 @@ class CNN(MinervaModel):
     def __init__(
         self,
         criterion,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         n_classes: int = 8,
-        features: Union[Tuple[int, ...], List[int]] = (2, 1, 1),
-        fc_sizes: Union[Tuple[int, ...], List[int]] = (128, 64),
-        conv_kernel_size: Union[int, Tuple[int, ...]] = 3,
-        conv_stride: Union[int, Tuple[int, ...]] = 1,
-        max_kernel_size: Union[int, Tuple[int, ...]] = 2,
-        max_stride: Union[int, Tuple[int, ...]] = 2,
+        features: tuple[int, ...] | list[int] = (2, 1, 1),
+        fc_sizes: tuple[int, ...] | list[int] = (128, 64),
+        conv_kernel_size: int | tuple[int, ...] = 3,
+        conv_stride: int | tuple[int, ...] = 1,
+        max_kernel_size: int | tuple[int, ...] = 2,
+        max_stride: int | tuple[int, ...] = 2,
         conv_do: bool = True,
         fc_do: bool = True,
         p_conv_do: float = 0.1,
@@ -187,7 +188,7 @@ class CNN(MinervaModel):
 
         # Constructs the convolutional layers determined by the number of input channels and the features of these.
         assert self.input_size is not None
-        for i in range(len(features)):
+        for i, _ in enumerate(features):
             if i == 0:
                 self._conv_layers["Conv-0"] = nn.Conv2d(
                     self.input_size[0],
@@ -222,7 +223,7 @@ class CNN(MinervaModel):
         )
 
         # Constructs the fully connected layers determined by the number of input channels and the features of these.
-        for i in range(len(fc_sizes)):
+        for i, _ in enumerate(fc_sizes):
             if i == 0:
                 self._fc_layers["Linear-0"] = nn.Linear(
                     self.flattened_size, fc_sizes[i]

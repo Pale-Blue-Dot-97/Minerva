@@ -1,0 +1,30 @@
+---
+name: DFC2020
+
+classes:
+    0: Forest
+    1: Shrubland
+    2: Savanna
+    3: Grassland
+    4: Wetlands
+    5: Croplands
+    6: Urban
+    7: Snow/Ice
+    8: Barren
+    9: Water
+
+colours:
+    0: '#009900'
+    1: '#c6b044'
+    2: '#fbff13'
+    3: '#b6ff05'
+    4: '#27ff87'
+    5: '#c24f44'
+    6: '#a5a5a5'
+    7: '#69fff8'
+    8: '#f9ffa4'
+    9: '#1c0dff'
+
+fig_sizes:
+    CM: [9, 8]
+    Mask: [12, 10]

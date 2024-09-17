@@ -1,7 +1,11 @@
 FROM python:3.11.3 as base
 
 # Update package listings, install git and OpenCV.
-RUN apt-get -y update && apt-get install git && apt-get install -y python3-opencv -y
+RUN apt-get -y update \
+    && apt-get install git -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends python3-opencv -y \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # Ensures easier to read stdout.
 ENV PYTHONUNBUFFERED=1

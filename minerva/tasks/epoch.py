@@ -27,6 +27,7 @@
 
 .. versionadded:: 0.27
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -42,6 +43,7 @@ __all__ = ["StandardEpoch"]
 # =====================================================================================================================
 from contextlib import nullcontext
 
+import torch
 import torch.distributed as dist
 from tqdm import tqdm
 
@@ -59,7 +61,7 @@ class StandardEpoch(MinervaTask):
     .. versionadded:: 0.27
     """
 
-    logger_cls = "SupervisedTaskLogger"
+    logger_cls = "minerva.logger.tasklog.SupervisedTaskLogger"
 
     def step(self) -> None:
         # Initialises a progress bar for the epoch.
@@ -70,28 +72,34 @@ class StandardEpoch(MinervaTask):
             else:
                 self.model.eval()
 
-            # Core of the epoch.
-            for batch in self.loaders:
-                results = self.modelio(
-                    batch,
-                    self.model,
-                    self.device,
-                    self.train,
-                    **self.params,
-                )
+            # Ensure gradients will not be calculated if this is not a training task.
+            with torch.no_grad() if not self.train else nullcontext():  # type: ignore[attr-defined]
+                # Core of the epoch.
+                for batch in self.loaders:
+                    results = self.modelio(
+                        batch,
+                        self.model,
+                        self.device,
+                        self.train,
+                        **self.params,
+                    )
 
-                if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
-                    loss = results[0].data.clone()
-                    dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
-                    results = (loss, *results[1:])
+                    if self.local_step_num % self.log_rate == 0:
+                        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover  # noqa: E501
+                            loss = results[0].data.clone()
+                            dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
+                            results = (loss, *results[1:])
 
-                self.logger.step(self.step_num, *results)
+                        self.logger.step(
+                            self.global_step_num, self.local_step_num, *results
+                        )
 
-                self.step_num += 1
+                    self.global_step_num += 1
+                    self.local_step_num += 1
 
-                # Updates progress bar that batch has been processed.
-                if self.gpu == 0:
-                    bar.update()  # type: ignore
+                    # Updates progress bar that batch has been processed.
+                    if self.gpu == 0:
+                        bar.update()  # type: ignore
 
         # If configured to do so, calculates the grad norms.
         if self.params.get("calc_norm", False):

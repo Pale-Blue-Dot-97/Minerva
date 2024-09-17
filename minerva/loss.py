@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Library of specialised loss functions for :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -31,14 +32,19 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["SegBarlowTwinsLoss"]
+__all__ = ["SegBarlowTwinsLoss", "AuxCELoss"]
+
+import importlib
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import importlib
+from typing import Optional
 
+import torch
 from torch import Tensor
+from torch.nn import CrossEntropyLoss
+from torch.nn.modules import Module
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 
 # Needed to avoid connection error when importing lightly.
@@ -75,5 +81,47 @@ class SegBarlowTwinsLoss(BarlowTwinsLoss):
 
         # Then just use the standard ``BarlowTwinsLoss.forward`` with the reshaped representations.
         loss = super().forward(z_a, z_b)
+        assert isinstance(loss, Tensor)
+        return loss
+
+
+class AuxCELoss(Module):
+    """Cross Entropy loss for using auxilary inputs for use in PSPNets.
+
+    Adapted from the PSPNet paper and for use in PyTorch.
+
+    Source: https://github.com/xitongpu/PSPNet/blob/main/src/model/cell.py
+    """
+
+    def __init__(
+        self,
+        weight: Optional[Tensor] = None,
+        ignore_index: int = 255,
+        alpha: float = 0.4,
+    ) -> None:
+        super().__init__()
+        self.loss = CrossEntropyLoss(weight=weight, ignore_index=ignore_index)
+        self.alpha = alpha
+
+    def forward(self, net_out: Tensor, target: Tensor) -> Tensor:
+        # If length of ``net_out==2``, assume it is a tuple of the output of
+        # the segmentation head (predict) and the classification head (predict_aux).
+        if len(net_out) == 2:
+            predicted_masks, predicted_labels = net_out
+
+            labels = torch.mode(torch.flatten(target, start_dim=1)).values
+
+            # Calculate the CrossEntropyLoss of both outputs.
+            CE_loss = self.loss(predicted_masks, target)
+            CE_loss_aux = self.loss(predicted_labels, labels)
+
+            # Weighted sum the losses together and return
+            loss = CE_loss + (self.alpha * CE_loss_aux)
+            assert isinstance(loss, Tensor)
+            return loss
+
+        # Else, assume this is just the loss from the segmentation head
+        # so perform a standard CrossEntropyLoss op.
+        loss = self.loss(net_out, target)
         assert isinstance(loss, Tensor)
         return loss

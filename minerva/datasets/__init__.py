@@ -23,22 +23,28 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Functionality for constructing datasets, samplers and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`.
-"""
+r"""Functionality for constructing datasets, samplers and :class:`~torch.utils.data.DataLoader` for :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
-__author__ = "Harry Baker"
+__author__ = ["Harry Baker", "Jonathon Hare"]
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "PairedDataset",
+    "MinervaNonGeoDataset",
+    "MinervaConcatDataset",
+    "PairedGeoDataset",
+    "PairedNonGeoDataset",
     "PairedUnionDataset",
-    "SSL4EOS12Sentinel2",
+    "PairedConcatDataset",
+    "GeoSSL4EOS12Sentinel2",
+    "NonGeoSSL4EOS12Sentinel2",
+    "MinervaSSL4EO",
     "NAIPChesapeakeCVPR",
     "DFC2020",
-    "SEN12MS",
+    "MultiSpectralDataset",
     "construct_dataloader",
     "get_collator",
     "get_manifest",
@@ -50,24 +56,30 @@ __all__ = [
     "stack_sample_pairs",
     "intersect_datasets",
     "unionise_datasets",
-    "get_manifest_path",
     "get_random_sample",
 ]
 
 from .collators import get_collator, stack_sample_pairs
-from .dfc import DFC2020, SEN12MS
+from .dfc import DFC2020  # , SEN12MS
 from .factory import (
     construct_dataloader,
     get_manifest,
-    get_manifest_path,
     make_dataset,
     make_loaders,
     make_manifest,
 )
+from .multispectral import MultiSpectralDataset
 from .naip import NAIPChesapeakeCVPR
-from .paired import PairedDataset, PairedUnionDataset
-from .ssl4eos12 import SSL4EOS12Sentinel2
+from .paired import (
+    PairedConcatDataset,
+    PairedGeoDataset,
+    PairedNonGeoDataset,
+    PairedUnionDataset,
+)
+from .ssl4eos12 import GeoSSL4EOS12Sentinel2, MinervaSSL4EO, NonGeoSSL4EOS12Sentinel2
 from .utils import (
+    MinervaConcatDataset,
+    MinervaNonGeoDataset,
     get_random_sample,
     intersect_datasets,
     load_all_samples,

@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Loggers to handle the logging from each step of a task."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -35,10 +36,9 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "MinervaStepLogger",
-    "SupervisedGeoStepLogger",
+    "SupervisedStepLogger",
     "SSLStepLogger",
     "KNNStepLogger",
-    "get_logger",
 ]
 
 # =====================================================================================================================
@@ -47,16 +47,7 @@ __all__ = [
 import abc
 import math
 from abc import ABC
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Dict,
-    Optional,
-    SupportsFloat,
-    Tuple,
-    Union,
-)
+from typing import TYPE_CHECKING, Any, Callable, Optional, SupportsFloat
 
 import mlflow
 import numpy as np
@@ -64,6 +55,7 @@ import torch
 import torch.distributed as dist
 from sklearn.metrics import jaccard_score
 from torch import Tensor
+from torcheval.metrics.functional import multilabel_accuracy
 from torchmetrics.regression.cosine_similarity import CosineSimilarity
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -75,7 +67,7 @@ from torchgeo.datasets.utils import BoundingBox
 from wandb.sdk.wandb_run import Run
 
 from minerva.utils import utils
-from minerva.utils.utils import check_substrings_in_string, func_by_str
+from minerva.utils.utils import check_substrings_in_string
 
 # =====================================================================================================================
 #                                                     GLOBALS
@@ -132,10 +124,11 @@ class MinervaStepLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        input_size: tuple[int, int, int],
+        output_size: tuple[int, ...],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
@@ -143,6 +136,7 @@ class MinervaStepLogger(ABC):
         self.record_int = record_int
         self.record_float = record_float
         self.n_batches = n_batches
+        self.input_size = input_size
         self.output_size = output_size
         self.batch_size = batch_size
 
@@ -156,10 +150,16 @@ class MinervaStepLogger(ABC):
 
         self.model_type = model_type
 
-        self.logs: Dict[str, Any] = {}
-        self.results: Dict[str, Any] = {}
+        self.logs: dict[str, Any] = {}
+        self.results: dict[str, Any] = {}
 
-    def __call__(self, step_num: int, loss: Tensor, *args) -> None:
+    def __call__(
+        self,
+        global_step_num: int,
+        local_step_num: int,
+        loss: Tensor,
+        *args,
+    ) -> None:
         """Call :meth:`log`.
 
         Args:
@@ -169,27 +169,31 @@ class MinervaStepLogger(ABC):
         Returns:
             None
         """
-        self.log(step_num, loss, *args)
+        self.log(global_step_num, local_step_num, loss, *args)  # pragma: no cover
 
     @abc.abstractmethod
     def log(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        z: Optional[Tensor] = None,
+        index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
         """Abstract logging method, the core functionality of a logger. Must be overwritten.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of for the mode of model fitting.
+            local_step_num (int): The local step number of for the mode of model fitting.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Optional; Output tensor from the model.
+            x (~torch.Tensor): Optional; Images supplied to the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
+            z (~torch.Tensor): Optional; Output tensor from the model.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
             None
@@ -234,7 +238,7 @@ class MinervaStepLogger(ABC):
             mlflow.log_metric(key, value)  # pragma: no cover
 
     @property
-    def get_logs(self) -> Dict[str, Any]:
+    def get_logs(self) -> dict[str, Any]:
         """Gets the logs dictionary.
 
         Returns:
@@ -243,7 +247,7 @@ class MinervaStepLogger(ABC):
         return self.logs
 
     @property
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """Gets the results dictionary.
 
         Returns:
@@ -252,11 +256,11 @@ class MinervaStepLogger(ABC):
         return self.results
 
 
-class SupervisedGeoStepLogger(MinervaStepLogger):
+class SupervisedStepLogger(MinervaStepLogger):
     """Logger designed for supervised learning using :mod:`torchgeo` datasets.
 
     Attributes:
-        logs (dict[str, ~typing.Any]): The main logs from the KNN with these metrics:
+        logs (dict[str, ~typing.Any]): The main logs with these metrics:
 
             * ``batch_num``
             * ``total_loss``
@@ -269,7 +273,8 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             * ``z``
             * ``probs``
             * ``ids``
-            * ``bounds``
+            * ``index``
+            * ``images``
 
         calc_miou (bool): Activates the calculating and logging of :term:`MIoU` for segmentation models.
             Places the metric in the ``total_miou`` key of ``logs``.
@@ -300,18 +305,20 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        input_size: tuple[int, int, int],
+        output_size: tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "",
         n_classes: Optional[int] = None,
         **kwargs,
     ) -> None:
-        super(SupervisedGeoStepLogger, self).__init__(
+        super(SupervisedStepLogger, self).__init__(
             task_name,
             n_batches,
             batch_size,
+            input_size,
             output_size,
             record_int,
             record_float,
@@ -321,18 +328,19 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
         if n_classes is None:
             raise ValueError("`n_classes` must be specified for this type of logger!")
 
-        self.logs: Dict[str, Any] = {
+        self.logs: dict[str, Any] = {
             "batch_num": 0,
             "total_loss": 0.0,
             "total_correct": 0.0,
         }
 
-        self.results: Dict[str, Any] = {
+        self.results: dict[str, Any] = {
+            "x": None,
             "y": None,
             "z": None,
             "probs": None,
             "ids": [],
-            "bounds": None,
+            "index": None,
         }
         self.calc_miou = (
             True
@@ -345,27 +353,46 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
 
         # Allocate memory for the integer values to be recorded.
         if self.record_int:
-            int_log_shape: Tuple[int, ...]
-            if check_substrings_in_string(self.model_type, "scene classifier"):
-                int_log_shape = (self.n_batches, self.batch_size)
+            int_log_shape: tuple[int, ...]
+            if check_substrings_in_string(self.model_type, "scene-classifier"):
+                if check_substrings_in_string(self.model_type, "multilabel"):
+                    int_log_shape = (self.n_batches, self.batch_size, n_classes)
+                else:
+                    int_log_shape = (self.n_batches, self.batch_size)
             else:
-                int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
+                if len(self.output_size) == 3:
+                    int_log_shape = (
+                        self.n_batches,
+                        self.batch_size,
+                        *self.output_size[1:],
+                    )
+                else:
+                    int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
 
             self.results["z"] = np.empty(int_log_shape, dtype=np.uint8)
             self.results["y"] = np.empty(int_log_shape, dtype=np.uint8)
 
         # Allocate memory for the floating point values to be recorded.
         if self.record_float:
-            float_log_shape: Tuple[int, ...]
-            if check_substrings_in_string(self.model_type, "scene classifier"):
+            float_log_shape: tuple[int, ...]
+            if check_substrings_in_string(self.model_type, "scene-classifier"):
                 float_log_shape = (self.n_batches, self.batch_size, n_classes)
             else:
-                float_log_shape = (
-                    self.n_batches,
-                    self.batch_size,
-                    n_classes,
-                    *self.output_size,
-                )
+                if len(self.output_size) == 3:
+                    float_log_shape = (
+                        self.n_batches,
+                        self.batch_size,
+                        *self.output_size,
+                    )
+                else:
+                    float_log_shape = (
+                        self.n_batches,
+                        self.batch_size,
+                        n_classes,
+                        *self.output_size,
+                    )
+
+            images_shape = (self.n_batches, self.batch_size, *self.input_size)
 
             try:
                 self.results["probs"] = np.empty(float_log_shape, dtype=np.float16)
@@ -375,7 +402,7 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
                 )
 
             try:
-                self.results["bounds"] = np.empty(
+                self.results["index"] = np.empty(
                     (self.n_batches, self.batch_size), dtype=object
                 )
             except MemoryError:  # pragma: no cover
@@ -383,38 +410,61 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
                     "Dataset too large to record bounding boxes of samples!"
                 )
 
+            try:
+                self.results["x"] = np.empty(images_shape, dtype=np.float16)
+            except MemoryError:  # pragma: no cover
+                raise MemoryError("Dataset too large to record the images supplied!")
+
     def log(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        z: Optional[Tensor] = None,
+        index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Output tensor from the model.
-            y (~torch.Tensor): Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Bounding boxes of the input samples.
+            x (~torch.Tensor): Optional; Images supplied to the model.
+            y (~torch.Tensor): Optional; Labels to assess model output against.
+            z (~torch.Tensor): Optional; Output tensor from the model.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
             None
         """
+        # Update current batch number (step number).
+        self.logs["batch_num"] = local_step_num
 
         assert z is not None
         assert y is not None
+        assert x is not None
+
+        if isinstance(z, tuple):  # type: ignore[unreachable]
+            z = z[0]  # type: ignore[unreachable]
 
         if self.record_int:
             # Arg max the estimated probabilities and add to predictions.
-            self.results["z"][self.logs["batch_num"]] = torch.argmax(z, 1).cpu().numpy()  # type: ignore[attr-defined]
+            if check_substrings_in_string(self.model_type, "multilabel"):
+                self.results["z"][self.logs["batch_num"]] = (
+                    torch.round(z).detach().cpu().numpy()
+                )
+            else:
+                self.results["z"][self.logs["batch_num"]] = (
+                    torch.argmax(z, 1).cpu().numpy()
+                )  # type: ignore[attr-defined]
 
             # Add the labels and sample IDs to lists.
             self.results["y"][self.logs["batch_num"]] = y.cpu().numpy()
+
             batch_ids = []
             for i in range(
                 self.logs["batch_num"] * self.batch_size,
@@ -424,14 +474,17 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
             self.results["ids"].append(batch_ids)
 
         if self.record_float:
-            assert bbox is not None
-            # Add the estimated probabilities to probs.
+            # Add the floating point results to the logs.
             self.results["probs"][self.logs["batch_num"]] = z.detach().cpu().numpy()
-            self.results["bounds"][self.logs["batch_num"]] = bbox
+            self.results["index"][self.logs["batch_num"]] = index
+            self.results["x"][self.logs["batch_num"]] = x.detach().cpu().numpy()
 
         # Computes the loss and the correct predictions from this step.
         ls = loss.item()
-        correct = (torch.argmax(z, 1) == y).sum().item()  # type: ignore[attr-defined]
+        if check_substrings_in_string(self.model_type, "multilabel"):
+            correct = float(multilabel_accuracy(z, y).cpu())
+        else:
+            correct = (torch.argmax(z, 1) == y).sum().item()  # type: ignore[attr-defined]
 
         # Adds loss and correct predictions to logs.
         self.logs["total_loss"] += ls
@@ -450,14 +503,13 @@ class SupervisedGeoStepLogger(MinervaStepLogger):
                 )  # noqa: E501 type: ignore[attr-defined]
             self.logs["total_miou"] += miou
 
-            self.write_metric("miou", miou / len(y), step_num=step_num)
+            self.write_metric("miou", miou / len(y), step_num=global_step_num)
 
         # Writes loss and correct predictions to the writer.
-        self.write_metric("loss", ls, step_num=step_num)
-        self.write_metric("acc", correct / len(torch.flatten(y)), step_num=step_num)
-
-        # Adds 1 to batch number (step number).
-        self.logs["batch_num"] += 1
+        self.write_metric("loss", ls, step_num=global_step_num)
+        self.write_metric(
+            "acc", correct / len(torch.flatten(y)), step_num=global_step_num
+        )
 
 
 class KNNStepLogger(MinervaStepLogger):
@@ -478,7 +530,7 @@ class KNNStepLogger(MinervaStepLogger):
             * ``z``
             * ``probs``
             * ``ids``
-            * ``bounds``
+            * ``index``
 
     Args:
         n_batches (int): Number of batches in the epoch.
@@ -501,7 +553,7 @@ class KNNStepLogger(MinervaStepLogger):
         batch_size: int,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
@@ -516,31 +568,51 @@ class KNNStepLogger(MinervaStepLogger):
             **kwargs,
         )
 
-        self.logs: Dict[str, Any] = {
+        self.logs: dict[str, Any] = {
             "batch_num": 0,
             "total_loss": 0.0,
             "total_correct": 0.0,
             "total_top5": 0.0,
         }
 
-        self.results: Dict[str, Any] = {
+        self.results: dict[str, Any] = {
             "y": None,
             "z": None,
             "probs": None,
             "ids": [],
-            "bounds": None,
+            "index": None,
         }
 
     def log(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        z: Optional[Tensor] = None,
+        index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
+        """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
+
+        Args:
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
+            loss (~torch.Tensor): Loss from this step of model fitting.
+            x (~torch.Tensor): Optional; Images supplied to the model.
+            y (~torch.Tensor): Optional; Labels to assess model output against.
+            z (~torch.Tensor): Optional; Output tensor from the model.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
+
+        Returns:
+            None
+        """
+
+        # Update current batch number (step number).
+        self.logs["batch_num"] = local_step_num
+
         assert isinstance(z, Tensor)
         assert isinstance(y, Tensor)
 
@@ -559,12 +631,9 @@ class KNNStepLogger(MinervaStepLogger):
         self.logs["total_top5"] += top5
 
         # Write results to the writer.
-        self.write_metric("loss", loss, step_num)
-        self.write_metric("acc", top1, step_num)
-        self.write_metric("top5", top5, step_num)
-
-        # Adds 1 to batch number (step number).
-        self.logs["batch_num"] += 1
+        self.write_metric("loss", loss, global_step_num)
+        self.write_metric("acc", top1, global_step_num)
+        self.write_metric("top5", top5, global_step_num)
 
 
 class SSLStepLogger(MinervaStepLogger):
@@ -606,10 +675,11 @@ class SSLStepLogger(MinervaStepLogger):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, int],
+        input_size: tuple[int, int, int],
+        output_size: tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
@@ -617,6 +687,7 @@ class SSLStepLogger(MinervaStepLogger):
             task_name,
             n_batches,
             batch_size,
+            input_size,
             output_size,
             record_int=record_int,
             record_float=record_float,
@@ -625,11 +696,9 @@ class SSLStepLogger(MinervaStepLogger):
             **kwargs,
         )
 
-        self.logs: Dict[str, Any] = {
+        self.logs: dict[str, Any] = {
             "batch_num": 0,
             "total_loss": 0.0,
-            "total_correct": 0.0,
-            "total_top5": 0.0,
             "avg_loss": 0.0,
             "avg_output_std": 0.0,
         }
@@ -641,26 +710,39 @@ class SSLStepLogger(MinervaStepLogger):
             self.logs["collapse_level"] = 0
         if self.euclidean:
             self.logs["euc_dist"] = 0
+        if not check_substrings_in_string(self.model_type, "siamese"):
+            self.logs["total_correct"] = 0.0
+            self.logs["total_top5"] = 0.0
 
     def log(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        z: Optional[Tensor] = None,
+        index: Optional[int | BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
         """Logs the outputs and results from a step of model fitting. Overwrites abstract method.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Optional; Output tensor from the model.
+            x (~torch.Tensor): Optional; Images supplied to the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
+            z (~torch.Tensor): Optional; Output tensor from the model.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
+
+        Returns:
+            None
         """
+        # Update current batch number (step number).
+        self.logs["batch_num"] = local_step_num
+
         assert z is not None
 
         if check_substrings_in_string(self.model_type, "segmentation"):
@@ -673,35 +755,21 @@ class SSLStepLogger(MinervaStepLogger):
         ls = loss.item()
         self.logs["total_loss"] += ls
 
-        # Compute the TOP1 and TOP5 accuracies.
-        cosine_sim = CosineSimilarity(reduction=None)
-        sim_argsort = cosine_sim(*torch.split(z, int(0.5 * len(z)), 0))
-        correct = float((sim_argsort == 0).float().mean().cpu().numpy())  # type: ignore[attr-defined]
-        top5 = float((sim_argsort < 5).float().mean().cpu().numpy())  # type: ignore[attr-defined]
-
         if self.euclidean:
             z_a, z_b = torch.split(z, int(0.5 * len(z)), 0)
 
-            euc_dists = []
-            for i in range(len(z_a)):
-                euc_dists.append(
+            euc_dist = 0.0
+            for i, _ in enumerate(z_a):
+                euc_dist += float(
                     utils.calc_norm_euc_dist(
-                        torch.nan_to_num(z_a[i])
-                        .detach()
-                        .cpu()
-                        .to(dtype=torch.half)
-                        .numpy(),
-                        torch.nan_to_num(z_b[i])
-                        .detach()
-                        .cpu()
-                        .to(dtype=torch.half)
-                        .numpy(),
+                        z_a[i].detach(),
+                        z_b[i].detach(),
                     )
                 )
 
-            euc_dist = sum(euc_dists) / len(euc_dists)
-            self.write_metric("euc_dist", euc_dist, step_num)
-            self.logs["euc_dist"] += euc_dist
+            avg_euc_dist = euc_dist / len(z_a)
+            self.write_metric("euc_dist", avg_euc_dist, global_step_num)
+            self.logs["euc_dist"] += avg_euc_dist
 
         if self.collapse_level:
             # calculate the per-dimension standard deviation of the outputs
@@ -725,34 +793,24 @@ class SSLStepLogger(MinervaStepLogger):
                 0.0, 1 - math.sqrt(len(output)) * self.logs["avg_output_std"]
             )
 
-            self.write_metric("collapse_level", collapse_level, step_num)
+            self.write_metric("collapse_level", collapse_level, global_step_num)
 
             self.logs["collapse_level"] = collapse_level
 
-        # Add accuracies to log.
-        self.logs["total_correct"] += correct
-        self.logs["total_top5"] += top5
+        if not check_substrings_in_string(self.model_type, "siamese"):
+            # Compute the TOP1 and TOP5 accuracies.
+            cosine_sim = CosineSimilarity(reduction=None)
+            sim_argsort = cosine_sim(*torch.split(z, int(0.5 * len(z)), 0))
+            correct = float((sim_argsort == 0).float().mean().cpu().numpy())  # type: ignore[attr-defined]
+            top5 = float((sim_argsort < 5).float().mean().cpu().numpy())  # type: ignore[attr-defined]
+
+            # Add accuracies to log.
+            self.logs["total_correct"] += correct
+            self.logs["total_top5"] += top5
+
+            # Write the accuracy and top5 accuracy to the writer.
+            self.write_metric("acc", correct / 2 * len(z[0]), global_step_num)
+            self.write_metric("top5_acc", top5 / 2 * len(z[0]), global_step_num)
 
         # Writes the loss to the writer.
-        self.write_metric("loss", ls, step_num=step_num)
-        self.write_metric("acc", correct / 2 * len(z[0]), step_num)
-        self.write_metric("top5_acc", top5 / 2 * len(z[0]), step_num)
-
-        # Adds 1 to the batch number (step number).
-        self.logs["batch_num"] += 1
-
-
-# =====================================================================================================================
-#                                                     METHODS
-# =====================================================================================================================
-def get_logger(name) -> Callable[..., Any]:
-    """Gets the constructor for a step logger to log the results from each step of model fitting during an epoch.
-
-    Returns:
-        ~typing.Callable[..., ~typing.Any]: The constructor of :class:`~logging.step.log.MinervaStepLogger`
-        to be intialised within the epoch.
-
-    .. versionadded:: 0.27
-    """
-    logger: Callable[..., Any] = func_by_str("minerva.logger.steplog", name)
-    return logger
+        self.write_metric("loss", ls, step_num=global_step_num)

@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.utils.config_load`.
-"""
+r"""Tests for :mod:`minerva.utils.config_load`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -36,16 +36,9 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-import os
 from pathlib import Path
 
-from minerva.utils.config_load import (
-    DEFAULT_CONFIG_NAME,
-    chdir_to_default,
-    check_paths,
-    load_configs,
-    universal_path,
-)
+from minerva.utils.config_load import universal_path
 
 
 # =====================================================================================================================
@@ -59,68 +52,3 @@ def test_universal_path():
 
     assert universal_path(path1) == correct
     assert universal_path(path2) == correct
-
-
-def test_config_path(config_root, config_here):
-    assert str(Path("tmp/config")) in str(config_root)
-
-    # Still works because we are relative to inbuilt_cfgs here
-    base, aux = load_configs(config_root / "exp_mf_config.yml")
-    assert base
-    assert aux
-
-    base, aux = load_configs(config_here / "exp_mf_config.yml")
-    assert base
-    assert aux
-
-
-def test_check_paths(config_root: Path):
-    path, config_name, config_path = check_paths(
-        config_root, use_default_conf_dir=False
-    )
-
-    assert path == str(config_root)
-    assert str(config_name) == config_root.name
-    assert config_path == config_root.parent
-
-    # Store the current working directory (i.e where script is being run from).
-    cwd = os.getcwd()
-
-    exp_config = "example_GeoCLR_config.yml"
-    path2, config_name2, config_path2 = check_paths(
-        exp_config, use_default_conf_dir=True
-    )
-
-    assert path2 == exp_config
-    assert config_name2 == exp_config
-    assert config_path2 is None
-
-    nonexist_config_path = config_root / "non_existant_config.yml"
-    assert not nonexist_config_path.exists()
-
-    path3, config_name3, config_path3 = check_paths(nonexist_config_path)
-
-    assert path3 == str(config_root / "example_config.yml")
-    assert str(config_name3) == "example_config.yml"
-    assert config_path3 == config_root
-
-    # Change the working directory back to script location.
-    os.chdir(cwd)
-
-
-def test_chdir_to_default(inbuilt_cfg_root):
-    def run_chdir(input, output):
-        assert output == chdir_to_default(input)
-        assert Path(os.getcwd()) == inbuilt_cfg_root
-        os.chdir(cwd)
-
-    cwd = os.getcwd()
-
-    config_name1 = "example_GeoCLR_config.yml"
-
-    run_chdir(config_name1, config_name1)
-    run_chdir(None, DEFAULT_CONFIG_NAME)
-
-    config_name2 = "wrong_config.yml"
-
-    run_chdir(config_name2, DEFAULT_CONFIG_NAME)

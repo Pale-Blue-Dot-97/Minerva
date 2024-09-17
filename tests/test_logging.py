@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.logging`.
-"""
+r"""Tests for :mod:`minerva.logging`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -41,7 +41,7 @@ from pathlib import Path
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, List, Tuple, Union
+from typing import Any
 
 import numpy as np
 import torch
@@ -59,9 +59,10 @@ from torch import Tensor
 from torch.nn.modules import Module
 from torchgeo.datasets.utils import BoundingBox
 
+from minerva.logger.steplog import SupervisedStepLogger
 from minerva.logger.tasklog import SSLTaskLogger, SupervisedTaskLogger
 from minerva.loss import SegBarlowTwinsLoss
-from minerva.modelio import ssl_pair_tg, sup_tg
+from minerva.modelio import ssl_pair_torchgeo_io, supervised_torchgeo_io
 from minerva.models import FCN16ResNet18, MinervaSiamese, SimCLR18, SimConv
 from minerva.utils import utils
 
@@ -73,13 +74,13 @@ n_epochs = 2
 # =====================================================================================================================
 @pytest.mark.parametrize("train", (True, False))
 @pytest.mark.parametrize("model_type", ("scene_classifier", "segmentation"))
-def test_SupervisedGeoStepLogger(
+def test_SupervisedStepLogger(
     simple_bbox: BoundingBox,
     x_entropy_loss,
     std_n_batches: int,
     std_n_classes: int,
     std_batch_size: int,
-    small_patch_size: Tuple[int, int],
+    small_patch_size: tuple[int, int],
     default_device: torch.device,
     train: bool,
     model_type: str,
@@ -99,9 +100,8 @@ def test_SupervisedGeoStepLogger(
     else:
         writer = tensorboard_writer(log_dir=path)
 
-    model = FCN16ResNet18(x_entropy_loss, input_size=(4, *small_patch_size)).to(
-        default_device
-    )
+    input_size = (4, *small_patch_size)
+    model = FCN16ResNet18(x_entropy_loss, input_size=input_size).to(default_device)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
     model.determine_output_dim()
@@ -109,42 +109,64 @@ def test_SupervisedGeoStepLogger(
     output_shape = model.output_shape
     assert isinstance(output_shape, tuple)
 
+    with pytest.raises(
+        ValueError, match="`n_classes` must be specified for this type of logger!"
+    ):
+        _ = SupervisedStepLogger(
+            task_name="pytest",
+            n_batches=std_n_batches,
+            batch_size=std_batch_size,
+            input_size=input_size,
+            output_size=output_shape,
+            record_int=True,
+            record_float=True,
+            writer=writer,
+            model_type=model_type,
+        )
+
     logger = SupervisedTaskLogger(
         task_name="pytest",
         n_batches=std_n_batches,
         batch_size=std_batch_size,
+        input_size=input_size,
         output_size=output_shape,
         n_classes=std_n_classes,
         record_int=True,
         record_float=True,
         writer=writer,
         model_type=model_type,
-        step_logger_params={"params": {"n_classes": std_n_classes}},
+        step_logger_params={"n_classes": std_n_classes},
     )
 
-    correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_acc: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_miou: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_loss: dict[str, list[float]] = {"x": [], "y": []}
+    correct_acc: dict[str, list[float]] = {"x": [], "y": []}
+    correct_miou: dict[str, list[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
-        data: List[Dict[str, Union[Tensor, List[Any]]]] = []
+        data: list[dict[str, Tensor | list[Any]]] = []
         for i in range(std_n_batches):
             images = torch.rand(size=(std_batch_size, 4, *small_patch_size))
             masks = torch.randint(  # type: ignore[attr-defined]
                 0, std_n_classes, (std_batch_size, *small_patch_size)
             )
             bboxes = [simple_bbox] * std_batch_size
-            batch: Dict[str, Union[Tensor, List[Any]]] = {
+            batch: dict[str, Tensor | list[Any]] = {
                 "image": images,
                 "mask": masks,
                 "bbox": bboxes,
             }
             data.append(batch)
 
-            logger.step(i, *sup_tg(batch, model, device=default_device, train=train))  # type: ignore[arg-type]
+            logger.step(
+                i,
+                i,
+                *supervised_torchgeo_io(
+                    batch, model, device=default_device, train=train
+                ),
+            )  # type: ignore[arg-type]  # noqa: E501
 
         logs = logger.get_logs
-        assert logs["batch_num"] == std_n_batches
+        assert logs["batch_num"] == std_n_batches - 1
         assert isinstance(logs["total_loss"], float)
         assert isinstance(logs["total_correct"], float)
 
@@ -162,6 +184,11 @@ def test_SupervisedGeoStepLogger(
             std_batch_size,
             *small_patch_size,
         )
+        assert results["x"].shape == (
+            std_n_batches,
+            std_batch_size,
+            *input_size,
+        )
         assert np.array(results["ids"]).shape == (std_n_batches, std_batch_size)
 
         shape = f"{std_n_batches}, {std_batch_size}, {small_patch_size[0]}, {small_patch_size[1]}"
@@ -169,7 +196,7 @@ def test_SupervisedGeoStepLogger(
             (std_n_batches, std_batch_size, *output_shape), dtype=np.uint8
         )
         for i in range(std_n_batches):
-            mask: Union[Tensor, List[Any]] = data[i]["mask"]
+            mask: Tensor | list[Any] = data[i]["mask"]
             assert isinstance(mask, Tensor)
             y[i] = mask.cpu().numpy()
 
@@ -224,7 +251,7 @@ def test_SSLStepLogger(
     simple_bbox: BoundingBox,
     std_n_batches: int,
     std_batch_size: int,
-    small_patch_size: Tuple[int, int],
+    small_patch_size: tuple[int, int],
     default_device: torch.device,
     model_cls: MinervaSiamese,
     model_type: str,
@@ -247,7 +274,8 @@ def test_SSLStepLogger(
     else:
         writer = tensorboard_writer(log_dir=path)
 
-    model: MinervaSiamese = model_cls(criterion, input_size=(4, *small_patch_size)).to(
+    input_size = (4, *small_patch_size)
+    model: MinervaSiamese = model_cls(criterion, input_size=input_size).to(
         default_device
     )
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
@@ -261,6 +289,7 @@ def test_SSLStepLogger(
         task_name="pytest",
         n_batches=std_n_batches,
         batch_size=std_batch_size,
+        input_size=input_size,
         output_size=small_patch_size,
         record_int=True,
         record_float=True,
@@ -269,11 +298,9 @@ def test_SSLStepLogger(
         sample_pairs=True,
     )
 
-    correct_loss: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_acc: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_top5: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_collapse_level: Dict[str, List[float]] = {"x": [], "y": []}
-    correct_euc_dist: Dict[str, List[float]] = {"x": [], "y": []}
+    correct_loss: dict[str, list[float]] = {"x": [], "y": []}
+    correct_collapse_level: dict[str, list[float]] = {"x": [], "y": []}
+    correct_euc_dist: dict[str, list[float]] = {"x": [], "y": []}
 
     for epoch_no in range(n_epochs):
         for i in range(std_n_batches):
@@ -283,45 +310,25 @@ def test_SSLStepLogger(
 
             logger.step(
                 i,
-                *ssl_pair_tg((batch, batch), model, device=default_device, train=train),  # type: ignore[arg-type]
+                i,
+                *ssl_pair_torchgeo_io(
+                    (batch, batch), model, device=default_device, train=train
+                ),  # type: ignore[arg-type]  # noqa: E501
             )
 
         logs = logger.get_logs
-        assert logs["batch_num"] == std_n_batches
+        assert logs["batch_num"] == std_n_batches - 1
         assert isinstance(logs["total_loss"], float)
-        assert isinstance(logs["total_correct"], float)
-        assert isinstance(logs["total_top5"], float)
 
         if extra_metrics:
             assert isinstance(logs["collapse_level"], float)
-            assert isinstance(logs["euc_dist"], (float, np.inf))
+            assert isinstance(logs["euc_dist"], float)
 
         results = logger.get_results
         assert results == {}
 
         correct_loss["x"].append(epoch_no)
-        correct_acc["x"].append(epoch_no)
-        correct_top5["x"].append(epoch_no)
-
         correct_loss["y"].append(logs["total_loss"] / std_n_batches)
-
-        if utils.check_substrings_in_string(model_type, "segmentation"):
-            correct_acc["y"].append(
-                logs["total_correct"]
-                / float(std_n_batches * std_batch_size * np.prod(small_patch_size))
-            )
-            correct_top5["y"].append(
-                logs["total_top5"]
-                / float(std_n_batches * std_batch_size * np.prod(small_patch_size))
-            )
-
-        else:
-            correct_acc["y"].append(
-                logs["total_correct"] / (std_n_batches * std_batch_size)
-            )
-            correct_top5["y"].append(
-                logs["total_top5"] / (std_n_batches * std_batch_size)
-            )
 
         if extra_metrics:
             correct_collapse_level["x"].append(epoch_no)
@@ -335,8 +342,6 @@ def test_SSLStepLogger(
         metrics = logger.get_metrics
 
         assert metrics["pytest_loss"] == pytest.approx(correct_loss)
-        assert metrics["pytest_acc"] == pytest.approx(correct_acc)
-        assert metrics["pytest_top5_acc"] == pytest.approx(correct_top5)
 
         if extra_metrics:
             assert metrics["pytest_collapse_level"] == pytest.approx(

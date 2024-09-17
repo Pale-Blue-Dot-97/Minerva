@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """These loggers are designed to handle the logging and analysis for a whole task."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -42,13 +43,14 @@ __all__ = [
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
 else:  # pragma: no cover
     SummaryWriter = None
 
+import hydra
 import numpy as np
 from torch import Tensor
 from torchgeo.datasets.utils import BoundingBox
@@ -56,7 +58,7 @@ from wandb.sdk.wandb_run import Run
 
 from minerva.utils.utils import check_substrings_in_string
 
-from .steplog import MinervaStepLogger, get_logger
+from .steplog import MinervaStepLogger
 
 
 # =====================================================================================================================
@@ -85,8 +87,8 @@ class MinervaTaskLogger(ABC):
 
     __metaclass__ = abc.ABCMeta
 
-    metric_types: List[str] = []
-    special_metric_types: List[str] = []
+    metric_types: list[str] = []
+    special_metric_types: list[str] = []
     logger_cls: str
 
     def __init__(
@@ -94,11 +96,12 @@ class MinervaTaskLogger(ABC):
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        input_size: tuple[int, int, int],
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         **params,
     ) -> None:
         super(MinervaTaskLogger, self).__init__()
@@ -107,6 +110,7 @@ class MinervaTaskLogger(ABC):
         self.batch_size = batch_size
         self.n_samples = self.n_batches * self.batch_size
 
+        self.input_size = input_size
         self.output_size = output_size
         self.task_name = task_name
 
@@ -119,15 +123,14 @@ class MinervaTaskLogger(ABC):
 
         self.writer = writer
 
-        if isinstance(step_logger_params, dict):
-            self._logger = get_logger(step_logger_params.get("name", self.logger_cls))
-            if "params" not in step_logger_params:
-                step_logger_params["params"] = {}
-
+        if not isinstance(step_logger_params, dict):
+            step_logger_params = {"_target_": self.logger_cls}
+        elif "_target_" not in step_logger_params:
+            step_logger_params["_target_"] = self.logger_cls
         else:
-            step_logger_params = {"params": {}}
+            pass
 
-        step_logger_params["params"]["n_classes"] = self.n_classes
+        step_logger_params["n_classes"] = self.n_classes
 
         self.step_logger_params = step_logger_params
 
@@ -137,7 +140,7 @@ class MinervaTaskLogger(ABC):
             self.metric_types += self.special_metric_types
 
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
-        self.metrics: Dict[str, Any] = {}
+        self.metrics: dict[str, Any] = {}
         for metric in self.metric_types:
             self.metrics[f"{self.task_name}_{metric}"] = {"x": [], "y": []}
 
@@ -147,16 +150,17 @@ class MinervaTaskLogger(ABC):
         .. note::
             Will overwrite ``self.logger`` with new logger.
         """
-        self.step_logger: MinervaStepLogger = self._logger(
+        self.step_logger: MinervaStepLogger = hydra.utils.instantiate(
+            self.step_logger_params,
             task_name=self.task_name,
             n_batches=self.n_batches,
             batch_size=self.batch_size,
+            input_size=self.input_size,
             output_size=self.output_size,
             record_int=self.record_int,
             record_float=self.record_float,
             writer=self.writer,
             model_type=self.model_type,
-            **self.step_logger_params.get("params", {}),
         )
 
     def refresh_step_logger(self) -> None:
@@ -164,32 +168,38 @@ class MinervaTaskLogger(ABC):
 
     def step(
         self,
-        step_num: int,
+        global_step_num: int,
+        local_step_num: int,
         loss: Tensor,
-        z: Optional[Tensor] = None,
+        x: Optional[Tensor] = None,
         y: Optional[Tensor] = None,
-        bbox: Optional[BoundingBox] = None,
+        z: Optional[Tensor] = None,
+        index: Optional[BoundingBox] = None,
         *args,
         **kwargs,
     ) -> None:
         """Abstract method to log a step, using the logger. Must be overwritten.
 
         Args:
-            step_num (int): The global step number of for the mode of model fitting.
+            global_step_num (int): The global step number of the model fitting.
+            local_step_num (int): The local step number for this logger.
             loss (~torch.Tensor): Loss from this step of model fitting.
-            z (~torch.Tensor): Optional; Output tensor from the model.
+            x (~torch.Tensor): Optional; Images supplied to the model.
             y (~torch.Tensor): Optional; Labels to assess model output against.
-            bbox (~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes of the input samples.
+            z (~torch.Tensor): Optional; Output tensor from the model.
+            index (int | ~torchgeo.datasets.utils.BoundingBox): Optional; Bounding boxes or index of the input samples.
 
         Returns:
             None
         """
         self.step_logger.log(
-            step_num,
+            global_step_num,
+            local_step_num,
             loss,
-            z,
+            x,
             y,
-            bbox,
+            z,
+            index,
             *args,
             **kwargs,
         )
@@ -204,7 +214,7 @@ class MinervaTaskLogger(ABC):
         self.log_epoch_number(epoch_no)
 
     @abc.abstractmethod
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Must be defined before use.
@@ -223,7 +233,7 @@ class MinervaTaskLogger(ABC):
             self.metrics[metric]["x"].append(epoch_no)
 
     @property
-    def get_metrics(self) -> Dict[str, Any]:
+    def get_metrics(self) -> dict[str, Any]:
         """Get the ``metrics`` dictionary.
 
         Returns:
@@ -232,7 +242,7 @@ class MinervaTaskLogger(ABC):
         return self.metrics
 
     @property
-    def get_logs(self) -> Dict[str, Any]:
+    def get_logs(self) -> dict[str, Any]:
         """Get the logs of each step from the latest epoch of the task.
 
         Returns:
@@ -243,7 +253,7 @@ class MinervaTaskLogger(ABC):
         return self.step_logger.get_logs
 
     @property
-    def get_results(self) -> Dict[str, Any]:
+    def get_results(self) -> dict[str, Any]:
         """Get the results of each step from the latest epoch of the task.
 
         Returns:
@@ -263,8 +273,8 @@ class MinervaTaskLogger(ABC):
             self.metrics[metric]["y"].append(np.NAN)
 
     def get_sub_metrics(
-        self, pattern: Tuple[str, ...] = ("train", "val")
-    ) -> Dict[str, Any]:
+        self, pattern: tuple[str, ...] = ("train", "val")
+    ) -> dict[str, Any]:
         """Gets a subset of the metrics dictionary with keys containing strings in the pattern.
 
         Useful for getting the train and validation metrics for plotting for example.
@@ -312,19 +322,20 @@ class SupervisedTaskLogger(MinervaTaskLogger):
     .. versionadded:: 0.27
     """
 
-    metric_types: List[str] = ["loss", "acc", "miou"]
-    logger_cls = "SupervisedGeoStepLogger"
+    metric_types: list[str] = ["loss", "acc", "miou"]
+    logger_cls = "minerva.logger.steplog.SupervisedStepLogger"
 
     def __init__(
         self,
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        input_size: tuple[int, int, int],
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "segmentation",
         **params,
     ) -> None:
@@ -332,6 +343,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             task_name,
             n_batches,
             batch_size,
+            input_size,
             output_size,
             step_logger_params,
             record_int,
@@ -341,7 +353,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             **params,
         )
 
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
@@ -351,10 +363,9 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             logs["total_loss"] / self.n_batches
         )
 
-        if self.model_type == "segmentation":
+        if check_substrings_in_string(self.model_type, "segmentation"):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"]
-                / (self.n_batches * self.batch_size * np.prod(self.output_size))
+                logs["total_correct"] / (self.n_samples * np.prod(self.output_size))
             )
             if logs.get("total_miou") is not None:
                 self.metrics[f"{self.task_name}_miou"]["y"].append(
@@ -365,6 +376,10 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"] / self.n_samples
             )
+
+            # Ensure that there are no empty logs for MIoU in a non=segmentation experiment.
+            if f"{self.task_name}_miou" in self.metrics:
+                del self.metrics[f"{self.task_name}_miou"]
 
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
@@ -378,7 +393,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
         )
 
-        if self.model_type == "segmentation":
+        if check_substrings_in_string(self.model_type, "segmentation"):
             msg += " | mIoU: {}".format(
                 self.metrics[f"{self.task_name}_miou"]["y"][epoch_no]
             )
@@ -409,35 +424,41 @@ class SSLTaskLogger(MinervaTaskLogger):
 
     metric_types = ["loss", "acc", "top5_acc"]
     special_metric_types = ["collapse_level", "euc_dist"]
-    logger_cls = "SSLStepLogger"
+    logger_cls = "minerva.logger.steplog.SSLStepLogger"
 
     def __init__(
         self,
         task_name: str,
         n_batches: int,
         batch_size: int,
-        output_size: Tuple[int, ...],
-        step_logger_params: Optional[Dict[str, Any]] = None,
+        input_size: tuple[int, int, int],
+        output_size: tuple[int, ...],
+        step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
         model_type: str = "segmentation",
         sample_pairs: bool = False,
         **params,
     ) -> None:
         if not step_logger_params:
-            step_logger_params = {}
-        if "params" not in step_logger_params:
-            step_logger_params["params"] = {}
+            step_logger_params = {"_target_": self.logger_cls}
 
-        step_logger_params["params"]["sample_pairs"] = sample_pairs
-        step_logger_params["params"]["collapse_level"] = sample_pairs
-        step_logger_params["params"]["euclidean"] = sample_pairs
+        step_logger_params["sample_pairs"] = step_logger_params.get(
+            "sample_pairs", sample_pairs
+        )
+        step_logger_params["collapse_level"] = step_logger_params.get(
+            "collapse_level", sample_pairs
+        )
+        step_logger_params["euclidean"] = step_logger_params.get(
+            "euclidean", sample_pairs
+        )
 
         super(SSLTaskLogger, self).__init__(
             task_name,
             n_batches,
             batch_size,
+            input_size,
             output_size,
             step_logger_params,
             record_int,
@@ -448,7 +469,18 @@ class SSLTaskLogger(MinervaTaskLogger):
             **params,
         )
 
-    def _calc_metrics(self, logs: Dict[str, Any]) -> None:
+        # Delete space in the metrics log for metrics that will not be calculated for Siamese models.
+        if check_substrings_in_string(self.model_type, "siamese"):
+            del self.metrics[f"{self.task_name}_acc"]
+            del self.metrics[f"{self.task_name}_top5_acc"]
+
+        # Delete space in the metrics log for metrics that will not be calculated if NOT a Siamese model.
+        if not getattr(self.step_logger, "collapse_level", False):
+            del self.metrics[f"{self.task_name}_collapse_level"]
+        if not getattr(self.step_logger, "euclidean", False):
+            del self.metrics[f"{self.task_name}_euc_dist"]
+
+    def _calc_metrics(self, logs: dict[str, Any]) -> None:
         """Updates metrics with epoch results.
 
         Args:
@@ -458,17 +490,7 @@ class SSLTaskLogger(MinervaTaskLogger):
             logs["total_loss"] / self.n_batches
         )
 
-        if check_substrings_in_string(self.model_type, "segmentation"):
-            self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"]
-                / (self.n_batches * self.batch_size * np.prod(self.output_size))
-            )
-            self.metrics[f"{self.task_name}_top5_acc"]["y"].append(
-                logs["total_top5"]
-                / (self.n_batches * self.batch_size * np.prod(self.output_size))
-            )
-
-        else:
+        if not check_substrings_in_string(self.model_type, "siamese"):
             self.metrics[f"{self.task_name}_acc"]["y"].append(
                 logs["total_correct"] / self.n_samples
             )
@@ -477,12 +499,14 @@ class SSLTaskLogger(MinervaTaskLogger):
             )
 
         if self.sample_pairs:
-            self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
-                logs["collapse_level"]
-            )
-            self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
-                logs["euc_dist"] / self.n_batches
-            )
+            if getattr(self.step_logger, "collapse_level", False):
+                self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
+                    logs["collapse_level"]
+                )
+            if getattr(self.step_logger, "euclidean", False):
+                self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
+                    logs["euc_dist"] / self.n_batches
+                )
 
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
@@ -490,21 +514,27 @@ class SSLTaskLogger(MinervaTaskLogger):
         Args:
             epoch_no (int): Epoch number to print results from.
         """
-        msg = "{} | Loss: {} | Accuracy: {}% | Top5 Accuracy: {}% ".format(
+        msg = "{} | Loss: {} ".format(
             self.task_name,
             self.metrics[f"{self.task_name}_loss"]["y"][epoch_no],
-            self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
-            self.metrics[f"{self.task_name}_top5_acc"]["y"][epoch_no] * 100.0,
         )
 
         if self.sample_pairs:
-            msg += "\n"
+            if getattr(self.step_logger, "collapse_level", False):
+                msg += "| Collapse Level: {}%".format(
+                    self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no]
+                    * 100.0
+                )
+            if getattr(self.step_logger, "euclidean", False):
+                msg += "| Avg. Euclidean Distance: {}".format(
+                    self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
+                )
 
-            msg += "| Collapse Level: {}%".format(
-                self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no] * 100.0
-            )
-            msg += "| Avg. Euclidean Distance: {}".format(
-                self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no]
+        if not check_substrings_in_string(self.model_type, "siamese"):
+            msg += "\n"
+            msg += "| Accuracy: {}% | Top5 Accuracy: {}% ".format(
+                self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] * 100.0,
+                self.metrics[f"{self.task_name}_top5_acc"]["y"][epoch_no] * 100.0,
             )
 
         msg += "\n"

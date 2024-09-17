@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.samplers`.
-"""
+r"""Tests for :mod:`minerva.samplers`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -38,13 +38,13 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import pytest
 from torch.utils.data import DataLoader
 from torchgeo.datasets.utils import BoundingBox
 
-from minerva.datasets import PairedDataset, stack_sample_pairs
+from minerva.datasets import PairedGeoDataset, stack_sample_pairs
 from minerva.datasets.__testing import TstImgDataset
 from minerva.samplers import (
     RandomPairBatchGeoSampler,
@@ -57,10 +57,10 @@ from minerva.samplers import (
 #                                                       TESTS
 # =====================================================================================================================
 def test_randompairgeosampler(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, str(img_root), res=1.0)
+    dataset = PairedGeoDataset(TstImgDataset, str(img_root), res=1.0)
 
     sampler = RandomPairGeoSampler(dataset, size=32, length=32, max_r=52)
-    loader: DataLoader[Dict[str, Any]] = DataLoader(
+    loader: DataLoader[dict[str, Any]] = DataLoader(
         dataset, batch_size=8, sampler=sampler, collate_fn=stack_sample_pairs
     )
 
@@ -73,12 +73,12 @@ def test_randompairgeosampler(img_root: Path) -> None:
 
 
 def test_randompairbatchgeosampler(img_root: Path) -> None:
-    dataset = PairedDataset(TstImgDataset, str(img_root), res=1.0)
+    dataset = PairedGeoDataset(TstImgDataset, str(img_root), res=1.0)
 
     sampler = RandomPairBatchGeoSampler(
         dataset, size=32, length=32, batch_size=8, max_r=52, tiles_per_batch=1
     )
-    loader: DataLoader[Dict[str, Any]] = DataLoader(
+    loader: DataLoader[dict[str, Any]] = DataLoader(
         dataset, batch_sampler=sampler, collate_fn=stack_sample_pairs
     )
 

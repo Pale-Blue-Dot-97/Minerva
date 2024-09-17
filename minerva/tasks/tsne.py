@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """TSNE Clustering task."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -38,7 +39,7 @@ __all__ = ["TSNEVis"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Union
+from typing import Any, Optional
 
 import torch
 from torch import Tensor
@@ -46,6 +47,7 @@ from torch.utils.tensorboard.writer import SummaryWriter
 from wandb.sdk.wandb_run import Run
 
 from minerva.models import MinervaDataParallel, MinervaModel
+from minerva.utils.utils import get_sample_index
 from minerva.utils.visutils import plot_embedding
 
 from .core import MinervaTask
@@ -64,13 +66,14 @@ class TSNEVis(MinervaTask):
     def __init__(
         self,
         name: str,
-        model: Union[MinervaModel, MinervaDataParallel],
+        model: MinervaModel | MinervaDataParallel,
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Union[SummaryWriter, Run, None] = None,
+        writer: Optional[SummaryWriter | Run] = None,
+        backbone_weight_path: Optional[str | Path] = None,
         record_int: bool = True,
         record_float: bool = False,
         **params,
@@ -78,7 +81,7 @@ class TSNEVis(MinervaTask):
         backbone = model.get_backbone()  # type: ignore[assignment, operator]
 
         # Set dummy optimiser. It won't be used as this is a test.
-        backbone.set_optimiser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))
+        backbone.set_optimiser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))  # type: ignore[attr-defined]
 
         super().__init__(
             name,
@@ -89,6 +92,7 @@ class TSNEVis(MinervaTask):
             rank,
             world_size,
             writer,
+            backbone_weight_path,
             record_int,
             record_float,
             **params,
@@ -101,21 +105,25 @@ class TSNEVis(MinervaTask):
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
         # Get a batch of data.
-        data = next(iter(self.loaders))
+        assert isinstance(self.loaders, torch.utils.data.DataLoader)
+        data: dict[str, Any] = next(iter(self.loaders))
 
         # Make sure the model is in evaluation mode.
         self.model.eval()
 
-        # Pass the batch of data through the model to get the embeddings.
-        embeddings: Tensor = self.model.forward(data["image"].to(self.device))[0]
+        # Ensure that gradients are not calculated.
+        with torch.no_grad():
+            # Pass the batch of data through the model to get the embeddings.
+            embeddings: Tensor = self.model.forward(data["image"].to(self.device))[0]
 
         # Flatten embeddings.
         embeddings = embeddings.flatten(start_dim=1)
 
         plot_embedding(
             embeddings.detach().cpu(),
-            data["bbox"],
-            self.name,
+            get_sample_index(data),  # type: ignore[arg-type]
+            self.global_params["data_root"],
+            self.params["dataset_params"],
             show=True,
             filename=str(self.task_fn / "tsne_cluster_vis.png"),
         )

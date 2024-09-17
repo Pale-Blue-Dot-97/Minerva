@@ -25,6 +25,7 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing UNet models. Most code from https://github.com/milesial/Pytorch-UNet"""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -51,7 +52,7 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 import torch
 import torch.nn.functional as F
@@ -190,6 +191,7 @@ class Up(Module):
         """
 
         x1 = self.up(x1)
+
         # input is CHW
         diffy = x2.size()[2] - x1.size()[2]
         diffx = x2.size()[3] - x1.size()[3]
@@ -266,7 +268,7 @@ class UNet(MinervaModel):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
+        input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
         scaler: Optional[GradScaler] = None,
@@ -355,13 +357,13 @@ class UNetR(MinervaModel):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
+        input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
         scaler: Optional[GradScaler] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(UNetR, self).__init__(
             criterion=criterion,
@@ -415,6 +417,12 @@ class UNetR(MinervaModel):
         )
 
         self.outc = OutConv(latent_channels // 32, n_classes)
+
+    def _remake_classifier(self) -> None:
+        backbone_out_shape = self.backbone.output_shape
+        assert isinstance(backbone_out_shape, Sequence)
+        assert self.n_classes is not None
+        self.outc = OutConv(backbone_out_shape[0] // 32, self.n_classes)
 
     def forward(self, x: Tensor) -> Tensor:
         """Performs a forward pass of the UNet using ``backbone``.

@@ -1,0 +1,14 @@
+---
+name: OSCD
+
+classes:
+    0: No Change
+    1: Change
+
+colours:
+    0: '#000000'
+    1: '#009900'
+
+fig_sizes:
+    CM: [4, 4]
+    Mask: [12, 10]
