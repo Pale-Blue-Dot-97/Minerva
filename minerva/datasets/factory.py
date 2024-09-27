@@ -48,7 +48,6 @@ import os
 import platform
 import re
 from copy import deepcopy
-from datetime import timedelta
 from inspect import signature
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
@@ -64,8 +63,8 @@ from torch.utils.data import DataLoader, Sampler
 from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
+from lightning.fabric.utils.distributed import DistributedSamplerWrapper
 
-from minerva.samplers import DistributedSamplerWrapper
 from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
 
