@@ -30,6 +30,7 @@ dependencies = [
     "imageio",
     "inputimeout",
     "lightly",
+    "lightning",
     "kornia",
     "matplotlib",
     "hydra-core",

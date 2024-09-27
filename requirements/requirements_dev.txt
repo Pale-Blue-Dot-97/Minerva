@@ -13,6 +13,7 @@ internet-sabotage3==0.1.6
 ipykernel==6.29.4
 kornia==0.7.2
 lightly==1.5.7
+lightning==2.4.0
 lmdb==1.4.1
 matplotlib==3.9.0
 mlflow-skinny==2.14.0
