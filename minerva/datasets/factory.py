@@ -63,7 +63,7 @@ from torch.utils.data import DataLoader, Sampler
 from torchgeo.datasets import GeoDataset, NonGeoDataset, RasterDataset
 from torchgeo.samplers import BatchGeoSampler, GeoSampler
 from torchgeo.samplers.utils import _to_tuple
-from lightning.fabric.utils.distributed import DistributedSamplerWrapper
+from lightning.fabric.utilities.distributed import DistributedSamplerWrapper
 
 from minerva.transforms import MinervaCompose, init_auto_norm, make_transformations
 from minerva.utils import universal_path, utils
