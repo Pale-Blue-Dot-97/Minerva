@@ -47,11 +47,10 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import random
-from operator import itemgetter
-from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Iterator, List, Optional, Sequence, Tuple, Union
 
 import torch
-from torch.utils.data import Dataset, DistributedSampler, Sampler
+from torch.utils.data import BatchSampler, RandomSampler, Sampler
 from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers import BatchGeoSampler, RandomGeoSampler, Units
@@ -207,6 +206,28 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         return self.length // self.batch_size
 
 
+class RandomBatchSampler(BatchSampler):
+    """Wrapper for PyTorch's :class:`~torch.utils.data.BatchSampler` that uses allows a user to 
+    specify which sampler to use to wrap their dataset.
+
+    Args:
+        dataset (~torch.utils.data.Dataset): Dataset to sample from.
+        batch_size (int): Number of samples per batch.
+        sampler (~typing.Callable[..., ~torch.utils.data.Sampler]): Optional; Sampler to use to sample from the dataset.
+            Defaults to :class:`~torch.utils.data.RandomSampler`.
+        drop_last (bool): Optional; If ``True``, the sampler will drop the last batch if its size
+            would be less than ``batch_size``. Default is ``False``.
+        **kwargs (~typing.Any): Optional; Additional keyword arguments to pass to the sampler.
+    """
+    def __init__(self, dataset, batch_size: int, sampler: Callable[..., Sampler] = RandomSampler, drop_last: bool = False, **kwargs: Any) -> None:
+        
+        sampler = sampler(dataset, **kwargs)
+        super().__init__(sampler, batch_size, drop_last)
+
+
+# =====================================================================================================================
+#                                                     METHODS
+# =====================================================================================================================
 def get_greater_bbox(
     bbox: BoundingBox, r: float, size: Union[float, int, Sequence[float]]
 ) -> BoundingBox:
