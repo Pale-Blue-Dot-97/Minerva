@@ -51,7 +51,7 @@ import random
 from typing import Any, Callable, Iterator, List, Optional, Sequence, Tuple, Union
 
 import torch
-from torch.utils.data import BatchSampler, RandomSampler, Sampler
+from torch.utils.data import BatchSampler, Dataset, DistributedSampler, RandomSampler, Sampler
 from torchgeo.datasets import GeoDataset
 from torchgeo.datasets.utils import BoundingBox
 from torchgeo.samplers import BatchGeoSampler, RandomGeoSampler, Units
