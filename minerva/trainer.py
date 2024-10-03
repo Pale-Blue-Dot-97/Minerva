@@ -279,30 +279,30 @@ class Trainer:
         # add process to check for checkpoint file and then set resume to true if file found.
         # set self.params["exp_name"] to the name of the checkpoint file.
 
-        if self.gpu == 0 and self.rank == 0:
+        
+        if "azure_datastore" in self.params.keys():
+            checkpoints = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))
+            metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*metrics.csv"))
+        else:
+            checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
+        if len(checkpoints) > 0:
+            #find the most recent checkpoint
+            checkpoints.sort(key=os.path.getmtime)
+            self.params["exp_name"] = str(checkpoints[0]).split("/")[-1].replace("-checkpoint.pt","")
+            self.resume = True
+            #copy the checkpoint file to the local directory
             if "azure_datastore" in self.params.keys():
-                checkpoints = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))
-                metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*metrics.csv"))
-            else:
-                checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
-            if len(checkpoints) > 0:
-                #find the most recent checkpoint
-                checkpoints.sort(key=os.path.getmtime)
-                self.params["exp_name"] = str(checkpoints[0]).split("/")[-1].replace("-checkpoint.pt","")
-                self.resume = True
-                #copy the checkpoint file to the local directory
-                if "azure_datastore" in self.params.keys():
-                    metric_csv.sort(key=os.path.getmtime)
-                    #make a copy of checkpoint locally
-                    os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}", exist_ok=True)
-                    os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train",exist_ok=True)
+                metric_csv.sort(key=os.path.getmtime)
+                #make a copy of checkpoint locally
+                os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}", exist_ok=True)
+                os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train",exist_ok=True)
 
-                    shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
-                    shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
+                shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
+                shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
 
-            else:
-                self.resume: bool = self.params.get("resume_experiment", False)
-            #self.resume: bool = self.params.get("resume_experiment", False)
+        else:
+            self.resume: bool = self.params.get("resume_experiment", False)
+        #self.resume: bool = self.params.get("resume_experiment", False)
 
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
@@ -326,55 +326,55 @@ class Trainer:
         # Sets the timestamp of the experiment.
         self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M%S")
 
-        if self.gpu == 0 and self.rank == 0:
 
-            if self.resume:
-                try:
-                    assert self.params["exp_name"]
-                except AssertionError:
-                    raise ValueError(
-                        "You must add the `exp_name` to the config of the experiment to resume"
-                    )
-            else:
-                # Gets the job ID if this is a SLURM job to prepend to the experiment name.
-                job_id = self.params.get("jobid")
-                if job_id is None:
-                    job_id = ""
-                else:
-                    job_id += "_"
 
-                # Sets experiment name and adds this to the path to the results' directory.
-                self.params["exp_name"] = "{}{}_{}".format(
-                    job_id, self.params["model_name"], self.params["timestamp"]
+        if self.resume:
+            try:
+                assert self.params["exp_name"]
+            except AssertionError:
+                raise ValueError(
+                    "You must add the `exp_name` to the config of the experiment to resume"
                 )
-
-            # Path to experiment directory and experiment name.
-            self.params["results_dir"] = universal_path(self.params["results_dir"])
-            self.exp_fn: Path = self.params["results_dir"] / self.params["exp_name"]
-
-
-            # Makes a directory for this experiment.
-            utils.mkexpdir(self.params["exp_name"])
-
-            self.writer: Optional[Union[SummaryWriter, Run]] = None
-            if self.params.get("wandb_log", False):
-                # Sets the `wandb` run object (or None).
-                self.writer = wandb_run
+        else:
+            # Gets the job ID if this is a SLURM job to prepend to the experiment name.
+            job_id = self.params.get("jobid")
+            if job_id is None:
+                job_id = ""
             else:
-                if _tensorflow_exist:
-                    assert TENSORBOARD_WRITER
+                job_id += "_"
 
-                    # Initialise TensorBoard logger.
-                    self.writer = TENSORBOARD_WRITER(self.exp_fn / self.params["exp_name"])
-                else:  # pragma: no cover
-                    self.writer = None
+            # Sets experiment name and adds this to the path to the results' directory.
+            self.params["exp_name"] = "{}{}_{}".format(
+                job_id, self.params["model_name"], self.params["timestamp"]
+            )
 
-            self.model: Union[
-                MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
-            ]
+        # Path to experiment directory and experiment name.
+        self.params["results_dir"] = universal_path(self.params["results_dir"])
+        self.exp_fn: Path = self.params["results_dir"] / self.params["exp_name"]
 
-            self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
-            self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
+
+        # Makes a directory for this experiment.
+        utils.mkexpdir(self.params["exp_name"])
+
+        self.writer: Optional[Union[SummaryWriter, Run]] = None
+        if self.params.get("wandb_log", False):
+            # Sets the `wandb` run object (or None).
+            self.writer = wandb_run
+        else:
+            if _tensorflow_exist:
+                assert TENSORBOARD_WRITER
+
+                # Initialise TensorBoard logger.
+                self.writer = TENSORBOARD_WRITER(self.exp_fn / self.params["exp_name"])
+            else:  # pragma: no cover
+                self.writer = None
+
+        self.model: Union[
+            MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
+        ]
+
+        self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+        self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
 
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
@@ -454,37 +454,37 @@ class Trainer:
             self.save_checkpoint()
 
     def _setup_writer(self) -> None:
-        if self.gpu == 0 and self.rank == 0:
-            if isinstance(self.writer, Run):
-                self.writer.config.update(self.params)
 
-            # Determines the input size of the model.
-            input_size = self.get_input_size()
+        if isinstance(self.writer, Run):
+            self.writer.config.update(self.params)
 
-            if self.verbose:
-                # Print model summary.
-                summary(self.model, input_size=input_size)
+        # Determines the input size of the model.
+        input_size = self.get_input_size()
 
-            if _tensorflow_exist:
-                if (
-                    (
-                        torch.cuda.device_count() == 1
-                        or self.device == torch.device("cpu")
+        if self.verbose:
+            # Print model summary.
+            summary(self.model, input_size=input_size)
+
+        if _tensorflow_exist:
+            if (
+                (
+                    torch.cuda.device_count() == 1
+                    or self.device == torch.device("cpu")
+                )
+                and isinstance(
+                    self.writer, utils.extract_class_type(TENSORBOARD_WRITER)
+                )
+                and self.writer
+            ):
+                # Adds a graphical layout of the model to the TensorBoard logger.
+                try:
+                    self.writer.add_graph(  # type: ignore[attr-defined]
+                        self.model,
+                        input_to_model=torch.rand(*input_size, device=self.device),
                     )
-                    and isinstance(
-                        self.writer, utils.extract_class_type(TENSORBOARD_WRITER)
-                    )
-                    and self.writer
-                ):
-                    # Adds a graphical layout of the model to the TensorBoard logger.
-                    try:
-                        self.writer.add_graph(  # type: ignore[attr-defined]
-                            self.model,
-                            input_to_model=torch.rand(*input_size, device=self.device),
-                        )
-                    except RuntimeError as err:  # pragma: no cover
-                        print(err)
-                        print("ABORT adding graph to writer")
+                except RuntimeError as err:  # pragma: no cover
+                    print(err)
+                    print("ABORT adding graph to writer")
 
         # If writer is `wandb`, `watch` the model to log gradients.
         if isinstance(self.writer, Run):
@@ -702,61 +702,61 @@ class Trainer:
                 results = tasks[mode](self.epoch_no - 1)
 
                 # Print epoch results.
-                if self.gpu == 0 and self.rank == 0:
-                    tasks[mode].print_epoch_results(self.epoch_no - 1)
-                    #if not self.stopper and self.checkpoint_experiment:
-                    if self.epoch_no % 10 == 0:
 
-                        # check if self.params has azure_ckpt and azure_datastore
-                        azure_job = False
-                        if "azure_datastore" in self.params.keys():
-                            azure_datastore = self.params["azure_datastore"]
-                            azure_job = True
+                tasks[mode].print_epoch_results(self.epoch_no - 1)
+                #if not self.stopper and self.checkpoint_experiment:
+                if self.epoch_no % 10 == 0:
 
-                        chkpt_temp = {
-                            "epoch": self.epoch_no,
-                            "model_state_dict": extract_wrapped_model(self.model).state_dict(),
-                            "optimiser_state_dict": self.model.optimiser.state_dict(),
-                            "n_classes": self.params.get("n_classes"),
-                        }
+                    # check if self.params has azure_ckpt and azure_datastore
+                    azure_job = False
+                    if "azure_datastore" in self.params.keys():
+                        azure_datastore = self.params["azure_datastore"]
+                        azure_job = True
 
-                        scheduler = self.model.scheduler
-                        if scheduler is not None:
-                            chkpt_temp["scheduler_state_dict"] = scheduler.state_dict()
+                    chkpt_temp = {
+                        "epoch": self.epoch_no,
+                        "model_state_dict": extract_wrapped_model(self.model).state_dict(),
+                        "optimiser_state_dict": self.model.optimiser.state_dict(),
+                        "n_classes": self.params.get("n_classes"),
+                    }
 
-                        chkpt_name = self.checkpoint_path
-                        chkpt_name = Path(str(chkpt_name).replace("-checkpoint.pt", f"-{self.epoch_no}-checkpoint.pt"))
+                    scheduler = self.model.scheduler
+                    if scheduler is not None:
+                        chkpt_temp["scheduler_state_dict"] = scheduler.state_dict()
 
-                        torch.save(chkpt_temp, chkpt_name)
-                        tasks[mode].save_metrics()
-                        torch.save(chkpt_temp, self.checkpoint_path)
+                    chkpt_name = self.checkpoint_path
+                    chkpt_name = Path(str(chkpt_name).replace("-checkpoint.pt", f"-{self.epoch_no}-checkpoint.pt"))
+
+                    torch.save(chkpt_temp, chkpt_name)
+                    tasks[mode].save_metrics()
+                    torch.save(chkpt_temp, self.checkpoint_path)
+                    if azure_job:
+                        az_ml_run = ml_run.get_context().experiment.workspace
+                        azure_datastore = az_ml_run.datastores["globenet"]
+                        azure_datastore.upload_files(files=[str(self.checkpoint_path)], target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}", overwrite=True)
+                        azure_datastore.upload_files(files=[f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_metrics.csv"], target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}/{mode}", overwrite=True)
+
+                    if hasattr(self.model, "get_backbone"):
+                        """Readies the model for use in downstream tasks and saves to file."""
+                        # Checks that model has the required method to ready it for use on downstream tasks.
+                        pre_trained_backbone: Module = self.model.get_backbone()  # type: ignore[operator]
+
+                        cache_dir = universal_path(self.params["cache_dir"])
+
+                        # Saves the pre-trained backbone to the cache.
+                        cache_fn = cache_dir / self.params["model_name"]
+
+                        try:
+                            os.mkdir(cache_dir)
+                        except FileExistsError:
+                            pass
+
+                        torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-{self.epoch_no}-backbone.pt")
+                        torch.save(pre_trained_backbone.state_dict(),self.backbone_path)
                         if azure_job:
-                            az_ml_run = ml_run.get_context().experiment.workspace
-                            azure_datastore = az_ml_run.datastores["globenet"]
-                            azure_datastore.upload_files(files=[str(self.checkpoint_path)], target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}", overwrite=True)
-                            azure_datastore.upload_files(files=[f"outputs/results/{self.params['exp_name']}/{mode}/{self.params['exp_name']}_metrics.csv"], target_path=f"{self.params['azure_ckpt']}/results/{self.params['exp_name']}/{mode}", overwrite=True)
-
-                        if hasattr(self.model, "get_backbone"):
-                            """Readies the model for use in downstream tasks and saves to file."""
-                            # Checks that model has the required method to ready it for use on downstream tasks.
-                            pre_trained_backbone: Module = self.model.get_backbone()  # type: ignore[operator]
-
-                            cache_dir = universal_path(self.params["cache_dir"])
-
-                            # Saves the pre-trained backbone to the cache.
-                            cache_fn = cache_dir / self.params["model_name"]
-
-                            try:
-                                os.mkdir(cache_dir)
-                            except FileExistsError:
-                                pass
-
-                            torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-{self.epoch_no}-backbone.pt")
-                            torch.save(pre_trained_backbone.state_dict(),self.backbone_path)
-                            if azure_job:
-                                azure_datastore.upload_files(files=[str(self.backbone_path)], target_path=f"{self.params['azure_ckpt']}/cache", overwrite=True)
-                            
-                    self.save_checkpoint()
+                            azure_datastore.upload_files(files=[str(self.backbone_path)], target_path=f"{self.params['azure_ckpt']}/cache", overwrite=True)
+                        
+                self.save_checkpoint()
                     
                     
 
@@ -791,12 +791,12 @@ class Trainer:
 
                     assert results is not None
 
-                    if self.gpu == 0 and self.rank == 0:
-                        # Plots the results of this epoch.
-                        tasks[mode].plot(results, fit_metrics)
 
-                        # Writes the recorded metrics of the task to file.
-                        tasks[mode].save_metrics()
+                    # Plots the results of this epoch.
+                    tasks[mode].plot(results, fit_metrics)
+
+                    # Writes the recorded metrics of the task to file.
+                    tasks[mode].save_metrics()
 
                 
                 
@@ -854,67 +854,67 @@ class Trainer:
 
             assert results is not None
 
-            if self.gpu == 0 and self.rank == 0:
-                # Print epoch results.
-                task.print_epoch_results(0)
+ 
+            # Print epoch results.
+            task.print_epoch_results(0)
 
-                # Creates a classification report from the results of the task.
-                if "z" in results and "y" in results:
-                    self.print("\nMAKING CLASSIFICATION REPORT")
-                    task.compute_classification_report(results["z"], results["y"])
+            # Creates a classification report from the results of the task.
+            if "z" in results and "y" in results:
+                self.print("\nMAKING CLASSIFICATION REPORT")
+                task.compute_classification_report(results["z"], results["y"])
 
-                # Plots the results.
-                task.plot(results, save=save, show=show)
+            # Plots the results.
+            task.plot(results, save=save, show=show)
 
-                # Writes the recorded metrics of the task to file.
-                task.save_metrics()
+            # Writes the recorded metrics of the task to file.
+            task.save_metrics()
 
         # Now experiment is complete, saves model parameters and config file to disk in case error is
         # encountered in plotting of results.
         self.close()
 
-        if self.gpu == 0 and self.rank == 0:
-            # Checks whether to run TensorBoard on the log from the experiment. If defined as optional in the config,
-            # a user confirmation is required to run TensorBoard with a 60s timeout.
-            if self.params.get("run_tensorboard", False) in (
-                "opt",
-                "optional",
-                "OPT",
-                "Optional",
-            ):
-                try:  # pragma: no cover
-                    res = inputimeout(
-                        prompt="Run TensorBoard Logs? (Y/N): ", timeout=_timeout
-                    )
-                    if res in ("Y", "y", "yes", "Yes", "YES", "run", "RUN", "Run"):
-                        self.run_tensorboard()
-                        return
-                    elif res in ("N", "n", "no", "No", "NO"):
-                        pass
-                    else:
-                        self.print("\n*Input not recognised*. Please try again")
-                except TimeoutOccurred:  # pragma: no cover
-                    self.print(
-                        "Input timeout elapsed. TensorBoard logs will not be run."
-                    )
 
-            # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
-            elif self.params.get("run_tensorboard", False) in (
-                True,
-                "auto",
-                "Auto",
-            ):  # pragma: no cover
-                self.run_tensorboard()
-                return
+        # Checks whether to run TensorBoard on the log from the experiment. If defined as optional in the config,
+        # a user confirmation is required to run TensorBoard with a 60s timeout.
+        if self.params.get("run_tensorboard", False) in (
+            "opt",
+            "optional",
+            "OPT",
+            "Optional",
+        ):
+            try:  # pragma: no cover
+                res = inputimeout(
+                    prompt="Run TensorBoard Logs? (Y/N): ", timeout=_timeout
+                )
+                if res in ("Y", "y", "yes", "Yes", "YES", "run", "RUN", "Run"):
+                    self.run_tensorboard()
+                    return
+                elif res in ("N", "n", "no", "No", "NO"):
+                    pass
+                else:
+                    self.print("\n*Input not recognised*. Please try again")
+            except TimeoutOccurred:  # pragma: no cover
+                self.print(
+                    "Input timeout elapsed. TensorBoard logs will not be run."
+                )
 
-            # If the user declined, optional or auto wasn't defined in the config or a timeout occurred,
-            # the user is informed how to run TensorBoard on the logs using RunTensorBoard.py.
-            self.print(
-                "\nTensorBoard logs will not be run but still can be by using RunTensorBoard.py and"
-            )
-            self.print(
-                "providing the path to this experiment's results directory and unique experiment ID"
-            )
+        # With auto set in the config, TensorBoard will automatically run without asking for user confirmation.
+        elif self.params.get("run_tensorboard", False) in (
+            True,
+            "auto",
+            "Auto",
+        ):  # pragma: no cover
+            self.run_tensorboard()
+            return
+
+        # If the user declined, optional or auto wasn't defined in the config or a timeout occurred,
+        # the user is informed how to run TensorBoard on the logs using RunTensorBoard.py.
+        self.print(
+            "\nTensorBoard logs will not be run but still can be by using RunTensorBoard.py and"
+        )
+        self.print(
+            "providing the path to this experiment's results directory and unique experiment ID"
+        )
 
     def save_checkpoint(self) -> None:
 
@@ -1014,44 +1014,44 @@ class Trainer:
             # Ensures all the `wandb` runs finish and sync.
             self.writer.finish()
 
-        if self.gpu == 0 and self.rank == 0:
-            self.print("\nSAVING EXPERIMENT CONFIG TO FILE")
-            fn = self.exp_fn / self.params["exp_name"]
-            # Outputs the modified YAML parameters config file used for this experiment to file.
-            with open(f"{fn}.yml", "w") as outfile:
-                yaml.dump(self.params, outfile)
 
-            try:
-                assert fn.with_suffix(".yml").exists()
-            except AssertionError:
-                print(f"Failed to save config file to {fn}.yml!")
+        self.print("\nSAVING EXPERIMENT CONFIG TO FILE")
+        fn = self.exp_fn / self.params["exp_name"]
+        # Outputs the modified YAML parameters config file used for this experiment to file.
+        with open(f"{fn}.yml", "w") as outfile:
+            yaml.dump(self.params, outfile)
 
-            # Checks whether to save the model parameters to file.
-            if self.params.get("save_model", False) in (
-                "opt",
-                "optional",
-                "OPT",
-                "Optional",
-            ):
-                try:  # pragma: no cover
-                    res = inputimeout(
-                        prompt="\nSave model to file? (Y/N): ", timeout=_timeout
-                    )
-                    if res in ("Y", "y", "yes", "Yes", "YES", "save", "SAVE", "Save"):
-                        # Saves model state dict to PyTorch file.
-                        self.save_model_weights()
-                        self.print("MODEL PARAMETERS SAVED")
-                    elif res in ("N", "n", "no", "No", "NO"):
-                        self.print("Model will NOT be saved to file")
-                    else:
-                        self.print("Input not recognised. Please try again")
-                except TimeoutOccurred:  # pragma: no cover
-                    self.print("Input timeout elapsed. Model will not be saved")
+        try:
+            assert fn.with_suffix(".yml").exists()
+        except AssertionError:
+            print(f"Failed to save config file to {fn}.yml!")
 
-            elif self.params.get("save_model", False) in (True, "auto", "Auto"):
-                self.print("\nSAVING MODEL PARAMETERS TO FILE")
-                # Saves model state dict to PyTorch file.
-                self.save_model_weights()
+        # Checks whether to save the model parameters to file.
+        if self.params.get("save_model", False) in (
+            "opt",
+            "optional",
+            "OPT",
+            "Optional",
+        ):
+            try:  # pragma: no cover
+                res = inputimeout(
+                    prompt="\nSave model to file? (Y/N): ", timeout=_timeout
+                )
+                if res in ("Y", "y", "yes", "Yes", "YES", "save", "SAVE", "Save"):
+                    # Saves model state dict to PyTorch file.
+                    self.save_model_weights()
+                    self.print("MODEL PARAMETERS SAVED")
+                elif res in ("N", "n", "no", "No", "NO"):
+                    self.print("Model will NOT be saved to file")
+                else:
+                    self.print("Input not recognised. Please try again")
+            except TimeoutOccurred:  # pragma: no cover
+                self.print("Input timeout elapsed. Model will not be saved")
+
+        elif self.params.get("save_model", False) in (True, "auto", "Auto"):
+            self.print("\nSAVING MODEL PARAMETERS TO FILE")
+            # Saves model state dict to PyTorch file.
+            self.save_model_weights()
 
     def save_model_weights(self, fn: Optional[Union[str, Path]] = None) -> None:
         """Saves model state dict to :mod:`torch` file.
