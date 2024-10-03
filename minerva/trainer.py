@@ -279,29 +279,30 @@ class Trainer:
         # add process to check for checkpoint file and then set resume to true if file found.
         # set self.params["exp_name"] to the name of the checkpoint file.
 
-        if "azure_datastore" in self.params.keys():
-            checkpoints = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))
-            metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*metrics.csv"))
-        else:
-            checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
-        if len(checkpoints) > 0:
-            #find the most recent checkpoint
-            checkpoints.sort(key=os.path.getmtime)
-            self.params["exp_name"] = str(checkpoints[0]).split("/")[-1].replace("-checkpoint.pt","")
-            self.resume = True
-            #copy the checkpoint file to the local directory
+        if self.gpu == 0 and self.rank == 0:
             if "azure_datastore" in self.params.keys():
-                metric_csv.sort(key=os.path.getmtime)
-                #make a copy of checkpoint locally
-                os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}", exist_ok=True)
-                os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train",exist_ok=True)
+                checkpoints = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))
+                metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*metrics.csv"))
+            else:
+                checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
+            if len(checkpoints) > 0:
+                #find the most recent checkpoint
+                checkpoints.sort(key=os.path.getmtime)
+                self.params["exp_name"] = str(checkpoints[0]).split("/")[-1].replace("-checkpoint.pt","")
+                self.resume = True
+                #copy the checkpoint file to the local directory
+                if "azure_datastore" in self.params.keys():
+                    metric_csv.sort(key=os.path.getmtime)
+                    #make a copy of checkpoint locally
+                    os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}", exist_ok=True)
+                    os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train",exist_ok=True)
 
-                shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
-                shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
+                    shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
+                    shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
 
-        else:
-            self.resume: bool = self.params.get("resume_experiment", False)
-        #self.resume: bool = self.params.get("resume_experiment", False)
+            else:
+                self.resume: bool = self.params.get("resume_experiment", False)
+            #self.resume: bool = self.params.get("resume_experiment", False)
 
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
@@ -325,29 +326,31 @@ class Trainer:
         # Sets the timestamp of the experiment.
         self.params["timestamp"] = utils.timestamp_now(fmt="%d-%m-%Y_%H%M%S")
 
-        if self.resume:
-            try:
-                assert self.params["exp_name"]
-            except AssertionError:
-                raise ValueError(
-                    "You must add the `exp_name` to the config of the experiment to resume"
-                )
-        else:
-            # Gets the job ID if this is a SLURM job to prepend to the experiment name.
-            job_id = self.params.get("jobid")
-            if job_id is None:
-                job_id = ""
+        if self.gpu == 0 and self.rank == 0:
+
+            if self.resume:
+                try:
+                    assert self.params["exp_name"]
+                except AssertionError:
+                    raise ValueError(
+                        "You must add the `exp_name` to the config of the experiment to resume"
+                    )
             else:
-                job_id += "_"
+                # Gets the job ID if this is a SLURM job to prepend to the experiment name.
+                job_id = self.params.get("jobid")
+                if job_id is None:
+                    job_id = ""
+                else:
+                    job_id += "_"
 
-            # Sets experiment name and adds this to the path to the results' directory.
-            self.params["exp_name"] = "{}{}_{}".format(
-                job_id, self.params["model_name"], self.params["timestamp"]
-            )
+                # Sets experiment name and adds this to the path to the results' directory.
+                self.params["exp_name"] = "{}{}_{}".format(
+                    job_id, self.params["model_name"], self.params["timestamp"]
+                )
 
-        # Path to experiment directory and experiment name.
-        self.params["results_dir"] = universal_path(self.params["results_dir"])
-        self.exp_fn: Path = self.params["results_dir"] / self.params["exp_name"]
+            # Path to experiment directory and experiment name.
+            self.params["results_dir"] = universal_path(self.params["results_dir"])
+            self.exp_fn: Path = self.params["results_dir"] / self.params["exp_name"]
 
         if self.gpu == 0 and self.rank == 0:
             # Makes a directory for this experiment.
