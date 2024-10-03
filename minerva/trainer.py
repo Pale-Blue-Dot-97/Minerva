@@ -352,29 +352,29 @@ class Trainer:
             self.params["results_dir"] = universal_path(self.params["results_dir"])
             self.exp_fn: Path = self.params["results_dir"] / self.params["exp_name"]
 
-        if self.gpu == 0 and self.rank == 0:
+
             # Makes a directory for this experiment.
             utils.mkexpdir(self.params["exp_name"])
 
-        self.writer: Optional[Union[SummaryWriter, Run]] = None
-        if self.params.get("wandb_log", False):
-            # Sets the `wandb` run object (or None).
-            self.writer = wandb_run
-        else:
-            if _tensorflow_exist:
-                assert TENSORBOARD_WRITER
+            self.writer: Optional[Union[SummaryWriter, Run]] = None
+            if self.params.get("wandb_log", False):
+                # Sets the `wandb` run object (or None).
+                self.writer = wandb_run
+            else:
+                if _tensorflow_exist:
+                    assert TENSORBOARD_WRITER
 
-                # Initialise TensorBoard logger.
-                self.writer = TENSORBOARD_WRITER(self.exp_fn / self.params["exp_name"])
-            else:  # pragma: no cover
-                self.writer = None
+                    # Initialise TensorBoard logger.
+                    self.writer = TENSORBOARD_WRITER(self.exp_fn / self.params["exp_name"])
+                else:  # pragma: no cover
+                    self.writer = None
 
-        self.model: Union[
-            MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
-        ]
+            self.model: Union[
+                MinervaModel, MinervaDataParallel, MinervaBackbone, OptimizedModule
+            ]
 
-        self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
-        self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
+            self.checkpoint_path = self.exp_fn / (self.params["exp_name"] + "-checkpoint.pt")
+            self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
 
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
