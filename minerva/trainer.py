@@ -300,6 +300,10 @@ class Trainer:
                 shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
                 shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
 
+                #wait for shutil to finish copying
+                while not os.path.exists(f"{self.params['results_dir']}/{self.params['exp_name']}"):
+                    pass
+
         else:
             self.resume: bool = self.params.get("resume_experiment", False)
         #self.resume: bool = self.params.get("resume_experiment", False)
