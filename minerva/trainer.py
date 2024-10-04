@@ -958,7 +958,7 @@ class Trainer:
             del checkpoint["model_state_dict"]["criterion.weight"]
 
         # Load the state dicts for the model and optimiser.
-        self.model.load_state_dict(checkpoint["model_state_dict"],weights_only=True)
+        self.model.load_state_dict(checkpoint["model_state_dict"])
         self.model.optimiser.load_state_dict(checkpoint["optimiser_state_dict"])  # type: ignore[union-attr]
 
         # If the scheduler exists, load from checkpoint.
