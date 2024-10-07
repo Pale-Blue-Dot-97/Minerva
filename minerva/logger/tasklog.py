@@ -494,10 +494,14 @@ class SSLTaskLogger(MinervaTaskLogger):
                 del self.metrics[f"{self.task_name}_top5_acc"]
 
         # Delete space in the metrics log for metrics that will not be calculated if NOT a Siamese model.
-        if not getattr(self.step_logger, "collapse_level", False):
-            del self.metrics[f"{self.task_name}_collapse_level"]
-        if not getattr(self.step_logger, "euclidean", False):
-            del self.metrics[f"{self.task_name}_euc_dist"]
+        try:
+            if not getattr(self.step_logger, "collapse_level", False):
+                del self.metrics[f"{self.task_name}_collapse_level"]
+            if not getattr(self.step_logger, "euclidean", False):
+                del self.metrics[f"{self.task_name}_euc_dist"]
+        except:
+            print("No collapse level or euclidean distance to delete")
+
 
     def _calc_metrics(self, logs: Dict[str, Any]) -> None:
         """Updates metrics with epoch results.
