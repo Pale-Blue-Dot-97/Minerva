@@ -300,7 +300,7 @@ class Trainer:
                 os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}", exist_ok=True)
                 os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train",exist_ok=True)
 
-                print(os.path.getsize(checkpoints[0]))
+                print(os.path.getsize(str(checkpoints[0])))
                 shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
                 shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
 
@@ -312,7 +312,7 @@ class Trainer:
                     if rank == 0:
 
                         sleep(1)
-                        out_check = Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt")
+                        out_check = str(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt")[0])
                         out_check_size = os.path.getsize(out_check)
                         with tqdm(total=os.path.getsize(checkpoints[0]), unit='B', unit_scale=True, unit_divisor=1024) as pbar:
                             while os.path.getsize(out_check_size) < os.path.getsize(checkpoints[0]):
