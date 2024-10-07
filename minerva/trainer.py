@@ -39,6 +39,8 @@ __all__ = ["Trainer"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+from time import sleep
+from tqdm import tqdm
 import warnings
 from copy import deepcopy
 from pathlib import Path
@@ -297,12 +299,23 @@ class Trainer:
                 os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}", exist_ok=True)
                 os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train",exist_ok=True)
 
+                print(os.path.getsize(checkpoints[0]))
                 shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
                 shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
 
-                #wait for shutil to finish copying
-                while not os.path.exists(f"{self.params['results_dir']}/{self.params['exp_name']}"):
-                    pass
+                sleep(1)
+                out_check = Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt")
+                out_check_size = os.path.getsize(out_check)
+
+                # make a tqdm bar based on the size of os.path.getsize(checkpoints[0])
+                with tqdm(total=os.path.getsize(checkpoints[0]), unit='B', unit_scale=True, unit_divisor=1024) as pbar:
+                    while os.path.getsize(out_check_size) < os.path.getsize(checkpoints[0]):
+                        current_prog = os.path.getsize(out_check) - out_check_size
+                        pbar.update(os.path.getsize(current_prog))
+                        out_check_size += current_prog
+                        sleep(1)
+
+
 
         else:
             self.resume: bool = self.params.get("resume_experiment", False)
