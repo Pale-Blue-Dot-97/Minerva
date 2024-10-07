@@ -54,6 +54,7 @@ import yaml
 from inputimeout import TimeoutOccurred, inputimeout
 from torch._dynamo.eval_frame import OptimizedModule
 from torch.nn.modules import Module
+import torch.distributed as dist
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -303,17 +304,24 @@ class Trainer:
                 shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
                 shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
 
-                sleep(1)
-                out_check = Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt")
-                out_check_size = os.path.getsize(out_check)
+                if dist.is_available() and dist.is_initialized():
 
-                # make a tqdm bar based on the size of os.path.getsize(checkpoints[0])
-                with tqdm(total=os.path.getsize(checkpoints[0]), unit='B', unit_scale=True, unit_divisor=1024) as pbar:
-                    while os.path.getsize(out_check_size) < os.path.getsize(checkpoints[0]):
-                        current_prog = os.path.getsize(out_check) - out_check_size
-                        pbar.update(os.path.getsize(current_prog))
-                        out_check_size += current_prog
+                    rank = dist.get_rank()
+                    
+                    dist.barrier()
+                    if rank == 0:
+
                         sleep(1)
+                        out_check = Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt")
+                        out_check_size = os.path.getsize(out_check)
+                        with tqdm(total=os.path.getsize(checkpoints[0]), unit='B', unit_scale=True, unit_divisor=1024) as pbar:
+                            while os.path.getsize(out_check_size) < os.path.getsize(checkpoints[0]):
+                                current_prog = os.path.getsize(out_check) - out_check_size
+                                pbar.update(os.path.getsize(current_prog))
+                                out_check_size += current_prog
+                                sleep(1)
+
+                    dist.barrier()
 
 
 
