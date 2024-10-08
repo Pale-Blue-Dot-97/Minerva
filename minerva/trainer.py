@@ -386,6 +386,7 @@ class Trainer:
         # Makes a directory for this experiment.
         utils.mkexpdir(self.params["exp_name"])
 
+        print("Choose writer...")
         self.writer: Optional[Union[SummaryWriter, Run]] = None
         if self.params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
@@ -414,6 +415,7 @@ class Trainer:
             self.load_checkpoint()
         else:
             # Creates model (and loss function) from specified parameters in params.
+            print("Making model...")
             self.model = self.make_model()
 
         # Determines the output shape of the model.
@@ -440,6 +442,7 @@ class Trainer:
                 **self.params["stopping"],
             )
 
+        print("Setup writer...")
         self._setup_writer()
 
         if not self.resume:
@@ -450,6 +453,7 @@ class Trainer:
                 sample_pairs=self.sample_pairs, change_detection=self.change_detection
             )
 
+            print("Transfer model to device...")
             # Transfer to GPU.
             self.model.to(self.device)
 
@@ -459,23 +463,9 @@ class Trainer:
 
             # Checks if multiple GPUs detected. If so, wraps model in DistributedDataParallel for multi-GPU use.
             # Will also wrap the model in torch.compile if specified to do so in params.
-            # TODO: Waiting on https://github.com/pytorch/pytorch/issues/120233 for torch.compile python 3.12 support.
-            if packaging.version.parse(python_version()) < packaging.version.parse(
-                "3.12"
-            ):
-                self.model = wrap_model(
-                    self.model, gpu, self.params.get("torch_compile", False)
-                )
-            elif packaging.version.parse(python_version()) >= packaging.version.parse(
-                "3.12"
-            ) and self.params.get("torch_compile"):
-                warnings.warn(
-                    "WARNING: python 3.12+ is not yet compatible with torch.compile. Disabling torch.compile"
-                )
-            else:
-                pass
-
-
+            self.model = wrap_model(
+                self.model, gpu, self.params.get("torch_compile", False)
+            )
 
         self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
 
