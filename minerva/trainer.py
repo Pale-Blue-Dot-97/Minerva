@@ -282,28 +282,34 @@ class Trainer:
         # add process to check for checkpoint file and then set resume to true if file found.
         # set self.params["exp_name"] to the name of the checkpoint file.
 
-        
+        self.resume: bool = self.params.get("resume_experiment", False)
+
+        print("Checking for checkpoint file...")
         if "azure_datastore" in self.params.keys():
             checkpoints = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))
             metric_csv = list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*metrics.csv"))
         else:
             checkpoints = list(Path(self.params["results_dir"]).glob("**/*-checkpoint.pt"))
-        if len(checkpoints) > 0:
-            #find the most recent checkpoint
+        
+        if len(checkpoints) > 0 and self.resume:
+            print("Checkpoint files found.")
+
+            # Find the most recent checkpoint
             checkpoints.sort(key=os.path.getmtime)
             self.params["exp_name"] = str(checkpoints[0]).split("/")[-1].replace("-checkpoint.pt","")
             self.resume = True
-            #copy the checkpoint file to the local directory
+            # Copy the checkpoint file to the local directory
             if "azure_datastore" in self.params.keys():
                 metric_csv.sort(key=os.path.getmtime)
-                #make a copy of checkpoint locally
+                # Make a copy of checkpoint locally
                 os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}", exist_ok=True)
                 os.makedirs(f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train",exist_ok=True)
 
-                print(os.path.getsize(str(checkpoints[0])))
+                print(f"{os.path.getsize(str(checkpoints[0]))=}")
                 shutil.copy(checkpoints[0], f"{self.params['results_dir']}/{self.params['exp_name']}")
                 shutil.copy(metric_csv[0], f"{self.params['results_dir']}/{self.params['exp_name']}/fit-train")
 
+                print("Begin blocking action till checkpoint file is downloaded...")
                 if dist.is_available() and dist.is_initialized():
 
                     rank = dist.get_rank()
@@ -314,6 +320,7 @@ class Trainer:
                         sleep(1)
                         out_check = str(list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))[0])
                         out_check_size = os.path.getsize(out_check)
+
                         with tqdm(total=os.path.getsize(checkpoints[0]), unit='B', unit_scale=True, unit_divisor=1024) as pbar:
                             while os.path.getsize(out_check_size) < os.path.getsize(checkpoints[0]):
                                 current_prog = os.path.getsize(out_check) - out_check_size
@@ -323,11 +330,9 @@ class Trainer:
 
                     dist.barrier()
 
-
-
         else:
-            self.resume: bool = self.params.get("resume_experiment", False)
-        #self.resume: bool = self.params.get("resume_experiment", False)
+            print("No checkpoint files found.")
+            self.resume: bool = False
 
         self.batch_size: int = self.params["batch_size"]
         self.model_type: str = self.params["model_type"]
