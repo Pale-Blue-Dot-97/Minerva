@@ -312,7 +312,7 @@ class Trainer:
                     if rank == 0:
 
                         sleep(1)
-                        out_check = str(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt")[0])
+                        out_check = str(list(Path(f"{self.params['azure_ckpt_download']}/results").glob("**/*-checkpoint.pt"))[0])
                         out_check_size = os.path.getsize(out_check)
                         with tqdm(total=os.path.getsize(checkpoints[0]), unit='B', unit_scale=True, unit_divisor=1024) as pbar:
                             while os.path.getsize(out_check_size) < os.path.getsize(checkpoints[0]):
