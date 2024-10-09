@@ -1306,7 +1306,7 @@ def plot_embedding(
 
             shown_images = np.r_[shown_images, [x[i]]]
             imagebox = offsetbox.AnnotationBbox(
-                offsetbox.OffsetImage(image, cmap=plt.cm.gray_r),
+                offsetbox.OffsetImage(image, cmap=mlp.colormaps["Greys_r"]),
                 x[i],  # type: ignore
             )
 
@@ -1372,7 +1372,7 @@ def format_plot_names(
 
 def plot_results(
     plots: dict[str, bool],
-    x: Optional[list[int] | NDArray[Any, Int]] = None,
+    x: Optional[NDArray[Any, Int]] = None,
     y: Optional[list[int] | NDArray[Any, Int]] = None,
     z: Optional[list[int] | NDArray[Any, Int]] = None,
     metrics: Optional[dict[str, Any]] = None,
@@ -1561,8 +1561,8 @@ def plot_results(
         flat_bbox = utils.batch_flatten(index)
         (universal_path(results_dir) / "Masks").mkdir(parents=True, exist_ok=True)
         seg_plot(
-            z,
-            y,
+            z,  # type: ignore[arg-type]
+            y,  # type: ignore[arg-type]
             ids,
             flat_bbox,
             data_root,

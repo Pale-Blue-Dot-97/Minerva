@@ -33,9 +33,11 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
+
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
+import os
 import shutil
 from copy import deepcopy
 from pathlib import Path
@@ -84,16 +86,24 @@ def run_trainer(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfi
 def test_trainer_1(default_config: DictConfig) -> None:
     with runner.WandbConnectionManager():
         if torch.distributed.is_available():  # type: ignore
-            # Configure the arguments and environment variables.
-            OmegaConf.update(default_config, "log_all", False, force_add=True)
-            OmegaConf.update(default_config, "entity", None, force_add=True)
-            OmegaConf.update(default_config, "project", "pytest", force_add=True)
-            OmegaConf.update(default_config, "wandb_log", True, force_add=True)
+            # Disable wandb logging on Windows in CI/CD due to pwd.
+            if os.name == "nt":
+                OmegaConf.update(default_config, "wandb_log", False, force_add=True)
+            else:
+                # Configure the arguments and environment variables.
+                OmegaConf.update(default_config, "log_all", False, force_add=True)
+                OmegaConf.update(default_config, "entity", None, force_add=True)
+                OmegaConf.update(default_config, "project", "pytest", force_add=True)
+                OmegaConf.update(default_config, "wandb_log", True, force_add=True)
 
             # Run the specified main with distributed computing and the arguments provided.
             run_trainer(default_config)
 
         else:
+            # Disable wandb logging on Windows in CI/CD due to pwd.
+            if os.name == "nt":
+                OmegaConf.update(default_config, "wandb_log", False, force_add=True)
+
             run_trainer(default_config)
 
 
@@ -124,7 +134,6 @@ def test_trainer_2(default_config: DictConfig, cache_dir: Path) -> None:
     OmegaConf.update(params2, "sample_pairs", "false", force_add=True)
     params2.plot_last_epoch = False
     params2.wandb_log = False
-    params2.project = False
     params2.max_epochs = 2
     del params2.stopping
 
@@ -158,6 +167,7 @@ def test_trainer_3(default_config: DictConfig) -> None:
     params2["fine_tune"] = True
     params2["max_epochs"] = 2
     params2["elim"] = False
+    del params2.stopping
 
     trainer2 = Trainer(0, **params2)
     trainer2.fit()

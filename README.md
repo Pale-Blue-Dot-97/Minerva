@@ -20,7 +20,7 @@
     <img src="docs/images/Minerva_logo.png" alt="Logo" width="" height="400">
   </a>
   <p align="center">
-    <b style="font-size:26px;"> v0.27</b>
+    <b style="font-size:26px;"> v0.28.0</b>
     <br />
     <a href="https://pale-blue-dot-97.github.io/Minerva/"><strong>Explore the docs »</strong></a>
     <br />
@@ -70,25 +70,29 @@ initialising a Trainer and model, and fitting and testing that model then output
 ### MWE Driver Script 📄
 
 ```python
-from minerva.utils import CONFIG  # Module containing various utility functions.
+import hydra
+from omegaconf import DictConfig
+
 from minerva.trainer import Trainer  # Class designed to handle fitting of model.
 
 
-# Initialise a Trainer. Also creates the model.
-trainer = Trainer(**CONFIG)
+@hydra.main(version_base="1.3")
+def main(cfg: DictConfig) -> None:
+    # Initialise a Trainer. Also creates the model.
+    trainer = Trainer(**cfg)
 
-# Run the fitting (train and validation epochs).
-trainer.fit()
+    # Run the fitting (train and validation epochs).
+    trainer.fit()
 
-# Run the testing epoch and output results.
-trainer.test()
+    # Run the testing epoch and output results.
+    trainer.test()
 ```
 
 See `scripts\MinervaExp.py` as an example script implementing `minerva`.
 
 ### Config Structure ⚙
 
-See `minerva\inbuilt_cfgs\example_config.yml` as an example config file.
+See `minerva\inbuilt_cfgs\example_config.yaml` as an example config file.
 
 ### Creating a Manifest for your Dataset 📑
 

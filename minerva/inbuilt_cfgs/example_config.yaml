@@ -33,7 +33,7 @@ fine_tune: false                      # Activate fine-tuning mode.
 elim: true                            # Eliminates empty classes from schema.
 balance: true                         # Balances dataset classes.
 torch_compile: true                   # Wrap model in `torch.compile`.
-mix_precision: true                   # Activate mixed precision (16-bit)
+mix_precision: false                  # Activate mixed precision (16-bit)
 
 # ---+ Optimisers +---------------------------------------------------
 lr: 1.0E-2                            # Learning rate of optimiser.
@@ -70,7 +70,7 @@ loader_params:
 # === MODEL IO & LOGGING ======================================================
 # ---+ wandb Logging +---------------------------------------------------------
 wandb_log: true              # Activates wandb logging.
-project: pytest              # Define the project name for wandb.
+wandb_anonymous_mode: allow  # Set wandb to anonymous logging.
 wandb_dir: /test/tmp/wandb   # Directory to store wandb logs locally.
 
 # ---+ Collator +--------------------------------------------------------------

@@ -337,8 +337,8 @@ def ssl_pair_torchgeo_io(
 ) -> tuple[
     Tensor,
     Tensor,
-    Tensor | tuple[Tensor, ...],
     None,
+    Tensor | tuple[Tensor, ...],
     Optional[Sequence[BoundingBox] | Sequence[int]],
 ]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.

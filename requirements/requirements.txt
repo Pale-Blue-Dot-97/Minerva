@@ -30,7 +30,7 @@ requests==2.32.3
 scikit-learn==1.5.1
 segmentation-models-pytorch==0.3.4
 setuptools==74.0.0
-starlette==0.37.2 # not directly required, pinned by Dependabot to avoid a vulnerability.
+starlette==0.38.2 # not directly required, pinned by Dependabot to avoid a vulnerability.
 tabulate==0.9.0
 tensorflow==2.17.0
 tifffile==2024.1.30
@@ -45,6 +45,6 @@ tqdm==4.66.5
 types-PyYAML==6.0.12.20240808
 types-requests==2.32.0.20240712
 types-tabulate==0.9.0.20240106
-wandb==0.17.8
+wandb==0.18.0
 Werkzeug>=2.2.3 # Patches a potential security vulnerability.
 wheel>=0.38.0 # not directly required, pinned by Snyk to avoid a vulnerability.
