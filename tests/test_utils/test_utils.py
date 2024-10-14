@@ -56,7 +56,7 @@ from geopy.exc import GeocoderUnavailable
 from internet_sabotage import no_connection
 from nptyping import Float, NDArray, Shape
 from numpy.testing import assert_array_equal
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox, stack_samples
 from torchvision.datasets import FakeData
@@ -241,7 +241,7 @@ def test_eliminate_classes(
             [2, 1, 5, 1, 6, 3, 0, 1, 1, 5, 7],
             [2, 4, 5, 1, 6, 3, 0, 2, 1, 5, 7],
             [2, 1, 5, 1, 6, 3, 0, 1, 1, 5, 7],
-            lazy_fixture("exp_classes"),
+            lf("exp_classes"),
         ),
     ],
 )

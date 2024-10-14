@@ -45,7 +45,7 @@ import numpy as np
 import packaging
 import pytest
 import torch
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf
 from urllib3.exceptions import MaxRetryError, NewConnectionError
 
 # Needed to avoid connection error when importing lightly.
@@ -194,8 +194,8 @@ def test_bilinear_init() -> None:
 @pytest.mark.parametrize(
     ("model", "answer"),
     [
-        (lazy_fixture("exp_fcn"), True),
-        (lazy_fixture("exp_cnn"), True),
+        (lf("exp_fcn"), True),
+        (lf("exp_cnn"), True),
         (resnet18(), False),
     ],
 )
@@ -214,9 +214,9 @@ def test_is_minerva_model(model: Module, compile_model: bool, answer: bool) -> N
 @pytest.mark.parametrize(
     ("model", "subtype", "answer"),
     [
-        (lazy_fixture("exp_fcn"), MinervaBackbone, True),
-        (lazy_fixture("exp_cnn"), MinervaSiamese, False),
-        (lazy_fixture("exp_simconv"), MinervaSiamese, True),
+        (lf("exp_fcn"), MinervaBackbone, True),
+        (lf("exp_cnn"), MinervaSiamese, False),
+        (lf("exp_simconv"), MinervaSiamese, True),
         (resnet18(), MinervaBackbone, False),
     ],
 )
@@ -236,7 +236,7 @@ def test_is_minerva_subtype(
 
 @pytest.mark.parametrize(
     "model",
-    (lazy_fixture("exp_fcn"), lazy_fixture("exp_cnn"), lazy_fixture("exp_simconv")),
+    (lf("exp_fcn"), lf("exp_cnn"), lf("exp_simconv")),
 )
 @pytest.mark.parametrize("compile_model", (True, False))
 def test_extract_wrapped_model(model, compile_model: bool) -> None:
