@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 r"""Collation functions designed for :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -39,45 +40,36 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Dict, Iterable, Optional, Tuple
+from typing import Any, Callable, Iterable
 
+from hydra.utils import get_method
 from torchgeo.datasets.utils import stack_samples
-
-from minerva.utils import utils
 
 
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
 def get_collator(
-    collator_params: Optional[Dict[str, str]] = None
+    collator_target: str = "torchgeo.datasets.stack_samples",
 ) -> Callable[..., Any]:
     """Gets the function defined in parameters to collate samples together to form a batch.
 
     Args:
-        collator_params (dict[str, str]): Optional; Dictionary that must contain keys for
-            ``'module'`` and ``'name'`` of the collation function. Defaults to ``config['collator']``.
+        collator_target (str): Dot based import path for collator method.
+            Defaults to :meth:`torchgeo.datasets.stack_samples`
 
     Returns:
-        ~typing.Callable[..., ~typing.Any]: Collation function found from parameters given.
+        ~typing.Callable[..., ~typing.Any]: Collation function found from target path given.
     """
     collator: Callable[..., Any]
-    if collator_params is not None:
-        module = collator_params.pop("module", "")
-        if module == "":
-            collator = globals()[collator_params["name"]]
-        else:
-            collator = utils.func_by_str(module, collator_params["name"])
-    else:
-        collator = stack_samples
-
+    collator = get_method(collator_target)
     assert callable(collator)
     return collator
 
 
 def stack_sample_pairs(
-    samples: Iterable[Tuple[Dict[Any, Any], Dict[Any, Any]]]
-) -> Tuple[Dict[Any, Any], Dict[Any, Any]]:
+    samples: Iterable[tuple[dict[Any, Any], dict[Any, Any]]],
+) -> tuple[dict[Any, Any], dict[Any, Any]]:
     """Takes a list of paired sample dicts and stacks them into a tuple of batches of sample dicts.
 
     Args:

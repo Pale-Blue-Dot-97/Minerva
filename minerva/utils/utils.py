@@ -41,6 +41,7 @@ Attributes:
     WGS84 (~rasterio.crs.CRS): WGS84 co-ordinate reference system acting as a default :class:`~rasterio.crs.CRS`
         for transformations.
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -49,13 +50,6 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "IMAGERY_CONFIG_PATH",
-    "DATA_CONFIG_PATH",
-    "DATA_CONFIG",
-    "IMAGERY_CONFIG",
-    "CLASSES",
-    "CONFIG",
-    "CMAP_DICT",
     "return_updated_kwargs",
     "pair_collate",
     "dublicator",
@@ -71,7 +65,6 @@ __all__ = [
     "check_dict_key",
     "check_substrings_in_string",
     "datetime_reformat",
-    "get_dataset_name",
     "transform_coordinates",
     "check_within_bounds",
     "deg_to_dms",
@@ -84,7 +77,6 @@ __all__ = [
     "class_weighting",
     "find_empty_classes",
     "eliminate_classes",
-    "load_data_specs",
     "class_transform",
     "mask_transform",
     "check_test_empty",
@@ -116,7 +108,6 @@ __all__ = [
 # ---+ Inbuilt +-------------------------------------------------------------------------------------------------------
 import cmath
 import functools
-import glob
 import hashlib
 import importlib
 import inspect
@@ -124,28 +115,18 @@ import json
 import math
 import os
 import random
-import re as regex
 import shlex
 import sys
 import webbrowser
 from collections import Counter, OrderedDict
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from subprocess import Popen
 from types import ModuleType
 from typing import Any, Callable
 from typing import Counter as CounterType
-from typing import (
-    Dict,
-    Iterable,
-    List,
-    Match,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    overload,
-)
+from typing import Iterable, Optional, Sequence, overload
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import numpy as np
@@ -153,15 +134,13 @@ import pandas as pd
 import psutil
 import rasterio as rt
 import torch
-import yaml
-from geopy.adapters import AdapterHTTPError
 from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Photon
 from nptyping import Float, Int, NDArray, Shape
 from numpy.typing import ArrayLike
+from omegaconf import DictConfig, OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
-from scipy.spatial import distance
 from sklearn.exceptions import UndefinedMetricWarning
 from sklearn.manifold import TSNE
 from sklearn.metrics import auc, classification_report, roc_curve
@@ -173,60 +152,13 @@ from torch.nn.modules import Module
 from torch.types import _device
 from torchgeo.datasets.utils import BoundingBox
 from tqdm import trange
-from urllib3.exceptions import NewConnectionError
 
 # ---+ Minerva +-------------------------------------------------------------------------------------------------------
-from minerva.utils import AUX_CONFIGS, CONFIG, universal_path, visutils
+from minerva.utils import universal_path, visutils
 
 # =====================================================================================================================
 #                                                     GLOBALS
 # =====================================================================================================================
-IMAGERY_CONFIG_PATH: Union[str, Sequence[str]] = CONFIG["dir"]["configs"][
-    "imagery_config"
-]
-
-DATA_CONFIG_PATH: Optional[Path]
-_data_config_path: Optional[Union[str, Path]] = CONFIG["dir"]["configs"].get(
-    "data_config"
-)
-if _data_config_path:
-    DATA_CONFIG_PATH = universal_path(_data_config_path)
-else:  # pragma: no cover
-    assert _data_config_path is None
-    DATA_CONFIG_PATH = _data_config_path
-
-DATA_CONFIG: Optional[Dict[str, Any]] = AUX_CONFIGS.get("data_config")
-IMAGERY_CONFIG: Dict[str, Any] = AUX_CONFIGS["imagery_config"]
-
-# Path to directory holding dataset.
-DATA_DIR: Path = universal_path(CONFIG["dir"]["data"])
-
-# Path to cache directory.
-CACHE_DIR: Path = universal_path(CONFIG["dir"]["cache"])
-
-# Path to directory to output plots to.
-RESULTS_DIR: Path = universal_path(CONFIG["dir"]["results"])
-
-# Band IDs and position in sample image.
-BAND_IDS: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
-    "band_ids"
-]
-
-# Defines size of the images to determine the number of batches.
-IMAGE_SIZE: Union[int, Tuple[int, int], List[int]] = IMAGERY_CONFIG["data_specs"][
-    "image_size"
-]
-
-CLASSES: Dict[int, str]
-CMAP_DICT: Dict[int, str]
-
-if DATA_CONFIG:
-    CLASSES = DATA_CONFIG["classes"]
-    CMAP_DICT = DATA_CONFIG["colours"]
-else:  # pragma: no cover
-    CLASSES = {}
-    CMAP_DICT = {}
-
 # WGS84 co-ordinate reference system acting as a default CRS for transformations.
 WGS84: CRS = CRS.from_epsg(4326)
 
@@ -238,8 +170,8 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 #                                                   DECORATORS
 # =====================================================================================================================
 def return_updated_kwargs(
-    func: Callable[..., Tuple[Any, ...]]
-) -> Callable[..., Tuple[Any, ...]]:
+    func: Callable[..., tuple[Any, ...]],
+) -> Callable[..., tuple[Any, ...]]:
     """Decorator that allows the `kwargs` supplied to the wrapped function to be returned with updated values.
 
     Assumes that the wrapped function returns a :class:`dict` in the last position of the
@@ -278,7 +210,7 @@ def pair_collate(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
     """
 
     @functools.wraps(func)
-    def wrapper(samples: Iterable[Tuple[Any, Any]]) -> Tuple[Any, Any]:
+    def wrapper(samples: Iterable[tuple[Any, Any]]) -> tuple[Any, Any]:
         a, b = tuple(zip(*samples))
         return func(a), func(b)
 
@@ -293,7 +225,7 @@ def dublicator(cls):
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
 
-        def __call__(self, pair: Tuple[Any, Any]) -> Tuple[Any, Any]:
+        def __call__(self, pair: tuple[Any, Any]) -> tuple[Any, Any]:
             a, b = pair
 
             return self.wrap.__call__(a), self.wrap.__call__(b)
@@ -324,26 +256,26 @@ def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
         def __init__(self, *args, **kwargs) -> None:
             self.wrap: Callable[
                 [
-                    Union[Dict[str, Any], Tensor],
+                    dict[str, Any] | Tensor,
                 ],
-                Dict[str, Any],
+                dict[str, Any],
             ] = cls(*args, **kwargs)
             self.keys = keys
 
         @overload
         def __call__(
-            self, batch: Dict[str, Any]
-        ) -> Dict[str, Any]: ...  # pragma: no cover
+            self, batch: dict[str, Any]
+        ) -> dict[str, Any]: ...  # pragma: no cover
 
         @overload
-        def __call__(self, batch: Tensor) -> Dict[str, Any]: ...  # pragma: no cover
+        def __call__(self, batch: Tensor) -> dict[str, Any]: ...  # pragma: no cover
 
-        def __call__(self, batch: Union[Dict[str, Any], Tensor]) -> Dict[str, Any]:
+        def __call__(self, batch: dict[str, Any] | Tensor) -> dict[str, Any]:
             if isinstance(batch, Tensor):
                 return self.wrap(batch)
 
             elif isinstance(batch, dict) and isinstance(self.keys, Sequence):
-                aug_batch: Dict[str, Any] = {}
+                aug_batch: dict[str, Any] = {}
                 for key in self.keys:
                     aug_batch[key] = self.wrap(batch.pop(key))
 
@@ -366,7 +298,7 @@ def pair_return(cls):
 
     .. warning::
         *NOT* compatible with :class:`~torch.nn.parallel.DistributedDataParallel` due to it's use of :mod:`pickle`.
-        Use :class:`~minerva.datasets.PairedDataset` directly instead, supplying the dataset to `wrap` on init.
+        Use :class:`~minerva.datasets.PairedGeoDataset` directly instead, supplying the dataset to `wrap` on init.
 
     Raises:
         AttributeError: If an attribute cannot be found in either the :class:`Wrapper` or the wrapped ``dataset``.
@@ -377,7 +309,7 @@ def pair_return(cls):
         def __init__(self, *args, **kwargs) -> None:
             self.wrap = cls(*args, **kwargs)
 
-        def __getitem__(self, queries: Any = None) -> Tuple[Any, Any]:
+        def __getitem__(self, queries: Any = None) -> tuple[Any, Any]:
             return self.wrap[queries[0]], self.wrap[queries[1]]
 
         def __getattr__(self, item):
@@ -465,7 +397,7 @@ def _optional_import(
 
 def _optional_import(
     module: str, *, name: Optional[str] = None, package: Optional[str] = None
-) -> Union[ModuleType, Callable[..., Any]]:
+) -> ModuleType | Callable[..., Any]:
     try:
         _module: ModuleType = importlib.import_module(module)
         return _module if name is None else getattr(_module, name)
@@ -528,7 +460,7 @@ def is_notebook() -> bool:
         return True
 
 
-def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
+def get_cuda_device(device_sig: int | str = "cuda:0") -> _device:
     """Finds and returns the ``CUDA`` device, if one is available. Else, returns CPU as device.
     Assumes there is at most only one ``CUDA`` device.
 
@@ -544,7 +476,7 @@ def get_cuda_device(device_sig: Union[int, str] = "cuda:0") -> _device:
     return device
 
 
-def exist_delete_check(fn: Union[str, Path]) -> None:
+def exist_delete_check(fn: str | Path) -> None:
     """Checks if given file exists then deletes if true.
 
     Args:
@@ -557,18 +489,20 @@ def exist_delete_check(fn: Union[str, Path]) -> None:
     Path(fn).unlink(missing_ok=True)
 
 
-def mkexpdir(name: str) -> None:
+def mkexpdir(name: str, results_dir: Path | str = "results") -> None:
     """Makes a new directory below the results directory with name provided. If directory already exists,
     no action is taken.
 
     Args:
         name (str): Name of new directory.
+        results_dir (~pathlib.Path | str): Path to the results directory. Defaults to ``results``.
 
     Returns:
         None
     """
+    results_dir = universal_path(results_dir)
     try:
-        (RESULTS_DIR / name).mkdir(parents=True)
+        (results_dir / name).mkdir(parents=True)
     except FileExistsError:
         pass
 
@@ -585,7 +519,7 @@ def set_seeds(seed: int) -> None:
     torch.cuda.random.manual_seed_all(seed)
 
 
-def check_dict_key(dictionary: Dict[Any, Any], key: Any) -> bool:
+def check_dict_key(dictionary: dict[Any, Any], key: Any) -> bool:
     """Checks if a key exists in a dictionary and if it is ``None`` or ``False``.
 
     Args:
@@ -641,39 +575,13 @@ def datetime_reformat(timestamp: str, fmt1: str, fmt2: str) -> str:
     return datetime.strptime(timestamp, fmt1).strftime(fmt2)
 
 
-def get_dataset_name() -> Optional[Union[str, Any]]:
-    """Gets the name of the dataset to be used from the config name.
-
-    Returns:
-        ~typing.Optional[str | ~typing.Any]: Name of dataset as string.
-    """
-    data_config_fn: str = ""
-    try:
-        assert DATA_CONFIG_PATH is not None
-        data_config_fn = DATA_CONFIG_PATH.name
-    except AssertionError as err:  # pragma: no cover
-        print(err)
-        print(
-            "DATA_CONFIG_PATH is empty! This is needed here to obtain the dataset name."
-            + "\nSpecify the path to the data config in the experiment config"
-        )
-
-    match: Optional[Match[str]] = regex.search(r"(.*?)\.yml", data_config_fn)
-
-    if match is None:  # pragma: no cover
-        print("\nDataset not found!")
-        return None
-    else:
-        return match.group(1)
-
-
 @overload
 def transform_coordinates(
     x: Sequence[float],
     y: Sequence[float],
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
+) -> tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
@@ -682,7 +590,7 @@ def transform_coordinates(
     y: float,
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
+) -> tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
@@ -691,21 +599,21 @@ def transform_coordinates(
     y: Sequence[float],
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
+) -> tuple[Sequence[float], Sequence[float]]: ...  # pragma: no cover
 
 
 @overload
 def transform_coordinates(
     x: float, y: float, src_crs: CRS, new_crs: CRS = WGS84
-) -> Tuple[float, float]: ...  # pragma: no cover
+) -> tuple[float, float]: ...  # pragma: no cover
 
 
 def transform_coordinates(
-    x: Union[Sequence[float], float],
-    y: Union[Sequence[float], float],
+    x: Sequence[float] | float,
+    y: Sequence[float] | float,
     src_crs: CRS,
     new_crs: CRS = WGS84,
-) -> Union[Tuple[Sequence[float], Sequence[float]], Tuple[float, float]]:
+) -> tuple[Sequence[float], Sequence[float]] | tuple[float, float]:
     """Transforms co-ordinates from one :class:`~rasterio.crs.CRS` to another.
 
     Args:
@@ -723,7 +631,7 @@ def transform_coordinates(
     single = False
 
     # Checks if x is a float. Places x in a list if True.
-    if type(x) is float:
+    if isinstance(x, float):
         x = [x]
         single = True
 
@@ -731,7 +639,7 @@ def transform_coordinates(
     y = check_len(y, x)
 
     # Transform co-ordinates from source to new CRS and returns a tuple of (x, y)
-    co_ordinates: Tuple[Sequence[float], Sequence[float]] = rt.warp.transform(  # type: ignore
+    co_ordinates: tuple[Sequence[float], Sequence[float]] = rt.warp.transform(  # type: ignore
         src_crs=src_crs, dst_crs=new_crs, xs=x, ys=y
     )
 
@@ -805,9 +713,9 @@ def deg_to_dms(deg: float, axis: str = "lat") -> str:
 
 
 def dec2deg(
-    dec_co: Union[Sequence[float], NDArray[Shape["*"], Float]],  # noqa: F722
+    dec_co: Sequence[float] | NDArray[Shape["*"], Float],  # noqa: F722
     axis: str = "lat",
-) -> List[str]:
+) -> list[str]:
     """Wrapper for :func:`deg_to_dms`.
 
     Args:
@@ -817,14 +725,14 @@ def dec2deg(
     Returns:
         list[str]: List of formatted strings in degrees, minutes and seconds.
     """
-    deg_co: List[str] = []
+    deg_co: list[str] = []
     for co in dec_co:
         deg_co.append(deg_to_dms(co, axis=axis))
 
     return deg_co
 
 
-def get_centre_loc(bounds: BoundingBox) -> Tuple[float, float]:
+def get_centre_loc(bounds: BoundingBox) -> tuple[float, float]:
     """Gets the centre co-ordinates of the parsed bounding box.
 
     Args:
@@ -839,7 +747,33 @@ def get_centre_loc(bounds: BoundingBox) -> Tuple[float, float]:
     return mid_x, mid_y
 
 
-def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
+def get_centre_pixel_value(x: Tensor) -> Any:
+    """Get the value of the centre pixel of a tensor.
+
+    Args:
+        x (Tensor): Tensor to find centre value of. Assumes that it is of shape (B, H, W) or (H, W).
+
+    Raises:
+        ValueError: If ``x`` is not a 2D or 3D tensor.
+
+    Returns:
+        Any: Value at the centre of ``x``.
+    """
+    x = x.squeeze()
+
+    assert len(x.size()) >= 2
+    mid_x = int(x.size()[-2] // 2)
+    mid_y = int(x.size()[-1] // 2)
+
+    if len(x.size()) == 3:
+        return Tensor([y[mid_x][mid_y] for y in x], dtype=x.dtype)  # type: ignore[call-overload]
+    elif len(x.size()) == 2:
+        return x[mid_x][mid_y]
+    else:
+        raise ValueError()
+
+
+def lat_lon_to_loc(lat: str | float, lon: str | float) -> str:
     """Takes a latitude - longitude co-ordinate and returns a string of the semantic location.
 
     Args:
@@ -857,7 +791,8 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         query = geolocator.reverse(f"{lat},{lon}")
 
     # If there is no internet connection (i.e. on a compute cluster) this exception will likely be raised.
-    except (GeocoderUnavailable, NewConnectionError, AdapterHTTPError):
+    # Using a bare except here as exception types used previously didn't always cover a connection issue.
+    except:  # noqa: E722
         raise GeocoderUnavailable("\nGeocoder unavailable")
 
     else:
@@ -868,7 +803,7 @@ def lat_lon_to_loc(lat: Union[str, float], lon: Union[str, float]) -> str:
         location = query.raw["properties"]  # type: ignore
 
         # Attempts to add possible fields to address of the location. Not all will be present for every query.
-        locs: List[str] = []
+        locs: list[str] = []
         try:
             locs.append(location["city"])
         except KeyError:
@@ -927,7 +862,7 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
     return ohe_labels
 
 
-def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor:
+def mask_to_ohe(mask: LongTensor, n_classes: int) -> LongTensor:
     """Converts a segmentation mask to one-hot-encoding (OHE).
 
     Args:
@@ -947,17 +882,14 @@ def mask_to_ohe(mask: LongTensor, n_classes: Optional[int] = None) -> LongTensor
 
     .. versionadded:: 0.23
     """
-    if not n_classes:
-        n_classes = len(CLASSES)
-
     ohe_mask = torch.movedim(F.one_hot(mask, num_classes=n_classes), 2, 0)
     assert isinstance(ohe_mask, LongTensor)
     return ohe_mask
 
 
 def class_weighting(
-    class_dist: List[Tuple[int, int]], normalise: bool = False
-) -> Dict[int, float]:
+    class_dist: list[tuple[int, int]], normalise: bool = False
+) -> dict[int, float]:
     """Constructs weights for each class defined by the distribution provided.
 
     Note:
@@ -979,7 +911,7 @@ def class_weighting(
             n_samples += mode[1]
 
     # Constructs class weights. Each weight is 1 / number of samples for that class.
-    class_weights: Dict[int, float] = {}
+    class_weights: dict[int, float] = {}
     if normalise:
         for mode in class_dist:
             class_weights[mode[0]] = n_samples / mode[1]
@@ -991,8 +923,8 @@ def class_weighting(
 
 
 def find_empty_classes(
-    class_dist: List[Tuple[int, int]], class_names: Dict[int, str] = CLASSES
-) -> List[int]:
+    class_dist: list[tuple[int, int]], class_names: dict[int, str]
+) -> list[int]:
     """Finds which classes defined by config files are not present in the dataset.
 
     Args:
@@ -1003,7 +935,7 @@ def find_empty_classes(
     Returns:
         list[int]: List of classes not found in ``class_dist`` and are thus empty/ not present in dataset.
     """
-    empty: List[int] = []
+    empty: list[int] = []
 
     # Checks which classes are not present in class_dist
     for label in class_names.keys():
@@ -1015,10 +947,10 @@ def find_empty_classes(
 
 
 def eliminate_classes(
-    empty_classes: Union[List[int], Tuple[int, ...], NDArray[Any, Int]],
-    old_classes: Optional[Dict[int, str]] = None,
-    old_cmap: Optional[Dict[int, str]] = None,
-) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
+    empty_classes: list[int] | tuple[int, ...] | NDArray[Any, Int],
+    old_classes: dict[int, str],
+    old_cmap: Optional[dict[int, str]] = None,
+) -> tuple[dict[int, str], dict[int, int], Optional[dict[int, str]]]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
 
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
@@ -1034,23 +966,20 @@ def eliminate_classes(
             * Mapping from old to new classes.
             * Mapping of remaining class labels to RGB colours.
     """
-    if old_classes is None:
-        old_classes = CLASSES
-    if old_cmap is None:
-        old_cmap = CMAP_DICT
-
     if len(empty_classes) == 0:
-        return old_classes, {}, old_cmap
+        return old_classes, {i: i for i in old_classes.keys()}, old_cmap
 
     else:
         # Makes deep copies of the class and cmap dicts.
-        new_classes = {key: value[:] for key, value in old_classes.items()}
-        new_colours = {key: value[:] for key, value in old_cmap.items()}
+        new_classes = deepcopy(old_classes)
+        if old_cmap is not None:
+            new_colours = deepcopy(old_cmap)
 
         # Deletes empty classes from copied dicts.
         for label in empty_classes:
             del new_classes[label]
-            del new_colours[label]
+            if old_cmap is not None:
+                del new_colours[label]
 
         # Holds keys that are over the length of the shortened dict.
         # i.e If there were 8 classes before and now there are 6 but class number 7 remains, it is an over key.
@@ -1060,7 +989,8 @@ def eliminate_classes(
 
         # Creates OrderedDicts of the key-value pairs of the over keys.
         over_classes = OrderedDict({key: new_classes[key] for key in over_keys})
-        over_colours = OrderedDict({key: new_colours[key] for key in over_keys})
+        if old_cmap is not None:
+            over_colours = OrderedDict({key: new_colours[key] for key in over_keys})
 
         reordered_classes = {}
         reordered_colours = {}
@@ -1071,45 +1001,25 @@ def eliminate_classes(
             # If there is a remaining class present at this number, copy those corresponding values across to new dicts.
             if i in new_classes:
                 reordered_classes[i] = new_classes[i]
-                reordered_colours[i] = new_colours[i]
                 conversion[i] = i
+                if old_cmap is not None:
+                    reordered_colours[i] = new_colours[i]
 
             # If there is no remaining class at this number (because it has been deleted),
             # fill this gap with one of the over-key classes.
             if i not in new_classes:
                 class_key, class_value = over_classes.popitem()
-                _, colour_value = over_colours.popitem()
-
                 reordered_classes[i] = class_value
-                reordered_colours[i] = colour_value
-
                 conversion[class_key] = i
+
+                if old_cmap is not None:
+                    _, colour_value = over_colours.popitem()
+                    reordered_colours[i] = colour_value
 
         return reordered_classes, conversion, reordered_colours
 
 
-def load_data_specs(
-    class_dist: List[Tuple[int, int]], elim: bool = False
-) -> Tuple[Dict[int, str], Dict[int, int], Dict[int, str]]:
-    """Loads the ``classes``, ``forwards`` (if ``elim`` is true) and ``cmap_dict`` dictionaries.
-
-    Args:
-        class_dist (list[tuple[int, int]]): Optional; 2D iterable which should be of the form created
-            from :func:`Counter.most_common`.
-        elim (bool): Whether to eliminate classes with no samples in.
-
-    Returns:
-        tuple[dict[int, str], dict[int, int], dict[int, str]]: The ``classes``, ``forwards`` and ``cmap_dict``
-        dictionaries transformed to new classes if ``elim`` is true. Else, the ``forwards`` dict is empty
-        and ``classes`` and ``cmap_dict`` are unaltered.
-    """
-    if elim:
-        return eliminate_classes(find_empty_classes(class_dist=class_dist))
-    else:
-        return CLASSES, {}, CMAP_DICT
-
-
-def class_transform(label: int, matrix: Dict[int, int]) -> int:
+def class_transform(label: int, matrix: dict[int, int]) -> int:
     """Transforms labels from one schema to another mapped by a supplied dictionary.
 
     Args:
@@ -1124,20 +1034,20 @@ def class_transform(label: int, matrix: Dict[int, int]) -> int:
 
 @overload
 def mask_transform(  # type: ignore[overload-overlap]
-    array: NDArray[Any, Int], matrix: Dict[int, int]
+    array: NDArray[Any, Int], matrix: dict[int, int]
 ) -> NDArray[Any, Int]: ...  # pragma: no cover
 
 
 @overload
 def mask_transform(
-    array: LongTensor, matrix: Dict[int, int]
+    array: LongTensor, matrix: dict[int, int]
 ) -> LongTensor: ...  # pragma: no cover
 
 
 def mask_transform(
-    array: Union[NDArray[Any, Int], LongTensor],
-    matrix: Dict[int, int],
-) -> Union[NDArray[Any, Int], LongTensor]:
+    array: NDArray[Any, Int] | LongTensor,
+    matrix: dict[int, int],
+) -> NDArray[Any, Int] | LongTensor:
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
@@ -1154,18 +1064,18 @@ def mask_transform(
 
 
 def check_test_empty(
-    pred: Union[Sequence[int], NDArray[Any, Int]],
-    labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_labels: Dict[int, str],
+    pred: Sequence[int] | NDArray[Any, Int],
+    labels: Sequence[int] | NDArray[Any, Int],
+    class_labels: Optional[dict[int, str]] = None,
     p_dist: bool = True,
-) -> Tuple[NDArray[Any, Int], NDArray[Any, Int], Dict[int, str]]:
+) -> tuple[NDArray[Any, Int], NDArray[Any, Int], dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class labels.
 
     Args:
         pred (~typing.Sequence[int] | ~numpy.ndarray[int]): List of predicted labels.
         labels (~typing.Sequence[int] | ~numpy.ndarray[int]): List of corresponding ground truth labels.
-        class_labels (dict[int, str]): Dictionary mapping class labels to class names.
+        class_labels (dict[int, str]): Optional; Dictionary mapping class labels to class names.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
 
     Returns:
@@ -1177,6 +1087,10 @@ def check_test_empty(
     # Finds the distribution of the classes within the data.
     labels_dist = find_modes(labels)
     pred_dist = find_modes(pred)
+
+    if class_labels is None:
+        class_numbers = [x[0] for x in labels_dist]
+        class_labels = {i: f"class {i}" for i in class_numbers}
 
     if p_dist:
         # Prints class distributions of ground truth and predicted labels to stdout.
@@ -1205,8 +1119,8 @@ def check_test_empty(
 
 
 def class_dist_transform(
-    class_dist: List[Tuple[int, int]], matrix: Dict[int, int]
-) -> List[Tuple[int, int]]:
+    class_dist: list[tuple[int, int]], matrix: dict[int, int]
+) -> list[tuple[int, int]]:
     """Transforms the class distribution from an old schema to a new one.
 
     Args:
@@ -1217,14 +1131,14 @@ def class_dist_transform(
     Returns:
         list[tuple[int, int]]: Class distribution updated to new labels.
     """
-    new_class_dist: List[Tuple[int, int]] = []
+    new_class_dist: list[tuple[int, int]] = []
     for mode in class_dist:
         new_class_dist.append((class_transform(mode[0], matrix), mode[1]))
 
     return new_class_dist
 
 
-def class_frac(patch: pd.Series) -> Dict[Any, Any]:
+def class_frac(patch: pd.Series) -> dict[Any, Any]:
     """Computes the fractional sizes of the classes of the given :term:`patch` and returns a
     :class:`dict` of the results.
 
@@ -1235,7 +1149,7 @@ def class_frac(patch: pd.Series) -> Dict[Any, Any]:
         Mapping: Dictionary-like object with keys as class numbers and associated values
         of fractional size of class plus a key-value pair for the :term:`patch` ID.
     """
-    new_columns: Dict[Any, Any] = dict(patch.to_dict())
+    new_columns: dict[Any, Any] = dict(patch.to_dict())
     counts = 0
     for mode in patch["MODES"]:
         counts += mode[1]
@@ -1258,7 +1172,7 @@ def cloud_cover(scene: NDArray[Any, Any]) -> Any:
     return np.sum(scene) / scene.size
 
 
-def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
+def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> list[str]:
     """Selects all scenes in a :term:`patch` with a cloud cover less than the threshold provided.
 
     Args:
@@ -1276,9 +1190,9 @@ def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> List[str]:
 def find_best_of(
     patch_id: str,
     manifest: DataFrame,
-    selector: Callable[[DataFrame], List[str]] = threshold_scene_select,
+    selector: Callable[[DataFrame], list[str]] = threshold_scene_select,
     **kwargs,
-) -> List[str]:
+) -> list[str]:
     """Finds the scenes sorted by cloud cover using selector function supplied.
 
     Args:
@@ -1297,7 +1211,9 @@ def find_best_of(
 
     # Re-indexes the DataFrame to datetime
     patch_df.set_index(
-        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"), drop=True, inplace=True  # type: ignore
+        pd.to_datetime(patch_df["DATE"], format="%Y_%m_%d"),
+        drop=True,
+        inplace=True,  # type: ignore
     )
 
     # Sends DataFrame to scene_selection() and returns the selected scenes
@@ -1316,7 +1232,12 @@ def timestamp_now(fmt: str = "%d-%m-%Y_%H%M") -> str:
     return datetime.now().strftime(fmt)
 
 
-def find_modes(labels: Iterable[int], plot: bool = False) -> List[Tuple[int, int]]:
+def find_modes(
+    labels: Iterable[int],
+    plot: bool = False,
+    classes: Optional[dict[int, str]] = None,
+    cmap_dict: Optional[dict[int, str]] = None,
+) -> list[tuple[int, int]]:
     """Finds the modal distribution of the classes within the labels provided.
 
     Can plot the results as a pie chart if ``plot=True``.
@@ -1329,26 +1250,29 @@ def find_modes(labels: Iterable[int], plot: bool = False) -> List[Tuple[int, int
         list[tuple[int, int]]: Modal distribution of classes in input in order of most common class.
     """
     # Finds the distribution of the classes within the data
-    class_dist: List[Tuple[int, int]] = Counter(
+    class_dist: list[tuple[int, int]] = Counter(
         np.array(labels).flatten()
     ).most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
         visutils.plot_subpopulations(
-            class_dist, class_names=CLASSES, cmap_dict=CMAP_DICT, save=False, show=True
+            class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True
         )
 
     return class_dist
 
 
 def modes_from_manifest(
-    manifest: DataFrame, plot: bool = False
-) -> List[Tuple[int, int]]:
+    manifest: DataFrame,
+    classes: dict[int, str],
+    plot: bool = False,
+    cmap_dict: Optional[dict[int, str]] = None,
+) -> list[tuple[int, int]]:
     """Uses the dataset manifest to calculate the fractional size of the classes.
 
     Args:
-        manifest (~pandas.DataFrame): :class:`~pandas.DataFrame` containing the fractional sizes
+        manifest (~pandas.DataFrame): DataFrame containing the fractional sizes
             of classes and centre pixel labels of all samples of the dataset to be used.
         plot (bool): Optional; Whether to plot the class distribution pie chart.
 
@@ -1363,7 +1287,7 @@ def modes_from_manifest(
             return manifest[f"{cls}"].sum() / len(manifest)
 
     class_counter: CounterType[int] = Counter()
-    for classification in CLASSES.keys():
+    for classification in classes.keys():
         try:
             count = count_samples(classification)
             if count == 0.0 or count == 0:
@@ -1372,12 +1296,12 @@ def modes_from_manifest(
                 class_counter[classification] = count
         except KeyError:
             continue
-    class_dist: List[Tuple[int, int]] = class_counter.most_common()
+    class_dist: list[tuple[int, int]] = class_counter.most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
         visutils.plot_subpopulations(
-            class_dist, class_names=CLASSES, cmap_dict=CMAP_DICT, save=False, show=True
+            class_dist, class_names=classes, cmap_dict=cmap_dict, save=False, show=True
         )
 
     return class_dist
@@ -1402,7 +1326,7 @@ def func_by_str(module_path: str, func: str) -> Callable[..., Any]:
     return func
 
 
-def check_len(param: Any, comparator: Any) -> Union[Any, Sequence[Any]]:
+def check_len(param: Any, comparator: Any) -> Any | Sequence[Any]:
     """Checks the length of one object against a comparator object.
 
     Args:
@@ -1460,14 +1384,15 @@ def calc_grad(model: Module) -> Optional[float]:
 
 
 def print_class_dist(
-    class_dist: List[Tuple[int, int]], class_labels: Dict[int, str] = CLASSES
+    class_dist: list[tuple[int, int]],
+    class_labels: Optional[dict[int, str]] = None,
 ) -> None:
     """Prints the supplied ``class_dist`` in a pretty table format using :mod:`tabulate`.
 
     Args:
         class_dist (list[tuple[int, int]]): 2D iterable which should be of the form as that
             created from :meth:`collections.Counter.most_common`.
-        class_labels (dict[int, str]): Mapping of class labels to class names.
+        class_labels (dict[int, str]): Optional; Mapping of class labels to class names.
 
     """
 
@@ -1482,6 +1407,10 @@ def print_class_dist(
             str: Formatted string of the percentage size to 2 decimal places.
         """
         return "{:.2f}%".format(count * 100.0 / total)
+
+    if class_labels is None:
+        class_numbers = [x[0] for x in class_dist]
+        class_labels = {i: f"class {i}" for i in class_numbers}
 
     # Convert class_dist to dict with class labels.
     rows = [
@@ -1506,9 +1435,7 @@ def print_class_dist(
     print(tabulate(df, headers="keys", tablefmt="psql"))  # type: ignore
 
 
-def batch_flatten(
-    x: Union[NDArray[Any, Any], ArrayLike]
-) -> NDArray[Shape["*"], Any]:  # noqa: F722
+def batch_flatten(x: NDArray[Any, Any] | ArrayLike) -> NDArray[Shape["*"], Any]:  # noqa: F722
     """Flattens the supplied array with :func:`numpy`.
 
     Args:
@@ -1527,9 +1454,9 @@ def batch_flatten(
 
 
 def make_classification_report(
-    pred: Union[Sequence[int], NDArray[Any, Int]],
-    labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_labels: Dict[int, str],
+    pred: Sequence[int] | NDArray[Any, Int],
+    labels: Sequence[int] | NDArray[Any, Int],
+    class_labels: Optional[dict[int, str]] = None,
     print_cr: bool = True,
     p_dist: bool = False,
 ) -> DataFrame:
@@ -1636,9 +1563,9 @@ def calc_contrastive_acc(z: Tensor) -> Tensor:
 
 def run_tensorboard(
     exp_name: str,
-    path: Optional[Union[str, List[str], Tuple[str, ...], Path]] = None,
+    path: str | list[str] | tuple[str, ...] | Path = "",
     env_name: str = "env",
-    host_num: Union[str, int] = 6006,
+    host_num: str | int = 6006,
     _testing: bool = False,
 ) -> Optional[int]:
     """Runs the :mod:`TensorBoard` logs and hosts on a local webpage.
@@ -1656,14 +1583,6 @@ def run_tensorboard(
     Returns:
         int | None: Exitcode for testing purposes. ``None`` under normal use.
     """
-    if not path:
-        try:
-            path = universal_path(CONFIG["dir"]["results"]).parent
-        except KeyError:
-            print("KeyError: Path not specified and default cannot be found.")
-            print("ABORT OPERATION")
-            return None
-
     # Get current working directory.
     cwd = os.getcwd()
 
@@ -1707,11 +1626,11 @@ def run_tensorboard(
 
 def compute_roc_curves(
     probs: NDArray[Any, Float],
-    labels: Union[Sequence[int], NDArray[Any, Int]],
-    class_labels: List[int],
+    labels: Sequence[int] | NDArray[Any, Int],
+    class_labels: list[int],
     micro: bool = True,
     macro: bool = True,
-) -> Tuple[Dict[Any, float], Dict[Any, float], Dict[Any, float]]:
+) -> tuple[dict[Any, float], dict[Any, float], dict[Any, float]]:
     """Computes the false-positive rate, true-positive rate and AUCs for each class using a one-vs-all approach.
     The micro and macro averages are for each of these variables is also computed.
 
@@ -1740,13 +1659,13 @@ def compute_roc_curves(
 
     # Dicts to hold the false-positive rate, true-positive rate and Area Under Curves
     # of each class and micro, macro averages.
-    fpr: Dict[Any, Any] = {}
-    tpr: Dict[Any, Any] = {}
-    roc_auc: Dict[Any, Any] = {}
+    fpr: dict[Any, Any] = {}
+    tpr: dict[Any, Any] = {}
+    roc_auc: dict[Any, Any] = {}
 
     # Holds a list of the classes that were in the targets supplied to the model.
     # Avoids warnings about empty targets from sklearn!
-    populated_classes: List[int] = []
+    populated_classes: list[int] = []
 
     print("Computing class ROC curves")
 
@@ -1799,7 +1718,6 @@ def compute_roc_curves(
                 )
             except MemoryError:
                 print("Aborting micro averaging.")
-                pass
 
     if macro:
         # Aggregate all false positive rates.
@@ -1859,16 +1777,13 @@ def find_geo_similar(bbox: BoundingBox, max_r: int = 256) -> BoundingBox:
     )
 
 
-def print_config(conf: Optional[Dict[Any, Any]] = None) -> None:
+def print_config(conf: DictConfig) -> None:
     """Print function for the configuration file using ``YAML`` dump.
 
     Args:
         conf (dict[str, ~typing.Any]]): Optional; Config file to print. If ``None``, uses the ``global`` config.
     """
-    if conf is None:
-        conf = CONFIG
-
-    print(yaml.dump(conf))
+    print(OmegaConf.to_yaml(conf))
 
 
 def tsne_cluster(
@@ -1900,7 +1815,7 @@ def tsne_cluster(
     tsne = TSNE(
         n_dim,
         learning_rate=lr,
-        n_iter=n_iter,
+        max_iter=n_iter,
         verbose=verbose,
         init="random",
         perplexity=perplexity,
@@ -1909,36 +1824,27 @@ def tsne_cluster(
     return tsne.fit_transform(embeddings)
 
 
-def calc_norm_euc_dist(
-    a: Union[Sequence[int], NDArray[Shape["*"], Int]],  # noqa: F722
-    b: Union[Sequence[int], NDArray[Shape["*"], Int]],  # noqa: F722
-) -> float:
+def calc_norm_euc_dist(a: Tensor, b: Tensor) -> Tensor:
     """Calculates the normalised Euclidean distance between two vectors.
 
     Args:
-        a (~typing.Sequence[int] | ~numpy.ndarray[int]): Vector ``A``.
-        b (~typing.Sequence[int] | ~numpy.ndarray[int]): Vector ``B``.
+        a (~torch.Tensor): Vector ``A``.
+        b (~torch.Tensor): Vector ``B``.
 
     Returns:
-        float: Normalised Euclidean distance between vectors ``A`` and ``B``.
+        ~torch.Tensor: Normalised Euclidean distance between vectors ``A`` and ``B``.
     """
     assert len(a) == len(b)
 
-    # Check that none of the data is NaN or infinity.
-    assert not np.isnan(np.sum(a))
-    assert not np.isinf(a).any()
-    assert not np.isnan(np.sum(b))
-    assert not np.isinf(b).any()
-
-    euc_dist: float = distance.euclidean(a, b) / float(len(a))
+    euc_dist: Tensor = torch.linalg.norm(a - b)
 
     return euc_dist
 
 
 def fallback_params(
     key: str,
-    params_a: Dict[str, Any],
-    params_b: Dict[str, Any],
+    params_a: dict[str, Any],
+    params_b: dict[str, Any],
     fallback: Optional[Any] = None,
 ) -> Any:
     """Search for a value associated with ``key`` from
@@ -1961,9 +1867,9 @@ def fallback_params(
 
 
 def compile_dataset_paths(
-    data_dir: Union[Path, str],
-    in_paths: Union[List[Union[Path, str]], Union[Path, str]],
-) -> List[str]:
+    data_dir: Path | str,
+    in_paths: list[Path | str] | Path | str,
+) -> list[str]:
     """Ensures that a list of paths is returned with the data directory prepended, even if a single string is supplied
 
     Args:
@@ -1978,15 +1884,15 @@ def compile_dataset_paths(
     else:
         out_paths = [universal_path(data_dir) / in_paths]
 
-    compiled_paths = []
+    # Check if each path exists. If not, make the path.
     for path in out_paths:
-        compiled_paths.extend(glob.glob(str(path), recursive=True))
+        path.mkdir(parents=True, exist_ok=True)
 
-    # For each path, get the absolute path, convert to string and return.
-    return [str(Path(path).absolute()) for path in compiled_paths]
+    # For each path, get the absolute path, make the path if it does not exist then convert to string and return.
+    return [str(Path(path).absolute()) for path in out_paths]
 
 
-def make_hash(obj: Dict[Any, Any]) -> str:
+def make_hash(obj: dict[Any, Any]) -> str:
     """Make a deterministic MD5 hash of a serialisable object using JSON.
 
     Source: https://death.andgravity.com/stable-hashing
@@ -2008,4 +1914,104 @@ def make_hash(obj: Dict[Any, Any]) -> str:
             separators=(",", ":"),
         )
 
+    if OmegaConf.is_config(obj):
+        obj = OmegaConf.to_object(obj)  # type: ignore[assignment]
+
     return hashlib.md5(json_dumps(obj).encode("utf-8")).digest().hex()  # nosec: B324
+
+
+def closest_factors(n):
+    """Find the pair of dimensions (x, y) of n that are as close to each other as possible.
+
+    Args:
+        n (int): The input integer.
+
+    Returns:
+        tuple: A tuple (x, y) representing the dimensions.
+    """
+    if n <= 5:
+        return (1, n)
+
+    best_pair = (1, n)
+    min_diff = n  # Initial difference between factors
+
+    for i in range(1, int(math.sqrt(n)) + 1):
+        if n % i == 0:
+            pair = (i, n // i)
+            diff = abs(pair[0] - pair[1])
+            if diff < min_diff:
+                min_diff = diff
+                best_pair = pair
+
+    # If no exact pair is found, use approximate square root values
+    if best_pair == (1, n):
+        ceil_sqrt = math.ceil(math.sqrt(n))
+        floor_sqrt = math.floor(math.sqrt(n))
+        if ceil_sqrt * floor_sqrt >= n:
+            best_pair = (ceil_sqrt, floor_sqrt)
+        else:
+            best_pair = (ceil_sqrt, ceil_sqrt)
+
+    # Ensure the smaller dimension is first
+    if best_pair[0] > best_pair[1]:
+        best_pair = (best_pair[1], best_pair[0])
+
+    return best_pair
+
+
+def get_sample_index(sample: dict[str, Any]) -> Optional[Any]:
+    """Get the index for a sample with unkown index key.
+
+    Will try:
+        * ``bbox`` (:mod:`torchgeo` < 0.6.0) for :class:`~torchgeo.datasets.GeoDataset`
+        * ``bounds`` (:mod:`torchgeo` >= 0.6.0) for :class:`~torchgeo.datasets.GeoDataset`
+        * ``id`` for :class:`~torchgeo.datasets.NonGeoDataset`
+
+    Args:
+        sample (dict[str, ~typing.Any]): Sample dictionary to find index in.
+
+    Returns:
+        None | ~typing.Any: Sample index or ``None`` if not found.
+
+    .. versionadded:: 0.28
+    """
+    if "bbox" in sample:
+        index = sample["bbox"]
+    elif "bounds" in sample:
+        index = sample["bounds"]
+    elif "id" in sample:
+        index = sample["id"]
+    else:
+        index = None
+
+    return index
+
+
+def compare_models(model_1: Module, model_2: Module) -> None:
+    """Compare two models weight-by-weight.
+
+    Source: https://discuss.pytorch.org/t/check-if-models-have-same-weights/4351/5
+
+    Args:
+        model_1 (torch.nn.Module): First model.
+        model_2 (torch.nn.Module): Second model.
+
+    Raises:
+        AssertionError: If models do not match exactly.
+
+    .. versionadded:: 0.28
+    """
+    models_differ = 0
+    for key_item_1, key_item_2 in zip(
+        model_1.state_dict().items(), model_2.state_dict().items()
+    ):
+        if torch.equal(key_item_1[1], key_item_2[1]):
+            pass
+        else:
+            models_differ += 1
+            if key_item_1[0] == key_item_2[0]:
+                print("Mismtach found at", key_item_1[0])
+            else:
+                raise AssertionError
+    if models_differ == 0:
+        print("Models match perfectly! :)")

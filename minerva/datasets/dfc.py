@@ -21,6 +21,7 @@ r"""Implementation for the DFC2020 competition dataset using Sentinel 1&2 data a
 .. note::
     Adapted from https://github.com/lukasliebel/dfc2020_baseline/blob/master/code/datasets.py
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -38,12 +39,16 @@ __all__ = [
 # =====================================================================================================================
 from glob import glob
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Optional
 
 import numpy as np
 import pandas as pd
 import rasterio
 import torch
+from matplotlib import pyplot as plt
+from matplotlib.axes import Axes
+from matplotlib.colors import ListedColormap
+from matplotlib.figure import Figure
 from torch import FloatTensor, Tensor
 from torchgeo.datasets import NonGeoDataset
 from tqdm import tqdm
@@ -80,7 +85,7 @@ class BaseSenS12MS(NonGeoDataset):
     S2_BANDS_MR = [5, 6, 7, 9, 12, 13]
     S2_BANDS_LR = [1, 10, 11]
 
-    splits: List[str] = []
+    splits: list[str] = []
 
     igbp = False
 
@@ -88,14 +93,16 @@ class BaseSenS12MS(NonGeoDataset):
         self,
         root: str,
         split="val",
-        no_savanna=False,
         use_s2hr=False,
         use_s2mr=False,
         use_s2lr=False,
         use_s1=False,
         labels=False,
+        transforms: Optional[Callable[..., Any]] = None,
     ) -> None:
         super().__init__()
+
+        self.transforms = transforms
 
         # Make sure at least one of the band sets are requested.
         if not (use_s2hr or use_s2mr or use_s2lr or use_s1):
@@ -110,7 +117,6 @@ class BaseSenS12MS(NonGeoDataset):
         self.use_s1 = use_s1
 
         assert split in self.splits
-        self.no_savanna = no_savanna
 
         # Provide number of input channels
         self.n_inputs = self.get_ninputs()
@@ -119,10 +125,7 @@ class BaseSenS12MS(NonGeoDataset):
         self.display_channels, self.brightness_factor = self.get_display_channels()
 
         # Provide number of classes.
-        if no_savanna:
-            self.n_classes = max(self.DFC2020_CLASSES) - 1
-        else:
-            self.n_classes = max(self.DFC2020_CLASSES)
+        self.n_classes = max(self.DFC2020_CLASSES)
 
         self.labels = labels
 
@@ -131,12 +134,13 @@ class BaseSenS12MS(NonGeoDataset):
         # Make sure parent dir exists.
         assert self.root.exists()
 
-        self.samples: List[Dict[str, str]]
+        self.samples: list[dict[str, str]]
 
     def load_sample(
         self,
-        sample: Dict[str, str],
-    ) -> Dict[str, Any]:
+        sample: dict[str, str],
+        index: int,
+    ) -> dict[str, Any]:
         """Util function for reading data from single sample.
 
         Args:
@@ -168,9 +172,9 @@ class BaseSenS12MS(NonGeoDataset):
         # Load labels.
         if self.labels:
             lc = self.load_lc(sample["lc"])
-            return {"image": img, "mask": lc, "id": sample["id"]}
+            return {"image": img, "mask": lc, "id": index}
         else:
-            return {"image": img, "id": sample["id"]}
+            return {"image": img, "id": index}
 
     def get_ninputs(self) -> int:
         """Calculate number of input channels.
@@ -189,7 +193,7 @@ class BaseSenS12MS(NonGeoDataset):
             n_inputs += 2
         return n_inputs
 
-    def get_display_channels(self) -> Tuple[List[int], int]:
+    def get_display_channels(self) -> tuple[list[int], int]:
         """Select channels for preview images.
 
         Returns:
@@ -232,10 +236,6 @@ class BaseSenS12MS(NonGeoDataset):
         # Read data out of the TIFF file.
         with rasterio.open(path) as data:
             s2 = data.read(bands_selected)
-
-        s2 = s2.astype(np.float32)
-        s2 = np.clip(s2, 0, 10000)
-        s2 /= 10000
 
         # Cast to 32-bit float.
         s2 = s2.astype(np.float32)
@@ -294,11 +294,6 @@ class BaseSenS12MS(NonGeoDataset):
         else:
             lc = lc.astype(np.int64)
 
-        # Adjust class scheme to ignore class savanna.
-        if self.no_savanna:
-            lc[lc == 3] = 0
-            lc[lc > 3] -= 1
-
         # Convert to zero-based labels and set ignore mask.
         lc -= 1
         lc[lc == -1] = 255
@@ -309,12 +304,14 @@ class BaseSenS12MS(NonGeoDataset):
 
         return lc
 
-    def __getitem__(self, index: int) -> Dict[str, Any]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         """Get a single example from the dataset"""
 
         # Get and load sample from index file.
-        sample = self.samples[index]
-        return self.load_sample(sample)
+        sample = self.load_sample(self.samples[index], index)
+        if self.transforms:
+            sample = self.transforms(sample)
+        return sample
 
     def __len__(self) -> int:
         """Get number of samples in the dataset"""
@@ -324,6 +321,32 @@ class BaseSenS12MS(NonGeoDataset):
 class DFC2020(BaseSenS12MS):
     """PyTorch dataset class for the DFC2020 dataset"""
 
+    classes = {
+        0: "Forest",
+        1: "Shrubland",
+        2: "Savana",
+        3: "Grassland",
+        4: "Wetlands",
+        5: "Croplands",
+        6: "Urban",
+        7: "Snow/Ice",
+        8: "Barren",
+        9: "Water",
+    }
+
+    colours = {
+        0: "#009900",
+        1: "#c6b044",
+        2: "#fbff13",
+        3: "#bbff05",
+        4: "#27ff87",
+        5: "#c24f44",
+        6: "#a5a5a5",
+        7: "#69fff8",
+        8: "#f9ffa4",
+        9: "#1c0dff",
+    }
+
     splits = ["val", "test"]
     igbp = False
 
@@ -331,15 +354,22 @@ class DFC2020(BaseSenS12MS):
         self,
         root: str,
         split="val",
-        no_savanna=False,
         use_s2hr=False,
         use_s2mr=False,
         use_s2lr=False,
         use_s1=False,
         labels=False,
+        transforms: Optional[Callable[..., Any]] = None,
     ) -> None:
         super(DFC2020, self).__init__(
-            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
+            root,
+            split,
+            use_s2hr,
+            use_s2mr,
+            use_s2lr,
+            use_s1,
+            labels,
+            transforms,
         )
 
         # Build list of sample paths.
@@ -361,6 +391,168 @@ class DFC2020(BaseSenS12MS):
         self.samples = sorted(self.samples, key=lambda i: i["id"])
 
         print(f"Loaded {len(self.samples)} samples from the DFC2020 {split} subset")
+
+    def plot(
+        self,
+        sample: dict[str, Tensor],
+        show_titles: bool = True,
+        suptitle: Optional[str] = None,
+        classes: Optional[dict[int, str]] = None,
+        colours: Optional[dict[int, str]] = None,
+    ) -> Figure:
+        """Plot a sample from the dataset.
+
+        Adapted from :meth:`torchgeo.datasets.DFC2022.plot` for DFC2020.
+
+        Args:
+            sample (dict[str, ~torch.Tensor]): A sample returned by :meth:`__getitem__`.
+            show_titles (bool): Flag indicating whether to show titles above each panel.
+            suptitle (str): Optional; String to use as a suptitle.
+            classes (dict[int, str]): Optional; Dictionary mapping class labels to class names.
+                Default: :attr:`self.classes`.
+            colours (dict[int, str]): Optional; Dictionary mapping class labels to colours.
+                Default: :attr:`self.colours`.
+
+        .. versionadded:: 0.28
+
+        Returns:
+            ~matplotlib.figure.Figure: A :mod:`matplotlib` ``Figure`` with the rendered sample.
+        """
+        # Reorder image from BGR to RGB.
+        from kornia.color import BgrToRgb
+
+        from minerva.transforms import AdjustGamma
+
+        bgr_to_rgb = BgrToRgb()
+        adjust_gamma = AdjustGamma(gamma=0.8)
+
+        # Reorder channels from BGR to RGB and adjust the gamma ready for plotting.
+        image = adjust_gamma(bgr_to_rgb(sample["image"][:3])).permute(1, 2, 0).numpy()
+
+        block_size_factor = 8
+
+        # Use inbuilt class colours and classes mappings.
+        if classes is None or colours is None:
+            classes = self.classes
+            colours = self.colours
+
+        # Number of columns of sub-plots in figure. Will increase for masks and predictions.
+        ncols = 1
+
+        # Will plot mask and prediction if found in the sample provided.
+        showing_mask = "mask" in sample
+        showing_prediction = "prediction" in sample
+
+        # Create the cmap from the colours mapping.
+        cmap = ListedColormap(colours.values(), N=len(colours))  # type: ignore[arg-type]
+        vmin = -0.5
+        vmax = len(classes) - 0.5
+
+        if showing_mask:
+            mask = sample["mask"].numpy()
+            ncols += 1
+        if showing_prediction:
+            pred = sample["prediction"].numpy()
+            ncols += 1
+
+        # Make the figure and axes objects.
+        fig, axs = plt.subplots(nrows=1, ncols=ncols, figsize=(ncols * 5, 5))
+
+        # Plot the image.
+        axs[0].imshow(image)
+
+        # Sets tick intervals to block size.
+        axs[0].set_xticks(
+            np.arange(0, image.shape[0] + 1, image.shape[0] // block_size_factor)
+        )
+        axs[0].set_yticks(
+            np.arange(0, image.shape[1] + 1, image.shape[1] // block_size_factor)
+        )
+
+        # Add grid overlay.
+        axs[0].grid(which="both", color="#CCCCCC", linestyle=":")
+
+        # Plot the ground truth mask and predicted mask.
+        mask_plot: Axes
+        if showing_mask:
+            mask_plot = axs[1].imshow(
+                mask, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
+            )
+
+            # Sets tick intervals to block size.
+            axs[1].set_xticks(
+                np.arange(0, mask.shape[0] + 1, mask.shape[0] // block_size_factor)
+            )
+            axs[1].set_yticks(
+                np.arange(0, mask.shape[1] + 1, mask.shape[1] // block_size_factor)
+            )
+
+            # Add grid overlay.
+            axs[1].grid(which="both", color="#CCCCCC", linestyle=":")
+
+            if showing_prediction:
+                axs[2].imshow(
+                    pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
+                )
+
+                # Sets tick intervals to block size.
+                axs[2].set_xticks(
+                    np.arange(0, pred.shape[0] + 1, pred.shape[0] // block_size_factor)
+                )
+                axs[2].set_yticks(
+                    np.arange(0, pred.shape[1] + 1, pred.shape[1] // block_size_factor)
+                )
+
+                # Add grid overlay.
+                axs[2].grid(which="both", color="#CCCCCC", linestyle=":")
+
+        elif showing_prediction:
+            mask_plot = axs[1].imshow(
+                pred, cmap=cmap, vmin=vmin, vmax=vmax, interpolation="none"
+            )
+
+            # Sets tick intervals to block size.
+            axs[1].set_xticks(
+                np.arange(0, pred.shape[0] + 1, pred.shape[0] // block_size_factor)
+            )
+            axs[1].set_yticks(
+                np.arange(0, pred.shape[1] + 1, pred.shape[1] // block_size_factor)
+            )
+
+            # Add grid overlay.
+            axs[1].grid(which="both", color="#CCCCCC", linestyle=":")
+
+        if showing_mask or showing_prediction:
+            # Plots colour bar onto figure.
+            clb = fig.colorbar(
+                mask_plot,  # type: ignore[arg-type]
+                ax=axs,
+                location="top",
+                ticks=np.arange(0, len(colours)),
+                aspect=75,
+                drawedges=True,
+            )
+
+            # Sets colour bar ticks to class labels.
+            clb.ax.set_xticklabels(classes.values(), fontsize=9)
+
+        # Add the sub-titles to each of the sub-plots.
+        if show_titles:
+            axs[0].set_title("Image")
+
+            if showing_mask:
+                axs[1].set_title("Ground Truth")
+                if showing_prediction:
+                    axs[2].set_title("Predictions")
+            elif showing_prediction:
+                axs[1].set_title("Predictions")
+
+        # Add super-title.
+        if suptitle is not None:
+            plt.suptitle(suptitle)
+
+        # Return the completed figure object. Will still need to be shown or saved to view.
+        return fig
 
 
 # TODO: Add tests to cover SEN12MS dataset
@@ -386,15 +578,22 @@ class SEN12MS(BaseSenS12MS):  # pragma: no cover
         self,
         root: str,
         split="train",
-        no_savanna=False,
         use_s2hr=False,
         use_s2mr=False,
         use_s2lr=False,
         use_s1=False,
         labels=False,
+        transforms: Optional[Callable[..., Any]] = None,
     ) -> None:
         super(SEN12MS, self).__init__(
-            root, split, no_savanna, use_s2hr, use_s2mr, use_s2lr, use_s1, labels
+            root,
+            split,
+            use_s2hr,
+            use_s2mr,
+            use_s2lr,
+            use_s1,
+            labels,
+            transforms,
         )
 
         # Find and index samples.

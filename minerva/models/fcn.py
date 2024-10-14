@@ -25,6 +25,7 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing Fully Convolutional Network (FCN) models."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -52,7 +53,7 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Dict, Literal, Optional, Sequence, Tuple
+from typing import Any, Literal, Optional, Sequence
 
 import torch
 import torch.nn.modules as nn
@@ -100,12 +101,12 @@ class FCN(MinervaBackbone):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, ...] = (4, 256, 256),
+        input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         scaler: Optional[GradScaler] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(FCN, self).__init__(
             criterion=criterion,
@@ -116,7 +117,10 @@ class FCN(MinervaBackbone):
 
         # Initialises the selected Minerva backbone.
         self.backbone: MinervaModel = get_model(self.backbone_name)(
-            input_size=input_size, n_classes=n_classes, encoder=True, **backbone_kwargs  # type: ignore
+            input_size=input_size,
+            n_classes=n_classes,
+            encoder=True,
+            **backbone_kwargs,  # type: ignore
         )
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
@@ -216,7 +220,7 @@ class DCN(MinervaModel):
         super(DCN, self).__init__(n_classes=n_classes)
         self.variant: Literal["32", "16", "8"] = variant
 
-        assert type(self.n_classes) is int
+        assert isinstance(self.n_classes, int)
 
         # Common to all variants.
         self.relu = nn.ReLU(inplace=True)
@@ -294,7 +298,7 @@ class DCN(MinervaModel):
                 f"Variant {self.variant} does not match known types"
             )
 
-    def forward(self, x: Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
+    def forward(self, x: tuple[Tensor, Tensor, Tensor, Tensor, Tensor]) -> Tensor:
         """Performs a forward pass of the decoder. Depending on DCN variant, will take multiple inputs
         throughout pass from the encoder.
 

@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.models.fcn`.
-"""
+r"""Tests for :mod:`minerva.models.fcn`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -36,8 +36,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Tuple
-
 import pytest
 import torch
 from torch import Tensor
@@ -86,7 +84,7 @@ def test_fcn(
     random_mask_batch: Tensor,
     std_batch_size: int,
     std_n_classes: int,
-    rgbi_input_size: Tuple[int, int, int],
+    rgbi_input_size: tuple[int, int, int],
 ) -> None:
     model: MinervaModel = model_cls(x_entropy_loss, input_size=rgbi_input_size)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
@@ -98,7 +96,7 @@ def test_fcn(
 
     loss, z = model.step(random_rgbi_batch, random_mask_batch, True)
 
-    assert type(loss.item()) is float
+    assert isinstance(loss.item(), float)
     assert isinstance(z, Tensor)
     assert z.size() == (std_batch_size, std_n_classes, *rgbi_input_size[1:])
 

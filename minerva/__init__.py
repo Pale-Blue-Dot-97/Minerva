@@ -20,17 +20,18 @@
 r""":mod:`minerva` is a package designed to facilitate the fitting and visualation of models for geo-spatial research.
 
 To main entry point to :mod:`minerva` is via :class:`Trainer`.
-    >>> from minerva.utils import CONFIG     # Module containing various utility functions.
+    >>> import hydra
+    >>> from omegaconf import DictConfig
     >>> from minerva.trainer import Trainer  # Class designed to handle fitting of model.
 
-Initialise a Trainer. Also creates the model.
-    >>> trainer = Trainer(**CONFIG)
-
-Run the fitting (train and validation epochs).
-    >>> trainer.fit()
-
-Run the testing epoch and output results.
-    >>> trainer.test()
+    >>> @hydra.main(version_base="1.3")
+    >>> def main(cfg: DictConfig) -> None:
+    >>>     # Initialise a Trainer. Also creates the model.
+    >>>     trainer = Trainer(**cfg)
+    >>>     # Run the fitting (train and validation epochs).
+    >>>     trainer.fit()
+    >>>     # Run the testing epoch and output results.
+    >>>     trainer.test()
 
 .. note::
     Includes two small ``.tiff`` exercpts from the ChesapeakeCVPR dataset used for testing.

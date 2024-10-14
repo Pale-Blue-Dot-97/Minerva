@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.datasets.utils`.
-"""
+r"""Tests for :mod:`minerva.datasets.utils`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -43,7 +43,7 @@ from torchgeo.datasets import IntersectionDataset
 from torchgeo.datasets.utils import BoundingBox
 
 from minerva import datasets as mdt
-from minerva.datasets import PairedDataset
+from minerva.datasets import PairedGeoDataset
 from minerva.datasets.__testing import TstImgDataset, TstMaskDataset
 
 
@@ -65,7 +65,7 @@ def test_make_bounding_box() -> None:
 
 
 def test_intersect_datasets(img_root: Path, lc_root: Path) -> None:
-    imagery = PairedDataset(TstImgDataset, str(img_root))
-    labels = PairedDataset(TstMaskDataset, str(lc_root))
+    imagery = PairedGeoDataset(TstImgDataset, str(img_root))
+    labels = PairedGeoDataset(TstMaskDataset, str(lc_root))
 
     assert isinstance(mdt.intersect_datasets([imagery, labels]), IntersectionDataset)

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) 2023 Harry Baker
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -26,6 +25,7 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing Siamese models."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -44,13 +44,17 @@ __all__ = [
     "SimSiam34",
     "SimSiam50",
     "SimConv",
+    "SimConv18",
+    "SimConv34",
+    "SimConv50",
+    "SimConv101",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Optional, Sequence
 
 import numpy as np
 import torch
@@ -59,8 +63,8 @@ from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
-from .core import MinervaBackbone, MinervaModel, MinervaWrapper, get_model
-from .psp import PSPEncoder
+from .core import MinervaBackbone, MinervaModel, get_model
+from .psp import MinervaPSP
 
 
 # =====================================================================================================================
@@ -83,7 +87,7 @@ class MinervaSiamese(MinervaBackbone):
         self.backbone: MinervaModel
         self.proj_head: Module
 
-    def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of the network by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -103,7 +107,7 @@ class MinervaSiamese(MinervaBackbone):
         """
         return self.forward_pair(x)
 
-    def forward_pair(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
+    def forward_pair(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of the network by using the forward methods of the backbone and
         feeding its output into the projection heads.
 
@@ -128,7 +132,7 @@ class MinervaSiamese(MinervaBackbone):
         return g, g_a, g_b, f_a, f_b
 
     @abc.abstractmethod
-    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Performs a forward pass of a single head of the network by using the forward methods of the backbone
         and feeding its output into the projection heads.
 
@@ -168,17 +172,19 @@ class SimCLR(MinervaSiamese):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         scaler: Optional[GradScaler] = None,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(SimCLR, self).__init__(
             criterion=criterion, input_size=input_size, scaler=scaler
         )
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
-            input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
+            input_size=input_size,
+            encoder=True,
+            **backbone_kwargs,  # type: ignore[arg-type]
         )
 
         self.backbone.determine_output_dim()
@@ -193,7 +199,7 @@ class SimCLR(MinervaSiamese):
             nn.Linear(512, feature_dim, bias=False),
         )
 
-    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Performs a forward pass of a single head of the network by using the forward methods of the
         :attr:`~SimCLR.backbone` and feeding its output into the :attr:`~SimCLR.proj_head`.
 
@@ -211,7 +217,7 @@ class SimCLR(MinervaSiamese):
 
         return g, f
 
-    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
+    def step(self, x: Tensor, *args, train: bool = False) -> tuple[Tensor, Tensor]:
         """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
 
         Raises:
@@ -315,18 +321,20 @@ class SimSiam(MinervaSiamese):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         pred_dim: int = 512,
         scaler: Optional[GradScaler] = None,
-        backbone_kwargs: Dict[str, Any] = {},
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(SimSiam, self).__init__(
             criterion=criterion, input_size=input_size, scaler=scaler
         )
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
-            input_size=input_size, encoder=True, **backbone_kwargs  # type: ignore[arg-type]
+            input_size=input_size,
+            encoder=True,
+            **backbone_kwargs,  # type: ignore[arg-type]
         )
 
         self.backbone.determine_output_dim()
@@ -356,7 +364,7 @@ class SimSiam(MinervaSiamese):
             nn.Linear(pred_dim, feature_dim),
         )  # output layer
 
-    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Performs a forward pass of a single head of :class:`SimSiam` by using the forward methods of the backbone
         and feeding its output into the :attr:`~SimSiam.proj_head`.
 
@@ -373,7 +381,7 @@ class SimSiam(MinervaSiamese):
 
         return p, z.detach()
 
-    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
+    def step(self, x: Tensor, *args, train: bool = False) -> tuple[Tensor, Tensor]:
         """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
 
         Raises:
@@ -477,52 +485,45 @@ class SimConv(MinervaSiamese):
     def __init__(
         self,
         criterion: Any,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 2048,
+        projection_dim: int = 512,
         scaler: Optional[GradScaler] = None,
-        backbone_kwargs: Dict[str, Any] = {},
+        encoder_weights: Optional[str] = None,
+        backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(SimConv, self).__init__(
             criterion=criterion, input_size=input_size, scaler=scaler
         )
 
-        # Set of required kwargs for the `PSPNet` adapted from `minerva` style kwargs.
-        new_kwargs = {
-            "encoder_name": self.backbone_name,
-            "psp_out_channels": feature_dim,
-            "in_channels": input_size[0],
-            "encoder_weights": None,
-        }
-
-        # Update the supplied kwargs with the required, adapted kwargs for the `PSPNet`.
-        if backbone_kwargs is not None:
-            new_kwargs.update(backbone_kwargs)
-
-        self.backbone = MinervaWrapper(
-            PSPEncoder,
+        self.backbone = MinervaPSP(
             input_size=input_size,
-            criterion=None,
-            n_classes=None,
-            scaler=None,
-            **new_kwargs,
+            encoder_name=self.backbone_name,
+            psp_out_channels=feature_dim,
+            encoder_weights=encoder_weights,
+            encoder_depth=5,
+            encoder=True,
+            segmentation_on=False,
+            classification_on=False,
+            **backbone_kwargs,
         )
 
         self.proj_head = nn.Sequential(
-            nn.Conv2d(feature_dim, 512, 3, 2, padding=1),  # 3x3 Conv
-            nn.BatchNorm2d(512),
+            nn.Conv2d(feature_dim, projection_dim, 3, 2, padding=1),  # 3x3 Conv
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, 1, padding=0),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
-            nn.Conv2d(512, 512, 1, padding=0),
-            nn.BatchNorm2d(512),
+            nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
+            nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
             nn.UpsamplingBilinear2d(scale_factor=4),
         )
 
-    def forward_single(self, x: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
         """Performs a forward pass of a single head of the network by using the forward methods of the
         :attr:`~SimCLR.backbone` and feeding its output into the :attr:`~SimCLR.proj_head`.
 
@@ -540,7 +541,7 @@ class SimConv(MinervaSiamese):
 
         return g, f
 
-    def step(self, x: Tensor, *args, train: bool = False) -> Tuple[Tensor, Tensor]:
+    def step(self, x: Tensor, *args, train: bool = False) -> tuple[Tensor, Tensor]:
         """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
 
         Raises:
@@ -598,3 +599,27 @@ class SimConv(MinervaSiamese):
                 self.optimiser.step()
 
         return loss, z
+
+
+class SimConv18(SimConv):
+    """:class:`SimConv` network using a ResNet18 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet18"
+
+
+class SimConv34(SimConv):
+    """:class:`SimConv` network using a ResNet34 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet34"
+
+
+class SimConv50(SimConv):
+    """:class:`SimConv` network using a ResNet50 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet50"
+
+
+class SimConv101(SimConv):
+    """:class:`SimConv` network using a ResNet50 :attr:`~SimConv.backbone`."""
+
+    backbone_name = "resnet101"

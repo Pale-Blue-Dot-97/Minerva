@@ -25,6 +25,7 @@
 # Created under a project funded by the Ordnance Survey Ltd.
 #
 """Module containing ResNets adapted for use in :mod:`minerva`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -46,7 +47,7 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Callable, List, Optional, Tuple, Type, Union
+from typing import Any, Callable, Optional, Type
 
 import torch
 import torch.nn.modules as nn
@@ -122,14 +123,14 @@ class ResNet(MinervaModel):
 
     def __init__(
         self,
-        block: Type[Union[BasicBlock, Bottleneck]],
-        layers: Union[List[int], Tuple[int, int, int, int]],
+        block: Type[BasicBlock | Bottleneck],
+        layers: list[int] | tuple[int, int, int, int],
         in_channels: int = 3,
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
-        replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+        replace_stride_with_dilation: Optional[tuple[bool, bool, bool]] = None,
         norm_layer: Optional[Callable[..., Module]] = None,
         encoder: bool = False,
     ) -> None:
@@ -224,7 +225,7 @@ class ResNet(MinervaModel):
 
     def _make_layer(
         self,
-        block: Type[Union[BasicBlock, Bottleneck]],
+        block: Type[BasicBlock | Bottleneck],
         planes: int,
         blocks: int,
         stride: int = 1,
@@ -296,7 +297,7 @@ class ResNet(MinervaModel):
 
     def _forward_impl(
         self, x: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
+    ) -> Tensor | tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -320,7 +321,7 @@ class ResNet(MinervaModel):
 
     def forward(
         self, x: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
+    ) -> Tensor | tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of the :class:`ResNet`.
 
         Can be called directly as a method (e.g. ``model.forward``) or when data is parsed
@@ -390,19 +391,19 @@ class ResNetX(MinervaModel):
     """
 
     __metaclass__ = abc.ABCMeta
-    block_type: Union[Type[BasicBlock], Type[Bottleneck]] = BasicBlock
-    layer_struct: List[int] = [2, 2, 2, 2]
+    block_type: Type[BasicBlock] | Type[Bottleneck] = BasicBlock
+    layer_struct: list[int] = [2, 2, 2, 2]
     weights_name = "ResNet18_Weights.IMAGENET1K_V1"
 
     def __init__(
         self,
         criterion: Optional[Any] = None,
-        input_size: Tuple[int, int, int] = (4, 256, 256),
+        input_size: tuple[int, int, int] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
-        replace_stride_with_dilation: Optional[Tuple[bool, bool, bool]] = None,
+        replace_stride_with_dilation: Optional[tuple[bool, bool, bool]] = None,
         norm_layer: Optional[Callable[..., Module]] = None,
         encoder: bool = False,
         torch_weights: bool = False,
@@ -424,14 +425,14 @@ class ResNetX(MinervaModel):
             encoder=encoder,
         )
 
-        if torch_weights:
+        if torch_weights:  # pragma: no cover
             self.network = _preload_weights(
                 self.network, get_torch_weights(self.weights_name), input_size, encoder
             )
 
     def forward(
         self, x: Tensor
-    ) -> Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]]:
+    ) -> Tensor | tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
         """Performs a forward pass of the :class:`ResNet`.
 
         Can be called directly as a method (e.g. :func:`model.forward`) or when data is parsed
@@ -445,9 +446,7 @@ class ResNetX(MinervaModel):
             initialised as an encoder, returns a tuple of outputs from each ``layer`` 1-4. Else, returns
             :class:`~torch.Tensor` of the likelihoods the network places on the input ``x`` being of each class.
         """
-        z: Union[Tensor, Tuple[Tensor, Tensor, Tensor, Tensor, Tensor]] = self.network(
-            x
-        )
+        z: Tensor | tuple[Tensor, Tensor, Tensor, Tensor, Tensor] = self.network(x)
         if isinstance(z, Tensor):
             return z
         elif isinstance(z, tuple):
@@ -460,7 +459,7 @@ class ResNet18(ResNetX):
     by stripping classification layers away.
     """
 
-    layer_struct: List[int] = [2, 2, 2, 2]
+    layer_struct: list[int] = [2, 2, 2, 2]
     weights_name = "ResNet18_Weights.IMAGENET1K_V1"
 
 
@@ -469,7 +468,7 @@ class ResNet34(ResNetX):
     by stripping classification layers away.
     """
 
-    layer_struct: List[int] = [3, 4, 6, 3]
+    layer_struct: list[int] = [3, 4, 6, 3]
     weights_name = "ResNet34_Weights.IMAGENET1K_V1"
 
 
@@ -508,16 +507,16 @@ class ResNet152(ResNetX):
 # =====================================================================================================================
 def _preload_weights(
     resnet: ResNet,
-    weights: Optional[Union[WeightsEnum, Any]],
-    input_shape: Tuple[int, int, int],
+    weights: Optional[WeightsEnum | Any],
+    input_shape: tuple[int, int, int],
     encoder_on: bool,
-) -> ResNet:
+) -> ResNet:  # pragma: no cover
     if not weights:
         print("Weights are None! The original resnet will be used")
         return resnet
 
     if isinstance(weights, WeightsEnum):
-        weights = weights.get_state_dict(True)
+        weights = weights.get_state_dict()
 
     if input_shape[0] != 3 or input_shape[1] <= 224 or input_shape[2] <= 224:
         weights["conv1.weight"] = resnet.conv1.state_dict()["weight"]  # type: ignore[attr-defined]

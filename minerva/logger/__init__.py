@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """:mod:`minerva.logger` contains functionality for logging and analysing results within :mod:`minerva`"""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -36,7 +37,7 @@ __all__ = [
     "SSLTaskLogger",
     "SupervisedTaskLogger",
     "MinervaStepLogger",
-    "SupervisedGeoStepLogger",
+    "SupervisedStepLogger",
     "SSLStepLogger",
     "KNNStepLogger",
 ]
@@ -45,6 +46,6 @@ from .steplog import (
     KNNStepLogger,
     MinervaStepLogger,
     SSLStepLogger,
-    SupervisedGeoStepLogger,
+    SupervisedStepLogger,
 )
 from .tasklog import MinervaTaskLogger, SSLTaskLogger, SupervisedTaskLogger

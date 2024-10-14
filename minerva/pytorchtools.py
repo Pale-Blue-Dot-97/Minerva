@@ -24,6 +24,7 @@
 
 Source: https://github.com/Bjarten/early-stopping-pytorch
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -35,7 +36,7 @@ __copyright__ = "Copyright (C) 2018 Bjarte Mehus Sunde"
 #                                                    IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 import numpy as np
 import torch
@@ -71,6 +72,9 @@ class EarlyStopping:
             Default: ``'checkpoint.pt'``
         trace_func (~typing.Callable[..., None]): Trace print function.
             Default: :func:`print`
+        external_save (bool): If True, will not save the model here, but will activate a :attr:`save_model` flag
+            indicating that the model should be saved by the user. If False, will save the model automaticallly
+            using :mod:`torch`.
     """
 
     def __init__(
@@ -78,8 +82,9 @@ class EarlyStopping:
         patience: int = 7,
         verbose: bool = False,
         delta: float = 0.0,
-        path: Union[str, Path] = "checkpoint.pt",
+        path: str | Path = "checkpoint.pt",
         trace_func: Callable[..., None] = print,
+        external_save: bool = False,
     ):
         self.patience: int = patience
         self.verbose: bool = verbose
@@ -88,10 +93,15 @@ class EarlyStopping:
         self.early_stop: bool = False
         self.val_loss_min: float = np.Inf
         self.delta: float = delta
-        self.path: Union[str, Path] = path
+        self.path: str | Path = path
         self.trace_func: Callable[..., None] = trace_func
+        self.external_save: bool = external_save
+        self.save_model: bool = False
 
     def __call__(self, val_loss: float, model: Module) -> None:
+        # Reset save model flag.
+        self.save_model = False
+
         score = -val_loss
 
         if self.best_score is None:
@@ -120,5 +130,13 @@ class EarlyStopping:
             self.trace_func(
                 f"Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ..."
             )
-        torch.save(model.state_dict(), self.path)
+
+        # If externally saving model, activate flag.
+        if self.external_save:
+            self.save_model = True
+
+        # Else, save the model state dict using torch.
+        else:
+            torch.save(model.state_dict(), self.path)
+
         self.val_loss_min = val_loss

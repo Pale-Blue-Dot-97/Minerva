@@ -23,8 +23,7 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r""":mod:`pytest` suite for :mod:`minerva` CI/CD.
-"""
+r""":mod:`pytest` suite for :mod:`minerva` CI/CD."""
 
 __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"

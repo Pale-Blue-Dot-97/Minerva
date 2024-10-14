@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.utils.runner`.
-"""
+r"""Tests for :mod:`minerva.utils.runner`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -43,10 +43,12 @@ from typing import Optional
 
 import pytest
 import requests
-import torch
 from internet_sabotage import no_connection
+from omegaconf import DictConfig, OmegaConf
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
 
-from minerva.utils import CONFIG, runner
+from minerva.utils import runner
 
 
 # =====================================================================================================================
@@ -66,17 +68,16 @@ def test_wandb_connection_manager() -> None:
             assert os.environ["WANDB_MODE"] == "offline"
 
 
-def test_config_env_vars() -> None:
-    args, _ = runner.GENERIC_PARSER.parse_known_args()
-
-    args.ngpus_per_node = 1
+def test_config_env_vars(default_config: DictConfig) -> None:
+    OmegaConf.set_struct(default_config, False)
+    default_config.ngpus_per_node = 1
 
     with pytest.raises(AttributeError):
-        args.rank
-        args.dist_url
-        args.world_size
+        default_config.rank
+        default_config.dist_url
+        default_config.world_size
 
-    new_args = runner.config_env_vars(args)
+    new_cfg = runner.config_env_vars(default_config)
 
     if "SLURM_JOB_ID" in os.environ:
         slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
@@ -92,42 +93,33 @@ def test_config_env_vars() -> None:
         cmd = "scontrol show hostnames " + slurm_job_nodelist
         stdout = subprocess.check_output(cmd.split())
         host_name = stdout.decode().splitlines()[0]
-        args.rank = int(slurm_nodeid) * args.ngpus_per_node
-        args.world_size = int(slurm_nnodes) * args.ngpus_per_node
-        args.dist_url = f"tcp://{host_name}:58472"
-        args.jobid = slurm_jobid
+        default_config.rank = int(slurm_nodeid) * default_config.ngpus_per_node
+        default_config.world_size = int(slurm_nnodes) * default_config.ngpus_per_node
+        default_config.dist_url = f"tcp://{host_name}:58472"
+        default_config.jobid = slurm_jobid
+
+        assert default_config.rank == new_cfg.rank
+        assert default_config.world_size == new_cfg.world_size
+        assert default_config.dist_url == new_cfg.dist_url
+        assert default_config.jobid == new_cfg.jobid
 
     else:
-        assert new_args.rank == 0
-        assert new_args.world_size == 1
-        assert new_args.dist_url == "tcp://localhost:58472"
+        assert new_cfg.rank == 0
+        assert new_cfg.world_size == 1
+        assert new_cfg.dist_url == "tcp://localhost:58472"
 
 
-def test_config_args() -> None:
-    args, _ = runner.GENERIC_PARSER.parse_known_args()
-
-    args_dict = vars(args)
-
-    # Find which CLI arguments are not in the config.
-    new_args = {key: args_dict[key] for key in args_dict if key not in CONFIG}
-
-    returned_args = runner.config_args(args)
-
-    assert returned_args.ngpus_per_node == torch.cuda.device_count()
-    assert CONFIG["seed"] is not None
-
-    for key in new_args.keys():
-        assert CONFIG[key] == new_args[key]
-
-
-def _run(gpu: int, args) -> None:
+@runner.distributed_run
+def _run_func(
+    gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig
+) -> None:
     time.sleep(0.5)
     return
 
 
-def test_distributed_run() -> None:
-    args, _ = runner.GENERIC_PARSER.parse_known_args()
+def test_distributed_run(default_config: DictConfig) -> None:
+    # Disable wandb logging on Windows in CI/CD due to pwd.
+    if os.name == "nt":
+        OmegaConf.update(default_config, "wandb_log", False, force_add=True)
 
-    args = runner.config_args(args)
-
-    runner.distributed_run(_run, args)
+    _run_func(default_config)

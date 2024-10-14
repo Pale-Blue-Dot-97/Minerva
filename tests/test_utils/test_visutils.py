@@ -23,8 +23,8 @@
 #
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
-r"""Tests for :mod:`minerva.utils.visutils`.
-"""
+r"""Tests for :mod:`minerva.utils.visutils`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -50,6 +50,7 @@ from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.image import AxesImage
 from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
+from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from torchgeo.datasets import GeoDataset
 from torchgeo.samplers import get_random_bounding_box
@@ -114,11 +115,11 @@ def test_get_mlp_cmap() -> None:
     assert isinstance(cmap, Colormap)
 
 
-def test_discrete_heatmap(random_mask) -> None:
-    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
-    visutils.discrete_heatmap(
-        random_mask, list(utils.CLASSES.values()), cmap_style=cmap
-    )
+def test_discrete_heatmap(
+    random_mask, exp_classes: dict[int, str], exp_cmap_dict: dict[int, str]
+) -> None:
+    cmap = ListedColormap(exp_cmap_dict.values())  # type: ignore
+    visutils.discrete_heatmap(random_mask, list(exp_classes.values()), cmap_style=cmap)
 
 
 def test_stack_rgb() -> None:
@@ -135,29 +136,27 @@ def test_stack_rgb() -> None:
     )
 
     image_1: NDArray[Shape["3, 3, 3"], Any] = np.array([red, green, blue])
-    rgb_1 = {"R": 0, "G": 1, "B": 2}
-
-    image_2: NDArray[Shape["3, 3, 3"], Any] = np.array([blue, red, green])
-    rgb_2 = {"G": 2, "B": 0, "R": 1}
 
     correct = np.dstack((blue, green, red)) / 255.0
-    result_1 = visutils.stack_rgb(image_1, rgb_1, max_value=255)
-    result_2 = visutils.stack_rgb(image_2, rgb_2, max_value=255)
+    result_1 = visutils.stack_rgb(image_1, max_value=255)
 
     assert_array_equal(result_1, correct)
-    assert_array_equal(result_2, correct)
 
 
 def test_make_rgb_image(random_image) -> None:
-    rgb = {"R": 0, "G": 1, "B": 2}
-
-    assert type(visutils.make_rgb_image(random_image, rgb)) is AxesImage
+    assert isinstance(visutils.make_rgb_image(random_image), AxesImage)
 
 
-def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> None:
+def test_labelled_rgb_image(
+    random_mask,
+    random_image,
+    bounds_for_test_img,
+    exp_classes: dict[int, str],
+    exp_cmap_dict: dict[int, str],
+) -> None:
     path = tempfile.gettempdir()
     name = "pretty_pic"
-    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
+    cmap = ListedColormap(exp_cmap_dict.values())  # type: ignore
 
     fn = visutils.labelled_rgb_image(
         random_image,
@@ -166,7 +165,7 @@ def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> N
         visutils.WGS84,
         path,
         name,
-        list(utils.CLASSES.values()),
+        list(exp_classes.values()),
         cmap_style=cmap,
     )
 
@@ -174,7 +173,9 @@ def test_labelled_rgb_image(random_mask, random_image, bounds_for_test_img) -> N
     assert fn == correct_fn
 
 
-def test_make_gif(bounds_for_test_img) -> None:
+def test_make_gif(
+    bounds_for_test_img, exp_classes: dict[int, str], exp_cmap_dict: dict[int, str]
+) -> None:
     dates = ["2018-01-15", "2018-07-03", "2018-11-30"]
     images = np.random.rand(3, 32, 32, 3)
     masks = np.random.randint(0, 7, size=(3, 32, 32))
@@ -186,7 +187,7 @@ def test_make_gif(bounds_for_test_img) -> None:
     # Creates the GIF filename.
     gif_fn = f"{path}/new_gif.gif"
 
-    cmap = ListedColormap(utils.CMAP_DICT.values())  # type: ignore
+    cmap = ListedColormap(exp_cmap_dict.values())  # type: ignore
 
     visutils.make_gif(
         dates,
@@ -194,7 +195,7 @@ def test_make_gif(bounds_for_test_img) -> None:
         masks,
         bounds_for_test_img,
         visutils.WGS84,
-        list(utils.CLASSES.values()),
+        list(exp_classes.values()),
         gif_fn,
         path,
         cmap,
@@ -204,7 +205,13 @@ def test_make_gif(bounds_for_test_img) -> None:
     shutil.rmtree(path)
 
 
-def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None:
+def test_prediction_plot(
+    random_image,
+    random_mask,
+    bounds_for_test_img,
+    exp_classes: dict[int, str],
+    results_dir: Path,
+) -> None:
     pred = np.random.randint(0, 8, size=(32, 32))
 
     src_crs = utils.WGS84
@@ -212,13 +219,22 @@ def test_prediction_plot(random_image, random_mask, bounds_for_test_img) -> None
     sample = {
         "image": random_image,
         "mask": random_mask,
-        "pred": pred,
-        "bounds": bounds_for_test_img,
+        "prediction": pred,
+        "index": bounds_for_test_img,
     }
-    visutils.prediction_plot(sample, "101", utils.CLASSES, src_crs)
+    visutils.prediction_plot(sample, "101", exp_classes, src_crs, path=results_dir)
 
 
-def test_seg_plot(results_root, default_dataset: GeoDataset, monkeypatch) -> None:
+def test_seg_plot(
+    results_root: Path,
+    data_root: Path,
+    default_dataset: GeoDataset,
+    exp_dataset_params: dict[str, Any],
+    exp_classes: dict[int, str],
+    exp_cmap_dict: dict[int, str],
+    cache_dir: Path,
+    monkeypatch,
+) -> None:
     batch_size = 2
     n_batches = 2
 
@@ -242,22 +258,26 @@ def test_seg_plot(results_root, default_dataset: GeoDataset, monkeypatch) -> Non
         z=z,
         y=z,
         ids=ids,  # type: ignore[arg-type]
-        bounds=bboxes,
-        task_name="test-test",
-        classes=utils.CLASSES,
-        colours=utils.CMAP_DICT,
+        index=bboxes,
+        data_dir=data_root,
+        dataset_params=exp_dataset_params,
+        classes=exp_classes,
+        colours=exp_cmap_dict,
         fn_prefix=fn_prefix,
         frac=1.0,
+        cache_dir=cache_dir,
     )
 
 
-def test_plot_subpopulations() -> None:
+def test_plot_subpopulations(
+    exp_classes: dict[int, str], exp_cmap_dict: dict[int, str]
+) -> None:
     class_dist = [(1, 25000), (0, 1300), (2, 100), (3, 2)]
 
     fn = Path("plot.png")
 
     visutils.plot_subpopulations(
-        class_dist, utils.CLASSES, cmap_dict=utils.CMAP_DICT, filename=fn, save=True
+        class_dist, exp_classes, cmap_dict=exp_cmap_dict, filename=fn, save=True
     )
 
     fn.unlink(missing_ok=True)
@@ -284,7 +304,7 @@ def test_plot_history() -> None:
     filename.unlink(missing_ok=True)
 
 
-def test_make_confusion_matrix() -> None:
+def test_make_confusion_matrix(exp_classes: dict[int, str]) -> None:
     batch_size = 2
     patch_size = (32, 32)
 
@@ -296,10 +316,10 @@ def test_make_confusion_matrix() -> None:
     fn = Path("cm.png")
 
     visutils.make_confusion_matrix(
-        pred_1, labels_1, utils.CLASSES, filename=fn, save=True
+        pred_1, labels_1, exp_classes, filename=fn, save=True
     )
 
-    visutils.make_confusion_matrix(pred_2, labels_1, utils.CLASSES)
+    visutils.make_confusion_matrix(pred_2, labels_1, exp_classes)
 
     fn.unlink(missing_ok=True)
 
@@ -323,11 +343,16 @@ def test_format_names() -> None:
     assert filenames == names
 
 
-def test_plot_results(default_dataset: GeoDataset) -> None:
-    batch_size = 2
-    patch_size = (32, 32)
-    n_classes = 8
-
+def test_plot_results(
+    default_dataset: GeoDataset,
+    exp_classes: dict[int, str],
+    exp_cmap_dict: dict[int, str],
+    results_dir: Path,
+    default_config: dict[str, Any],
+    small_patch_size: tuple[int, int],
+    std_batch_size: int,
+    std_n_classes: int,
+) -> None:
     plots = {
         "History": True,
         "Pred": True,
@@ -338,8 +363,16 @@ def test_plot_results(default_dataset: GeoDataset) -> None:
         "Mask": False,
         "TSNE": True,
     }
-    z = np.random.randint(0, n_classes, size=batch_size * patch_size[0] * patch_size[1])
-    y = np.random.randint(0, n_classes, size=batch_size * patch_size[0] * patch_size[1])
+    z = np.random.randint(
+        0,
+        std_n_classes,
+        size=std_batch_size * small_patch_size[0] * small_patch_size[1],
+    )
+    y = np.random.randint(
+        0,
+        std_n_classes,
+        size=std_batch_size * small_patch_size[0] * small_patch_size[1],
+    )
 
     train_loss = {"x": list(range(1, 11)), "y": np.random.rand(10)}
     train_acc = {"x": list(range(1, 11)), "y": np.random.rand(10)}
@@ -354,29 +387,42 @@ def test_plot_results(default_dataset: GeoDataset) -> None:
         "val_acc": val_acc,
     }
 
-    probs = np.random.rand(batch_size, *patch_size, len(utils.CLASSES))
+    probs = np.random.rand(std_batch_size, *small_patch_size, std_n_classes)
 
     embeddings = torch.rand([4, 152]).numpy()
     bounds = np.array(
         [get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)]
     )
 
+    cfg = OmegaConf.to_object(default_config)
+    assert isinstance(cfg, dict)
+    cfg["data_config"] = cfg["tasks"]["fit-train"]["data_config"]
+
     visutils.plot_results(
         plots,
-        z,
-        y,
-        metrics,
+        x=None,
+        y=y,
+        z=z,
+        metrics=metrics,
         probs=probs,
-        bounds=bounds,
+        index=bounds,
         embeddings=embeddings,
-        task_name="test-test",
-        class_names=utils.CLASSES,
-        colours=utils.CMAP_DICT,
+        class_names=exp_classes,
+        colours=exp_cmap_dict,
         save=False,
+        results_dir=results_dir,
+        task_cfg=cfg["tasks"]["test-test"],  # type: ignore[arg-type]
+        global_cfg=cfg,
     )
 
 
-def test_plot_embeddings(results_root: Path, default_dataset: GeoDataset) -> None:
+def test_plot_embeddings(
+    results_root: Path,
+    default_dataset: GeoDataset,
+    exp_dataset_params: dict[str, Any],
+    data_root: Path,
+    cache_dir: Path,
+) -> None:
     embeddings = torch.rand([4, 152])
     bounds = [
         get_random_bounding_box(default_dataset.bounds, 12.0, 1.0) for _ in range(4)
@@ -385,8 +431,10 @@ def test_plot_embeddings(results_root: Path, default_dataset: GeoDataset) -> Non
     visutils.plot_embedding(
         embeddings,
         bounds,
-        "test-test",
+        data_root,
+        exp_dataset_params,
         show=True,
         filename=results_root / "tsne_cluster_vis.png",
         title="test_plot",
+        cache_dir=cache_dir,
     )

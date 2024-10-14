@@ -27,6 +27,7 @@
 
 .. versionadded:: 0.27
 """
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -41,7 +42,7 @@ from pathlib import Path
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import TYPE_CHECKING, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional
 
 import torch
 import torch.distributed as dist
@@ -137,18 +138,19 @@ class WeightedKNN(MinervaTask):
     .. versionadded:: 0.27
     """
 
-    logger_cls = "SSLTaskLogger"
+    logger_cls = "minerva.logger.tasklog.SSLTaskLogger"
 
     def __init__(
         self,
         name: str,
-        model: Union[MinervaModel, MinervaDataParallel],
+        model: MinervaModel | MinervaDataParallel,
         device: torch.device,
         exp_fn: Path,
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Optional[Union[SummaryWriter, Run]] = None,
+        writer: Optional[SummaryWriter | Run] = None,
+        backbone_weight_path: Optional[str | Path] = None,
         record_int: bool = True,
         record_float: bool = False,
         k: int = 5,
@@ -164,6 +166,7 @@ class WeightedKNN(MinervaTask):
             rank,
             world_size,
             writer,
+            backbone_weight_path,
             record_int,
             record_float,
             **params,
@@ -172,9 +175,11 @@ class WeightedKNN(MinervaTask):
         self.temp = temp
         self.k = k
 
-    def generate_feature_bank(self) -> Tuple[Tensor, Tensor]:
+    def generate_feature_bank(self) -> tuple[Tensor, Tensor]:
         feature_list = []
         target_list = []
+
+        assert isinstance(self.loaders, dict)
 
         for batch in tqdm(self.loaders["features"]):
             val_data: Tensor = batch["image"].to(self.device, non_blocking=True)
@@ -228,6 +233,8 @@ class WeightedKNN(MinervaTask):
         with torch.no_grad():
             # Generate feature bank and target bank.
             feature_bank, feature_labels = self.generate_feature_bank()
+
+            assert isinstance(self.loaders, dict)
 
             # Loop test data to predict the label by weighted KNN search.
             for batch in tqdm(self.loaders["test"]):
@@ -283,7 +290,9 @@ class WeightedKNN(MinervaTask):
 
                 # [B*K, C]
                 one_hot_label = one_hot_label.scatter(
-                    dim=-1, index=sim_labels.view(-1, 1), value=1.0
+                    dim=-1,
+                    index=sim_labels.to(dtype=torch.int64).view(-1, 1),
+                    value=1.0,
                 )
 
                 # Weighted score ---> [B, C]
@@ -298,10 +307,16 @@ class WeightedKNN(MinervaTask):
 
                 # Calculate loss between predicted and ground truth labels by KNN.
                 criterion = torch.nn.CrossEntropyLoss()
-                loss = criterion(pred_scores, test_target)
+                loss = criterion(pred_scores, test_target.to(dtype=torch.long))
 
                 # Pack results together for the logger.
-                results = (loss, pred_scores, test_target, _)
+                results = (
+                    loss,
+                    test_data,
+                    test_target,
+                    pred_scores,
+                    utils.get_sample_index(batch),
+                )
 
                 # Gathers the losses across devices together if a distributed job.
                 if dist.is_available() and dist.is_initialized():  # pragma: no cover
@@ -310,7 +325,8 @@ class WeightedKNN(MinervaTask):
                     results = (loss, *results[1:])
 
                 # Sends results to logger.
-                self.logger.step(self.step_num, *results)
+                self.logger.step(self.global_step_num, self.local_step_num, *results)
 
                 # Update global step number for this mode of model fitting.
-                self.step_num += 1
+                self.global_step_num += 1
+                self.local_step_num += 1

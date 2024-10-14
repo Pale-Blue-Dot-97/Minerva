@@ -24,6 +24,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 r"""Tests for :mod:`minerva.tasks.core`."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -45,4 +46,4 @@ from minerva.tasks import get_task
 # =====================================================================================================================
 def test_get_task():
     with pytest.raises(TypeError):
-        _ = get_task("MinervaTask")
+        _ = get_task("minerva.tasks.MinervaTask")

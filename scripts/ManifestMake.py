@@ -19,6 +19,7 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Script to create manifests of data for use in Minerva pre-processing to reduce computation time."""
+
 # =====================================================================================================================
 #                                                    METADATA
 # =====================================================================================================================
@@ -43,7 +44,7 @@ def main():
 
     print(manifest)
 
-    output_dir = universal_path(CONFIG["dir"]["cache"])
+    output_dir = universal_path(CONFIG["cache_dir"])
 
     fn = output_dir / f"{utils.get_dataset_name()}_Manifest.csv"
 
