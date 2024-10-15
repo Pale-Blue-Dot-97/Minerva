@@ -21,7 +21,7 @@ onnx==1.16.2
 onnx2torch==1.5.15
 opencv-python-headless==4.10.0.84
 overload==1.1
-pandas==2.2.2
+pandas==2.2.3
 patch-ng==1.18.0
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability.
 psutil==6.0.0
