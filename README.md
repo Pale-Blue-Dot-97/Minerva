@@ -12,6 +12,7 @@
 [![security: bandit](https://img.shields.io/badge/security-bandit-yellow.svg)](https://github.com/PyCQA/bandit)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/Pale-Blue-Dot-97/Minerva/main.svg)](https://results.pre-commit.ci/latest/github/Pale-Blue-Dot-97/Minerva/main)
 [![codecov](https://codecov.io/gh/Pale-Blue-Dot-97/Minerva/graph/badge.svg?token=8TUR8A8XZ5)](https://codecov.io/gh/Pale-Blue-Dot-97/Minerva)
+[![DOI](https://zenodo.org/badge/333241475.svg)](https://doi.org/10.5281/zenodo.13941041)
 
 <!-- PROJECT LOGO -->
 <br />
