@@ -41,7 +41,7 @@ from typing import Any, Optional
 import pytest
 import torch
 from numpy.testing import assert_array_equal
-from pytest_lazyfixture import lazy_fixture
+from pytest_lazy_fixtures import lf
 from torch import FloatTensor, LongTensor
 from torchgeo.datasets import RasterDataset
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
@@ -69,7 +69,7 @@ from minerva.utils import utils
 @pytest.mark.parametrize(
     ["input_mask", "output"],
     [
-        (lazy_fixture("simple_mask"), torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])),
+        (lf("simple_mask"), torch.tensor([[1, 3, 0], [2, 0, 1], [1, 1, 1]])),
         (
             torch.tensor([[5, 3, 5], [4, 5, 1], [1, 3, 1]], dtype=torch.long),
             torch.tensor([[0, 3, 0], [2, 0, 1], [1, 3, 1]]),
@@ -86,9 +86,7 @@ def test_class_transform(
     assert repr(transform) == f"ClassTransform(transform={example_matrix})"
 
 
-@pytest.mark.parametrize(
-    "sample", (42, lazy_fixture("simple_mask"), lazy_fixture("example_matrix"))
-)
+@pytest.mark.parametrize("sample", (42, lf("simple_mask"), lf("example_matrix")))
 def test_pair_create(sample: Any) -> None:
     transform = PairCreate()
 
@@ -100,7 +98,7 @@ def test_pair_create(sample: Any) -> None:
 @pytest.mark.parametrize(
     "mask",
     (
-        lazy_fixture("simple_mask"),
+        lf("simple_mask"),
         torch.tensor(
             [[1023.0, 3.890, 557.0], [478.0, 5.788, 10009.0], [1.0, 10240.857, 1458.7]]
         ),
@@ -256,22 +254,22 @@ def test_dublicator(
             Normalise,
             None,
             255,
-            lazy_fixture("simple_rgb_img"),
-            lazy_fixture("norm_simple_rgb_img"),
+            lf("simple_rgb_img"),
+            lf("norm_simple_rgb_img"),
         ),
         (
             Normalise,
             ["image"],
             255,
-            lazy_fixture("simple_rgb_img"),
-            lazy_fixture("norm_simple_rgb_img"),
+            lf("simple_rgb_img"),
+            lf("norm_simple_rgb_img"),
         ),
         (
             RandomHorizontalFlip,
             ["image", "mask"],
             1.0,
-            lazy_fixture("simple_sample"),
-            lazy_fixture("flipped_simple_sample"),
+            lf("simple_sample"),
+            lf("flipped_simple_sample"),
         ),
     ],
 )
@@ -349,7 +347,7 @@ def test_swap_keys(random_rgbi_tensor, random_tensor_mask) -> None:
 
 @pytest.mark.parametrize(
     "dataset",
-    [lazy_fixture("default_image_dataset"), lazy_fixture("ssl4eo_s12_dataset")],
+    [lf("default_image_dataset"), lf("ssl4eo_s12_dataset")],
 )
 def test_auto_norm(dataset: RasterDataset, random_rgbi_tensor):
     auto_norm = AutoNorm(dataset, 12)

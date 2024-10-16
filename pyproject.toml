@@ -64,7 +64,7 @@ test = [
     "mypy",
     "pytest",
     "pytest-cov",
-    "pytest-lazy-fixture",
+    "pytest-lazy-fixtures",
     "tox",
 ]
 
