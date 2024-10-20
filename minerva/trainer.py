@@ -396,9 +396,7 @@ class Trainer:
                 self.model, gpu, self.params.get("torch_compile", False)
             )
 
-        self.checkpoint_path = self.exp_fn / (
-            self.params["exp_name"] + "-checkpoint.pt"
-        )
+        self.checkpoint_path = self.exp_fn / self.params["exp_name"]
         self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
 
         self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
@@ -833,13 +831,19 @@ class Trainer:
         if scheduler is not None:
             chkpt["scheduler_state_dict"] = scheduler.state_dict()
 
-        torch.save(chkpt, self.checkpoint_path)
+        torch.save(chkpt, self.checkpoint_path.with_suffix(".ckpt"))
+
+        # Save a seperate checkpoint file every `checkpoint_frequency` epochs.
+        if self.epoch_no % self.params.get("checkpoint_frequency", 10) == 0:
+            torch.save(
+                chkpt, self.checkpoint_path.with_suffix(f"_{self.epoch_no}.ckpt")
+            )
 
         if hasattr(self.model, "get_backbone"):
             self.save_backbone()
 
     def load_checkpoint(self) -> None:
-        checkpoint = torch.load(self.checkpoint_path)
+        checkpoint = torch.load(self.checkpoint_path.with_suffix(".ckpt"))
 
         # Update the number of classes in case it was altered by class balancing.
         self.params["n_classes"] = checkpoint["n_classes"]
