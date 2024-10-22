@@ -61,7 +61,6 @@ from torch._dynamo.eval_frame import OptimizedModule
 from wandb.sdk.wandb_run import Run
 
 from minerva.models import MinervaDataParallel, MinervaModel
-from minerva.utils import utils
 
 from .core import MinervaTask
 
@@ -92,6 +91,7 @@ class DownstreamTask(MinervaTask):
         record_float: bool = False,
         train: bool = False,
         downstream_model_params: Optional[dict[str, Any]] = None,
+        n_epochs: int = 5,
         **global_params,
     ) -> None:
         assert downstream_model_params is not None
@@ -99,6 +99,8 @@ class DownstreamTask(MinervaTask):
 
         assert backbone_weight_path is not None
         self.backbone_weight_path = backbone_weight_path
+
+        self.n_epochs = n_epochs
 
         model = self.make_model()
 
@@ -155,26 +157,58 @@ class DownstreamTask(MinervaTask):
                 criterion=self.make_criterion(),
             )
 
-        assert hasattr(model, "encoder")
-        model.encoder.load_state_dict(
+        return model
+
+    def update_encoder_weights(self) -> None:
+        assert hasattr(self.model, "encoder")
+        self.model.encoder.load_state_dict(
             torch.load(self.backbone_weight_path, map_location=self.device)
         )
 
-        return model
-
     def step(self) -> None:
+        self.update_encoder_weights()
+
+        for i in range(self.n_epochs):
+            self.training_step()
+
+        self.validation_step()
+
+    def training_step(self) -> None:
+
+        assert isinstance(self.loaders, dict)
+
         # Initialises a progress bar for the epoch.
-        with tqdm(total=self.n_batches) if self.gpu == 0 else nullcontext() as bar:
-            # Sets the model up for training or evaluation modes.
-            if self.train:
-                self.model.train()
-            else:
-                self.model.eval()
+        with tqdm(total=len(self.loaders["train"])) if self.gpu == 0 else nullcontext() as bar:
+            # Sets the model up for training.
+            self.model.train()
+
+            # Core of the epoch.
+            for batch in self.loaders["train"]:
+                _ = self.modelio(
+                    batch,
+                    self.model,
+                    self.device,
+                    self.train,
+                    **self.params,
+                )
+
+                # Updates progress bar that batch has been processed.
+                if self.gpu == 0:
+                    bar.update()  # type: ignore
+
+    def validation_step(self) -> None:
+
+        assert isinstance(self.loaders, dict)
+
+        # Initialises a progress bar for the epoch.
+        with tqdm(total=len(self.loaders["val"])) if self.gpu == 0 else nullcontext() as bar:
+            # Sets the model to evaluation modes.
+            self.model.eval()
 
             # Ensure gradients will not be calculated if this is not a training task.
-            with torch.no_grad() if not self.train else nullcontext():  # type: ignore[attr-defined]
+            with torch.no_grad():  # type: ignore[attr-defined]
                 # Core of the epoch.
-                for batch in self.loaders:
+                for batch in self.loaders["val"]:
                     results = self.modelio(
                         batch,
                         self.model,
@@ -183,15 +217,14 @@ class DownstreamTask(MinervaTask):
                         **self.params,
                     )
 
-                    if self.local_step_num % self.log_rate == 0:
-                        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover  # noqa: E501
-                            loss = results[0].data.clone()
-                            dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
-                            results = (loss, *results[1:])
+                    if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover  # noqa: E501
+                        loss = results[0].data.clone()
+                        dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
+                        results = (loss, *results[1:])
 
-                        self.logger.step(
-                            self.global_step_num, self.local_step_num, *results
-                        )
+                    self.logger.step(
+                        self.global_step_num, self.local_step_num, *results
+                    )
 
                     self.global_step_num += 1
                     self.local_step_num += 1
@@ -199,7 +232,3 @@ class DownstreamTask(MinervaTask):
                     # Updates progress bar that batch has been processed.
                     if self.gpu == 0:
                         bar.update()  # type: ignore
-
-        # If configured to do so, calculates the grad norms.
-        if self.params.get("calc_norm", False):
-            _ = utils.calc_grad(self.model)
