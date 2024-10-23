@@ -36,11 +36,13 @@ __all__ = [
     "MinervaTask",
     "StandardEpoch",
     "WeightedKNN",
+    "DownstreamTask",
     "TSNEVis",
     "get_task",
 ]
 
 from .core import MinervaTask, get_task
+from .downstream_validation import DownstreamTask
 from .epoch import StandardEpoch
 from .knn import WeightedKNN
 from .tsne import TSNEVis
