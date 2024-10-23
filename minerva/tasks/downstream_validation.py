@@ -119,11 +119,8 @@ class DownstreamTask(MinervaTask):
         self.setup_model(rebuild=True)
         self.update_encoder_weights()
 
-        print(f"{self.output_size=}")
-        print(f"{self.model.output_shape=}")
-
         # Rebuild loggers to account for new model structure.
-        self.make_logger()
+        self.logger = self.make_logger()
 
     def make_model(self) -> None:
         """Creates a model from the parameters specified by config.
