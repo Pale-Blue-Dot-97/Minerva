@@ -608,7 +608,9 @@ class Trainer:
             tasks[mode] = get_task(
                 fit_params[mode]["_target_"],
                 mode,
-                self.model,
+                self.model
+                if "downstream_model_params" not in fit_params[mode]
+                else deepcopy(self.model),
                 self.device,
                 self.exp_fn,
                 self.gpu,
@@ -633,7 +635,10 @@ class Trainer:
             # Conduct training or validation epoch.
             for mode in tasks.keys():
                 # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
-                if utils.check_substrings_in_string(mode, "val"):
+                if (
+                    utils.check_substrings_in_string(mode, "val")
+                    and "model_params" not in fit_params[mode]
+                ):
                     tasks[mode].model = self.model
 
                     if self.epoch_no % self.val_freq != 0:
@@ -836,7 +841,8 @@ class Trainer:
         # Save a seperate checkpoint file every `checkpoint_frequency` epochs.
         if self.epoch_no % self.params.get("checkpoint_frequency", 10) == 0:
             torch.save(
-                chkpt, self.checkpoint_path.with_suffix(f"_{self.epoch_no}.ckpt")
+                chkpt,
+                Path(f"{self.checkpoint_path}_{self.epoch_no}").with_suffix(".ckpt"),
             )
 
         if hasattr(self.model, "get_backbone"):
@@ -1011,8 +1017,23 @@ class Trainer:
         except FileExistsError:
             pass
 
-        torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-backbone.pt")
-        torch.save(pre_trained_backbone.state_dict(), self.backbone_path)
+        # Some backbones contain backbones themselves.
+        if hasattr(pre_trained_backbone, "get_backbone"):
+            backbone_encoder = pre_trained_backbone.get_backbone()
+            torch.save(backbone_encoder.state_dict(), f"{cache_fn}-backbone.pt")
+            torch.save(backbone_encoder.state_dict(), self.backbone_path)
+
+            torch.save(
+                pre_trained_backbone.state_dict(), f"{cache_fn}-backbone-model.pt"
+            )
+            torch.save(
+                pre_trained_backbone.state_dict(),
+                f"{self.backbone_path.with_suffix("")}-model.pt",
+            )
+
+        else:
+            torch.save(pre_trained_backbone.state_dict(), f"{cache_fn}-backbone.pt")
+            torch.save(pre_trained_backbone.state_dict(), self.backbone_path)
 
     def run_tensorboard(self) -> None:
         """Opens :mod:`tensorboard` log of the current experiment in a locally hosted webpage."""
