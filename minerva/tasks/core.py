@@ -259,6 +259,15 @@ class MinervaTask(ABC):
         # Initialise the Weights and Biases metrics for this task.
         self.init_wandb_metrics()
 
+        self.backbone_weight_path = backbone_weight_path
+
+        # Setup the model for the task.
+        self.setup_model()
+
+        # Make the logger for this task.
+        self.logger: MinervaTaskLogger = self.make_logger()
+
+    def setup_model(self, rebuild: bool = False) -> None:
         # Update the loss function of the model.
         self.model.set_criterion(self.make_criterion())
 
@@ -266,10 +275,11 @@ class MinervaTask(ABC):
         self.model.to(self.device)
 
         # To eliminate classes, we're going to have to do a fair bit of rebuilding of the model...
-        if self.elim and self.train:
-            # Update the stored number of classes within the model and
-            # then rebuild the classification layers that are dependent on the number of classes.
-            self.model.update_n_classes(self.n_classes)
+        if rebuild or (self.elim and self.train):
+            if self.elim and self.train:
+                # Update the stored number of classes within the model and
+                # then rebuild the classification layers that are dependent on the number of classes.
+                self.model.update_n_classes(self.n_classes)
 
             # The optimser is dependent on the model parameters so shall have to be rebuilt.
             self.make_optimiser()
@@ -280,7 +290,7 @@ class MinervaTask(ABC):
             # And finally the model will need re-wrapping for distributed computing and/ or torch compilation.
             self.model = wrap_model(
                 extract_wrapped_model(self.model),
-                gpu,
+                self.gpu,
                 torch_compile=fallback_params(
                     "torch_compile", self.params, self.global_params, False
                 ),
@@ -291,9 +301,6 @@ class MinervaTask(ABC):
 
         self.output_size = self.model.output_shape
         self.input_size = self.model.input_size
-
-        # Make the logger for this task.
-        self.logger: MinervaTaskLogger = self.make_logger()
 
     def init_wandb_metrics(self) -> None:
         """Setups up the step counter for :mod:`wandb` logging."""
@@ -346,10 +353,11 @@ class MinervaTask(ABC):
             fallback_params("optimiser", self.params, self.global_params),
             params=self.model.parameters(),
         )
+
         self.model.set_optimiser(optimiser)
 
         # If scheduler parameters are also specified, instantiate and set to model too.
-        if self.global_params.get("scheduler") is not None:
+        if self.global_params.get("scheduler") is not None and self.train:
             scheduler = hydra.utils.instantiate(
                 self.global_params["scheduler"], optimizer=optimiser
             )

@@ -90,20 +90,8 @@ class DownstreamTask(MinervaTask):
         record_int: bool = True,
         record_float: bool = False,
         train: bool = False,
-        downstream_model_params: Optional[dict[str, Any]] = None,
-        n_epochs: int = 5,
         **global_params,
     ) -> None:
-        assert downstream_model_params is not None
-        self.downstream_model_params = downstream_model_params
-
-        assert backbone_weight_path is not None
-        self.backbone_weight_path = backbone_weight_path
-
-        self.n_epochs = n_epochs
-
-        model = self.make_model()
-
         super().__init__(
             name,
             model,
@@ -120,7 +108,24 @@ class DownstreamTask(MinervaTask):
             **global_params,
         )
 
-    def make_model(self) -> MinervaModel:
+        downstream_model_params = self.params["downstream_model_params"]
+        assert isinstance(downstream_model_params, dict)
+        self.downstream_model_params = downstream_model_params
+
+        self.n_epochs = self.params["n_epochs"]
+
+        # Overwrite and re-setup model as a downstream model.
+        self.make_model()
+        self.setup_model(rebuild=True)
+        self.update_encoder_weights()
+
+        print(f"{self.output_size=}")
+        print(f"{self.model.output_shape=}")
+
+        # Rebuild loggers to account for new model structure.
+        self.make_logger()
+
+    def make_model(self) -> None:
         """Creates a model from the parameters specified by config.
 
         Returns:
@@ -157,28 +162,32 @@ class DownstreamTask(MinervaTask):
                 criterion=self.make_criterion(),
             )
 
-        return model
+        self.model = model
 
     def update_encoder_weights(self) -> None:
         assert hasattr(self.model, "encoder")
+        assert self.backbone_weight_path is not None
         self.model.encoder.load_state_dict(
             torch.load(self.backbone_weight_path, map_location=self.device)
         )
 
     def step(self) -> None:
+        self.make_model()
         self.update_encoder_weights()
+        self.setup_model(rebuild=True)
 
-        for i in range(self.n_epochs):
+        for _ in range(self.n_epochs):
             self.training_step()
 
         self.validation_step()
 
     def training_step(self) -> None:
-
         assert isinstance(self.loaders, dict)
 
         # Initialises a progress bar for the epoch.
-        with tqdm(total=len(self.loaders["train"])) if self.gpu == 0 else nullcontext() as bar:
+        with tqdm(
+            total=len(self.loaders["train"])
+        ) if self.gpu == 0 else nullcontext() as bar:
             # Sets the model up for training.
             self.model.train()
 
@@ -188,7 +197,7 @@ class DownstreamTask(MinervaTask):
                     batch,
                     self.model,
                     self.device,
-                    self.train,
+                    True,
                     **self.params,
                 )
 
@@ -197,11 +206,12 @@ class DownstreamTask(MinervaTask):
                     bar.update()  # type: ignore
 
     def validation_step(self) -> None:
-
         assert isinstance(self.loaders, dict)
 
         # Initialises a progress bar for the epoch.
-        with tqdm(total=len(self.loaders["val"])) if self.gpu == 0 else nullcontext() as bar:
+        with tqdm(
+            total=len(self.loaders["val"])
+        ) if self.gpu == 0 else nullcontext() as bar:
             # Sets the model to evaluation modes.
             self.model.eval()
 
@@ -213,7 +223,7 @@ class DownstreamTask(MinervaTask):
                         batch,
                         self.model,
                         self.device,
-                        self.train,
+                        False,
                         **self.params,
                     )
 
