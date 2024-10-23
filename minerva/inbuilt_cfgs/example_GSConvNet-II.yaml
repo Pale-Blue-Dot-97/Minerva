@@ -23,7 +23,7 @@ model_type: siamese-segmentation
 
 # ---+ Sizing +----------------------------------------------------------------
 batch_size: 2                          # Number of samples in each batch.
-input_size: [4, 16, 16]                # patch_size plus leading channel dim.
+input_size: [4, 256, 256]                # patch_size plus leading channel dim.
 patch_size: '${to_patch_size: ${input_size}}'  # 2D tuple or float.
 
 # ---+ Experiment Execution +--------------------------------------------------
@@ -42,7 +42,7 @@ optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
-max_r: &max_r 12    # Max distance between patches within a pair.
+max_r: 12           # Max distance between patches within a pair.
 knn_k: 5            # Top-k most similar images to predict image for KNN val
 val_freq: 1         # Validation epoch every ``val_freq`` training epochs.
 
@@ -154,26 +154,46 @@ tasks:
                 mode: s2a
                 bands: [B2, B3, B4, B8]
                 size: ${patch_size}
-                max_r: *max_r
+                max_r: ${max_r}
                 season: true
                 season_transform: pair
 
     fit-val:
-        _target_: minerva.tasks.WeightedKNN
+        _target_: minerva.tasks.DownstreamTask
         train: false
         record_float: true
         sample_pairs: false
         n_classes: 11
+        model_type: segmentation
+
+        data_config: '${oc.create:${cfg_load: minerva/inbuilt_cfgs/dataset/DFC2020.yaml}}'  # yamllint disable-line rule:line-length
 
         # ---+ Minerva Inbuilt Logging Functions +-------------------------
-        task_logger: minerva.logger.tasklog.SSLTaskLogger
+        task_logger: minerva.logger.tasklog.SupervisedTaskLogger
         step_logger:
-            _target_: minerva.logger.steplog.KNNStepLogger
+            _target_: minerva.logger.steplog.SupervisedStepLogger
         model_io: minerva.modelio.supervised_torchgeo_io
+
+        downstream_model_params:
+            _target_: minerva.models.MinervaPSP
+            input_size: ${input_size}
+            n_classes: ${tasks.fit-val.n_classes}
+            encoder_name: resnet18
+            encoder: true
+            segmentation_on: true
+            classification_on: true
+            upsampling: 8
+            aux_params:
+                classes: ${tasks.fit-val.n_classes}
+
+        loss_params:
+            _target_: minerva.loss.AuxCELoss
+
+        n_epochs: 4
 
         # ---+ Dataset Parameters +----------------------------------------
         dataset_params:
-            features:
+            train:
                 sampler:
                     _target_: torch.utils.data.RandomSampler
                     num_samples: 16
@@ -185,7 +205,14 @@ tasks:
                     use_s2hr: true
                     labels: true
 
-            test:
+                mask:
+                    transforms:
+                        MaskResize:
+                            _target_: minerva.transforms.MaskResize
+                            size: 64
+                            interpolation: NEAREST_EXACT
+
+            val:
                 sampler:
                     _target_: torch.utils.data.RandomSampler
                     num_samples: 16
@@ -196,6 +223,13 @@ tasks:
                     split: test
                     use_s2hr: true
                     labels: true
+
+                mask:
+                    transforms:
+                        MaskResize:
+                            _target_: minerva.transforms.MaskResize
+                            size: 64
+                            interpolation: NEAREST_EXACT
 
     test-test:
         _target_: minerva.tasks.StandardEpoch
