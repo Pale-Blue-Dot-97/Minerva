@@ -199,6 +199,17 @@ class DynamicPSP(smp.PSPNet):
         """
         self.encoder.requires_grad_(False if freeze else True)
 
+    def get_backbone(self) -> Module:
+        """Get the backbone encoder of the PSP.
+
+        Returns:
+            Module: Backbone encoder.
+
+        .. versionadded:: 0.29
+        """
+        assert isinstance(self.encoder, Module)
+        return self.encoder
+
     def forward(self, x: Tensor) -> Tensor | tuple[Tensor, ...]:
         f = self.encoder(x)
 
