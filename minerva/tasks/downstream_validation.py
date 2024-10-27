@@ -114,6 +114,8 @@ class DownstreamTask(MinervaTask):
 
         self.n_epochs = self.params["n_epochs"]
 
+        self.freeze_backbone = self.params.get("freeze_backbone", True)
+
         # Overwrite and re-setup model as a downstream model.
         self.make_model()
         self.setup_model(rebuild=True)
@@ -167,19 +169,24 @@ class DownstreamTask(MinervaTask):
         self.model.encoder.load_state_dict(
             torch.load(self.backbone_weight_path, map_location=self.device)
         )
+        if self.freeze_backbone:
+            for param in self.model.encoder.parameters():
+                param.requires_grad = False
 
     def step(self) -> None:
         self.make_model()
         self.update_encoder_weights()
         self.setup_model(rebuild=True)
 
-        for _ in range(self.n_epochs):
-            self.training_step()
+        for i in range(self.n_epochs):
+            self.training_step(i)
 
         self.validation_step()
 
-    def training_step(self) -> None:
+    def training_step(self, epoch_no: int) -> None:
         assert isinstance(self.loaders, dict)
+
+        total_loss = 0.0
 
         # Initialises a progress bar for the epoch.
         with tqdm(
@@ -188,9 +195,14 @@ class DownstreamTask(MinervaTask):
             # Sets the model up for training.
             self.model.train()
 
+            if self.freeze_backbone:
+                self.model.encoder.eval()
+                for param in self.model.encoder.parameters():
+                    param.requires_grad = False
+
             # Core of the epoch.
             for batch in self.loaders["train"]:
-                _ = self.modelio(
+                results = self.modelio(
                     batch,
                     self.model,
                     self.device,
@@ -200,7 +212,14 @@ class DownstreamTask(MinervaTask):
 
                 # Updates progress bar that batch has been processed.
                 if self.gpu == 0:
+                    total_loss += results[0]
                     bar.update()  # type: ignore
+
+        if self.gpu == 0:
+            avg_loss = total_loss * self.batch_size / len(self.loaders["train"])
+            print(
+                f"Downstream training, Sub-Epoch {epoch_no} | loss (on rank 0): {avg_loss}"
+            )
 
     def validation_step(self) -> None:
         assert isinstance(self.loaders, dict)

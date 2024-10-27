@@ -189,9 +189,9 @@ class MinervaTask(ABC):
             task_params,
         ) = make_loaders(rank, world_size, task_name=name, **global_params)
 
-        # If there are multiple modes and therefore number of batches, just take the value of the first one.
+        # If there are multiple modes and therefore number of batches, assume the logging will be on the last one.
         if isinstance(n_batches, dict):
-            n_batches = next(iter(n_batches.values()))
+            n_batches = list(n_batches.values())[-1]
 
         global_params["tasks"][name] = task_params
 
