@@ -151,7 +151,9 @@ class DownstreamTask(MinervaTask):
         model: MinervaModel
         if is_minerva:
             model = hydra.utils.instantiate(
-                model_params, criterion=self.make_criterion()
+                model_params,
+                criterion=self.make_criterion(),
+                _recursive_=False,
             )
         else:
             model_params["model"] = hydra.utils.get_method(model_params["_target_"])
@@ -162,15 +164,22 @@ class DownstreamTask(MinervaTask):
             )
 
         self.model = model
+        self.encoder_name = "encoder"
+        if hasattr(self.model, "encoder"):
+            self.encoder_name = "encoder"
+        elif hasattr(self.model, "backbone"):
+            self.encoder_name = "backbone"
+        else:
+            raise ValueError
 
     def update_encoder_weights(self) -> None:
-        assert hasattr(self.model, "encoder")
         assert self.backbone_weight_path is not None
-        self.model.encoder.load_state_dict(
+
+        getattr(self.model, self.encoder_name).load_state_dict(
             torch.load(self.backbone_weight_path, map_location=self.device)
         )
         if self.freeze_backbone:
-            for param in self.model.encoder.parameters():
+            for param in getattr(self.model, self.encoder_name).parameters():
                 param.requires_grad = False
 
     def step(self) -> None:
@@ -196,8 +205,8 @@ class DownstreamTask(MinervaTask):
             self.model.train()
 
             if self.freeze_backbone:
-                self.model.encoder.eval()
-                for param in self.model.encoder.parameters():
+                getattr(self.model, self.encoder_name).eval()
+                for param in getattr(self.model, self.encoder_name).parameters():
                     param.requires_grad = False
 
             # Core of the epoch.
