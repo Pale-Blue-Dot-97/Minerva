@@ -45,12 +45,11 @@ __all__ = ["FlexiSceneClassifier"]
 from pathlib import Path
 from typing import Any, Optional
 
+import hydra
 import torch
 from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
-
-from minerva.utils.utils import func_by_str
 
 from .core import MinervaBackbone
 
@@ -76,9 +75,7 @@ class FlexiSceneClassifier(MinervaBackbone):
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)
 
-        _backbone = func_by_str(backbone_args.pop("module"), backbone_args.pop("name"))
-
-        backbone: Module = _backbone(**backbone_args)
+        backbone = hydra.utils.instantiate(backbone_args)
 
         # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
         if backbone_weight_path is not None:  # pragma: no cover
