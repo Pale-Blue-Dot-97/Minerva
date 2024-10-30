@@ -1028,7 +1028,7 @@ class Trainer:
             )
             torch.save(
                 pre_trained_backbone.state_dict(),
-                f"{self.backbone_path.with_suffix("")}-model.pt",
+                f"{self.backbone_path.with_suffix(str())}-model.pt",
             )
 
         else:
