@@ -506,7 +506,9 @@ class Trainer:
         model: MinervaModel
         if is_minerva:
             model = hydra.utils.instantiate(
-                model_params, criterion=self.make_criterion()
+                model_params,
+                criterion=self.make_criterion(),
+                _recursive_=False,
             )
         else:
             model_params["model"] = hydra.utils.get_method(model_params["_target_"])
