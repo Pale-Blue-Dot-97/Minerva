@@ -492,18 +492,11 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         if self.calc_miou:
             assert y is not None
-            y_true = y.detach().cpu().numpy()
-            y_pred = torch.argmax(z, 1).detach().cpu().numpy()  # type: ignore[attr-defined]
-            miou = 0.0
-            for i in range(len(y)):
-                miou += float(
-                    jaccard_score(
-                        y_true[i].flatten(), y_pred[i].flatten(), average="macro"
-                    )
-                )  # noqa: E501 type: ignore[attr-defined]
+            y_true = y.detach().cpu().numpy().flatten()
+            y_pred = torch.argmax(z, 1).detach().cpu().numpy().flatten()  # type: ignore[attr-defined]
+            miou = float(jaccard_score(y_true, y_pred, average="weighted"))
             self.logs["total_miou"] += miou
-
-            self.write_metric("miou", miou / len(y), step_num=global_step_num)
+            self.write_metric("miou", miou, step_num=global_step_num)
 
         # Writes loss and correct predictions to the writer.
         self.write_metric("loss", ls, step_num=global_step_num)
