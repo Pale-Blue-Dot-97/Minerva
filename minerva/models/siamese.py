@@ -87,16 +87,23 @@ class MinervaSiamese(MinervaBackbone):
     __metaclass__ = abc.ABCMeta
     backbone_name = "resnet18"
 
-    def __init__(self, criterion, input_size, *args, **kwargs) -> None:
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: tuple[int, int, int],
+        backbone_kwargs: dict[str, Any] = {},
+        *args,
+        **kwargs,
+    ) -> None:
         super().__init__(criterion, input_size, *args, **kwargs)
 
-        assert self.input_size is not None
+        assert input_size is not None
         self.backbone = MinervaWrapper(
             get_encoder(
                 self.backbone_name,
-                in_channels=self.input_size[0],
-                depth=kwargs.get("encoder_depth", 5),
-                weights=kwargs.get("encoder_weights"),
+                in_channels=input_size[0],
+                depth=backbone_kwargs.get("encoder_depth", 5),
+                weights=backbone_kwargs.get("encoder_weights"),
             ),
             input_size=input_size,
         )
