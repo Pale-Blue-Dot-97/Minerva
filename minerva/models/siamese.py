@@ -461,6 +461,177 @@ class SimSiam50(SimSiam):
     backbone_name = "ResNet50"
 
 
+class BarlowTwins(MinervaSiamese):
+    """Base BarlowTwins class to be subclassed by BarlowTwins variants.
+
+    Subclasses :class:`MinervaSiamese`.
+
+    Attributes:
+        backbone_name (str): Name of the :attr:`~SimSiam.backbone` within this module to use.
+        backbone (~torch.nn.Module): Backbone of SimSiam that takes the imagery input and
+            extracts learned representations.
+        proj_head (~torch.nn.Module): Projection head that takes the learned representations from the backbone encoder.
+
+    Args:
+        criterion: :mod:`torch` loss function model will use.
+        input_size (tuple[int, int, int]): Optional; Defines the shape of the input data in
+            order of number of channels, image width, image height.
+
+        backbone_kwargs (dict[str, ~typing.Any]): Optional; Keyword arguments for the :attr:`~SimSiam.backbone`
+            packed up into a dict.
+    """
+
+    __metaclass__ = abc.ABCMeta
+    backbone_name = "ResNet18"
+
+    def __init__(
+        self,
+        criterion: Any,
+        input_size: tuple[int, int, int] = (4, 224, 224),
+        proj_dim: int = 8192,
+        predictor: bool = False,
+        scaler: Optional[GradScaler] = None,
+        backbone_kwargs: dict[str, Any] = {},
+    ) -> None:
+        super(BarlowTwins, self).__init__(
+            criterion=criterion, input_size=input_size, scaler=scaler
+        )
+
+        self.backbone: MinervaModel = get_model(self.backbone_name)(
+            input_size=input_size,
+            encoder=True,
+            **backbone_kwargs,  # type: ignore[arg-type]
+        )
+
+        self.backbone.determine_output_dim()
+
+        backbone_out_shape = self.backbone.output_shape
+        assert isinstance(backbone_out_shape, Sequence)
+
+        prev_dim = np.prod(backbone_out_shape)
+
+        self.proj_head = nn.Sequential(  # type: ignore[arg-type]
+            nn.Linear(prev_dim, proj_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(proj_dim),  # type: ignore[arg-type]
+            nn.ReLU(inplace=True),  # first layer
+            nn.Linear(proj_dim, proj_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(proj_dim),  # type: ignore[arg-type]
+            nn.ReLU(inplace=True),  # second layer
+            nn.Linear(proj_dim, proj_dim, bias=False),  # type: ignore[arg-type]
+            nn.BatchNorm1d(proj_dim, affine=False),
+        )  # output layer
+        self.proj_head[
+            6
+        ].bias.requires_grad = False  # hack: not use bias as it is followed by BN
+
+        self.predictor_on = predictor
+
+        if self.predictor_on:
+            # Build a 2-layer predictor.
+            self.predictor = nn.Sequential(
+                nn.Linear(proj_dim, proj_dim, bias=False),
+                nn.BatchNorm1d(proj_dim),
+                nn.ReLU(inplace=True),  # hidden layer
+                nn.Linear(proj_dim, proj_dim),
+            )  # output layer
+
+    def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
+        """Performs a forward pass of a single head of :class:`SimSiam` by using the forward methods of the backbone
+        and feeding its output into the :attr:`~SimSiam.proj_head`.
+
+        Args:
+            x (~torch.Tensor): Batch of unpaired input data to the network.
+
+        Returns:
+            tuple[~torch.Tensor, ~torch.Tensor]: Tuple of the feature vector outputted from :attr:`~SimSiam.proj_head`
+            and the detached embedding vector from the :attr:`~SimSiam.backbone`.
+        """
+        f: Tensor = torch.flatten(self.backbone(x)[0], start_dim=1)
+        z: Tensor = self.proj_head(f)  # type: ignore[attr-defined]
+
+        if self.predictor_on:
+            z = self.predictor(z)
+
+        return z, f.detach()
+
+    def step(self, x: Tensor, *args, train: bool = False) -> tuple[Tensor, Tensor]:
+        """Overwrites :class:`~models.core.MinervaModel` to account for paired logits.
+
+        Raises:
+            NotImplementedError: If :attr:`~models.core.MinervaModel.optimiser` is ``None``.
+
+        Args:
+            x (~torch.Tensor): Batch of input data to network.
+            train (bool): Sets whether this shall be a training step or not. ``True`` for training step which will then
+                clear the :attr:`~models.core.MinervaModel.optimiser`, and perform a backward pass of the network then
+                update the :attr:`~models.core.MinervaModel.optimiser`. If ``False`` for a validation or testing step,
+                these actions are not taken.
+
+        Returns:
+            tuple[~torch.Tensor, ~torch.Tensor]: Loss computed by the loss function and a :class:`~torch.Tensor`
+            with both projection's logits.
+        """
+
+        if self.optimiser is None:
+            raise NotImplementedError("Optimiser has not been set!")
+
+        assert self.criterion
+
+        # Resets the optimiser's gradients if this is a training step.
+        if train:
+            self.optimiser.zero_grad()
+
+        loss: Tensor
+
+        mix_precision: bool = True if self.scaler else False
+        device_type = "cpu" if x.device.type == "cpu" else "cuda"
+
+        # CUDA does not support ``torch.bfloat16`` while CPU does not support ``torch.float16`` for autocasting.
+        autocast_dtype = torch.float16 if device_type == "cuda" else torch.bfloat16
+
+        # Will enable mixed precision (if a Scaler has been set).
+        with torch.amp.autocast_mode.autocast(
+            device_type=device_type, dtype=autocast_dtype, enabled=mix_precision
+        ):
+            # Forward pass.
+            z, z_a, z_b, _, _ = self.forward(x)
+
+            # Compute Loss.
+            loss = self.criterion(z_a, z_b)  # type: ignore[arg-type]
+
+        # Performs a backward pass if this is a training step.
+        if train:
+            # Scales the gradients if using mixed precision training.
+            if self.scaler is not None:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimiser)
+                self.scaler.update()
+
+            else:
+                loss.backward()
+                self.optimiser.step()
+
+        return loss, z
+
+
+class BarlowTwins18(BarlowTwins):
+    """:class:`BarlowTwins` network using a :class:`~models.resnet.ResNet18` :attr:`~BarlowTwins.backbone`."""
+
+    backbone_name = "ResNet18"
+
+
+class BarlowTwins34(BarlowTwins):
+    """:class:`BarlowTwins` network using a :class:`~models.resnet.ResNet18` :attr:`~BarlowTwins.backbone`."""
+
+    backbone_name = "ResNet34"
+
+
+class BarlowTwins50(BarlowTwins):
+    """:class:`BarlowTwins` network using a :class:`~models.resnet.ResNet18` :attr:`~BarlowTwins.backbone`."""
+
+    backbone_name = "ResNet50"
+
+
 class SimConv(MinervaSiamese):
     """Base SimConv class.
 
