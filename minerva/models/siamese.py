@@ -54,16 +54,17 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 import numpy as np
 import torch
 import torch.nn.modules as nn
+from segmentation_models_pytorch.encoders import get_encoder
 from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
 
-from .core import MinervaBackbone, MinervaModel, get_model
+from .core import MinervaBackbone, MinervaWrapper
 from .psp import MinervaPSP
 
 
@@ -80,11 +81,28 @@ class MinervaSiamese(MinervaBackbone):
     """
 
     __metaclass__ = abc.ABCMeta
+    backbone_name = "resnet18"
 
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
+    def __init__(self, criterion, input_size, *args, **kwargs) -> None:
+        super().__init__(criterion, input_size, *args, **kwargs)
 
-        self.backbone: MinervaModel
+        assert self.input_size is not None
+        self.backbone = MinervaWrapper(
+            get_encoder(
+                self.backbone_name,
+                in_channels=self.input_size[0],
+                depth=kwargs.get("encoder_depth", 5),
+                weights=kwargs.get("encoder_weights"),
+            ),
+            input_size=input_size,
+        )
+
+        self.backbone.determine_output_dim()
+
+        backbone_output_shape = self.backbone.output_shape
+        assert isinstance(backbone_output_shape, tuple)
+        self.backbone_out_shape: tuple[int, ...] = backbone_output_shape
+
         self.proj_head: Module
 
     def forward(self, x: Tensor) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
@@ -145,6 +163,10 @@ class MinervaSiamese(MinervaBackbone):
         """
         raise NotImplementedError  # pragma: no cover
 
+    # def get_backbone(self):
+    #     assert isinstance(self.backbone, MinervaWrapper)
+    #     return self.backbone.model
+
 
 class SimCLR(MinervaSiamese):
     """Base SimCLR class to be subclassed by SimCLR variants.
@@ -167,7 +189,7 @@ class SimCLR(MinervaSiamese):
     """
 
     __metaclass__ = abc.ABCMeta
-    backbone_name = "ResNet18"
+    backbone_name = "resnet18"
 
     def __init__(
         self,
@@ -178,22 +200,14 @@ class SimCLR(MinervaSiamese):
         backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(SimCLR, self).__init__(
-            criterion=criterion, input_size=input_size, scaler=scaler
-        )
-
-        self.backbone: MinervaModel = get_model(self.backbone_name)(
+            criterion=criterion,
             input_size=input_size,
-            encoder=True,
-            **backbone_kwargs,  # type: ignore[arg-type]
+            scaler=scaler,
+            **backbone_kwargs,
         )
-
-        self.backbone.determine_output_dim()
-
-        backbone_out_shape = self.backbone.output_shape
-        assert isinstance(backbone_out_shape, Sequence)
 
         self.proj_head = nn.Sequential(
-            nn.Linear(np.prod(backbone_out_shape), 512, bias=False),  # type: ignore[arg-type]
+            nn.Linear(np.prod(self.backbone_out_shape), 512, bias=False),  # type: ignore[arg-type]
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
             nn.Linear(512, feature_dim, bias=False),
@@ -280,19 +294,19 @@ class SimCLR(MinervaSiamese):
 class SimCLR18(SimCLR):
     """:class:`SimCLR` network using a :class:`~models.resnet.ResNet18` :attr:`~SimCLR.backbone`."""
 
-    backbone_name = "ResNet18"
+    backbone_name = "resnet18"
 
 
 class SimCLR34(SimCLR):
     """:class:`SimCLR` network using a :class:`~models.resnet.ResNet32` :attr:`~SimCLR.backbone`."""
 
-    backbone_name = "ResNet34"
+    backbone_name = "resnet34"
 
 
 class SimCLR50(SimCLR):
     """:class:`SimCLR` network using a :class:`~models.resnet.ResNet50` :attr:`~SimCLR.backbone`."""
 
-    backbone_name = "ResNet50"
+    backbone_name = "resnet50"
 
 
 class SimSiam(MinervaSiamese):
@@ -316,7 +330,7 @@ class SimSiam(MinervaSiamese):
     """
 
     __metaclass__ = abc.ABCMeta
-    backbone_name = "ResNet18"
+    backbone_name = "resnet18"
 
     def __init__(
         self,
@@ -328,21 +342,13 @@ class SimSiam(MinervaSiamese):
         backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(SimSiam, self).__init__(
-            criterion=criterion, input_size=input_size, scaler=scaler
-        )
-
-        self.backbone: MinervaModel = get_model(self.backbone_name)(
+            criterion=criterion,
             input_size=input_size,
-            encoder=True,
-            **backbone_kwargs,  # type: ignore[arg-type]
+            scaler=scaler,
+            **backbone_kwargs,
         )
 
-        self.backbone.determine_output_dim()
-
-        backbone_out_shape = self.backbone.output_shape
-        assert isinstance(backbone_out_shape, Sequence)
-
-        prev_dim = np.prod(backbone_out_shape)
+        prev_dim = np.prod(self.backbone_out_shape)
 
         self.proj_head = nn.Sequential(  # type: ignore[arg-type]
             nn.Linear(prev_dim, prev_dim, bias=False),  # type: ignore[arg-type]
@@ -446,19 +452,19 @@ class SimSiam(MinervaSiamese):
 class SimSiam18(SimSiam):
     """:class:`SimSiam` network using a :class:`~models.resnet.ResNet18` :attr:`~SimSiam.backbone`."""
 
-    backbone_name = "ResNet18"
+    backbone_name = "resnet18"
 
 
 class SimSiam34(SimSiam):
     """:class:`SimSiam` network using a :class:`~models.resnet.ResNet34` :attr:`~SimSiam.backbone`."""
 
-    backbone_name = "ResNet34"
+    backbone_name = "resnet34"
 
 
 class SimSiam50(SimSiam):
     """:class:`SimSiam` network using a :class:`~models.resnet.ResNet50` :attr:`~SimSiam.backbone`."""
 
-    backbone_name = "ResNet50"
+    backbone_name = "resnet50"
 
 
 class BarlowTwins(MinervaSiamese):
@@ -482,7 +488,7 @@ class BarlowTwins(MinervaSiamese):
     """
 
     __metaclass__ = abc.ABCMeta
-    backbone_name = "ResNet18"
+    backbone_name = "resnet18"
 
     def __init__(
         self,
@@ -494,21 +500,13 @@ class BarlowTwins(MinervaSiamese):
         backbone_kwargs: dict[str, Any] = {},
     ) -> None:
         super(BarlowTwins, self).__init__(
-            criterion=criterion, input_size=input_size, scaler=scaler
-        )
-
-        self.backbone: MinervaModel = get_model(self.backbone_name)(
+            criterion=criterion,
             input_size=input_size,
-            encoder=True,
-            **backbone_kwargs,  # type: ignore[arg-type]
+            scaler=scaler,
+            **backbone_kwargs,
         )
 
-        self.backbone.determine_output_dim()
-
-        backbone_out_shape = self.backbone.output_shape
-        assert isinstance(backbone_out_shape, Sequence)
-
-        prev_dim = np.prod(backbone_out_shape)
+        prev_dim = np.prod(self.backbone_out_shape)
 
         self.proj_head = nn.Sequential(  # type: ignore[arg-type]
             nn.Linear(prev_dim, proj_dim, bias=False),  # type: ignore[arg-type]
@@ -617,19 +615,19 @@ class BarlowTwins(MinervaSiamese):
 class BarlowTwins18(BarlowTwins):
     """:class:`BarlowTwins` network using a :class:`~models.resnet.ResNet18` :attr:`~BarlowTwins.backbone`."""
 
-    backbone_name = "ResNet18"
+    backbone_name = "resnet18"
 
 
 class BarlowTwins34(BarlowTwins):
     """:class:`BarlowTwins` network using a :class:`~models.resnet.ResNet18` :attr:`~BarlowTwins.backbone`."""
 
-    backbone_name = "ResNet34"
+    backbone_name = "resnet34"
 
 
 class BarlowTwins50(BarlowTwins):
     """:class:`BarlowTwins` network using a :class:`~models.resnet.ResNet18` :attr:`~BarlowTwins.backbone`."""
 
-    backbone_name = "ResNet50"
+    backbone_name = "resnet50"
 
 
 class SimConv(MinervaSiamese):

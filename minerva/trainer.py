@@ -65,6 +65,7 @@ from minerva.models import (
     MinervaDataParallel,
     MinervaModel,
     MinervaOnnxModel,
+    MinervaWrapper,
     extract_wrapped_model,
     wrap_model,
 )
@@ -1022,6 +1023,8 @@ class Trainer:
         # Some backbones contain backbones themselves.
         if hasattr(pre_trained_backbone, "get_backbone"):
             backbone_encoder = pre_trained_backbone.get_backbone()
+            if isinstance(backbone_encoder, MinervaWrapper):
+                backbone_encoder = backbone_encoder.model
             torch.save(backbone_encoder.state_dict(), f"{cache_fn}-backbone.pt")
             torch.save(backbone_encoder.state_dict(), self.backbone_path)
 
