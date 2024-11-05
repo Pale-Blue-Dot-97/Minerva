@@ -201,13 +201,13 @@ class SimCLR(MinervaSiamese):
         input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         scaler: Optional[GradScaler] = None,
-        backbone_kwargs: dict[str, Any] = {},
+        **kwargs,
     ) -> None:
         super(SimCLR, self).__init__(
             criterion=criterion,
             input_size=input_size,
             scaler=scaler,
-            **backbone_kwargs,
+            **kwargs,
         )
 
         self.proj_head = nn.Sequential(
@@ -343,13 +343,13 @@ class SimSiam(MinervaSiamese):
         feature_dim: int = 128,
         pred_dim: int = 512,
         scaler: Optional[GradScaler] = None,
-        backbone_kwargs: dict[str, Any] = {},
+        **kwargs,
     ) -> None:
         super(SimSiam, self).__init__(
             criterion=criterion,
             input_size=input_size,
             scaler=scaler,
-            **backbone_kwargs,
+            **kwargs,
         )
 
         prev_dim = np.prod(self.backbone_out_shape)
@@ -501,13 +501,13 @@ class BarlowTwins(MinervaSiamese):
         proj_dim: int = 8192,
         predictor: bool = False,
         scaler: Optional[GradScaler] = None,
-        backbone_kwargs: dict[str, Any] = {},
+        **kwargs,
     ) -> None:
         super(BarlowTwins, self).__init__(
             criterion=criterion,
             input_size=input_size,
             scaler=scaler,
-            **backbone_kwargs,
+            **kwargs,
         )
 
         prev_dim = np.prod(self.backbone_out_shape)
@@ -666,9 +666,13 @@ class SimConv(MinervaSiamese):
         scaler: Optional[GradScaler] = None,
         encoder_weights: Optional[str] = None,
         backbone_kwargs: dict[str, Any] = {},
+        **kwargs,
     ) -> None:
         super(SimConv, self).__init__(
-            criterion=criterion, input_size=input_size, scaler=scaler
+            criterion=criterion,
+            input_size=input_size,
+            scaler=scaler,
+            **kwargs,
         )
 
         self.backbone = MinervaPSP(
