@@ -1020,6 +1020,10 @@ class Trainer:
         except FileExistsError:
             pass
 
+        # Extract the actual backbone out of any minerva wrapping.
+        if isinstance(pre_trained_backbone, MinervaWrapper):
+            pre_trained_backbone = pre_trained_backbone.model
+
         # Some backbones contain backbones themselves.
         if hasattr(pre_trained_backbone, "get_backbone"):
             backbone_encoder = pre_trained_backbone.get_backbone()
