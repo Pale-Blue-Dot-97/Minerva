@@ -79,6 +79,10 @@ __all__ = [
     "SimSiam18",
     "SimSiam34",
     "SimSiam50",
+    "BarlowTwins",
+    "BarlowTwins18",
+    "BarlowTwins34",
+    "BarlowTwins50",
     "UNet",
     "UNetR18",
     "UNetR34",
@@ -127,6 +131,10 @@ from .fcn import (
 from .psp import DynamicPSP, MinervaPSP, MinervaPSPUNet
 from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNetX
 from .siamese import (
+    BarlowTwins,
+    BarlowTwins18,
+    BarlowTwins34,
+    BarlowTwins50,
     MinervaSiamese,
     SimCLR18,
     SimCLR34,
