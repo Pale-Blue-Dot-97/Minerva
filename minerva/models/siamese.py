@@ -529,9 +529,7 @@ class BarlowTwins(MinervaSiamese):
             nn.Linear(proj_dim, proj_dim, bias=False),  # type: ignore[arg-type]
             nn.BatchNorm1d(proj_dim, affine=False),
         )  # output layer
-        self.proj_head[
-            6
-        ].bias.requires_grad = False  # hack: not use bias as it is followed by BN
+        # self.proj_head[6].bias.requires_grad = False  # hack: not use bias as it is followed by BN
 
         self.predictor_on = predictor
 
