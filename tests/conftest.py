@@ -57,7 +57,7 @@ from torchgeo.datasets.utils import BoundingBox
 
 from minerva.datasets import GeoSSL4EOS12Sentinel2, make_dataset
 from minerva.loss import SegBarlowTwinsLoss
-from minerva.models import CNN, MLP, FCN32ResNet18, SimConv
+from minerva.models import CNN, MLP, FCN32ResNet18, SimConvPSP
 from minerva.utils import DEFAULT_CONFIG_NAME, utils
 from minerva.utils.runner import _config_load_resolver, _construct_patch_size
 
@@ -247,8 +247,8 @@ def exp_fcn(
 @pytest.fixture
 def exp_simconv(
     rgbi_input_size: tuple[int, int, int],
-) -> SimConv:
-    return SimConv(SegBarlowTwinsLoss(), rgbi_input_size, feature_dim=128)
+) -> SimConvPSP:
+    return SimConvPSP(SegBarlowTwinsLoss(), rgbi_input_size, feature_dim=128)
 
 
 @pytest.fixture
