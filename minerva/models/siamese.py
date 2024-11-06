@@ -174,10 +174,6 @@ class MinervaSiamese(MinervaBackbone):
         """
         raise NotImplementedError  # pragma: no cover
 
-    # def get_backbone(self):
-    #     assert isinstance(self.backbone, MinervaWrapper)
-    #     return self.backbone.model
-
 
 class SimCLR(MinervaSiamese):
     """Base SimCLR class to be subclassed by SimCLR variants.
@@ -696,15 +692,12 @@ class SimConv(MinervaSiamese):
             nn.Conv2d(feature_dim, projection_dim, 3, 2, padding=1),  # 3x3 Conv
             nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
-            nn.UpsamplingBilinear2d(scale_factor=4),
-            nn.ReLU(inplace=True),
             nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
             nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
             nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
             nn.BatchNorm2d(projection_dim),
             nn.ReLU(inplace=True),
-            nn.UpsamplingBilinear2d(scale_factor=4),
         )
 
     def forward_single(self, x: Tensor) -> tuple[Tensor, Tensor]:
