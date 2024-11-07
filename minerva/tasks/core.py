@@ -158,7 +158,7 @@ class MinervaTask(ABC):
     .. versionadded:: 0.27
     """
 
-    logger_cls: str = "SupervisedTaskLogger"
+    logger_cls: str = "minerva.logger.tasklog.SupervisedTaskLogger"
     model_io_name: str = "minerva.modelio.supervised_torchgeo_io"
 
     def __init__(
