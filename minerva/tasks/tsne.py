@@ -46,7 +46,7 @@ from torch import Tensor
 from torch.utils.tensorboard.writer import SummaryWriter
 from wandb.sdk.wandb_run import Run
 
-from minerva.models import MinervaDataParallel, MinervaModel
+from minerva.models import MinervaDataParallel, MinervaModel, is_minerva_model
 from minerva.utils.utils import get_sample_index
 from minerva.utils.visutils import plot_embedding
 
@@ -80,8 +80,9 @@ class TSNEVis(MinervaTask):
     ) -> None:
         backbone = model.get_backbone()  # type: ignore[assignment, operator]
 
-        # Set dummy optimiser. It won't be used as this is a test.
-        backbone.set_optimiser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))  # type: ignore[attr-defined]
+        if is_minerva_model(backbone):
+            # Set dummy optimiser. It won't be used as this is a test.
+            backbone.set_optimiser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))  # type: ignore[attr-defined]
 
         super().__init__(
             name,
