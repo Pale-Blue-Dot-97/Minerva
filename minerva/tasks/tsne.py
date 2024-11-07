@@ -81,7 +81,7 @@ class TSNEVis(MinervaTask):
         backbone = model.get_backbone()  # type: ignore[assignment, operator]
 
         if not is_minerva_model(backbone):
-            backbone = MinervaWrapper(backbone, input_size=fallback_params("input_size", self.params, self.global_params))
+            backbone = MinervaWrapper(backbone, input_size=fallback_params("input_size", params["tasks"][name], params))
 
         # Set dummy optimiser. It won't be used as this is a test.
         backbone.set_optimiser(torch.optim.SGD(backbone.parameters(), lr=1.0e-3))  # type: ignore[attr-defined]
