@@ -34,10 +34,18 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 import hydra
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, utils
 from minerva.trainer import Trainer
+from minerva.utils.runner import _config_load_resolver, _construct_patch_size
+
+
+OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
+OmegaConf.register_new_resolver("eval", eval, replace=True)
+OmegaConf.register_new_resolver(
+    "to_patch_size", _construct_patch_size, replace=True
+)
 
 
 # =====================================================================================================================
