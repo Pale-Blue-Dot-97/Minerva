@@ -902,6 +902,10 @@ class Trainer:
         Passes these embeddings to :mod:`visutils` to train a TSNE algorithm and then visual the cluster.
         """
         model = extract_wrapped_model(self.model)
+        if hasattr(model, "encoder"):
+            model = model.encoder
+        elif hasattr(model, "backbone"):
+            model = model.backbone
         task = TSNEVis(
             task_name,
             model,
