@@ -19,11 +19,6 @@
 # @org: University of Southampton
 # Created under a project funded by the Ordnance Survey Ltd.
 """Adaptation of ``MinervaExp.py`` for cluster visualisation of a model.
-
-Designed for use in SLURM clusters and with distributed computing support.
-
-Some code derived from Barlow Twins implementation of distributed computing:
-https://github.com/facebookresearch/barlowtwins
 """
 
 # =====================================================================================================================
@@ -38,35 +33,33 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-import argparse
+import hydra
+from omegaconf import DictConfig
 
+from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, utils
 from minerva.trainer import Trainer
-from minerva.utils import CONFIG, runner
 
 
 # =====================================================================================================================
 #                                                      MAIN
 # =====================================================================================================================
-def main(gpu: int, args) -> None:
-    trainer = Trainer(gpu=gpu, rank=args.rank, world_size=args.world_size, **CONFIG)
-
+@hydra.main(
+    version_base="1.3",
+    config_path=str(DEFAULT_CONF_DIR_PATH),
+    config_name=DEFAULT_CONFIG_NAME,
+)
+def main(cfg: DictConfig) -> None:
+    trainer = Trainer(
+        gpu=0,
+        wandb_run=None,
+        **cfg,  # type: ignore[misc]
+    )
     trainer.tsne_cluster()
-
-    if gpu == 0:
-        trainer.close()
+    trainer.close()
 
 
 if __name__ == "__main__":
-    # ---+ CLI +--------------------------------------------------------------+
-    parser = argparse.ArgumentParser(parents=[runner.GENERIC_PARSER], add_help=False)
+    # Print Minerva banner.
+    utils._print_banner()
 
-    # ------------ ADD EXTRA ARGS FOR THE PARSER HERE ------------------------+
-
-    # Export args from CLI.
-    cli_args = parser.parse_args()
-
-    # Configure the arguments and environment variables.
-    runner.config_args(cli_args)
-
-    # Run the specified main with distributed computing and the arguments provided.
-    runner.distributed_run(main, cli_args)
+    main()

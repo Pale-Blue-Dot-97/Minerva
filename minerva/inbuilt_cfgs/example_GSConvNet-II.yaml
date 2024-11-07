@@ -175,14 +175,14 @@ tasks:
         model_io: minerva.modelio.supervised_torchgeo_io
 
         downstream_model_params:
-            _target_: minerva.models.MinervaPSP
+            _target_: minerva.models.MinervaDeepLabV3Plus
             input_size: ${input_size}
             n_classes: ${tasks.fit-val.n_classes}
             encoder_name: resnet18
             encoder: true
             segmentation_on: true
             classification_on: true
-            upsampling: 8
+            upsampling: 4
             aux_params:
                 classes: ${tasks.fit-val.n_classes}
 
@@ -209,7 +209,7 @@ tasks:
                     transforms:
                         MaskResize:
                             _target_: minerva.transforms.MaskResize
-                            size: 64
+                            size: 256
                             interpolation: NEAREST_EXACT
 
             val:
@@ -228,7 +228,7 @@ tasks:
                     transforms:
                         MaskResize:
                             _target_: minerva.transforms.MaskResize
-                            size: 64
+                            size: 256
                             interpolation: NEAREST_EXACT
 
     test-test:
