@@ -10,7 +10,7 @@ imageio==2.35.1
 inputimeout==1.0.4
 ipykernel==6.29.5
 kornia==0.7.3
-lightly==1.5.12
+lightly==1.5.14
 lmdb==1.5.1
 matplotlib==3.9.2
 mlflow-skinny==2.16.0
