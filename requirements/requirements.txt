@@ -39,7 +39,7 @@ torch==2.5.1
 torcheval==0.0.7
 torchgeo==0.6.1
 torchinfo==1.8.0
-torchvision==0.19.1
+torchvision==0.20.1
 tornado>=6.3.3
 tqdm==4.66.5
 types-PyYAML==6.0.12.20240917
