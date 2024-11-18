@@ -149,7 +149,7 @@ from tabulate import tabulate
 from torch import LongTensor, Tensor
 from torch.nn import functional as F
 from torch.nn.modules import Module
-from torch.types import _device
+from torch.types import _device  # type: ignore[attr-defined]
 from torchgeo.datasets.utils import BoundingBox
 from tqdm import trange
 
