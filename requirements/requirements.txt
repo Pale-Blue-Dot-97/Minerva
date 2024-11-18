@@ -10,7 +10,7 @@ imageio==2.35.1
 inputimeout==1.0.4
 ipykernel==6.29.5
 kornia==0.7.3
-lightly==1.5.12
+lightly==1.5.14
 lmdb==1.5.1
 matplotlib==3.9.2
 mlflow-skinny==2.16.0
@@ -22,7 +22,7 @@ onnx2torch==1.5.15
 opencv-python-headless==4.10.0.84
 overload==1.1
 pandas==2.2.3
-patch-ng==1.18.0
+patch-ng==1.18.1
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability.
 psutil==6.0.0
 pyyaml==6.0.2

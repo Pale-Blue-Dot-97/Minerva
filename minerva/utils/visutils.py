@@ -786,7 +786,7 @@ def seg_plot(
         for i in random.sample(range(len(flat_ids)), n_samples):
             if isinstance(dataset, GeoDataset):
                 image = stack_rgb(
-                    torch.Tensor(x[i])
+                    torch.Tensor(x[i]).numpy()
                     if x is not None
                     else dataset[index[i]]["image"].numpy(),
                     max_pixel_value,
