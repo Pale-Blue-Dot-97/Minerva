@@ -38,6 +38,7 @@ __all__ = [
     "Normalise",
     "AutoNorm",
     "DetachedColorJitter",
+    "DetachedRandomGrayscale",
     "SingleLabel",
     "ToRGB",
     "SelectChannels",
@@ -63,6 +64,7 @@ import numpy as np
 import rasterio
 import torch
 from kornia.augmentation.base import _AugmentationBase
+from kornia.augmentation import RandomGrayscale
 from torch import LongTensor, Tensor
 from torchgeo.datasets import BoundingBox, RasterDataset
 from torchgeo.samplers import RandomGeoSampler
@@ -337,6 +339,51 @@ class DetachedColorJitter(ColorJitter):
             raise ValueError(f"{channels} channel images are not supported!")
 
         return jitter_img
+
+    def __call__(self, img: Tensor) -> Tensor:
+        return self.forward(img)
+
+    def __repr__(self) -> Any:
+        return super().__repr__()
+
+
+class DetachedRandomGrayscale(RandomGrayscale):
+    """Sends RGB channels of multi-spectral images to be transformed by
+    :class:`~kornia.augmentations.RandomGrayscale`.
+    """
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+    def forward(self, img: Tensor) -> Tensor:
+        """Detaches RGB channels of input image to be sent to :class:`~kornia.augmentations.RandomGrayscale`.
+
+        All other channels bypass :class:`~kornia.augmentations.RandomGrayscale` and are
+        concatenated onto the greyscaled RGB channels.
+
+        Args:
+            img (~torch.Tensor): Input image.
+
+        Raises:
+            ValueError: If number of channels of input ``img`` is 1 or 2.
+
+        Returns:
+            ~torch.Tensor: Greyscaled image.
+        """
+        channels = ft.get_image_num_channels(img)
+
+        greyscale_img: Tensor
+        if channels > 3:
+            rgb_to_grey = super().forward(img[:3])
+            greyscale_img = torch.cat((rgb_to_grey, img[3:]), 0)  # type: ignore[attr-defined]
+
+        elif channels == 3:
+            greyscale_img = super().forward(img)
+
+        else:
+            raise ValueError(f"{channels} channel images are not supported!")
+
+        return greyscale_img
 
     def __call__(self, img: Tensor) -> Tensor:
         return self.forward(img)

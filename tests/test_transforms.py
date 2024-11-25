@@ -45,11 +45,13 @@ from pytest_lazy_fixtures import lf
 from torch import FloatTensor, LongTensor
 from torchgeo.datasets import RasterDataset
 from torchvision.transforms import ColorJitter, RandomHorizontalFlip, RandomVerticalFlip
+from kornia.augmentation import RandomGrayscale
 
 from minerva.transforms import (
     AutoNorm,
     ClassTransform,
     DetachedColorJitter,
+    DetachedRandomGrayscale,
     MinervaCompose,
     Normalise,
     PairCreate,
@@ -227,6 +229,30 @@ def test_detachedcolorjitter() -> None:
         transform(err_img)
 
     assert repr(transform) == f"Detached{repr(colorjitter)}"
+
+
+def test_randomdetachedgrayscale() -> None:
+    transform = DetachedRandomGrayscale(p=1.0, keepdim=True)
+    greyscale = RandomGrayscale(p=1.0, keepdim=True)  # type: ignore[type]
+
+    img = torch.rand(4, 224, 224)
+    img_rgb = img[:3]
+    img_nir = img[3:]
+
+    err_img = torch.rand(2, 224, 224)
+
+    manual_detach = torch.cat((greyscale(img_rgb), img_nir), 0)  # type: ignore[attr-defined]
+
+    assert_array_equal(transform(img).size(), manual_detach.size())
+    assert_array_equal(transform(img_rgb).size(), img_rgb.size())
+
+    with pytest.raises(ValueError, match=r"\d channel images are not supported!"):
+        transform(err_img)
+
+    with pytest.raises(ValueError, match=r"\d channel images are not supported!"):
+        transform(img_nir)
+
+    assert repr(transform) == f"Detached{repr(greyscale)}"
 
 
 def test_dublicator(
