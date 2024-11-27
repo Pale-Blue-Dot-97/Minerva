@@ -57,7 +57,7 @@ from minerva.models import (
     SimCLR18,
     SimCLR34,
     SimCLR50,
-    SimConv,
+    SimConvPSP,
     SimSiam18,
     SimSiam34,
     SimSiam50,
@@ -140,7 +140,7 @@ def test_simconv() -> None:
 
     x = torch.stack([x, x])
 
-    model: MinervaSiamese = SimConv(loss_func, input_size=input_size)
+    model: MinervaSiamese = SimConvPSP(loss_func, input_size=input_size)
     optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
 
     model.set_optimiser(optimiser)
