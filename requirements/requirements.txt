@@ -34,7 +34,7 @@ starlette==0.40.0 # not directly required, pinned by Dependabot to avoid a vulne
 tabulate==0.9.0
 tensorflow==2.17.0
 tifffile==2024.9.20
-timm==1.0.9
+timm==1.0.11
 torch==2.5.1
 torcheval==0.0.7
 torchgeo==0.6.1
