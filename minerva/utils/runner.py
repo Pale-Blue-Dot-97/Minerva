@@ -79,15 +79,17 @@ class WandbConnectionManager:
 
     def __init__(self) -> None:
         try:
-            requests.head("http://www.wandb.ai/", timeout=0.1)
+            requests.head("http://www.wandb.ai/", timeout=10.0)
             self._on = True
         except requests.ConnectionError:
             self._on = False
 
     def __enter__(self) -> None:
         if self._on:
+            print("wandb set to online mode")
             os.environ["WANDB_MODE"] = "online"
         else:
+            print("wandb set to offline mode")
             os.environ["WANDB_MODE"] = "offline"
 
     def __exit__(self, exc_type, exc_value, exc_traceback) -> None:
@@ -253,7 +255,7 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
     else:
         # Non-SLURM job.
         OmegaConf.update(cfg, "rank", 0, force_add=True)
-        OmegaConf.update(cfg, "dist_url", "tcp://localhost:58472", force_add=True)
+        OmegaConf.update(cfg, "dist_url", "tcp://localhost:58471", force_add=True)
         OmegaConf.update(cfg, "world_size", cfg.ngpus_per_node, force_add=True)
         OmegaConf.update(cfg, "jobid", None, force_add=True)
 
