@@ -63,7 +63,7 @@ from minerva.logger.steplog import SupervisedStepLogger
 from minerva.logger.tasklog import SSLTaskLogger, SupervisedTaskLogger
 from minerva.loss import SegBarlowTwinsLoss
 from minerva.modelio import ssl_pair_torchgeo_io, supervised_torchgeo_io
-from minerva.models import FCN16ResNet18, MinervaSiamese, SimCLR18, SimConv
+from minerva.models import FCN16ResNet18, MinervaSiamese, SimCLR18, SimConvPSP
 from minerva.utils import utils
 
 n_epochs = 2
@@ -242,7 +242,7 @@ def test_SupervisedStepLogger(
     ("model_cls", "model_type", "criterion"),
     (
         (SimCLR18, "siamese", NTXentLoss()),
-        (SimConv, "siamese-segmentation", SegBarlowTwinsLoss()),
+        (SimConvPSP, "siamese-segmentation", SegBarlowTwinsLoss()),
     ),
 )
 @pytest.mark.parametrize("train", (True, False))
