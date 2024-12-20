@@ -102,7 +102,7 @@ def test_SupervisedStepLogger(
 
     input_size = (4, *small_patch_size)
     model = FCN16ResNet18(x_entropy_loss, input_size=input_size).to(default_device)
-    optimiser = torch.optim.sgd.SGD(model.parameters(), lr=1.0e-3)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
     model.determine_output_dim()
 
@@ -277,7 +277,7 @@ def test_SSLStepLogger(
     model: MinervaSiamese = model_cls(criterion, input_size=input_size).to(
         default_device
     )
-    optimiser = torch.optim.sgd.SGD(model.parameters(), lr=1.0e-3)
+    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
     model.determine_output_dim(sample_pairs=True)
