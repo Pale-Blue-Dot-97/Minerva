@@ -53,8 +53,8 @@ try:
 except (OSError, NewConnectionError, MaxRetryError):
     NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 import pytest
-from numpy.typing import NDArray
 from numpy.testing import assert_array_equal
+from numpy.typing import NDArray
 from torch import Tensor
 from torch.nn.modules import Module
 from torchgeo.datasets.utils import BoundingBox

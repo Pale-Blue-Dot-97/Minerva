@@ -54,8 +54,8 @@ import requests
 import torch
 from geopy.exc import GeocoderUnavailable
 from internet_sabotage import no_connection
-from numpy.typing import NDArray
 from numpy.testing import assert_array_equal
+from numpy.typing import NDArray
 from pytest_lazy_fixtures import lf
 from rasterio.crs import CRS
 from torchgeo.datasets.utils import BoundingBox, stack_samples

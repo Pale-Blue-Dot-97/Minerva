@@ -62,8 +62,8 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Optional, Sequence, Type, overload
 
 import numpy as np
-from numpy.typing import NDArray
 import torch
+from numpy.typing import NDArray
 from packaging.version import Version
 from torch import Tensor
 from torch._dynamo.eval_frame import OptimizedModule

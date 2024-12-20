@@ -50,10 +50,10 @@ else:  # pragma: no cover
     SummaryWriter = None
 
 import hydra
+import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
-import numpy as np
 from numpy.typing import NDArray
 from torch import Tensor
 from torch._dynamo.eval_frame import OptimizedModule

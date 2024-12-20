@@ -81,7 +81,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.image import AxesImage
 from matplotlib.ticker import MaxNLocator
 from matplotlib.transforms import Bbox
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import ArrayLike, NDArray
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from scipy import stats

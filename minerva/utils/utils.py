@@ -136,7 +136,7 @@ import rasterio as rt
 import torch
 from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Photon
-from numpy.typing import NDArray, ArrayLike
+from numpy.typing import ArrayLike, NDArray
 from omegaconf import DictConfig, OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS

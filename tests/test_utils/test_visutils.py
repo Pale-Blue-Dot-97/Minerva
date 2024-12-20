@@ -48,8 +48,8 @@ import pytest
 import torch
 from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.image import AxesImage
-from numpy.typing import NDArray
 from numpy.testing import assert_array_equal
+from numpy.typing import NDArray
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from torchgeo.datasets import GeoDataset
