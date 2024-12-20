@@ -786,7 +786,7 @@ def test_calc_grad(exp_mlp: MinervaModel) -> None:
     x = torch.rand(batch_size, (64))
     y = torch.LongTensor(np.random.randint(0, 8, size=batch_size))
 
-    optimiser = torch.optim.sgd.SGD(exp_mlp.parameters(), lr=1.0e-3)
+    optimiser = torch.optim.SGD(exp_mlp.parameters(), lr=1.0e-3)
     exp_mlp.set_optimiser(optimiser)
     _ = exp_mlp.step(x, y, train=True)
 
