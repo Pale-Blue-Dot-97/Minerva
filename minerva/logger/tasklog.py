@@ -270,7 +270,7 @@ class MinervaTaskLogger(ABC):
         the length of the logs remains the same as the training logs.
         """
         for metric in self.metrics.keys():
-            self.metrics[metric]["y"].append(np.NAN)
+            self.metrics[metric]["y"].append(np.nan)
 
     def get_sub_metrics(
         self, pattern: tuple[str, ...] = ("train", "val")

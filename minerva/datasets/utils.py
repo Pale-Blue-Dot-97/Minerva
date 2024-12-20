@@ -50,7 +50,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterable, Literal, Optional, Sequence, Union
 
 import numpy as np
-from nptyping import NDArray
+from numpy.typing import NDArray
 from torch.utils.data import ConcatDataset, DataLoader
 from torchgeo.datasets import (
     GeoDataset,
@@ -221,7 +221,7 @@ def make_bounding_box(roi: Sequence[float] | bool = False) -> Optional[BoundingB
 def load_all_samples(
     dataloader: DataLoader[Iterable[Any]],
     target_key: Literal["mask", "label"] = "mask",
-) -> NDArray[Any, Any]:
+) -> NDArray[Any]:
     """Loads all sample masks from parsed :class:`~torch.utils.data.DataLoader` and computes the modes of their classes.
 
     Args:
