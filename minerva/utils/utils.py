@@ -136,8 +136,7 @@ import rasterio as rt
 import torch
 from geopy.exc import GeocoderUnavailable
 from geopy.geocoders import Photon
-from nptyping import Float, Int, NDArray, Shape
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 from omegaconf import DictConfig, OmegaConf
 from pandas import DataFrame
 from rasterio.crs import CRS
@@ -713,7 +712,7 @@ def deg_to_dms(deg: float, axis: str = "lat") -> str:
 
 
 def dec2deg(
-    dec_co: Sequence[float] | NDArray[Shape["*"], Float],  # noqa: F722
+    dec_co: Sequence[float] | NDArray[np.float64],  # noqa: F722
     axis: str = "lat",
 ) -> list[str]:
     """Wrapper for :func:`deg_to_dms`.
@@ -846,7 +845,7 @@ def find_tensor_mode(mask: LongTensor) -> LongTensor:
     return mode
 
 
-def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
+def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any]:
     """Convert an iterable of indices to one-hot encoded (:term:`OHE`) labels.
 
     Args:
@@ -856,7 +855,7 @@ def labels_to_ohe(labels: Sequence[int], n_classes: int) -> NDArray[Any, Any]:
     Returns:
         ~numpy.ndarray[~typing.Any]: Labels in OHE form.
     """
-    targets: NDArray[Any, Any] = np.array(labels).reshape(-1)
+    targets: NDArray[Any] = np.array(labels).reshape(-1)
     ohe_labels = np.eye(n_classes)[targets]
     assert isinstance(ohe_labels, np.ndarray)
     return ohe_labels
@@ -947,7 +946,7 @@ def find_empty_classes(
 
 
 def eliminate_classes(
-    empty_classes: list[int] | tuple[int, ...] | NDArray[Any, Int],
+    empty_classes: list[int] | tuple[int, ...] | NDArray[np.int_],
     old_classes: dict[int, str],
     old_cmap: Optional[dict[int, str]] = None,
 ) -> tuple[dict[int, str], dict[int, int], Optional[dict[int, str]]]:
@@ -1034,8 +1033,8 @@ def class_transform(label: int, matrix: dict[int, int]) -> int:
 
 @overload
 def mask_transform(  # type: ignore[overload-overlap]
-    array: NDArray[Any, Int], matrix: dict[int, int]
-) -> NDArray[Any, Int]: ...  # pragma: no cover
+    array: NDArray[np.int_], matrix: dict[int, int]
+) -> NDArray[np.int_]: ...  # pragma: no cover
 
 
 @overload
@@ -1045,17 +1044,17 @@ def mask_transform(
 
 
 def mask_transform(
-    array: NDArray[Any, Int] | LongTensor,
+    array: NDArray[np.int_] | LongTensor,
     matrix: dict[int, int],
-) -> NDArray[Any, Int] | LongTensor:
+) -> NDArray[np.int_] | LongTensor:
     """Transforms all labels of an N-dimensional array from one schema to another mapped by a supplied dictionary.
 
     Args:
-        array (~numpy.ndarray[int]): N-dimensional array containing labels to be transformed.
+        array (~numpy.ndarray[int] | ~torch.LongTensor): N-dimensional array containing labels to be transformed.
         matrix (dict[int, int]): Dictionary mapping old labels to new.
 
     Returns:
-        ~numpy.ndarray[int]: Array of transformed labels.
+        ~numpy.ndarray[int] | ~torch.LongTensor: Array of transformed labels.
     """
     for key in matrix.keys():
         array[array == key] = matrix[key]
@@ -1064,11 +1063,11 @@ def mask_transform(
 
 
 def check_test_empty(
-    pred: Sequence[int] | NDArray[Any, Int],
-    labels: Sequence[int] | NDArray[Any, Int],
+    pred: Sequence[int] | NDArray[np.int_],
+    labels: Sequence[int] | NDArray[np.int_],
     class_labels: Optional[dict[int, str]] = None,
     p_dist: bool = True,
-) -> tuple[NDArray[Any, Int], NDArray[Any, Int], dict[int, str]]:
+) -> tuple[NDArray[np.int_], NDArray[np.int_], dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class labels.
 
@@ -1160,7 +1159,7 @@ def class_frac(patch: pd.Series) -> dict[Any, Any]:
     return new_columns
 
 
-def cloud_cover(scene: NDArray[Any, Any]) -> Any:
+def cloud_cover(scene: NDArray[Any]) -> float:
     """Calculates percentage cloud cover for a given scene based on its scene CLD.
 
     Args:
@@ -1169,7 +1168,9 @@ def cloud_cover(scene: NDArray[Any, Any]) -> Any:
     Returns:
         float: Percentage cloud cover of scene.
     """
-    return np.sum(scene) / scene.size
+    cloud_cover = np.sum(scene) / scene.size
+    assert isinstance(cloud_cover, float)
+    return cloud_cover
 
 
 def threshold_scene_select(df: DataFrame, thres: float = 0.3) -> list[str]:
@@ -1435,11 +1436,11 @@ def print_class_dist(
     print(tabulate(df, headers="keys", tablefmt="psql"))  # type: ignore
 
 
-def batch_flatten(x: NDArray[Any, Any] | ArrayLike) -> NDArray[Shape["*"], Any]:  # noqa: F722
-    """Flattens the supplied array with :func:`numpy`.
+def batch_flatten(x: ArrayLike) -> NDArray[Any]:  # noqa: F722
+    """Flattens the supplied array with :func:`numpy.flatten`.
 
     Args:
-        x (~numpy.ndarray[~typing.Any] | ~nptyping.ArrayLike]): Array to be flattened.
+        x (~numpy.typing.ArrayLike]): Array to be flattened.
 
     Returns:
         ~numpy.ndarray[~typing.Any]: Flattened :class:`~numpy.ndarray`.
@@ -1454,8 +1455,8 @@ def batch_flatten(x: NDArray[Any, Any] | ArrayLike) -> NDArray[Shape["*"], Any]:
 
 
 def make_classification_report(
-    pred: Sequence[int] | NDArray[Any, Int],
-    labels: Sequence[int] | NDArray[Any, Int],
+    pred: Sequence[int] | NDArray[np.int_],
+    labels: Sequence[int] | NDArray[np.int_],
     class_labels: Optional[dict[int, str]] = None,
     print_cr: bool = True,
     p_dist: bool = False,
@@ -1625,8 +1626,8 @@ def run_tensorboard(
 
 
 def compute_roc_curves(
-    probs: NDArray[Any, Float],
-    labels: Sequence[int] | NDArray[Any, Int],
+    probs: NDArray[np.float64],
+    labels: Sequence[int] | NDArray[np.int_],
     class_labels: list[int],
     micro: bool = True,
     macro: bool = True,
@@ -1721,7 +1722,7 @@ def compute_roc_curves(
 
     if macro:
         # Aggregate all false positive rates.
-        all_fpr: NDArray[Any, Any] = np.unique(
+        all_fpr: NDArray[Any] = np.unique(
             np.concatenate([fpr[key] for key in populated_classes])
         )
 
@@ -1787,7 +1788,7 @@ def print_config(conf: DictConfig) -> None:
 
 
 def tsne_cluster(
-    embeddings: NDArray[Any, Any],
+    embeddings: NDArray[Any],
     n_dim: int = 2,
     lr: str = "auto",
     n_iter: int = 1000,

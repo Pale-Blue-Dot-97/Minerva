@@ -53,8 +53,8 @@ try:
 except (OSError, NewConnectionError, MaxRetryError):
     NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 import pytest
-from nptyping import NDArray, Shape
 from numpy.testing import assert_array_equal
+from numpy.typing import NDArray
 from torch import Tensor
 from torch.nn.modules import Module
 from torchgeo.datasets.utils import BoundingBox
@@ -191,8 +191,7 @@ def test_SupervisedStepLogger(
         )
         assert np.array(results["ids"]).shape == (std_n_batches, std_batch_size)
 
-        shape = f"{std_n_batches}, {std_batch_size}, {small_patch_size[0]}, {small_patch_size[1]}"
-        y: NDArray[Shape[shape], Any] = np.empty(
+        y: NDArray[Any] = np.empty(
             (std_n_batches, std_batch_size, *output_shape), dtype=np.uint8
         )
         for i in range(std_n_batches):

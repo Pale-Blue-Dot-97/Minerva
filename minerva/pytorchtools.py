@@ -91,7 +91,7 @@ class EarlyStopping:
         self.counter: int = 0
         self.best_score: Optional[float] = None
         self.early_stop: bool = False
-        self.val_loss_min: float = np.Inf
+        self.val_loss_min: float = np.inf
         self.delta: float = delta
         self.path: str | Path = path
         self.trace_func: Callable[..., None] = trace_func
