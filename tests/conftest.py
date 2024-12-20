@@ -48,7 +48,7 @@ import numpy as np
 import pytest
 import torch
 import torch.nn.modules as nn
-from nptyping import Float, Int, NDArray, Shape
+from numpy.typing import NDArray
 from omegaconf import DictConfig, OmegaConf
 from rasterio.crs import CRS
 from torch import LongTensor, Tensor
@@ -254,7 +254,7 @@ def exp_simconv(
 @pytest.fixture
 def random_mask(
     small_patch_size: tuple[int, int], std_n_classes: int
-) -> NDArray[Shape["32, 32"], Int]:
+) -> NDArray[np.int_]:
     mask = np.random.randint(0, std_n_classes - 1, size=small_patch_size)
     assert isinstance(mask, np.ndarray)
     return mask
@@ -263,14 +263,14 @@ def random_mask(
 @pytest.fixture
 def random_image(
     small_patch_size: tuple[int, int],
-) -> NDArray[Shape["32, 32, 3"], Float]:
+) -> NDArray[np.float64]:
     return np.random.rand(*small_patch_size, 3)
 
 
 @pytest.fixture
 def random_rgbi_image(
     small_patch_size: tuple[int, int],
-) -> NDArray[Shape["32, 32, 4"], Float]:
+) -> NDArray[np.float64]:
     return np.random.rand(*small_patch_size, 4)
 
 

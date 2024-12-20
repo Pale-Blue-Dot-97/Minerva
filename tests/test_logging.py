@@ -53,7 +53,7 @@ try:
 except (OSError, NewConnectionError, MaxRetryError):
     NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
 import pytest
-from nptyping import NDArray, Shape
+from numpy.typing import NDArray
 from numpy.testing import assert_array_equal
 from torch import Tensor
 from torch.nn.modules import Module
@@ -102,7 +102,7 @@ def test_SupervisedStepLogger(
 
     input_size = (4, *small_patch_size)
     model = FCN16ResNet18(x_entropy_loss, input_size=input_size).to(default_device)
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+    optimiser = torch.optim.sgd.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
     model.determine_output_dim()
 
@@ -191,8 +191,7 @@ def test_SupervisedStepLogger(
         )
         assert np.array(results["ids"]).shape == (std_n_batches, std_batch_size)
 
-        shape = f"{std_n_batches}, {std_batch_size}, {small_patch_size[0]}, {small_patch_size[1]}"
-        y: NDArray[Shape[shape], Any] = np.empty(
+        y: NDArray[Any] = np.empty(
             (std_n_batches, std_batch_size, *output_shape), dtype=np.uint8
         )
         for i in range(std_n_batches):
@@ -278,7 +277,7 @@ def test_SSLStepLogger(
     model: MinervaSiamese = model_cls(criterion, input_size=input_size).to(
         default_device
     )
-    optimiser = torch.optim.SGD(model.parameters(), lr=1.0e-3)
+    optimiser = torch.optim.sgd.SGD(model.parameters(), lr=1.0e-3)
     model.set_optimiser(optimiser)
 
     model.determine_output_dim(sample_pairs=True)

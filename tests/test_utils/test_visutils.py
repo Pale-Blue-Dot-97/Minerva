@@ -48,7 +48,7 @@ import pytest
 import torch
 from matplotlib.colors import Colormap, ListedColormap
 from matplotlib.image import AxesImage
-from nptyping import NDArray, Shape
+from numpy.typing import NDArray
 from numpy.testing import assert_array_equal
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
@@ -68,7 +68,7 @@ def test_de_interlace() -> None:
 
     x = [x_1, x_2, x_3, x_1, x_2, x_3]
 
-    x2: NDArray[Shape["30"], Any] = np.array([x_1, x_1, x_2, x_2, x_3, x_3]).flatten()
+    x2: NDArray[Any] = np.array([x_1, x_1, x_2, x_2, x_3, x_3]).flatten()
 
     assert_array_equal(visutils.de_interlace(x, 3), x2)
 
@@ -123,19 +123,19 @@ def test_discrete_heatmap(
 
 
 def test_stack_rgb() -> None:
-    red: NDArray[Shape["3, 3"], Any] = np.array(
+    red: NDArray[Any] = np.array(
         [[25.0, 12.0, 11.0], [34.0, 55.0, 89.0], [23.0, 18.0, 76.0]]
     )
 
-    blue: NDArray[Shape["3, 3"], Any] = np.array(
+    blue: NDArray[Any] = np.array(
         [[16.0, 17.0, 18.0], [19.0, 23.0, 24.0], [78.0, 67.0, 54.0]]
     )
 
-    green: NDArray[Shape["3, 3"], Any] = np.array(
+    green: NDArray[Any] = np.array(
         [[3.0, 2.0, 1.0], [9.0, 11.0, 34.0], [23.0, 15.0, 128.0]]
     )
 
-    image_1: NDArray[Shape["3, 3, 3"], Any] = np.array([red, green, blue])
+    image_1: NDArray[Any] = np.array([red, green, blue])
 
     correct = np.dstack((blue, green, red)) / 255.0
     result_1 = visutils.stack_rgb(image_1, max_value=255)

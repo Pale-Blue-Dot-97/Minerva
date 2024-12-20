@@ -54,7 +54,7 @@ import requests
 import torch
 from geopy.exc import GeocoderUnavailable
 from internet_sabotage import no_connection
-from nptyping import Float, NDArray, Shape
+from numpy.typing import NDArray
 from numpy.testing import assert_array_equal
 from pytest_lazy_fixtures import lf
 from rasterio.crs import CRS
@@ -183,7 +183,7 @@ def test_datetime_reformat() -> None:
 
 def test_ohe_labels() -> None:
     labels = [3, 2, 4, 1, 0]
-    correct_targets: NDArray[Shape["5, 6"], Float] = np.array(
+    correct_targets: NDArray[np.float64] = np.array(
         [
             [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
             [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -606,7 +606,7 @@ def test_compute_roc_curves() -> None:
     labels = [0, 3, 2, 1, 3, 2, 1, 0]
     class_labels = [0, 1, 2, 3]
 
-    fpr: dict[Any, NDArray[Any, Any]] = {
+    fpr: dict[Any, NDArray[Any]] = {
         0: np.array([0.0, 0.0, 0.0, 0.5, 5.0 / 6.0, 1.0]),
         1: np.array([0.0, 0.0, 1.0 / 6.0, 1.0 / 6.0, 1.0]),
         2: np.array([0.0, 0.0, 1.0 / 6.0, 0.5, 0.5, 1.0]),
@@ -635,7 +635,7 @@ def test_compute_roc_curves() -> None:
         "macro": np.array([0.0, 1.0 / 6.0, 0.5, 5.0 / 6.0, 1.0]),
     }
 
-    tpr: dict[Any, NDArray[Any, Any]] = {
+    tpr: dict[Any, NDArray[Any]] = {
         0: np.array([0.0, 0.5, 1.0, 1.0, 1.0, 1.0]),
         1: np.array([0.0, 0.5, 0.5, 1.0, 1.0]),
         2: np.array([0.0, 0.5, 0.5, 0.5, 1.0, 1.0]),
@@ -786,7 +786,7 @@ def test_calc_grad(exp_mlp: MinervaModel) -> None:
     x = torch.rand(batch_size, (64))
     y = torch.LongTensor(np.random.randint(0, 8, size=batch_size))
 
-    optimiser = torch.optim.SGD(exp_mlp.parameters(), lr=1.0e-3)
+    optimiser = torch.optim.sgd.SGD(exp_mlp.parameters(), lr=1.0e-3)
     exp_mlp.set_optimiser(optimiser)
     _ = exp_mlp.step(x, y, train=True)
 
@@ -798,7 +798,7 @@ def test_calc_grad(exp_mlp: MinervaModel) -> None:
 
 def test_tsne_cluster() -> None:
     clusters = utils.tsne_cluster(np.random.rand(10, 100))
-    assert isinstance(clusters, NDArray)
+    assert isinstance(clusters, np.ndarray)
     assert clusters.shape == (10, 2)
 
 
