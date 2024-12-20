@@ -33,7 +33,6 @@ dependencies = [
     "matplotlib",
     "hydra-core",
     "mlflow-skinny",
-    "nptyping",
     "numba>=0.57.0; python_version>='3.11'",
     "numpy",
     "overload",
