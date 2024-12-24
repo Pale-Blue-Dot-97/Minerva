@@ -63,7 +63,7 @@ from typing import Any, Callable, Iterable, Optional, Sequence, Type, overload
 
 import numpy as np
 import torch
-from nptyping import NDArray
+from numpy.typing import NDArray
 from packaging.version import Version
 from torch import Tensor
 from torch._dynamo.eval_frame import OptimizedModule
@@ -573,7 +573,7 @@ def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tens
 
     og = np.ogrid[:kernel_size, :kernel_size]
     filt = (1 - abs(og[0] - center) / factor) * (1 - abs(og[1] - center) / factor)
-    weight: NDArray[Any, Any] = np.zeros(
+    weight: NDArray[Any] = np.zeros(
         (in_channels, out_channels, kernel_size, kernel_size), dtype="float32"
     )
     weight[range(in_channels), range(out_channels), :, :] = filt

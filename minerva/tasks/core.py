@@ -50,10 +50,11 @@ else:  # pragma: no cover
     SummaryWriter = None
 
 import hydra
+import numpy as np
 import pandas as pd
 import torch
 import torch.distributed as dist
-from nptyping import Int, NDArray
+from numpy.typing import NDArray
 from torch import Tensor
 from torch._dynamo.eval_frame import OptimizedModule
 from wandb.sdk.wandb_run import Run
@@ -532,8 +533,8 @@ class MinervaTask(ABC):
             labels (~typing.Sequence[int]): List of corresponding ground truth label masks.
         """
         # Ensures predictions and labels are flattened.
-        preds: NDArray[Any, Int] = utils.batch_flatten(predictions)
-        targets: NDArray[Any, Int] = utils.batch_flatten(labels)
+        preds: NDArray[np.int_] = utils.batch_flatten(predictions)
+        targets: NDArray[np.int_] = utils.batch_flatten(labels)
 
         # Uses utils to create a classification report in a DataFrame.
         cr_df = utils.make_classification_report(preds, targets, self.params["classes"])

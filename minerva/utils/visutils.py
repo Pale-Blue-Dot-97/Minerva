@@ -81,8 +81,7 @@ from matplotlib.gridspec import GridSpec
 from matplotlib.image import AxesImage
 from matplotlib.ticker import MaxNLocator
 from matplotlib.transforms import Bbox
-from nptyping import Float, Int, NDArray, Shape
-from numpy.typing import ArrayLike
+from numpy.typing import ArrayLike, NDArray
 from omegaconf import OmegaConf
 from rasterio.crs import CRS
 from scipy import stats
@@ -117,7 +116,7 @@ _MAX_SAMPLES = 25
 # =====================================================================================================================
 #                                                     METHODS
 # =====================================================================================================================
-def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any, Any]:
+def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any]:
     """Separates interlaced arrays, ``x`` at a frequency of ``f`` from each other.
 
     Args:
@@ -127,7 +126,7 @@ def de_interlace(x: Sequence[Any], f: int) -> NDArray[Any, Any]:
     Returns:
         ~numpy.ndarray[~typing.Any]: De-interlaced array. Each source array is now sequentially connected.
     """
-    new_x: list[NDArray[Any, Any]] = []
+    new_x: list[NDArray[Any]] = []
     for i in range(f):
         x_i = []
         for j in np.arange(start=i, stop=len(x), step=f):
@@ -143,7 +142,7 @@ def dec_extent_to_deg(
     src_crs: CRS,
     new_crs: CRS = WGS84,
     spacing: int = 32,
-) -> tuple[tuple[int, int, int, int], NDArray[Any, Float], NDArray[Any, Float]]:
+) -> tuple[tuple[int, int, int, int], NDArray[np.float64], NDArray[np.float64]]:
     """Gets the extent of the image with ``shape`` and with ``bounds`` in latitude, longitude of system ``new_crs``.
 
     Args:
@@ -225,7 +224,7 @@ def get_mlp_cmap(
 
 
 def discrete_heatmap(
-    data: NDArray[Shape["*, *"], Int],  # noqa: F722
+    data: NDArray[np.int_],  # noqa: F722
     classes: list[str] | tuple[str, ...],
     cmap_style: Optional[str | ListedColormap] = None,
     block_size: int = 32,
@@ -268,9 +267,9 @@ def discrete_heatmap(
 
 
 def stack_rgb(
-    image: NDArray[Shape["3, *, *"], Float],  # noqa: F722
+    image: NDArray[np.float64],  # noqa: F722
     max_value: int = 255,
-) -> NDArray[Shape["*, *, 3"], Float]:  # noqa: F722
+) -> NDArray[np.float64]:  # noqa: F722
     """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
@@ -283,7 +282,7 @@ def stack_rgb(
     """
     # Stack together RGB bands. Assumes RGB bands are in dimensions 0-2. Ignores any other bands.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
-    rgb_image: NDArray[Shape["3, *, *"], Any] = np.dstack(  # noqa: F722
+    rgb_image: NDArray[Any] = np.dstack(  # noqa: F722
         (image[2], image[1], image[0])
     )
     assert isinstance(rgb_image, np.ndarray)
@@ -293,7 +292,7 @@ def stack_rgb(
 
 
 def make_rgb_image(
-    image: NDArray[Shape["3, *, *"], Float],  # noqa: F722
+    image: NDArray[np.float64],  # noqa: F722
     block_size: int = 32,
     max_pixel_value: int = 255,
 ) -> AxesImage:
@@ -326,8 +325,8 @@ def make_rgb_image(
 
 
 def labelled_rgb_image(
-    image: NDArray[Shape["*, *, 3"], Float],  # noqa: F722
-    mask: NDArray[Shape["*, *"], Int],  # noqa: F722
+    image: NDArray[np.float64],  # noqa: F722
+    mask: NDArray[np.int_],  # noqa: F722
     bounds: BoundingBox,
     src_crs: CRS,
     path: str | Path,
@@ -477,8 +476,8 @@ def labelled_rgb_image(
 
 def make_gif(
     dates: Sequence[str],
-    images: NDArray[Shape["*, *, *, 3"], Any],  # noqa: F722
-    masks: NDArray[Shape["*, *, *"], Any],  # noqa: F722
+    images: NDArray[Any],  # noqa: F722
+    masks: NDArray[Any],  # noqa: F722
     bounds: BoundingBox,
     src_crs: CRS,
     classes: list[str] | tuple[str, ...],
@@ -610,7 +609,7 @@ def prediction_plot(
 
     gs = GridSpec(nrows=2, ncols=2, figure=fig)
 
-    axes: NDArray[Shape["3"], Axes] = np.array(  # type: ignore[type-var, assignment]
+    axes: NDArray[Axes] = np.array(  # type: ignore[type-var, assignment]
         [
             fig.add_subplot(gs[0, 0]),
             fig.add_subplot(gs[0, 1]),
@@ -710,16 +709,16 @@ def prediction_plot(
 
 
 def seg_plot(
-    z: list[int] | NDArray[Any, Any],
-    y: list[int] | NDArray[Any, Any],
+    z: list[int] | NDArray[Any],
+    y: list[int] | NDArray[Any],
     ids: list[str],
-    index: Sequence[Any] | NDArray[Any, Any],
+    index: Sequence[Any] | NDArray[Any],
     data_dir: Path | str,
     dataset_params: dict[str, Any],
     classes: dict[int, str],
     colours: dict[int, str],
     fn_prefix: Optional[str | Path],
-    x: Optional[list[int] | NDArray[Any, Any]] = None,
+    x: Optional[list[int] | NDArray[Any]] = None,
     frac: float = 0.05,
     fig_dim: Optional[tuple[int | float, int | float]] = (9.3, 10.5),
     model_name: str = "",
@@ -761,7 +760,7 @@ def seg_plot(
 
     z = np.reshape(z, (z.shape[0] * z.shape[1], z.shape[2], z.shape[3]))
     y = np.reshape(y, (y.shape[0] * y.shape[1], y.shape[2], y.shape[3]))
-    flat_ids: NDArray[Any, Any] = np.array(ids).flatten()
+    flat_ids: NDArray[Any] = np.array(ids).flatten()
 
     print("\nRE-CONSTRUCTING DATASET")
     if cache_dir is not None:
@@ -786,7 +785,7 @@ def seg_plot(
         for i in random.sample(range(len(flat_ids)), n_samples):
             if isinstance(dataset, GeoDataset):
                 image = stack_rgb(
-                    torch.Tensor(x[i])
+                    torch.Tensor(x[i]).numpy()
                     if x is not None
                     else dataset[index[i]]["image"].numpy(),
                     max_pixel_value,
@@ -985,8 +984,8 @@ def plot_history(
 
 
 def make_confusion_matrix(
-    pred: list[int] | NDArray[Any, Int],
-    labels: list[int] | NDArray[Any, Int],
+    pred: list[int] | NDArray[np.int_],
+    labels: list[int] | NDArray[np.int_],
     classes: dict[int, str],
     filename: Optional[str | Path] = None,
     cmap_style: str = "Blues",
@@ -1042,8 +1041,8 @@ def make_confusion_matrix(
 
 
 def make_multilabel_confusion_matrix(
-    preds: list[int] | NDArray[Any, Int],
-    labels: list[int] | NDArray[Any, Int],
+    preds: list[int] | NDArray[np.int_],
+    labels: list[int] | NDArray[np.int_],
     classes: dict[int, str],
     filename: Optional[str | Path] = None,
     cmap_style: str = "Blues",
@@ -1118,7 +1117,7 @@ def make_multilabel_confusion_matrix(
 
 def make_roc_curves(
     probs: ArrayLike,
-    labels: Sequence[int] | NDArray[Any, Int],
+    labels: Sequence[int] | NDArray[np.int_],
     class_names: dict[int, str],
     colours: dict[int, str],
     micro: bool = True,
@@ -1296,7 +1295,7 @@ def plot_embedding(
 
     if hasattr(offsetbox, "AnnotationBbox"):
         # only print thumbnails with matplotlib > 1.0
-        shown_images: NDArray[Any, Any] = np.array([[1.0, 1.0]])  # just something big
+        shown_images: NDArray[Any] = np.array([[1.0, 1.0]])  # just something big
 
         for i, image in enumerate(images):
             dist = np.sum((x[i] - shown_images) ** 2, 1)
@@ -1372,14 +1371,14 @@ def format_plot_names(
 
 def plot_results(
     plots: dict[str, bool],
-    x: Optional[NDArray[Any, Int]] = None,
-    y: Optional[list[int] | NDArray[Any, Int]] = None,
-    z: Optional[list[int] | NDArray[Any, Int]] = None,
+    x: Optional[NDArray[np.int_]] = None,
+    y: Optional[list[int] | NDArray[np.int_]] = None,
+    z: Optional[list[int] | NDArray[np.int_]] = None,
     metrics: Optional[dict[str, Any]] = None,
     ids: Optional[list[str]] = None,
-    index: Optional[NDArray[Any, Any]] = None,
-    probs: Optional[list[float] | NDArray[Any, Float]] = None,
-    embeddings: Optional[NDArray[Any, Any]] = None,
+    index: Optional[NDArray[Any]] = None,
+    probs: Optional[list[float] | NDArray[np.float64]] = None,
+    embeddings: Optional[NDArray[Any]] = None,
     class_names: Optional[dict[int, str]] = None,
     colours: Optional[dict[int, str]] = None,
     save: bool = True,
