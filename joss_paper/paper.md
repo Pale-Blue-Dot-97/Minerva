@@ -9,14 +9,34 @@ authors:
   - name: Harry Baker
     orcid: 0000-0002-4382-8196
     equal-contrib: true
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
+    affiliation: "1, 2"
     corresponding: true
+  - name: Jonathon Hare
+    orcid: 0000-0003-2921-4283
+    equal-contrib: false
+    affiliation: "1"
+    corresponding: false
+  - name: Isabel Sargent
+    orcid: 0000-0002-3982-7318
+    equal-contrib: false
+    affiliation: "1"
+    corresponding: false
+  - name: Adam Prugel Bennet
+    # orcid:
+    equal-contrib: false
+    affiliation: "1"
+    corresponding: false
+  - name: Steve Coupland
+    # orcid:
+    equal-contrib: false
+    affiliation: "2"
+    corresponding: false
 affiliations:
  - name: University of Southampton, University Road, Southampton, UK, SO17 1BJ
    index: 1
  - name: Ordnance Survey, Explorer House, Adanac Drive, Southampton, UK, S016 0AS
    index: 2
-date: 21 September 2024
+date: 06 January 2025
 bibliography: paper.bib
 
 ---
@@ -40,7 +60,7 @@ other QoL utilities.
 The `minerva` package is primarily designed for use in training, validating and
 testing machine learning models in the remote sensing domain. Using `hydra`,
 experiments are configured via `YAML` files that `minerva` interprets, allowing
-users a great degree of flexibility. It was orginally conceived in 2021 when it was found that `pytorch-lightning` did not offer the level of flexibility required for our particular use-case. Since then, `minerva` has grown from a PhD research repositry into a fully-fledged package -- albeit still in its beta infancy -- with regualr users. 
+users a great degree of flexibility. It was orginally conceived in 2021 when it was found that `pytorch-lightning` did not offer the level of flexibility required for our particular use-case. Since then, `minerva` has grown from a PhD research repositry into a fully-fledged package -- albeit still in its beta infancy -- with regualr users.
 
 # Package Structure
 
@@ -63,7 +83,7 @@ users a great degree of flexibility. It was orginally conceived in 2021 when it 
 
 Given the rapid expansion and advancement of machine learning research since 2014, it will not surprise the reader that there are a wide variety of open-source libraries that support ML practitioners. However, with regards to the remote-sensing focussed researcher, there is a far smaller selection. The stand out package, which `minerva` heavily relies on, is `torchgeo` [@Stewart_TorchGeo_2020]. Like `minerva`, `torchgeo` has matured significantly over the last few years to become an invaulable tool for remote-sensing AI researchers. Its stand out features include its native support for handling GeoTiffs and geospatial information, making it effortless for a user to currate and manipulate datasets to train a remote-sensing focussed model on. `torchgeo.datamodule` also offers much of the same framework features `minerva` does but takes a slightly different approach as to how an experiment is defined.
 
-`minerva` also bear similarities to `pytorch-lightning` in its internal structure. Like `pytorch-lightning`, the internal workings of performing each step of model training is abstracted away in `minerva` from a user. The major difference between the libraries (other than the former's far superior stability and maturity) is `minerva`'s focus on configuring experiments via `YAML` configuration. This stems largely from `minerva`'s raison d'etre -- to act as a framework to facilitate research experiments. As such, `minerva` does lack the same flexibility that `pytorch-lightning` offers its users.
+`minerva` also bears similarities to `pytorch-lightning` in its internal structure. Like `pytorch-lightning`, the internal workings of performing each step of model training is abstracted away in `minerva` from a user. The major difference between the libraries (other than the former's far superior stability and maturity) is `minerva`'s focus on configuring experiments via `YAML` configuration. This stems largely from `minerva`'s raison d'etre -- to act as a framework to facilitate research experiments. As such, `minerva` does lack the same flexibility that `pytorch-lightning` offers its users.
 
 # Conclusion
 
