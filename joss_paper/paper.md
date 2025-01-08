@@ -21,7 +21,7 @@ authors:
     equal-contrib: false
     affiliation: "1"
     corresponding: false
-  - name: Adam Prugel Bennet
+  - name: Adam Prugel Bennett
     # orcid:
     equal-contrib: false
     affiliation: "1"
@@ -87,9 +87,14 @@ Given the rapid expansion and advancement of machine learning research since 201
 
 # Conclusion
 
-# Citations
-
 # Acknowledgements
 
+This work was possible thanks to a PhD funded by the Ordnance Survey. Thanks must also go to my supervisors, Prof. Jonathon Hare, Dr. Isabel Sargent, Prof. Adam Prugel-Bennett and Steve Coupland, whose guidance and support have contributed to the creation of `minerva` and its associated work. Contributions to `minerva` were also made by several people past and present at the Ordnance Survey not listed above as authors:
+
+* Jo Walsh
+* Navid Rahimi
+* Joe Guyatt
+* Ben Dickens
+* Kitty Varghese
 
 # References
