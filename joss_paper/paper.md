@@ -47,7 +47,7 @@ Remote-sensing and earth observation requires its own distictive formats for
 data from number of bands in imagery, geo-spatial co-ordinates and applications.
 Most computer vision machine learning research is performed in domains outside
 of remote sensing and thus, many of the existing libraries in Python for ML lack
-the features we need. Thankfully, the `torchgeo` [@Stewart_TorchGeo_2020] library extends the popular
+the features we need. Thankfully, the `torchgeo` [@Stewart_TorchGeo_2022] library extends the popular
 `torch` library for remote sensing researchers. `minerva` takes this
 functionality further introducing a framework for researchers to design and
 execute remote sensing focussed machine learning experiments at scale. `minerva`
@@ -81,7 +81,7 @@ users a great degree of flexibility. It was orginally conceived in 2021 when it 
 
 # Comparison to Similar Projects
 
-Given the rapid expansion and advancement of machine learning research since 2014, it will not surprise the reader that there are a wide variety of open-source libraries that support ML practitioners. However, with regards to the remote-sensing focussed researcher, there is a far smaller selection. The stand out package, which `minerva` heavily relies on, is `torchgeo` [@Stewart_TorchGeo_2020]. Like `minerva`, `torchgeo` has matured significantly over the last few years to become an invaulable tool for remote-sensing AI researchers. Its stand out features include its native support for handling GeoTiffs and geospatial information, making it effortless for a user to currate and manipulate datasets to train a remote-sensing focussed model on. `torchgeo.datamodule` also offers much of the same framework features `minerva` does but takes a slightly different approach as to how an experiment is defined.
+Given the rapid expansion and advancement of machine learning research since 2014, it will not surprise the reader that there are a wide variety of open-source libraries that support ML practitioners. However, with regards to the remote-sensing focussed researcher, there is a far smaller selection. The stand out package, which `minerva` heavily relies on, is `torchgeo` [@Stewart_TorchGeo_2022]. Like `minerva`, `torchgeo` has matured significantly over the last few years to become an invaulable tool for remote-sensing AI researchers. Its stand out features include its native support for handling GeoTiffs and geospatial information, making it effortless for a user to currate and manipulate datasets to train a remote-sensing focussed model on. `torchgeo.datamodule` also offers much of the same framework features `minerva` does but takes a slightly different approach as to how an experiment is defined.
 
 `minerva` also bears similarities to `pytorch-lightning` in its internal structure. Like `pytorch-lightning`, the internal workings of performing each step of model training is abstracted away in `minerva` from a user. The major difference between the libraries (other than the former's far superior stability and maturity) is `minerva`'s focus on configuring experiments via `YAML` configuration. This stems largely from `minerva`'s raison d'etre -- to act as a framework to facilitate research experiments. As such, `minerva` does lack the same flexibility that `pytorch-lightning` offers its users.
 
