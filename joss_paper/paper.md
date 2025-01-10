@@ -43,89 +43,98 @@ bibliography: paper.bib
 
 # Summary
 
-Remote-sensing and earth observation requires its own distictive formats for
-data from number of bands in imagery, geo-spatial co-ordinates and applications.
-Most computer vision machine learning research is performed in domains outside
-of remote sensing and thus, many of the existing libraries in Python for ML lack
-the features we need. Thankfully, the `torchgeo` [@Stewart_TorchGeo_2022] library extends the popular
-`torch` library for remote sensing researchers. `minerva` takes this
-functionality further introducing a framework for researchers to design and
-execute remote sensing focussed machine learning experiments at scale. `minerva`
-includes support for `hydra` for experiment configuration, `wandb` logging
-support, use of high performance computing via `SLURM`, along with numerous
-other QoL utilities.
+Remote-sensing and earth observation requires its own distictive formats for data from number of bands in imagery, geo-spatial co-ordinates and applications. Most computer vision machine learning research is performed in domains outside of remote sensing and thus, many of the existing libraries in Python for ML lack the features we need. Thankfully, the `torchgeo` [@Stewart_TorchGeo_2022] library extends the popular `torch` library for remote sensing researchers. `minerva` takes this functionality further introducing a framework for researchers to design and execute remote sensing focussed machine learning experiments at scale. `minerva` includes support for `hydra` for experiment configuration, `wandb` logging support, use of high performance computing via `SLURM`, along with numerous other QoL utilities.
 
 # Statement of need
 
-The `minerva` package is primarily designed for use in training, validating and
-testing machine learning models in the remote sensing domain. Using `hydra`,
-experiments are configured via `YAML` files that `minerva` interprets, allowing
-users a great degree of flexibility. It was orginally conceived in 2021 when it was found that `pytorch-lightning` did not offer the level of flexibility required for our particular use-case. Since then, `minerva` has grown from a PhD research repositry into a fully-fledged package -- albeit still in its beta infancy -- with regular users.
+The `minerva` package is primarily designed for use in training, validating and testing machine learning models in the remote sensing domain. Using `hydra`, experiments are configured via `YAML` files that `minerva` interprets, allowing users a great degree of flexibility. It was orginally conceived in 2021 when it was found that `pytorch-lightning` did not offer the level of flexibility required for our particular use-case. Since then, `minerva` has grown from a PhD research repositry into a fully-fledged package -- albeit still in its beta infancy -- with regular users.
 
 # Package Structure
 
-+-------------------+-------------+---------------------+
-| Sub-Package       | Module      | Description         |
-|                   |             |                     |
-+:=================:+:===========:+:===================:+
-| datasets          | collators   |                     |
-|                   +-------------+---------------------+
-|                   | dfc         |                     |
-|                   +-------------+---------------------+
-|                   | factory     |                     |
-|                   +-------------+---------------------+
-|                   | naip        |                     |
-|                   +-------------+---------------------+
-|                   | paired      |                     |
-|                   +-------------+---------------------+
-|                   | ssl4eos12   |                     |
-|                   +-------------+---------------------+
-|                   | utils       |                     |
-+-------------------+-------------+---------------------+
-| logger            | steplog     |                     |
-|                   +-------------+---------------------+
-|                   | tasklog     |                     |
-+-------------------+-------------+---------------------+
-| models            | core        |                     |
-|                   +-------------+---------------------+
-|                   | fcn         |                     |
-|                   +-------------+---------------------+
-|                   | psp         |                     |
-|                   +-------------+---------------------+
-|                   | resnet      |                     |
-|                   +-------------+---------------------+
-|                   | siamese     |                     |
-|                   +-------------+---------------------+
-|                   | unet        |                     |
-+-------------------+-------------+---------------------+
-| tasks             | core        |                     |
-|                   +-------------+---------------------+
-|                   | epoch       |                     |
-|                   +-------------+---------------------+
-|                   | knn         |                     |
-|                   +-------------+---------------------+
-|                   | tsne        |                     |
-+-------------------+-------------+---------------------+
-| utils             | config_load |                    |
-|                   +-------------+---------------------+
-|                   | runner      |                     |
-|                   +-------------+---------------------+
-|                   | utils       |                     |
-|                   +-------------+---------------------+
-|                   | visutils    |                     |
-+-------------------+-------------+---------------------+
-|                   | loss        |                     |
-|                   +-------------+---------------------+
-|                   | modelio     |                     |
-|                   +-------------+---------------------+
-|                   | optimisers  |                     |
-|                   +-------------+---------------------+
-|                   | samplers    |                     |
-|                   +-------------+---------------------+
-|                   | trainer     |                     |
-|                   +-------------+---------------------+
-|                   | transforms  |                     |
-+===================+=============+=====================+
++-------------------+--------------+-----------------------------------------------+
+| Sub-Package       | Module       | Description                                   |
+|                   |              |                                               |
++:=================:+:============:+:=============================================:+
+| datasets          | collators    | Collation functions designed for `minerva`    |
+|                   +--------------+-----------------------------------------------+
+|                   | dfc          | Implementation of DFC2020 competition dataset |
+|                   +--------------+-----------------------------------------------+
+|                   | factory      | Functionality for constructing                |
+|                   |              | datasets and `DataLoader` in `minerva`        |
+|                   +--------------+-----------------------------------------------+
+|                   | naip         |                                               |
+|                   +--------------+-----------------------------------------------+
+|                   | paired       | Datasets to handle paired sampling            |
+|                   |              | for use in Siamese learning                   |
+|                   +--------------+-----------------------------------------------+
+|                   | ssl4eos12    | Simple adaption of the `torchgeo` Sentinel2   |
+|                   |              | dataset for use with the SSL4EO-S12 dataset   |
+|                   +--------------+-----------------------------------------------+
+|                   | utils        | Utility functions for datasets in `minerva`   |
++-------------------+--------------+-----------------------------------------------+
+| logger            | steplog      | Loggers to handle the logging                 |
+|                   |              | from each step of a task                      |
+|                   +--------------+-----------------------------------------------+
+|                   | tasklog      | Loggers designed to handle the logging        |
+|                   |              | and analysis for a whole task                 |
++-------------------+--------------+-----------------------------------------------+
+| models            | core         | Core utility functions and abstract classes   |
+|                   |              | underpinning `models`                         |
+|                   +--------------+-----------------------------------------------+
+|                   | fcn          | Fully Convolutional Network (FCN) models      |
+|                   +--------------+-----------------------------------------------+
+|                   | psp          | Pyramid Spatial Pooling Net (PSPNet) adapted  |
+|                   |              | for use in `minerva`                          |
+|                   +--------------+-----------------------------------------------+
+|                   | resnet       | ResNets adapted for use in `minerva`          |
+|                   +--------------+-----------------------------------------------+
+|                   | siamese      | Siamese models adapted for use in `minerva`   |
+|                   +--------------+-----------------------------------------------+
+|                   | unet         | Module containing UNet models. Most code      |
+|                   |              | from https://github.com/milesial/Pytorch-UNet |
++-------------------+--------------+-----------------------------------------------+
+| tasks             | core         | Core functionality of `tasks`, defining the   |
+|                   |              | abstract `MinervaTask` class                  |
+|                   +--------------+-----------------------------------------------+
+|                   | epoch        | Standard epoch style for use with generic     | 
+|                   |              | model fitting                                 |
+|                   +--------------+-----------------------------------------------+
+|                   | knn          | K-Nearest Neighbour (KNN) validation task     |
+|                   +--------------+-----------------------------------------------+
+|                   | tsne         | TSNE clustering task                          |
++-------------------+--------------+-----------------------------------------------+
+| utils             | config_load  | Handles the loading of config files           | 
+|                   |              | and checking paths                            |
+|                   +--------------+-----------------------------------------------+
+|                   | runner       | Generic functionality for running `minerva`   |
+|                   |              | scripts, setting up distributed computing,    |
+|                   |              | handling SLURM variables and                  |
+|                   |              | Weights and Biases logging                    |
+|                   +--------------+-----------------------------------------------+
+|                   | utils        | Utility functions                             |
+|                   +--------------+-----------------------------------------------+
+|                   | visutils     | Visualisation utility functionality           |
++-------------------+--------------+-----------------------------------------------+
+| _root_            | loss         | Specialised loss functions for `minerva`      |
+|                   +--------------+-----------------------------------------------+
+|                   | modelio      | Standarised functions to handle various IO    |
+|                   |              | structures from `dataloaders` and to models   |
+|                   +--------------+-----------------------------------------------+
+|                   | optimisers   | Custom `torch` optimisers. Consists soley of  |
+|                   |              | adapted LARS optimiser from Noah Golmant      |
+|                   +--------------+-----------------------------------------------+
+|                   | pytorchtools | `EarlyStopping` functionality to track when   |
+|                   |              | the training of a model should stop. By       |
+|                   |              | Bjarte Mehus Sunde                            |
+|                   +--------------+-----------------------------------------------+
+|                   | samplers     | Custom samplers for `torchgeo` datasets       |
+|                   +--------------+-----------------------------------------------+
+|                   | trainer      | Module containing `Trainer` that handles      | 
+|                   |              | the fitting of models                         |
+|                   +--------------+-----------------------------------------------+
+|                   | transforms   | Custom transforms to handle multi-spectral    | 
+|                   |              | imagery and geospatial data                   |
++===================+==============+===============================================+
 
 # Comparison to Similar Projects
 
