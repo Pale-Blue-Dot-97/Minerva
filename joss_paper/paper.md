@@ -62,7 +62,9 @@ The `minerva` package is primarily designed for use in training, validating and 
 |                   | factory      | Functionality for constructing                |
 |                   |              | datasets and `DataLoader` in `minerva`        |
 |                   +--------------+-----------------------------------------------+
-|                   | naip         |                                               |
+|                   | naip         | Adapted version of `torchgeo` `NAIP` dataset  |
+|                   |              | that works with the NAIP files provided in    |
+|                   |              | the ChesapeakeCVPR dataset                    |
 |                   +--------------+-----------------------------------------------+
 |                   | paired       | Datasets to handle paired sampling            |
 |                   |              | for use in Siamese learning                   |
@@ -134,6 +136,8 @@ The `minerva` package is primarily designed for use in training, validating and 
 |                   +--------------+-----------------------------------------------+
 |                   | transforms   | Custom transforms to handle multi-spectral    | 
 |                   |              | imagery and geospatial data                   |
++===================+==============+===============================================+
+| Footer                                                                           |
 +===================+==============+===============================================+
 
 # Comparison to Similar Projects
