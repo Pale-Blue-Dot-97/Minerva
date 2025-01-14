@@ -105,7 +105,7 @@ class WandbConnectionManager:
 # =====================================================================================================================
 def _handle_sigusr1(signum, frame) -> None:  # pragma: no cover
     subprocess.Popen(  # nosec B602
-        shlex.split(f'scontrol requeue {os.getenv("SLURM_JOB_ID")}'),
+        shlex.split(f"scontrol requeue {os.getenv('SLURM_JOB_ID')}"),
         shell=True,
     )
     exit()
