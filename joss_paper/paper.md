@@ -51,6 +51,7 @@ The `minerva` package is primarily designed for use in training, validating and 
 
 # Package Structure
 
+<!---
 +-------------------+--------------+-----------------------------------------------+
 | Sub-Package       | Module       | Description                                   |
 |                   |              |                                               |
@@ -139,12 +140,198 @@ The `minerva` package is primarily designed for use in training, validating and 
 +===================+==============+===============================================+
 | Footer                                                                           |
 +===================+==============+===============================================+
+--->
 
 # Comparison to Similar Projects
 
 Given the rapid expansion and advancement of machine learning research since 2014, it will not surprise the reader that there are a wide variety of open-source libraries that support ML practitioners. However, with regards to the remote-sensing focussed researcher, there is a far smaller selection. The stand out package, which `minerva` heavily relies on, is `torchgeo` [@Stewart_TorchGeo_2022]. Like `minerva`, `torchgeo` has matured significantly over the last few years to become an invaulable tool for remote-sensing AI researchers. Its stand out features include its native support for handling GeoTiffs and geospatial information, making it effortless for a user to currate and manipulate datasets to train a remote-sensing focussed model on. `torchgeo.datamodule` also offers much of the same framework features `minerva` does but takes a slightly different approach as to how an experiment is defined.
 
 `minerva` also bears similarities to `pytorch-lightning` in its internal structure. Like `pytorch-lightning`, the internal workings of performing each step of model training is abstracted away in `minerva` from a user. The major difference between the libraries (other than the former's far superior stability and maturity) is `minerva`'s focus on configuring experiments via `YAML` configuration. This stems largely from `minerva`'s raison d'etre -- to act as a framework to facilitate research experiments. As such, `minerva` does lack the same flexibility that `pytorch-lightning` offers its users.
+
+# User Guide
+
+The core functionality of `minerva` provides the modules to define `models` to fit and test, `loaders` to pre-process,
+load and parse data, and a `Trainer` to handle all aspects of a model fitting. Below is a MWE of creating datasets,
+initialising a Trainer and model, and fitting and testing that model then outputting the results:
+
+## MWE Driver Script
+
+```python
+import hydra
+from omegaconf import DictConfig
+
+from minerva.trainer import Trainer  # Class designed to handle fitting of model.
+
+
+@hydra.main(version_base="1.3")
+def main(cfg: DictConfig) -> None:
+    # Initialise a Trainer. Also creates the model.
+    trainer = Trainer(**cfg)
+
+    # Run the fitting (train and validation epochs).
+    trainer.fit()
+
+    # Run the testing epoch and output results.
+    trainer.test()
+```
+
+See `scripts\MinervaExp.py` as an example script implementing `minerva`.
+
+## Config Structure
+
+`minerva` uses `hydra` and `omegaconf` to handle config files and the CLI for users. This allows for hyper-parameters for experiments to be easily reproducible and flexible. `hydra` also provides an adaptable CLI that integrates with the config seemlessly. It also provides functionality for hyper-parameter sweeps.
+
+See `minerva\inbuilt_cfgs\example_config.yml` as an example config file.
+
+## Distributed Computing
+
+`minerva` fully supports the `SLURM` protocol for high performance and distributed computing by utilising the `submitit-slurm` plugin for `hydra`. Configs containing the `SLURM` variables for a user's job should be contained in a `hydra\launcher` sub-directory and contain the SLURM variables the user wishes to request for their job, similar to how they would be specified in a SBATCH file. Reference also needs to be made to `submitit-slurm` to activate the plugin, as shown in the example below: 
+
+```yaml
+# configs/hydra/launcher/swarm_h100_2gpu.yaml
+defaults:
+  - submitit_slurm
+
+_target_: hydra_plugins.hydra_submitit_launcher.submitit_launcher.SlurmLauncher
+submitit_folder: /.submitit/%j  # Where to send the output logs of the job to. %j is the job ID
+
+# SLURM variables
+partition: swarm_h100
+timeout_min: 1000
+tasks_per_node: 1
+nodes: 1
+gres: gpu:2
+cpus_per_task: 10
+mem_gb: 312
+```
+
+Then this config should be referenced in the main experiment config, as shown below:
+
+```yaml
+# configs/experiment_config.yaml
+# === HYDRA DEFAULTS ==========================================================
+defaults:
+   - override hydra/launcher: swarm_h100_2gpu
+   - _self_
+
+task: 1
+```
+
+The `task` number should match the number of nodes the job is to be submitted to.
+
+### Caveat
+
+Unfortunately, it was found that due to pickling issues with `multiprocessing` used by `pytorch`, coupled with the requirements of `hydra` and `submitit-slurm`, the `SLURM` distributed computing and hyper-parameter sweep functionality requires the driver code to be located within the `runner` module rather than in a user defined script, like shown in the MWE. Therefore, `scripts/MinervaExp.py` is actually structured as such:
+
+```python
+from typing import Optional
+
+import hydra
+from omegaconf import DictConfig
+from wandb.sdk.lib import RunDisabled
+from wandb.sdk.wandb_run import Run
+
+from minerva.utils import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME, runner, utils
+
+
+# =====================================================================================================================
+#                                                      MAIN
+# =====================================================================================================================
+@hydra.main(
+    version_base="1.3",
+    config_path=str(DEFAULT_CONF_DIR_PATH),
+    config_name=DEFAULT_CONFIG_NAME,
+)
+@runner.distributed_run
+def main(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig) -> None:
+    # Due to the nature of multiprocessing and its interaction with hydra, wandb and SLURM,
+    # the actual code excuted in the job is contained in `run_trainer` in `runner`.
+    #
+    # Any code placed here will not be executed with multiprocessing!
+
+    pass
+
+
+if __name__ == "__main__":
+    # Print Minerva banner.
+    utils._print_banner()
+
+    with runner.WandbConnectionManager():
+        # Run the specified main with distributed computing and the arguments provided.
+        main()
+```
+
+where `minerva.utils.runner.run_trainer` `minerva.utils.runner.distributed_run` is:
+
+```python
+# minerva/utils/runner.py
+
+def distributed_run(
+    run: Callable[[int, Optional[Run | RunDisabled], DictConfig], Any],
+) -> Callable[..., Any]:
+    """Runs the supplied function and arguments with distributed computing according to arguments.
+
+    :func:`_run_preamble` adds some additional commands to initialise the process group for each run
+    and allocating the GPU device number to use before running the supplied function.
+
+    Note:
+        ``args`` must contain the attributes ``rank``, ``world_size`` and ``dist_url``. These can be
+        configured using :func:`config_env_vars` or :func:`config_args`.
+
+    Args:
+        run (~typing.Callable[[int, ~argparse.Namespace], ~typing.Any]): Function to run with distributed computing.
+        args (~argparse.Namespace): Arguments for the run and to specify the variables for distributed computing.
+    """
+
+    OmegaConf.register_new_resolver("cfg_load", _config_load_resolver, replace=True)
+    OmegaConf.register_new_resolver("eval", eval, replace=True)
+    OmegaConf.register_new_resolver(
+        "to_patch_size", _construct_patch_size, replace=True
+    )
+
+    @functools.wraps(run)
+    def inner_decorator(cfg: DictConfig):
+        OmegaConf.resolve(cfg)
+        OmegaConf.set_struct(cfg, False)
+
+        cfg = config_args(cfg)
+
+        if cfg.world_size <= 1:
+            # Setups up the `wandb` run.
+            wandb_run, cfg = setup_wandb_run(0, cfg)
+
+            # Run the experiment.
+            run_trainer(0, wandb_run, cfg)
+
+        else:  # pragma: no cover
+            try:
+                mp.spawn(_run_preamble, (run_trainer, cfg), cfg.ngpus_per_node)  # type: ignore[attr-defined]
+            except KeyboardInterrupt:
+                dist.destroy_process_group()  # type: ignore[attr-defined]
+
+    return inner_decorator
+
+def run_trainer(
+    gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig
+) -> None:
+    trainer = Trainer(
+        gpu=gpu,
+        wandb_run=wandb_run,
+        **cfg,  # type: ignore[misc]
+    )
+
+    if not cfg.get("eval", False):
+        trainer.fit()
+
+    if cfg.get("pre_train", False) and gpu == 0:
+        trainer.save_backbone()
+        trainer.close()
+
+    if not cfg.get("pre_train", False):
+        trainer.test()
+```
+
+The flexibility of config files and `minerva` should, however, allow this simple driver code to provide all the functionality a user may require. In the unlikely event a user requires custom driver code, they would be required to copy the above example and adapt to their needs. It was found that adding a `callable` with the driver code in as an arg to `distributed_run` did not work -- it must be defined in the same scope. Further debugging of this peculilar pickling error is required to provide a far more satisfactory user experience. 
 
 # Conclusion
 
