@@ -4,7 +4,7 @@ internet-sabotage3==0.1.6
 ipykernel==6.29.5
 mypy==1.14.1
 myst_parser==4.0.0
-pre-commit==4.0.1
+pre-commit==4.1.0
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability.
 pytest==8.3.4
 pytest-cov==6.0.0
