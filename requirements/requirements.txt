@@ -36,7 +36,7 @@ tifffile==2024.12.12
 timm==1.0.14
 torch==2.5.1
 torcheval==0.0.7
-torchgeo==0.6.1
+torchgeo==0.6.2
 torchinfo==1.8.0
 torchvision==0.20.1
 tornado>=6.3.3
