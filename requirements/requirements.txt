@@ -2,15 +2,14 @@ argcomplete==3.5.2
 fastapi>=0.101.0
 fiona>=1.9.1
 geopy==2.4.1
-git+https://github.com/qubvel-org/segmentation_models.pytorch
 GitPython>=3.1.35
 hydra-core==1.3.2
-imagecodecs==2024.9.22
-imageio==2.36.1
+imagecodecs==2024.12.30
+imageio==2.37.0
 inputimeout==1.0.4
 ipykernel==6.29.5
 kornia==0.7.4
-lightly==1.5.15
+lightly==1.5.17
 lmdb==1.5.1
 matplotlib==3.10.0
 mlflow-skinny==2.19.0
@@ -18,7 +17,7 @@ numba>=0.57.0 # not directly required but pinned to ensure Python 3.11 compatibi
 numpy==2.0.2
 onnx==1.17.0
 onnx2torch==1.5.15
-opencv-python-headless==4.10.0.84
+opencv-python-headless==4.11.0.86
 overload==1.1
 pandas==2.2.3
 patch-ng==1.18.1
@@ -27,13 +26,14 @@ psutil==6.1.0
 pyyaml==6.0.2
 rasterio>=1.3.6
 requests==2.32.3
-scikit-learn==1.6.0
+scikit-learn==1.6.1
+segmentation_models.pytorch==0.4.0
 setuptools==75.6.0
 starlette==0.41.3 # not directly required, pinned by Dependabot to avoid a vulnerability.
 tabulate==0.9.0
 tensorflow==2.18.0
 tifffile==2024.12.12
-timm==1.0.12
+timm==1.0.14
 torch==2.5.1
 torcheval==0.0.7
 torchgeo==0.6.1
