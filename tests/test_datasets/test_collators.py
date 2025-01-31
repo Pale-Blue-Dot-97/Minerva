@@ -36,7 +36,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from collections import defaultdict
 from typing import Any
 
 import pytest
@@ -90,8 +89,8 @@ def test_stack_sample_pairs() -> None:
 
     stacked_samples_1, stacked_samples_2 = mdt.stack_sample_pairs(samples)
 
-    assert isinstance(stacked_samples_1, defaultdict)
-    assert isinstance(stacked_samples_2, defaultdict)
+    assert isinstance(stacked_samples_1, dict)
+    assert isinstance(stacked_samples_2, dict)
 
     for key in ("image", "mask", "bbox"):
         for i in range(6):
