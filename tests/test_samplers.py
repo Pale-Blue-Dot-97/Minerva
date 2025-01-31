@@ -36,7 +36,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from collections import defaultdict
 from pathlib import Path
 from typing import Any
 
@@ -66,8 +65,8 @@ def test_randompairgeosampler(img_root: Path) -> None:
 
     batch = next(iter(loader))
 
-    assert isinstance(batch[0], defaultdict)
-    assert isinstance(batch[1], defaultdict)
+    assert isinstance(batch[0], dict)
+    assert isinstance(batch[1], dict)
     assert len(batch[0]["image"]) == 8
     assert len(batch[1]["image"]) == 8
 
@@ -86,8 +85,8 @@ def test_randompairbatchgeosampler(img_root: Path) -> None:
 
     batch = next(iter(loader))
 
-    assert isinstance(batch[0], defaultdict)
-    assert isinstance(batch[1], defaultdict)
+    assert isinstance(batch[0], dict)
+    assert isinstance(batch[1], dict)
     assert len(batch[0]["image"]) == 8
     assert len(batch[1]["image"]) == 8
 
