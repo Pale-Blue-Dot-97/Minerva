@@ -42,7 +42,6 @@ import os
 import random
 import shutil
 import tempfile
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -130,8 +129,8 @@ def test_pair_collate() -> None:
     output = collator(batch)
 
     assert isinstance(output, tuple)
-    assert isinstance(output[0], defaultdict)
-    assert isinstance(output[1], defaultdict)
+    assert isinstance(output[0], dict)
+    assert isinstance(output[1], dict)
     assert len(output[0]["image"]) == len(output[1]["image"])
     assert len(output[1]["mask"]) == len(output[0]["image"])
 
