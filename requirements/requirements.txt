@@ -22,7 +22,7 @@ overload==1.1
 pandas==2.2.3
 patch-ng==1.18.1
 protobuf>=3.19.5 # not directly required, pinned by Snyk to avoid a vulnerability.
-psutil==6.1.0
+psutil==7.0.0
 pyyaml==6.0.2
 rasterio>=1.3.6
 requests==2.32.3
