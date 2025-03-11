@@ -8,7 +8,7 @@ imagecodecs==2024.12.30
 imageio==2.37.0
 inputimeout==1.0.4
 ipykernel==6.29.5
-kornia==0.7.4
+kornia==0.8.0
 lightly==1.5.17
 lmdb==1.6.2
 matplotlib==3.10.0
