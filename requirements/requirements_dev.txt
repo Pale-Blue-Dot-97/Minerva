@@ -2,7 +2,7 @@ certifi>=2022.12.7 # not directly required, pinned by Snyk to avoid a vulnerabil
 flake8==7.1.1
 internet-sabotage3==0.1.6
 ipykernel==6.29.5
-mypy==1.14.1
+mypy==1.15.0
 myst_parser==4.0.0
 pre-commit==4.1.0
 pygments>=2.7.4 # not directly required, pinned by Snyk to avoid a vulnerability.
