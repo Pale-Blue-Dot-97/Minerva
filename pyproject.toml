@@ -13,6 +13,7 @@ authors = [
 requires-python = ">=3.10"
 license = {file = "LICENSE"}
 classifiers = [
+        "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.10",
@@ -34,6 +35,7 @@ dependencies = [
     "hydra-core",
     "mlflow-skinny",
     "numba>=0.57.0; python_version>='3.11'",
+    "numba>=0.61.0rc2; python_version>='3.13'",
     "numpy>=2.0.0",
     "overload",
     "opencv-python",
