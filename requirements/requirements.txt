@@ -28,7 +28,7 @@ rasterio>=1.3.6
 requests==2.32.3
 scikit-learn==1.6.1
 segmentation_models.pytorch==0.4.0
-setuptools==78.1.0
+setuptools==79.0.0
 starlette==0.45.3 # not directly required, pinned by Dependabot to avoid a vulnerability.
 tabulate==0.9.0
 tensorflow==2.18.0
