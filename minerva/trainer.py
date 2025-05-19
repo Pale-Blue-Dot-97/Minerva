@@ -569,7 +569,7 @@ class Trainer:
 
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         optimiser = hydra.utils.instantiate(
-            self.params["optimiser"], params=self.model.parameters()
+            self.params["optimiser"], params=filter(lambda p: p.requires_grad, self.model.parameters()),
         )
         self.model.set_optimiser(optimiser)
 

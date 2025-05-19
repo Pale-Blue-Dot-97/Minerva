@@ -352,7 +352,7 @@ class MinervaTask(ABC):
         # Constructs and sets the optimiser for the model based on supplied config parameters.
         optimiser = hydra.utils.instantiate(
             fallback_params("optimiser", self.params, self.global_params),
-            params=self.model.parameters(),
+            params=filter(lambda p: p.requires_grad, self.model.parameters()),
         )
 
         self.model.set_optimiser(optimiser)
