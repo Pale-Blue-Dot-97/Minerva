@@ -100,7 +100,7 @@ class DynamicPSP(smp.PSPNet):
     def __init__(
         self,
         encoder_name: str = "resnet34",
-        encoder_weights: Optional[str] = "imagenet",
+        encoder_weights: Optional[str] = None,
         encoder_depth: int = 5,
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
@@ -239,7 +239,7 @@ class MinervaPSP(MinervaWrapper):
         n_classes: int = 1,
         scaler: Optional[GradScaler] = None,
         encoder_name: str = "resnet34",
-        encoder_weights: Optional[str] = "imagenet",
+        encoder_weights: Optional[str] = None,
         encoder_depth: int = 5,
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
