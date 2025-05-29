@@ -43,10 +43,7 @@ from typing import Any, Callable, Optional
 
 import segmentation_models_pytorch as smp
 import torch
-from segmentation_models_pytorch.base import (
-    ClassificationHead,
-    SegmentationHead,
-)
+from segmentation_models_pytorch.base import ClassificationHead, SegmentationHead
 from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
@@ -96,12 +93,13 @@ class DynamicDeepLabV3Plus(smp.DeepLabV3Plus):
     def __init__(
         self,
         encoder_name: str = "resnet34",
-        encoder_weights: Optional[str] = "imagenet",
+        encoder_weights: Optional[str] = None,
         encoder_depth: int = 5,
         in_channels: Optional[int] = None,
         n_classes: int = 1,
+        decoder_channels: int = 256,
         activation: Optional[str | Callable[..., Any]] = None,
-        upsampling: int = 8,
+        upsampling: int = 4,
         aux_params: Optional[dict[str, Any]] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
@@ -115,6 +113,7 @@ class DynamicDeepLabV3Plus(smp.DeepLabV3Plus):
             encoder_depth=encoder_depth,
             in_channels=in_channels,
             classes=n_classes,
+            decoder_channels=decoder_channels,
             activation=activation,
             upsampling=upsampling,
             aux_params=aux_params,
@@ -136,16 +135,18 @@ class DynamicDeepLabV3Plus(smp.DeepLabV3Plus):
         # Will freeze the weights of the backbone to avoid end-to-end training if `freeze_backbone==True`.
         self.freeze_backbone(freeze_backbone)
 
+        self.decoder_channels = decoder_channels
+
     def make_segmentation_head(
         self,
         n_classes: int,
         activation: Optional[str | Callable[..., Any]] = None,
-        upsampling: int = 8,
+        upsampling: int = 4,
     ) -> None:
         self.segmentation_head = SegmentationHead(
-            in_channels=self.decoder.out_channels,
+            in_channels=self.decoder_channels,
             out_channels=n_classes,
-            kernel_size=3,
+            kernel_size=1,
             activation=activation,
             upsampling=upsampling,
         )
@@ -227,10 +228,10 @@ class MinervaDeepLabV3Plus(MinervaWrapper):
         n_classes: int = 1,
         scaler: Optional[GradScaler] = None,
         encoder_name: str = "resnet34",
-        encoder_weights: Optional[str] = "imagenet",
+        encoder_weights: Optional[str] = None,
         encoder_depth: int = 5,
         activation: Optional[str | Callable[..., Any]] = None,
-        upsampling: int = 8,
+        upsampling: int = 4,
         aux_params: Optional[dict[str, Any]] = None,
         backbone_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
