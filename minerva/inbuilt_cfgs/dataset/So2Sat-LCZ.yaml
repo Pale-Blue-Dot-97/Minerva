@@ -1,0 +1,39 @@
+name: So2Sat-LCZ
+
+classes:
+    0: Compact high rise
+    1: Compact mid rise
+    2: Compact low rise
+    3: Open high rise
+    4: Open mid rise
+    5: Open low rise
+    6: Lightweight low rise
+    7: Large low rise
+    8: Sparsely built
+    9: Heavy industry
+    10: Dense trees
+    11: Scattered trees
+    12: Bush & scrub
+    13: Low plants
+    14: Bare rock or paved
+    15: Bare soil or sand
+    16: Water
+
+colours:
+    0: '#871b1d'
+    1: '#d1272a'
+    2: '#e52828'
+    3: '#bd4e29'
+    4: '#ea6c1d'
+    5: '#ee9d56'
+    6: '#f3f221'
+    7: '#bfbdbd'
+    8: '#f8cdac'
+    9: '#575555'
+    10: '#1d6c37'
+    11: '#25af4c'
+    12: '#63883b'
+    13: '#b8d982'
+    14: '#040607'
+    15: '#f6f8b0'
+    16: '#6a64af'
