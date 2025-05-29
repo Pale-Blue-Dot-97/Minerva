@@ -674,9 +674,11 @@ class SimConvPSP(MinervaSiamese):
             **kwargs,
         )
 
+        self.backbone_name = backbone_name
+
         self.backbone = MinervaPSP(
             input_size=input_size,
-            encoder_name=self.backbone_name,
+            encoder_name=backbone_name,
             psp_out_channels=feature_dim,
             encoder_weights=encoder_weights,
             encoder_depth=5,
@@ -802,7 +804,7 @@ class SimConvDL3Plus(MinervaSiamese):
         self,
         criterion: Any,
         input_size: tuple[int, int, int] = (4, 256, 256),
-        projection_dim: int = 512,
+        decoder_channels: int = 256,
         scaler: Optional[GradScaler] = None,
         encoder_weights: Optional[str] = None,
         backbone_name: str = "resnet18",
@@ -815,10 +817,12 @@ class SimConvDL3Plus(MinervaSiamese):
             scaler=scaler,
             **kwargs,
         )
+        
+        self.backbone_name = backbone_name
 
         self.backbone = MinervaDeepLabV3Plus(
             input_size=input_size,
-            encoder_name=self.backbone_name,
+            encoder_name=backbone_name,
             encoder_weights=encoder_weights,
             encoder_depth=5,
             encoder=True,
@@ -828,14 +832,14 @@ class SimConvDL3Plus(MinervaSiamese):
         )
 
         self.proj_head = nn.Sequential(
-            nn.Conv2d(self.backbone.decoder.out_channels, projection_dim, 3, 2, padding=1),  # 3x3 Conv
-            nn.BatchNorm2d(projection_dim),
+            nn.Conv2d(decoder_channels, decoder_channels, 3, 2, padding=1),  # 3x3 Conv
+            nn.BatchNorm2d(decoder_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
-            nn.BatchNorm2d(projection_dim),
+            nn.Conv2d(decoder_channels, decoder_channels, 1, padding=0),
+            nn.BatchNorm2d(decoder_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(projection_dim, projection_dim, 1, padding=0),
-            nn.BatchNorm2d(projection_dim),
+            nn.Conv2d(decoder_channels, decoder_channels, 1, padding=0),
+            nn.BatchNorm2d(decoder_channels),
             nn.ReLU(inplace=True),
         )
 
