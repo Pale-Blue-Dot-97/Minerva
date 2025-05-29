@@ -369,7 +369,7 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             )
             if logs.get("total_miou") is not None:
                 self.metrics[f"{self.task_name}_miou"]["y"].append(
-                    logs["total_miou"] / self.n_samples
+                    logs["total_miou"] / self.n_batches
                 )
 
         else:
