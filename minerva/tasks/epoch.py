@@ -91,7 +91,7 @@ class StandardEpoch(MinervaTask):
                             results = (loss, *results[1:])
 
                         self.logger.step(
-                            self.global_step_num, self.local_step_num, *results
+                            self.global_step_num, self.local_step_num / self.log_rate, *results
                         )
 
                     self.global_step_num += 1
