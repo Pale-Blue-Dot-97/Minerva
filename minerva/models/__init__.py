@@ -89,6 +89,7 @@ __all__ = [
     "UNetR152",
     "ChangeDetector",
     "MinervaDeepLabv3Plus",
+    "MinervaUNet",
 ]
 
 
@@ -128,7 +129,7 @@ from .fcn import (
     FCN32ResNet50,
 )
 from .psp import DynamicPSP, MinervaPSP, MinervaPSPUNet
-from .deeplabv3 import MinervaDeepLabV3Plus
+from .deeplabv3 import MinervaDeepLabV3Plus as MinervaDeepLabv3Plus
 from .resnet import ResNet18, ResNet34, ResNet50, ResNet101, ResNet152, ResNetX
 from .siamese import (
     BarlowTwins,
@@ -145,4 +146,4 @@ from .siamese import (
     SimSiam34,
     SimSiam50,
 )
-from .unet import UNet, UNetR18, UNetR34, UNetR50, UNetR101, UNetR152
+from .unet import UNet, UNetR18, UNetR34, UNetR50, UNetR101, UNetR152, MinervaUNet
