@@ -33,13 +33,13 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["ChangeDetector"]
+__all__ = ["ChangeSceneDetector", "ChangeSegmentationDetector"]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Sequence, Callable
 
 import torch
 from torch import Tensor
@@ -49,12 +49,13 @@ from torch.nn.modules import Module
 from minerva.utils.utils import func_by_str
 
 from .core import MinervaModel
+from .unet import DynamicUNet
 
 
 # =====================================================================================================================
 #                                                     CLASSES
 # =====================================================================================================================
-class ChangeDetector(MinervaModel):
+class ChangeSceneDetector(MinervaModel):
     def __init__(
         self,
         criterion: Optional[Module] = None,
@@ -141,6 +142,98 @@ class ChangeDetector(MinervaModel):
         f = torch.cat((f_0, f_1), 1)
 
         z: Tensor = self.classification_head(f)
+
+        assert isinstance(z, Tensor)
+
+        if self.clamp_outputs:
+            return z.clamp(0, 1)
+        else:
+            return z
+
+
+class ChangeSegmentationDetector(MinervaModel):
+    def __init__(
+        self,
+        criterion: Optional[Module] = None,
+        input_size: Optional[tuple[int]] = None,
+        n_classes: int = 1,
+        scaler: Optional[GradScaler] = None,
+        encoder_name: str = "resnet18",
+        encoder_weights: Optional[str] = None,
+        encoder_depth: int = 5,
+        decoder_channels: Sequence[int] = (256, 128, 64, 32),
+        freeze_backbone: bool = False,
+        activation: Optional[str | Callable[..., Any]] = None,
+        backbone_weight_path: Optional[str | Path] = None,
+        aux_params: Optional[dict[str, Any]] = None,
+        clamp_outputs: bool = False,
+    ) -> None:
+        super().__init__(criterion, input_size, n_classes, scaler)
+
+        assert input_size is not None
+
+        self.backbone = DynamicUNet(
+            encoder_name=encoder_name,
+            encoder_weights=encoder_weights,
+            encoder_depth=encoder_depth,
+            in_channels=input_size[0],
+            n_classes=n_classes,
+            decoder_channels=decoder_channels,
+            activation=activation,
+            aux_params=aux_params,
+            backbone_weight_path=backbone_weight_path,
+            freeze_backbone=freeze_backbone,
+            encoder=False,
+            segmentation_on=True,
+            classification_on=False,
+            )
+
+        # _backbone = func_by_str(backbone_args.pop("module"), backbone_args.pop("name"))
+
+        # backbone: Module = _backbone(**backbone_args)
+
+        # # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
+        # if backbone_weight_path is not None:  # pragma: no cover
+        #     backbone.load_state_dict(
+        #         torch.load(backbone_weight_path, map_location=torch.device("cpu"))
+        #     )
+
+        #     # Freezes the weights of backbone to avoid end-to-end training.
+        #     backbone.requires_grad_(False if freeze_backbone else True)
+
+        # # Extract the actual encoder network from the backbone.
+        # if hasattr(backbone, "encoder"):
+        #     backbone = backbone.encoder
+
+        # self.backbone = backbone
+
+        # self.encoder_on = encoder_on
+        # self.filter_dim = filter_dim
+        # self.fc_dim = fc_dim
+        # self.intermediate_dim = intermediate_dim
+
+        # Will clamp the outputs of the classification head to the range (0, 1).
+        self.clamp_outputs = clamp_outputs
+
+    def forward(self, x: Tensor) -> Tensor:
+        """Performs a forward pass of the :class:`ResNet`.
+
+        Can be called directly as a method (e.g. ``model.forward``) or when data is parsed
+        to model (e.g. ``model()``).
+
+        Args:
+            x (~torch.Tensor): Input data to network.
+
+        Returns:
+            ~torch.Tensor: Likelihoods the network places on the
+            input ``x`` being of each class.
+        """
+        x_0, x_1 = x[0], x[1]
+
+        f_0 = self.backbone(x_0)
+        f_1 = self.backbone(x_1)
+
+        z = torch.cat((f_0, f_1), 1)
 
         assert isinstance(z, Tensor)
 

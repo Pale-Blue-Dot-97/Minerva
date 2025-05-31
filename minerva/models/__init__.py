@@ -87,7 +87,8 @@ __all__ = [
     "UNetR50",
     "UNetR101",
     "UNetR152",
-    "ChangeDetector",
+    "ChangeSceneDetector",
+    "ChangeSegmentationDetector",
     "MinervaDeepLabv3Plus",
     "MinervaUNet",
 ]
@@ -98,7 +99,7 @@ __all__ = [
 # =====================================================================================================================
 from .__depreciated import CNN as CNN
 from .__depreciated import MLP as MLP
-from .change_detector import ChangeDetector
+from .change_detector import ChangeSceneDetector, ChangeSegmentationDetector
 from .classifiers import FlexiSceneClassifier
 from .core import (
     FilterOutputs,
