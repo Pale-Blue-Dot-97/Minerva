@@ -494,8 +494,8 @@ class UNetR152(UNetR):
     backbone_name = "ResNet152"
 
 
-class DynamicUNet(smp.UNet):
-    """Adaptation of the :class:`segmentation_models_pytorch.UNet`.
+class DynamicUNet(smp.Unet):
+    """Adaptation of the :class:`segmentation_models_pytorch.Unet`.
 
     Designed to be flexible and dynamic for pre-training and downstream applications.
 
