@@ -183,7 +183,7 @@ class ChangeSegmentationDetector(MinervaModel):
             aux_params=aux_params,
             backbone_weight_path=backbone_weight_path,
             freeze_backbone=freeze_backbone,
-            encoder=False,
+            encoder=True,
             segmentation_on=True,
             classification_on=False,
             )
