@@ -161,7 +161,7 @@ class ChangeSegmentationDetector(MinervaModel):
         encoder_name: str = "resnet18",
         encoder_weights: Optional[str] = None,
         encoder_depth: int = 5,
-        decoder_channels: Sequence[int] = (256, 128, 64, 32),
+        decoder_channels: Sequence[int] = (256, 128, 64, 32, 16),
         freeze_backbone: bool = False,
         activation: Optional[str | Callable[..., Any]] = None,
         backbone_weight_path: Optional[str | Path] = None,
@@ -188,31 +188,6 @@ class ChangeSegmentationDetector(MinervaModel):
             classification_on=False,
             )
 
-        # _backbone = func_by_str(backbone_args.pop("module"), backbone_args.pop("name"))
-
-        # backbone: Module = _backbone(**backbone_args)
-
-        # # Loads and graphts the pre-trained weights ontop of the backbone if the path is provided.
-        # if backbone_weight_path is not None:  # pragma: no cover
-        #     backbone.load_state_dict(
-        #         torch.load(backbone_weight_path, map_location=torch.device("cpu"))
-        #     )
-
-        #     # Freezes the weights of backbone to avoid end-to-end training.
-        #     backbone.requires_grad_(False if freeze_backbone else True)
-
-        # # Extract the actual encoder network from the backbone.
-        # if hasattr(backbone, "encoder"):
-        #     backbone = backbone.encoder
-
-        # self.backbone = backbone
-
-        # self.encoder_on = encoder_on
-        # self.filter_dim = filter_dim
-        # self.fc_dim = fc_dim
-        # self.intermediate_dim = intermediate_dim
-
-        # Will clamp the outputs of the classification head to the range (0, 1).
         self.clamp_outputs = clamp_outputs
 
     def forward(self, x: Tensor) -> Tensor:
