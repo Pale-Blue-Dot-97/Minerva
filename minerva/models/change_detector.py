@@ -45,6 +45,7 @@ import torch
 from torch import Tensor
 from torch.cuda.amp.grad_scaler import GradScaler
 from torch.nn.modules import Module
+from segmentation_models_pytorch.base import SegmentationHead
 
 from minerva.utils.utils import func_by_str
 
@@ -188,6 +189,14 @@ class ChangeSegmentationDetector(MinervaModel):
             classification_on=False,
             )
 
+        # Rebuild the segmentation head to handle both epochs of images and output the change detection map.
+        self.backbone.segmentation_head = SegmentationHead(
+            in_channels=2*decoder_channels[-1],
+            out_channels=n_classes,
+            activation=activation,
+            kernel_size=3,
+        )
+
         self.clamp_outputs = clamp_outputs
 
     def forward(self, x: Tensor) -> Tensor:
@@ -205,10 +214,16 @@ class ChangeSegmentationDetector(MinervaModel):
         """
         x_0, x_1 = x[0], x[1]
 
-        f_0 = self.backbone(x_0)
-        f_1 = self.backbone(x_1)
+        # Embeddings
+        f_0 = self.backbone.encoder(x_0)
+        f_1 = self.backbone.encoder(x_1)
 
-        z = torch.cat((f_0, f_1), 1)
+        g_0 = self.decoder(f_0)
+        g_1 = self.decoder(f_1)
+
+        g = torch.cat((g_0, g_1), 1)
+
+        z = self.backbone.segmentation_head(g)
 
         assert isinstance(z, Tensor)
 
