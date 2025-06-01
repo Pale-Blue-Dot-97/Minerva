@@ -521,6 +521,34 @@ class SingleLabel:
             )
 
 
+class OHETransform:
+    """One-hot encodes a mask into a tensor of shape (n_classes, H, W).
+
+    Attributes:
+        n_classes (int): Number of classes in the mask.
+
+    Args:
+        n_classes (int): Number of classes in the mask.
+    """
+
+    def __init__(self, n_classes: int) -> None:
+        self.n_classes = n_classes
+
+    def __call__(self, mask: LongTensor) -> Tensor:
+        return self.forward(mask)
+
+    def forward(self, mask: LongTensor) -> Tensor:
+        """One-hot encodes the input mask.
+
+        Args:
+            mask (~torch.LongTensor): Input mask to one-hot encode.
+
+        Returns:
+            ~torch.Tensor: One-hot encoded mask.
+        """
+        return ft.one_hot(mask, num_classes=self.n_classes)
+
+
 class MinervaCompose:
     """Adaption of :class:`torchvision.transforms.Compose`. Composes several transforms together.
 
