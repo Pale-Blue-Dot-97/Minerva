@@ -167,7 +167,7 @@ class ChangeSegmentationDetector(MinervaModel):
         activation: Optional[str | Callable[..., Any]] = None,
         backbone_weight_path: Optional[str | Path] = None,
         aux_params: Optional[dict[str, Any]] = None,
-        clamp_outputs: bool = False,
+        clamp_outputs: bool = True,
     ) -> None:
         super().__init__(criterion, input_size, n_classes, scaler)
 
@@ -218,14 +218,16 @@ class ChangeSegmentationDetector(MinervaModel):
         f_0 = self.backbone.encoder(x_0)
         f_1 = self.backbone.encoder(x_1)
 
-        g_0 = self.decoder(f_0)
-        g_1 = self.decoder(f_1)
+        g_0 = self.backbone.decoder(*f_0)
+        g_1 = self.backbone.decoder(*f_1)
 
         g = torch.cat((g_0, g_1), 1)
 
         z = self.backbone.segmentation_head(g)
 
         assert isinstance(z, Tensor)
+
+        # z = z.squeeze()
 
         if self.clamp_outputs:
             return z.clamp(0, 1)
