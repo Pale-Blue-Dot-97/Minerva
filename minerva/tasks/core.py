@@ -298,7 +298,7 @@ class MinervaTask(ABC):
             )
 
             # Refresh the output size of the model and set to `output_size`.
-            self.model.determine_output_dim(sample_pairs=self.sample_pairs)
+            self.model.determine_output_dim(sample_pairs=self.sample_pairs, change_detection=self.change_detection)
 
         self.output_size = self.model.output_shape
         self.input_size = self.model.input_size
@@ -321,7 +321,6 @@ class MinervaTask(ABC):
             self.model_type, "siamese", "ssl"
         ):
             weights_dict = utils.class_weighting(self.class_dist, normalise=False)
-
             weights = []
 
             if self.elim:
@@ -334,11 +333,15 @@ class MinervaTask(ABC):
 
             _weights = Tensor(weights)
 
-            # Use hydra to instantiate the loss function with the weights and return.
-            return hydra.utils.instantiate(
-                fallback_params("loss_params", self.params, self.global_params),
-                weight=_weights,
-            )
+            loss_params = fallback_params("loss_params", self.params, self.global_params)
+
+            if loss_params["_target_"] == "torch.nn.BCEWithLogitsLoss":
+                pos_weight = _weights.reshape(-1, 1, 1)
+                # Use hydra to instantiate the loss function with the weights in the pos_weight arg.
+                return hydra.utils.instantiate(loss_params, pos_weight=pos_weight)
+            else:
+                # Use hydra to instantiate the loss function with the weights and return.
+                return hydra.utils.instantiate(loss_params, weight=_weights)
 
         else:
             # Use hydra to instantiate the loss function based of the config, without weights.
@@ -535,6 +538,11 @@ class MinervaTask(ABC):
         # Ensures predictions and labels are flattened.
         preds: NDArray[np.int_] = utils.batch_flatten(predictions)
         targets: NDArray[np.int_] = utils.batch_flatten(labels)
+
+        if utils.check_substrings_in_string(self.model_type, "multilabel") and not utils.check_substrings_in_string(
+            self.model_type, "change-detector",
+        ):
+            targets = np.argmax(targets, 1)
 
         # Uses utils to create a classification report in a DataFrame.
         cr_df = utils.make_classification_report(preds, targets, self.params["classes"])
