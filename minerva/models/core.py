@@ -546,6 +546,9 @@ def get_output_shape(
     if len(output[0].data.shape) == 1:
         return (output[0].data.shape[0],)
 
+    elif change_detection:
+        return tuple(output[0].data.shape)
+
     else:
         return tuple(output[0].data.shape[1:])
 
