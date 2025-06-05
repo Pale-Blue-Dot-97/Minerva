@@ -111,6 +111,7 @@ class DynamicPSP(smp.PSPNet):
         upsampling: int = 8,
         aux_params: Optional[dict[str, Any]] = None,
         backbone_weight_path: Optional[str] = None,
+        encoder_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         encoder: bool = True,
         segmentation_on: bool = True,
@@ -144,6 +145,12 @@ class DynamicPSP(smp.PSPNet):
 
             self.encoder = backbone.encoder
             self.decoder = backbone.decoder
+
+        if encoder_weight_path is not None:  # pragma: no cover
+            # Loads and graphts the pre-trained weights ontop of the encoder if the path is provided.
+            self.encoder.load_state_dict(
+                torch.load(encoder_weight_path, map_location=torch.device("cpu"))
+            )
 
         # Will freeze the weights of the backbone to avoid end-to-end training if `freeze_backbone==True`.
         self.freeze_backbone(freeze_backbone)
@@ -248,6 +255,7 @@ class MinervaPSP(MinervaWrapper):
         upsampling: int = 8,
         aux_params: Optional[dict[str, Any]] = None,
         backbone_weight_path: Optional[str] = None,
+        encoder_weight_path: Optional[str] = None,
         freeze_backbone: bool = False,
         encoder: bool = False,
         segmentation_on: bool = True,
@@ -268,6 +276,7 @@ class MinervaPSP(MinervaWrapper):
                 upsampling=upsampling,
                 aux_params=aux_params,
                 backbone_weight_path=backbone_weight_path,
+                encoder_weight_path=encoder_weight_path,
                 freeze_backbone=freeze_backbone,
                 encoder=encoder,
                 segmentation_on=segmentation_on,

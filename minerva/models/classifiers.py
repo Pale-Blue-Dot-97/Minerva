@@ -70,6 +70,7 @@ class FlexiSceneClassifier(MinervaBackbone):
         filter_dim: int = 0,
         freeze_backbone: bool = False,
         backbone_weight_path: Optional[str | Path] = None,
+        encoder_weight_path: Optional[str | Path] = None,
         backbone_args: dict[str, Any] = {},
         clamp_outputs: bool = False,
     ) -> None:
@@ -90,6 +91,15 @@ class FlexiSceneClassifier(MinervaBackbone):
         if hasattr(backbone, "encoder"):
             backbone = backbone.encoder
 
+            if encoder_weight_path is not None:  # pragma: no cover
+                # Loads and graphts the pre-trained weights ontop of the encoder if the path is provided.
+                backbone.load_state_dict(
+                    torch.load(encoder_weight_path, map_location=torch.device("cpu"))
+                )
+
+                # Freezes the weights of encoder to avoid end-to-end training.
+                backbone.requires_grad_(False if freeze_backbone else True)
+        
         self.backbone = backbone
 
         self.encoder_on = encoder_on
