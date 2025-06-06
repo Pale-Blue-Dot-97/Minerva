@@ -51,8 +51,7 @@ model_params:
     freeze_backbone: false
     clamp_outputs: true
     backbone_args:
-        module: minerva.models
-        name: MinervaPSP
+        _target_: minerva.models.MinervaPSP
         input_size: ${input_size}
         n_classes: 1
         encoder_name: resnet18

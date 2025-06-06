@@ -536,16 +536,19 @@ class MinervaTask(ABC):
             labels (~typing.Sequence[int]): List of corresponding ground truth label masks.
         """
         # Ensures predictions and labels are flattened.
-        preds: NDArray[np.int_] = utils.batch_flatten(predictions)
-        targets: NDArray[np.int_] = utils.batch_flatten(labels)
+        preds: NDArray[np.int_] = np.array(predictions)
+        targets: NDArray[np.int_] = np.array(labels)
 
-        if utils.check_substrings_in_string(self.model_type, "multilabel") and not utils.check_substrings_in_string(
-            self.model_type, "change-detector",
-        ):
-            targets = np.argmax(targets, 1)
+        preds = preds.reshape(-1, preds.shape[-1])
+        targets = targets.reshape(-1, targets.shape[-1])
 
         # Uses utils to create a classification report in a DataFrame.
-        cr_df = utils.make_classification_report(preds, targets, self.params["classes"])
+        cr_df = utils.make_classification_report(
+            preds,
+            targets,
+            self.params["classes"],
+            multilabel=utils.check_substrings_in_string(self.model_type, "multilabel"),
+        )
 
         # Ensure the parent directories for the classification report exist.
         self.task_fn.parent.mkdir(parents=True, exist_ok=True)

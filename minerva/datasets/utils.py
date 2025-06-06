@@ -221,6 +221,7 @@ def make_bounding_box(roi: Sequence[float] | bool = False) -> Optional[BoundingB
 def load_all_samples(
     dataloader: DataLoader[Iterable[Any]],
     target_key: Literal["mask", "label"] = "mask",
+    multilabel: bool = False,
 ) -> NDArray[Any]:
     """Loads all sample masks from parsed :class:`~torch.utils.data.DataLoader` and computes the modes of their classes.
 
@@ -229,6 +230,7 @@ def load_all_samples(
             ``__len__`` attribute and a sampler that returns a dict with a ``"mask"`` or ``"label"`` key.
         target_key (~typing.Literal["mask", "label"]): Optional; Key for the targets in the dataset.
             Either ``"mask"`` or ``"label"``.
+        multilabel (bool): Optional; If ``True``, the dataset is assumed to be a multi-label dataset.
 
     Returns:
         ~numpy.ndarray: 2D array of the class modes within every sample defined by the parsed
@@ -236,7 +238,7 @@ def load_all_samples(
     """
     sample_modes: list[list[tuple[int, int]]] = []
     for sample in tqdm(dataloader):
-        modes = utils.find_modes(sample[target_key])
+        modes = utils.find_modes(sample[target_key], multilabel=multilabel)
         sample_modes.append(modes)
 
     return np.array(sample_modes, dtype=object)

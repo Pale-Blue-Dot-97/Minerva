@@ -730,6 +730,7 @@ def make_loaders(
 
     elim = utils.fallback_params("elim", task_params, params, False)
     cache = utils.fallback_params("cache_dataset", task_params, params, True)
+    multilabel = utils.check_substrings_in_string(model_type, "multilabel")
 
     n_batches: dict[str, int] | int
     loaders: dict[str, DataLoader[Iterable[Any]]] | DataLoader[Iterable[Any]]
@@ -752,6 +753,7 @@ def make_loaders(
                 collator_target,
                 change_detection=change_detection,
                 elim=elim,
+                multilabel=multilabel,
             )
 
         print(f"CREATING {task_name} DATASET")
@@ -869,6 +871,7 @@ def get_data_specs(
     collator_target: str = "torchgeo.datasets.stack_samples",
     change_detection: bool = False,
     elim: bool = True,
+    multilabel: bool = False,
 ):
     # Load manifest from cache for this dataset.
     manifest = get_manifest(
@@ -879,6 +882,7 @@ def get_data_specs(
         dataloader_params,
         collator_target=collator_target,
         change_detection=change_detection,
+        multilabel=multilabel,
     )
 
     class_dist = utils.modes_from_manifest(manifest, classes)
@@ -907,6 +911,7 @@ def get_manifest(
     loader_params: Optional[dict[str, Any]] = None,
     collator_target: str = "torchgeo.datasets.stack_samples",
     change_detection: bool = False,
+    multilabel: bool = False,
 ) -> DataFrame:
     """Attempts to return the :class:`~pandas.DataFrame` located at ``manifest_path``.
 
@@ -951,6 +956,7 @@ def get_manifest(
             loader_params,
             collator_target=collator_target,
             change_detection=change_detection,
+            multilabel=multilabel,
         )
 
         print(f"MANIFEST TO FILE -----> {manifest_path}")
@@ -970,6 +976,7 @@ def make_manifest(
     loader_params: dict[str, Any],
     collator_target: str = "torchgeo.datasets.stack_samples",
     change_detection: bool = False,
+    multilabel: bool = False,
 ) -> DataFrame:
     """Constructs a manifest of the dataset detailing each sample therein.
 
@@ -1053,7 +1060,7 @@ def make_manifest(
     print("FETCHING SAMPLES")
     df = DataFrame()
 
-    modes = load_all_samples(loader, target_key=target_key)  # type: ignore[arg-type]
+    modes = load_all_samples(loader, target_key=target_key, multilabel=multilabel)  # type: ignore[arg-type]
 
     df["MODES"] = [np.array([]) for _ in modes]
 

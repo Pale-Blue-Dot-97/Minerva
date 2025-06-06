@@ -1067,6 +1067,7 @@ def check_test_empty(
     labels: Sequence[int] | NDArray[np.int_],
     class_labels: Optional[dict[int, str]] = None,
     p_dist: bool = True,
+    multilabel: bool = False,
 ) -> tuple[NDArray[np.int_], NDArray[np.int_], dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     Returns corrected and re-ordered predictions, labels and class labels.
@@ -1076,6 +1077,7 @@ def check_test_empty(
         labels (~typing.Sequence[int] | ~numpy.ndarray[int]): List of corresponding ground truth labels.
         class_labels (dict[int, str]): Optional; Dictionary mapping class labels to class names.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
+        multilabel (bool): Optional; Whether the labels are multilabel or not. Defaults to ``False``.
 
     Returns:
         tuple[~numpy.ndarray[int], ~numpy.ndarray[int], dict[int, str]]: :class:`tuple` of:
@@ -1084,8 +1086,8 @@ def check_test_empty(
             * Dictionary mapping new class labels to class names.
     """
     # Finds the distribution of the classes within the data.
-    labels_dist = find_modes(labels)
-    pred_dist = find_modes(pred)
+    labels_dist = find_modes(labels, multilabel=multilabel)
+    pred_dist = find_modes(pred, multilabel=multilabel)
 
     if class_labels is None:
         class_numbers = [x[0] for x in labels_dist]
@@ -1238,6 +1240,7 @@ def find_modes(
     plot: bool = False,
     classes: Optional[dict[int, str]] = None,
     cmap_dict: Optional[dict[int, str]] = None,
+    multilabel: bool = False,
 ) -> list[tuple[int, int]]:
     """Finds the modal distribution of the classes within the labels provided.
 
@@ -1246,14 +1249,24 @@ def find_modes(
     Args:
         labels (Iterable[int]): Class labels describing the data to be analysed.
         plot (bool): Plots distribution of subpopulations if ``True``.
+        classes (dict[int, str]): Optional; Dictionary mapping class labels to class names.
+        cmap_dict (dict[int, str]): Optional; Dictionary mapping class labels to RGB colours.
+        multilabel (bool): Optional; Whether the labels are multi-label or not. Defaults to ``False``.
 
     Returns:
         list[tuple[int, int]]: Modal distribution of classes in input in order of most common class.
     """
-    # Finds the distribution of the classes within the data
-    class_dist: list[tuple[int, int]] = Counter(
-        np.array(labels).flatten()
-    ).most_common()
+    class_dist: list[tuple[int, int]]
+
+    if multilabel:
+        class_dist = Counter(
+            np.sum(np.array(labels), axis=tuple(i for i in range(np.array(labels).ndim - 1)))
+        ).most_common()
+    else:
+        # Finds the distribution of the classes within the data
+        class_dist = Counter(
+            np.array(labels).flatten()
+        ).most_common()
 
     if plot:
         # Plots a pie chart of the distribution of the classes within the given list of patches
@@ -1460,6 +1473,7 @@ def make_classification_report(
     class_labels: Optional[dict[int, str]] = None,
     print_cr: bool = True,
     p_dist: bool = False,
+    multilabel: bool = False,
 ) -> DataFrame:
     """Generates a DataFrame of the precision, recall, f-1 score and support of the supplied predictions
     and ground truth labels.
@@ -1474,6 +1488,7 @@ def make_classification_report(
         print_cr (bool): Optional; Whether to print a copy of the classification report
             :class:`~pandas.DataFrame` put through :mod:`tabulate`.
         p_dist (bool): Optional; Whether to print to screen the distribution of classes within each dataset.
+        multilabel (bool): Optional; Whether the labels are multi-label or not.
 
     Returns:
         ~pandas.DataFrame: Classification report with the precision, recall, f-1 score and support
@@ -1482,7 +1497,7 @@ def make_classification_report(
     # Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
     # Returns corrected and re-ordered predictions, labels and class_labels.
     pred, labels, class_labels = check_test_empty(
-        pred, labels, class_labels, p_dist=p_dist
+        pred, labels, class_labels, p_dist=p_dist, multilabel=multilabel,
     )
 
     # Gets the list of class names from the dict.
@@ -1501,7 +1516,7 @@ def make_classification_report(
     cr_df = DataFrame(cr)
 
     # Delete unneeded columns.
-    for column in ("accuracy", "macro avg", "micro avg", "weighted avg"):
+    for column in ("accuracy", "macro avg", "micro avg", "weighted avg", "samples avg"):
         try:
             del cr_df[column]
         except KeyError:
