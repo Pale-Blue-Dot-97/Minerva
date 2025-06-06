@@ -541,16 +541,21 @@ def get_output_shape(
 
     random_input = random_input.nan_to_num()
     with torch.no_grad():
-        output: Tensor = model(random_input.to(next(model.parameters()).device))
+        output: Tensor | tuple = model(random_input.to(next(model.parameters()).device))
 
-    if len(output[0].data.shape) == 1:
-        return (output[0].data.shape[0],)
+    if isinstance(output, (tuple, list)):
+        # Assume output is a tuple of tensors, e.g. from a model with multiple outputs like a ResNet.
+        # Extract the first tensor's shape as this should be the final output.
+        output = output[0]
 
-    elif change_detection:
-        return tuple(output[0].data.shape)
+    assert isinstance(output, Tensor)
 
+    if len(output.data.shape) == 1:
+        # Single dimensional output, e.g. from a linear layer needs to be placed in a tuple for consistency.
+        return (output.data.shape[0],)
     else:
-        return tuple(output[0].data.shape[1:])
+        # Remove batch dimension.
+        return tuple(output.data.shape[1:])
 
 
 def bilinear_init(in_channels: int, out_channels: int, kernel_size: int) -> Tensor:

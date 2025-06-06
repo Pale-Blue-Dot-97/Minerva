@@ -42,13 +42,13 @@ optim_func: SGD                       # Name of the optimiser function.
 
 # ---+ SSL/ Siamese Options +--------------------------------------------------
 sample_pairs: true                    # Activates Siamese paired sampling.
-max_r: &max_r 400   # Max distance between patches within a pair.
+max_r: 400          # Max distance between patches within a pair.
 knn_k: 5            # Top-k most similar images to predict image for KNN val
 val_freq: 1         # Validation epoch every ``val_freq`` training epochs.
 
 # ---+ Model Parameters +------------------------------------------------------
 model_params:
-    _target_: minerva.models.SimConv
+    _target_: minerva.models.SimConvPSP
     input_size: ${input_size}
 
 # ---+ Optimiser Parameters +--------------------------------------------------
@@ -144,7 +144,7 @@ tasks:
                 root: SSL4EO-S12
                 bands: [B2, B3, B4, B8]
                 size: ${patch_size}
-                max_r: *max_r
+                max_r: ${max_r}
 
     fit-val:
         _target_: minerva.tasks.WeightedKNN

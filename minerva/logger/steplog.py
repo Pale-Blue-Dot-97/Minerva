@@ -360,24 +360,14 @@ class SupervisedStepLogger(MinervaStepLogger):
                 else:
                     int_log_shape = (self.n_batches, self.batch_size)
             else:
-                if len(self.output_size) == 3:
+                if check_substrings_in_string(self.model_type, "multilabel"):
                     int_log_shape = (
                         self.n_batches,
                         self.batch_size,
-                        *self.output_size[1:],
-                    )
-
-                if check_substrings_in_string(self.model_type, "multilabel") and not check_substrings_in_string(
-                    self.model_type, "change-detector"
-                ):
-                    int_log_shape = (
-                        self.n_batches,
-                        self.batch_size,
-                        n_classes,
                         *self.output_size,
                     )
                 else:
-                    int_log_shape = (self.n_batches, self.batch_size, *self.output_size)
+                    int_log_shape = (self.n_batches, self.batch_size, *self.output_size[1:])
 
             self.results["z"] = np.empty(int_log_shape, dtype=np.uint8)
             self.results["y"] = np.empty(int_log_shape, dtype=np.uint8)
@@ -388,19 +378,11 @@ class SupervisedStepLogger(MinervaStepLogger):
             if check_substrings_in_string(self.model_type, "scene-classifier"):
                 float_log_shape = (self.n_batches, self.batch_size, n_classes)
             else:
-                if len(self.output_size) == 3:
-                    float_log_shape = (
-                        self.n_batches,
-                        self.batch_size,
-                        *self.output_size,
-                    )
-                else:
-                    float_log_shape = (
-                        self.n_batches,
-                        self.batch_size,
-                        n_classes,
-                        *self.output_size,
-                    )
+                float_log_shape = (
+                    self.n_batches,
+                    self.batch_size,
+                    *self.output_size,
+                )
 
             images_shape = (self.n_batches, self.batch_size, *self.input_size)
 
