@@ -347,13 +347,13 @@ class SupervisedStepLogger(MinervaStepLogger):
             if check_substrings_in_string(self.model_type, "segmentation")
             else False
         )
-        
+
         self.multilabel = (
             True
             if check_substrings_in_string(self.model_type, "multilabel")
             else False
         )
-        
+
         self.change_detector = (
             True
             if check_substrings_in_string(self.model_type, "change-detector")
@@ -504,10 +504,18 @@ class SupervisedStepLogger(MinervaStepLogger):
         if self.calc_miou:
             assert y is not None
             if check_substrings_in_string(self.model_type, "multilabel"):
-                y = torch.argmax(y, 1)  # type: ignore[attr-defined]
-            y_true = y.detach().cpu().numpy().flatten()
-            y_pred = torch.argmax(z, 1).detach().cpu().numpy().flatten()  # type: ignore[attr-defined]
-            miou = float(jaccard_score(y_true, y_pred, average="weighted"))
+                # For multilabel segmentation, we need to round the predictions.
+                y_pred = torch.round(z).detach().cpu().numpy()
+
+                # Reshape the predictions and labels so they are of shape [NxC].
+                y_pred = y_pred.reshape(-1, y_pred.shape[-1])
+                y_true = y.detach().cpu().numpy().reshape(-1, y.shape[-1])
+            else:
+                # Flatten the predictions and labels to 1D arrays.
+                y_pred = torch.argmax(z, 1).detach().cpu().numpy().flatten()
+                y_true = torch.argmax(y, 1).detach().cpu().numpy().flatten()
+
+            miou = float(jaccard_score(y_true, y_pred, average="macro"))
             self.logs["total_miou"] += miou
             self.write_metric("miou", miou, step_num=global_step_num)
 

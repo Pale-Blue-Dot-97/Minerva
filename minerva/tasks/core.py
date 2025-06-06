@@ -540,7 +540,7 @@ class MinervaTask(ABC):
         targets: NDArray[np.int_] = np.array(labels)
 
         if utils.check_substrings_in_string(self.model_type, "multilabel"):
-            # If multilabel, ensure the predictions and targets are reshaped correctly.
+            # If multilabel, ensure the predictions and targets are reshaped correctly to [NxC].
             preds = preds.reshape(-1, preds.shape[-1])
             targets = targets.reshape(-1, targets.shape[-1])
         else:

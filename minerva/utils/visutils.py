@@ -1080,10 +1080,6 @@ def make_multilabel_confusion_matrix(
     if isinstance(preds, list):
         preds = np.ndarray(preds)
 
-    if len(labels.shape) == 5:
-        labels = np.moveaxis(labels, [3, 4], [2, 3])
-        preds = np.moveaxis(preds, [3, 4], [2, 3])
-
     labels = labels.reshape(-1, labels.shape[-1])
     preds = preds.reshape(-1, preds.shape[-1])
 
