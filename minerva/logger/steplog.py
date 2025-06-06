@@ -347,6 +347,18 @@ class SupervisedStepLogger(MinervaStepLogger):
             if check_substrings_in_string(self.model_type, "segmentation")
             else False
         )
+        
+        self.multilabel = (
+            True
+            if check_substrings_in_string(self.model_type, "multilabel")
+            else False
+        )
+        
+        self.change_detector = (
+            True
+            if check_substrings_in_string(self.model_type, "change-detector")
+            else False
+        )
 
         if self.calc_miou:
             self.logs["total_miou"] = 0.0
@@ -355,12 +367,12 @@ class SupervisedStepLogger(MinervaStepLogger):
         if self.record_int:
             int_log_shape: tuple[int, ...]
             if check_substrings_in_string(self.model_type, "scene-classifier"):
-                if check_substrings_in_string(self.model_type, "multilabel"):
+                if self.multilabel:
                     int_log_shape = (self.n_batches, self.batch_size, n_classes)
                 else:
                     int_log_shape = (self.n_batches, self.batch_size)
             else:
-                if check_substrings_in_string(self.model_type, "multilabel"):
+                if self.multilabel:
                     int_log_shape = (
                         self.n_batches,
                         self.batch_size,
@@ -445,7 +457,7 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         if self.record_int:
             # Arg max the estimated probabilities and add to predictions.
-            if check_substrings_in_string(self.model_type, "multilabel", "change-detector"):
+            if self.multilabel or self.change_detector:
                 self.results["z"][self.logs["batch_num"]] = (
                     torch.round(z).detach().cpu().numpy()
                 )
@@ -469,14 +481,19 @@ class SupervisedStepLogger(MinervaStepLogger):
             # Add the floating point results to the logs.
             self.results["probs"][self.logs["batch_num"]] = z.detach().cpu().numpy()
             self.results["index"][self.logs["batch_num"]] = index
-            self.results["x"][self.logs["batch_num"]] = x.detach().cpu().numpy()
+
+            if self.change_detector:
+                # For change detection, just record the 2nd image.
+                self.results["x"][self.logs["batch_num"]] = x[1].detach().cpu().numpy()
+            else:
+                self.results["x"][self.logs["batch_num"]] = x.detach().cpu().numpy()
 
         # Computes the loss and the correct predictions from this step.
         ls = loss.item()
-        if check_substrings_in_string(self.model_type, "multilabel"):
+        if self.multilabel:
             correct = float(multilabel_accuracy(z, y).cpu())
-        elif check_substrings_in_string(self.model_type, "change-detector"):
-            correct = (torch.round(z) == y).sum().item()  # type: ignore[attr-defined]
+        # elif self.change_detector:
+        #     correct = (torch.round(z) == y).sum().item()  # type: ignore[attr-defined]
         else:
             correct = (torch.argmax(z, 1) == y).sum().item()  # type: ignore[attr-defined]
 
@@ -490,10 +507,6 @@ class SupervisedStepLogger(MinervaStepLogger):
                 y = torch.argmax(y, 1)  # type: ignore[attr-defined]
             y_true = y.detach().cpu().numpy().flatten()
             y_pred = torch.argmax(z, 1).detach().cpu().numpy().flatten()  # type: ignore[attr-defined]
-            # if check_substrings_in_string(self.model_type, "change-detector"):
-            #     y_pred = torch.round(z).detach().cpu().numpy().flatten()  # type: ignore[attr-defined]
-            # else:
-            #     y_pred = torch.argmax(z, 1).detach().cpu().numpy().flatten()  # type: ignore[attr-defined]
             miou = float(jaccard_score(y_true, y_pred, average="weighted"))
             self.logs["total_miou"] += miou
             self.write_metric("miou", miou, step_num=global_step_num)
