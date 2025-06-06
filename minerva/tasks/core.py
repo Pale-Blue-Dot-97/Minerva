@@ -539,8 +539,13 @@ class MinervaTask(ABC):
         preds: NDArray[np.int_] = np.array(predictions)
         targets: NDArray[np.int_] = np.array(labels)
 
-        preds = preds.reshape(-1, preds.shape[-1])
-        targets = targets.reshape(-1, targets.shape[-1])
+        if utils.check_substrings_in_string(self.model_type, "multilabel"):
+            # If multilabel, ensure the predictions and targets are reshaped correctly.
+            preds = preds.reshape(-1, preds.shape[-1])
+            targets = targets.reshape(-1, targets.shape[-1])
+        else:
+            preds = preds.flatten()
+            targets = targets.flatten()
 
         # Uses utils to create a classification report in a DataFrame.
         cr_df = utils.make_classification_report(
