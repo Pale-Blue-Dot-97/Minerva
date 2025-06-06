@@ -1259,9 +1259,7 @@ def find_modes(
     class_dist: list[tuple[int, int]]
 
     if multilabel:
-        class_dist = Counter(
-            np.sum(np.array(labels), axis=tuple(i for i in range(np.array(labels).ndim - 1)))
-        ).most_common()
+        class_dist = Counter(np.where(labels == 1)[-1]).most_common()
     else:
         # Finds the distribution of the classes within the data
         class_dist = Counter(
@@ -1494,42 +1492,55 @@ def make_classification_report(
         ~pandas.DataFrame: Classification report with the precision, recall, f-1 score and support
         for each class in a :class:`~pandas.DataFrame`.
     """
-    # Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
-    # Returns corrected and re-ordered predictions, labels and class_labels.
-    pred, labels, class_labels = check_test_empty(
-        pred, labels, class_labels, p_dist=p_dist, multilabel=multilabel,
-    )
+    if multilabel:
+        class_names = class_labels.values() if class_labels else None
 
-    # Gets the list of class names from the dict.
-    class_names = [class_labels[i] for i in range(len(class_labels))]
+        # Uses Sci-kit Learn's classification_report to generate the report as a nested dict.
+        cr = classification_report(
+            y_true=labels,
+            y_pred=pred,
+            target_names=class_names,
+            zero_division=0,  # type: ignore
+            output_dict=True,
+        )
+    else:
+        # Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
+        # Returns corrected and re-ordered predictions, labels and class_labels.
+        pred, labels, class_labels = check_test_empty(
+            pred, labels, class_labels, p_dist=p_dist, multilabel=multilabel,
+        )
 
-    # Uses Sci-kit Learn's classification_report to generate the report as a nested dict.
-    cr = classification_report(
-        y_true=labels,
-        y_pred=pred,
-        labels=[i for i in range(len(class_labels))],
-        zero_division=0,  # type: ignore
-        output_dict=True,
-    )
+        # Gets the list of class names from the dict.
+        class_names = [class_labels[i] for i in range(len(class_labels))]
+
+        # Uses Sci-kit Learn's classification_report to generate the report as a nested dict.
+        cr = classification_report(
+            y_true=labels,
+            y_pred=pred,
+            labels=[i for i in range(len(class_labels))],
+            zero_division=0,  # type: ignore
+            output_dict=True,
+        )
 
     # Constructs DataFrame from classification report dict.
     cr_df = DataFrame(cr)
 
-    # Delete unneeded columns.
-    for column in ("accuracy", "macro avg", "micro avg", "weighted avg", "samples avg"):
-        try:
-            del cr_df[column]
-        except KeyError:
-            pass
-
     # Transpose DataFrame so rows are classes and columns are metrics.
     cr_df = cr_df.T
 
-    # Add column for the class names.
-    cr_df["LABEL"] = class_names
+    if not multilabel:
+        assert class_labels is not None
 
-    # Re-order the columns so the class names are on the left-hand side.
-    cr_df = cr_df[["LABEL", "precision", "recall", "f1-score", "support"]]
+        # Substitutes the class numbers with the class names in the index of the DataFrame.
+        new_index = []
+        for i in cr_df.index:
+            try:
+                int_key = int(i)  # try to convert string to int
+                new_index.append(class_labels.get(int_key, i))
+            except ValueError:
+                new_index.append(i)  # leave non-numeric strings untouched
+        new_index = pd.Index(new_index)
+        cr_df.index = new_index
 
     # Prints the DataFrame put through tabulate into a pretty text format to stdout.
     if print_cr:
