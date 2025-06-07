@@ -546,9 +546,7 @@ class OHETransform:
         Returns:
             ~torch.Tensor: One-hot encoded mask.
         """
-        ohe_mask = torch.nn.functional.one_hot(mask, num_classes=self.n_classes)
-
-        return torch.permute(ohe_mask, (2, 0, 1)).to(dtype=torch.float32)
+        return torch.nn.functional.one_hot(mask, num_classes=self.n_classes).to(dtype=torch.float32)
 
 
 class MinervaCompose:
