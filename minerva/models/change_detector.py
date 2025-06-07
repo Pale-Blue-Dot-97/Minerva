@@ -229,8 +229,7 @@ class ChangeSegmentationDetector(MinervaModel):
 
         assert isinstance(z, Tensor)
 
-        # Reshape the output so the channels are the last dimension.
-        z = z.reshape(z.shape[-2], z.shape[-1], z.shape[-3])
+        z = z.moveaxis(-3, -1)  # Move the class dimension to the last position.
 
         if self.clamp_outputs:
             return z.clamp(0, 1)

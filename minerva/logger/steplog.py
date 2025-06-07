@@ -492,8 +492,6 @@ class SupervisedStepLogger(MinervaStepLogger):
         ls = loss.item()
         if self.multilabel:
             correct = float(multilabel_accuracy(z, y).cpu())
-        # elif self.change_detector:
-        #     correct = (torch.round(z) == y).sum().item()  # type: ignore[attr-defined]
         else:
             correct = (torch.argmax(z, 1) == y).sum().item()  # type: ignore[attr-defined]
 
