@@ -336,9 +336,8 @@ class MinervaTask(ABC):
             loss_params = fallback_params("loss_params", self.params, self.global_params)
 
             if loss_params["_target_"] == "torch.nn.BCEWithLogitsLoss":
-                pos_weight = _weights.reshape(-1, 1, 1)
                 # Use hydra to instantiate the loss function with the weights in the pos_weight arg.
-                return hydra.utils.instantiate(loss_params, pos_weight=pos_weight)
+                return hydra.utils.instantiate(loss_params, pos_weight=_weights)
             else:
                 # Use hydra to instantiate the loss function with the weights and return.
                 return hydra.utils.instantiate(loss_params, weight=_weights)
