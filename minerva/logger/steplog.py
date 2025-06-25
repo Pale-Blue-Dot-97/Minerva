@@ -457,9 +457,13 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         if self.record_int:
             # Arg max the estimated probabilities and add to predictions.
-            if self.multilabel or self.change_detector:
+            if self.multilabel and self.change_detector:
                 self.results["z"][self.logs["batch_num"]] = (
                     torch.round(z).detach().cpu().numpy()
+                )
+            elif self.multilabel and not self.change_detector:
+                self.results["z"][self.logs["batch_num"]] = (
+                    (torch.sigmoid(z) > 0.5).detach().cpu().numpy()
                 )
             else:
                 self.results["z"][self.logs["batch_num"]] = (
@@ -479,7 +483,11 @@ class SupervisedStepLogger(MinervaStepLogger):
 
         if self.record_float:
             # Add the floating point results to the logs.
-            self.results["probs"][self.logs["batch_num"]] = z.detach().cpu().numpy()
+            if self.multilabel:
+                self.results["probs"][self.logs["batch_num"]] = torch.sigmoid(z).detach().cpu().numpy()
+            else:
+                self.results["probs"][self.logs["batch_num"]] = z.detach().cpu().numpy()
+
             self.results["index"][self.logs["batch_num"]] = index
 
             if self.change_detector:

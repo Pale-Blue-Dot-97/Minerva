@@ -99,7 +99,7 @@ class FlexiSceneClassifier(MinervaBackbone):
 
                 # Freezes the weights of encoder to avoid end-to-end training.
                 backbone.requires_grad_(False if freeze_backbone else True)
-        
+
         self.backbone = backbone
 
         self.encoder_on = encoder_on
