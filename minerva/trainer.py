@@ -340,6 +340,11 @@ class Trainer:
             MinervaModel | MinervaDataParallel | MinervaBackbone | OptimizedModule
         )
 
+        self.checkpoint_path = self.exp_fn / self.params["exp_name"]
+        self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
+
+        self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
+
         if Path(self.params.get("pre_train_name", "none")).suffix == ".onnx":
             # Loads model from `onnx` format.
             self.model = self.load_onnx_model()
@@ -396,11 +401,6 @@ class Trainer:
             self.model = wrap_model(
                 self.model, gpu, self.params.get("torch_compile", False)
             )
-
-        self.checkpoint_path = self.exp_fn / self.params["exp_name"]
-        self.backbone_path = self.exp_fn / (self.params["exp_name"] + "-backbone.pt")
-
-        self.print("Checkpoint will be saved to " + str(self.checkpoint_path))
 
         # Checkpoint experiment at the start.
         if self.checkpoint_experiment:
