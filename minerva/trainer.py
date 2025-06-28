@@ -608,6 +608,8 @@ class Trainer:
 
         tasks: dict[str, MinervaTask] = {}
         for mode in fit_params.keys():
+            val_task = utils.check_substrings_in_string(mode, "val")
+
             tasks[mode] = get_task(
                 fit_params[mode]["_target_"],
                 mode,
@@ -619,6 +621,7 @@ class Trainer:
                 self.gpu,
                 self.rank,
                 self.world_size,
+                self.max_epochs / self.val_freq if val_task else self.max_epochs,
                 self.writer,
                 self.backbone_path,
                 **self.params,
@@ -747,6 +750,7 @@ class Trainer:
                 self.exp_fn,
                 self.gpu,
                 self.rank,
+                1,  # Only one epoch for testing.
                 self.world_size,
                 self.writer,
                 **self.params,

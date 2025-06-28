@@ -98,6 +98,7 @@ class MinervaTaskLogger(ABC):
         batch_size: int,
         input_size: tuple[int, int, int],
         output_size: tuple[int, ...],
+        n_epochs: int = 1,
         step_logger_params: Optional[dict[str, Any]] = None,
         record_int: bool = True,
         record_float: bool = False,
@@ -121,7 +122,7 @@ class MinervaTaskLogger(ABC):
         self.sample_pairs = params.get("sample_pairs", False)
         self.n_classes = params.get("n_classes")
 
-        self.n_epochs = params.get("max_epochs", 0)
+        self.n_epochs = n_epochs
         self.writer = writer
 
         if not isinstance(step_logger_params, dict):

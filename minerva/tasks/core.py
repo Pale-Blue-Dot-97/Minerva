@@ -171,6 +171,7 @@ class MinervaTask(ABC):
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
+        n_epochs: int = 1,
         writer: Optional[SummaryWriter | Run] = None,
         backbone_weight_path: Optional[str | Path] = None,
         record_int: bool = True,
@@ -225,6 +226,7 @@ class MinervaTask(ABC):
         if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
             self.batch_size = self.batch_size // dist.get_world_size()  # type: ignore[attr-defined]
 
+        self.n_epochs = n_epochs
         self.n_batches = n_batches
 
         self.model_type = fallback_params("model_type", self.params, self.global_params)
@@ -388,6 +390,7 @@ class MinervaTask(ABC):
             self.batch_size,
             self.input_size,
             self.output_size,
+            self.n_epochs,
             step_logger_params=utils.fallback_params(
                 "step_logger", self.params, self.global_params, {}
             ),
