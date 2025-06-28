@@ -121,6 +121,7 @@ class MinervaTaskLogger(ABC):
         self.sample_pairs = params.get("sample_pairs", False)
         self.n_classes = params.get("n_classes")
 
+        self.n_epochs = params.get("max_epochs", 0)
         self.writer = writer
 
         if not isinstance(step_logger_params, dict):
@@ -142,7 +143,7 @@ class MinervaTaskLogger(ABC):
         # Creates a dict to hold the loss and accuracy results from training, validation and testing.
         self.metrics: dict[str, Any] = {}
         for metric in self.metric_types:
-            self.metrics[f"{self.task_name}_{metric}"] = {"x": [], "y": []}
+            self.metrics[f"{self.task_name}_{metric}"] = {"x": np.empty([self.n_epochs]), "y": np.empty([self.n_epochs])}
 
     def _make_logger(self) -> None:
         """Builds and sets the logger.
@@ -210,17 +211,18 @@ class MinervaTaskLogger(ABC):
         Args:
             epoch_no (int): Epoch number to log.
         """
-        self._calc_metrics(self.step_logger.get_logs)
+        self._calc_metrics(self.step_logger.get_logs, epoch_no)
         self.log_epoch_number(epoch_no)
 
     @abc.abstractmethod
-    def _calc_metrics(self, logs: dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any], epoch_no: int) -> None:
         """Updates metrics with epoch results.
 
         Must be defined before use.
 
         Args:
             logs (dict[str, ~typing.Any]): Logs of the results from the epoch of the task to calculate metrics from.
+            epoch_no (int): Epoch number to log.
         """
 
     def log_epoch_number(self, epoch_no: int) -> None:
@@ -230,7 +232,7 @@ class MinervaTaskLogger(ABC):
             epoch_no (int): Epoch number to log.
         """
         for metric in self.metrics.keys():
-            self.metrics[metric]["x"].append(epoch_no)
+            self.metrics[metric]["x"][epoch_no]
 
     @property
     def get_metrics(self) -> dict[str, Any]:
@@ -263,14 +265,16 @@ class MinervaTaskLogger(ABC):
         """
         return self.step_logger.get_results
 
-    def log_null(self) -> None:
+    def log_null(self, epoch_no: int) -> None:
         """Log :attr:`numpy.NAN` for this epoch.
 
         Useful for logging null when a validation epoch was skipped so that
         the length of the logs remains the same as the training logs.
+        Args:
+            epoch_no (int): Epoch number to log.
         """
         for metric in self.metrics.keys():
-            self.metrics[metric]["y"].append(np.nan)
+            self.metrics[metric]["y"][epoch_no] = np.nan
 
     def get_sub_metrics(
         self, pattern: tuple[str, ...] = ("train", "val")
@@ -353,29 +357,23 @@ class SupervisedTaskLogger(MinervaTaskLogger):
             **params,
         )
 
-    def _calc_metrics(self, logs: dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any], epoch_no: int) -> None:
         """Updates metrics with epoch results.
 
         Args:
             logs (dict[str, ~typing.Any]): Logs of the results from the epoch of fitting to calculate metrics from.
+            epoch_no (int): Epoch number to log.
         """
-        self.metrics[f"{self.task_name}_loss"]["y"].append(
-            logs["total_loss"] / self.n_batches
-        )
+        self.metrics[f"{self.task_name}_loss"]["y"][epoch_no] = logs["total_loss"] / self.n_batches
 
         if check_substrings_in_string(self.model_type, "segmentation"):
-            self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"] / (self.n_samples * np.prod(self.output_size))
-            )
+            self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] = logs["total_correct"] / (self.n_samples * np.prod(self.output_size))
+
             if logs.get("total_miou") is not None:
-                self.metrics[f"{self.task_name}_miou"]["y"].append(
-                    logs["total_miou"] / self.n_batches
-                )
+                self.metrics[f"{self.task_name}_miou"]["y"][epoch_no] = logs["total_miou"] / self.n_batches
 
         else:
-            self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"] / self.n_samples
-            )
+            self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] = logs["total_correct"] / self.n_samples
 
             # Ensure that there are no empty logs for MIoU in a non=segmentation experiment.
             if f"{self.task_name}_miou" in self.metrics:
@@ -480,33 +478,24 @@ class SSLTaskLogger(MinervaTaskLogger):
         if not getattr(self.step_logger, "euclidean", False):
             del self.metrics[f"{self.task_name}_euc_dist"]
 
-    def _calc_metrics(self, logs: dict[str, Any]) -> None:
+    def _calc_metrics(self, logs: dict[str, Any], epoch_no: int) -> None:
         """Updates metrics with epoch results.
 
         Args:
             logs (dict[str, ~typing.Any]): Logs of the results from the epoch of fitting to calculate metrics from.
+            epoch_no (int): Epoch number to log.
         """
-        self.metrics[f"{self.task_name}_loss"]["y"].append(
-            logs["total_loss"] / self.n_batches
-        )
+        self.metrics[f"{self.task_name}_loss"]["y"][epoch_no] = logs["total_loss"] / self.n_batches
 
         if not check_substrings_in_string(self.model_type, "siamese"):
-            self.metrics[f"{self.task_name}_acc"]["y"].append(
-                logs["total_correct"] / self.n_samples
-            )
-            self.metrics[f"{self.task_name}_top5_acc"]["y"].append(
-                logs["total_top5"] / self.n_samples
-            )
+            self.metrics[f"{self.task_name}_acc"]["y"][epoch_no] = logs["total_correct"] / self.n_samples
+            self.metrics[f"{self.task_name}_top5_acc"]["y"][epoch_no] = logs["total_top5"] / self.n_samples
 
         if self.sample_pairs:
             if getattr(self.step_logger, "collapse_level", False):
-                self.metrics[f"{self.task_name}_collapse_level"]["y"].append(
-                    logs["collapse_level"]
-                )
+                self.metrics[f"{self.task_name}_collapse_level"]["y"][epoch_no] = logs["collapse_level"]
             if getattr(self.step_logger, "euclidean", False):
-                self.metrics[f"{self.task_name}_euc_dist"]["y"].append(
-                    logs["euc_dist"] / self.n_batches
-                )
+                self.metrics[f"{self.task_name}_euc_dist"]["y"][epoch_no] = logs["euc_dist"] / self.n_batches
 
     def print_epoch_results(self, epoch_no: int) -> None:
         """Prints the results from an epoch to ``stdout``.
