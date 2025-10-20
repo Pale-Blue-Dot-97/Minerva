@@ -1,0 +1,1188 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Experiment Configs &mdash; minerva  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Glossary" href="../glossary.html" />
+    <link rel="prev" title="User Guides" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            minerva
+              <img src="../../_static/Minerva_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Source Documentation 📙:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/datasets/index.html">datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/logger/index.html">logger</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/tasks/index.html">tasks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/modelio.html">modelio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/optimisers.html">optimisers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/pytorchtools.html">pytorchtools</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/samplers.html">samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/scheduler.html">scheduler</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/trainer.html">trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/transforms.html">transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/models/index.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../minerva/utils/index.html">utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides and Information 📗:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">User Guides</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Experiment Configs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#paths">Paths</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#data_root"><code class="docutils literal notranslate"><span class="pre">data_root</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#cache_dir"><code class="docutils literal notranslate"><span class="pre">cache_dir</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#results_dir"><code class="docutils literal notranslate"><span class="pre">results_dir</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#hyperparameters">Hyperparameters</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#model-specification">Model Specification</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#model_name"><code class="docutils literal notranslate"><span class="pre">model_name</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#model_type"><code class="docutils literal notranslate"><span class="pre">model_type</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#sizing">Sizing</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#batch_size"><code class="docutils literal notranslate"><span class="pre">batch_size</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#patch_size"><code class="docutils literal notranslate"><span class="pre">patch_size</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#input_size"><code class="docutils literal notranslate"><span class="pre">input_size</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#n_classes"><code class="docutils literal notranslate"><span class="pre">n_classes</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#experiment-execution">Experiment Execution</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#max_epochs"><code class="docutils literal notranslate"><span class="pre">max_epochs</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#pre_train"><code class="docutils literal notranslate"><span class="pre">pre_train</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#fine_tune"><code class="docutils literal notranslate"><span class="pre">fine_tune</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#elim"><code class="docutils literal notranslate"><span class="pre">elim</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#balance"><code class="docutils literal notranslate"><span class="pre">balance</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#loss-and-optimisers">Loss and Optimisers</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#loss_func"><code class="docutils literal notranslate"><span class="pre">loss_func</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#lr"><code class="docutils literal notranslate"><span class="pre">lr</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#optim_func"><code class="docutils literal notranslate"><span class="pre">optim_func</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#model-paramaters">Model Paramaters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#optimiser-parameters">Optimiser Parameters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#loss-paramaters">Loss Paramaters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#dataloader-paramaters">Dataloader Paramaters</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#model-io-logging">Model IO &amp; Logging</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#wandb-logging">wandb Logging</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#minerva-inbuilt-logging-functions">Minerva Inbuilt Logging Functions</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#model_io"><code class="docutils literal notranslate"><span class="pre">model_io</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#record_int"><code class="docutils literal notranslate"><span class="pre">record_int</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#record_float"><code class="docutils literal notranslate"><span class="pre">record_float</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#collator">Collator</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#id0"><code class="docutils literal notranslate"><span class="pre">collator</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#plots-dictionary">Plots Dictionary</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#History"><code class="docutils literal notranslate"><span class="pre">History</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#CM"><code class="docutils literal notranslate"><span class="pre">CM</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Pred"><code class="docutils literal notranslate"><span class="pre">Pred</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#ROC"><code class="docutils literal notranslate"><span class="pre">ROC</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#micro"><code class="docutils literal notranslate"><span class="pre">micro</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#macro"><code class="docutils literal notranslate"><span class="pre">macro</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#Mask"><code class="docutils literal notranslate"><span class="pre">Mask</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#miscellaneous-options">Miscellaneous Options</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#early-stopping">Early Stopping</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#stopping"><code class="docutils literal notranslate"><span class="pre">stopping</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#patience"><code class="docutils literal notranslate"><span class="pre">patience</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#verbosity-and-saving">Verbosity and Saving</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#verbose"><code class="docutils literal notranslate"><span class="pre">verbose</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#save"><code class="docutils literal notranslate"><span class="pre">save</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#show"><code class="docutils literal notranslate"><span class="pre">show</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#p_dist"><code class="docutils literal notranslate"><span class="pre">p_dist</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#plot_last_epoch"><code class="docutils literal notranslate"><span class="pre">plot_last_epoch</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#save_model"><code class="docutils literal notranslate"><span class="pre">save_model</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l4"><a class="reference internal" href="#other">Other</a><ul>
+<li class="toctree-l5"><a class="reference internal" href="#run_tensorboard"><code class="docutils literal notranslate"><span class="pre">run_tensorboard</span></code></a></li>
+<li class="toctree-l5"><a class="reference internal" href="#calc_norm"><code class="docutils literal notranslate"><span class="pre">calc_norm</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">Glossary</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">minerva</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">User Guides</a></li>
+      <li class="breadcrumb-item active">Experiment Configs</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/source/guides/exp_config.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="experiment-configs">
+<h1>Experiment Configs<a class="headerlink" href="#experiment-configs" title="Link to this heading"></a></h1>
+<p>The most comprehensive way to config an experiment in <code class="docutils literal notranslate"><span class="pre">minerva</span></code> is to use <code class="docutils literal notranslate"><span class="pre">YAML</span></code> files.
+This guide will walk through all the possible config options and their structure.
+It will also explain how to use the config file for an experiment.</p>
+<p>A good example to look at is <code class="docutils literal notranslate"><span class="pre">example_config.yaml</span></code></p>
+<div class="literal-block-wrapper docutils container" id="id1">
+<div class="code-block-caption"><span class="caption-text">The <code class="docutils literal notranslate"><span class="pre">example_config.yml</span></code> demonstrating how to construct a master config to define an experiment in <code class="docutils literal notranslate"><span class="pre">minerva</span></code>.</span><a class="headerlink" href="#id1" title="Link to this code"></a></div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nn">---</span>
+<span class="c1">#       *       *    __  ________   ____________ _    _____</span>
+<span class="c1">#   *        *      /  |/  /  _/ | / / ____/ __ \ |  / /   |  *           *</span>
+<span class="c1">#       *          / /|_/ // //  |/ / __/ / /_/ / | / / /| |     *</span>
+<span class="c1">#   *       *     / /  / // // /|  / /___/ _, _/| |/ / ___ |               *</span>
+<span class="c1">#    *           /_/  /_/___/_/ |_/_____/_/ |_| |___/_/  |_|     *   *</span>
+<span class="c1">#</span>
+<span class="c1">#                          EXAMPLE MASTER CONFIG FILE</span>
+<span class="c1">#</span>
+<span class="c1"># === PATHS ===================================================================</span>
+<span class="nt">data_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/fixtures/data</span>
+<span class="nt">results_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/tmp/results</span>
+<span class="nt">cache_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/tmp/cache</span>
+
+<span class="c1"># === HYPERPARAMETERS =========================================================</span>
+<span class="c1"># ---+ Model Specification +---------------------------------------------------</span>
+<span class="c1"># Name of model. This no longer used for model class (see model_params).</span>
+<span class="nt">model_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FCN32ResNet18-test</span>
+
+<span class="c1"># Type of model. Can be mlp, scene classifier, segmentation, ssl or siamese.</span>
+<span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">segmentation</span>
+
+<span class="c1"># ---+ Sizing +----------------------------------------------------------------</span>
+<span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span><span class="w">                               </span><span class="c1"># Number of samples in each batch.</span>
+<span class="nt">input_size</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">4</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">32</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">32</span><span class="p p-Indicator">]</span><span class="w">   </span><span class="c1"># patch_size plus leading channel dim.</span>
+<span class="nt">patch_size</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;${to_patch_size:</span><span class="nv"> </span><span class="s">${input_size}}&#39;</span><span class="w">  </span><span class="c1"># 2D tuple or float.</span>
+<span class="nt">n_classes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span><span class="w">                                   </span><span class="c1"># Number of classes in dataset.</span>
+
+<span class="c1"># ---+ Experiment Execution +--------------------------------------------------</span>
+<span class="nt">max_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span><span class="w">                         </span><span class="c1"># Maximum number of training epochs.</span>
+<span class="nt">pre_train</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                      </span><span class="c1"># Activate pre-training mode.</span>
+<span class="nt">fine_tune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                      </span><span class="c1"># Activate fine-tuning mode.</span>
+<span class="nt">elim</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">                            </span><span class="c1"># Eliminates empty classes from schema.</span>
+<span class="nt">balance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">                         </span><span class="c1"># Balances dataset classes.</span>
+<span class="nt">torch_compile</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">                   </span><span class="c1"># Wrap model in `torch.compile`.</span>
+
+<span class="c1"># ---+ Optimisers +---------------------------------------------------</span>
+<span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0E-2</span><span class="w">                            </span><span class="c1"># Learning rate of optimiser.</span>
+<span class="nt">optim_func</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SGD</span><span class="w">                       </span><span class="c1"># Name of the optimiser function.</span>
+
+<span class="c1"># ---+ Model Parameters +------------------------------------------------------</span>
+<span class="nt">model_params</span><span class="p">:</span>
+<span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.models.FCN32ResNet18</span>
+<span class="nt">input_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${input_size}</span>
+<span class="nt">n_classes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${n_classes}</span>
+<span class="c1"># any other params...</span>
+
+<span class="c1"># ---+ Optimiser Parameters +--------------------------------------------------</span>
+<span class="nt">optimiser</span><span class="p">:</span>
+<span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.${optim_func}</span>
+<span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${lr}</span>
+
+<span class="c1"># ---+ Scheduler Parameters +--------------------------------------------------</span>
+<span class="nt">scheduler</span><span class="p">:</span>
+<span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.lr_scheduler.LinearLR</span>
+<span class="nt">start_factor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+<span class="nt">end_factor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.5</span>
+<span class="nt">total_iters</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+
+<span class="c1"># ---+ Loss Function Parameters +----------------------------------------------</span>
+<span class="nt">loss_params</span><span class="p">:</span>
+<span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.nn.CrossEntropyLoss</span>
+
+<span class="c1"># ---+ Dataloader Parameters +-------------------------------------------------</span>
+<span class="nt">loader_params</span><span class="p">:</span>
+<span class="nt">num_workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="nt">pin_memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="c1"># === MODEL IO &amp; LOGGING ======================================================</span>
+<span class="c1"># ---+ wandb Logging +---------------------------------------------------------</span>
+<span class="nt">wandb_log</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">              </span><span class="c1"># Activates wandb logging.</span>
+<span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pytest</span><span class="w">              </span><span class="c1"># Define the project name for wandb.</span>
+<span class="nt">wandb_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/test/tmp/wandb</span><span class="w">   </span><span class="c1"># Directory to store wandb logs locally.</span>
+
+<span class="c1"># ---+ Collator +--------------------------------------------------------------</span>
+<span class="nt">collator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchgeo.datasets.stack_samples</span>
+
+<span class="c1"># === TASKS ===================================================================</span>
+<span class="nt">tasks</span><span class="p">:</span>
+<span class="nt">fit-train</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.tasks.StandardEpoch</span>
+<span class="w">    </span><span class="nt">train</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">    </span><span class="nt">record_float</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="w">    </span><span class="nt">imagery_config</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;${oc.create:${cfg_load:</span><span class="nv"> </span><span class="s">minerva/inbuilt_cfgs/dataset/NAIP.yaml}}&#39;</span><span class="w">  </span><span class="c1"># yamllint disable-line rule:line-length</span>
+<span class="w">    </span><span class="nt">data_config</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;${oc.create:${cfg_load:</span><span class="nv"> </span><span class="s">minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}&#39;</span><span class="w">  </span><span class="c1"># yamllint disable-line rule:line-length</span>
+
+<span class="w">    </span><span class="c1"># ---+ Dataset Parameters +----------------------------------------</span>
+<span class="w">    </span><span class="nt">dataset_params</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">sampler</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchgeo.samplers.RandomGeoSampler</span>
+<span class="w">            </span><span class="nt">roi</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${patch_size}</span>
+<span class="w">            </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+
+<span class="w">        </span><span class="nt">image</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">transforms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">subdatasets</span><span class="p">:</span>
+<span class="w">                </span><span class="nt">images_1</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.datasets.__testing.TstImgDataset</span>
+<span class="w">                    </span><span class="nt">paths</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NAIP</span>
+<span class="w">                    </span><span class="nt">res</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+
+<span class="w">                </span><span class="nt">image2</span><span class="p">:</span>
+<span class="w">                    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.datasets.__testing.TstImgDataset</span>
+<span class="w">                    </span><span class="nt">paths</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NAIP</span>
+<span class="w">                    </span><span class="nt">res</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+
+<span class="w">        </span><span class="nt">mask</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">transforms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.datasets.__testing.TstMaskDataset</span>
+<span class="w">            </span><span class="nt">paths</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Chesapeake7</span>
+<span class="w">            </span><span class="nt">res</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+
+<span class="nt">fit-val</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.tasks.StandardEpoch</span>
+<span class="w">    </span><span class="nt">train</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">    </span><span class="nt">record_float</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="w">    </span><span class="nt">imagery_config</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;${oc.create:${cfg_load:</span><span class="nv"> </span><span class="s">minerva/inbuilt_cfgs/dataset/NAIP.yaml}}&#39;</span><span class="w">  </span><span class="c1"># yamllint disable-line rule:line-length</span>
+<span class="w">    </span><span class="nt">data_config</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;${oc.create:${cfg_load:</span><span class="nv"> </span><span class="s">minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}&#39;</span><span class="w">  </span><span class="c1"># yamllint disable-line rule:line-length</span>
+
+<span class="w">    </span><span class="c1"># ---+ Minerva Inbuilt Logging Functions +-------------------------</span>
+<span class="w">    </span><span class="nt">task_logger</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.logger.tasklog.SupervisedTaskLogger</span>
+<span class="w">    </span><span class="nt">model_io</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.modelio.supervised_torchgeo_io</span>
+
+<span class="w">    </span><span class="c1"># ---+ Dataset Parameters +----------------------------------------</span>
+<span class="w">    </span><span class="nt">dataset_params</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">sampler</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchgeo.samplers.RandomGeoSampler</span>
+<span class="w">            </span><span class="nt">roi</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${patch_size}</span>
+<span class="w">            </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+
+<span class="w">        </span><span class="nt">image</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">transforms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.datasets.__testing.TstImgDataset</span>
+<span class="w">            </span><span class="nt">paths</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NAIP</span>
+<span class="w">            </span><span class="nt">res</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+
+<span class="w">        </span><span class="nt">mask</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">transforms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.datasets.__testing.TstMaskDataset</span>
+<span class="w">            </span><span class="nt">paths</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Chesapeake7</span>
+<span class="w">            </span><span class="nt">res</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+
+<span class="nt">test-test</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.tasks.StandardEpoch</span>
+<span class="w">    </span><span class="nt">record_float</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="w">    </span><span class="nt">imagery_config</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;${oc.create:${cfg_load:</span><span class="nv"> </span><span class="s">minerva/inbuilt_cfgs/dataset/NAIP.yaml}}&#39;</span><span class="w">  </span><span class="c1"># yamllint disable-line rule:line-length</span>
+<span class="w">    </span><span class="nt">data_config</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;${oc.create:${cfg_load:</span><span class="nv"> </span><span class="s">minerva/inbuilt_cfgs/dataset/Chesapeake7.yaml}}&#39;</span><span class="w">  </span><span class="c1"># yamllint disable-line rule:line-length</span>
+
+<span class="w">    </span><span class="c1"># ---+ Minerva Inbuilt Logging Functions +-------------------------</span>
+<span class="w">    </span><span class="nt">task_logger</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.logger.tasklog.SupervisedTaskLogger</span>
+<span class="w">    </span><span class="nt">model_io</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.modelio.supervised_torchgeo_io</span>
+
+<span class="w">    </span><span class="c1"># ---+ Dataset Parameters +----------------------------------------</span>
+<span class="w">    </span><span class="nt">dataset_params</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">sampler</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchgeo.samplers.RandomGeoSampler</span>
+<span class="w">            </span><span class="nt">roi</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${patch_size}</span>
+<span class="w">            </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+
+<span class="w">        </span><span class="nt">image</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">transforms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.datasets.__testing.TstImgDataset</span>
+<span class="w">            </span><span class="nt">paths</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NAIP</span>
+<span class="w">            </span><span class="nt">res</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+
+<span class="w">        </span><span class="nt">mask</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">transforms</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="w">            </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.datasets.__testing.TstMaskDataset</span>
+<span class="w">            </span><span class="nt">paths</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Chesapeake7</span>
+<span class="w">            </span><span class="nt">res</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0</span>
+
+<span class="c1"># === PLOTTING OPTIONS ========================================================</span>
+<span class="nt">plots</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">History</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># Plot of the training and validation metrics over epochs.</span>
+<span class="w">    </span><span class="nt">CM</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">        </span><span class="c1"># Confusion matrix.</span>
+<span class="w">    </span><span class="nt">Pred</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">      </span><span class="c1"># Pie chart of the distribution of the predicted classes.</span>
+<span class="w">    </span><span class="nt">ROC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">       </span><span class="c1"># Receiver Operator Characteristics for each class.</span>
+<span class="w">    </span><span class="nt">micro</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">     </span><span class="c1"># Include micro averaging in ROC plot.</span>
+<span class="w">    </span><span class="nt">macro</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">     </span><span class="c1"># Include macro averaging in ROC plot.</span>
+<span class="w">    </span><span class="nt">Mask</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">      </span><span class="c1"># Plot predicted masks against ground truth and imagery.</span>
+
+<span class="c1"># === MISCELLANEOUS OPTIONS ===================================================</span>
+<span class="c1"># ---+ Early Stopping +--------------------------------------------------------</span>
+<span class="nt">stopping</span><span class="p">:</span>
+<span class="nt">patience</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w">    </span><span class="c1"># No. of val epochs with increasing loss before stopping.</span>
+<span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Verbosity of early stopping prints to stdout.</span>
+
+<span class="c1"># ---+ Verbosity and Saving +--------------------------------------------------</span>
+<span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">           </span><span class="c1"># Verbosity of Trainer print statements to stdout.</span>
+<span class="nt">save</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">              </span><span class="c1"># Saves created figures to file.</span>
+<span class="nt">show</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">             </span><span class="c1"># Shows created figures in a pop-up window.</span>
+<span class="nt">p_dist</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">            </span><span class="c1"># Shows the distribution of classes to stdout.</span>
+<span class="nt">plot_last_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># Plot the results of the last training and val epochs.</span>
+
+<span class="c1"># opt to ask at runtime; auto or True to automatically do so; or False,</span>
+<span class="c1"># None etc to not</span>
+<span class="nt">save_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+
+<span class="c1"># ---+ Other +-----------------------------------------------------------------</span>
+<span class="c1"># opt to ask at runtime; auto or True to automatically do so; or False,</span>
+<span class="c1"># None etc to not</span>
+<span class="nt">run_tensorboard</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">calc_norm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</pre></div>
+</div>
+</div>
+<section id="paths">
+<h2>Paths<a class="headerlink" href="#paths" title="Link to this heading"></a></h2>
+<p>Paths to required directories are defined in the <code class="docutils literal notranslate"><span class="pre">data_root</span></code>, <code class="docutils literal notranslate"><span class="pre">results_dir</span></code> and <code class="docutils literal notranslate"><span class="pre">cache_dir</span></code> keys.</p>
+<div class="literal-block-wrapper docutils container" id="id2">
+<div class="code-block-caption"><span class="caption-text">Example <code class="docutils literal notranslate"><span class="pre">dir</span></code> dictionary describing the paths to directories needed in experiment.</span><a class="headerlink" href="#id2" title="Link to this code"></a></div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># === PATHS ===================================================================</span>
+<span class="nt">data_root</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/fixtures/data</span>
+<span class="nt">results_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/tmp/results</span>
+<span class="nt">cache_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tests/tmp/cache</span>
+</pre></div>
+</div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="data_root">
+<span class="sig-name descname"><span class="pre">data_root</span></span><a class="headerlink" href="#data_root" title="Link to this definition"></a></dt>
+<dd><p>Path to the data directory where the input data is stored within. Can be relative or absolute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="cache_dir">
+<span class="sig-name descname"><span class="pre">cache_dir</span></span><a class="headerlink" href="#cache_dir" title="Link to this definition"></a></dt>
+<dd><p>Path to the cache directory storing dataset manifests and a place to output the latest / best version
+of a model. Can be relative or absolute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="results_dir">
+<span class="sig-name descname"><span class="pre">results_dir</span></span><a class="headerlink" href="#results_dir" title="Link to this definition"></a></dt>
+<dd><p>Path to the results directory where the results from all experiments will be stored.
+Can be relative or absolute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="hyperparameters">
+<h2>Hyperparameters<a class="headerlink" href="#hyperparameters" title="Link to this heading"></a></h2>
+<p>This section of the config file covers hyperparmeters of the model and experiment.
+The most important of these are now top-level variables in the config.
+Most are also accessible from the CLI.</p>
+<section id="model-specification">
+<h3>Model Specification<a class="headerlink" href="#model-specification" title="Link to this heading"></a></h3>
+<p>These parameters focus on defining the model, such as class, version and type.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># Name of model. Substring before hyphen is model class.</span>
+<span class="nt">model_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FCN32ResNet18-MkI</span>
+
+<span class="c1"># Type of model.</span>
+<span class="nt">model_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">segmentation</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="model_name">
+<span class="sig-name descname"><span class="pre">model_name</span></span><a class="headerlink" href="#model_name" title="Link to this definition"></a></dt>
+<dd><p>Name of the model. Used to create the unique <code class="docutils literal notranslate"><span class="pre">exp_name</span></code> that is created dynamically for each experiment run.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="model_type">
+<span class="sig-name descname"><span class="pre">model_type</span></span><a class="headerlink" href="#model_type" title="Link to this definition"></a></dt>
+<dd><dl class="simple">
+<dt>Type of model. Can contain these key words seperated by hyphens:</dt><dd><ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;segmentation&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;scene_classifier&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;mlp&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;ssl&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;siamese&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;change_detection&quot;</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">&quot;multilabel&quot;</span></code></p></li>
+</ul>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>“scene_classifier”</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="sizing">
+<h3>Sizing<a class="headerlink" href="#sizing" title="Link to this heading"></a></h3>
+<p>These parameters concern the shapes and sizes of the IO to the model.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">batch_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span><span class="w">             </span><span class="c1"># Number of samples in each batch.</span>
+<span class="nt">patch_size</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">32</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">32</span><span class="p p-Indicator">]</span><span class="w">      </span><span class="c1"># 2D tuple or float.</span>
+<span class="nt">input_size</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">4</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">32</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">32</span><span class="p p-Indicator">]</span><span class="w">   </span><span class="c1"># patch_size plus leading channel dim.</span>
+<span class="nt">n_classes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8</span><span class="w">              </span><span class="c1"># Number of classes in dataset.</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="batch_size">
+<span class="sig-name descname"><span class="pre">batch_size</span></span><a class="headerlink" href="#batch_size" title="Link to this definition"></a></dt>
+<dd><p>Number of samples in each batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="patch_size">
+<span class="sig-name descname"><span class="pre">patch_size</span></span><a class="headerlink" href="#patch_size" title="Link to this definition"></a></dt>
+<dd><p>Define the shape of the patches in the dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="input_size">
+<span class="sig-name descname"><span class="pre">input_size</span></span><a class="headerlink" href="#input_size" title="Link to this definition"></a></dt>
+<dd><p>The <a class="reference internal" href="#patch_size" title="patch_size"><code class="xref py py-data docutils literal notranslate"><span class="pre">patch_size</span></code></a> plus the leading channel dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>, <a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="n_classes">
+<span class="sig-name descname"><span class="pre">n_classes</span></span><a class="headerlink" href="#n_classes" title="Link to this definition"></a></dt>
+<dd><p>Number of possible classes in the dataset.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="experiment-execution">
+<h3>Experiment Execution<a class="headerlink" href="#experiment-execution" title="Link to this heading"></a></h3>
+<p>These parameters control the execution of the model fitting
+such as the number of epochs, type of job or class balancing.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">max_epochs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">                         </span><span class="c1"># Maximum number of training epochs.</span>
+<span class="nt">pre_train</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                      </span><span class="c1"># Activate pre-training mode.</span>
+<span class="nt">fine_tune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">                      </span><span class="c1"># Activate fine-tuning mode.</span>
+<span class="nt">elim</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">                            </span><span class="c1"># Eliminates empty classes from schema.</span>
+<span class="nt">balance</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">                         </span><span class="c1"># Balances dataset classes.</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="max_epochs">
+<span class="sig-name descname"><span class="pre">max_epochs</span></span><a class="headerlink" href="#max_epochs" title="Link to this definition"></a></dt>
+<dd><p>Maximum number of epochs of training and validation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>5</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="pre_train">
+<span class="sig-name descname"><span class="pre">pre_train</span></span><a class="headerlink" href="#pre_train" title="Link to this definition"></a></dt>
+<dd><p>Defines this as a pre-train experiment. In this case, the backbone of the model will be saved
+to the cache at the end of training.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="fine_tune">
+<span class="sig-name descname"><span class="pre">fine_tune</span></span><a class="headerlink" href="#fine_tune" title="Link to this definition"></a></dt>
+<dd><p>Defines this as a fine-tuning experiment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="elim">
+<span class="sig-name descname"><span class="pre">elim</span></span><a class="headerlink" href="#elim" title="Link to this definition"></a></dt>
+<dd><p>Will eliminate classes that have no samples in and reorder the class labels so they
+still run from <code class="docutils literal notranslate"><span class="pre">0</span></code> to <code class="docutils literal notranslate"><span class="pre">n-1</span></code> classes where <code class="docutils literal notranslate"><span class="pre">n</span></code> is the reduced number of classes.
+<code class="docutils literal notranslate"><span class="pre">minerva</span></code> ensures that labels are converted between the old and new schemes seamlessly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="balance">
+<span class="sig-name descname"><span class="pre">balance</span></span><a class="headerlink" href="#balance" title="Link to this definition"></a></dt>
+<dd><p>Activates class balancing. For <code class="docutils literal notranslate"><span class="pre">model_type=&quot;scene_classifer&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">model_type=&quot;mlp&quot;</span></code>,
+over and under sampling will be used. For <code class="docutils literal notranslate"><span class="pre">model_type=&quot;segmentation&quot;</span></code>, class weighting will be
+used on the loss function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="loss-and-optimisers">
+<h3>Loss and Optimisers<a class="headerlink" href="#loss-and-optimisers" title="Link to this heading"></a></h3>
+<p>These parameters set the most important aspects of the loss function and optimiser.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">loss_func</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CrossEntropyLoss</span><span class="w">           </span><span class="c1"># Name of the loss function to use.</span>
+<span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1.0E-2</span><span class="w">                            </span><span class="c1"># Learning rate of optimiser.</span>
+<span class="nt">optim_func</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SGD</span><span class="w">                       </span><span class="c1"># Name of the optimiser function.</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="loss_func">
+<span class="sig-name descname"><span class="pre">loss_func</span></span><a class="headerlink" href="#loss_func" title="Link to this definition"></a></dt>
+<dd><p>Name of the loss function to use.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="lr">
+<span class="sig-name descname"><span class="pre">lr</span></span><a class="headerlink" href="#lr" title="Link to this definition"></a></dt>
+<dd><p>Learning rate of the optimiser</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="optim_func">
+<span class="sig-name descname"><span class="pre">optim_func</span></span><a class="headerlink" href="#optim_func" title="Link to this definition"></a></dt>
+<dd><p>Name of the optimiser function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="model-paramaters">
+<h3>Model Paramaters<a class="headerlink" href="#model-paramaters" title="Link to this heading"></a></h3>
+<p>These are the parameters parsed to the model class to initiate it.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">model_params</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.models.FCN32ResNet18</span>
+<span class="w">    </span><span class="nt">input_size</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${input_size}</span>
+<span class="w">    </span><span class="nt">n_classes</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${n_classes}</span>
+<span class="w">    </span><span class="c1"># any other params...</span>
+</pre></div>
+</div>
+<p>Two common parameters are:</p>
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">input_size</span></span></dt>
+<dd><p>Shape of the input to the model. Typically in CxHxW format.
+Should align with the values given for <code class="docutils literal notranslate"><span class="pre">patch_size</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#list" title="(in Python v3.14)">list</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">n_classes</span></span></dt>
+<dd><p>Number of possible classes to predict in output.
+Best to parse <a class="reference internal" href="#n_classes" title="n_classes"><code class="xref py py-data docutils literal notranslate"><span class="pre">n_classes</span></code></a> using <code class="docutils literal notranslate"><span class="pre">${n_classes}</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<p>But you can add any other parameters in the <code class="docutils literal notranslate"><span class="pre">model_params</span></code> dict that the model expects.</p>
+</section>
+<section id="optimiser-parameters">
+<h3>Optimiser Parameters<a class="headerlink" href="#optimiser-parameters" title="Link to this heading"></a></h3>
+<p>Here’s where to place any additional parameters for the optimiser,
+other than the already handled learning rate – <code class="docutils literal notranslate"><span class="pre">lr</span></code>. Place them in the <code class="docutils literal notranslate"><span class="pre">params</span></code> key.
+If using a non-torch optimiser, use the <code class="docutils literal notranslate"><span class="pre">module</span></code> key to specify the import path to the optimiser function.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">optimiser</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.optim.${optim_func}</span>
+<span class="w">    </span><span class="nt">lr</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${lr}</span>
+</pre></div>
+</div>
+</section>
+<section id="loss-paramaters">
+<h3>Loss Paramaters<a class="headerlink" href="#loss-paramaters" title="Link to this heading"></a></h3>
+<p>Here’s where to specify any additional parameters for the loss function in the <code class="docutils literal notranslate"><span class="pre">params</span></code> key.
+If using a non-torch loss function, you need to specify the import path
+with the <code class="docutils literal notranslate"><span class="pre">module</span></code> key.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">loss</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torch.nn.${loss_func}</span>
+<span class="w">    </span><span class="c1"># any other params...</span>
+</pre></div>
+</div>
+</section>
+<section id="dataloader-paramaters">
+<h3>Dataloader Paramaters<a class="headerlink" href="#dataloader-paramaters" title="Link to this heading"></a></h3>
+<p>Finally, this is where to define parameters for the
+<a class="reference external" href="https://docs.pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader" title="(in PyTorch v2.9)"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataLoader</span></code></a>. Unlike other parameters, there is no <code class="docutils literal notranslate"><span class="pre">_target_</span></code> field
+as it is locked to <code class="docutils literal notranslate"><span class="pre">DataLoader</span></code>.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">loader_params</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">num_workers</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">    </span><span class="nt">pin_memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="model-io-logging">
+<h2>Model IO &amp; Logging<a class="headerlink" href="#model-io-logging" title="Link to this heading"></a></h2>
+<p>These parameters allow for the configuring how to handle different types of
+input/ output to the model and how to handle logging of the model.</p>
+<section id="wandb-logging">
+<h3>wandb Logging<a class="headerlink" href="#wandb-logging" title="Link to this heading"></a></h3>
+<p>Here’s where to define how Weights and Biases (<code class="docutils literal notranslate"><span class="pre">wandb</span></code>) behaves in <code class="docutils literal notranslate"><span class="pre">minerva</span></code>.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">wandb_log</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">              </span><span class="c1"># Activates wandb logging.</span>
+<span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pytest</span><span class="w">              </span><span class="c1"># Define the project name for wandb.</span>
+<span class="nt">wandb_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/test/tmp/wandb</span><span class="w">   </span><span class="c1"># Directory to store wandb logs locally.</span>
+</pre></div>
+</div>
+</section>
+<section id="minerva-inbuilt-logging-functions">
+<h3>Minerva Inbuilt Logging Functions<a class="headerlink" href="#minerva-inbuilt-logging-functions" title="Link to this heading"></a></h3>
+<p>In addition, there are also options for defining the logging, metric calculator
+and IO function using inbuilt <code class="docutils literal notranslate"><span class="pre">minerva</span></code> functionality:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">task_logger</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.logger.tasklog.SupervisedTaskLogger</span>
+<span class="nt">step_logger</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">_target_</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.logger.steplog.SupervisedStepLogger</span>
+<span class="w">    </span><span class="c1"># any other params...</span>
+
+<span class="nt">model_io</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">minerva.modelio.supervised_torchgeo_io</span>
+
+<span class="nt">record_int</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">    </span><span class="c1"># Store integer results in memory.</span>
+<span class="nt">record_float</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Store floating point results too. Beware memory overload!</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">logger</span></span></dt>
+<dd><p>Specify the logger to use. Must be the name of a <code class="xref py py-class docutils literal notranslate"><span class="pre">MinervaLogger</span></code> class
+within <code class="xref py py-mod docutils literal notranslate"><span class="pre">logger</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">metrics</span></span></dt>
+<dd><p>Specify the metric logger to use. Must be the name of a <code class="xref py py-class docutils literal notranslate"><span class="pre">MinervaMetrics</span></code> class
+within <code class="xref py py-mod docutils literal notranslate"><span class="pre">metrics</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="model_io">
+<span class="sig-name descname"><span class="pre">model_io</span></span><a class="headerlink" href="#model_io" title="Link to this definition"></a></dt>
+<dd><p>Specify the IO function to use to handle IO for the model during fitting. Must be the name
+of a function within <a class="reference internal" href="../minerva/modelio.html#module-modelio" title="modelio"><code class="xref py py-mod docutils literal notranslate"><span class="pre">modelio</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="record_int">
+<span class="sig-name descname"><span class="pre">record_int</span></span><a class="headerlink" href="#record_int" title="Link to this definition"></a></dt>
+<dd><p>Store the integer results of each epoch in memory such the predictions, ground truth etc.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="record_float">
+<span class="sig-name descname"><span class="pre">record_float</span></span><a class="headerlink" href="#record_float" title="Link to this definition"></a></dt>
+<dd><p>Store the floating point results of each epoch in memory such as the raw predicted probabilities.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Could cause a memory overload issue with large datasets or systems with small RAM capacity.</p>
+</div>
+</dd></dl>
+
+</section>
+<section id="collator">
+<h3>Collator<a class="headerlink" href="#collator" title="Link to this heading"></a></h3>
+<p>The collator is the function that collates the samples from the datset to make a mini-batch. It can be
+defined using the simple <code class="docutils literal notranslate"><span class="pre">collator</span></code> param at the global-level.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">collator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">torchgeo.datasets.stack_samples</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">collator</span></span><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>Dot-based import path to the desired collator.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+<section id="plots-dictionary">
+<h2>Plots Dictionary<a class="headerlink" href="#plots-dictionary" title="Link to this heading"></a></h2>
+<p>To define which plots to make from the results of testing, use the <code class="docutils literal notranslate"><span class="pre">plots</span></code> sub-dictionary with these keys:</p>
+<div class="literal-block-wrapper docutils container" id="id3">
+<div class="code-block-caption"><span class="caption-text">Example <code class="docutils literal notranslate"><span class="pre">plots</span></code> dictionary.</span><a class="headerlink" href="#id3" title="Link to this code"></a></div>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">plots</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">History</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">    </span><span class="nt">CM</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">    </span><span class="nt">Pred</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">    </span><span class="nt">ROC</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">    </span><span class="nt">micro</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+<span class="w">    </span><span class="nt">macro</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">True</span>
+<span class="w">    </span><span class="nt">Mask</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">False</span>
+</pre></div>
+</div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="History">
+<span class="sig-name descname"><span class="pre">History</span></span><a class="headerlink" href="#History" title="Link to this definition"></a></dt>
+<dd><p>Plot a graph of the model history. By default, this will plot a graph of any metrics with
+keys containing <code class="docutils literal notranslate"><span class="pre">&quot;train&quot;</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;val&quot;</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="CM">
+<span class="sig-name descname"><span class="pre">CM</span></span><a class="headerlink" href="#CM" title="Link to this definition"></a></dt>
+<dd><p>Plots a confusion matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="Pred">
+<span class="sig-name descname"><span class="pre">Pred</span></span><a class="headerlink" href="#Pred" title="Link to this definition"></a></dt>
+<dd><p>Plots a pie chart of the relative sizes of the classes within the predictions from the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="ROC">
+<span class="sig-name descname"><span class="pre">ROC</span></span><a class="headerlink" href="#ROC" title="Link to this definition"></a></dt>
+<dd><p>Plots a <em>Receiver over Operator Curve</em> (ROC) including <em>Area Under Curve</em> (AUC) scores.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="micro">
+<span class="sig-name descname"><span class="pre">micro</span></span><a class="headerlink" href="#micro" title="Link to this definition"></a></dt>
+<dd><p>Only used with <code class="docutils literal notranslate"><span class="pre">ROC=True</span></code>. ROC plot includes micro-average ROC.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Adding this plot can be very computationally and memory intensive.
+Avoid use with large datasets!</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="macro">
+<span class="sig-name descname"><span class="pre">macro</span></span><a class="headerlink" href="#macro" title="Link to this definition"></a></dt>
+<dd><p>Only used with <code class="docutils literal notranslate"><span class="pre">ROC=True</span></code>. ROC plot includes macro-average ROC.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="Mask">
+<span class="sig-name descname"><span class="pre">Mask</span></span><a class="headerlink" href="#Mask" title="Link to this definition"></a></dt>
+<dd><p>Plots a comparison of predicted segmentation masks, the ground truth
+and original RGB imagery from a random selection of samples put to the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="miscellaneous-options">
+<h2>Miscellaneous Options<a class="headerlink" href="#miscellaneous-options" title="Link to this heading"></a></h2>
+<p>And finally, this section holds various other options.</p>
+<section id="early-stopping">
+<h3>Early Stopping<a class="headerlink" href="#early-stopping" title="Link to this heading"></a></h3>
+<p>Here’s where to define the behaviour of early stopping functionality.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">stopping</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">patience</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span><span class="w">    </span><span class="c1"># No. of val epochs with increasing loss before stopping.</span>
+<span class="w">    </span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Verbosity of early stopping prints to stdout.</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="stopping">
+<span class="sig-name descname"><span class="pre">stopping</span></span><a class="headerlink" href="#stopping" title="Link to this definition"></a></dt>
+<dd><p>Dictionary to hold the parameters defining the early stopping functionality.
+If no dictionary is given, it is assumed that there will be no early stopping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.14)">dict</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="patience">
+<span class="sig-name descname"><span class="pre">patience</span></span><a class="headerlink" href="#patience" title="Link to this definition"></a></dt>
+<dd><p>Number of validation epochs with increasing loss from
+the lowest recorded validation loss before stopping the experiment.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">verbose</span></span></dt>
+<dd><p>Verbosity of the early stopping prints to stdout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="verbosity-and-saving">
+<h3>Verbosity and Saving<a class="headerlink" href="#verbosity-and-saving" title="Link to this heading"></a></h3>
+<p>These parameters dictate the behaviour of the outputs to stdout and saving results.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">verbose</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">           </span><span class="c1"># Verbosity of Trainer print statements to stdout.</span>
+<span class="nt">save</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">              </span><span class="c1"># Saves created figures to file.</span>
+<span class="nt">show</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span><span class="w">             </span><span class="c1"># Shows created figures in a pop-up window.</span>
+<span class="nt">p_dist</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">            </span><span class="c1"># Shows the distribution of classes to stdout.</span>
+<span class="nt">plot_last_epoch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># Plot the results of the last training and val epochs.</span>
+
+<span class="c1"># opt to ask at runtime; auto or True to automatically do so; or False,</span>
+<span class="c1"># None etc to not</span>
+<span class="nt">save_model</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="verbose">
+<span class="sig-name descname"><span class="pre">verbose</span></span><a class="headerlink" href="#verbose" title="Link to this definition"></a></dt>
+<dd><p>Verbosity of <code class="xref py py-class docutils literal notranslate"><span class="pre">Trainer</span></code> prints to stdout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="save">
+<span class="sig-name descname"><span class="pre">save</span></span><a class="headerlink" href="#save" title="Link to this definition"></a></dt>
+<dd><p>Whether to save plots created to file or not.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>True</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="show">
+<span class="sig-name descname"><span class="pre">show</span></span><a class="headerlink" href="#show" title="Link to this definition"></a></dt>
+<dd><p>Whether to show plots created in a window or not.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Do not use with a terminal-less operation, e.g. SLURM.</p>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="p_dist">
+<span class="sig-name descname"><span class="pre">p_dist</span></span><a class="headerlink" href="#p_dist" title="Link to this definition"></a></dt>
+<dd><p>Whether to print the distribution of classes within the data to <code class="docutils literal notranslate"><span class="pre">stdout</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="plot_last_epoch">
+<span class="sig-name descname"><span class="pre">plot_last_epoch</span></span><a class="headerlink" href="#plot_last_epoch" title="Link to this definition"></a></dt>
+<dd><p>Whether to plot the results from the final validation epoch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="save_model">
+<span class="sig-name descname"><span class="pre">save_model</span></span><a class="headerlink" href="#save_model" title="Link to this definition"></a></dt>
+<dd><p>Whether to save the model at end of testing. Must be <code class="docutils literal notranslate"><span class="pre">True</span></code>, <code class="docutils literal notranslate"><span class="pre">False</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>.
+Setting <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> will automatically save the model to file.
+<code class="docutils literal notranslate"><span class="pre">True</span></code> will ask the user whether to or not at runtime.
+<code class="docutils literal notranslate"><span class="pre">False</span></code> will not save the model and will not ask the user at runtime.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="other">
+<h3>Other<a class="headerlink" href="#other" title="Link to this heading"></a></h3>
+<p>All other options belong in this section.</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="c1"># opt to ask at runtime; auto or True to automatically do so; or False,</span>
+<span class="c1"># None etc to not</span>
+<span class="nt">run_tensorboard</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<span class="nt">calc_norm</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+</pre></div>
+</div>
+<dl class="py data">
+<dt class="sig sig-object py" id="run_tensorboard">
+<span class="sig-name descname"><span class="pre">run_tensorboard</span></span><a class="headerlink" href="#run_tensorboard" title="Link to this definition"></a></dt>
+<dd><p>Whether to run the Tensorboard logs at end of testing. Must be <code class="docutils literal notranslate"><span class="pre">True</span></code>, <code class="docutils literal notranslate"><span class="pre">False</span></code> or <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>.
+Setting <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code> will automatically locate and run the logs on a local browser.
+<code class="docutils literal notranslate"><span class="pre">True</span></code> will ask the user whether to or not at runtime.
+<code class="docutils literal notranslate"><span class="pre">False</span></code> will not save the model and will not ask the user at runtime.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a> | <a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py data">
+<dt class="sig sig-object py" id="calc_norm">
+<span class="sig-name descname"><span class="pre">calc_norm</span></span><a class="headerlink" href="#calc_norm" title="Link to this definition"></a></dt>
+<dd><p><em>Depreciated</em>: Calculates the gradient norms.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+<dt class="field-even">Value<span class="colon">:</span></dt>
+<dd class="field-even"><p>False</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="User Guides" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../glossary.html" class="btn btn-neutral float-right" title="Glossary" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Harry Baker.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,282 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pytorchtools &mdash; minerva  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="samplers" href="samplers.html" />
+    <link rel="prev" title="optimisers" href="optimisers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            minerva
+              <img src="../../_static/Minerva_logo.png" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Source Documentation 📙:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="datasets/index.html">datasets</a></li>
+<li class="toctree-l1"><a class="reference internal" href="logger/index.html">logger</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tasks/index.html">tasks</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modelio.html">modelio</a></li>
+<li class="toctree-l1"><a class="reference internal" href="optimisers.html">optimisers</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">pytorchtools</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#pytorchtools.EarlyStopping"><code class="docutils literal notranslate"><span class="pre">EarlyStopping</span></code></a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.patience"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.patience</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.verbose"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.verbose</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.counter"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.counter</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.best_score"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.best_score</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.early_stop"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.early_stop</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.val_loss_min"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.val_loss_min</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.delta"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.delta</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.path"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.path</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.trace_func"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.trace_func</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pytorchtools.EarlyStopping.save_checkpoint"><code class="docutils literal notranslate"><span class="pre">EarlyStopping.save_checkpoint()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="samplers.html">samplers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scheduler.html">scheduler</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trainer.html">trainer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transforms.html">transforms</a></li>
+<li class="toctree-l1"><a class="reference internal" href="models/index.html">models</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils/index.html">utils</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Guides and Information 📗:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../guides/index.html">User Guides</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../glossary.html">Glossary</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">minerva</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">pytorchtools</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/source/minerva/pytorchtools.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-pytorchtools">
+<span id="pytorchtools"></span><h1>pytorchtools<a class="headerlink" href="#module-pytorchtools" title="Link to this heading"></a></h1>
+<p>Module containing <a class="reference internal" href="#pytorchtools.EarlyStopping" title="pytorchtools.EarlyStopping"><code class="xref py py-class docutils literal notranslate"><span class="pre">EarlyStopping</span></code></a> to track when the training of a model should stop.</p>
+<p>Source: <a class="reference external" href="https://github.com/Bjarten/early-stopping-pytorch">https://github.com/Bjarten/early-stopping-pytorch</a></p>
+<dl class="py class">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">EarlyStopping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="pre">patience:</span> <span class="pre">int</span> <span class="pre">=</span> <span class="pre">7,</span> <span class="pre">verbose:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False,</span> <span class="pre">delta:</span> <span class="pre">float</span> <span class="pre">=</span> <span class="pre">0.0,</span> <span class="pre">path:</span> <span class="pre">str</span> <span class="pre">|</span> <span class="pre">~pathlib.Path</span> <span class="pre">=</span> <span class="pre">'checkpoint.pt',</span> <span class="pre">trace_func:</span> <span class="pre">~typing.Callable[[...],</span> <span class="pre">None]</span> <span class="pre">=</span> <span class="pre">&lt;built-in</span> <span class="pre">function</span> <span class="pre">print&gt;,</span> <span class="pre">external_save:</span> <span class="pre">bool</span> <span class="pre">=</span> <span class="pre">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#pytorchtools.EarlyStopping" title="Link to this definition"></a></dt>
+<dd><p>Early stops the training if validation loss doesn’t improve after a given patience.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.patience">
+<span class="sig-name descname"><span class="pre">patience</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.patience" title="Link to this definition"></a></dt>
+<dd><p>How long to wait after last time validation loss improved.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.verbose">
+<span class="sig-name descname"><span class="pre">verbose</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.verbose" title="Link to this definition"></a></dt>
+<dd><p>If <code class="docutils literal notranslate"><span class="pre">True</span></code>, prints a message for each validation loss improvement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.counter">
+<span class="sig-name descname"><span class="pre">counter</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.counter" title="Link to this definition"></a></dt>
+<dd><p>Number of epochs of worsening validation loss since last improvement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)">int</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.best_score">
+<span class="sig-name descname"><span class="pre">best_score</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.best_score" title="Link to this definition"></a></dt>
+<dd><p>Best validation loss score recorded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.early_stop">
+<span class="sig-name descname"><span class="pre">early_stop</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.early_stop" title="Link to this definition"></a></dt>
+<dd><p>Will be <code class="docutils literal notranslate"><span class="pre">True</span></code> if early stopping is triggered by <code class="docutils literal notranslate"><span class="pre">patience</span></code> number of validation epochs
+with worsening validation losses consecutively.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)">bool</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.val_loss_min">
+<span class="sig-name descname"><span class="pre">val_loss_min</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.val_loss_min" title="Link to this definition"></a></dt>
+<dd><p>The lowest validation loss recorded.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.delta">
+<span class="sig-name descname"><span class="pre">delta</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.delta" title="Link to this definition"></a></dt>
+<dd><p>Minimum change in the monitored quantity to qualify as an improvement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)">float</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.path">
+<span class="sig-name descname"><span class="pre">path</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.path" title="Link to this definition"></a></dt>
+<dd><p>Path for the checkpoint to be saved to.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)">str</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.trace_func">
+<span class="sig-name descname"><span class="pre">trace_func</span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.trace_func" title="Link to this definition"></a></dt>
+<dd><p>Trace print function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a>[…, None]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>patience</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.14)"><em>int</em></a>) – How long to wait after last time validation loss improved.
+Default: <code class="docutils literal notranslate"><span class="pre">7</span></code></p></li>
+<li><p><strong>verbose</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If <code class="docutils literal notranslate"><span class="pre">True</span></code>, prints a message for each validation loss improvement.
+Default: <code class="docutils literal notranslate"><span class="pre">False</span></code></p></li>
+<li><p><strong>delta</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Minimum change in the monitored quantity to qualify as an improvement.
+Default: <code class="docutils literal notranslate"><span class="pre">0</span></code></p></li>
+<li><p><strong>path</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.14)"><em>str</em></a>) – Path for the checkpoint to be saved to.
+Default: <code class="docutils literal notranslate"><span class="pre">'checkpoint.pt'</span></code></p></li>
+<li><p><strong>trace_func</strong> (<a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.Callable" title="(in Python v3.14)"><em>Callable</em></a><em>[</em><em>...</em><em>, </em><em>None</em><em>]</em>) – Trace print function.
+Default: <a class="reference external" href="https://docs.python.org/3/library/functions.html#print" title="(in Python v3.14)"><code class="xref py py-func docutils literal notranslate"><span class="pre">print()</span></code></a></p></li>
+<li><p><strong>external_save</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.14)"><em>bool</em></a>) – If True, will not save the model here, but will activate a <a class="reference internal" href="../guides/exp_config.html#save_model" title="save_model"><code class="xref py py-attr docutils literal notranslate"><span class="pre">save_model</span></code></a> flag
+indicating that the model should be saved by the user. If False, will save the model automaticallly
+using <a class="reference external" href="https://docs.pytorch.org/docs/stable/torch.html#module-torch" title="(in PyTorch v2.9)"><code class="xref py py-mod docutils literal notranslate"><span class="pre">torch</span></code></a>.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pytorchtools.EarlyStopping.save_checkpoint">
+<span class="sig-name descname"><span class="pre">save_checkpoint</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">val_loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><span class="pre">float</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.9)"><span class="pre">Module</span></a></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.14)"><span class="pre">None</span></a></span></span><a class="headerlink" href="#pytorchtools.EarlyStopping.save_checkpoint" title="Link to this definition"></a></dt>
+<dd><p>Saves model when validation loss decrease.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>val_loss</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#float" title="(in Python v3.14)"><em>float</em></a>) – Validation loss.</p></li>
+<li><p><strong>model</strong> (<a class="reference external" href="https://docs.pytorch.org/docs/stable/generated/torch.nn.Module.html#torch.nn.Module" title="(in PyTorch v2.9)"><em>Module</em></a>) – The model to save checkpoint of.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="optimisers.html" class="btn btn-neutral float-left" title="optimisers" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="samplers.html" class="btn btn-neutral float-right" title="samplers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Harry Baker.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
