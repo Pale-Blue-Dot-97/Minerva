@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -52,11 +51,11 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 try:
     from lightly.loss import NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
-    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
+    NTXentLoss = importlib.import_module("lightly.loss").NTXentLoss
 try:
     from lightly.models import ResNetGenerator
 except (OSError, NewConnectionError, MaxRetryError):
-    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
+    NTXentLoss = importlib.import_module("lightly.loss").NTXentLoss
 from torch import LongTensor, Tensor
 from torch.nn.modules import Module
 from torchvision.models._api import WeightsEnum

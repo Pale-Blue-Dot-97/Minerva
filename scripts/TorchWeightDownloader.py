@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
@@ -36,7 +35,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Optional
 
 from torchvision.models._api import WeightsEnum
 
@@ -53,7 +51,7 @@ resnets = [
 
 def main() -> None:
     for resnet in resnets:
-        weights: Optional[WeightsEnum] = get_torch_weights(resnet)
+        weights: WeightsEnum | None = get_torch_weights(resnet)
         assert weights
         _ = weights.get_state_dict(True)
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -50,56 +49,56 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "return_updated_kwargs",
-    "pair_collate",
-    "dublicator",
-    "tg_to_torch",
-    "pair_return",
-    "check_optional_import_exist",
-    "extract_class_type",
-    "is_notebook",
-    "get_cuda_device",
-    "set_seeds",
-    "exist_delete_check",
-    "mkexpdir",
+    "batch_flatten",
+    "calc_norm_euc_dist",
     "check_dict_key",
+    "check_len",
+    "check_optional_import_exist",
     "check_substrings_in_string",
-    "datetime_reformat",
-    "transform_coordinates",
-    "check_within_bounds",
-    "deg_to_dms",
-    "dec2deg",
-    "get_centre_loc",
-    "lat_lon_to_loc",
-    "find_tensor_mode",
-    "labels_to_ohe",
-    "mask_to_ohe",
-    "class_weighting",
-    "find_empty_classes",
-    "eliminate_classes",
-    "class_transform",
-    "mask_transform",
     "check_test_empty",
+    "check_within_bounds",
     "class_dist_transform",
     "class_frac",
-    "threshold_scene_select",
-    "find_best_of",
-    "timestamp_now",
-    "find_modes",
-    "modes_from_manifest",
-    "func_by_str",
-    "check_len",
-    "print_class_dist",
-    "batch_flatten",
-    "make_classification_report",
-    "run_tensorboard",
-    "compute_roc_curves",
-    "find_geo_similar",
-    "print_config",
-    "tsne_cluster",
-    "calc_norm_euc_dist",
-    "fallback_params",
+    "class_transform",
+    "class_weighting",
     "compile_dataset_paths",
+    "compute_roc_curves",
+    "datetime_reformat",
+    "dec2deg",
+    "deg_to_dms",
+    "dublicator",
+    "eliminate_classes",
+    "exist_delete_check",
+    "extract_class_type",
+    "fallback_params",
+    "find_best_of",
+    "find_empty_classes",
+    "find_geo_similar",
+    "find_modes",
+    "find_tensor_mode",
+    "func_by_str",
+    "get_centre_loc",
+    "get_cuda_device",
+    "is_notebook",
+    "labels_to_ohe",
+    "lat_lon_to_loc",
+    "make_classification_report",
+    "mask_to_ohe",
+    "mask_transform",
+    "mkexpdir",
+    "modes_from_manifest",
+    "pair_collate",
+    "pair_return",
+    "print_class_dist",
+    "print_config",
+    "return_updated_kwargs",
+    "run_tensorboard",
+    "set_seeds",
+    "tg_to_torch",
+    "threshold_scene_select",
+    "timestamp_now",
+    "transform_coordinates",
+    "tsne_cluster",
 ]
 
 # =====================================================================================================================
@@ -118,15 +117,16 @@ import random
 import shlex
 import sys
 import webbrowser
-from collections import Counter, OrderedDict
+from collections import Counter
+from collections import Counter as CounterType
+from collections import OrderedDict
+from collections.abc import Callable, Iterable, Sequence
 from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
 from subprocess import Popen
 from types import ModuleType
-from typing import Any, Callable
-from typing import Counter as CounterType
-from typing import Iterable, Optional, Sequence, overload
+from typing import Any, overload
 
 # ---+ 3rd Party +-----------------------------------------------------------------------------------------------------
 import numpy as np
@@ -235,7 +235,7 @@ def dublicator(cls):
     return Wrapper
 
 
-def tg_to_torch(cls, keys: Optional[Sequence[str]] = None):
+def tg_to_torch(cls, keys: Sequence[str] | None = None):
     """Ensures wrapped transform can handle both :class:`~torch.Tensor` and :mod:`torchgeo` style :class:`dict` inputs.
 
     .. warning::
@@ -395,7 +395,7 @@ def _optional_import(
 
 
 def _optional_import(
-    module: str, *, name: Optional[str] = None, package: Optional[str] = None
+    module: str, *, name: str | None = None, package: str | None = None
 ) -> ModuleType | Callable[..., Any]:
     try:
         _module: ModuleType = importlib.import_module(module)
@@ -529,9 +529,7 @@ def check_dict_key(dictionary: dict[Any, Any], key: Any) -> bool:
         bool: ``True`` if key exists and is not ``None`` or ``False``. ``False`` if else.
     """
     if key in dictionary:
-        if dictionary[key] is None:
-            return False
-        elif dictionary[key] is False:
+        if dictionary[key] is None or dictionary[key] is False:
             return False
         else:
             return True
@@ -668,14 +666,10 @@ def check_within_bounds(bbox: BoundingBox, bounds: BoundingBox) -> BoundingBox:
         bounding box that has been limited to the dimensions of ``bounds`` if those of ``bbox`` exceeded them.
     """
     minx, maxx, miny, maxy = bbox.minx, bbox.maxx, bbox.miny, bbox.maxy
-    if minx < bounds.minx:
-        minx = bounds.minx
-    if maxx > bounds.maxx:
-        maxx = bounds.maxx
-    if miny < bounds.miny:
-        miny = bounds.miny
-    if maxy > bounds.maxy:
-        maxy = bounds.maxy
+    minx = max(minx, bounds.minx)
+    maxx = min(maxx, bounds.maxx)
+    miny = max(miny, bounds.miny)
+    maxy = min(maxy, bounds.maxy)
 
     return BoundingBox(minx, maxx, miny, maxy, bbox.mint, bbox.maxt)
 
@@ -708,11 +702,11 @@ def deg_to_dms(deg: float, axis: str = "lat") -> str:
     compass_str = compass[axis][0 if d >= 0 else 1]
 
     # Return formatted str
-    return "{}º{}'{:.0f}\"{}".format(abs(d), abs(m), abs(s), compass_str)
+    return f"{abs(d)}º{abs(m)}'{abs(s):.0f}\"{compass_str}"
 
 
 def dec2deg(
-    dec_co: Sequence[float] | NDArray[np.float64],  # noqa: F722
+    dec_co: Sequence[float] | NDArray[np.float64],
     axis: str = "lat",
 ) -> list[str]:
     """Wrapper for :func:`deg_to_dms`.
@@ -937,7 +931,7 @@ def find_empty_classes(
     empty: list[int] = []
 
     # Checks which classes are not present in class_dist
-    for label in class_names.keys():
+    for label in class_names:
         # If not present, add class label to empty.
         if label not in [mode[0] for mode in class_dist]:
             empty.append(label)
@@ -948,8 +942,8 @@ def find_empty_classes(
 def eliminate_classes(
     empty_classes: list[int] | tuple[int, ...] | NDArray[np.int_],
     old_classes: dict[int, str],
-    old_cmap: Optional[dict[int, str]] = None,
-) -> tuple[dict[int, str], dict[int, int], Optional[dict[int, str]]]:
+    old_cmap: dict[int, str] | None = None,
+) -> tuple[dict[int, str], dict[int, int], dict[int, str] | None]:
     """Eliminates empty classes from the class text label and class colour dictionaries and re-normalise.
 
     This should ensure that the remaining list of classes is still a linearly spaced list of numbers.
@@ -966,7 +960,7 @@ def eliminate_classes(
             * Mapping of remaining class labels to RGB colours.
     """
     if len(empty_classes) == 0:
-        return old_classes, {i: i for i in old_classes.keys()}, old_cmap
+        return old_classes, {i: i for i in old_classes}, old_cmap
 
     else:
         # Makes deep copies of the class and cmap dicts.
@@ -1056,7 +1050,7 @@ def mask_transform(
     Returns:
         ~numpy.ndarray[int] | ~torch.LongTensor: Array of transformed labels.
     """
-    for key in matrix.keys():
+    for key in matrix:
         array[array == key] = matrix[key]
 
     return array
@@ -1065,7 +1059,7 @@ def mask_transform(
 def check_test_empty(
     pred: Sequence[int] | NDArray[np.int_],
     labels: Sequence[int] | NDArray[np.int_],
-    class_labels: Optional[dict[int, str]] = None,
+    class_labels: dict[int, str] | None = None,
     p_dist: bool = True,
 ) -> tuple[NDArray[np.int_], NDArray[np.int_], dict[int, str]]:
     """Checks if any of the classes in the dataset were not present in both the predictions and ground truth labels.
@@ -1236,8 +1230,8 @@ def timestamp_now(fmt: str = "%d-%m-%Y_%H%M") -> str:
 def find_modes(
     labels: Iterable[int],
     plot: bool = False,
-    classes: Optional[dict[int, str]] = None,
-    cmap_dict: Optional[dict[int, str]] = None,
+    classes: dict[int, str] | None = None,
+    cmap_dict: dict[int, str] | None = None,
 ) -> list[tuple[int, int]]:
     """Finds the modal distribution of the classes within the labels provided.
 
@@ -1268,7 +1262,7 @@ def modes_from_manifest(
     manifest: DataFrame,
     classes: dict[int, str],
     plot: bool = False,
-    cmap_dict: Optional[dict[int, str]] = None,
+    cmap_dict: dict[int, str] | None = None,
 ) -> list[tuple[int, int]]:
     """Uses the dataset manifest to calculate the fractional size of the classes.
 
@@ -1288,7 +1282,7 @@ def modes_from_manifest(
             return manifest[f"{cls}"].sum() / len(manifest)
 
     class_counter: CounterType[int] = Counter()
-    for classification in classes.keys():
+    for classification in classes:
         try:
             count = count_samples(classification)
             if count == 0.0 or count == 0:
@@ -1349,7 +1343,7 @@ def check_len(param: Any, comparator: Any) -> Any | Sequence[Any]:
         return [param] * len(comparator)
 
 
-def calc_grad(model: Module) -> Optional[float]:
+def calc_grad(model: Module) -> float | None:
     """Calculates and prints to ``stdout`` the 2D grad norm of the model parameters.
 
     Args:
@@ -1386,7 +1380,7 @@ def calc_grad(model: Module) -> Optional[float]:
 
 def print_class_dist(
     class_dist: list[tuple[int, int]],
-    class_labels: Optional[dict[int, str]] = None,
+    class_labels: dict[int, str] | None = None,
 ) -> None:
     """Prints the supplied ``class_dist`` in a pretty table format using :mod:`tabulate`.
 
@@ -1407,7 +1401,7 @@ def print_class_dist(
         Returns:
             str: Formatted string of the percentage size to 2 decimal places.
         """
-        return "{:.2f}%".format(count * 100.0 / total)
+        return f"{count * 100.0 / total:.2f}%"
 
     if class_labels is None:
         class_numbers = [x[0] for x in class_dist]
@@ -1436,7 +1430,7 @@ def print_class_dist(
     print(tabulate(df, headers="keys", tablefmt="psql"))  # type: ignore
 
 
-def batch_flatten(x: ArrayLike) -> NDArray[Any]:  # noqa: F722
+def batch_flatten(x: ArrayLike) -> NDArray[Any]:
     """Flattens the supplied array with :func:`numpy.flatten`.
 
     Args:
@@ -1457,7 +1451,7 @@ def batch_flatten(x: ArrayLike) -> NDArray[Any]:  # noqa: F722
 def make_classification_report(
     pred: Sequence[int] | NDArray[np.int_],
     labels: Sequence[int] | NDArray[np.int_],
-    class_labels: Optional[dict[int, str]] = None,
+    class_labels: dict[int, str] | None = None,
     print_cr: bool = True,
     p_dist: bool = False,
 ) -> DataFrame:
@@ -1568,7 +1562,7 @@ def run_tensorboard(
     env_name: str = "env",
     host_num: str | int = 6006,
     _testing: bool = False,
-) -> Optional[int]:
+) -> int | None:
     """Runs the :mod:`TensorBoard` logs and hosts on a local webpage.
 
     Args:
@@ -1846,7 +1840,7 @@ def fallback_params(
     key: str,
     params_a: dict[str, Any],
     params_b: dict[str, Any],
-    fallback: Optional[Any] = None,
+    fallback: Any | None = None,
 ) -> Any:
     """Search for a value associated with ``key`` from
 
@@ -1918,7 +1912,7 @@ def make_hash(obj: dict[Any, Any]) -> str:
     if OmegaConf.is_config(obj):
         obj = OmegaConf.to_object(obj)  # type: ignore[assignment]
 
-    return hashlib.md5(json_dumps(obj).encode("utf-8")).digest().hex()  # nosec: B324
+    return hashlib.md5(json_dumps(obj).encode("utf-8")).hexdigest()  # nosec: B324
 
 
 def closest_factors(n):
@@ -1960,7 +1954,7 @@ def closest_factors(n):
     return best_pair
 
 
-def get_sample_index(sample: dict[str, Any]) -> Optional[Any]:
+def get_sample_index(sample: dict[str, Any]) -> Any | None:
     """Get the index for a sample with unkown index key.
 
     Will try:

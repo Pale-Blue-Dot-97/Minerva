@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #    Copyright 2024 Harry Baker
 
 #    Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,14 +25,13 @@ __author__ = ["Harry Baker", "Yi Wang", "Adam J. Stewart"]
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "Apache 2.0 License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["GeoSSL4EOS12Sentinel2", "NonGeoSSL4EOS12Sentinel2", "MinervaSSL4EO"]
+__all__ = ["GeoSSL4EOS12Sentinel2", "MinervaSSL4EO", "NonGeoSSL4EOS12Sentinel2"]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
 import pickle
-from typing import Optional
 
 import cv2
 import lmdb
@@ -213,10 +211,10 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
     def __init__(
         self,
         root: str,
-        lmdb_file: Optional[str] = None,
+        lmdb_file: str | None = None,
         normalize: bool = False,
         mode: str = "s2a",
-        bands: Optional[tuple[str, ...]] = None,
+        bands: tuple[str, ...] | None = None,
         dtype: str = "uint8",
         is_slurm_job=False,
         transforms=None,
@@ -244,7 +242,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
             self.ids = os.listdir(os.path.join(self.root, self.mode))
             self.length = len(self.ids)
 
-        self.season_transform: Optional[SeasonTransform]
+        self.season_transform: SeasonTransform | None
         if season_transform is not None:
             self.season_transform = SeasonTransform(season_transform)
         else:
@@ -363,9 +361,7 @@ class MinervaSSL4EO(VisionDataset, MinervaNonGeoDataset):
 
             return {"image": img_4s}
 
-    def get_array(
-        self, patch_id: str, mode: str, bands: Optional[tuple[str, ...]] = None
-    ):
+    def get_array(self, patch_id: str, mode: str, bands: tuple[str, ...] | None = None):
         data_root_patch = os.path.join(self.root, mode, patch_id)
         patch_seasons = os.listdir(data_root_patch)
         seasons = []
@@ -442,7 +438,7 @@ class Subset(Dataset):  # type: ignore[type-arg]
         return getattr(self.dataset, name)
 
 
-class _RepeatSampler(object):
+class _RepeatSampler:
     """
     Sampler that repeats forever.
     Args:

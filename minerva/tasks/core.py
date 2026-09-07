@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -41,8 +40,9 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 import abc
 from abc import ABC
+from collections.abc import Callable, Sequence
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Sequence
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -171,8 +171,8 @@ class MinervaTask(ABC):
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Optional[SummaryWriter | Run] = None,
-        backbone_weight_path: Optional[str | Path] = None,
+        writer: SummaryWriter | Run | None = None,
+        backbone_weight_path: str | Path | None = None,
         record_int: bool = True,
         record_float: bool = False,
         train: bool = False,
@@ -408,7 +408,7 @@ class MinervaTask(ABC):
     def step(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
-    def _generic_step(self, epoch_no: int) -> Optional[dict[str, Any]]:
+    def _generic_step(self, epoch_no: int) -> dict[str, Any] | None:
         self.local_step_num = 0
         self.step()
 
@@ -460,7 +460,7 @@ class MinervaTask(ABC):
     def plot(
         self,
         results: dict[str, Any],
-        metrics: Optional[dict[str, Any]] = None,
+        metrics: dict[str, Any] | None = None,
         save: bool = True,
         show: bool = False,
     ) -> None:
@@ -487,10 +487,7 @@ class MinervaTask(ABC):
         if utils.check_substrings_in_string(self.model_type, "segmentation"):
             plots["ROC"] = False
 
-        if metrics is None:
-            plots["History"] = False
-
-        elif len(list(metrics.values())[0]["x"]) <= 1:
+        if metrics is None or len(list(metrics.values())[0]["x"]) <= 1:
             plots["History"] = False
 
         else:

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -34,20 +33,21 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "MinervaNonGeoDataset",
+    "get_random_sample",
+    "intersect_datasets",
     "load_all_samples",
     "make_bounding_box",
-    "intersect_datasets",
-    "unionise_datasets",
-    "get_random_sample",
     "masks_or_labels",
+    "unionise_datasets",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import pickle
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
-from typing import Any, Callable, Iterable, Literal, Optional, Sequence, Union
+from typing import Any, Literal, Union
 
 import numpy as np
 from numpy.typing import NDArray
@@ -140,7 +140,7 @@ def intersect_datasets(datasets: Sequence[GeoDataset]) -> IntersectionDataset:
 
 def unionise_datasets(
     datasets: Sequence[GeoDataset],
-    transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+    transforms: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
 ) -> UnionDataset:
     """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
@@ -168,7 +168,7 @@ def unionise_datasets(
 
 def concatenate_datasets(
     datasets: Sequence[NonGeoDataset],
-    transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+    transforms: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
 ) -> MinervaConcatDataset:
     """Unionises a list of :class:`~torchgeo.datasets.GeoDataset` together to return a single dataset object.
 
@@ -196,7 +196,7 @@ def concatenate_datasets(
     return master_dataset
 
 
-def make_bounding_box(roi: Sequence[float] | bool = False) -> Optional[BoundingBox]:
+def make_bounding_box(roi: Sequence[float] | bool = False) -> BoundingBox | None:
     """Construct a :class:`~torchgeo.datasets.utils.BoundingBox` object from the corners of the box.
     ``False`` for no :class:`~torchgeo.datasets.utils.BoundingBox`.
 
@@ -294,7 +294,7 @@ def cache_dataset(
 
 
 def masks_or_labels(dataset_params: dict[str, Any]) -> str:
-    for key in dataset_params.keys():
+    for key in dataset_params:
         if key not in (
             "sampler",
             "transforms",
