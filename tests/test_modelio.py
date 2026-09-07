@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -47,7 +46,7 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 try:
     from lightly.loss import NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
-    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
+    NTXentLoss = importlib.import_module("lightly.loss").NTXentLoss
 import pytest
 from numpy.testing import assert_array_equal
 from torch import Tensor

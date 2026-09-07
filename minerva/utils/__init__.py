@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -37,10 +36,10 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "universal_path",
-    "DEFAULT_CONF_DIR_PATH",
     "DEFAULT_CONFIG_NAME",
+    "DEFAULT_CONF_DIR_PATH",
     "MASTER_PARSER",
+    "universal_path",
 ]
 
 # =====================================================================================================================
@@ -49,7 +48,7 @@ __all__ = [
 import argparse
 
 from minerva.utils.config_load import DEFAULT_CONF_DIR_PATH, DEFAULT_CONFIG_NAME
-from minerva.utils.config_load import universal_path as universal_path  # noqa: F401
+from minerva.utils.config_load import universal_path as universal_path
 
 # =====================================================================================================================
 #                                                     GLOBALS

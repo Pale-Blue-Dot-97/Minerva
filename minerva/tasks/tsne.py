@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -39,7 +38,7 @@ __all__ = ["TSNEVis"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -72,8 +71,8 @@ class TSNEVis(MinervaTask):
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Optional[SummaryWriter | Run] = None,
-        backbone_weight_path: Optional[str | Path] = None,
+        writer: SummaryWriter | Run | None = None,
+        backbone_weight_path: str | Path | None = None,
         record_int: bool = True,
         record_float: bool = False,
         **params,
