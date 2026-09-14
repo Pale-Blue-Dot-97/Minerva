@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -42,7 +41,7 @@ from pathlib import Path
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 import torch
 import torch.distributed as dist
@@ -149,8 +148,8 @@ class WeightedKNN(MinervaTask):
         gpu: int = 0,
         rank: int = 0,
         world_size: int = 1,
-        writer: Optional[SummaryWriter | Run] = None,
-        backbone_weight_path: Optional[str | Path] = None,
+        writer: SummaryWriter | Run | None = None,
+        backbone_weight_path: str | Path | None = None,
         record_int: bool = True,
         record_float: bool = False,
         k: int = 5,
