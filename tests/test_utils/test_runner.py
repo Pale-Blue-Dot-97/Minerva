@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -39,7 +38,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 import os
 import subprocess
 import time
-from typing import Optional
 
 import pytest
 import requests
@@ -63,9 +61,8 @@ def test_wandb_connection_manager() -> None:
         with runner.WandbConnectionManager():
             assert os.environ["WANDB_MODE"] == "online"
 
-    with no_connection():
-        with runner.WandbConnectionManager():
-            assert os.environ["WANDB_MODE"] == "offline"
+    with no_connection(), runner.WandbConnectionManager():
+        assert os.environ["WANDB_MODE"] == "offline"
 
 
 def test_config_env_vars(default_config: DictConfig) -> None:
@@ -80,10 +77,10 @@ def test_config_env_vars(default_config: DictConfig) -> None:
     new_cfg = runner.config_env_vars(default_config)
 
     if "SLURM_JOB_ID" in os.environ:
-        slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
-        slurm_nodeid: Optional[str] = os.getenv("SLURM_NODEID")
-        slurm_nnodes: Optional[str] = os.getenv("SLURM_NNODES")
-        slurm_jobid: Optional[str] = os.getenv("SLURM_JOB_ID")
+        slurm_job_nodelist: str | None = os.getenv("SLURM_JOB_NODELIST")
+        slurm_nodeid: str | None = os.getenv("SLURM_NODEID")
+        slurm_nnodes: str | None = os.getenv("SLURM_NNODES")
+        slurm_jobid: str | None = os.getenv("SLURM_JOB_ID")
 
         assert slurm_job_nodelist is not None
         assert slurm_nodeid is not None
@@ -110,11 +107,8 @@ def test_config_env_vars(default_config: DictConfig) -> None:
 
 
 @runner.distributed_run
-def _run_func(
-    gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig
-) -> None:
+def _run_func(gpu: int, wandb_run: Run | RunDisabled | None, cfg: DictConfig) -> None:
     time.sleep(0.5)
-    return
 
 
 def test_distributed_run(default_config: DictConfig) -> None:
