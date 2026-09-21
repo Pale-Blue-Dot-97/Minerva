@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -38,7 +37,8 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 from collections import OrderedDict
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 import torch.nn.modules as nn
@@ -78,12 +78,12 @@ class MLP(MinervaModel):
 
     def __init__(
         self,
-        criterion: Optional[Any] = None,
+        criterion: Any | None = None,
         input_size: int = 288,
         n_classes: int = 8,
         hidden_sizes: tuple[int, ...] | list[int] | int = (256, 144),
     ) -> None:
-        super(MLP, self).__init__(
+        super().__init__(
             criterion=criterion, input_size=(input_size,), n_classes=n_classes
         )
 
@@ -175,7 +175,7 @@ class CNN(MinervaModel):
         p_conv_do: float = 0.1,
         p_fc_do: float = 0.5,
     ) -> None:
-        super(CNN, self).__init__(
+        super().__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -35,8 +34,8 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "MinervaTask",
     "StandardEpoch",
-    "WeightedKNN",
     "TSNEVis",
+    "WeightedKNN",
     "get_task",
 ]
 

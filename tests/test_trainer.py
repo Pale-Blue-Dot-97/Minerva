@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -41,7 +40,7 @@ import os
 import shutil
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import hydra
 import pytest
@@ -59,7 +58,7 @@ from minerva.utils import runner, utils
 #                                                       TESTS
 # =====================================================================================================================
 @runner.distributed_run
-def run_trainer(gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig):
+def run_trainer(gpu: int, wandb_run: Run | RunDisabled | None, cfg: DictConfig):
     params = deepcopy(cfg)
     params["calc_norm"] = True
 
@@ -199,7 +198,7 @@ def test_trainer_4(
     with hydra.initialize(version_base="1.3", config_path=str(inbuilt_cfg_root)):
         cfg = hydra.compose(config_name=cfg_name)
 
-        for key in cfg_args.keys():
+        for key in cfg_args:
             cfg[key] = cfg_args[key]
 
         trainer = Trainer(0, **cfg)
