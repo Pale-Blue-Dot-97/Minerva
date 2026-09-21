@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -35,8 +34,8 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 
 __all__ = [
-    "FCN",
     "DCN",
+    "FCN",
     "FCN8ResNet18",
     "FCN8ResNet34",
     "FCN8ResNet50",
@@ -53,7 +52,8 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Literal, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any, Literal
 
 import torch
 import torch.nn.modules as nn
@@ -103,12 +103,12 @@ class FCN(MinervaBackbone):
         criterion: Any,
         input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
-        scaler: Optional[GradScaler] = None,
-        backbone_weight_path: Optional[str] = None,
+        scaler: GradScaler | None = None,
+        backbone_weight_path: str | None = None,
         freeze_backbone: bool = False,
         backbone_kwargs: dict[str, Any] = {},
     ) -> None:
-        super(FCN, self).__init__(
+        super().__init__(
             criterion=criterion,
             input_size=input_size,
             n_classes=n_classes,
@@ -217,7 +217,7 @@ class DCN(MinervaModel):
         n_classes: int = 21,
         variant: Literal["32", "16", "8"] = "32",
     ) -> None:
-        super(DCN, self).__init__(n_classes=n_classes)
+        super().__init__(n_classes=n_classes)
         self.variant: Literal["32", "16", "8"] = variant
 
         assert isinstance(self.n_classes, int)

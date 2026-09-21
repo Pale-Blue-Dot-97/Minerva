@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -34,8 +33,8 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "MinervaTaskLogger",
-    "SupervisedTaskLogger",
     "SSLTaskLogger",
+    "SupervisedTaskLogger",
 ]
 
 # =====================================================================================================================
@@ -43,7 +42,7 @@ __all__ = [
 # =====================================================================================================================
 import abc
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:  # pragma: no cover
     from torch.utils.tensorboard.writer import SummaryWriter
@@ -98,13 +97,13 @@ class MinervaTaskLogger(ABC):
         batch_size: int,
         input_size: tuple[int, int, int],
         output_size: tuple[int, ...],
-        step_logger_params: Optional[dict[str, Any]] = None,
+        step_logger_params: dict[str, Any] | None = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[SummaryWriter | Run] = None,
+        writer: SummaryWriter | Run | None = None,
         **params,
     ) -> None:
-        super(MinervaTaskLogger, self).__init__()
+        super().__init__()
 
         self.n_batches = n_batches
         self.batch_size = batch_size
@@ -171,10 +170,10 @@ class MinervaTaskLogger(ABC):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        x: Optional[Tensor] = None,
-        y: Optional[Tensor] = None,
-        z: Optional[Tensor] = None,
-        index: Optional[BoundingBox] = None,
+        x: Tensor | None = None,
+        y: Tensor | None = None,
+        z: Tensor | None = None,
+        index: BoundingBox | None = None,
         *args,
         **kwargs,
     ) -> None:
@@ -332,14 +331,14 @@ class SupervisedTaskLogger(MinervaTaskLogger):
         batch_size: int,
         input_size: tuple[int, int, int],
         output_size: tuple[int, ...],
-        step_logger_params: Optional[dict[str, Any]] = None,
+        step_logger_params: dict[str, Any] | None = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[SummaryWriter | Run] = None,
+        writer: SummaryWriter | Run | None = None,
         model_type: str = "segmentation",
         **params,
     ) -> None:
-        super(SupervisedTaskLogger, self).__init__(
+        super().__init__(
             task_name,
             n_batches,
             batch_size,
@@ -433,10 +432,10 @@ class SSLTaskLogger(MinervaTaskLogger):
         batch_size: int,
         input_size: tuple[int, int, int],
         output_size: tuple[int, ...],
-        step_logger_params: Optional[dict[str, Any]] = None,
+        step_logger_params: dict[str, Any] | None = None,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[SummaryWriter | Run] = None,
+        writer: SummaryWriter | Run | None = None,
         model_type: str = "segmentation",
         sample_pairs: bool = False,
         **params,
@@ -454,7 +453,7 @@ class SSLTaskLogger(MinervaTaskLogger):
             "euclidean", sample_pairs
         )
 
-        super(SSLTaskLogger, self).__init__(
+        super().__init__(
             task_name,
             n_batches,
             batch_size,

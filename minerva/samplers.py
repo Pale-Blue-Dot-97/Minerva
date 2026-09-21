@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -37,9 +36,9 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "RandomPairGeoSampler",
-    "RandomPairBatchGeoSampler",
     "DistributedSamplerWrapper",
+    "RandomPairBatchGeoSampler",
+    "RandomPairGeoSampler",
     "get_greater_bbox",
     "get_pair_bboxes",
     "get_sampler",
@@ -50,8 +49,9 @@ __all__ = [
 # =====================================================================================================================
 import random
 import re
+from collections.abc import Iterator, Sequence
 from operator import itemgetter
-from typing import Any, Iterator, Optional, Sequence
+from typing import Any
 
 import hydra
 import torch
@@ -97,7 +97,7 @@ class RandomPairGeoSampler(RandomGeoSampler):
         dataset: GeoDataset,
         size: tuple[float, float] | float,
         length: int,
-        roi: Optional[BoundingBox] = None,
+        roi: BoundingBox | None = None,
         units: Units = Units.PIXELS,
         max_r: float = 256.0,
     ) -> None:
@@ -163,7 +163,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
         size: tuple[float, float] | float,
         batch_size: int,
         length: int,
-        roi: Optional[BoundingBox] = None,
+        roi: BoundingBox | None = None,
         max_r: float = 256.0,
         tiles_per_batch: int = 4,
     ) -> None:
@@ -215,7 +215,7 @@ class RandomPairBatchGeoSampler(BatchGeoSampler):
 def get_greater_bbox(
     bbox: BoundingBox,
     r: float,
-    size: float | int | Sequence[float],
+    size: float | Sequence[float],
 ) -> BoundingBox:
     """Return a bounding box at ``r`` distance around the first box.
 
@@ -304,8 +304,8 @@ class DistributedSamplerWrapper(DistributedSampler):  # type: ignore[type-arg]
     def __init__(
         self,
         sampler: Sampler[Any],
-        num_replicas: Optional[int] = None,
-        rank: Optional[int] = None,
+        num_replicas: int | None = None,
+        rank: int | None = None,
         shuffle: bool = True,
     ):
         """
@@ -319,7 +319,7 @@ class DistributedSamplerWrapper(DistributedSampler):  # type: ignore[type-arg]
             shuffle (bool, optional): If true (default),
                 sampler will shuffle the indices
         """
-        super(DistributedSamplerWrapper, self).__init__(
+        super().__init__(
             DatasetFromSampler(sampler),
             num_replicas=num_replicas,
             rank=rank,
@@ -352,7 +352,7 @@ class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
     def __init__(self, sampler: Sampler[Any]):
         """Initialisation for :class:`DatasetFromSampler`."""
         self.sampler = sampler
-        self.sampler_list: Optional[list[Sampler[Any]]] = None
+        self.sampler_list: list[Sampler[Any]] | None = None
 
     def __getitem__(self, index: int) -> Any:
         """Gets element of the dataset.
@@ -381,7 +381,7 @@ class DatasetFromSampler(Dataset):  # type: ignore[type-arg]
 def get_sampler(
     params: dict[str, Any],
     dataset: GeoDataset | NonGeoDataset,
-    batch_size: Optional[int] = None,
+    batch_size: int | None = None,
 ) -> Sampler[Any]:
     """Use :meth:`hydra.utils.instantiate` to get the sampler using config parameters.
 
