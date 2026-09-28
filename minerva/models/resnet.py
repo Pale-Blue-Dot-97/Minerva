@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -35,19 +34,20 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "ResNet",
-    "ResNetX",
     "ResNet18",
     "ResNet34",
     "ResNet50",
     "ResNet101",
     "ResNet152",
+    "ResNetX",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Callable, Optional, Type
+from collections.abc import Callable
+from typing import Any
 
 import torch
 import torch.nn.modules as nn
@@ -123,18 +123,18 @@ class ResNet(MinervaModel):
 
     def __init__(
         self,
-        block: Type[BasicBlock | Bottleneck],
+        block: type[BasicBlock | Bottleneck],
         layers: list[int] | tuple[int, int, int, int],
         in_channels: int = 3,
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
-        replace_stride_with_dilation: Optional[tuple[bool, bool, bool]] = None,
-        norm_layer: Optional[Callable[..., Module]] = None,
+        replace_stride_with_dilation: tuple[bool, bool, bool] | None = None,
+        norm_layer: Callable[..., Module] | None = None,
         encoder: bool = False,
     ) -> None:
-        super(ResNet, self).__init__()
+        super().__init__()
 
         # Inits normalisation layer for use in each block.
         if norm_layer is None:
@@ -159,7 +159,7 @@ class ResNet(MinervaModel):
         if len(replace_stride_with_dilation) != 3:
             raise ValueError(
                 "replace_stride_with_dilation should be None "
-                "or a 3-element tuple, got {}".format(replace_stride_with_dilation)
+                f"or a 3-element tuple, got {replace_stride_with_dilation}"
             )
 
         # Sets the number of convolutions in groups and the base width of convolutions.
@@ -225,7 +225,7 @@ class ResNet(MinervaModel):
 
     def _make_layer(
         self,
-        block: Type[BasicBlock | Bottleneck],
+        block: type[BasicBlock | Bottleneck],
         planes: int,
         blocks: int,
         stride: int = 1,
@@ -391,24 +391,24 @@ class ResNetX(MinervaModel):
     """
 
     __metaclass__ = abc.ABCMeta
-    block_type: Type[BasicBlock] | Type[Bottleneck] = BasicBlock
+    block_type: type[BasicBlock] | type[Bottleneck] = BasicBlock
     layer_struct: list[int] = [2, 2, 2, 2]
     weights_name = "ResNet18_Weights.IMAGENET1K_V1"
 
     def __init__(
         self,
-        criterion: Optional[Any] = None,
+        criterion: Any | None = None,
         input_size: tuple[int, int, int] = (4, 256, 256),
         n_classes: int = 8,
         zero_init_residual: bool = False,
         groups: int = 1,
         width_per_group: int = 64,
-        replace_stride_with_dilation: Optional[tuple[bool, bool, bool]] = None,
-        norm_layer: Optional[Callable[..., Module]] = None,
+        replace_stride_with_dilation: tuple[bool, bool, bool] | None = None,
+        norm_layer: Callable[..., Module] | None = None,
         encoder: bool = False,
         torch_weights: bool = False,
     ) -> None:
-        super(ResNetX, self).__init__(
+        super().__init__(
             criterion=criterion, input_size=input_size, n_classes=n_classes
         )
 
@@ -507,7 +507,7 @@ class ResNet152(ResNetX):
 # =====================================================================================================================
 def _preload_weights(
     resnet: ResNet,
-    weights: Optional[WeightsEnum | Any],
+    weights: WeightsEnum | Any | None,
     input_shape: tuple[int, int, int],
     encoder_on: bool,
 ) -> ResNet:  # pragma: no cover

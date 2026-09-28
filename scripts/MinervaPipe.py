@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
@@ -48,7 +47,7 @@ def main(config_path: str):
     with open(config_path) as f:
         config: dict[str, Any] = yaml.safe_load(f)
 
-    for key in config.keys():
+    for key in config:
         print(
             f"\nExecuting {key} experiment + ====================================================================="
         )

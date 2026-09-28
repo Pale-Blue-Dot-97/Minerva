@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -39,22 +38,23 @@ __all__ = [
     "SimCLR18",
     "SimCLR34",
     "SimCLR50",
-    "SimSiam",
-    "SimSiam18",
-    "SimSiam34",
-    "SimSiam50",
     "SimConv",
     "SimConv18",
     "SimConv34",
     "SimConv50",
     "SimConv101",
+    "SimSiam",
+    "SimSiam18",
+    "SimSiam34",
+    "SimSiam50",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 import torch
@@ -174,12 +174,10 @@ class SimCLR(MinervaSiamese):
         criterion: Any,
         input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
-        scaler: Optional[GradScaler] = None,
+        scaler: GradScaler | None = None,
         backbone_kwargs: dict[str, Any] = {},
     ) -> None:
-        super(SimCLR, self).__init__(
-            criterion=criterion, input_size=input_size, scaler=scaler
-        )
+        super().__init__(criterion=criterion, input_size=input_size, scaler=scaler)
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size,
@@ -324,12 +322,10 @@ class SimSiam(MinervaSiamese):
         input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 128,
         pred_dim: int = 512,
-        scaler: Optional[GradScaler] = None,
+        scaler: GradScaler | None = None,
         backbone_kwargs: dict[str, Any] = {},
     ) -> None:
-        super(SimSiam, self).__init__(
-            criterion=criterion, input_size=input_size, scaler=scaler
-        )
+        super().__init__(criterion=criterion, input_size=input_size, scaler=scaler)
 
         self.backbone: MinervaModel = get_model(self.backbone_name)(
             input_size=input_size,
@@ -488,13 +484,11 @@ class SimConv(MinervaSiamese):
         input_size: tuple[int, int, int] = (4, 256, 256),
         feature_dim: int = 2048,
         projection_dim: int = 512,
-        scaler: Optional[GradScaler] = None,
-        encoder_weights: Optional[str] = None,
+        scaler: GradScaler | None = None,
+        encoder_weights: str | None = None,
         backbone_kwargs: dict[str, Any] = {},
     ) -> None:
-        super(SimConv, self).__init__(
-            criterion=criterion, input_size=input_size, scaler=scaler
-        )
+        super().__init__(criterion=criterion, input_size=input_size, scaler=scaler)
 
         self.backbone = MinervaPSP(
             input_size=input_size,

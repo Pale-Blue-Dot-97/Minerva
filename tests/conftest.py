@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -40,8 +39,9 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 import multiprocessing
 import os
 import shutil
+from collections.abc import Generator
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 import hydra
 import numpy as np

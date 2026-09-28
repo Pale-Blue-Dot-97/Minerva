@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -36,18 +35,18 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 
 __all__ = [
     "FilterOutputs",
-    "MinervaModel",
-    "MinervaWrapper",
-    "MinervaDataParallel",
     "MinervaBackbone",
+    "MinervaDataParallel",
+    "MinervaModel",
     "MinervaOnnxModel",
-    "get_model",
-    "get_torch_weights",
-    "get_output_shape",
+    "MinervaWrapper",
     "bilinear_init",
+    "extract_wrapped_model",
+    "get_model",
+    "get_output_shape",
+    "get_torch_weights",
     "is_minerva_model",
     "is_minerva_subtype",
-    "extract_wrapped_model",
     "wrap_model",
 ]
 
@@ -58,8 +57,9 @@ import abc
 import os
 import warnings
 from abc import ABC
+from collections.abc import Callable, Iterable, Sequence
 from pathlib import Path
-from typing import Any, Callable, Iterable, Optional, Sequence, Type, overload
+from typing import Any, overload
 
 import numpy as np
 import torch
@@ -123,30 +123,30 @@ class MinervaModel(Module, ABC):
 
     def __init__(
         self,
-        criterion: Optional[Module] = None,
-        input_size: Optional[tuple[int, ...]] = None,
-        n_classes: Optional[int] = None,
-        scaler: Optional[GradScaler] = None,
+        criterion: Module | None = None,
+        input_size: tuple[int, ...] | None = None,
+        n_classes: int | None = None,
+        scaler: GradScaler | None = None,
     ) -> None:
-        super(MinervaModel, self).__init__()
+        super().__init__()
 
         # Sets loss function
-        self.criterion: Optional[Module] = criterion
+        self.criterion: Module | None = criterion
 
         self.input_size = input_size
         self.n_classes = n_classes
         self.scaler = scaler
 
         # Output shape initialised as None. Should be set by calling determine_output_dim.
-        self.output_shape: Optional[tuple[int, ...]] = None
+        self.output_shape: tuple[int, ...] | None = None
 
         # Optimiser initialised as None as the model parameters created by its init is required to init a
         # torch optimiser. The optimiser MUST be set by calling set_optimiser before the model can be trained.
-        self.optimiser: Optional[Optimizer] = None
+        self.optimiser: Optimizer | None = None
 
         # Like the optimiser, the scheduler needs to be set after the model is inited as it needs to wrap
         # the optimiser. Use ``set_scheduler`` to add the scheduler to the model.
-        self.scheduler: Optional[LRScheduler] = None
+        self.scheduler: LRScheduler | None = None
 
     def set_optimiser(self, optimiser: Optimizer) -> None:
         """Sets the optimiser used by the model.
@@ -206,7 +206,7 @@ class MinervaModel(Module, ABC):
     def step(
         self,
         x: Tensor,
-        y: Optional[Tensor] = None,
+        y: Tensor | None = None,
         train: bool = False,
     ) -> tuple[Tensor, Tensor | tuple[Tensor, ...]]:
         """Generic step of model fitting using a batch of data.
@@ -291,10 +291,10 @@ class MinervaWrapper(MinervaModel):
     def __init__(
         self,
         model: Module | Callable[..., Module],
-        criterion: Optional[Module] = None,
-        input_size: Optional[tuple[int, ...]] = None,
-        n_classes: Optional[int] = None,
-        scaler: Optional[GradScaler] = None,
+        criterion: Module | None = None,
+        input_size: tuple[int, ...] | None = None,
+        n_classes: int | None = None,
+        scaler: GradScaler | None = None,
         *args,
         **kwargs,
     ) -> None:
@@ -376,11 +376,11 @@ class MinervaDataParallel(Module):  # pragma: no cover
     def __init__(
         self,
         model: Module,
-        paralleliser: Type[DataParallel] | Type[DDP],  # type: ignore[type-arg]
+        paralleliser: type[DataParallel] | type[DDP],  # type: ignore[type-arg]
         *args,
         **kwargs,
     ) -> None:
-        super(MinervaDataParallel, self).__init__()
+        super().__init__()
         self.model = paralleliser(model, *args, **kwargs).cuda()
         # Set these so that epoch logging will use the wrapped model's values
         self.output_shape = model.output_shape
@@ -468,7 +468,7 @@ def get_model(model_name: str) -> Callable[..., MinervaModel]:
     return model
 
 
-def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
+def get_torch_weights(weights_name: str) -> WeightsEnum | None:
     """Loads pre-trained model weights from :mod:`torchvision` via Torch Hub API.
 
     Args:
@@ -484,7 +484,7 @@ def get_torch_weights(weights_name: str) -> Optional[WeightsEnum]:
         This function only returns a query for the API of the weights. To actually use them, you need to call
         :meth:`~torchvision.models._api.WeightsEnum.get_state_dict` to download the weights (if not already in cache).
     """
-    weights: Optional[WeightsEnum] = None
+    weights: WeightsEnum | None = None
     try:
         weights = torch.hub.load("pytorch/vision", "get_weight", name=weights_name)
     except OSError:  # pragma: no cover
