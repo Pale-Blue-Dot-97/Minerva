@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -33,30 +32,30 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "MinervaNonGeoDataset",
+    "DFC2020",
+    "GeoSSL4EOS12Sentinel2",
     "MinervaConcatDataset",
+    "MinervaNonGeoDataset",
+    "MinervaSSL4EO",
+    "MultiSpectralDataset",
+    "NAIPChesapeakeCVPR",
+    "NonGeoSSL4EOS12Sentinel2",
+    "PairedConcatDataset",
     "PairedGeoDataset",
     "PairedNonGeoDataset",
     "PairedUnionDataset",
-    "PairedConcatDataset",
-    "GeoSSL4EOS12Sentinel2",
-    "NonGeoSSL4EOS12Sentinel2",
-    "MinervaSSL4EO",
-    "NAIPChesapeakeCVPR",
-    "DFC2020",
-    "MultiSpectralDataset",
     "construct_dataloader",
     "get_collator",
     "get_manifest",
+    "get_random_sample",
+    "intersect_datasets",
     "load_all_samples",
     "make_bounding_box",
     "make_dataset",
     "make_loaders",
     "make_manifest",
     "stack_sample_pairs",
-    "intersect_datasets",
     "unionise_datasets",
-    "get_random_sample",
 ]
 
 from .collators import get_collator, stack_sample_pairs

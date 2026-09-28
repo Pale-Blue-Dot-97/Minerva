@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -38,8 +37,9 @@ __all__ = ["MultiSpectralDataset"]
 #                                                     IMPORTS
 # =====================================================================================================================
 import os
+from collections.abc import Callable
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 
 import numpy as np
 import tifffile
@@ -62,8 +62,8 @@ class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
     def __init__(
         self,
         root: str,
-        transforms: Optional[Callable[..., Any]] = None,
-        bands: Optional[tuple[str, ...]] = None,
+        transforms: Callable[..., Any] | None = None,
+        bands: tuple[str, ...] | None = None,
         as_type=np.float32,
     ) -> None:
         super().__init__(root, transform=transforms, target_transform=None)
@@ -76,7 +76,7 @@ class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
         self.as_type = as_type
         self.samples = self.make_dataset()
 
-    def make_dataset(self) -> List[str]:
+    def make_dataset(self) -> list[str]:
         directory = os.path.expanduser(self.root)
 
         dirs = set()
@@ -86,7 +86,7 @@ class MultiSpectralDataset(VisionDataset, MinervaNonGeoDataset):
                     dirs.add(root)
         return sorted(list(dirs))
 
-    def __getitem__(self, index: int) -> Dict[str, Any]:
+    def __getitem__(self, index: int) -> dict[str, Any]:
         path = self.samples[index]
 
         images = []
