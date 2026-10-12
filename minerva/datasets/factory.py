@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -34,9 +33,9 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "construct_dataloader",
+    "get_manifest",
     "make_dataset",
     "make_loaders",
-    "get_manifest",
     "make_manifest",
 ]
 
@@ -47,10 +46,11 @@ __all__ = [
 import os
 import platform
 import re
+from collections.abc import Iterable
 from copy import deepcopy
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Any
 
 import hydra
 import numpy as np
@@ -87,7 +87,7 @@ from .utils import (
 def create_subdataset(
     paths: str | Iterable[str],
     subdataset_params: dict[str, Any],
-    transformations: Optional[Any],
+    transformations: Any | None,
     sample_pairs: bool = False,
 ) -> GeoDataset | NonGeoDataset:
     """Creates a sub-dataset based on the parameters supplied.
@@ -140,7 +140,7 @@ def get_subdataset(
     data_directory: Iterable[str] | str | Path,
     dataset_params: dict[str, Any],
     key: str,
-    transformations: Optional[Any],
+    transformations: Any | None,
     sample_pairs: bool = False,
     cache: bool = False,
     cache_dir: str | Path = "",
@@ -174,7 +174,7 @@ def get_subdataset(
         sub_dataset_params.get("paths", sub_dataset_params.get("root")),
     )
 
-    sub_dataset: Optional[GeoDataset | NonGeoDataset]
+    sub_dataset: GeoDataset | NonGeoDataset | None
 
     if cache or sub_dataset_params.get("cache_dataset"):
         this_hash = utils.make_hash(sub_dataset_params)
@@ -326,7 +326,7 @@ def make_dataset(
         multi_datasets_exist = False
 
         auto_norm = False
-        master_transforms: Optional[Any] = None
+        master_transforms: Any | None = None
 
         for sub_type_key in type_dataset_params.keys():
             # If any of these keys are present, this must be a parameter set for a singular dataset at this level.
@@ -640,7 +640,7 @@ def make_loaders(
     rank: int = 0,
     world_size: int = 1,
     p_dist: bool = False,
-    task_name: Optional[str] = None,
+    task_name: str | None = None,
     **params,
 ) -> tuple[
     dict[str, DataLoader[Iterable[Any]]] | DataLoader[Iterable[Any]],
@@ -736,7 +736,7 @@ def make_loaders(
 
     collator_target = utils.fallback_params("collator", task_params, params, None)
 
-    if "sampler" in dataset_params.keys():
+    if "sampler" in dataset_params:
         sampler_params: dict[str, Any] = dataset_params["sampler"]
 
         if not utils.check_substrings_in_string(model_type, "siamese"):
@@ -778,7 +778,7 @@ def make_loaders(
         n_batches = {}
         loaders = {}
 
-        for mode in dataset_params.keys():
+        for mode in dataset_params:
             mode_sampler_params: dict[str, Any] = dataset_params[mode]["sampler"]
 
             if (
@@ -861,11 +861,11 @@ def get_data_specs(
     manifest_name: str | Path,
     classes: dict[int, str],
     cmap_dict: dict[int, str],
-    cache_dir: Optional[str | Path] = None,
-    data_dir: Optional[str | Path] = None,
-    dataset_params: Optional[dict[str, Any]] = None,
-    sampler_params: Optional[dict[str, Any]] = None,
-    dataloader_params: Optional[dict[str, Any]] = None,
+    cache_dir: str | Path | None = None,
+    data_dir: str | Path | None = None,
+    dataset_params: dict[str, Any] | None = None,
+    sampler_params: dict[str, Any] | None = None,
+    dataloader_params: dict[str, Any] | None = None,
     collator_target: str = "torchgeo.datasets.stack_samples",
     change_detection: bool = False,
     elim: bool = True,
@@ -901,10 +901,10 @@ def get_data_specs(
 
 def get_manifest(
     manifest_path: str | Path,
-    data_dir: Optional[str | Path] = None,
-    dataset_params: Optional[dict[str, Any]] = None,
-    sampler_params: Optional[dict[str, Any]] = None,
-    loader_params: Optional[dict[str, Any]] = None,
+    data_dir: str | Path | None = None,
+    dataset_params: dict[str, Any] | None = None,
+    sampler_params: dict[str, Any] | None = None,
+    loader_params: dict[str, Any] | None = None,
     collator_target: str = "torchgeo.datasets.stack_samples",
     change_detection: bool = False,
 ) -> DataFrame:
@@ -998,8 +998,7 @@ def make_manifest(
 
         # Delete the transforms for both imagery and targets.
         # This assumes that it is geometric transforms and therefore distort the actual dataset composition.
-        if "transforms" in params:
-            del params["transforms"]
+        params.pop("transforms", None)
 
     _sampler_params = deepcopy(sampler_params)
     if OmegaConf.is_config(_sampler_params):
