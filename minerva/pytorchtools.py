@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 #
 # Copyright (c) 2018 Bjarte Mehus Sunde
@@ -35,8 +34,8 @@ __copyright__ = "Copyright (C) 2018 Bjarte Mehus Sunde"
 # =====================================================================================================================
 #                                                    IMPORTS
 # =====================================================================================================================
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable, Optional
 
 import numpy as np
 import torch
@@ -89,7 +88,7 @@ class EarlyStopping:
         self.patience: int = patience
         self.verbose: bool = verbose
         self.counter: int = 0
-        self.best_score: Optional[float] = None
+        self.best_score: float | None = None
         self.early_stop: bool = False
         self.val_loss_min: float = np.inf
         self.delta: float = delta

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -33,16 +32,17 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "supervised_torchgeo_io",
-    "change_detection_io",
     "autoencoder_io",
+    "change_detection_io",
     "ssl_pair_torchgeo_io",
+    "supervised_torchgeo_io",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 import torch
@@ -72,7 +72,7 @@ def supervised_torchgeo_io(
     Tensor,
     Tensor,
     Tensor | tuple[Tensor, ...],
-    Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
+    Sequence[str] | Sequence[int] | Sequence[BoundingBox] | None,
 ]:
     """Provides IO functionality for a supervised model using :mod:`torchgeo` datasets.
 
@@ -134,7 +134,7 @@ def supervised_torchgeo_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes, filenames or index number.
-    index: Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]] = (
+    index: Sequence[str] | Sequence[int] | Sequence[BoundingBox] | None = (
         get_sample_index(batch)
     )
 
@@ -152,7 +152,7 @@ def change_detection_io(
     Tensor,
     Tensor,
     Tensor | tuple[Tensor, ...],
-    Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
+    Sequence[str] | Sequence[int] | Sequence[BoundingBox] | None,
 ]:
     """Provides IO functionality for a change_detection model.
 
@@ -218,7 +218,7 @@ def change_detection_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes, filenames or index number.
-    index: Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]] = (
+    index: Sequence[str] | Sequence[int] | Sequence[BoundingBox] | None = (
         get_sample_index(batch)
     )
 
@@ -236,7 +236,7 @@ def autoencoder_io(
     Tensor,
     Tensor,
     Tensor | tuple[Tensor, ...],
-    Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]],
+    Sequence[str] | Sequence[int] | Sequence[BoundingBox] | None,
 ]:
     """Provides IO functionality for an autoencoder using :mod:`torchgeo` datasets by only using the same data
     for input and ground truth.
@@ -321,7 +321,7 @@ def autoencoder_io(
     loss, z = model.step(x, y, train=train)
 
     # Get the indices of the batch. Either bounding boxes, filenames or index number.
-    index: Optional[Sequence[str] | Sequence[int] | Sequence[BoundingBox]] = (
+    index: Sequence[str] | Sequence[int] | Sequence[BoundingBox] | None = (
         get_sample_index(batch)
     )
 
@@ -339,7 +339,7 @@ def ssl_pair_torchgeo_io(
     Tensor,
     None,
     Tensor | tuple[Tensor, ...],
-    Optional[Sequence[BoundingBox] | Sequence[int]],
+    Sequence[BoundingBox] | Sequence[int] | None,
 ]:
     """Provides IO functionality for a self-supervised Siamese model using :mod:`torchgeo` datasets.
 
