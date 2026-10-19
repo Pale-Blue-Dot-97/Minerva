@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -32,15 +31,13 @@ __author__ = "Harry Baker"
 __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
-__all__ = ["SegBarlowTwinsLoss", "AuxCELoss"]
+__all__ = ["AuxCELoss", "SegBarlowTwinsLoss"]
 
 import importlib
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Optional
-
 import torch
 from torch import Tensor
 from torch.nn import CrossEntropyLoss
@@ -51,9 +48,7 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 try:
     from lightly.loss import BarlowTwinsLoss
 except (OSError, NewConnectionError, MaxRetryError):  # pragma: no cover
-    BarlowTwinsLoss = getattr(
-        importlib.import_module("lightly.loss"), "BarlowTwinsLoss"
-    )
+    BarlowTwinsLoss = importlib.import_module("lightly.loss").BarlowTwinsLoss
 
 
 # =====================================================================================================================
@@ -95,7 +90,7 @@ class AuxCELoss(Module):
 
     def __init__(
         self,
-        weight: Optional[Tensor] = None,
+        weight: Tensor | None = None,
         ignore_index: int = 255,
         alpha: float = 0.4,
     ) -> None:
