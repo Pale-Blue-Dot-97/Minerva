@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -39,7 +38,8 @@ __all__ = ["DynamicPSP", "MinervaPSP", "MinervaPSPUNet"]
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import segmentation_models_pytorch as smp
 import torch
@@ -100,17 +100,17 @@ class DynamicPSP(smp.PSPNet):
     def __init__(
         self,
         encoder_name: str = "resnet34",
-        encoder_weights: Optional[str] = "imagenet",
+        encoder_weights: str | None = "imagenet",
         encoder_depth: int = 5,
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
-        in_channels: Optional[int] = None,
+        in_channels: int | None = None,
         n_classes: int = 1,
-        activation: Optional[str | Callable[..., Any]] = None,
+        activation: str | Callable[..., Any] | None = None,
         upsampling: int = 8,
-        aux_params: Optional[dict[str, Any]] = None,
-        backbone_weight_path: Optional[str] = None,
+        aux_params: dict[str, Any] | None = None,
+        backbone_weight_path: str | None = None,
         freeze_backbone: bool = False,
         encoder: bool = True,
         segmentation_on: bool = True,
@@ -151,7 +151,7 @@ class DynamicPSP(smp.PSPNet):
     def make_segmentation_head(
         self,
         n_classes: int,
-        activation: Optional[str | Callable[..., Any]] = None,
+        activation: str | Callable[..., Any] | None = None,
         upsampling: int = 8,
     ) -> None:
         self.segmentation_head = SegmentationHead(
@@ -223,20 +223,20 @@ class DynamicPSP(smp.PSPNet):
 class MinervaPSP(MinervaWrapper):
     def __init__(
         self,
-        criterion: Optional[Module] = None,
-        input_size: Optional[tuple[int, ...]] = None,
+        criterion: Module | None = None,
+        input_size: tuple[int, ...] | None = None,
         n_classes: int = 1,
-        scaler: Optional[GradScaler] = None,
+        scaler: GradScaler | None = None,
         encoder_name: str = "resnet34",
-        encoder_weights: Optional[str] = "imagenet",
+        encoder_weights: str | None = "imagenet",
         encoder_depth: int = 5,
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
-        activation: Optional[str | Callable[..., Any]] = None,
+        activation: str | Callable[..., Any] | None = None,
         upsampling: int = 8,
-        aux_params: Optional[dict[str, Any]] = None,
-        backbone_weight_path: Optional[str] = None,
+        aux_params: dict[str, Any] | None = None,
+        backbone_weight_path: str | None = None,
         freeze_backbone: bool = False,
         encoder: bool = False,
         segmentation_on: bool = True,
@@ -467,20 +467,20 @@ class PSPUNetDecoder(Module):
 class MinervaPSPUNet(MinervaWrapper):
     def __init__(
         self,
-        criterion: Optional[Module] = None,
-        input_size: Optional[tuple[int, ...]] = None,
+        criterion: Module | None = None,
+        input_size: tuple[int, ...] | None = None,
         n_classes: int = 1,
-        scaler: Optional[GradScaler] = None,
+        scaler: GradScaler | None = None,
         encoder_name: str = "resnet34",
-        encoder_weights: Optional[str] = "imagenet",
+        encoder_weights: str | None = "imagenet",
         encoder_depth: int = 5,
         psp_out_channels: int = 512,
         psp_use_batchnorm: bool = True,
         psp_dropout: float = 0.2,
-        activation: Optional[str | Callable[..., Any]] = None,
+        activation: str | Callable[..., Any] | None = None,
         upsampling: int = 8,
-        aux_params: Optional[dict[str, Any]] = None,
-        backbone_weight_path: Optional[str] = None,
+        aux_params: dict[str, Any] | None = None,
+        backbone_weight_path: str | None = None,
         freeze_backbone: bool = False,
         encoder: bool = False,
         segmentation_on: bool = True,

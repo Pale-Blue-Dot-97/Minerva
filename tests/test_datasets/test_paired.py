@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -90,7 +89,7 @@ def test_paired_geodatasets(img_root: Path) -> None:
         assert isinstance(sample_2, dict)
 
         assert isinstance(dataset.crs, CRS)
-        assert isinstance(getattr(dataset, "crs"), CRS)
+        assert isinstance(dataset.crs, CRS)
         assert isinstance(dataset.dataset, TstImgDataset)
 
         with pytest.raises(AttributeError):

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -35,10 +34,10 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "MinervaStepLogger",
-    "SupervisedStepLogger",
-    "SSLStepLogger",
     "KNNStepLogger",
+    "MinervaStepLogger",
+    "SSLStepLogger",
+    "SupervisedStepLogger",
 ]
 
 # =====================================================================================================================
@@ -47,7 +46,8 @@ __all__ = [
 import abc
 import math
 from abc import ABC
-from typing import TYPE_CHECKING, Any, Callable, Optional, SupportsFloat
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any, SupportsFloat
 
 import mlflow
 import numpy as np
@@ -73,7 +73,7 @@ from minerva.utils.utils import check_substrings_in_string
 #                                                     GLOBALS
 # =====================================================================================================================
 _tensorflow_exist = utils.check_optional_import_exist("tensorflow")
-TENSORBOARD_WRITER: Optional[Callable[..., Any]]
+TENSORBOARD_WRITER: Callable[..., Any] | None
 try:
     TENSORBOARD_WRITER = utils._optional_import(
         "torch.utils.tensorboard.writer",
@@ -128,11 +128,11 @@ class MinervaStepLogger(ABC):
         output_size: tuple[int, ...],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[SummaryWriter | Run] = None,
+        writer: SummaryWriter | Run | None = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
-        super(MinervaStepLogger, self).__init__()
+        super().__init__()
         self.record_int = record_int
         self.record_float = record_float
         self.n_batches = n_batches
@@ -177,10 +177,10 @@ class MinervaStepLogger(ABC):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        x: Optional[Tensor] = None,
-        y: Optional[Tensor] = None,
-        z: Optional[Tensor] = None,
-        index: Optional[int | BoundingBox] = None,
+        x: Tensor | None = None,
+        y: Tensor | None = None,
+        z: Tensor | None = None,
+        index: int | BoundingBox | None = None,
         *args,
         **kwargs,
     ) -> None:
@@ -199,9 +199,7 @@ class MinervaStepLogger(ABC):
             None
         """
 
-    def write_metric(
-        self, key: str, value: SupportsFloat, step_num: Optional[int] = None
-    ):
+    def write_metric(self, key: str, value: SupportsFloat, step_num: int | None = None):
         """Write metric values to logging backends after calculation.
 
         Args:
@@ -234,7 +232,7 @@ class MinervaStepLogger(ABC):
 
         if mlflow.active_run():
             # If running in Azure Machine Learning, tracking URI / experiment ID set already
-            # https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-mlflow-cli-runs?tabs=python%2Cmlflow#creating-a-training-routine  # noqa: E501
+            # https://learn.microsoft.com/en-us/azure/machine-learning/how-to-use-mlflow-cli-runs?tabs=python%2Cmlflow#creating-a-training-routine
             mlflow.log_metric(key, value)  # pragma: no cover
 
     @property
@@ -309,12 +307,12 @@ class SupervisedStepLogger(MinervaStepLogger):
         output_size: tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[SummaryWriter | Run] = None,
+        writer: SummaryWriter | Run | None = None,
         model_type: str = "",
-        n_classes: Optional[int] = None,
+        n_classes: int | None = None,
         **kwargs,
     ) -> None:
-        super(SupervisedStepLogger, self).__init__(
+        super().__init__(
             task_name,
             n_batches,
             batch_size,
@@ -420,10 +418,10 @@ class SupervisedStepLogger(MinervaStepLogger):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        x: Optional[Tensor] = None,
-        y: Optional[Tensor] = None,
-        z: Optional[Tensor] = None,
-        index: Optional[int | BoundingBox] = None,
+        x: Tensor | None = None,
+        y: Tensor | None = None,
+        z: Tensor | None = None,
+        index: int | BoundingBox | None = None,
         *args,
         **kwargs,
     ) -> None:
@@ -500,7 +498,7 @@ class SupervisedStepLogger(MinervaStepLogger):
                     jaccard_score(
                         y_true[i].flatten(), y_pred[i].flatten(), average="macro"
                     )
-                )  # noqa: E501 type: ignore[attr-defined]
+                )
             self.logs["total_miou"] += miou
 
             self.write_metric("miou", miou / len(y), step_num=global_step_num)
@@ -553,7 +551,7 @@ class KNNStepLogger(MinervaStepLogger):
         batch_size: int,
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[SummaryWriter | Run] = None,
+        writer: SummaryWriter | Run | None = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
@@ -588,10 +586,10 @@ class KNNStepLogger(MinervaStepLogger):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        x: Optional[Tensor] = None,
-        y: Optional[Tensor] = None,
-        z: Optional[Tensor] = None,
-        index: Optional[int | BoundingBox] = None,
+        x: Tensor | None = None,
+        y: Tensor | None = None,
+        z: Tensor | None = None,
+        index: int | BoundingBox | None = None,
         *args,
         **kwargs,
     ) -> None:
@@ -679,11 +677,11 @@ class SSLStepLogger(MinervaStepLogger):
         output_size: tuple[int, int],
         record_int: bool = True,
         record_float: bool = False,
-        writer: Optional[SummaryWriter | Run] = None,
+        writer: SummaryWriter | Run | None = None,
         model_type: str = "",
         **kwargs,
     ) -> None:
-        super(SSLStepLogger, self).__init__(
+        super().__init__(
             task_name,
             n_batches,
             batch_size,
@@ -719,10 +717,10 @@ class SSLStepLogger(MinervaStepLogger):
         global_step_num: int,
         local_step_num: int,
         loss: Tensor,
-        x: Optional[Tensor] = None,
-        y: Optional[Tensor] = None,
-        z: Optional[Tensor] = None,
-        index: Optional[int | BoundingBox] = None,
+        x: Tensor | None = None,
+        y: Tensor | None = None,
+        z: Tensor | None = None,
+        index: int | BoundingBox | None = None,
         *args,
         **kwargs,
     ) -> None:

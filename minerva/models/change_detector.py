@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -39,7 +38,7 @@ __all__ = ["ChangeDetector"]
 #                                                     IMPORTS
 # =====================================================================================================================
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import torch
 from torch import Tensor
@@ -57,16 +56,16 @@ from .core import MinervaModel
 class ChangeDetector(MinervaModel):
     def __init__(
         self,
-        criterion: Optional[Module] = None,
-        input_size: Optional[tuple[int]] = None,
+        criterion: Module | None = None,
+        input_size: tuple[int] | None = None,
         n_classes: int = 1,
-        scaler: Optional[GradScaler] = None,
+        scaler: GradScaler | None = None,
         fc_dim: int = 512,
         intermediate_dim: int = 256,
         encoder_on: bool = False,
         filter_dim: int = 0,
         freeze_backbone: bool = False,
-        backbone_weight_path: Optional[str | Path] = None,
+        backbone_weight_path: str | Path | None = None,
         backbone_args: dict[str, Any] = {},
         clamp_outputs: bool = False,
     ) -> None:
