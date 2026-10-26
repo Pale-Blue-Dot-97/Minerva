@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -33,13 +32,13 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "MinervaTaskLogger",
-    "SSLTaskLogger",
-    "SupervisedTaskLogger",
-    "MinervaStepLogger",
-    "SupervisedStepLogger",
-    "SSLStepLogger",
     "KNNStepLogger",
+    "MinervaStepLogger",
+    "MinervaTaskLogger",
+    "SSLStepLogger",
+    "SSLTaskLogger",
+    "SupervisedStepLogger",
+    "SupervisedTaskLogger",
 ]
 
 from .steplog import (
