@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -33,10 +32,10 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "PairedGeoDataset",
-    "PairedUnionDataset",
-    "PairedNonGeoDataset",
     "PairedConcatDataset",
+    "PairedGeoDataset",
+    "PairedNonGeoDataset",
+    "PairedUnionDataset",
     "SamplePair",
 ]
 
@@ -44,8 +43,9 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import random
+from collections.abc import Callable, Sequence
 from inspect import signature
-from typing import Any, Callable, Optional, Sequence, Union, overload
+from typing import Any, Union, overload
 
 import hydra
 import matplotlib.pyplot as plt
@@ -93,7 +93,7 @@ class PairedGeoDataset(RasterDataset):
                 dataset.datasets[0], dataset.datasets[1], *args, **kwargs
             )
         else:
-            return super(PairedGeoDataset, cls).__new__(cls)
+            return super().__new__(cls)
 
     def __getnewargs__(self):
         return self.dataset, self._args, self._kwargs
@@ -228,7 +228,7 @@ class PairedGeoDataset(RasterDataset):
     def plot(
         sample: dict[str, Any],
         show_titles: bool = True,
-        suptitle: Optional[str] = None,
+        suptitle: str | None = None,
     ) -> Figure:
         """Plots a sample from the dataset.
 
@@ -268,7 +268,7 @@ class PairedGeoDataset(RasterDataset):
         size: tuple[int, int] | int,
         res: float,
         show_titles: bool = True,
-        suptitle: Optional[str] = None,
+        suptitle: str | None = None,
     ) -> Figure:
         """Plots a random sample the dataset at a given size and resolution.
 
@@ -305,7 +305,7 @@ class PairedUnionDataset(UnionDataset):
         collate_fn: Callable[
             [Sequence[dict[str, Any]]], dict[str, Any]
         ] = merge_samples,
-        transforms: Optional[Callable[[dict[str, Any]], dict[str, Any]]] = None,
+        transforms: Callable[[dict[str, Any]], dict[str, Any]] | None = None,
     ) -> None:
         # Extract the actual dataset out of the paired dataset (otherwise we'll be pairing the datasets twice!)
         if isinstance(dataset1, PairedGeoDataset):
@@ -544,7 +544,7 @@ class PairedNonGeoDataset(NonGeoDataset):
     def plot(
         sample: dict[str, Any],
         show_titles: bool = True,
-        suptitle: Optional[str] = None,
+        suptitle: str | None = None,
     ) -> Figure:
         """Plots a sample from the dataset.
 
@@ -582,7 +582,7 @@ class PairedNonGeoDataset(NonGeoDataset):
     def plot_random_sample(
         self,
         show_titles: bool = True,
-        suptitle: Optional[str] = None,
+        suptitle: str | None = None,
     ) -> Figure:
         """Plots a random sample the dataset at a given size and resolution.
 
@@ -608,8 +608,8 @@ class PairedConcatDataset(MinervaConcatDataset):  # type: ignore[type-arg]
         self,
         dataset1: Union[NonGeoDataset, "PairedConcatDataset"],
         dataset2: Union[NonGeoDataset, "PairedConcatDataset"],
-        size: Optional[int] = None,
-        max_r: Optional[int] = None,
+        size: int | None = None,
+        max_r: int | None = None,
     ) -> None:
         _datasets = [dataset1, dataset2]
         datasets = []
@@ -729,10 +729,8 @@ class SamplePair:
 
         # Checks that the ``max_width`` will not exceed the size of this inital patch.
         # If so, set to the maxium width/ height of ``x``.
-        if max_width > w:
-            max_width = w  # pragma: no cover
-        if max_width > h:
-            max_width = h  # pragma: no cover
+        max_width = min(max_width, w)  # pragma: no cover
+        max_width = min(max_width, h)  # pragma: no cover
 
         return max_width, h, w
 

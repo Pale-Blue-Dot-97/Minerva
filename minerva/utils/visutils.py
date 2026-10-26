@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -42,21 +41,21 @@ __all__ = [
     "WGS84",
     "de_interlace",
     "dec_extent_to_deg",
-    "get_mlp_cmap",
     "discrete_heatmap",
-    "stack_rgb",
-    "make_rgb_image",
+    "format_plot_names",
+    "get_mlp_cmap",
     "labelled_rgb_image",
-    "make_gif",
-    "prediction_plot",
-    "seg_plot",
-    "plot_subpopulations",
-    "plot_history",
     "make_confusion_matrix",
+    "make_gif",
+    "make_rgb_image",
     "make_roc_curves",
     "plot_embedding",
-    "format_plot_names",
+    "plot_history",
     "plot_results",
+    "plot_subpopulations",
+    "prediction_plot",
+    "seg_plot",
+    "stack_rgb",
 ]
 
 # =====================================================================================================================
@@ -64,8 +63,9 @@ __all__ = [
 # =====================================================================================================================
 import os
 import random
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Optional, Sequence
+from typing import Any
 
 import imageio
 import matplotlib as mlp
@@ -194,8 +194,8 @@ def dec_extent_to_deg(
 
 
 def get_mlp_cmap(
-    cmap_style: Optional[Colormap | str] = None, n_classes: Optional[int] = None
-) -> Optional[Colormap]:
+    cmap_style: Colormap | str | None = None, n_classes: int | None = None
+) -> Colormap | None:
     """Creates a cmap from query
 
     Args:
@@ -208,7 +208,7 @@ def get_mlp_cmap(
         * If ``cmap_style`` provided but no ``n_classes``, returns a :class:`~matplotlib.colors.Colormap` instance.
         * If neither arguments are provided, ``None`` is returned.
     """
-    cmap: Optional[Colormap] = None
+    cmap: Colormap | None = None
 
     if cmap_style:
         if isinstance(cmap_style, str):
@@ -224,9 +224,9 @@ def get_mlp_cmap(
 
 
 def discrete_heatmap(
-    data: NDArray[np.int_],  # noqa: F722
+    data: NDArray[np.int_],
     classes: list[str] | tuple[str, ...],
-    cmap_style: Optional[str | ListedColormap] = None,
+    cmap_style: str | ListedColormap | None = None,
     block_size: int = 32,
 ) -> None:
     """Plots a heatmap with a discrete colour bar. Designed for Radiant Earth MLHub 256x256 SENTINEL images.
@@ -267,9 +267,9 @@ def discrete_heatmap(
 
 
 def stack_rgb(
-    image: NDArray[np.float64],  # noqa: F722
+    image: NDArray[np.float64],
     max_value: int = 255,
-) -> NDArray[np.float64]:  # noqa: F722
+) -> NDArray[np.float64]:
     """Stacks together red, green and blue image bands to create a RGB array.
 
     Args:
@@ -282,9 +282,7 @@ def stack_rgb(
     """
     # Stack together RGB bands. Assumes RGB bands are in dimensions 0-2. Ignores any other bands.
     # Note that it has to be order BGR not RGB due to the order numpy stacks arrays.
-    rgb_image: NDArray[Any] = np.dstack(  # noqa: F722
-        (image[2], image[1], image[0])
-    )
+    rgb_image: NDArray[Any] = np.dstack((image[2], image[1], image[0]))
     assert isinstance(rgb_image, np.ndarray)
 
     # Normalise.
@@ -292,7 +290,7 @@ def stack_rgb(
 
 
 def make_rgb_image(
-    image: NDArray[np.float64],  # noqa: F722
+    image: NDArray[np.float64],
     block_size: int = 32,
     max_pixel_value: int = 255,
 ) -> AxesImage:
@@ -325,15 +323,15 @@ def make_rgb_image(
 
 
 def labelled_rgb_image(
-    image: NDArray[np.float64],  # noqa: F722
-    mask: NDArray[np.int_],  # noqa: F722
+    image: NDArray[np.float64],
+    mask: NDArray[np.int_],
     bounds: BoundingBox,
     src_crs: CRS,
     path: str | Path,
     name: str,
     classes: list[str] | tuple[str, ...],
-    cmap_style: Optional[str | ListedColormap] = None,
-    new_crs: Optional[CRS] = WGS84,
+    cmap_style: str | ListedColormap | None = None,
+    new_crs: CRS | None = WGS84,
     block_size: int = 32,
     alpha: float = 0.5,
     show: bool = True,
@@ -476,16 +474,16 @@ def labelled_rgb_image(
 
 def make_gif(
     dates: Sequence[str],
-    images: NDArray[Any],  # noqa: F722
-    masks: NDArray[Any],  # noqa: F722
+    images: NDArray[Any],
+    masks: NDArray[Any],
     bounds: BoundingBox,
     src_crs: CRS,
     classes: list[str] | tuple[str, ...],
     gif_name: str,
     path: str | Path,
-    cmap_style: Optional[str | ListedColormap] = None,
+    cmap_style: str | ListedColormap | None = None,
     fps: float = 1.0,
-    new_crs: Optional[CRS] = WGS84,
+    new_crs: CRS | None = WGS84,
     alpha: float = 0.5,
     figdim: tuple[int | float, int | float] = (8.02, 10.32),
 ) -> None:
@@ -559,13 +557,13 @@ def prediction_plot(
     src_crs: CRS,
     new_crs: CRS = WGS84,
     path: str = "",
-    cmap_style: Optional[str | ListedColormap] = None,
-    exp_id: Optional[str] = None,
-    fig_dim: Optional[tuple[int | float, int | float]] = None,
+    cmap_style: str | ListedColormap | None = None,
+    exp_id: str | None = None,
+    fig_dim: tuple[int | float, int | float] | None = None,
     block_size: int = 32,
     show: bool = True,
     save: bool = True,
-    fn_prefix: Optional[str | Path] = None,
+    fn_prefix: str | Path | None = None,
 ) -> None:
     """
     Produces a figure containing subplots of the predicted label mask, the ground truth label mask
@@ -717,14 +715,14 @@ def seg_plot(
     dataset_params: dict[str, Any],
     classes: dict[int, str],
     colours: dict[int, str],
-    fn_prefix: Optional[str | Path],
-    x: Optional[list[int] | NDArray[Any]] = None,
+    fn_prefix: str | Path | None,
+    x: list[int] | NDArray[Any] | None = None,
     frac: float = 0.05,
-    fig_dim: Optional[tuple[int | float, int | float]] = (9.3, 10.5),
+    fig_dim: tuple[int | float, int | float] | None = (9.3, 10.5),
     model_name: str = "",
     path: str = "",
     max_pixel_value: int = 255,
-    cache_dir: Optional[str | Path] = None,
+    cache_dir: str | Path | None = None,
 ) -> None:
     """Custom function for pre-processing the outputs from image segmentation testing for data visualisation.
 
@@ -775,8 +773,7 @@ def seg_plot(
 
     # Limits number of masks to produce to a fractional number of total and no more than `_MAX_SAMPLES`.
     n_samples = int(frac * len(flat_ids))
-    if n_samples > _MAX_SAMPLES:
-        n_samples = _MAX_SAMPLES
+    n_samples = min(n_samples, _MAX_SAMPLES)
 
     print("\nPRODUCING PREDICTED MASKS")
 
@@ -853,9 +850,9 @@ def seg_plot(
 
 def plot_subpopulations(
     class_dist: list[tuple[int, int]],
-    class_names: Optional[dict[int, str]] = None,
-    cmap_dict: Optional[dict[int, str]] = None,
-    filename: Optional[str | Path] = None,
+    class_names: dict[int, str] | None = None,
+    cmap_dict: dict[int, str] | None = None,
+    filename: str | Path | None = None,
     save: bool = True,
     show: bool = False,
 ) -> None:
@@ -879,7 +876,7 @@ def plot_subpopulations(
     counts = []
 
     # List to hold colours of classes in the correct order.
-    colours: Optional[list[str]] = []
+    colours: list[str] | None = []
 
     if class_names is None:
         class_numbers = [x[0] for x in class_dist]
@@ -895,9 +892,7 @@ def plot_subpopulations(
         # Sets percentage label to <0.01% for classes matching that equality.
         if (label[1] * 100.0 / n_samples) > 0.01:
             class_data.append(
-                "{} \n{:.2f}%".format(
-                    class_names[label[0]], (label[1] * 100.0 / n_samples)
-                )
+                f"{class_names[label[0]]} \n{label[1] * 100.0 / n_samples:.2f}%"
             )
         else:
             class_data.append(f"{class_names[label[0]]} \n<0.01%")
@@ -933,7 +928,7 @@ def plot_subpopulations(
 
 def plot_history(
     metrics: dict[str, Any],
-    filename: Optional[str | Path] = None,
+    filename: str | Path | None = None,
     save: bool = True,
     show: bool = False,
 ) -> None:
@@ -987,7 +982,7 @@ def make_confusion_matrix(
     pred: list[int] | NDArray[np.int_],
     labels: list[int] | NDArray[np.int_],
     classes: dict[int, str],
-    filename: Optional[str | Path] = None,
+    filename: str | Path | None = None,
     cmap_style: str = "Blues",
     figsize: tuple[int, int] = (2, 2),
     show: bool = True,
@@ -1044,7 +1039,7 @@ def make_multilabel_confusion_matrix(
     preds: list[int] | NDArray[np.int_],
     labels: list[int] | NDArray[np.int_],
     classes: dict[int, str],
-    filename: Optional[str | Path] = None,
+    filename: str | Path | None = None,
     cmap_style: str = "Blues",
     figsize: tuple[int, int] = (2, 2),
     show: bool = True,
@@ -1122,7 +1117,7 @@ def make_roc_curves(
     colours: dict[int, str],
     micro: bool = True,
     macro: bool = True,
-    filename: Optional[str | Path] = None,
+    filename: str | Path | None = None,
     show: bool = False,
     save: bool = True,
 ) -> None:
@@ -1147,7 +1142,7 @@ def make_roc_curves(
         None
     """
     # Gets the class labels as a list from the class_names dict.
-    class_labels = [key for key in class_names.keys()]
+    class_labels = [key for key in class_names]
 
     # Reshapes the probabilities to be (n_samples, n_classes).
     probs = np.reshape(probs, (len(labels), len(class_labels)))
@@ -1188,7 +1183,7 @@ def make_roc_curves(
                 fpr[key],
                 tpr[key],
                 color=colours[key],
-                label=f"{class_names[key]} " + "(AUC = {:.2f})".format(roc_auc[key]),
+                label=f"{class_names[key]} " + f"(AUC = {roc_auc[key]:.2f})",
             )
         except KeyError:
             pass
@@ -1221,12 +1216,12 @@ def plot_embedding(
     index: Sequence[BoundingBox] | Sequence[int],
     data_dir: Path | str,
     dataset_params: dict[str, Any],
-    title: Optional[str] = None,
+    title: str | None = None,
     show: bool = False,
     save: bool = True,
-    filename: Optional[Path | str] = None,
+    filename: Path | str | None = None,
     max_pixel_value: int = 255,
-    cache_dir: Optional[Path | str] = None,
+    cache_dir: Path | str | None = None,
 ) -> None:
     """Using TSNE Clustering, visualises the embeddings from a model.
 
@@ -1371,23 +1366,23 @@ def format_plot_names(
 
 def plot_results(
     plots: dict[str, bool],
-    x: Optional[NDArray[np.int_]] = None,
-    y: Optional[list[int] | NDArray[np.int_]] = None,
-    z: Optional[list[int] | NDArray[np.int_]] = None,
-    metrics: Optional[dict[str, Any]] = None,
-    ids: Optional[list[str]] = None,
-    index: Optional[NDArray[Any]] = None,
-    probs: Optional[list[float] | NDArray[np.float64]] = None,
-    embeddings: Optional[NDArray[Any]] = None,
-    class_names: Optional[dict[int, str]] = None,
-    colours: Optional[dict[int, str]] = None,
+    x: NDArray[np.int_] | None = None,
+    y: list[int] | NDArray[np.int_] | None = None,
+    z: list[int] | NDArray[np.int_] | None = None,
+    metrics: dict[str, Any] | None = None,
+    ids: list[str] | None = None,
+    index: NDArray[Any] | None = None,
+    probs: list[float] | NDArray[np.float64] | None = None,
+    embeddings: NDArray[Any] | None = None,
+    class_names: dict[int, str] | None = None,
+    colours: dict[int, str] | None = None,
     save: bool = True,
     show: bool = False,
-    model_name: Optional[str] = None,
-    timestamp: Optional[str] = None,
-    results_dir: Optional[Sequence[str] | str | Path] = None,
-    task_cfg: Optional[dict[str, Any]] = None,
-    global_cfg: Optional[dict[str, Any]] = None,
+    model_name: str | None = None,
+    timestamp: str | None = None,
+    results_dir: Sequence[str] | str | Path | None = None,
+    task_cfg: dict[str, Any] | None = None,
+    global_cfg: dict[str, Any] | None = None,
 ) -> None:
     """Orchestrates the creation of various plots from the results of a model fitting.
 
