@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024 Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
@@ -33,7 +32,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 #                                                     IMPORTS
 # =====================================================================================================================
 import argparse
-from typing import Optional
 
 from minerva.utils import utils
 
@@ -42,9 +40,9 @@ from minerva.utils import utils
 #                                                      MAIN
 # =====================================================================================================================
 def main(
-    path: Optional[str | list[str]] = None,
+    path: str | list[str] | None = None,
     env_name: str = "env2",
-    exp_name: Optional[str] = None,
+    exp_name: str | None = None,
     host_num: int = 6006,
 ) -> None:
     assert exp_name is not None

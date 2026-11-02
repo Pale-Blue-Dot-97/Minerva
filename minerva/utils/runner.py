@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # PYTHON_ARGCOMPLETE_OK
 # MIT License
 
@@ -40,10 +39,10 @@ __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "WandbConnectionManager",
-    "setup_wandb_run",
-    "config_env_vars",
     "config_args",
+    "config_env_vars",
     "distributed_run",
+    "setup_wandb_run",
 ]
 
 # =====================================================================================================================
@@ -54,8 +53,9 @@ import os
 import shlex
 import signal
 import subprocess
+from collections.abc import Callable
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import requests
 import torch
@@ -128,7 +128,7 @@ def _construct_patch_size(input_size: tuple[int, int, int]) -> ListConfig:
 def setup_wandb_run(
     gpu: int,
     cfg: DictConfig,
-) -> tuple[Optional[Run | RunDisabled], DictConfig]:
+) -> tuple[Run | RunDisabled | None, DictConfig]:
     """Sets up a :mod:`wandb` logger for either every process, the master process or not if not logging.
 
     Note:
@@ -149,7 +149,7 @@ def setup_wandb_run(
         ~wandb.sdk.wandb_run.Run | ~wandb.sdk.lib.RunDisabled | None: The :mod:`wandb` run object
         for this process or ``None`` if ``log_all=False`` and ``rank!=0``.
     """
-    run: Optional[Run | RunDisabled] = None
+    run: Run | RunDisabled | None = None
     if cfg.get("wandb_log", False) or cfg.get("project", None):
         try:
             if cfg.get("log_all", False) and cfg.world_size > 1:
@@ -219,12 +219,12 @@ def config_env_vars(cfg: DictConfig) -> DictConfig:
         os.environ["WANDB_MODE"] = "offline"
 
         # Get SLURM variables.
-        slurm_job_nodelist: Optional[str] = os.getenv("SLURM_JOB_NODELIST")
-        slurm_nodeid: Optional[str] = os.getenv("SLURM_NODEID")
-        slurm_nnodes: Optional[str] = os.getenv("SLURM_NNODES")
-        slurm_jobid: Optional[str] = os.getenv("SLURM_JOB_ID")
-        slurm_array_job_id: Optional[str] = os.getenv("SLURM_ARRAY_JOB_ID")
-        slurm_array_task_id: Optional[str] = os.getenv("SLURM_ARRAY_TASK_ID")
+        slurm_job_nodelist: str | None = os.getenv("SLURM_JOB_NODELIST")
+        slurm_nodeid: str | None = os.getenv("SLURM_NODEID")
+        slurm_nnodes: str | None = os.getenv("SLURM_NNODES")
+        slurm_jobid: str | None = os.getenv("SLURM_JOB_ID")
+        slurm_array_job_id: str | None = os.getenv("SLURM_ARRAY_JOB_ID")
+        slurm_array_task_id: str | None = os.getenv("SLURM_ARRAY_TASK_ID")
 
         # Check that SLURM variables have been found.
         assert slurm_job_nodelist is not None
@@ -292,7 +292,7 @@ def config_args(cfg: DictConfig) -> DictConfig:
 
 def _run_preamble(
     gpu: int,
-    run: Callable[[int, Optional[Run | RunDisabled], DictConfig], Any],
+    run: Callable[[int, Run | RunDisabled | None, DictConfig], Any],
     cfg: DictConfig,
 ) -> None:  # pragma: no cover
     # Calculates the global rank of this process.
@@ -318,7 +318,7 @@ def _run_preamble(
 
 
 def distributed_run(
-    run: Callable[[int, Optional[Run | RunDisabled], DictConfig], Any],
+    run: Callable[[int, Run | RunDisabled | None, DictConfig], Any],
 ) -> Callable[..., Any]:
     """Runs the supplied function and arguments with distributed computing according to arguments.
 
@@ -363,9 +363,7 @@ def distributed_run(
     return inner_decorator
 
 
-def run_trainer(
-    gpu: int, wandb_run: Optional[Run | RunDisabled], cfg: DictConfig
-) -> None:
+def run_trainer(gpu: int, wandb_run: Run | RunDisabled | None, cfg: DictConfig) -> None:
     trainer = Trainer(
         gpu=gpu,
         wandb_run=wandb_run,

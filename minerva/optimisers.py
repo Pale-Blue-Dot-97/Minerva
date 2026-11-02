@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 #
 # Copyright (c) 2018 Noah Golmant
@@ -32,7 +31,8 @@ __copyright__ = "Copyright (c) 2018 Noah Golmant"
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Iterable, Optional
+from collections.abc import Callable, Iterable
+from typing import Any
 
 import torch
 from torch.optim.optimizer import Optimizer
@@ -76,13 +76,13 @@ class LARS(Optimizer):
         max_epoch: int = 200,
     ):
         if lr < 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))
+            raise ValueError(f"Invalid learning rate: {lr}")
         if momentum < 0.0:
-            raise ValueError("Invalid momentum value: {}".format(momentum))
+            raise ValueError(f"Invalid momentum value: {momentum}")
         if weight_decay < 0.0:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
+            raise ValueError(f"Invalid weight_decay value: {weight_decay}")
         if eta < 0.0:
-            raise ValueError("Invalid LARS coefficient value: {}".format(eta))
+            raise ValueError(f"Invalid LARS coefficient value: {eta}")
 
         self.epoch = 0
         defaults = dict(
@@ -92,10 +92,10 @@ class LARS(Optimizer):
             eta=eta,
             max_epoch=max_epoch,
         )
-        super(LARS, self).__init__(params, defaults)
+        super().__init__(params, defaults)
 
     def step(  # type: ignore[override]
-        self, epoch: Optional[int] = None, closure: Optional[Callable[..., Any]] = None
+        self, epoch: int | None = None, closure: Callable[..., Any] | None = None
     ):
         """Performs a single optimization step.
 

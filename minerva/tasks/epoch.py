@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -85,7 +84,7 @@ class StandardEpoch(MinervaTask):
                     )
 
                     if self.local_step_num % self.log_rate == 0:
-                        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover  # noqa: E501
+                        if dist.is_available() and dist.is_initialized():  # type: ignore[attr-defined]  # pragma: no cover
                             loss = results[0].data.clone()
                             dist.all_reduce(loss.div_(dist.get_world_size()))  # type: ignore[attr-defined]
                             results = (loss, *results[1:])

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -36,7 +35,7 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 # =====================================================================================================================
 #                                                      IMPORTS
 # =====================================================================================================================
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 import torch
@@ -116,7 +115,7 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
 
     with pytest.raises(
         TypeError,
-        match=f"`transforms` has type {type(42)}, not callable or sequence of callables",
+        match=f"`transforms` has type {int}, not callable or sequence of callables",
     ):
         _ = MinervaCompose(42)  # type: ignore[arg-type]
 
@@ -133,12 +132,12 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
     wrong_compose.transforms = 42  # type: ignore[assignment]
 
     with pytest.raises(
-        TypeError, match=f"`transforms` has type {type(42)}, not sequence of callables"
+        TypeError, match=f"`transforms` has type {int}, not sequence of callables"
     ):
         _ = wrong_compose(input_1)
 
     with pytest.raises(
-        TypeError, match=f"`transforms` has type {type(42)}, not sequence of callables"
+        TypeError, match=f"`transforms` has type {int}, not sequence of callables"
     ):
         _ = str(wrong_compose)
 
@@ -166,8 +165,8 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
         repr(compose_2)
         == "MinervaCompose("
         + "\n    Normalise(norm_value=255)"
-        + "\n    {0}".format(RandomHorizontalFlip(1.0))
-        + "\n    {0}".format(RandomVerticalFlip(1.0))
+        + f"\n    {RandomHorizontalFlip(1.0)}"
+        + f"\n    {RandomVerticalFlip(1.0)}"
         + "\n)"
     )
 
@@ -187,9 +186,9 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
         == "MinervaCompose("
         + "\n    image:"
         + "\n        Normalise(norm_value=255)"
-        + "\n        {0}".format(RandomHorizontalFlip(1.0))
-        + "\n        {0}".format(RandomVerticalFlip(1.0))
-        + "\n        {0}".format(RandomHorizontalFlip(0.7))
+        + f"\n        {RandomHorizontalFlip(1.0)}"
+        + f"\n        {RandomVerticalFlip(1.0)}"
+        + f"\n        {RandomHorizontalFlip(0.7)}"
         + "\n)"
     )
 
@@ -198,11 +197,11 @@ def test_compose(simple_mask: LongTensor, simple_rgb_img: FloatTensor) -> None:
         == "MinervaCompose("
         + "\n    image:"
         + "\n        Normalise(norm_value=255)"
-        + "\n        {0}".format(RandomHorizontalFlip(1.0))
-        + "\n        {0}".format(RandomVerticalFlip(1.0))
-        + "\n        {0}".format(RandomHorizontalFlip(0.7))
-        + "\n        {0}".format(RandomHorizontalFlip(0.3))
-        + "\n        {0}".format(RandomVerticalFlip(0.8))
+        + f"\n        {RandomHorizontalFlip(1.0)}"
+        + f"\n        {RandomVerticalFlip(1.0)}"
+        + f"\n        {RandomHorizontalFlip(0.7)}"
+        + f"\n        {RandomHorizontalFlip(0.3)}"
+        + f"\n        {RandomVerticalFlip(0.8)}"
         + "\n)"
     )
 
@@ -226,7 +225,7 @@ def test_detachedcolorjitter() -> None:
     with pytest.raises(ValueError, match=r"\d channel images are not supported!"):
         transform(err_img)
 
-    assert repr(transform) == f"Detached{repr(colorjitter)}"
+    assert repr(transform) == f"Detached{colorjitter!r}"
 
 
 def test_dublicator(
@@ -244,7 +243,7 @@ def test_dublicator(
     assert_array_equal(result_1, output_1)
     assert_array_equal(result_2, norm_simple_rgb_img)
 
-    assert repr(transform) == f"dublicator({repr(Normalise(255))})"
+    assert repr(transform) == f"dublicator({Normalise(255)!r})"
 
 
 @pytest.mark.parametrize(
@@ -274,7 +273,7 @@ def test_dublicator(
     ],
 )
 def test_tg_to_torch(
-    transform, keys: Optional[list[str]], args: Any, in_img, expected
+    transform, keys: list[str] | None, args: Any, in_img, expected
 ) -> None:
     transformation = (utils.tg_to_torch(transform, keys=keys))(args)
 

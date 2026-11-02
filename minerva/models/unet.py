@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -37,7 +36,6 @@ __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
     "DoubleConv",
     "Down",
-    "Up",
     "OutConv",
     "UNet",
     "UNetR",
@@ -46,13 +44,15 @@ __all__ = [
     "UNetR50",
     "UNetR101",
     "UNetR152",
+    "Up",
 ]
 
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
 import abc
-from typing import Any, Optional, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 import torch
 import torch.nn.functional as F
@@ -83,7 +83,7 @@ class DoubleConv(Module):
     """
 
     def __init__(
-        self, in_channels: int, out_channels: int, mid_channels: Optional[int] = None
+        self, in_channels: int, out_channels: int, mid_channels: int | None = None
     ) -> None:
         super().__init__()
         if not mid_channels:
@@ -222,7 +222,7 @@ class OutConv(Module):
     """
 
     def __init__(self, in_channels: int, out_channels: int) -> None:
-        super(OutConv, self).__init__()
+        super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
     def forward(self, x: Tensor) -> Tensor:
@@ -271,9 +271,9 @@ class UNet(MinervaModel):
         input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
-        scaler: Optional[GradScaler] = None,
+        scaler: GradScaler | None = None,
     ) -> None:
-        super(UNet, self).__init__(
+        super().__init__(
             criterion=criterion,
             input_size=input_size,
             n_classes=n_classes,
@@ -360,12 +360,12 @@ class UNetR(MinervaModel):
         input_size: tuple[int, ...] = (4, 256, 256),
         n_classes: int = 8,
         bilinear: bool = False,
-        scaler: Optional[GradScaler] = None,
-        backbone_weight_path: Optional[str] = None,
+        scaler: GradScaler | None = None,
+        backbone_weight_path: str | None = None,
         freeze_backbone: bool = False,
         backbone_kwargs: dict[str, Any] = {},
     ) -> None:
-        super(UNetR, self).__init__(
+        super().__init__(
             criterion=criterion,
             input_size=input_size,
             n_classes=n_classes,
