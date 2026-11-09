@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -33,17 +32,17 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "ClassTransform",
-    "PairCreate",
-    "Normalise",
     "AutoNorm",
+    "ClassTransform",
     "DetachedColorJitter",
-    "SingleLabel",
-    "ToRGB",
-    "SelectChannels",
     "MinervaCompose",
-    "SwapKeys",
+    "Normalise",
+    "PairCreate",
     "SeasonTransform",
+    "SelectChannels",
+    "SingleLabel",
+    "SwapKeys",
+    "ToRGB",
     "get_transform",
     "init_auto_norm",
     "make_transformations",
@@ -54,9 +53,10 @@ __all__ = [
 #                                                     IMPORTS
 # =====================================================================================================================
 import re
+from collections.abc import Callable, Sequence
 from copy import deepcopy
 from pathlib import Path
-from typing import Any, Callable, Literal, Optional, Sequence, cast, overload
+from typing import Any, Literal, cast, overload
 
 import hydra
 import numpy as np
@@ -196,7 +196,7 @@ class AutoNorm(Normalize):
         self,
         dataset: RasterDataset,
         length: int = 128,
-        roi: Optional[BoundingBox] = None,
+        roi: BoundingBox | None = None,
         inplace=False,
     ):
         self.dataset = dataset
@@ -264,7 +264,7 @@ class AutoNorm(Normalize):
     def _get_image_mean_std(
         self,
         filepaths: list[str],
-        band_indexes: Optional[Sequence[int]] = None,
+        band_indexes: Sequence[int] | None = None,
     ) -> tuple[list[float], list[float]]:
         stats = [self._get_meta_mean_std(fp, band_indexes) for fp in filepaths]
 
@@ -274,7 +274,7 @@ class AutoNorm(Normalize):
         return means, stds
 
     def _get_meta_mean_std(
-        self, filepath, band_indexes: Optional[Sequence[int]] = None
+        self, filepath, band_indexes: Sequence[int] | None = None
     ) -> tuple[list[float], list[float]]:
         # Open the Tiff file and get the statistics from the meta (min, max, mean, std).
         means = []
@@ -360,7 +360,7 @@ class ToRGB:
 
     """
 
-    def __init__(self, channels: Optional[tuple[int, int, int]] = None) -> None:
+    def __init__(self, channels: tuple[int, int, int] | None = None) -> None:
         self.channels = channels
 
     def __call__(self, img: Tensor) -> Tensor:
@@ -697,16 +697,16 @@ class MinervaCompose:
                 format_string += f"    {key}:"
                 for t in self.transforms[key]:
                     format_string += "\n"
-                    format_string += "        {0}".format(t)
+                    format_string += f"        {t}"
 
         elif isinstance(self.transforms, list):
             if len(self.transforms) > 1:
                 for t in self.transforms:
                     format_string += "\n"
-                    format_string += "    {0}".format(t)
+                    format_string += f"    {t}"
 
             else:
-                format_string += "{0})".format(self.transforms[0])
+                format_string += f"{self.transforms[0]})"
                 return format_string
 
         else:
@@ -892,7 +892,7 @@ def _construct_random_transforms(random_params: dict[str, Any]) -> Any:
 def init_auto_norm(
     dataset: RasterDataset,
     length: int = 128,
-    roi: Optional[BoundingBox] = None,
+    roi: BoundingBox | None = None,
     inplace=False,
 ) -> RasterDataset:
     """Uses :class:~`minerva.transforms.AutoNorm` to automatically find the mean and standard deviation of `dataset`
@@ -957,7 +957,7 @@ def get_transform(transform_params: dict[str, Any]) -> Callable[..., Any]:
 def make_transformations(
     transform_params: dict[str, Any] | Literal[False],
     change_detection: bool = False,
-) -> Optional[MinervaCompose]:
+) -> MinervaCompose | None:
     """Constructs a transform or series of transforms based on parameters provided.
 
     Args:

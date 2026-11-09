@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -40,7 +39,8 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
-from typing import Any, Callable, Iterable
+from collections.abc import Callable, Iterable
+from typing import Any
 
 from hydra.utils import get_method
 from torchgeo.datasets.utils import stack_samples

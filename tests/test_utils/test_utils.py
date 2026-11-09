@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -148,7 +147,7 @@ def test_pair_return() -> None:
     assert hasattr(dataset, "wrap") is True
 
     with pytest.raises(AttributeError):
-        getattr(dataset, "__len__")
+        dataset.__len__
 
     assert repr(dataset) == repr(FakeData(size=64))
 
@@ -327,7 +326,7 @@ def test_find_geo_similar() -> None:
     z = cmath.rect(r, phi)
     x, y = z.real, z.imag
 
-    assert np.sqrt((math.pow(x, 2) + math.pow(y, 2))) <= max_r
+    assert np.sqrt(math.pow(x, 2) + math.pow(y, 2)) <= max_r
 
     bbox = BoundingBox(10, 20, 20, 30, 1, 2)
 

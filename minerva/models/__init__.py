@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-# flake8: noqa: F401
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -34,20 +32,8 @@ __contact__ = "hjb1d20@soton.ac.uk"
 __license__ = "MIT License"
 __copyright__ = "Copyright (C) 2024 Harry Baker"
 __all__ = [
-    "FlexiSceneClassifier",
-    "FilterOutputs",
-    "MinervaBackbone",
-    "MinervaDataParallel",
-    "MinervaModel",
-    "MinervaOnnxModel",
-    "MinervaWrapper",
-    "bilinear_init",
-    "get_output_shape",
-    "get_torch_weights",
-    "is_minerva_model",
-    "is_minerva_subtype",
-    "extract_wrapped_model",
-    "wrap_model",
+    "ChangeDetector",
+    "DynamicPSP",
     "FCN8ResNet18",
     "FCN8ResNet34",
     "FCN8ResNet50",
@@ -59,16 +45,22 @@ __all__ = [
     "FCN32ResNet18",
     "FCN32ResNet34",
     "FCN32ResNet50",
-    "DynamicPSP",
+    "FilterOutputs",
+    "FlexiSceneClassifier",
+    "MinervaBackbone",
+    "MinervaDataParallel",
+    "MinervaModel",
+    "MinervaOnnxModel",
     "MinervaPSP",
     "MinervaPSPUNet",
-    "ResNetX",
+    "MinervaSiamese",
+    "MinervaWrapper",
     "ResNet18",
     "ResNet34",
     "ResNet50",
     "ResNet101",
     "ResNet152",
-    "MinervaSiamese",
+    "ResNetX",
     "SimCLR18",
     "SimCLR34",
     "SimCLR50",
@@ -85,7 +77,13 @@ __all__ = [
     "UNetR50",
     "UNetR101",
     "UNetR152",
-    "ChangeDetector",
+    "bilinear_init",
+    "extract_wrapped_model",
+    "get_output_shape",
+    "get_torch_weights",
+    "is_minerva_model",
+    "is_minerva_subtype",
+    "wrap_model",
 ]
 
 
