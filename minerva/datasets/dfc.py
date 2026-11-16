@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # Copyright (C) 2024  Harry Baker
 #
 # This program is free software: you can redistribute it and/or modify
@@ -37,9 +36,10 @@ __all__ = [
 # =====================================================================================================================
 #                                                     IMPORTS
 # =====================================================================================================================
+from collections.abc import Callable
 from glob import glob
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -98,7 +98,7 @@ class BaseSenS12MS(NonGeoDataset):
         use_s2lr=False,
         use_s1=False,
         labels=False,
-        transforms: Optional[Callable[..., Any]] = None,
+        transforms: Callable[..., Any] | None = None,
     ) -> None:
         super().__init__()
 
@@ -359,9 +359,9 @@ class DFC2020(BaseSenS12MS):
         use_s2lr=False,
         use_s1=False,
         labels=False,
-        transforms: Optional[Callable[..., Any]] = None,
+        transforms: Callable[..., Any] | None = None,
     ) -> None:
-        super(DFC2020, self).__init__(
+        super().__init__(
             root,
             split,
             use_s2hr,
@@ -396,9 +396,9 @@ class DFC2020(BaseSenS12MS):
         self,
         sample: dict[str, Tensor],
         show_titles: bool = True,
-        suptitle: Optional[str] = None,
-        classes: Optional[dict[int, str]] = None,
-        colours: Optional[dict[int, str]] = None,
+        suptitle: str | None = None,
+        classes: dict[int, str] | None = None,
+        colours: dict[int, str] | None = None,
     ) -> Figure:
         """Plot a sample from the dataset.
 
@@ -583,9 +583,9 @@ class SEN12MS(BaseSenS12MS):  # pragma: no cover
         use_s2lr=False,
         use_s1=False,
         labels=False,
-        transforms: Optional[Callable[..., Any]] = None,
+        transforms: Callable[..., Any] | None = None,
     ) -> None:
-        super(SEN12MS, self).__init__(
+        super().__init__(
             root,
             split,
             use_s2hr,
