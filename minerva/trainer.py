@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -41,9 +40,10 @@ __all__ = ["Trainer"]
 # =====================================================================================================================
 import os
 import re
+from collections.abc import Callable
 from copy import deepcopy
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Optional
+from typing import TYPE_CHECKING, Any
 
 import hydra
 import torch
@@ -78,7 +78,7 @@ from minerva.utils import universal_path, utils
 # Default time till timeout waiting for a user input in seconds.
 _timeout = 30
 _tensorflow_exist = utils.check_optional_import_exist("tensorflow")
-TENSORBOARD_WRITER: Optional[Callable[..., Any]]
+TENSORBOARD_WRITER: Callable[..., Any] | None
 try:
     TENSORBOARD_WRITER = utils._optional_import(
         "torch.utils.tensorboard.writer",
@@ -235,7 +235,7 @@ class Trainer:
         rank: int = 0,
         world_size: int = 1,
         verbose: bool = True,
-        wandb_run: Optional[Run | RunDisabled] = None,
+        wandb_run: Run | RunDisabled | None = None,
         **params,
     ) -> None:
         assert not isinstance(wandb_run, RunDisabled)
@@ -322,7 +322,7 @@ class Trainer:
             # Makes a directory for this experiment.
             utils.mkexpdir(self.params["exp_name"])
 
-        self.writer: Optional[SummaryWriter | Run] = None
+        self.writer: SummaryWriter | Run | None = None
         if self.params.get("wandb_log", False):
             # Sets the `wandb` run object (or None).
             self.writer = wandb_run
@@ -450,7 +450,7 @@ class Trainer:
         Returns:
             tuple[int, ...]: :class:`tuple` describing the input shape of the model.
         """
-        input_shape: Optional[tuple[int, ...]] = self.model.input_size  # type: ignore
+        input_shape: tuple[int, ...] | None = self.model.input_size  # type: ignore
         assert input_shape is not None
         input_size: tuple[int, ...] = (self.batch_size, *input_shape)
 
@@ -633,7 +633,7 @@ class Trainer:
             )
 
             # Conduct training or validation epoch.
-            for mode in tasks.keys():
+            for mode in tasks:
                 # Only run a validation epoch at set frequency of epochs. Goes to next epoch if not.
                 if utils.check_substrings_in_string(mode, "val"):
                     tasks[mode].model = self.model
@@ -647,7 +647,7 @@ class Trainer:
                 else:
                     self.model.eval()
 
-                results: Optional[dict[str, Any]] = tasks[mode](self.epoch_no - 1)
+                results: dict[str, Any] | None = tasks[mode](self.epoch_no - 1)
 
                 # Print epoch results.
                 if self.gpu == 0:
@@ -685,7 +685,7 @@ class Trainer:
 
                     # Create a subset of metrics for plotting model history.
                     fit_metrics: dict[str, Any] = {}
-                    for _mode in tasks.keys():
+                    for _mode in tasks:
                         fit_metrics = {**fit_metrics, **tasks[_mode].get_metrics}
 
                     fit_metrics = {
@@ -955,7 +955,7 @@ class Trainer:
                 # Saves model state dict to PyTorch file.
                 self.save_model_weights()
 
-    def save_model_weights(self, fn: Optional[str | Path] = None) -> None:
+    def save_model_weights(self, fn: str | Path | None = None) -> None:
         """Saves model state dict to :mod:`torch` file.
 
         Args:
@@ -968,7 +968,7 @@ class Trainer:
 
         torch.save(model.state_dict(), f"{fn}.pt")
 
-    def save_model(self, fn: Optional[Path | str] = None, fmt: str = "pt") -> None:
+    def save_model(self, fn: Path | str | None = None, fmt: str = "pt") -> None:
         """Saves the model object itself to :mod:`torch` file.
 
         Args:
