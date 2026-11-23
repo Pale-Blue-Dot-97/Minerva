@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # MIT License
 
 # Copyright (c) 2024 Harry Baker
@@ -51,7 +50,7 @@ from urllib3.exceptions import MaxRetryError, NewConnectionError
 try:
     from lightly.loss import NTXentLoss
 except (OSError, NewConnectionError, MaxRetryError):
-    NTXentLoss = getattr(importlib.import_module("lightly.loss"), "NTXentLoss")
+    NTXentLoss = importlib.import_module("lightly.loss").NTXentLoss
 import pytest
 from numpy.testing import assert_array_equal
 from numpy.typing import NDArray
@@ -163,7 +162,7 @@ def test_SupervisedStepLogger(
                 *supervised_torchgeo_io(
                     batch, model, device=default_device, train=train
                 ),
-            )  # type: ignore[arg-type]  # noqa: E501
+            )  # type: ignore[arg-type]
 
         logs = logger.get_logs
         assert logs["batch_num"] == std_n_batches - 1
@@ -312,7 +311,7 @@ def test_SSLStepLogger(
                 i,
                 *ssl_pair_torchgeo_io(
                     (batch, batch), model, device=default_device, train=train
-                ),  # type: ignore[arg-type]  # noqa: E501
+                ),  # type: ignore[arg-type]
             )
 
         logs = logger.get_logs
